@@ -50,6 +50,7 @@ const FIELDS = [
   { key: 'visibilitySmoothed', label: 'visibility smoothed', fmt: num(1) },
   { key: 'shadeLives', label: 'shade lives', fmt: num(0) },
   { key: 'shadeState', label: 'shade state', fmt: String },
+  { key: 'shadeGrounded', label: 'grounded', fmt: String },
   { key: 'shadePos', label: 'shade pos', fmt: vec3 },
   { key: 'shadeVel', label: 'shade vel', fmt: vec3 },
   { key: 'sep3', label: null },

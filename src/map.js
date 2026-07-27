@@ -517,10 +517,56 @@ export function buildMap({ gradientMap }) {
   // Turbine Hall block, the Loading Bay block and the perimeter.
   // -------------------------------------------------------------------------
 
+  // Vent runs are declared first: the Turbine Hall's east wall is generated
+  // around them, so a run can never end up buried inside a wall.
+  // Each runs west from the corridor into the hall at crouch height.
+  const VENT_X_EAST = -1.0;
+  const VENT_X_WEST = -13.0;
+  const ventRuns = [
+    { z: -16.0, tag: 'vent-north', piercesWall: true },
+    // This one lines up with the existing doorway, so it needs no penetration.
+    { z: -3.75, tag: 'vent-mid', piercesWall: false },
+    { z: 4.0, tag: 'vent-south', piercesWall: true },
+  ];
+  const ventHalfWidth = M.ventWidth / 2;
+  const ventGapLow = V - 0.3;
+  const ventGapHigh = V + M.ventHeight + 0.3;
+
+  // Hall east wall, segmented around the doorway and the two vent penetrations.
+  const hallWallSpans = [];
+  let cursor = -HALF_D;
+  const stops = [];
+  for (const run of ventRuns) {
+    if (!run.piercesWall) continue;
+    stops.push({ z0: run.z - ventHalfWidth - 0.05, z1: run.z + ventHalfWidth + 0.05 });
+  }
+  stops.push({ z0: -6.0, z1: -1.5, doorway: true }); // full-height opening
+  stops.sort((a, b) => a.z0 - b.z0);
+
+  for (const stop of stops) {
+    if (stop.z0 > cursor) {
+      hallWallSpans.push({ z0: cursor, z1: stop.z0, y0: G, y1: CEIL });
+    }
+    if (!stop.doorway) {
+      // Leave a vent-sized hole: wall below it and wall above it.
+      hallWallSpans.push({ z0: stop.z0, z1: stop.z1, y0: G, y1: ventGapLow });
+      hallWallSpans.push({ z0: stop.z0, z1: stop.z1, y0: ventGapHigh, y1: CEIL });
+    }
+    cursor = stop.z1;
+  }
+  if (cursor < 8.0) hallWallSpans.push({ z0: cursor, z1: 8.0, y0: G, y1: CEIL });
+
+  for (let i = 0; i < hallWallSpans.length; i++) {
+    const span = hallWallSpans[i];
+    map.addSolid({
+      min: [-6.0, span.y0, span.z0],
+      max: [-6.0 + wall, span.y1, span.z1],
+      color: P.concrete,
+      tag: `hall-east-wall-${i}`,
+    });
+  }
+
   const partitions = [
-    // Turbine Hall enclosure (west), open to the ceiling, with two doorways.
-    { min: [-6.0, G, -HALF_D], max: [-6.0 + wall, CEIL, -6.0], tag: 'hall-east-wall-n' },
-    { min: [-6.0, G, -1.5], max: [-6.0 + wall, CEIL, 8.0], tag: 'hall-east-wall-s' },
     { min: [-HALF_W, G, 8.0], max: [-6.0 + wall, CEIL, 8.0 + wall], tag: 'hall-south-wall' },
 
     // Loading Bay enclosure (east), two roller-door openings on the west face.
@@ -613,9 +659,12 @@ export function buildMap({ gradientMap }) {
 
   // Catwalks overlooking the Turbine Hall.
   const catwalks = [
-    { min: [-28.0, C - 0.25, -8.0], max: [-6.0, C, -5.6], tag: 'catwalk-north' },
-    { min: [-9.6, C - 0.25, -20.0], max: [-6.0, C, -5.6], tag: 'catwalk-east' },
+    { min: [-28.0, C - 0.25, -8.0], max: [-6.0, C, -5.0], tag: 'catwalk-north' },
+    { min: [-9.6, C - 0.25, -20.0], max: [-6.0, C, -5.0], tag: 'catwalk-east' },
     { min: [-28.0, C - 0.25, 4.0], max: [-14.0, C, 6.4], tag: 'catwalk-south' },
+    // North-south spine linking all three vent exit platforms to the catwalk
+    // network. Without it the vent runs would dead-end on isolated platforms.
+    { min: [-18.0, C - 0.25, -18.0], max: [-15.0, C, 5.2], tag: 'catwalk-spine' },
   ];
   for (const spec of catwalks) {
     map.addSolid({ ...spec, color: P.wardenGunmetal, climbable: true, castShadow: false });
@@ -660,6 +709,19 @@ export function buildMap({ gradientMap }) {
     });
   }
 
+  // A tall container in the Turbine Hall. At 3.0m its top is above the mantle
+  // band, so jumping at it fails the mantle and drops into a ledge hang
+  // (Section 6.1, and Section 16 check 6). Without a ledge in this band that is
+  // actually within reach, the hang mechanic could never be exercised.
+  map.addSolid({
+    min: [-24.0, G, -10.0],
+    max: [-21.0, G + 3.0, -7.0],
+    color: P.hazardOrange,
+    climbable: true,
+    outline: true,
+    tag: 'hall-container',
+  });
+
   // Loose vaultable crates scattered for cover and vault practice.
   const looseCrates = [
     [-20.0, 2.0, 0.9], [-24.0, -6.0, 0.7], [2.0, -18.0, 1.0],
@@ -678,15 +740,12 @@ export function buildMap({ gradientMap }) {
     });
   }
 
-  // Three vent runs. Each is a floor slab at V with side walls and no roof
-  // blocking sight from above; the interior is crouch-only by geometry, and the
-  // lip at V is a mantle from the ground floor.
-  const ventRuns = [
-    { x0: -6.0, x1: 6.4, z: -18.0, axis: 'x', tag: 'vent-north' },
-    { x0: -6.0, x1: 6.4, z: 10.0, axis: 'x', tag: 'vent-south' },
-    { x0: -13.0, x1: -6.0, z: 0.0, axis: 'x', tag: 'vent-mid' },
-  ];
+  // Build the three vent runs declared above. Each is a floor slab at V with
+  // side walls and a roof; the lip at V is a mantle up from the ground floor,
+  // and the roof makes the run crouch-only.
   for (const run of ventRuns) {
+    run.x0 = VENT_X_WEST;
+    run.x1 = VENT_X_EAST;
     const w = M.ventWidth;
     const h = M.ventHeight;
     // Floor of the run — climbable, so the entrance lip gets marked.
@@ -713,10 +772,12 @@ export function buildMap({ gradientMap }) {
       tag: `${run.tag}-wall-b`,
       castShadow: false,
     });
-    // Roof: this is what makes it crouch-only.
+    // Roof: this is what makes it crouch-only. Inset from both ends so each
+    // mouth has standing headroom — a mantle onto the lip commits at standing
+    // height, so a roof flush to the end would make the run unenterable.
     map.addSolid({
-      min: [run.x0, V + h, run.z - w / 2],
-      max: [run.x1, V + h + 0.12, run.z + w / 2],
+      min: [run.x0 + M.ventMouthLength, V + h, run.z - w / 2],
+      max: [run.x1 - M.ventMouthLength, V + h + 0.12, run.z + w / 2],
       color: P.concreteDark,
       vent: true,
       tag: `${run.tag}-roof`,
@@ -743,15 +804,14 @@ export function buildMap({ gradientMap }) {
     });
   }
 
-  // Platforms at the far end of each vent, from which the catwalk is a mantle.
-  const ventExits = [
-    { x: -9.8, z: -18.0 }, { x: -9.8, z: 10.0 }, { x: -14.6, z: 0.0 },
-  ];
-  for (let i = 0; i < ventExits.length; i++) {
-    const exit = ventExits[i];
+  // Exit platform at the west mouth of each run, level with the vent floor.
+  // It sits between the vent and the catwalk spine, so the route reads
+  // ground -> mantle 2.3 -> crouch the vent -> step out -> mantle 1.7 -> catwalk.
+  for (let i = 0; i < ventRuns.length; i++) {
+    const run = ventRuns[i];
     map.addSolid({
-      min: [exit.x, G, exit.z - 1.2],
-      max: [exit.x + 2.0, V, exit.z + 1.2],
+      min: [-15.0, G, run.z - 1.2],
+      max: [VENT_X_WEST, V, run.z + 1.2],
       color: P.concrete,
       climbable: true,
       tag: `vent-exit-platform-${i}`,

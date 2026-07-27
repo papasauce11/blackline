@@ -14,6 +14,7 @@ import { CONFIG, DEBUG, SETTINGS, rng, deriveSeed } from './config.js';
 import { Input } from './input.js';
 import { buildMap } from './map.js';
 import { classifyLedge } from './physics.js';
+import { Shade, SHADE_STATE, createIntent } from './entities/agent.js';
 import { DebugTools } from './ui/debug.js';
 
 // ---------------------------------------------------------------------------
@@ -124,6 +125,8 @@ export function computeStepPlan(accumulator, wallDelta, timeScale) {
 /** @type {DebugTools} */ let debugTools = null;
 /** @type {import('./map.js').GameMap} */ let map = null;
 /** @type {THREE.DataTexture} */ let gradientMap = null;
+/** @type {Shade} */ let shade = null;
+const shadeIntent = createIntent();
 
 const emitter = new Emitter();
 
@@ -144,6 +147,12 @@ let running = false;
 
 /** Guard for the risk-register rule: exactly one camera object, ever. */
 let camerasCreated = 0;
+
+// Spec speeds, hoisted so the AUTO checks read against the config rather than
+// against literals typed twice.
+const S_WALK = CONFIG.shade.walkSpeed;
+const S_SPRINT = CONFIG.shade.sprintSpeed;
+const S_CROUCH = CONFIG.shade.crouchSpeed;
 
 /** @type {object|null} current match state */
 let match = null;
@@ -272,6 +281,19 @@ function bootstrap() {
   debugState.collisionBoxes = map.collision.boxCount;
   debugState.mapLedges = map.ledges.length;
 
+  shade = new Shade({ collision: map.collision, gradientMap, emitter });
+  scene.add(shade.mesh);
+  scene.add(shade.groundBlob);
+  scene.add(shade.cameraRig);
+  shade.reset(map.shadeSpawns[0]);
+
+  // Section 15: reparent the one camera, never make a second one.
+  shade.cameraRig.add(camera);
+  camera.position.set(0, 0, 0);
+  camera.rotation.set(0, 0, 0);
+  freefly.enabled = false;
+  freefly.position.copy(map.shadeSpawns[0].position).setY(map.shadeSpawns[0].position.y + 1.7);
+
   input = new Input(canvas);
   canvas.addEventListener('mousedown', () => input.requestLock());
 
@@ -359,9 +381,43 @@ function stop() {
 function fixedStep(dt) {
   clock.sim += dt;
   map.update(dt);
-  freefly.step(dt);
+
+  if (freefly.enabled) {
+    freefly.step(dt);
+  } else {
+    shade.step(dt, readShadeIntent());
+  }
+
   emitter.emit('sim:step', dt);
   if (DEBUG) debugTools.step();
+}
+
+/**
+ * Translate raw input into the controller's intent object. Reusing one object
+ * keeps the fixed step allocation-free. Edge flags are true only on the first
+ * step of a frame, because input.clearEdges() runs after each step.
+ */
+function readShadeIntent() {
+  shadeIntent.forward = input.axis('back', 'forward');
+  shadeIntent.strafe = input.axis('left', 'right');
+  shadeIntent.jump = input.down('jump');
+  shadeIntent.jumpPressed = input.pressed('jump');
+  shadeIntent.crouch = input.down('crouch');
+  shadeIntent.crouchPressed = input.pressed('crouch');
+  shadeIntent.sprint = input.down('sprint');
+  return shadeIntent;
+}
+
+/**
+ * Move the one camera between the freefly rig and the Shade's third-person rig.
+ * Reparent only — this never constructs a camera (Section 15).
+ */
+function setCameraOwner(useFreefly) {
+  const parent = useFreefly ? scene : shade.cameraRig;
+  if (camera.parent === parent) return;
+  parent.add(camera);
+  camera.position.set(0, 0, 0);
+  camera.rotation.set(0, 0, 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -433,7 +489,13 @@ function frame(now) {
 
   // Mouse delta is a displacement, not a rate, so look is applied once per
   // frame rather than once per fixed step.
-  freefly.look();
+  setCameraOwner(freefly.enabled);
+  if (freefly.enabled) {
+    freefly.look();
+  } else if (input.locked) {
+    const delta = input.lookDelta();
+    shade.look(delta.yaw, delta.pitch);
+  }
   emitter.emit('frame:begin', { wallDelta, input });
 
   const plan = computeStepPlan(accumulator, wallDelta, clock.timeScale);
@@ -445,7 +507,8 @@ function frame(now) {
   debugState.stepsPerFrame = plan.steps;
 
   const alpha = accumulator / plan.dt;
-  freefly.apply();
+  if (freefly.enabled) freefly.apply();
+  else shade.updateVisual(wallDelta);
   emitter.emit('frame:render', { alpha, wallDelta });
 
   const cpuStart = performance.now();
@@ -454,7 +517,11 @@ function frame(now) {
   debugState.drawCalls = renderer.info.render.calls;
   debugState.triangles = renderer.info.render.triangles;
   debugState.rngCalls = rng.calls;
-  debugState.cameraPos = camera.position;
+  debugState.shadeState = shade.state + (shade.crouching ? ' (crouch)' : '');
+  debugState.shadePos = shade.position;
+  debugState.shadeVel = shade.velocity;
+  debugState.shadeLives = shade.lives;
+  debugState.shadeGrounded = shade.grounded ? 'yes' : 'no';
 
   debugTools.update(wallDelta, wallDelta * 1000);
   input.endFrame();
@@ -490,6 +557,32 @@ function registerDebugAssertions() {
   debugTools.registerAssertion('time-scale-valid', () =>
     Number.isFinite(clock.timeScale) && clock.timeScale > 0 ? null : `time scale is ${clock.timeScale}`
   );
+
+  // Section 17: "Player Y is never below the floor plane minus 0.5" and
+  // "Position and velocity never contain NaN".
+  debugTools.registerAssertion('shade-above-floor', () => {
+    const limit = CONFIG.map.groundY - CONFIG.debug.floorTolerance;
+    return shade.feetY < limit ? `shade feet at y=${shade.feetY.toFixed(3)}, floor limit ${limit}` : null;
+  });
+
+  debugTools.registerAssertion('shade-finite', () => {
+    const p = shade.position;
+    const v = shade.velocity;
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z)) {
+      return `position contains NaN (${p.x}, ${p.y}, ${p.z})`;
+    }
+    if (!Number.isFinite(v.x) || !Number.isFinite(v.y) || !Number.isFinite(v.z)) {
+      return `velocity contains NaN (${v.x}, ${v.y}, ${v.z})`;
+    }
+    return null;
+  });
+
+  debugTools.registerAssertion('shade-state-valid', () => {
+    for (const key of Object.keys(SHADE_STATE)) {
+      if (SHADE_STATE[key] === shade.state) return null;
+    }
+    return `shade in unknown state "${shade.state}"`;
+  });
 
   debugTools.registerAssertion('single-camera', () => {
     let count = 0;
@@ -928,6 +1021,316 @@ function registerAutoTests() {
   });
 
   debugTools.registerAutoTest({
+    id: 'shade-invariants-under-fuzz',
+    spec: 'Section 17 / phase 3 exit gate',
+    name: 'Seeded random input never produces NaN or puts the Shade below the floor',
+    run: (h) => {
+      const restoreSeed = rng.seed;
+      rng.reseed(0xf0f0f0);
+
+      const intent = createIntent();
+      const dt = CONFIG.time.fixedDt;
+      const steps = 7200; // two simulated minutes
+      const limit = CONFIG.map.groundY - CONFIG.debug.floorTolerance;
+
+      let nan = 0;
+      let belowFloor = 0;
+      let badState = 0;
+      let minFeet = Infinity;
+      let maxSpeed = 0;
+      const visited = new Set();
+      const validStates = Object.keys(SHADE_STATE).map((k) => SHADE_STATE[k]);
+
+      // Start from each spawn in turn so the fuzz covers the whole map.
+      for (let spawnIndex = 0; spawnIndex < h.map.shadeSpawns.length; spawnIndex++) {
+        h.shade.reset(h.map.shadeSpawns[spawnIndex]);
+
+        for (let i = 0; i < steps / h.map.shadeSpawns.length; i++) {
+          // Re-roll the intent occasionally so the Shade commits to a direction
+          // long enough to actually reach geometry and attempt traversal.
+          if (i % 12 === 0) {
+            intent.forward = rng.int(-1, 1);
+            intent.strafe = rng.int(-1, 1);
+            intent.sprint = rng.chance(0.45);
+            intent.crouch = rng.chance(0.25);
+            h.shade.look(rng.unit() * 0.9, rng.unit() * 0.25);
+          }
+          intent.jumpPressed = rng.chance(0.06);
+          intent.crouchPressed = rng.chance(0.05);
+          intent.jump = intent.jumpPressed;
+
+          h.shade.step(dt, intent);
+
+          const p = h.shade.position;
+          const v = h.shade.velocity;
+          if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z)) nan++;
+          if (!Number.isFinite(v.x) || !Number.isFinite(v.y) || !Number.isFinite(v.z)) nan++;
+          if (h.shade.feetY < limit) belowFloor++;
+          if (validStates.indexOf(h.shade.state) === -1) badState++;
+          minFeet = Math.min(minFeet, h.shade.feetY);
+          maxSpeed = Math.max(maxSpeed, h.shade.speed);
+          visited.add(h.shade.state);
+        }
+      }
+
+      rng.reseed(restoreSeed);
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      return {
+        pass: nan === 0 && belowFloor === 0 && badState === 0,
+        detail: `${steps} steps: ${nan} NaN, ${belowFloor} below floor, ${badState} bad states, lowest feet y=${minFeet.toFixed(3)} (limit ${limit}), peak speed ${maxSpeed.toFixed(2)}m/s, states seen [${[...visited].join(' ')}]`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'parkour-safety-gate',
+    spec: 'Section 6.1 / check 4',
+    name: 'A traversal move into blocked space is refused, leaving state untouched',
+    run: (h) => {
+      h.shade.reset(h.map.shadeSpawns[0]);
+      const stateBefore = h.shade.state;
+      const posBefore = h.shade.position.clone();
+
+      // A destination buried inside the west perimeter wall.
+      const blocked = { x: -30.2, y: 1.0, z: 0 };
+      const refused = h.shade._commitMove(SHADE_STATE.MANTLE, blocked, 0.5, CONFIG.shade.standHeight) === false;
+      const unchanged =
+        h.shade.state === stateBefore &&
+        h.shade.position.distanceTo(posBefore) < 1e-9 &&
+        h.shade._move === null;
+
+      // And a clear destination is accepted, so the gate is not simply always
+      // saying no.
+      const clear = { x: -18, y: CONFIG.shade.standHeight / 2 + 0.1, z: -4 };
+      const accepted = h.shade._commitMove(SHADE_STATE.MANTLE, clear, 0.5, CONFIG.shade.standHeight) === true;
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      return {
+        pass: refused && unchanged && accepted,
+        detail: `blocked destination refused=${refused}, state/position untouched=${unchanged}, clear destination accepted=${accepted}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'failed-mantle-becomes-hang',
+    spec: 'Section 6.1 / check 6',
+    name: 'A ledge above the mantle band triggers a hang; pull up and drop both work',
+    run: (h) => {
+      const container = h.map.collision.boxes.find((box) => box.tag === 'hall-container');
+      if (!container) return { pass: false, detail: 'hall-container missing from the map' };
+
+      const approach = () => {
+        h.shade.reset(h.map.shadeSpawns[0]);
+        // Airborne just off the container's east face, facing into it.
+        // Feet at 0.5 so the 3.0m top is a 2.5m rise — above the mantle band.
+        h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, -8.5);
+        h.shade.velocity.set(0, 0, 0);
+        h.shade.yaw = Math.PI / 2; // face -X, into the container
+        h.shade.state = SHADE_STATE.AIR;
+      };
+
+      approach();
+      const ledge = h.shade._probeLedge(CONFIG.shade.mantleReach);
+      const grabbed = h.shade._tryMantle();
+      const hangState = h.shade.state;
+      const hangClear = h.map.collision.isClear(h.shade.position, h.shade.half);
+      const hangFeet = h.shade.feetY;
+
+      // Pull up with jump.
+      const intent = createIntent();
+      intent.jumpPressed = true;
+      h.shade.step(CONFIG.time.fixedDt, intent);
+      const pullingUp = h.shade.state === SHADE_STATE.PULLUP;
+      for (let i = 0; i < 90; i++) h.shade.step(CONFIG.time.fixedDt, createIntent());
+      const onTop = h.shade.feetY > container.max.y - 0.25;
+      const topClear = h.map.collision.isClear(h.shade.position, h.shade.half);
+
+      // Drop with crouch.
+      approach();
+      h.shade._tryMantle();
+      const dropIntent = createIntent();
+      dropIntent.crouchPressed = true;
+      h.shade.step(CONFIG.time.fixedDt, dropIntent);
+      const dropped = h.shade.state === SHADE_STATE.AIR;
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      const pass =
+        ledge !== null && ledge.band === 'hang' && grabbed && hangState === SHADE_STATE.HANG &&
+        hangClear && pullingUp && onTop && topClear && dropped;
+      return {
+        pass,
+        detail: `band=${ledge ? ledge.band : 'none'} rise=${ledge ? ledge.rise.toFixed(2) : '-'}, hang state=${hangState} clear=${hangClear} feetY=${hangFeet.toFixed(2)}, pullup entered=${pullingUp} landed on top=${onTop} clear=${topClear}, crouch drop=${dropped}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'sprint-vault-clears-a-crate',
+    spec: 'Section 6.1 / check 2',
+    name: 'Sprinting into a vault-band crate vaults it and lands clean on top',
+    run: (h) => {
+      const crate = h.map.collision.boxes.find((box) => box.tag === 'stack-hall-low');
+      if (!crate) return { pass: false, detail: 'stack-hall-low missing from the map' };
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.shade.position.set(
+        (crate.min.x + crate.max.x) / 2,
+        CONFIG.shade.standHeight / 2 + 0.05,
+        crate.min.z - 1.4
+      );
+      h.shade.yaw = Math.PI; // face +Z, into the crate
+      h.shade.state = SHADE_STATE.GROUND;
+
+      const intent = createIntent();
+      intent.forward = 1;
+      intent.sprint = true;
+
+      // Stop sampling the instant the vault resolves, otherwise the held sprint
+      // carries the Shade across the map and "landed clean" proves nothing.
+      let entered = false;
+      let landedFeet = null;
+      let landedZ = null;
+      let landedClear = false;
+      for (let i = 0; i < 200; i++) {
+        h.shade.step(CONFIG.time.fixedDt, intent);
+        if (h.shade.state === SHADE_STATE.VAULT) {
+          entered = true;
+        } else if (entered) {
+          landedFeet = h.shade.feetY;
+          landedZ = h.shade.position.z;
+          landedClear = h.map.collision.isClear(h.shade.position, h.shade.half);
+          break;
+        }
+      }
+
+      const rise = crate.max.y - CONFIG.map.groundY;
+      const band = classifyLedge(rise);
+      // Landed on top of the crate, not inside it and not back on the floor.
+      const onTop = landedFeet !== null && Math.abs(landedFeet - crate.max.y) < 0.25;
+      const pastEdge = landedZ !== null && landedZ > crate.min.z;
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      return {
+        pass: band === 'vault' && entered && landedClear && onTop && pastEdge,
+        detail: `crate rise ${rise.toFixed(2)}m (${band}) top y=${crate.max.y.toFixed(2)}, vault entered=${entered}, landed feetY=${landedFeet === null ? 'n/a' : landedFeet.toFixed(3)} z=${landedZ === null ? 'n/a' : landedZ.toFixed(2)} (crate z ${crate.min.z}..${crate.max.z}), capsule clear=${landedClear}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'vent-runs-are-crouch-only-and-enterable',
+    spec: 'Section 5 / check 5',
+    name: 'Both vent mouths admit a standing mantle; mid-run fits crouched only',
+    run: (h) => {
+      const V = CONFIG.map.ventFloorY;
+      const standHalf = { x: CONFIG.shade.radius, y: CONFIG.shade.standHeight / 2, z: CONFIG.shade.radius };
+      const crouchHalf = { x: CONFIG.shade.radius, y: CONFIG.shade.crouchHeight / 2, z: CONFIG.shade.radius };
+      const problems = [];
+
+      for (const vent of h.map.vents) {
+        const z = (vent.min.z + vent.max.z) / 2;
+        const midX = (vent.min.x + vent.max.x) / 2;
+        const at = (x, half, height) =>
+          h.map.collision.isClear({ x, y: V + height / 2 + 0.02, z }, half);
+
+        // Mantling onto the lip commits a STANDING capsule, so both mouths must
+        // clear standing height or the run can never be entered.
+        if (!at(vent.min.x + 0.5, standHalf, CONFIG.shade.standHeight)) problems.push(`${vent.tag} west mouth blocked standing`);
+        if (!at(vent.max.x - 0.5, standHalf, CONFIG.shade.standHeight)) problems.push(`${vent.tag} east mouth blocked standing`);
+        // Mid-run must be crouch-only.
+        if (at(midX, standHalf, CONFIG.shade.standHeight)) problems.push(`${vent.tag} mid-run allows standing`);
+        if (!at(midX, crouchHalf, CONFIG.shade.crouchHeight)) problems.push(`${vent.tag} mid-run blocks crouching`);
+      }
+
+      // And the traversal chain heights must land in the spec bands.
+      const lipRise = V - CONFIG.map.groundY;
+      const spine = h.map.collision.boxes.find((box) => box.tag === 'catwalk-spine');
+      const spineRise = spine ? spine.max.y - V : -1;
+      if (classifyLedge(lipRise) !== 'mantle') problems.push(`vent lip rise ${lipRise} is not a mantle`);
+      if (classifyLedge(spineRise) !== 'mantle') problems.push(`platform to catwalk rise ${spineRise} is not a mantle`);
+
+      return {
+        pass: problems.length === 0,
+        detail:
+          problems.length === 0
+            ? `${h.map.vents.length} runs crouch-only and enterable; chain ground -> lip ${lipRise.toFixed(2)}m (mantle) -> platform -> catwalk ${spineRise.toFixed(2)}m (mantle)`
+            : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'shade-speeds-match-spec',
+    spec: 'Section 6.1',
+    name: 'Walk, crouch and sprint settle at the spec speeds',
+    run: (h) => {
+      const dt = CONFIG.time.fixedDt;
+      const intent = createIntent();
+
+      const settle = (sprint, crouch) => {
+        // A long clear lane down the west edge of the Turbine Hall: 26m of
+        // open floor before the south wall, well past what a 2s sprint covers.
+        h.shade.reset(h.map.shadeSpawns[0]);
+        h.shade.position.set(-27, CONFIG.shade.standHeight / 2 + 0.05, -18);
+        h.shade.yaw = Math.PI; // +Z, along the hall
+        intent.forward = 1;
+        intent.strafe = 0;
+        intent.sprint = sprint;
+        intent.crouch = crouch;
+        intent.jumpPressed = false;
+        intent.crouchPressed = false;
+        for (let i = 0; i < 120; i++) h.shade.step(dt, intent);
+        return h.shade.speed;
+      };
+
+      const walk = settle(false, false);
+      const sprint = settle(true, false);
+      const crouch = settle(false, true);
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      const near = (value, target) => Math.abs(value - target) < 0.15;
+      const pass = near(walk, S_WALK) && near(sprint, S_SPRINT) && near(crouch, S_CROUCH);
+      return {
+        pass,
+        detail: `walk ${walk.toFixed(2)}/${S_WALK}, sprint ${sprint.toFixed(2)}/${S_SPRINT}, crouch ${crouch.toFixed(2)}/${S_CROUCH} m/s`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'crouch-blocked-under-vent-roof',
+    spec: 'Section 6.1 / check 5',
+    name: 'Standing up inside a vent is refused rather than pushing through the roof',
+    run: (h) => {
+      const vent = h.map.vents[0];
+      const midX = (vent.min.x + vent.max.x) / 2;
+      const midZ = (vent.min.z + vent.max.z) / 2;
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+      // Place the crouched capsule on the vent floor, under the roof.
+      h.shade.height = CONFIG.shade.crouchHeight;
+      h.shade.half.y = h.shade.height / 2;
+      h.shade.crouching = true;
+      h.shade.position.set(midX, vent.min.y + h.shade.half.y + 0.02, midZ);
+
+      const fitsCrouched = h.map.collision.isClear(h.shade.position, h.shade.half);
+      const stood = h.shade._resize(CONFIG.shade.standHeight);
+      const stillCrouchHeight = Math.abs(h.shade.height - CONFIG.shade.crouchHeight) < 1e-9;
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      return {
+        pass: fitsCrouched && stood === false && stillCrouchHeight,
+        detail: `crouched capsule fits vent=${fitsCrouched}, stand-up refused=${stood === false}, height unchanged=${stillCrouchHeight}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
     id: 'match-state-rebuilt-on-init',
     spec: 'Section 15 (state bleed)',
     name: 'initMatch rebuilds match state from the defaults factory',
@@ -981,6 +1384,9 @@ const harness = {
   },
   get map() {
     return map;
+  },
+  get shade() {
+    return shade;
   },
   get freefly() {
     return freefly;

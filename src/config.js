@@ -659,9 +659,20 @@ export const CONFIG = {
     mantleBand: [1.2, 2.4],
     hangBand: [2.4, 4.2],
 
-    /** Vent runs are crouch-only and silent. */
-    ventHeight: 1.0,
+    /**
+     * Vent runs are crouch-only and silent. Interior height must clear the
+     * crouch capsule (1.05m) but not the standing one (1.85m), or the run is
+     * impassable rather than crouch-only.
+     */
+    ventHeight: 1.15,
     ventWidth: 1.1,
+    /**
+     * The roof is inset this far from each end, so the mouth of a run has full
+     * standing headroom. Without it a mantle onto the vent lip can never commit
+     * — the destination capsule is standing height and would not fit — and the
+     * vents would be unreachable.
+     */
+    ventMouthLength: 1.3,
 
     /** Counts, asserted at build time so the map cannot silently drift. */
     destructibleLightCount: 12,

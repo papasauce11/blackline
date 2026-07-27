@@ -304,9 +304,123 @@ high-contrast language Section 4 asks for, and the freefly feel.
 
 ### Exact next action
 
-Phase 3 — `src/entities/agent.js`. The Shade controller: gravity, crouch,
-sprint, vault, mantle, slide, ledge hang, and the collision-aware third-person
-camera rig. Every parkour move must validate its destination capsule with
-`collision.isClear()` before committing and abort back to the previous state on
-a block. Register AUTO checks for: no NaN in position or velocity, Y never below
-the floor plane minus 0.5, and a blocked mantle aborting rather than clipping.
+Phase 3 — the Shade controller. **Done, see below.**
+
+---
+
+## Phase 3 — Shade controller  ⟵ CHECKPOINT
+
+**Status:** complete. Tagged `phase-03`.
+
+### What was built
+
+- **`src/entities/agent.js`** — the Shade. A seven-state machine (GROUND, AIR,
+  SLIDE, VAULT, MANTLE, HANG, PULLUP) driven from the fixed step by an `intent`
+  object rather than by reading input directly, which is what makes it
+  headlessly fuzzable. Gravity with terminal velocity, ground/air acceleration
+  and friction, coyote time and jump buffering, crouch with validated stand-up,
+  sprint, slide, vault, mantle, ledge hang with pull-up and drop, procedural
+  limb animation, ground blob, and the collision-aware third-person camera rig.
+- **`main.js`** — Shade wiring, intent translation from input, `setCameraOwner()`
+  reparenting between the freefly rig and the Shade rig, three new runtime
+  assertions and seven new AUTO checks.
+
+### Parkour safety rule
+
+`_commitMove()` is the only path into VAULT, MANTLE or PULLUP. It calls
+`collision.isClear()` on the destination capsule and returns false without
+touching state if blocked, so a refused move leaves position, velocity and state
+exactly as they were. `_tryHang()` validates its own destination the same way.
+`_resize()` validates headroom before growing, so standing up inside a vent
+fails rather than pushing the player through the roof. Verified by
+`parkour-safety-gate` and `crouch-blocked-under-vent-roof`.
+
+Ledge detection calls the same `classifyLedge()` map.js used to place the
+stripes, so what is marked is exactly what is climbable.
+
+### Phase 2 bugs that Phase 3 exposed (and I fixed)
+
+Building the controller made three latent map errors visible:
+
+1. **The vent runs were unusable.** They spanned x -6..6.4, which starts inside
+   the Turbine Hall's east wall, and their exit platforms were at x ≈ -9.8 to
+   -14.6 on the far side — so they connected nothing and could not be entered.
+   Rebuilt: three runs from x -13 (hall) to x -1 (corridor), with the hall east
+   wall now **generated around them** from the same run list, so a vent can
+   never again end up buried in a wall. Added a `catwalk-spine` linking all
+   three exit platforms into the catwalk network.
+2. **`ventHeight` was 1.0m but `crouchHeight` is 1.05m** — the vents were
+   impassable, not crouch-only. Raised to 1.15m. Also inset the roof 1.3m from
+   each mouth (`ventMouthLength`): a mantle commits at *standing* height, so a
+   roof flush to the end made the lip unmantle-able and the run unreachable.
+3. **No hang-band ledge was actually reachable.** The only hang-band edges were
+   catwalks at 4.0m, whose faces sit above the probe range, so check 6 could
+   never fire. Added `hall-container` (3.0m) in the Turbine Hall — jumping at it
+   fails the mantle and drops into a hang, which is now tested end to end.
+
+### Files touched
+
+```
+src/entities/agent.js  (new)
+src/main.js            (Shade wiring, camera reparenting, assertions, 7 AUTO checks)
+src/map.js             (vent rebuild, hall wall generation, catwalk spine, container)
+src/config.js          (ventHeight, ventMouthLength)
+src/ui/debug.js        (grounded field)
+```
+
+### Deviations from spec
+
+8. **Freefly is retained but disabled.** It is the Phase 2 verification tool and
+   still useful for map inspection. Re-enable from the console with
+   `BLACKLINE.freefly.enabled = true`. No new keybinding was invented for it.
+9. **`hall-container` and `catwalk-spine` are geometry the spec does not list.**
+   Both were added to make spec'd mechanics reachable (ledge hang; vents
+   reaching the catwalks) rather than to add content.
+
+### Known issues
+
+- The fuzz run reaches GROUND, AIR and SLIDE but never randomly triggers VAULT,
+  MANTLE or HANG — random input rarely lines a sprint up square with a ledge.
+  Those three have dedicated deterministic tests instead, but they are not
+  covered by the fuzz.
+- Camera pull-out smoothing uses a fixed 1/60 rate rather than the real frame
+  delta. Snap-in is immediate (correct); ease-out is very slightly frame-rate
+  dependent. Cosmetic.
+- No noise emission yet (Phase 5). `strideDistance` and `landedFallHeight` are
+  tracked and ready for it.
+- Section 4.2 rim-light feedback is Phase 5, as scheduled. The Shade currently
+  uses plain `MeshToonMaterial`.
+
+### Verification actually performed
+
+**AUTO suite: 21 passed, 0 failed.** Run in a real browser. Zero console errors
+and zero warnings on a fresh tab. Seven checks are new this phase:
+
+```
+PASS  shade-invariants-under-fuzz  | 7200 steps: 0 NaN, 0 below floor, 0 bad states, lowest feet y=0.001 (limit -0.5), peak speed 8.00m/s, states seen [ground air slide]
+PASS  parkour-safety-gate          | blocked destination refused=true, state/position untouched=true, clear destination accepted=true
+PASS  failed-mantle-becomes-hang   | band=hang rise=2.50, hang state=hang clear=true feetY=1.65, pullup entered=true landed on top=true clear=true, crouch drop=true
+PASS  sprint-vault-clears-a-crate  | crate rise 1.00m (vault) top y=1.00, vault entered=true, landed feetY=1.120 z=-11.36 (crate z -12..-9.8), capsule clear=true
+PASS  vent-runs-are-crouch-only-and-enterable | 3 runs crouch-only and enterable; chain ground -> lip 2.30m (mantle) -> platform -> catwalk 1.70m (mantle)
+PASS  shade-speeds-match-spec      | walk 3.50/3.5, sprint 6.50/6.5, crouch 1.60/1.6 m/s
+PASS  crouch-blocked-under-vent-roof | crouched capsule fits vent=true, stand-up refused=true, height unchanged=true
+```
+
+The phase-3 exit gate is `shade-invariants-under-fuzz`: two simulated minutes of
+seeded random input across all four spawns, **0 NaN, 0 frames below the floor,
+0 invalid states**, lowest feet position y=0.001 against a limit of -0.5.
+
+### Not verified (needs a human)
+
+Still nothing visual. The browser pane never composited, so
+`requestAnimationFrame` never ran. **I have never seen this game rendered.**
+Unverified: how any of it looks, and — importantly — how the movement *feels*,
+which no assertion can measure.
+
+### Exact next action
+
+Phase 4 — `src/entities/enforcer.js`. The Warden first-person controller,
+written as a shared controller driven by an intent object so the AI (Phase 6)
+and the free-roam human (Phase 12) feed the same interface. Exit gate: swapping
+the camera between Shade and Warden leaks no state — reuse `setCameraOwner()`
+and assert the camera count stays at 1 and FOV is restored.
