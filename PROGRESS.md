@@ -704,9 +704,84 @@ Clearance spot-checks on the new route: office doorway, office interior, cross
 walkway, both stair tops, catwalk-north, the vault landing, the vault entrance
 and site C all admit a standing Warden capsule.
 
+---
+
+## REQUESTED: Meridian Substation v2 — map redesign (do this BEFORE Phase 5)
+
+Josh requested this after Phase 4. It is a redesign of `map.js`, not a tweak: it
+changes the vertical layout, the building shell, the spawn model and every
+traversal chain. **Not started** — flagged rather than half-built.
+
+### Requirements, verbatim intent
+
+1. **Raise level 2 / higher ceilings on level 1.** Level 1 currently has 4.0m to
+   the catwalk deck, which is cramped.
+2. **Level 2 is ONE level the Warden can roam entirely.** Today the upper floor
+   is fragments — catwalks, offices and the vault — stitched by a cross walkway
+   and two staircases. It must become a single connected deck.
+3. **The Shade starts OUTSIDE the building.** All Shade spawns move to an
+   exterior area; the building becomes a shell to infiltrate.
+4. **More stairless routes between levels for the Shade.** Vents, mantle chains,
+   drop shafts — the Shade should never need the Warden's stairs.
+5. **Every room has more than one Shade entry.** No single-door rooms.
+
+### Layout plan
+
+**Heights** (`CONFIG.map`): `catwalkY` 4.0 → **6.0**, `ceilingY` 8.0 → **11.0**.
+Level 1 gains ~2m of headroom; level 2 gets 5.0m. Consequences to work through:
+
+- `stairSteps` must rise 6.0 now. At the 0.32/0.35 step-up ceiling, 20 steps of
+  0.30m over 8.0m of run. Both staircases need the extra run length.
+- The Shade's chain to level 2 no longer fits one hop: 6.0m is above `hangBand`
+  max (4.2), so **intermediate platforms are mandatory**. Target chain:
+  ground → 1.0 (vault) → 2.3 (mantle) → 4.0 (mantle) → 6.0 (mantle).
+- Vent runs want two tiers: keep one at 2.3, add one at 4.3.
+- Light fixture heights, the shadow frustum (`CONFIG.render.shadowFrustum`) and
+  fog density all key off the old ceiling and need re-checking.
+
+**Level 2 as one deck.** Lay a continuous floor plate at y=6.0 over the whole
+footprint, then subtract voids — over the Turbine Hall (so the catwalks still
+overlook it) and over the shaft. Walk the perimeter to confirm the remaining
+plate is one connected region. This replaces the current fragment-plus-walkway
+approach, which is what forced the 0.4m doorway bug.
+
+**Exterior.** Extend the ground plane to roughly 80×65 and make the current
+perimeter walls a building shell with multiple breaches: the two roller doors,
+at least two vent mouths at grade, and a roof/upper entry. Move all four Shade
+insert points outside; keep the four Warden spawns inside.
+
+### AUTO checks to write alongside it
+
+These make the requirements enforceable rather than aspirational, in the same
+spirit as `climbable-surfaces-are-derived-not-hand-flagged`:
+
+- `warden-upper-deck-fully-connected` — flood-fill the walkable upper surface
+  from one stair top on a coarse grid; assert every upper waypoint and every
+  upper room centre is reached. This is requirement 2, and it is the one most
+  likely to silently regress.
+- `shade-spawns-are-outside-the-shell` — assert every Shade spawn lies beyond
+  the building footprint, and that each has a clear standing capsule.
+- `shade-reaches-level-2-without-stairs` — drive the Shade up a non-stair chain
+  and assert it reaches y=6.0; explicitly exclude staircase boxes from the
+  route.
+- `every-room-has-two-entries` — declare rooms with their entry apertures in the
+  map data; assert each has ≥2 that admit a Shade capsule. Derive from geometry
+  where possible so it cannot drift.
+- Existing `warden-can-walk-between-floors` and `spawns-and-sites-clear` must
+  keep passing.
+
+### Risk
+
+The current 29-check suite pins a lot of this map's geometry (ledge bands, vent
+clearances, the container-to-spine vault, spawn clearances). Expect several to
+fail during the rework — that is the suite doing its job. Re-derive rather than
+loosen the assertions.
+
+---
+
 ### Exact next action
 
-Phase 5 —
+The v2 map redesign above, then Phase 5 —
 `systems/detection.js`: light sampling on a 100ms tick with a 5-ray cap and an
 explicit cache invalidate on light break, the visibility meter, the Section 4.2
 rim-light feedback on the Shade, and noise emitters.
