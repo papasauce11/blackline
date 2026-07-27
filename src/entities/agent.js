@@ -409,21 +409,42 @@ export class Shade {
     return true;
   }
 
+  /**
+   * Commit a climb onto a ledge, preferring to arrive standing but falling back
+   * to crouched when the space above the ledge is low.
+   *
+   * Without the fallback a ledge with a low ceiling — a vent lip, anything under
+   * a catwalk — is silently unclimbable: the destination capsule is standing
+   * height, it does not fit, and the move aborts with no feedback.
+   */
+  _climbOnto(state, ledge, duration) {
+    const heights = [S.standHeight, S.crouchHeight];
+    for (let i = 0; i < heights.length; i++) {
+      const destination = this._ledgeDestination(ledge, heights[i]);
+      if (this._commitMove(state, destination, duration, heights[i])) return true;
+    }
+    return false;
+  }
+
   _tryVault() {
     const ledge = this._probeLedge(S.vaultReach);
     if (!ledge || ledge.band !== 'vault') return false;
-    const destination = this._ledgeDestination(ledge, this.height);
-    return this._commitMove(SHADE_STATE.VAULT, destination, S.vaultDuration, this.height);
+    return this._climbOnto(SHADE_STATE.VAULT, ledge, S.vaultDuration);
   }
 
   _tryMantle() {
     const ledge = this._probeLedge(S.mantleReach);
     if (!ledge) return false;
 
-    if (ledge.band === 'mantle') {
-      const destination = this._ledgeDestination(ledge, this.height);
-      if (this._commitMove(SHADE_STATE.MANTLE, destination, S.mantleDuration, this.height)) return true;
-      // Blocked mantle. Section 6.1: fall back to a hang rather than clipping.
+    // Vault-band ledges climb from the air too. A sprint is not always
+    // available — on top of a crate there is no room to build speed — and
+    // without this a 0.4m to 1.2m ledge cannot be climbed at all except by
+    // running at it, which strands the player on small platforms.
+    if (ledge.band === 'vault' || ledge.band === 'mantle') {
+      const duration = ledge.band === 'vault' ? S.vaultDuration : S.mantleDuration;
+      const state = ledge.band === 'vault' ? SHADE_STATE.VAULT : SHADE_STATE.MANTLE;
+      if (this._climbOnto(state, ledge, duration)) return true;
+      // Blocked. Section 6.1: fall back to a hang rather than clipping.
       return this._tryHang(ledge);
     }
 
@@ -464,6 +485,9 @@ export class Shade {
     this._hangTimer += dt;
     if (this._hangTimer < S.hangInputGrace) return;
 
+    // Shimmy sideways along the ledge.
+    if (intent.strafe) this._shimmy(dt, intent.strafe, ledge);
+
     // Pull up with jump, drop with crouch (Section 6.1).
     //
     // These read the HELD key, not a fresh press. A hang is entered mid-jump
@@ -471,13 +495,21 @@ export class Shade {
     // wait for a keypress the player has no reason to make — they are already
     // holding it. Same for crouch.
     if (intent.jump || intent.jumpPressed) {
-      const destination = this._ledgeDestination(ledge, this.height);
-      if (this._commitMove(SHADE_STATE.PULLUP, destination, S.hangPullUpDuration, this.height)) {
+      if (this._climbOnto(SHADE_STATE.PULLUP, ledge, S.hangPullUpDuration)) {
         this._hangLedge = null;
         return;
       }
-      // Blocked pull-up aborts and leaves us hanging, which is the correct
-      // "return to the previous state" behaviour.
+      // The stored ledge was probed at grab time and can go stale — after a
+      // shimmy, or if the grab landed on an awkward corner. Re-probe from where
+      // we actually are before giving up, so a pull-up never silently does
+      // nothing while the player hammers jump.
+      const fresh = this._probeLedge(S.mantleReach);
+      if (fresh && this._climbOnto(SHADE_STATE.PULLUP, fresh, S.hangPullUpDuration)) {
+        this._hangLedge = null;
+        return;
+      }
+      // Genuinely blocked: stay hanging, which is the correct "return to the
+      // previous state" behaviour.
     }
 
     if (intent.crouch || intent.crouchPressed) {
@@ -486,6 +518,38 @@ export class Shade {
       this.velocity.set(0, 0, 0);
       this._beginFall();
     }
+  }
+
+  /**
+   * Move sideways along a grabbed ledge. Refuses to move unless the body still
+   * fits AND the ledge actually continues at the destination, so you cannot
+   * shimmy off the end of an edge into thin air.
+   */
+  _shimmy(dt, direction, ledge) {
+    // Lateral axis is perpendicular to the ledge's approach direction.
+    const latX = -ledge.dirZ;
+    const latZ = ledge.dirX;
+    const distance = S.hangShimmySpeed * dt * direction;
+
+    const x = this.position.x + latX * distance;
+    const z = this.position.z + latZ * distance;
+
+    if (!this.collision.isClear({ x, y: this.position.y, z }, this.half)) return;
+
+    // The ledge must still be there to hold on to.
+    const origin = { x, y: ledge.topY - 0.15, z };
+    const hit = this.collision.raycast(
+      origin,
+      { x: ledge.dirX, y: 0, z: ledge.dirZ },
+      this.half.x + 0.5
+    );
+    if (!hit || !hit.box.climbable) return;
+    if (Math.abs(hit.box.max.y - ledge.topY) > 0.05) return;
+
+    this.position.x = x;
+    this.position.z = z;
+    ledge.hitX += latX * distance;
+    ledge.hitZ += latZ * distance;
   }
 
   _stepTraversal(dt) {
@@ -504,6 +568,11 @@ export class Shade {
     if (t < 1) return;
 
     this.position.set(move.to.x, move.to.y, move.to.z);
+    // The destination was validated at this height, so adopt it. A climb into a
+    // low space arrives crouched rather than clipping.
+    this.height = move.height;
+    this.half.y = move.height / 2;
+    this.crouching = move.height < S.standHeight;
     this._move = null;
 
     // Leave with a little momentum so a vault keeps flow (Section 6.1).

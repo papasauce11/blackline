@@ -454,6 +454,49 @@ PASS  failed-mantle-becomes-hang | band=hang rise=2.50, hang clear=true feetY=1.
 
 Suite still 21 passed, 0 failed.
 
+### Post-checkpoint fix 2: traversal dead ends
+
+Reported from play, with a screenshot: stranded on top of the tall container,
+unable to climb anywhere; and pull-up from a hang still sometimes did nothing,
+while Ctrl-then-W worked.
+
+Three separate causes:
+
+1. **A vault-band ledge could only be climbed by sprinting at it.** `_tryVault`
+   requires sprint plus forward, and the airborne auto-climb `_tryMantle` only
+   handled the mantle and hang bands. So jumping at a 0.4–1.2m ledge did
+   nothing, and on a small platform there is no room to build sprint speed.
+   `_tryMantle` now climbs vault-band ledges from the air as well.
+2. **`hall-container` was an isolated island.** It was added in Phase 3 purely
+   as a hang target and never connected to anything, so its top was a trap.
+   Moved to x -21.5..-18.5, half a metre from the catwalk spine: from 3.0m the
+   spine at 4.0m is now a 1.0m vault.
+3. **Climbs had no crouched fallback.** Every climb committed a standing-height
+   capsule, so any ledge with a low ceiling silently failed with no feedback —
+   which is why dropping and re-mantling (Ctrl then W) found a different ledge
+   and worked. New `_climbOnto()` tries standing, then crouched, and the
+   traversal adopts the height it validated against. Pull-up also re-probes from
+   the current position before giving up, since the stored ledge goes stale
+   after a shimmy.
+
+### Added by request: shimmy while hanging
+
+10. **Lateral movement while hanging** (`CONFIG.shade.hangShimmySpeed`, 1.15
+    m/s). Not in the spec — Josh asked for it. `_shimmy()` refuses to move
+    unless the body still fits *and* the ledge actually continues at the
+    destination, so you cannot shimmy off the end of an edge into thin air.
+    Say the word and it comes out.
+
+New AUTO checks, suite now **23 passed, 0 failed**:
+
+```
+PASS  container-top-is-not-a-dead-end | container top 3.0 -> spine 4.0 is 1.00m (vault); climbed without sprint=true, reached spine=true, clear=true
+PASS  hang-shimmy-stays-on-the-ledge  | z -8.50 -> -10.00 (ledge z -10..-7), moved=true, still hanging=true, clear=true, stayed on ledge=true
+```
+
+Markings reclassified consistently after the container move: 27 climbable, 27
+marked, 0 band mismatches (vault 16, mantle 10, hang 1).
+
 ### Exact next action
 
 Phase 4 — `src/entities/enforcer.js`. The Warden first-person controller,

@@ -713,9 +713,13 @@ export function buildMap({ gradientMap }) {
   // band, so jumping at it fails the mantle and drops into a ledge hang
   // (Section 6.1, and Section 16 check 6). Without a ledge in this band that is
   // actually within reach, the hang mechanic could never be exercised.
+  //
+  // Placed just short of the catwalk spine so the top is not a dead end: from
+  // 3.0m the spine at 4.0m is a 1.0m rise, which is a vault. Standing on an
+  // isolated 3m box with nothing reachable is a trap, not a traversal route.
   map.addSolid({
-    min: [-24.0, G, -10.0],
-    max: [-21.0, G + 3.0, -7.0],
+    min: [-21.5, G, -10.0],
+    max: [-18.5, G + 3.0, -7.0],
     color: P.hazardOrange,
     climbable: true,
     outline: true,

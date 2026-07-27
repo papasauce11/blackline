@@ -1205,6 +1205,89 @@ function registerAutoTests() {
   });
 
   debugTools.registerAutoTest({
+    id: 'container-top-is-not-a-dead-end',
+    spec: 'reported bug: cannot climb from the container',
+    name: 'A vault-band ledge climbs from the air, so a small platform is never a trap',
+    run: (h) => {
+      const container = h.map.collision.boxes.find((box) => box.tag === 'hall-container');
+      const spine = h.map.collision.boxes.find((box) => box.tag === 'catwalk-spine');
+      if (!container || !spine) return { pass: false, detail: 'container or catwalk-spine missing' };
+
+      const rise = spine.max.y - container.max.y;
+      const band = classifyLedge(rise);
+
+      // Stand on the container top and hop toward the spine. Sprint is
+      // deliberately NOT given: there is no room to build speed up here, which
+      // is exactly the situation that stranded the player.
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.shade.position.set(container.max.x - 0.6, container.max.y + CONFIG.shade.standHeight / 2 + 0.05, -8.5);
+      h.shade.velocity.set(0, 0, 0);
+      h.shade.yaw = -Math.PI / 2; // face +X, toward the spine
+      h.shade.state = SHADE_STATE.GROUND;
+
+      const intent = createIntent();
+      intent.forward = 1;
+      intent.sprint = false;
+      let climbed = false;
+      for (let i = 0; i < 240; i++) {
+        intent.jumpPressed = i % 25 === 0;
+        intent.jump = intent.jumpPressed;
+        h.shade.step(CONFIG.time.fixedDt, intent);
+        if (h.shade.state === SHADE_STATE.VAULT || h.shade.state === SHADE_STATE.MANTLE) climbed = true;
+        if (h.shade.feetY > spine.max.y - 0.3) break;
+      }
+
+      const onSpine = h.shade.feetY > spine.max.y - 0.3;
+      const clear = h.map.collision.isClear(h.shade.position, h.shade.half);
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      return {
+        pass: band === 'vault' && climbed && onSpine && clear,
+        detail: `container top ${container.max.y.toFixed(1)} -> spine ${spine.max.y.toFixed(1)} is ${rise.toFixed(2)}m (${band}); climbed without sprint=${climbed}, reached spine=${onSpine}, clear=${clear}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'hang-shimmy-stays-on-the-ledge',
+    spec: 'requested: movement while hanging',
+    name: 'Shimmy moves along a grabbed ledge and refuses to run off the end',
+    run: (h) => {
+      const container = h.map.collision.boxes.find((box) => box.tag === 'hall-container');
+      const grab = () => {
+        h.shade.reset(h.map.shadeSpawns[0]);
+        h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, -8.5);
+        h.shade.velocity.set(0, 0, 0);
+        h.shade.yaw = Math.PI / 2;
+        h.shade.state = SHADE_STATE.AIR;
+        return h.shade._tryMantle() && h.shade.state === SHADE_STATE.HANG;
+      };
+
+      if (!grab()) return { pass: false, detail: 'could not establish a hang to shimmy from' };
+
+      const startZ = h.shade.position.z;
+      const intent = createIntent();
+      intent.strafe = 1;
+      // Long enough to run past the end of a 3m ledge if it were unbounded.
+      for (let i = 0; i < 400; i++) h.shade.step(CONFIG.time.fixedDt, intent);
+
+      const movedZ = h.shade.position.z;
+      const moved = Math.abs(movedZ - startZ) > 0.3;
+      const stillHanging = h.shade.state === SHADE_STATE.HANG;
+      const clear = h.map.collision.isClear(h.shade.position, h.shade.half);
+      // Must have stopped within the ledge's own footprint, not past its end.
+      const withinLedge = movedZ >= container.min.z - 0.5 && movedZ <= container.max.z + 0.5;
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      return {
+        pass: moved && stillHanging && clear && withinLedge,
+        detail: `z ${startZ.toFixed(2)} -> ${movedZ.toFixed(2)} (ledge z ${container.min.z}..${container.max.z}), moved=${moved}, still hanging=${stillHanging}, clear=${clear}, stayed on ledge=${withinLedge}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
     id: 'sprint-vault-clears-a-crate',
     spec: 'Section 6.1 / check 2',
     name: 'Sprinting into a vault-band crate vaults it and lands clean on top',

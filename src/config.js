@@ -268,6 +268,8 @@ export const CONFIG = {
      * reads as a distinct beat. Release the key within the grace to stay hanging.
      */
     hangInputGrace: 0.18,
+    /** Lateral shimmy speed along a grabbed ledge. */
+    hangShimmySpeed: 1.15,
 
     /** Fall above this distance emits the landing noise (Section 7.2). */
     landingNoiseFallHeight: 2.0,
