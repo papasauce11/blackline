@@ -1138,31 +1138,68 @@ function registerAutoTests() {
       const hangClear = h.map.collision.isClear(h.shade.position, h.shade.half);
       const hangFeet = h.shade.feetY;
 
-      // Pull up with jump.
-      const intent = createIntent();
-      intent.jumpPressed = true;
-      h.shade.step(CONFIG.time.fixedDt, intent);
-      const pullingUp = h.shade.state === SHADE_STATE.PULLUP;
-      for (let i = 0; i < 90; i++) h.shade.step(CONFIG.time.fixedDt, createIntent());
+      // Releasing everything must leave the Shade hanging, not auto-resolve.
+      for (let i = 0; i < 60; i++) h.shade.step(CONFIG.time.fixedDt, createIntent());
+      const stillHanging = h.shade.state === SHADE_STATE.HANG;
+
+      // Pull up with jump HELD and never freshly pressed. This is the exact
+      // case that failed in play: the ledge is grabbed mid-jump with the key
+      // already down, so no keydown edge is ever generated and an
+      // edge-triggered pull-up would wait forever.
+      const heldJump = createIntent();
+      heldJump.jump = true;
+      heldJump.jumpPressed = false;
+      let pullingUp = false;
+      for (let i = 0; i < 120; i++) {
+        const before = h.shade.state;
+        h.shade.step(CONFIG.time.fixedDt, heldJump);
+        if (before === SHADE_STATE.HANG && h.shade.state === SHADE_STATE.PULLUP) {
+          pullingUp = true;
+          break;
+        }
+      }
+
+      for (let i = 0; i < 150; i++) h.shade.step(CONFIG.time.fixedDt, createIntent());
       const onTop = h.shade.feetY > container.max.y - 0.25;
       const topClear = h.map.collision.isClear(h.shade.position, h.shade.half);
 
-      // Drop with crouch.
+      // On a FRESH grab with jump already held, the pull-up must wait out the
+      // grace period so the grab reads as its own beat rather than resolving on
+      // the frame the ledge is caught.
       approach();
       h.shade._tryMantle();
-      const dropIntent = createIntent();
-      dropIntent.crouchPressed = true;
-      h.shade.step(CONFIG.time.fixedDt, dropIntent);
-      const dropped = h.shade.state === SHADE_STATE.AIR;
+      let stepsToPullUp = 0;
+      for (let i = 0; i < 120; i++) {
+        h.shade.step(CONFIG.time.fixedDt, heldJump);
+        stepsToPullUp++;
+        if (h.shade.state === SHADE_STATE.PULLUP) break;
+      }
+      const graceSteps = Math.ceil(CONFIG.shade.hangInputGrace / CONFIG.time.fixedDt);
+      const graceRespected = stepsToPullUp >= graceSteps && stepsToPullUp <= graceSteps + 2;
+
+      // Drop with crouch HELD, likewise without a fresh press.
+      approach();
+      h.shade._tryMantle();
+      const heldCrouch = createIntent();
+      heldCrouch.crouch = true;
+      heldCrouch.crouchPressed = false;
+      let dropped = false;
+      for (let i = 0; i < 120; i++) {
+        h.shade.step(CONFIG.time.fixedDt, heldCrouch);
+        if (h.shade.state === SHADE_STATE.AIR) {
+          dropped = true;
+          break;
+        }
+      }
 
       h.shade.reset(h.map.shadeSpawns[0]);
 
       const pass =
         ledge !== null && ledge.band === 'hang' && grabbed && hangState === SHADE_STATE.HANG &&
-        hangClear && pullingUp && onTop && topClear && dropped;
+        hangClear && stillHanging && pullingUp && graceRespected && onTop && topClear && dropped;
       return {
         pass,
-        detail: `band=${ledge ? ledge.band : 'none'} rise=${ledge ? ledge.rise.toFixed(2) : '-'}, hang state=${hangState} clear=${hangClear} feetY=${hangFeet.toFixed(2)}, pullup entered=${pullingUp} landed on top=${onTop} clear=${topClear}, crouch drop=${dropped}`,
+        detail: `band=${ledge ? ledge.band : 'none'} rise=${ledge ? ledge.rise.toFixed(2) : '-'}, hang clear=${hangClear} feetY=${hangFeet.toFixed(2)}, idle stays hanging=${stillHanging}, HELD jump pulled up=${pullingUp}, landed on top=${onTop} clear=${topClear}, HELD crouch dropped=${dropped}, fresh grab waited ${stepsToPullUp} steps (grace ${graceSteps}, ok=${graceRespected})`,
       };
     },
   });

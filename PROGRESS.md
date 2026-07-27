@@ -417,6 +417,43 @@ Still nothing visual. The browser pane never composited, so
 Unverified: how any of it looks, and — importantly — how the movement *feels*,
 which no assertion can measure.
 
+### Post-checkpoint fix: ledge hang was inescapable
+
+Reported from play: while hanging, Space did nothing and Ctrl only worked after
+a couple of attempts.
+
+**Cause.** Both hang inputs read the *edge* flags (`jumpPressed`,
+`crouchPressed`), but a hang is almost always entered mid-jump with Space still
+held down. A held key generates no new keydown, so `pressed('jump')` stays false
+and the pull-up waited for a press the player had no reason to make. Ctrl had
+the same fault: if it was already held, it needed a release and re-press, which
+is exactly "works after a couple of attempts".
+
+This was invisible to the old AUTO check because the test set `jumpPressed`
+directly, which is the one thing real play never produces.
+
+**Fix.** Hang inputs now read the held key (`intent.jump` / `intent.crouch`),
+gated by `CONFIG.shade.hangInputGrace` (0.18s) so a held jump does not resolve
+on the same frame the ledge is caught. Release the key within the grace to stay
+hanging. Also added a defensive guard so a HANG state with no stored ledge drops
+to AIR rather than freezing the player.
+
+Audited the other edge-triggered inputs: ground jump and slide entry are both
+correctly edge-driven, because in each case the key is necessarily released
+before the state is entered. The hang was the only one affected.
+
+The AUTO check now reproduces the reported failure exactly — jump HELD and never
+freshly pressed — and additionally asserts that idling leaves you hanging, that
+a held crouch drops you, and that a fresh grab waits out the grace:
+
+```
+PASS  failed-mantle-becomes-hang | band=hang rise=2.50, hang clear=true feetY=1.65, idle stays hanging=true,
+      HELD jump pulled up=true, landed on top=true clear=true, HELD crouch dropped=true,
+      fresh grab waited 11 steps (grace 11, ok=true)
+```
+
+Suite still 21 passed, 0 failed.
+
 ### Exact next action
 
 Phase 4 — `src/entities/enforcer.js`. The Warden first-person controller,

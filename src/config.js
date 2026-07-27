@@ -260,6 +260,14 @@ export const CONFIG = {
     /** Body offset below the grabbed edge while hanging. */
     hangDrop: 1.35,
     hangPullUpDuration: 0.55,
+    /**
+     * A hang is almost always entered mid-jump with the jump key still held, so
+     * the pull-up cannot require a fresh keypress — there would never be one.
+     * Hang inputs read the HELD key, and this grace period keeps a held jump
+     * from pulling up on the same frame the ledge is grabbed, so the grab still
+     * reads as a distinct beat. Release the key within the grace to stay hanging.
+     */
+    hangInputGrace: 0.18,
 
     /** Fall above this distance emits the landing noise (Section 7.2). */
     landingNoiseFallHeight: 2.0,

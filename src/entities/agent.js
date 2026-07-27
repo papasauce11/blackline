@@ -85,6 +85,7 @@ export class Shade {
     this._move = null;
     /** The ledge currently being hung from. */
     this._hangLedge = null;
+    this._hangTimer = 0;
     /** Distance travelled on the ground, for footstep cadence in Phase 5. */
     this.strideDistance = 0;
     /** Set on the step a landing happens, for Phase 5 noise. Cleared each step. */
@@ -129,6 +130,7 @@ export class Shade {
     this._fallStartY = this.position.y;
     this._move = null;
     this._hangLedge = null;
+    this._hangTimer = 0;
     this.strideDistance = 0;
     this.landedFallHeight = 0;
     this._smoothPosition.copy(this.position);
@@ -446,13 +448,29 @@ export class Shade {
     this.state = SHADE_STATE.HANG;
     this._falling = false;
     this._hangLedge = ledge;
+    this._hangTimer = 0;
     return true;
   }
 
   _stepHang(dt, intent) {
+    const ledge = this._hangLedge;
+    if (!ledge) {
+      // Defensive: never leave the player frozen in a state with no ledge.
+      this.state = SHADE_STATE.AIR;
+      this._beginFall();
+      return;
+    }
+
+    this._hangTimer += dt;
+    if (this._hangTimer < S.hangInputGrace) return;
+
     // Pull up with jump, drop with crouch (Section 6.1).
-    if (intent.jumpPressed) {
-      const ledge = this._hangLedge;
+    //
+    // These read the HELD key, not a fresh press. A hang is entered mid-jump
+    // with the jump key usually still down, so an edge-triggered pull-up would
+    // wait for a keypress the player has no reason to make — they are already
+    // holding it. Same for crouch.
+    if (intent.jump || intent.jumpPressed) {
       const destination = this._ledgeDestination(ledge, this.height);
       if (this._commitMove(SHADE_STATE.PULLUP, destination, S.hangPullUpDuration, this.height)) {
         this._hangLedge = null;
@@ -462,7 +480,7 @@ export class Shade {
       // "return to the previous state" behaviour.
     }
 
-    if (intent.crouchPressed) {
+    if (intent.crouch || intent.crouchPressed) {
       this._hangLedge = null;
       this.state = SHADE_STATE.AIR;
       this.velocity.set(0, 0, 0);
