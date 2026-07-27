@@ -575,6 +575,110 @@ moment than the assertion it accompanied.
 
 ### Exact next action
 
+Phase 4 — the Warden controller. **Done, see below.**
+
+---
+
+## Phase 4 — Warden first-person controller
+
+**Status:** complete. Tagged `phase-04`.
+
+### What was built
+
+- **`src/entities/enforcer.js`** — the Warden. First person, heavy, no crouch.
+  Walk 3.0 / sprint 5.0 / ADS 1.8 m/s, gravity and ground handling through the
+  same swept solver, `stun()` for the taser and stun grenade, `lookAt()` and
+  `forwardVector()` for the AI to aim with, bulky procedural mesh (wide box
+  chest, short legs, dominant helmet, heavy pauldrons), ground blob.
+- **`main.js`** — role-based camera ownership, Warden wiring, free-roam routing,
+  four new overlay fields, three new AUTO checks.
+
+### One controller, two drivers
+
+Section 6.2 calls the Warden "AI-controlled, and human-controlled in free-roam
+only" and Section 12 requires free-roam to be "a configuration, never a
+duplicated code path". So `Warden` never reads input and never runs AI — it
+consumes an `intent` object. `readWardenIntent()` fills it from the keyboard in
+free-roam; the Phase 6 AI will fill the identical structure. There is one
+`step()`.
+
+### Camera handover (the exit gate)
+
+`setCameraOwner('freefly' | 'shade' | 'warden')` reparents the single camera and
+resets local position, rotation, scale and FOV on every handover. The leak this
+guards is concrete: the Warden's ADS narrows FOV to 52, and without the reset,
+swapping away mid-aim would leave the Shade permanently zoomed. `initMatch()`
+clears the owner so nothing survives a match boundary either.
+
+### Files touched
+
+```
+src/entities/enforcer.js  (new)
+src/main.js               (camera owner, warden wiring, freeroam routing, 3 AUTO checks)
+src/ui/debug.js           (4 overlay fields)
+```
+
+### Deviations from spec
+
+11. **`?mode=freeroam` URL parameter**, debug-gated. Section 12 puts free-roam
+    behind a menu entry, and the menu is Phase 10. This selects the same
+    `initMatch({ mode: 'freeroam', role: 'warden', ai: false, objective: false })`
+    config in the meantime, so the Warden can be driven by hand now.
+
+### Known issues — one is a Phase 6 blocker
+
+- **The Warden has no way to change floors.** Section 6.2 gives it walk, sprint
+  and ADS, explicitly denies crouch, and says nothing about jumping. The map's
+  vertical routes are all Shade-only: vents are crouch-only, the mantle chains
+  need a climb, and the drop shaft is one-way down. But the waypoint graph links
+  ground nodes to upper nodes (0↔10, 3↔10, 9↔13) across a 4m gap, and
+  `waypoint-graph-valid` asserts that graph is connected.
+
+  So in Phase 6 the AI will path across links it cannot physically walk. The
+  spec-faithful fix is a **walkable staircase or ramp** between floors — the
+  Warden is heavy and walks, so the level should accommodate it rather than the
+  Warden gaining a climb. Free-roam ("map learning") needs it too. I have not
+  built it: it is map scope that Phase 2 did not call for and I would rather not
+  add geometry unasked. **Flagging for a decision before Phase 6.**
+- No weapon, no firing, no reload yet — that is Phase 7. `intent.fire` and
+  `intent.reload` are carried on the intent and currently unread.
+- No AI, so in competitive the Warden stands on its spawn. It is still stepped
+  each frame so gravity settles it.
+
+### Verification actually performed
+
+**AUTO suite: 28 passed, 0 failed.** Zero console errors. Three new:
+
+```
+PASS  camera-swap-leaks-no-state   | 7 handovers across shade/warden/freefly: parent, local transform, scale and FOV reset every time; ADS fov 52.0 restored to 70; exactly 1 camera throughout
+PASS  warden-speeds-and-no-crouch  | walk 3.00/3, sprint 5.00/5, ads 1.80/1.8 m/s; no crouch api=true, capsule height fixed=true
+PASS  warden-shared-by-ai-and-human| freeroam config=true, moved by intent alone=true, stunned freeze=true state=true, recovered=true, returned to competitive=true
+```
+
+The camera check deliberately dirties position, rotation, scale and FOV before
+every handover, so it fails if any one of them survives.
+
+Free-roam boot verified live at `?mode=freeroam`: mode/role/ai/objective correct,
+camera parented to `warden-camera-rig`, body hidden in first person, walking
+5.84m in two seconds, eye height 1.76 matching the rig at 1.77, FOV 70.
+
+### Not verified (needs a human)
+
+Weapon feel is not applicable yet. Unobserved: how the Warden looks and moves on
+screen, whether first person sits at a comfortable height, and whether the ADS
+FOV transition reads well.
+
+### Exact next action
+
+Resolve the floor-connection question above, then Phase 5 —
+`systems/detection.js`: light sampling on a 100ms tick with a 5-ray cap and an
+explicit cache invalidate on light break, the visibility meter, the Section 4.2
+rim-light feedback on the Shade, and noise emitters.
+
+---
+
+## Phase 4 (superseded planning note)
+
 Phase 4 — `src/entities/enforcer.js`. The Warden first-person controller,
 written as a shared controller driven by an intent object so the AI (Phase 6)
 and the free-roam human (Phase 12) feed the same interface. Exit gate: swapping

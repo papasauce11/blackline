@@ -15,6 +15,7 @@ import { Input } from './input.js';
 import { buildMap } from './map.js';
 import { classifyLedge } from './physics.js';
 import { Shade, SHADE_STATE, createIntent } from './entities/agent.js';
+import { Warden, WARDEN_STATE, createWardenIntent } from './entities/enforcer.js';
 import { DebugTools } from './ui/debug.js';
 
 // ---------------------------------------------------------------------------
@@ -126,7 +127,18 @@ export function computeStepPlan(accumulator, wallDelta, timeScale) {
 /** @type {import('./map.js').GameMap} */ let map = null;
 /** @type {THREE.DataTexture} */ let gradientMap = null;
 /** @type {Shade} */ let shade = null;
+/** @type {Warden} */ let warden = null;
 const shadeIntent = createIntent();
+const wardenIntent = createWardenIntent();
+/**
+ * What the Warden does while nothing is driving it. In competitive the AI takes
+ * over in Phase 6; until then it still needs stepping so gravity settles it
+ * onto its spawn rather than leaving it hovering.
+ */
+const wardenIdleIntent = createWardenIntent();
+
+/** 'freefly' | 'shade' | 'warden'. The one camera is reparented, never rebuilt. */
+let cameraOwner = null;
 
 const emitter = new Emitter();
 
@@ -224,6 +236,12 @@ export function initMatch(options = {}) {
   debugState.mode = `${match.mode}/${match.role}`;
   debugState.rngCalls = 0;
 
+  // Rebuild actor state too, and force a camera handover so nothing from the
+  // previous match's owner survives (Section 15).
+  if (shade) shade.reset(map.shadeSpawns[0]);
+  if (warden) warden.reset(map.wardenSpawns[0]);
+  cameraOwner = null;
+
   emitter.emit('match:init', match);
 
   if (!running) start();
@@ -295,10 +313,12 @@ function bootstrap() {
   scene.add(shade.cameraRig);
   shade.reset(map.shadeSpawns[0]);
 
-  // Section 15: reparent the one camera, never make a second one.
-  shade.cameraRig.add(camera);
-  camera.position.set(0, 0, 0);
-  camera.rotation.set(0, 0, 0);
+  warden = new Warden({ collision: map.collision, gradientMap, emitter });
+  scene.add(warden.mesh);
+  scene.add(warden.groundBlob);
+  scene.add(warden.cameraRig);
+  warden.reset(map.wardenSpawns[0]);
+
   freefly.enabled = false;
   freefly.position.copy(map.shadeSpawns[0].position).setY(map.shadeSpawns[0].position.y + 1.7);
 
@@ -392,8 +412,17 @@ function fixedStep(dt) {
 
   if (freefly.enabled) {
     freefly.step(dt);
+    warden.step(dt, wardenIdleIntent);
+    shade.step(dt, shadeIdleIntent());
+  } else if (match.role === 'warden') {
+    // Free-roam (Section 12): the human drives the Warden through the very same
+    // controller the AI will drive in Phase 6.
+    warden.step(dt, readWardenIntent());
   } else {
     shade.step(dt, readShadeIntent());
+    // Nothing is driving the Warden until the AI lands in Phase 6, but it still
+    // needs stepping so gravity settles it onto its spawn.
+    warden.step(dt, wardenIdleIntent);
   }
 
   emitter.emit('sim:step', dt);
@@ -416,16 +445,65 @@ function readShadeIntent() {
   return shadeIntent;
 }
 
+/** Neutral Shade intent, for when the human is driving something else. */
+function shadeIdleIntent() {
+  shadeIntent.forward = 0;
+  shadeIntent.strafe = 0;
+  shadeIntent.jump = false;
+  shadeIntent.jumpPressed = false;
+  shadeIntent.crouch = false;
+  shadeIntent.crouchPressed = false;
+  shadeIntent.sprint = false;
+  return shadeIntent;
+}
+
+/** Section 12: free-roam feeds the same controller the AI will feed. */
+function readWardenIntent() {
+  wardenIntent.forward = input.axis('back', 'forward');
+  wardenIntent.strafe = input.axis('left', 'right');
+  wardenIntent.sprint = input.down('sprint');
+  wardenIntent.ads = input.down('ads');
+  wardenIntent.fire = input.down('fire');
+  wardenIntent.reload = input.pressed('reload');
+  return wardenIntent;
+}
+
 /**
- * Move the one camera between the freefly rig and the Shade's third-person rig.
- * Reparent only — this never constructs a camera (Section 15).
+ * Move the one camera between rigs.
+ *
+ * Risk register (Section 15): "Camera state leaks between roles or after the
+ * finisher — one camera object. Reparent and adjust FOV only. Never instantiate
+ * a second camera."
+ *
+ * Every swap resets the full local transform and the FOV, so nothing a previous
+ * owner did can survive the handover. The Warden's ADS narrows the FOV
+ * (Section 6.2); without the reset here, swapping away mid-aim would leave the
+ * Shade permanently zoomed.
+ *
+ * @param {'freefly'|'shade'|'warden'} owner
  */
-function setCameraOwner(useFreefly) {
-  const parent = useFreefly ? scene : shade.cameraRig;
-  if (camera.parent === parent) return;
+function setCameraOwner(owner) {
+  if (cameraOwner === owner) return;
+
+  const parent =
+    owner === 'warden' ? warden.cameraRig : owner === 'shade' ? shade.cameraRig : scene;
+
   parent.add(camera);
   camera.position.set(0, 0, 0);
   camera.rotation.set(0, 0, 0);
+  camera.scale.set(1, 1, 1);
+  camera.fov = CONFIG.render.fov;
+  camera.updateProjectionMatrix();
+
+  warden.setFirstPerson(owner === 'warden');
+  cameraOwner = owner;
+  emitter.emit('camera:owner', owner);
+}
+
+/** Who the human is currently driving. */
+function humanOwner() {
+  if (freefly.enabled) return 'freefly';
+  return match && match.role === 'warden' ? 'warden' : 'shade';
 }
 
 // ---------------------------------------------------------------------------
@@ -497,12 +575,16 @@ function frame(now) {
 
   // Mouse delta is a displacement, not a rate, so look is applied once per
   // frame rather than once per fixed step.
-  setCameraOwner(freefly.enabled);
-  if (freefly.enabled) {
+  const owner = humanOwner();
+  setCameraOwner(owner);
+  if (owner === 'freefly') {
     freefly.look();
   } else if (input.locked) {
-    const delta = input.lookDelta();
-    shade.look(delta.yaw, delta.pitch);
+    // ADS uses a reduced sensitivity so the narrower FOV still tracks 1:1.
+    const scale = owner === 'warden' && warden.ads ? CONFIG.settings.adsSensitivityMultiplier : 1;
+    const delta = input.lookDelta(scale);
+    if (owner === 'warden') warden.look(delta.yaw, delta.pitch);
+    else shade.look(delta.yaw, delta.pitch);
   }
   emitter.emit('frame:begin', { wallDelta, input });
 
@@ -515,8 +597,20 @@ function frame(now) {
   debugState.stepsPerFrame = plan.steps;
 
   const alpha = accumulator / plan.dt;
-  if (freefly.enabled) freefly.apply();
-  else shade.updateVisual(wallDelta);
+  if (owner === 'freefly') freefly.apply();
+  shade.updateVisual(wallDelta);
+  warden.updateVisual(wallDelta);
+
+  // Section 6.2: ADS narrows the FOV. Only the Warden touches it, and only
+  // while it owns the camera; setCameraOwner() restores it on every handover.
+  if (owner === 'warden') {
+    const fov = warden.desiredFov();
+    if (Math.abs(camera.fov - fov) > 0.01) {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    }
+  }
+
   emitter.emit('frame:render', { alpha, wallDelta });
 
   const cpuStart = performance.now();
@@ -530,6 +624,10 @@ function frame(now) {
   debugState.shadeVel = shade.velocity;
   debugState.shadeLives = shade.lives;
   debugState.shadeGrounded = shade.grounded ? 'yes' : 'no';
+  debugState.cameraOwner = `${cameraOwner} (fov ${camera.fov.toFixed(1)})`;
+  debugState.wardenState = warden.state + (warden.ads ? ' (ads)' : '');
+  debugState.wardenPos = warden.position;
+  debugState.wardenHealth = warden.health;
 
   debugTools.update(wallDelta, wallDelta * 1000);
   input.endFrame();
@@ -1561,6 +1659,151 @@ function registerAutoTests() {
   });
 
   debugTools.registerAutoTest({
+    id: 'camera-swap-leaks-no-state',
+    spec: 'Section 15 / phase 4 exit gate',
+    name: 'Swapping the camera between roles leaks no transform, FOV or instance',
+    run: (h) => {
+      const problems = [];
+      const owners = ['shade', 'warden', 'freefly', 'warden', 'shade', 'freefly', 'shade'];
+      const rigFor = (owner) =>
+        owner === 'warden' ? h.warden.cameraRig : owner === 'shade' ? h.shade.cameraRig : h.scene;
+
+      // Dirty every piece of camera state a previous owner could have touched.
+      const dirty = () => {
+        camera.position.set(3, -2, 7);
+        camera.rotation.set(0.4, -1.1, 0.9);
+        camera.scale.set(2, 2, 2);
+        camera.fov = 12;
+        camera.updateProjectionMatrix();
+      };
+
+      for (const owner of owners) {
+        dirty();
+        h.setCameraOwner(null); // force a genuine handover every time
+        h.setCameraOwner(owner);
+
+        if (camera.parent !== rigFor(owner)) problems.push(`${owner}: wrong parent`);
+        if (camera.position.length() > 1e-9) problems.push(`${owner}: local position leaked`);
+        if (Math.abs(camera.rotation.x) + Math.abs(camera.rotation.y) + Math.abs(camera.rotation.z) > 1e-9) {
+          problems.push(`${owner}: local rotation leaked`);
+        }
+        if (Math.abs(camera.scale.x - 1) > 1e-9) problems.push(`${owner}: scale leaked`);
+        if (Math.abs(camera.fov - CONFIG.render.fov) > 1e-9) problems.push(`${owner}: fov leaked (${camera.fov})`);
+
+        let count = 0;
+        h.scene.traverse((object) => {
+          if (object.isCamera) count++;
+        });
+        if (count !== 1) problems.push(`${owner}: ${count} cameras in the graph`);
+      }
+
+      // The real leak this guards: ADS narrows the FOV, so swapping away
+      // mid-aim must not leave the next owner zoomed in.
+      h.setCameraOwner('warden');
+      h.warden.adsBlend = 1;
+      camera.fov = h.warden.desiredFov();
+      camera.updateProjectionMatrix();
+      const adsFov = camera.fov;
+      h.setCameraOwner('shade');
+      const restored = Math.abs(camera.fov - CONFIG.render.fov) < 1e-9;
+      if (!restored) problems.push(`ads fov ${adsFov.toFixed(1)} survived the swap as ${camera.fov.toFixed(1)}`);
+      h.warden.adsBlend = 0;
+
+      // The body must be hidden only while the camera is inside its head.
+      h.setCameraOwner('warden');
+      const hiddenInFirstPerson = h.warden.mesh.visible === false;
+      h.setCameraOwner('shade');
+      const shownOtherwise = h.warden.mesh.visible === true;
+      if (!hiddenInFirstPerson) problems.push('warden body visible in first person');
+      if (!shownOtherwise) problems.push('warden body still hidden after swapping away');
+
+      return {
+        pass: problems.length === 0,
+        detail:
+          problems.length === 0
+            ? `${owners.length} handovers across shade/warden/freefly: parent, local transform, scale and FOV reset every time; ADS fov ${adsFov.toFixed(1)} restored to ${CONFIG.render.fov}; exactly 1 camera throughout`
+            : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'warden-speeds-and-no-crouch',
+    spec: 'Section 6.2',
+    name: 'Warden walk, sprint and ADS speeds match spec; crouch is unavailable',
+    run: (h) => {
+      const dt = CONFIG.time.fixedDt;
+      const intent = createWardenIntent();
+
+      const settle = (sprint, ads) => {
+        h.warden.reset(h.map.wardenSpawns[0]);
+        h.warden.position.set(-27, CONFIG.warden.standHeight / 2 + 0.05, -18);
+        h.warden.yaw = Math.PI; // down the clear west lane of the Turbine Hall
+        intent.forward = 1;
+        intent.strafe = 0;
+        intent.sprint = sprint;
+        intent.ads = ads;
+        for (let i = 0; i < 180; i++) h.warden.step(dt, intent);
+        return h.warden.speed;
+      };
+
+      const walk = settle(false, false);
+      const sprint = settle(true, false);
+      const ads = settle(false, true);
+
+      // Section 6.2: "Crouch | Not available. Wardens are heavy."
+      const noCrouchApi = typeof h.warden.crouching === 'undefined' && CONFIG.warden.canCrouch === false;
+      const heightHeld = Math.abs(h.warden.half.y * 2 - CONFIG.warden.standHeight) < 1e-9;
+
+      h.warden.reset(h.map.wardenSpawns[0]);
+
+      const near = (value, target) => Math.abs(value - target) < 0.15;
+      return {
+        pass: near(walk, CONFIG.warden.walkSpeed) && near(sprint, CONFIG.warden.sprintSpeed) &&
+          near(ads, CONFIG.warden.adsSpeed) && noCrouchApi && heightHeld,
+        detail: `walk ${walk.toFixed(2)}/${CONFIG.warden.walkSpeed}, sprint ${sprint.toFixed(2)}/${CONFIG.warden.sprintSpeed}, ads ${ads.toFixed(2)}/${CONFIG.warden.adsSpeed} m/s; no crouch api=${noCrouchApi}, capsule height fixed=${heightHeld}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'warden-shared-by-ai-and-human',
+    spec: 'Section 6.2 / Section 12 / Section 15',
+    name: 'One Warden controller serves both drivers through the same intent',
+    run: (h) => {
+      // Free-roam must be a configuration of initMatch, not a second path.
+      const before = h.match;
+      const free = h.initMatch({ mode: 'freeroam', role: 'warden', ai: false, objective: false, seed: before.seed });
+      const isFreeRoam = free.mode === 'freeroam' && free.role === 'warden' && free.aiEnabled === false && free.objectiveEnabled === false;
+
+      // Drive the controller with a synthetic intent, exactly as the AI will.
+      const dt = CONFIG.time.fixedDt;
+      const intent = createWardenIntent();
+      intent.forward = 1;
+      const start = h.warden.position.clone();
+      for (let i = 0; i < 60; i++) h.warden.step(dt, intent);
+      const movedByIntent = h.warden.position.distanceTo(start) > 0.5;
+
+      // Stun blocks movement entirely (Section 11 STUNNED, Section 9 taser).
+      h.warden.stun(1.0);
+      const stunStart = h.warden.position.clone();
+      for (let i = 0; i < 30; i++) h.warden.step(dt, intent);
+      const frozenWhileStunned = h.warden.position.distanceTo(stunStart) < 0.05;
+      const stunnedState = h.warden.state === WARDEN_STATE.STUNNED;
+      for (let i = 0; i < 45; i++) h.warden.step(dt, createWardenIntent());
+      const recovered = h.warden.state !== WARDEN_STATE.STUNNED;
+
+      const back = h.initMatch({ mode: 'competitive', role: 'shade', ai: true, objective: true, seed: before.seed });
+      const isCompetitive = back.mode === 'competitive' && back.role === 'shade';
+
+      return {
+        pass: isFreeRoam && movedByIntent && frozenWhileStunned && stunnedState && recovered && isCompetitive,
+        detail: `freeroam config=${isFreeRoam}, moved by intent alone=${movedByIntent}, stunned freeze=${frozenWhileStunned} state=${stunnedState}, recovered=${recovered}, returned to competitive=${isCompetitive}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
     id: 'match-state-rebuilt-on-init',
     spec: 'Section 15 (state bleed)',
     name: 'initMatch rebuilds match state from the defaults factory',
@@ -1618,6 +1861,13 @@ const harness = {
   get shade() {
     return shade;
   },
+  get warden() {
+    return warden;
+  },
+  get cameraOwner() {
+    return cameraOwner;
+  },
+  setCameraOwner,
   get freefly() {
     return freefly;
   },
@@ -1651,7 +1901,16 @@ const harness = {
 // ---------------------------------------------------------------------------
 
 bootstrap();
-initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+
+// Section 12: free-roam is a configuration of initMatch, never a second code
+// path. Until the menu lands in Phase 10, ?mode=freeroam selects it so the
+// Warden controller can be driven by hand.
+const bootFreeRoam = DEBUG && /(?:^|[?&])mode=freeroam(?:&|$)/.test(location.search);
+initMatch(
+  bootFreeRoam
+    ? { mode: 'freeroam', role: 'warden', ai: false, objective: false }
+    : { mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true }
+);
 
 if (DEBUG) {
   // Console handle so a seed can be reproduced by hand (Section 16, check 28).
