@@ -163,9 +163,150 @@ See the checklist in the response for what to look at.
 
 ### Exact next action
 
-Phase 2 — `src/map.js` and `src/physics.js`. Build the Meridian Substation:
-two floors, collision volumes, 4 Shade insert points (per Q1), 4 Warden spawns,
-3 plant sites, 12 non-shadow-casting destructible point lights plus one shadowed
-directional key, 14 linked AI waypoints, and affordance markings generated from
-the same ledge flags the collision logic reads. Add a freefly camera so the map
-can be walked before the Shade controller exists.
+Phase 2 — map and physics. **Done, see below.**
+
+---
+
+## Phase 2 — map geometry, collision, spawns, sites, lights, markings
+
+**Status:** complete. Tagged `phase-02`.
+
+### What was built
+
+- **`src/physics.js`** — swept AABB solver. A depenetration pass runs first so
+  the solver never starts from an invalid state, then the actor box is swept
+  along its whole displacement (Minkowski-expanded slab test), stopped at the
+  first time of impact, and slid along the surface for up to four passes.
+  Uniform-grid broadphase over XZ with a stamp table, so a query allocates
+  nothing. Also provides `raycast()` and `lineOfSight()` — needed later by light
+  sampling, AI perception, hitscan and the grenade tunnelling check — plus
+  `overlap()`/`isClear()`, which is the API the Phase 3 parkour safety rule will
+  call before committing any vault, mantle or pull-up. `classifyLedge()` lives
+  here so the controller and the marking pass share one implementation.
+- **`src/map.js`** — "Meridian Substation". 71 collision boxes. Turbine Hall
+  (site A, brightly lit), Loading Bay (site B, two roller doors, crate stacks),
+  corridor ring, Server Vault (site C, darkest), two office rooms with
+  waist-high cover, three catwalks over the hall plus a cross walkway, three
+  vent runs, two crate-stack mantle routes, and a one-way drop shaft.
+  12 destructible point lights each with a `lightId`, emissive fixture and
+  separate glass element; one hemisphere, one shadowed directional key and one
+  unshadowed fill. 14 waypoints with bidirectional links. 4 Shade insert points,
+  4 Warden spawns, 3 pulsing site rings.
+- **Freefly camera** in `main.js` for the Phase 2 exit gate. It moves the one
+  existing camera; it never creates another.
+- **Toon gradient** — 4-step `DataTexture`, `RedFormat`, nearest filtering.
+  Verified against the r180 shader chunk, which samples
+  `texture2D(gradientMap, coord).r`.
+
+### How marking/collision drift is made structurally impossible
+
+`addSolid()` creates the mesh and the `CollisionBox` from one spec — this file
+never creates one without the other. `generateAffordanceMarkings()` then runs a
+single pass over the collision boxes: for each box flagged `climbable` it
+computes the rise above the surface you would stand on to climb it, classifies
+that with the same `classifyLedge()` the controller calls, and emits the marking
+the spec assigns to that band. No ledge is marked by hand and no band is
+authored. Flip `climbable` and the stripe appears; move the box and the band
+reclassifies. Currently 25 climbable boxes → 25 marked (14 vault, 8 mantle,
+3 hang).
+
+### Vertical layout
+
+Ground 0, catwalk/upper floor 4.0, ceiling 8.0, vent floor 2.3. Chosen so the
+traversal chain lands inside the Section 6.1 bands by construction:
+ground → **mantle 2.3m** onto a vent lip → crouch the vent → **mantle 1.7m**
+onto the catwalk. Crate stacks give the second route: **vault 1.0** → **mantle
+1.3** → **mantle 1.7**.
+
+### Bugs the build-time validation caught (and I fixed)
+
+1. `catwalk-east` classified into no band. The vent's 0.12m-thick side walls
+   passed underneath it and were being treated as a standing surface, collapsing
+   its rise to 0.1m. Fixed by requiring a support candidate to be at least an
+   actor-diameter wide in both axes, and by trimming the vent walls to the
+   height of the roof.
+2. AI waypoint 3 was embedded inside `vent-exit-platform-0` — and despite its
+   `corridor-nw` tag was actually inside the Turbine Hall. Moved to the corridor.
+3. The drop shaft was a box floating in mid-air: there was no upper floor at
+   those coordinates to put a hole in. Rebuilt the office floor in four pieces
+   with a real opening, ringed by hazard lip bars.
+4. Three "Loading Bay" lights were at y 6.4, above the office floor at y 4.0 —
+   they were lighting the upper rooms and leaving the bay dark. Dropped to 3.5.
+
+### Files touched
+
+```
+src/physics.js   (new)
+src/map.js       (new)
+src/main.js      (map wiring, toon gradient, freefly, 6 new AUTO checks)
+src/config.js    (vertical layout constants)
+src/ui/debug.js  (3 new overlay fields)
+```
+
+### Deviations from spec
+
+5. **Inverted-hull outlines are applied to props, not the static shell.**
+   Section 4 lists the technique without scoping it. Outlining all 71 shell
+   boxes would roughly double draw calls against a 60fps-on-integrated-graphics
+   target, for silhouettes that read fine from the vertex tint and the emissive
+   stripes. Crates, cover and racks — the things you read as interactive — do
+   get outlines, as will both characters. Easy to extend if you want it
+   everywhere.
+6. **Step-up (`CONFIG.shade.stepHeight`, 0.32m) added to the solver.** Not in
+   the spec. Without it a swept-AABB actor snags on every sub-vault lip. It
+   validates the raised destination is clear before committing, same as the
+   parkour rule.
+7. **Vent height gain.** Section 5 says the vents "connect ground corridor to
+   upper catwalks" but not how the 4m is gained, and there is no climb mechanic
+   in scope. Resolved with the mantle → vent → mantle chain described above.
+
+### Known issues
+
+- The Loading Bay's east strip (x 26–30) is open to the ceiling while the rest
+  of the bay is capped by the office floor. Intentional but worth an eye during
+  the walkthrough.
+- No entities yet, so the freefly camera has no collision — it flies through
+  walls by design.
+
+### Verification actually performed
+
+**AUTO suite: 14 passed, 0 failed.** Run in a real browser. Six checks are new
+this phase:
+
+```
+PASS  exactly-one-shadow-caster       | 15 lights, 1 shadow caster(s), 0 shadowed point lights, shadow map 1024x1024
+PASS  markings-match-collision-flags  | 25 climbable, 25 marked, 0 band mismatches (vault 14, mantle 8, hang 3)
+PASS  waypoint-graph-valid            | 14 nodes, 0 asymmetric links, 14 reachable from node 0, 3/3 sites covered
+PASS  swept-collision-no-tunnelling   | 0 breaches; 6.5m/s -> x=-29.659, 50m/s -> x=-29.659, 200m/s -> x=-29.659, 1000m/s -> x=-29.659 (wall face at x=-30)
+PASS  spawns-and-sites-clear          | 4 shade spawns, 4 warden spawns, 3 sites, 14 waypoints all clear
+PASS  light-break-is-permanent        | active 12 -> 11, intensity 26 -> 0, repeat break returned null=true
+```
+
+The tunnelling result is the one worth noting: an actor driven at **1000 m/s**
+into a wall for 180 fixed steps ends at x = -29.659 against a wall face at
+x = -30, which is exactly resting contact for a 0.34m radius. It does not pass
+through at any speed tested.
+
+Render cost from the freefly start position: **171 draw calls, 2520 triangles,
+4 shader programs, 2 textures, GL error 0.** Zero console errors, zero warnings.
+
+Drop shaft verified by raycast: straight down through the opening reaches
+`ground-floor` at y=0; the same ray 4m to the west hits office geometry at
+y=4.95.
+
+### Not verified (needs a human)
+
+Everything visual. As in Phase 1, the browser pane was not compositing, so
+`requestAnimationFrame` never ran and nothing was rendered to a screen I could
+look at. I have not seen this map. Specifically unverified: whether it *looks*
+right, whether the markings read at distance, whether the light pools give the
+high-contrast language Section 4 asks for, and the freefly feel.
+
+### Exact next action
+
+Phase 3 — `src/entities/agent.js`. The Shade controller: gravity, crouch,
+sprint, vault, mantle, slide, ledge hang, and the collision-aware third-person
+camera rig. Every parkour move must validate its destination capsule with
+`collision.isClear()` before committing and abort back to the previous state on
+a block. Register AUTO checks for: no NaN in position or velocity, Y never below
+the floor plane minus 0.5, and a blocked mantle aborting rather than clipping.

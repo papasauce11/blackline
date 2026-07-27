@@ -12,6 +12,8 @@
 import * as THREE from 'three';
 import { CONFIG, DEBUG, SETTINGS, rng, deriveSeed } from './config.js';
 import { Input } from './input.js';
+import { buildMap } from './map.js';
+import { classifyLedge } from './physics.js';
 import { DebugTools } from './ui/debug.js';
 
 // ---------------------------------------------------------------------------
@@ -120,6 +122,8 @@ export function computeStepPlan(accumulator, wallDelta, timeScale) {
 /** @type {THREE.PerspectiveCamera} */ let camera = null;
 /** @type {Input} */ let input = null;
 /** @type {DebugTools} */ let debugTools = null;
+/** @type {import('./map.js').GameMap} */ let map = null;
+/** @type {THREE.DataTexture} */ let gradientMap = null;
 
 const emitter = new Emitter();
 
@@ -257,6 +261,17 @@ function bootstrap() {
   camera = createCamera();
   scene.add(camera);
 
+  // Section 4: 4-step gradient map generated in code via DataTexture. Created
+  // here in the composition root and passed down, because both map.js and
+  // entities/ need it and neither may import the other (Section 3.1).
+  gradientMap = createToonGradient(CONFIG.render.toonSteps);
+
+  map = buildMap({ gradientMap });
+  scene.add(map.root);
+
+  debugState.collisionBoxes = map.collision.boxCount;
+  debugState.mapLedges = map.ledges.length;
+
   input = new Input(canvas);
   canvas.addEventListener('mousedown', () => input.requestLock());
 
@@ -269,6 +284,24 @@ function bootstrap() {
 
   setTimeScale(1);
   debugState.stepsPerFrame = 0;
+}
+
+/**
+ * Section 4: a 4-step toon ramp. The shader samples the red channel
+ * (`texture2D(gradientMap, coord).r`), so a single-channel RedFormat texture
+ * with nearest filtering gives hard bands.
+ */
+function createToonGradient(steps) {
+  const data = new Uint8Array(steps);
+  for (let i = 0; i < steps; i++) {
+    data[i] = Math.round((i / (steps - 1)) * 255);
+  }
+  const texture = new THREE.DataTexture(data, steps, 1, THREE.RedFormat);
+  texture.minFilter = THREE.NearestFilter;
+  texture.magFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return texture;
 }
 
 /**
@@ -325,9 +358,67 @@ function stop() {
  */
 function fixedStep(dt) {
   clock.sim += dt;
+  map.update(dt);
+  freefly.step(dt);
   emitter.emit('sim:step', dt);
   if (DEBUG) debugTools.step();
 }
+
+// ---------------------------------------------------------------------------
+// Freefly camera
+//
+// The Phase 2 exit gate is "freefly the whole map, every usable ledge marked".
+// Until the Shade controller exists there is nothing else driving the camera,
+// so this owns it. It moves the one camera object; it never creates another.
+// ---------------------------------------------------------------------------
+
+const freefly = {
+  enabled: true,
+  yaw: Math.PI,
+  pitch: -0.15,
+  speed: CONFIG.shade.walkSpeed * 2,
+  position: new THREE.Vector3(-27, 1.7, 19),
+
+  look() {
+    if (!this.enabled || !input.locked) return;
+    const delta = input.lookDelta();
+    this.yaw += delta.yaw;
+    this.pitch = Math.max(
+      CONFIG.shade.camera.pitchMin,
+      Math.min(CONFIG.shade.camera.pitchMax, this.pitch + delta.pitch)
+    );
+  },
+
+  step(dt) {
+    if (!this.enabled) return;
+    const forward = input.axis('back', 'forward');
+    const strafe = input.axis('left', 'right');
+    const lift = (input.down('jump') ? 1 : 0) - (input.down('crouch') ? 1 : 0);
+    const speed = this.speed * (input.down('sprint') ? 3 : 1);
+
+    const sinYaw = Math.sin(this.yaw);
+    const cosYaw = Math.cos(this.yaw);
+    const cosPitch = Math.cos(this.pitch);
+    const sinPitch = Math.sin(this.pitch);
+
+    // Forward follows the aim so you can fly up to a catwalk to inspect it.
+    const fx = -sinYaw * cosPitch;
+    const fy = sinPitch;
+    const fz = -cosYaw * cosPitch;
+    const rx = cosYaw;
+    const rz = -sinYaw;
+
+    this.position.x += (fx * forward + rx * strafe) * speed * dt;
+    this.position.y += (fy * forward + lift) * speed * dt;
+    this.position.z += (fz * forward + rz * strafe) * speed * dt;
+  },
+
+  apply() {
+    if (!this.enabled) return;
+    camera.position.copy(this.position);
+    camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+  },
+};
 
 function frame(now) {
   frameHandle = requestAnimationFrame(frame);
@@ -340,6 +431,9 @@ function frame(now) {
   // Before the steps: a step clears input edges, which would eat F3/F4.
   debugTools.pollKeys();
 
+  // Mouse delta is a displacement, not a rate, so look is applied once per
+  // frame rather than once per fixed step.
+  freefly.look();
   emitter.emit('frame:begin', { wallDelta, input });
 
   const plan = computeStepPlan(accumulator, wallDelta, clock.timeScale);
@@ -351,6 +445,7 @@ function frame(now) {
   debugState.stepsPerFrame = plan.steps;
 
   const alpha = accumulator / plan.dt;
+  freefly.apply();
   emitter.emit('frame:render', { alpha, wallDelta });
 
   const cpuStart = performance.now();
@@ -359,6 +454,7 @@ function frame(now) {
   debugState.drawCalls = renderer.info.render.calls;
   debugState.triangles = renderer.info.render.triangles;
   debugState.rngCalls = rng.calls;
+  debugState.cameraPos = camera.position;
 
   debugTools.update(wallDelta, wallDelta * 1000);
   input.endFrame();
@@ -635,6 +731,203 @@ function registerAutoTests() {
   });
 
   debugTools.registerAutoTest({
+    id: 'exactly-one-shadow-caster',
+    spec: 'Section 4.1 / check 29',
+    name: 'Exactly one shadow-casting light; no point light casts',
+    run: (h) => {
+      let casters = 0;
+      let pointCasters = 0;
+      let total = 0;
+      h.scene.traverse((object) => {
+        if (!object.isLight) return;
+        total++;
+        if (object.castShadow) casters++;
+        if (object.isPointLight && object.castShadow) pointCasters++;
+      });
+      const size = h.map.keyLight.shadow.mapSize;
+      const mapOk = size.x === CONFIG.render.shadowMapSize && size.y === CONFIG.render.shadowMapSize;
+      return {
+        pass: casters === 1 && pointCasters === 0 && mapOk,
+        detail: `${total} lights, ${casters} shadow caster(s), ${pointCasters} shadowed point lights, shadow map ${size.x}x${size.y}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'markings-match-collision-flags',
+    spec: 'check 26 (auto half) / Section 15',
+    name: 'Every climbable box is marked, in the band its geometry implies',
+    run: (h) => {
+      let climbable = 0;
+      let marked = 0;
+      let mismatched = 0;
+      const bands = { vault: 0, mantle: 0, hang: 0 };
+
+      for (const box of h.map.collision.boxes) {
+        if (!box.climbable) continue;
+        climbable++;
+        const ledge = h.map.ledges.find((entry) => entry.box === box);
+        if (!ledge) continue;
+        marked++;
+        // Recompute the band independently from the stored rise and compare.
+        if (classifyLedge(ledge.rise) !== box.ledgeBand) mismatched++;
+        if (box.ledgeBand) bands[box.ledgeBand]++;
+      }
+
+      return {
+        pass: climbable > 0 && marked === climbable && mismatched === 0,
+        detail: `${climbable} climbable, ${marked} marked, ${mismatched} band mismatches (vault ${bands.vault}, mantle ${bands.mantle}, hang ${bands.hang})`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'waypoint-graph-valid',
+    spec: 'Section 5 / Section 11',
+    name: '14 waypoints, links bidirectional, graph fully connected',
+    run: (h) => {
+      const nodes = h.map.waypoints;
+      let asymmetric = 0;
+      for (const node of nodes) {
+        for (const other of node.links) {
+          if (nodes[other].links.indexOf(node.id) === -1) asymmetric++;
+        }
+      }
+      const seen = new Set([0]);
+      const queue = [0];
+      while (queue.length) {
+        const current = queue.shift();
+        for (const next of nodes[current].links) {
+          if (!seen.has(next)) {
+            seen.add(next);
+            queue.push(next);
+          }
+        }
+      }
+      const siteTags = ['site-a', 'site-b', 'site-c'];
+      const sitesCovered = siteTags.filter((tag) => nodes.some((n) => n.tag === tag)).length;
+      const pass =
+        nodes.length === CONFIG.map.waypointCount &&
+        asymmetric === 0 &&
+        seen.size === nodes.length &&
+        sitesCovered === 3;
+      return {
+        pass,
+        detail: `${nodes.length} nodes, ${asymmetric} asymmetric links, ${seen.size} reachable from node 0, ${sitesCovered}/3 sites covered`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'swept-collision-no-tunnelling',
+    spec: 'check 1 (auto half) / Section 15',
+    name: 'An actor driven into a wall at extreme speed never passes through',
+    run: (h) => {
+      const world = h.map.collision;
+      const half = { x: CONFIG.shade.radius, y: CONFIG.shade.standHeight / 2, z: CONFIG.shade.radius };
+      const dt = CONFIG.time.fixedDt;
+      const speeds = [6.5, 50, 200, 1000];
+      let breaches = 0;
+      const details = [];
+
+      for (const speed of speeds) {
+        // Start inside the Turbine Hall and drive due west into the perimeter
+        // wall, whose inner face is at x = -30.
+        const position = { x: -20, y: half.y + 0.05, z: -4 };
+        const velocity = { x: -speed, y: 0, z: 0 };
+        for (let i = 0; i < 180; i++) {
+          velocity.x = -speed;
+          world.moveAndSlide(position, half, velocity, dt, {
+            groundNormalY: CONFIG.shade.groundNormalY,
+            stepHeight: CONFIG.shade.stepHeight,
+            wasGrounded: true,
+          });
+        }
+        const insideWall = position.x < -30 + half.x - 0.05;
+        if (insideWall) breaches++;
+        details.push(`${speed}m/s -> x=${position.x.toFixed(3)}`);
+      }
+
+      return {
+        pass: breaches === 0,
+        detail: `${breaches} breaches; ${details.join(', ')} (wall face at x=-30)`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'spawns-and-sites-clear',
+    spec: 'Section 5 / Section 10.2',
+    name: 'No spawn or plant site is embedded in geometry',
+    run: (h) => {
+      const world = h.map.collision;
+      const blocked = [];
+
+      const check = (label, position, radius, height) => {
+        const half = { x: radius, y: height / 2, z: radius };
+        const centre = { x: position.x, y: position.y + height / 2 + 0.02, z: position.z };
+        const hit = world.overlap(centre, half);
+        if (hit) blocked.push(`${label} in "${hit.tag}"`);
+      };
+
+      h.map.shadeSpawns.forEach((spawn, i) =>
+        check(`shade spawn ${i}`, spawn.position, CONFIG.shade.radius, CONFIG.shade.standHeight)
+      );
+      h.map.wardenSpawns.forEach((spawn, i) =>
+        check(`warden spawn ${i}`, spawn.position, CONFIG.warden.radius, CONFIG.warden.standHeight)
+      );
+      h.map.sites.forEach((site) =>
+        check(`site ${site.id}`, site.position, CONFIG.shade.radius, CONFIG.shade.standHeight)
+      );
+      h.map.waypoints.forEach((node) =>
+        check(`waypoint ${node.id} (${node.tag})`, node.position, CONFIG.warden.radius, CONFIG.warden.standHeight)
+      );
+
+      return {
+        pass: blocked.length === 0,
+        detail:
+          blocked.length === 0
+            ? `${h.map.shadeSpawns.length} shade spawns, ${h.map.wardenSpawns.length} warden spawns, ${h.map.sites.length} sites, ${h.map.waypoints.length} waypoints all clear`
+            : blocked.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'light-break-is-permanent',
+    spec: 'Section 5 / Section 7.1',
+    name: 'Breaking a light zeroes its intensity, darkens the glass, and sticks',
+    run: (h) => {
+      const target = h.map.lights.find((entry) => !entry.broken);
+      if (!target) return { pass: false, detail: 'no unbroken light to test' };
+      const beforeActive = h.map.activeLights().length;
+      const beforeIntensity = target.light.intensity;
+
+      const first = h.map.breakLight(target.lightId);
+      const second = h.map.breakLight(target.lightId); // must be a no-op
+      const afterActive = h.map.activeLights().length;
+
+      const pass =
+        first !== null &&
+        second === null &&
+        target.broken === true &&
+        target.light.intensity === 0 &&
+        beforeIntensity > 0 &&
+        afterActive === beforeActive - 1;
+
+      // Restore so the suite does not leave the map dark for the next run.
+      target.broken = false;
+      target.light.intensity = beforeIntensity;
+      target.glassMaterial.color.set(CONFIG.palette.lightWarm);
+
+      return {
+        pass,
+        detail: `active ${beforeActive} -> ${afterActive}, intensity ${beforeIntensity} -> 0, repeat break returned null=${second === null}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
     id: 'match-state-rebuilt-on-init',
     spec: 'Section 15 (state bleed)',
     name: 'initMatch rebuilds match state from the defaults factory',
@@ -685,6 +978,12 @@ const harness = {
   },
   get match() {
     return match;
+  },
+  get map() {
+    return map;
+  },
+  get freefly() {
+    return freefly;
   },
   emitter,
   debugState,

@@ -639,8 +639,18 @@ export const CONFIG = {
     /** Roughly 60m x 45m footprint, two floors. */
     width: 60,
     depth: 45,
-    groundFloorHeight: 4.6,
-    upperFloorHeight: 3.8,
+    /**
+     * Vertical layout. Every height in the map derives from these, so the
+     * traversal chains stay inside the Section 6.1 bands by construction:
+     * ground -> mantle 2.3m onto a vent lip -> crouch the vent -> mantle 1.7m
+     * onto the catwalk.
+     */
+    groundY: 0,
+    catwalkY: 4.0,
+    ceilingY: 8.0,
+    ventFloorY: 2.3,
+    groundFloorHeight: 4.0,
+    upperFloorHeight: 4.0,
     wallThickness: 0.4,
     floorThickness: 0.35,
 
