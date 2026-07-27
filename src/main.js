@@ -1767,6 +1767,63 @@ function registerAutoTests() {
   });
 
   debugTools.registerAutoTest({
+    id: 'warden-can-walk-between-floors',
+    spec: 'Section 6.2 / Section 5',
+    name: 'The Warden walks up every staircase to the upper floor unaided',
+    run: (h) => {
+      const dt = CONFIG.time.fixedDt;
+      const intent = createWardenIntent();
+      const results = [];
+      let failures = 0;
+
+      for (const stair of h.map.staircases) {
+        const alongZ = stair.axis === 'z';
+        const cross = (stair.crossMin + stair.crossMax) / 2;
+
+        // Start one metre short of the first step, facing up the flight.
+        const startAlong = stair.bottom - 1.0;
+        h.warden.reset(h.map.wardenSpawns[0]);
+        h.warden.position.set(
+          alongZ ? cross : startAlong,
+          stair.baseY + CONFIG.warden.standHeight / 2 + 0.05,
+          alongZ ? startAlong : cross
+        );
+        h.warden.velocity.set(0, 0, 0);
+        // Face +Z or +X, the direction the flight ascends.
+        h.warden.yaw = alongZ ? Math.PI : -Math.PI / 2;
+
+        intent.forward = 1;
+        intent.sprint = false;
+        intent.ads = false;
+
+        let reached = false;
+        for (let i = 0; i < 900; i++) {
+          h.warden.step(dt, intent);
+          if (h.warden.feetY >= stair.topY - 0.2) {
+            reached = true;
+            break;
+          }
+        }
+        const clear = h.map.collision.isClear(h.warden.position, h.warden.half);
+        if (!reached || !clear) failures++;
+        results.push(`${stair.tag}: reached=${reached} feetY=${h.warden.feetY.toFixed(2)}/${stair.topY.toFixed(2)} clear=${clear}`);
+      }
+
+      h.warden.reset(h.map.wardenSpawns[0]);
+
+      // Rise must clear both actors' step-up, or one of them cannot use it.
+      const riseOk =
+        CONFIG.map.stairRise < CONFIG.warden.stepHeight && CONFIG.map.stairRise < CONFIG.shade.stepHeight;
+      if (!riseOk) failures++;
+
+      return {
+        pass: failures === 0 && h.map.staircases.length >= 2,
+        detail: `${h.map.staircases.length} staircases, step rise ${CONFIG.map.stairRise.toFixed(3)}m under both step-ups (shade ${CONFIG.shade.stepHeight}, warden ${CONFIG.warden.stepHeight})=${riseOk}; ${results.join('; ')}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
     id: 'warden-shared-by-ai-and-human',
     spec: 'Section 6.2 / Section 12 / Section 15',
     name: 'One Warden controller serves both drivers through the same intent',

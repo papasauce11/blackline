@@ -80,6 +80,8 @@ class GameMap {
     this.ledges = [];
     /** @type {object[]} */
     this.vents = [];
+    /** @type {object[]} */
+    this.staircases = [];
 
     this.keyLight = null;
     this._siteTime = 0;
@@ -146,6 +148,60 @@ class GameMap {
     );
     box.mesh = mesh;
     return box;
+  }
+
+  /**
+   * A walkable staircase, generated as a run of solid steps.
+   *
+   * Each step is a full block from the floor up to its own tread height rather
+   * than a floating slab, so there is no gap underneath to fall into and the
+   * swept solver only ever sees one clean face per step.
+   *
+   * Steps are deliberately shallower in tread depth than an actor diameter, so
+   * `deriveClimbableSurfaces()` skips them and they carry no affordance
+   * stripes — a staircase is walked, not vaulted.
+   *
+   * @param {object} spec
+   * @param {'x'|'z'} spec.axis direction the stairs ascend
+   * @param {number} spec.start along-axis coordinate of the first step
+   * @param {number} spec.crossMin across-axis minimum (the stair's width)
+   * @param {number} spec.crossMax across-axis maximum
+   * @param {number} spec.baseY floor the stairs rise from
+   */
+  addStaircase(spec) {
+    const steps = M.stairSteps;
+    const rise = M.stairRise;
+    const run = M.stairRun;
+    const built = [];
+
+    for (let i = 0; i < steps; i++) {
+      const from = spec.start + i * run;
+      const to = from + run;
+      const top = spec.baseY + (i + 1) * rise;
+      const min = spec.axis === 'x' ? [from, spec.baseY, spec.crossMin] : [spec.crossMin, spec.baseY, from];
+      const max = spec.axis === 'x' ? [to, top, spec.crossMax] : [spec.crossMax, top, to];
+      built.push(
+        this.addSolid({
+          min,
+          max,
+          color: P.concrete,
+          tag: `${spec.tag}-step-${i}`,
+          castShadow: false,
+        })
+      );
+    }
+
+    this.staircases.push({
+      tag: spec.tag,
+      axis: spec.axis,
+      bottom: spec.start,
+      top: spec.start + steps * run,
+      topY: spec.baseY + steps * rise,
+      crossMin: spec.crossMin,
+      crossMax: spec.crossMax,
+      baseY: spec.baseY,
+    });
+    return built;
   }
 
   /** Section 4: inverted hull. Duplicate mesh, BackSide, scaled 1.03. */
@@ -694,7 +750,10 @@ export function buildMap({ gradientMap }) {
     map.addSolid({ ...spec, color: P.concreteDark, castShadow: false, noClimb: true });
   }
   const officeWalls = [
-    { min: [10.0, C, -20.0], max: [10.0 + wall, CEIL, -6.0], tag: 'office-wall-w' },
+    // Stops short of z = -9 to leave a doorway onto the cross walkway. It
+    // previously ran to z = -6, leaving a 0.4m slot the Warden's 0.84m capsule
+    // could not fit through, which sealed the upper east rooms off entirely.
+    { min: [10.0, C, -20.0], max: [10.0 + wall, CEIL, -9.0], tag: 'office-wall-w' },
     { min: [26.0 - wall, C, -20.0], max: [26.0, CEIL, -6.0], tag: 'office-wall-e' },
     { min: [10.0, C, -6.0 - wall], max: [26.0, CEIL, -6.0], tag: 'office-wall-s' },
     { min: [17.6, C, -20.0], max: [18.4, CEIL, -12.0], tag: 'office-divider' },
@@ -737,6 +796,39 @@ export function buildMap({ gradientMap }) {
     color: P.wardenGunmetal,
     climbable: true,
     tag: 'walkway-cross',
+    castShadow: false,
+  });
+
+  // -------------------------------------------------------------------------
+  // Staircases (Section 6.2: the Warden walks, so the level must let it)
+  // -------------------------------------------------------------------------
+
+  // West wall of the Turbine Hall, rising north-to-south onto catwalk-north.
+  map.addStaircase({
+    tag: 'stair-hall',
+    axis: 'z',
+    start: -13.2,
+    crossMin: -28.0,
+    crossMax: -26.4,
+    baseY: G,
+  });
+
+  // South-east strip, rising west-to-east onto a landing at the Server Vault's
+  // south entrance. Without this, site C is undefendable: the vault is cut off
+  // from the rest of the upper floor.
+  map.addStaircase({
+    tag: 'stair-vault',
+    axis: 'x',
+    start: 8.0,
+    crossMin: 19.4,
+    crossMax: 22.4,
+    baseY: G,
+  });
+  map.addSolid({
+    min: [13.2, C - M.floorThickness, 19.0],
+    max: [21.0, C, 22.4],
+    color: P.concreteDark,
+    tag: 'stair-vault-landing',
     castShadow: false,
   });
 

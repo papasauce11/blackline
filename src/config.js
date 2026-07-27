@@ -682,6 +682,16 @@ export const CONFIG = {
      * crouch capsule (1.05m) but not the standing one (1.85m), or the run is
      * impassable rather than crouch-only.
      */
+    /**
+     * Staircases. The Warden has walk, sprint and ADS and nothing else
+     * (Section 6.2) — no crouch, no climb — so walking up is its only route to
+     * the upper floor. Step rise must stay below BOTH actors' step-up heights
+     * (Shade 0.32, Warden 0.35) or the solver will not carry them over the lip.
+     */
+    stairSteps: 13,
+    stairRise: 4.0 / 13,
+    stairRun: 0.4,
+
     ventHeight: 1.15,
     ventWidth: 1.1,
     /**
