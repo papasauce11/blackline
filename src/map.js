@@ -138,6 +138,7 @@ class GameMap {
       {
         solid: spec.solid !== false,
         climbable: spec.climbable === true,
+        noClimb: spec.noClimb === true,
         vent: spec.vent === true,
         blocksSight: spec.blocksSight !== false,
         tag: spec.tag,
@@ -179,6 +180,62 @@ class GameMap {
   // -------------------------------------------------------------------------
   // Affordance markings (Section 5) — ONE pass, driven by the collision flags
   // -------------------------------------------------------------------------
+
+  /**
+   * Decide which surfaces are climbable from the geometry itself, rather than
+   * from a per-box flag typed by hand.
+   *
+   * Hand-flagging every ledge is the same failure Section 5 warns about, just
+   * one level up: miss a box and the player meets an invisible wall on a
+   * surface that plainly looks climbable. A surface qualifies when it is
+   * something you could actually stand on and get to:
+   *
+   *   - the top face is at least an actor-diameter across in both axes, so
+   *     there is somewhere to land (a 0.12m parapet is not a ledge)
+   *   - there is at least crouch headroom above it, which excludes walls that
+   *     run all the way to the ceiling
+   *   - the rise above whatever you would climb from falls in a traversal band
+   *
+   * `noClimb` opts a surface out. It is used only where the level design needs
+   * a one-way drop.
+   */
+  deriveClimbableSurfaces() {
+    const minSupport = CONFIG.shade.radius * 2;
+    const headroom = CONFIG.shade.crouchHeight;
+    const probeHalf = { x: minSupport * 0.5, y: headroom * 0.5, z: minSupport * 0.5 };
+
+    for (const box of this.collision.boxes) {
+      if (box.noClimb || !box.solid) continue;
+      if (box.max.x - box.min.x < minSupport) continue;
+      if (box.max.z - box.min.z < minSupport) continue;
+
+      const standY = this._supportHeightBelow(box);
+      if (!classifyLedge(box.max.y - standY)) continue;
+
+      // Somewhere to actually stand once you are up. Sample along the surface
+      // rather than at its centre alone: a long ledge that passes under one
+      // obstruction is still climbable everywhere else, and judging it by a
+      // single point excludes the whole thing.
+      const y = box.max.y + headroom * 0.5 + 0.05;
+      let standable = false;
+      for (let i = 1; i <= 3 && !standable; i++) {
+        const t = i / 4;
+        const point = {
+          x: box.min.x + (box.max.x - box.min.x) * t,
+          y,
+          z: box.min.z + (box.max.z - box.min.z) * t,
+        };
+        // Keep the sample inside the footprint so an edge point does not
+        // wrongly report clear air beside the box.
+        point.x = Math.min(Math.max(point.x, box.min.x + probeHalf.x), box.max.x - probeHalf.x);
+        point.z = Math.min(Math.max(point.z, box.min.z + probeHalf.z), box.max.z - probeHalf.z);
+        if (this.collision.isClear(point, probeHalf)) standable = true;
+      }
+      if (!standable) continue;
+
+      box.climbable = true;
+    }
+  }
 
   /**
    * For every climbable collision box, work out how high its top face sits
@@ -631,7 +688,10 @@ export function buildMap({ gradientMap }) {
     { min: [shaft.x1, C - M.floorThickness, shaft.z0], max: [26.0, C, shaft.z1], tag: 'office-floor-e' },
   ];
   for (const spec of officeFloorPieces) {
-    map.addSolid({ ...spec, color: P.concreteDark, castShadow: false });
+    // noClimb keeps the drop shaft one-way (Section 5). Without it the office
+    // floor's edge around the opening becomes a grabbable ledge and the shaft
+    // turns into a two-way route.
+    map.addSolid({ ...spec, color: P.concreteDark, castShadow: false, noClimb: true });
   }
   const officeWalls = [
     { min: [10.0, C, -20.0], max: [10.0 + wall, CEIL, -6.0], tag: 'office-wall-w' },
@@ -995,6 +1055,7 @@ export function buildMap({ gradientMap }) {
   // -------------------------------------------------------------------------
 
   map.collision.build();
+  map.deriveClimbableSurfaces();
   map.generateAffordanceMarkings();
   validateMap(map);
 

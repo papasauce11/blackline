@@ -78,6 +78,8 @@ export class CollisionBox {
     this.max = { x: max.x, y: max.y, z: max.z };
     this.solid = flags.solid !== false;
     this.climbable = flags.climbable === true;
+    /** Opt out of automatic climbability. Used for deliberate one-way drops. */
+    this.noClimb = flags.noClimb === true;
     this.vent = flags.vent === true;
     this.blocksSight = flags.blocksSight !== false;
     this.tag = flags.tag || '';

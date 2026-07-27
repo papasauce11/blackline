@@ -883,6 +883,50 @@ function registerAutoTests() {
   });
 
   debugTools.registerAutoTest({
+    id: 'climbable-surfaces-are-derived-not-hand-flagged',
+    spec: 'Section 5 / reported bug',
+    name: 'Every standable surface in a traversal band is climbable; exclusions are justified',
+    run: (h) => {
+      const minSupport = CONFIG.shade.radius * 2;
+      const unjustified = [];
+
+      for (const box of h.map.collision.boxes) {
+        if (box.climbable || !box.solid) continue;
+        // Every non-climbable surface must have a reason. Anything wide enough
+        // to stand on, in a traversal band, and not explicitly opted out is an
+        // invisible wall on a surface that looks climbable.
+        const wideX = box.max.x - box.min.x >= minSupport;
+        const wideZ = box.max.z - box.min.z >= minSupport;
+        if (!wideX || !wideZ) continue; // too thin to land on
+        if (box.noClimb) continue; // deliberate one-way drop
+        const standY = h.map._supportHeightBelow(box);
+        if (!classifyLedge(box.max.y - standY)) continue; // out of every band
+        // Wide, in-band, not opted out: the only remaining excuse is no
+        // headroom, which deriveClimbableSurfaces() already tested.
+        const headroom = CONFIG.shade.crouchHeight;
+        const probeHalf = { x: minSupport * 0.5, y: headroom * 0.5, z: minSupport * 0.5 };
+        const point = { x: box.centerX, y: box.max.y + headroom * 0.5 + 0.05, z: box.centerZ };
+        if (!h.map.collision.isClear(point, probeHalf)) continue;
+        unjustified.push(box.tag);
+      }
+
+      // The surfaces a player will obviously try must all be climbable.
+      const mustClimb = h.map.collision.boxes.filter((box) =>
+        /^(catwalk|walkway|crate|stack|vent-exit|office-cover|server-rack|hall-container)/.test(box.tag)
+      );
+      const missed = mustClimb.filter((box) => !box.climbable).map((box) => box.tag);
+
+      return {
+        pass: unjustified.length === 0 && missed.length === 0 && h.map.ledges.length === h.map.collision.boxes.filter((b) => b.climbable).length,
+        detail:
+          unjustified.length === 0 && missed.length === 0
+            ? `${h.map.ledges.length} climbable surfaces derived and marked; ${mustClimb.length} obvious traversal surfaces all climbable; every exclusion justified (too thin, out of band, no headroom, or noClimb)`
+            : `unjustified exclusions: [${unjustified.join(', ')}]; obvious surfaces missed: [${missed.join(', ')}]`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
     id: 'waypoint-graph-valid',
     spec: 'Section 5 / Section 11',
     name: '14 waypoints, links bidirectional, graph fully connected',

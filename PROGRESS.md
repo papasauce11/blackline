@@ -526,6 +526,46 @@ The check asserts both halves — that backing off falls to the floor, and that
 approaching forwards still grabs — so the fix cannot be "solved" by breaking
 climbing altogether.
 
+### Post-checkpoint fix 4: climbability is now derived, not hand-flagged
+
+Reported from play, with a screenshot: a catwalk surface could not be climbed.
+
+**Cause.** Only boxes I had typed `climbable: true` on were ledges. That is the
+same failure Section 5 warns about, just one level up — the marking was
+generated from a flag, but the flag itself was authored by hand, so any surface
+I missed became an invisible wall on something that plainly looks climbable.
+
+**Fix.** `deriveClimbableSurfaces()` runs after `collision.build()` and decides
+climbability from the geometry. A surface qualifies when its top is at least an
+actor-diameter across in both axes (somewhere to land), has at least crouch
+headroom above it, and rises into a traversal band. Climbable surfaces went from
+**27 to 36**, and all 36 are marked.
+
+`noClimb` opts a surface out, used only on the office floor to keep the drop
+shaft one-way as Section 5 requires.
+
+Headroom is sampled at three points along the surface rather than at its centre
+alone. With a single centre sample, `vent-north-roof` was excluded because that
+one point sits under `catwalk-east`, while the other two vent roofs were
+included — a long ledge that passes under one obstruction is still climbable
+everywhere else.
+
+Remaining exclusions are all justified and asserted to be: the ground plane
+(rise 0), full-height walls (no headroom), thin walls and trim from 0.12m to
+0.4m (nowhere to land), and the `noClimb` office floor.
+
+New AUTO check, suite now **25 passed, 0 failed**:
+
+```
+PASS  climbable-surfaces-are-derived-not-hand-flagged
+      36 climbable surfaces derived and marked; 28 obvious traversal surfaces all climbable;
+      every exclusion justified (too thin, out of band, no headroom, or noClimb)
+```
+
+It walks every non-climbable solid and fails if any is wide enough to stand on,
+in a band, has headroom, and is not explicitly opted out — so a surface cannot
+silently become unclimbable again.
+
 Two test-harness faults were fixed alongside, both mine rather than the game's:
 one call site was still invoking `_tryMantle()` with no intent, and the
 backing-off check originally used the container's east edge, which the catwalk
