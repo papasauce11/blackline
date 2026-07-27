@@ -150,6 +150,14 @@ let camerasCreated = 0;
 
 // Spec speeds, hoisted so the AUTO checks read against the config rather than
 // against literals typed twice.
+/** An intent that counts as heading into a ledge, for tests that call the
+ *  traversal helpers directly rather than driving them through step(). */
+const APPROACHING = (() => {
+  const intent = createIntent();
+  intent.forward = 1;
+  return intent;
+})();
+
 const S_WALK = CONFIG.shade.walkSpeed;
 const S_SPRINT = CONFIG.shade.sprintSpeed;
 const S_CROUCH = CONFIG.shade.crouchSpeed;
@@ -1133,7 +1141,7 @@ function registerAutoTests() {
 
       approach();
       const ledge = h.shade._probeLedge(CONFIG.shade.mantleReach);
-      const grabbed = h.shade._tryMantle();
+      const grabbed = h.shade._tryMantle(APPROACHING);
       const hangState = h.shade.state;
       const hangClear = h.map.collision.isClear(h.shade.position, h.shade.half);
       const hangFeet = h.shade.feetY;
@@ -1167,7 +1175,7 @@ function registerAutoTests() {
       // grace period so the grab reads as its own beat rather than resolving on
       // the frame the ledge is caught.
       approach();
-      h.shade._tryMantle();
+      h.shade._tryMantle(APPROACHING);
       let stepsToPullUp = 0;
       for (let i = 0; i < 120; i++) {
         h.shade.step(CONFIG.time.fixedDt, heldJump);
@@ -1179,7 +1187,7 @@ function registerAutoTests() {
 
       // Drop with crouch HELD, likewise without a fresh press.
       approach();
-      h.shade._tryMantle();
+      h.shade._tryMantle(APPROACHING);
       const heldCrouch = createIntent();
       heldCrouch.crouch = true;
       heldCrouch.crouchPressed = false;
@@ -1249,6 +1257,64 @@ function registerAutoTests() {
   });
 
   debugTools.registerAutoTest({
+    id: 'backing-off-a-ledge-does-not-re-climb',
+    spec: 'reported bug: pulled back up when falling off backwards',
+    name: 'Stepping backwards off a ledge falls to the floor instead of auto-climbing',
+    run: (h) => {
+      const container = h.map.collision.boxes.find((box) => box.tag === 'hall-container');
+      if (!container) return { pass: false, detail: 'hall-container missing' };
+
+      // Stand on top near the WEST edge, facing east into the container, then
+      // walk backwards off that west edge. The probe follows the facing
+      // direction, so the ledge just left is squarely in front of it — this is
+      // the exact geometry that used to haul the player back up. The west edge
+      // is used because the catwalk spine overhangs the east side.
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.shade.position.set(container.min.x + 0.55, container.max.y + CONFIG.shade.standHeight / 2 + 0.02, -8.5);
+      h.shade.velocity.set(0, 0, 0);
+      h.shade.yaw = -Math.PI / 2; // face +X, into the container
+      h.shade.state = SHADE_STATE.GROUND;
+
+      const intent = createIntent();
+      intent.forward = -1; // walking backwards, off the edge behind us
+
+      let reClimbed = false;
+      for (let i = 0; i < 240; i++) {
+        h.shade.step(CONFIG.time.fixedDt, intent);
+        if (
+          h.shade.state === SHADE_STATE.MANTLE ||
+          h.shade.state === SHADE_STATE.VAULT ||
+          h.shade.state === SHADE_STATE.HANG
+        ) {
+          reClimbed = true;
+          break;
+        }
+      }
+
+      // Capture before the second setup below moves the Shade, or the reported
+      // numbers describe a different moment than the assertion.
+      const feet = h.shade.feetY;
+      const groundedAfterFall = h.shade.grounded;
+      const landed = !reClimbed && feet < 1.0 && groundedAfterFall;
+
+      // The forward approach must still work, or the fix has broken climbing.
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, -8.5);
+      h.shade.velocity.set(0, 0, 0);
+      h.shade.yaw = Math.PI / 2;
+      h.shade.state = SHADE_STATE.AIR;
+      const stillGrabs = h.shade._tryMantle(APPROACHING) && h.shade.state === SHADE_STATE.HANG;
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      return {
+        pass: landed && stillGrabs,
+        detail: `walked backwards off a ${container.max.y.toFixed(1)}m ledge: re-climbed=${reClimbed}, ended feetY=${feet.toFixed(2)} grounded=${groundedAfterFall}; approaching forwards still grabs=${stillGrabs}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
     id: 'hang-shimmy-stays-on-the-ledge',
     spec: 'requested: movement while hanging',
     name: 'Shimmy moves along a grabbed ledge and refuses to run off the end',
@@ -1260,7 +1326,7 @@ function registerAutoTests() {
         h.shade.velocity.set(0, 0, 0);
         h.shade.yaw = Math.PI / 2;
         h.shade.state = SHADE_STATE.AIR;
-        return h.shade._tryMantle() && h.shade.state === SHADE_STATE.HANG;
+        return h.shade._tryMantle(APPROACHING) && h.shade.state === SHADE_STATE.HANG;
       };
 
       if (!grab()) return { pass: false, detail: 'could not establish a hang to shimmy from' };

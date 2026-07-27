@@ -270,8 +270,9 @@ export class Shade {
     applyGravity(this.velocity, dt, S.gravity, S.maxFallSpeed);
     const result = this._integrate(dt, false);
 
-    // Mantle is auto-triggered when airborne near a flagged ledge (Section 6.1).
-    if (this._tryMantle()) return;
+    // Mantle is auto-triggered when airborne near a flagged ledge (Section 6.1),
+    // but only when actually moving into it.
+    if (this._tryMantle(intent)) return;
 
     if (result.grounded) {
       this._land();
@@ -432,9 +433,21 @@ export class Shade {
     return this._climbOnto(SHADE_STATE.VAULT, ledge, S.vaultDuration);
   }
 
-  _tryMantle() {
+  /**
+   * Is the Shade actually heading at this ledge, rather than merely looking at
+   * it? The probe follows the facing direction, so without this a player
+   * stepping backwards off a ledge is grabbed by the face they just left.
+   */
+  _isApproaching(ledge, intent) {
+    if (intent && intent.forward > 0) return true;
+    const into = this.velocity.x * ledge.dirX + this.velocity.z * ledge.dirZ;
+    return into >= S.mantleApproachSpeed;
+  }
+
+  _tryMantle(intent) {
     const ledge = this._probeLedge(S.mantleReach);
     if (!ledge) return false;
+    if (!this._isApproaching(ledge, intent)) return false;
 
     // Vault-band ledges climb from the air too. A sprint is not always
     // available — on top of a crate there is no room to build speed — and

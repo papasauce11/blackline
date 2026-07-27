@@ -497,6 +497,42 @@ PASS  hang-shimmy-stays-on-the-ledge  | z -8.50 -> -10.00 (ledge z -10..-7), mov
 Markings reclassified consistently after the container move: 27 climbable, 27
 marked, 0 band mismatches (vault 16, mantle 10, hang 1).
 
+### Post-checkpoint fix 3: auto-climb hauled you back up when dropping off
+
+Reported from play: stepping backwards off a ledge automatically pulled the
+Shade back onto it.
+
+**Cause.** `_probeLedge()` casts along the direction the Shade is *facing*,
+which is not necessarily where it is *going*. Backing off a ledge leaves you
+still looking at the face you just left, so the airborne auto-climb — which runs
+every step in AIR — found it and climbed straight back up. Getting down off
+anything you were facing was impossible.
+
+**Fix.** `_tryMantle()` now takes the intent and requires `_isApproaching()`:
+either forward input, or at least `CONFIG.shade.mantleApproachSpeed` (0.6 m/s)
+of velocity into the ledge. Deliberately approaching still climbs and still
+hangs; drifting or stepping away no longer does. This also gates `_tryHang()`,
+since it is reached through the same path.
+
+New AUTO check, suite now **24 passed, 0 failed**:
+
+```
+PASS  backing-off-a-ledge-does-not-re-climb
+      walked backwards off a 3.0m ledge: re-climbed=false, ended feetY=0.00 grounded=true;
+      approaching forwards still grabs=true
+```
+
+The check asserts both halves — that backing off falls to the floor, and that
+approaching forwards still grabs — so the fix cannot be "solved" by breaking
+climbing altogether.
+
+Two test-harness faults were fixed alongside, both mine rather than the game's:
+one call site was still invoking `_tryMantle()` with no intent, and the
+backing-off check originally used the container's east edge, which the catwalk
+spine overhangs, so the Shade could not walk off at all. It also reported
+`grounded` sampled after a later repositioning, which described a different
+moment than the assertion it accompanied.
+
 ### Exact next action
 
 Phase 4 — `src/entities/enforcer.js`. The Warden first-person controller,

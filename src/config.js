@@ -270,6 +270,14 @@ export const CONFIG = {
     hangInputGrace: 0.18,
     /** Lateral shimmy speed along a grabbed ledge. */
     hangShimmySpeed: 1.15,
+    /**
+     * The airborne auto-climb probes along the direction the Shade is FACING,
+     * which is not necessarily where it is going. Without an approach test,
+     * stepping backwards off a ledge while still looking at it re-grabs the
+     * face you just left and hauls you back up. A climb therefore needs either
+     * forward input or this much velocity into the ledge.
+     */
+    mantleApproachSpeed: 0.6,
 
     /** Fall above this distance emits the landing noise (Section 7.2). */
     landingNoiseFallHeight: 2.0,
