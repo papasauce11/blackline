@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blackline</title>
+
+<!--
+  Three.js is pinned to exactly one release. Do not float this version.
+  build/three.module.js re-exports build/three.core.js with a relative
+  specifier, so that second file resolves against the same CDN path
+  automatically. No other network request is made by this game.
+-->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+  }
+}
+</script>
+
+<style>
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #0a0d10; color: #cfe9e4;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  #bl-canvas {
+    display: block; width: 100%; height: 100%;
+    outline: none; cursor: crosshair;
+  }
+  #bl-boot-error {
+    position: fixed; inset: 0; z-index: 100; display: none;
+    padding: 48px; background: #0a0d10;
+    font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #f87171; white-space: pre-wrap; overflow: auto;
+  }
+  #bl-boot-error h1 {
+    margin: 0 0 16px; font-size: 15px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: #2fd6c3;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bl-canvas" tabindex="0"></canvas>
+
+<div id="bl-boot-error"><h1>Blackline failed to start</h1><pre id="bl-boot-error-body"></pre></div>
+
+<script>
+  // A module that fails to parse or fails to resolve its import map entry does
+  // so silently apart from a console line. Surface it on screen instead.
+  (function () {
+    var panel = document.getElementById('bl-boot-error');
+    var body = document.getElementById('bl-boot-error-body');
+    function show(message) {
+      body.textContent = String(message);
+      panel.style.display = 'block';
+    }
+    window.addEventListener('error', function (e) {
+      if (e.message === 'ResizeObserver loop limit exceeded') return;
+      show((e.message || 'error') + '\n' + (e.filename || '') + ':' + (e.lineno || 0) +
+           (e.error && e.error.stack ? '\n\n' + e.error.stack : ''));
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      show('Unhandled promise rejection:\n' + (e.reason && e.reason.stack ? e.reason.stack : e.reason));
+    });
+  })();
+</script>
+
+<script type="module" src="./src/main.js"></script>
+
+</body>
+</html>
