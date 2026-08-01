@@ -351,6 +351,11 @@ export class Combat {
   // Damage and death
   // -------------------------------------------------------------------------
 
+  /** Public entry for damage from outside combat, e.g. a frag (Section 9.2). */
+  applyDamage(actor, amount, who, kind) {
+    this._damage(actor, amount, who, kind);
+  }
+
   _damage(actor, amount, who, kind) {
     if (actor.health <= 0) return;
     actor.health = Math.max(0, actor.health - amount);

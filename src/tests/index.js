@@ -22,6 +22,9 @@ import { register as registerDetection } from './detection.js';
 import { register as registerAI } from './ai.js';
 import { register as registerCombat } from './combat.js';
 import { register as registerAudio } from './audio.js';
+import { register as registerGadgets } from './gadgets.js';
+import { register as registerObjective } from './objective.js';
+import { register as registerPresentation } from './presentation.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -34,4 +37,7 @@ export function registerAutoTests(debugTools) {
   registerAI(debugTools);
   registerCombat(debugTools);
   registerAudio(debugTools);
+  registerGadgets(debugTools);
+  registerObjective(debugTools);
+  registerPresentation(debugTools);
 }

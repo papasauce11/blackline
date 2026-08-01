@@ -48,6 +48,10 @@ export function createIntent() {
     sprint: false,
     /** Knife (Section 8.2). Read by systems/combat.js, not by the controller. */
     melee: false,
+    /** Plant hold (Section 10.1). Read by systems/objective.js. */
+    interact: false,
+    /** Gadget slots 1-4 (Section 9.1). Read by systems/gadgets.js. */
+    gadget: 0,
   };
 }
 
@@ -76,6 +80,11 @@ export class Shade {
 
     this.health = S.health;
     this.lives = S.lives;
+    /**
+     * Set by systems/gadgets.js while a stun grenade is on the Shade
+     * (Section 9.2). Non-lethal: it slows, it never damages.
+     */
+    this.speedMultiplier = 1;
 
     this._coyote = 0;
     this._jumpBuffer = 0;
@@ -208,7 +217,8 @@ export class Shade {
 
     const wish = this._wishDirection(intent);
     const sprinting = intent.sprint && !this.crouching && wish.magnitude > 0;
-    const targetSpeed = this.crouching ? S.crouchSpeed : sprinting ? S.sprintSpeed : S.walkSpeed;
+    const targetSpeed = (this.crouching ? S.crouchSpeed : sprinting ? S.sprintSpeed : S.walkSpeed)
+      * this.speedMultiplier;
 
     this._accelerate(wish, targetSpeed, S.groundAccel, dt);
     this._applyFriction(S.groundFriction, dt, wish.magnitude > 0);

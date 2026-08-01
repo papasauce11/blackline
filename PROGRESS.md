@@ -918,6 +918,11 @@ PROGRESS.md
     reached ~2400 inside `main.js`. Same class of deviation as `ui/debug.js`
     (deviation 1) and `mapkit.js` (deviation 12). Nothing there imports
     `main.js`, so the layering rule holds.
+18. **Smoke and footprints are one batched object each, not N sprites.**
+    Section 9.1 says "a capped 200-sprite pool on one shared material". The cap
+    and the shared material are honoured exactly; the rendering is one
+    `THREE.Points` and one `InstancedMesh`, because 200 sprites is 200 draw
+    calls and that is the very thing the Section 15 row is guarding against.
 17. **`Math.random` fills the audio noise buffer.** Section 2 bans it so that
     gameplay is reproducible from a seed. A one-off audio texture carries no
     gameplay meaning, and drawing 44,100 values from the seeded stream would
@@ -1567,11 +1572,154 @@ PASS  audio-tension-tracks-the-ai-accumulator
 - Check 13: the takedown finisher on screen — whether 1.2s reads as a payoff or
   an interruption, and whether the orbit is legible.
 
+---
+
+## Phases 9 to 12 — gadgets, objective, effects, UI
+
+**Status:** complete. Suite: **69 passed, 0 failed**, zero warnings or errors.
+Every file in `src/` is now written.
+
+### Phase 9 — `systems/gadgets.js`
+
+One registry, all six gadgets. Every effect is plain data with an elapsed time
+and a duration, ticked from the one fixed step — **no `setTimeout` anywhere in
+`src/`**, which is the Section 9 and Section 15 requirement. Nothing schedules
+itself, so nothing can outlive a round or fire during a pause.
+
+Grenades sweep the segment they actually travelled each step, not just their
+endpoint, so a fast one cannot pass through a wall (check 18). Verified at 1x,
+4x and 12x the spec throw speed into the perimeter wall: never crossed it.
+
+Other systems never reach into the effect list. They ask questions —
+`blocksSight()`, `aiBlinded()`, `shadeSpeedMultiplier()` — and gadgets answers.
+That is what let smoke and flashbangs feed the AI's perception without
+`ai.js` importing `gadgets.js`, which Section 3.1 forbids.
+
+### Phase 10 — `systems/objective.js`
+
+Plant, defuse, lives and reinsert, the two time-extension milestones, win
+conditions and the match score.
+
+`createRoundState()` is a defaults factory and `resetRound()` replaces the whole
+object. Section 10.5 says nothing carries between rounds except the score, and
+this is the only way to guarantee it: there is no field to forget to clear,
+because clearing is not how it works. The check dirties every field, resets, and
+compares all 22 against a fresh factory object.
+
+Two rules worth stating because they are easy to get backwards:
+
+- **Reinsert does not refill gadgets** (Section 10.2), deliberately, so dying
+  still costs something real. Asserted.
+- **The Warden's knowledge resets to the death location**, not the reinsert
+  point. It should be searching where it killed you.
+
+### Phase 11 — `systems/effects.js`
+
+Footprints (60, recycled oldest-first, fading over 6s), particles (120) and
+smoke (200). Three rows of the risk register live here, and each pool is fixed
+at construction, floods by recycling rather than growing, and drains to zero.
+
+Ragdoll-lite is exactly that: one impulse, damped tumble, frozen after 2s. The
+check drives it and asserts it froze on time, never went non-finite, never sank
+below the floor, and genuinely stopped afterwards.
+
+**Deviation 18:** the smoke pool is one `THREE.Points` object rather than 200
+`THREE.Sprite`s. Same cap, same one shared material — but 200 sprites is 200
+draw calls, which is precisely what that row of the risk register exists to
+prevent. Same for the footprints, which are one `InstancedMesh`.
+
+### Phase 12 — `ui/hud.js`, `ui/menu.js`, `ui/scoreboard.js`
+
+DOM overlay, flat and high contrast. The Shade HUD carries the visibility bar,
+three life pips, health, gadget counts with the taser recharge ring, the round
+timer and charge state, the objective prompt with its hold bar, the kill feed
+and the score; on death the reinsert countdown replaces the centre. Free-roam
+gets the crosshair whose gap is the live spread.
+
+**The HUD computes nothing.** It reads the smoothed meter Section 4.2 drives the
+character with, rather than deriving its own — that is the disagreement 4.2
+forbids, and the check drives the meter to 0/25/60/100 and asserts the bar
+matches exactly.
+
+**The menu is the audio gate.** Section 13 and the risk register: the Play
+button is the first user gesture and the `AudioContext` is created there.
+Verified live — clicking Play took the context from *not created* to *running*.
+Both Play and Free Roam route through the same `initMatch`, so Section 12's
+"free-roam is a configuration, never a duplicated code path" still holds.
+
+### New AUTO checks
+
+```
+PASS  gadget-effects-all-expire
+PASS  grenades-do-not-tunnel-through-walls
+      thrown at 1x, 4x and 12x the spec speed into a wall at x=-30: never crossed
+PASS  flashbang-needs-line-of-sight
+PASS  taser-stuns-costs-a-charge-and-recharges
+PASS  plant-holds-four-seconds-and-extends-the-round
+      planted in 4.02s at site A, +45s, detonated after 45.0s, shade wins 1-0
+PASS  defuse-wins-and-partial-progress-decays
+PASS  lives-reinsert-and-the-all-lives-rule
+      3 lives, reinsert after 15s on full health with gadgets untouched, AI
+      resent to the death spot; all lives lost ends the round unplanted and
+      does not once planted
+PASS  round-state-carries-nothing-but-the-score
+PASS  effect-pools-are-fixed-and-drain
+PASS  ragdoll-is-lite-and-freezes
+PASS  hud-reads-the-meter-it-is-shown-beside
+PASS  menu-is-the-audio-gate-and-the-only-entry
+```
+
+That covers the AUTO half of checks 17, 18, 20, 21, 22, 23, 24 and 25.
+
+### A bug the checks caused rather than caught
+
+Running the suite left the intermission scoreboard open over the game, because
+the objective checks end real rounds and the composition root shows a scoreboard
+on `objective:round-end`. Two fixes: the checks put the UI back as they found
+it, and `initMatch` now hides the scoreboard — a new match should never start
+behind a stale intermission regardless of who opened it.
+
+### Known issues
+
+- **The Shade cannot throw anything yet.** `intent.gadget` is filled from keys
+  1-3 and gadgets exposes `throwGadget` / `fireTaser`, but the two are not
+  joined: the throw needs an aim direction and a release, which is a feel
+  decision I would rather make with you than guess at. The AI's frags and stun
+  grenades *are* wired and fly.
+- **Free-roam does not route its trigger into combat**, so check 15 still cannot
+  be run. Same one-line gap as last time, now the only thing between you and
+  firing the gun.
+- **The Shade's death is emitted but not dramatised.** Objective takes the life
+  and reinserts; there is no death camera (Section 10.2's free-look camera on
+  the killing Warden) and no ragdoll on the Shade yet.
+- `main.js` is 998 lines. It is all composition now — no logic — but it is over
+  the guidance again.
+
+### Verification actually performed
+
+- **AUTO suite: 69 passed, 0 failed**, zero warnings, zero errors, and the suite
+  leaves the UI as it found it.
+- Live in Chrome: menu renders, Play starts a competitive match and unlocks
+  audio in the same click, HUD draws the full Shade layout and is correctly
+  hidden behind the menu, round timer counts down from 4:00.
+- No `setTimeout`, `setInterval`, `TODO` or `FIXME` anywhere in `src/`.
+
+### Not verified (needs a human)
+
+- **How any of it plays.** Everything above is structure. Whether the round
+  timer creates pressure, whether 3 lives is too generous, whether the AI is fun
+  to hide from — none of that is assertable.
+- Whether the HUD is legible at speed, and whether the visibility bar is where
+  the eye wants it.
+- Everything audio, still.
+- Framerate with all systems live, for the same reason as before.
+
 ### Exact next action
 
-Phase 9 — `systems/gadgets.js`: one effect registry ticked from the fixed step,
-no `setTimeout`, and the six gadget types. The AI already emits `ai:throw` for
-frags and stun grenades and is waiting for something to subscribe.
+The build is feature-complete against Section 3's file list. What is left is
+joining the last two seams — the Shade's gadget throw and the free-roam trigger
+— and then Section 16's HUMAN checks, which are yours: 1-7, 13-16, 19, 26-27
+and 29.
 
 ---
 

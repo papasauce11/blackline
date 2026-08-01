@@ -20,6 +20,12 @@ import { createDetection } from './systems/detection.js';
 import { createWardenAI } from './systems/ai.js';
 import { createCombat } from './systems/combat.js';
 import { createAudio } from './systems/audio.js';
+import { createGadgets } from './systems/gadgets.js';
+import { createObjective } from './systems/objective.js';
+import { createEffects } from './systems/effects.js';
+import { createHud } from './ui/hud.js';
+import { createMenu } from './ui/menu.js';
+import { createScoreboard } from './ui/scoreboard.js';
 import { DebugTools } from './ui/debug.js';
 import { registerAutoTests } from './tests/index.js';
 
@@ -137,6 +143,12 @@ export function computeStepPlan(accumulator, wallDelta, timeScale) {
 /** @type {import('./systems/ai.js').WardenAI} */ let wardenAI = null;
 /** @type {import('./systems/combat.js').Combat} */ let combat = null;
 /** @type {import('./systems/audio.js').AudioSystem} */ let audio = null;
+/** @type {import('./systems/gadgets.js').Gadgets} */ let gadgets = null;
+/** @type {import('./systems/objective.js').Objective} */ let objective = null;
+/** @type {import('./systems/effects.js').Effects} */ let effects = null;
+/** @type {import('./ui/hud.js').Hud} */ let hud = null;
+/** @type {import('./ui/menu.js').Menu} */ let menu = null;
+/** @type {import('./ui/scoreboard.js').Scoreboard} */ let scoreboard = null;
 const shadeIntent = createIntent();
 const wardenIntent = createWardenIntent();
 /**
@@ -256,6 +268,11 @@ export function initMatch(options = {}) {
   // replayed seed reproduces the same patrol order (Section 16 check 28).
   if (wardenAI) wardenAI.reset();
   if (combat) combat.reset();
+  if (gadgets) gadgets.reset();
+  if (effects) effects.reset();
+  if (objective && opts.objective !== false) objective.resetRound(1);
+  // A new match must never start behind a stale intermission.
+  if (scoreboard) scoreboard.hide();
   if (audio) audio.reset();
   cameraOwner = null;
 
@@ -345,7 +362,8 @@ function bootstrap() {
   // Section 11. The AI fills the same intent a human fills in free-roam; the
   // composition root is what steps the controller with it, so there is exactly
   // one path into the Warden.
-  wardenAI = createWardenAI({ map, warden, detection, emitter });
+  gadgets = createGadgets({ map, emitter, detection });
+  wardenAI = createWardenAI({ map, warden, detection, gadgets, emitter });
 
   // Section 8. The finisher needs the camera and the time scale, so it is
   // handed the same two functions the composition root uses rather than
@@ -356,6 +374,49 @@ function bootstrap() {
   // Section 14. Listens on the emitter and is unlocked by the first gesture,
   // because a context built before one starts suspended (Section 15).
   audio = createAudio({ emitter, listener: shade });
+  effects = createEffects({ scene, emitter });
+  objective = createObjective({ map, emitter, detection, ai: wardenAI, gadgets });
+
+  hud = createHud();
+  scoreboard = createScoreboard({
+    onNextRound: () => {
+      objective.resetRound();
+      initMatch({ ...match, seed: rng.seed });
+    },
+    onMenu: () => {
+      objective.resetMatch();
+      menu.show('main');
+    },
+  });
+  // Section 12: both modes boot through the same initMatch, so the menu
+  // picks a configuration rather than a code path.
+  menu = createMenu({
+    onFirstGesture: () => audio.unlock(),
+    onVolume: (value) => audio.setMasterVolume(value),
+    onPlay: () => initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true }),
+    onFreeRoam: () => initMatch({ mode: 'freeroam', role: 'warden', ai: false, objective: false }),
+  });
+
+  // Frag blasts are damage from outside combat; combat still owns applying it.
+  emitter.on('gadget:damage', (event) => {
+    if (event.target === 'shade') combat.applyDamage(shade, event.amount, 'shade', event.source);
+  });
+  emitter.on('objective:life-lost', (event) => {
+    hud.push(`life lost - ${event.remaining} left`);
+    audio.play('lifeLost');
+  });
+  emitter.on('objective:planted', (event) => hud.push(`charge armed at ${event.site}`));
+  emitter.on('combat:takedown', () => hud.push('takedown'));
+  emitter.on('objective:round-end', () => {
+    scoreboard.show({ rounds: objective.rounds, score: objective.score, matchOver: objective.matchOver });
+  });
+  emitter.on('ai:throw', (event) => {
+    const from = { x: warden.position.x, y: warden.eyeY, z: warden.position.z };
+    const dx = event.at.x - from.x;
+    const dz = event.at.z - from.z;
+    const length = Math.hypot(dx, dz) || 1;
+    gadgets.throwGadget(event.type, from, { x: dx / length, y: 0.2, z: dz / length }, 'warden');
+  });
 
   freefly.enabled = false;
   freefly.position.copy(map.shadeSpawns[0].position).setY(map.shadeSpawns[0].position.y + 1.7);
@@ -472,6 +533,16 @@ function fixedStep(dt) {
     shadeIntent: match.role === 'shade' && !freefly.enabled ? shadeIntent : null,
     wardenIntent: wardenAI.intent,
   });
+  gadgets.step(dt, { shade, warden });
+  // Section 9.2: the slow is applied to the controller, never to the physics.
+  shade.speedMultiplier = gadgets.shadeSpeedMultiplier();
+  if (match.objectiveEnabled) {
+    objective.step(dt, {
+      shade, warden,
+      intent: match.role === 'shade' && !freefly.enabled ? shadeIntent : null,
+    });
+  }
+  effects.step(dt);
 
   if (DEBUG) {
     // Keys and types the overlay's field table actually consumes (Section 17:
@@ -484,6 +555,9 @@ function fixedStep(dt) {
     debugState.aiDetection = wardenAI.accumulator;
     debugState.aiStuckCounter = wardenAI.stuckCount;
     debugState.aiStuckTimer = wardenAI.stuckTimer;
+    debugState.activeEffects = effects.activeCount + gadgets.effects.count;
+    debugState.pooledSprites = effects.pooledSprites;
+    debugState.roundState = `${objective.round.charge} ${Math.ceil(objective.hud.timeRemaining)}s`;
   }
 
   emitter.emit('sim:step', dt);
@@ -504,6 +578,10 @@ function readShadeIntent() {
   shadeIntent.crouchPressed = input.pressed('crouch');
   shadeIntent.sprint = input.down('sprint');
   shadeIntent.melee = input.pressed('melee');
+  shadeIntent.interact = input.down('interact');
+  shadeIntent.gadget = input.pressed('gadget1') ? 1
+    : input.pressed('gadget2') ? 2
+      : input.pressed('gadget3') ? 3 : 0;
   return shadeIntent;
 }
 
@@ -673,6 +751,40 @@ function frame(now) {
     }
   }
 
+  // Audio and the HUD run on the wall clock, not the fixed step: they present
+  // the simulation rather than being part of it.
+  audio.step(wallDelta, { detectionAccumulator: wardenAI.accumulator });
+
+  // The HUD is not drawn behind a menu or an intermission.
+  hud.setVisible(!menu.open && !scoreboard.open);
+  if (hud.visible) {
+    const objectiveHud = objective.hud;
+    const site = objective.siteNear(shade.position);
+    hud.update(wallDelta, {
+      role: match.role,
+      visibility: detection.smoothed,
+      health: match.role === 'warden' ? warden.health : shade.health,
+      lives: objectiveHud.lives,
+      loadout: gadgets.loadout,
+      taserCharge: gadgets.taserCharge,
+      taserRecharge: gadgets.taserRecharge,
+      magazine: combat.weapon.magazine,
+      reloading: combat.weapon.reloading,
+      spread: combat.weapon.spread,
+      timeRemaining: objectiveHud.timeRemaining,
+      planted: objectiveHud.planted,
+      site: objectiveHud.site,
+      plantProgress: objectiveHud.plantProgress,
+      defuseProgress: objectiveHud.defuseProgress,
+      promptInRange: !!site,
+      awaitingReinsert: objectiveHud.awaitingReinsert,
+      reinsertIn: objectiveHud.reinsertIn,
+      score: objectiveHud.score,
+      roundNumber: objectiveHud.roundNumber,
+      blind: gadgets.playerBlindFraction(),
+    });
+  }
+
   emitter.emit('frame:render', { alpha, wallDelta });
 
   const cpuStart = performance.now();
@@ -803,6 +915,24 @@ const harness = {
   },
   get audio() {
     return audio;
+  },
+  get gadgets() {
+    return gadgets;
+  },
+  get objective() {
+    return objective;
+  },
+  get effects() {
+    return effects;
+  },
+  get hud() {
+    return hud;
+  },
+  get menu() {
+    return menu;
+  },
+  get scoreboard() {
+    return scoreboard;
   },
   get cameraOwner() {
     return cameraOwner;

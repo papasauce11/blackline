@@ -54,8 +54,9 @@ export class WardenAI {
    * @param {import('./detection.js').Detection} options.detection
    * @param {object} options.emitter
    */
-  constructor({ map, warden, detection, emitter }) {
+  constructor({ map, warden, detection, gadgets, emitter }) {
     this.map = map;
+    this.gadgets = gadgets || null;
     this.warden = warden;
     this.detection = detection;
     this.emitter = emitter;
@@ -226,7 +227,11 @@ export class WardenAI {
         const toTarget = Math.atan2(-dx, -dz);
         const off = Math.abs(angleDelta(warden.yaw, toTarget));
         if (off <= (A.fovDegrees * Math.PI) / 360) {
-          if (this.map.collision.lineOfSight(eye, torso)) this.sees = true;
+          // Section 9.1: smoke blocks the line entirely, and a flashbang it
+          // actually saw disables perception outright for the duration.
+          const blinded = this.gadgets && this.gadgets.aiBlinded();
+          const smoked = this.gadgets && this.gadgets.blocksSight(eye, torso);
+          if (!blinded && !smoked && this.map.collision.lineOfSight(eye, torso)) this.sees = true;
         }
       }
 
