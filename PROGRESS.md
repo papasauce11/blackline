@@ -913,6 +913,16 @@ PROGRESS.md
     They are still generated in one pass from the collision flags; the merge is
     the last step. Individual stripes can no longer be hidden or moved at
     runtime, which nothing needs.
+16. **`src/tests/` is a directory Section 3 does not list.** Section 3 gives the
+    AUTO suite no home and Section 3.1 caps a module at ~600 lines; the suite
+    reached ~2400 inside `main.js`. Same class of deviation as `ui/debug.js`
+    (deviation 1) and `mapkit.js` (deviation 12). Nothing there imports
+    `main.js`, so the layering rule holds.
+17. **`Math.random` fills the audio noise buffer.** Section 2 bans it so that
+    gameplay is reproducible from a seed. A one-off audio texture carries no
+    gameplay meaning, and drawing 44,100 values from the seeded stream would
+    shift every downstream draw and break Section 16 check 28. It is the only
+    occurrence in `src/` and is called out at the line.
 
 ### New AUTO checks
 
@@ -1395,13 +1405,173 @@ the Warden kept re-investigating it.
 - Framerate with the AI live, for the same reason as Phase 5: a backgrounded tab
   reports nothing useful.
 
+---
+
+## The AUTO suite moved out of the composition root
+
+Flagged for three phases, done before Phase 7 could add to it. `main.js` was
+3182 lines, ~2400 of it the suite; Section 3.1 caps a module at roughly 600 and
+the composition root had become the largest file in the project.
+
+The suite now lives in `src/tests/`, one module per subject, each under the cap:
+engine 266, map 412, navigation 431, shade 503, warden 218, detection 343,
+ai 293, plus a registrar. **`main.js`: 3182 → 838.**
+
+No check changed behaviour — 47 registered, 47 passing, same results. Checks
+reach the game through the harness rather than importing `main.js`, which
+Section 3.1 forbids, so `createCamera` joined the harness and two checks that
+had taken no harness (they only needed CONFIG) now take one.
+
+Deviation 16 in the list below.
+
+---
+
+## Phase 7 — combat
+
+**Status:** complete. Suite after Phases 7 and 8: **57 passed, 0 failed.**
+
+### What was built
+
+**`src/systems/combat.js` (new).** Hitscan, damage, the knife, death and the
+Section 8.3 finisher.
+
+- **Gun (8.1).** 30 rounds at 600rpm. Damage 25 to 15m, falling linearly to 12
+  at 30m, flat beyond. Headshots 2x, measured against a head line at 86% of the
+  capsule. Spread 0.6° growing 0.25°/shot to a 4.0° cap, recovering 3°/s once
+  the trigger is off. Recoil climbs and decays exponentially, so a long burst
+  ends up higher than several short ones.
+- **Knife (8.2).** Front and side arc for 50, two hits to kill, 0.5s between
+  swings, 12m of noise. Rear cone within 1.8m is an instant takedown.
+- **Death.** The Warden dies, then respawns after 12s at the spawn furthest from
+  the Shade's **last known** position — the AI's belief, not the truth.
+  Respawning against the truth would hand it information it has not earned.
+- **Finisher (8.3).** Hit-stop, slow-mo with a 40° camera orbit, snap-back.
+
+### Spread and recoil are deliberately separate
+
+Spread is where the bullet goes relative to the aim; recoil is where the aim
+goes. Only recoil moves the camera, so the player can fight it. Spread cannot be
+fought, which is what makes holding the trigger worse than tapping it.
+
+### The finisher's hard requirement
+
+Section 8.3: the cinematic must never own the only path back to normal play. So
+the timeout is on the **wall clock**, not the sim clock — the finisher itself
+scales time to 0.05, and a guard measured against a clock the thing being
+guarded controls is not a guard. `_restore()` is idempotent and is called from
+both the final beat and the guard.
+
+The check proves both halves: the beats run to completion in 1.20s and restore,
+and a finisher whose start time is rewound past the 1.5s timeout hands control
+back on the very next step.
+
+### Bugs found
+
+- **The rear-takedown cone was inverted.** Behind the Warden read as in front
+  and vice versa, so you could take one down by walking up and waving at it.
+  `toTarget` runs attacker→target, so the vector from target back to attacker is
+  its negation; the attacker is behind when that opposes the Warden's facing,
+  and the two negations cancel to a plain dot product. I had negated once.
+- **The finisher's orbit pivot was never added to the scene.** Parenting the
+  camera to a detached pivot lifted the only camera out of the graph — the check
+  caught it as "0 cameras after the finisher". The pivot is now added before the
+  camera is parented, and the camera is handed back to the scene before the
+  pivot is dropped.
+
+---
+
+## Phase 8 — audio
+
+**Status:** complete. All synthesized (Section 14); no files, no fetches.
+
+### What was built
+
+**`src/systems/audio.js` (new).** One master gain, three buses (sfx, ambience,
+ui), and a builder per row of the Section 14 table: both footsteps, gunfire with
+its delayed-copy tail, knife swing, takedown, taser, alarm, plant beep, life
+lost, landing, light break and reload.
+
+- **Autoplay (Section 15).** A context built before a user gesture starts
+  suspended and drops everything silently, so `unlock()` is the only thing that
+  builds the graph and it is wired to the first click. Before it, `play()`
+  returns false rather than throwing.
+- **Spatialisation.** A `PannerNode` per world sound; UI and the tension pad go
+  straight to their bus, because the pad is telling the player about the AI's
+  mind rather than about a place.
+- **No leaks.** Every voice registers, releases on `onended`, and is capped at
+  24 — a flood of 200 footsteps yields 24 active and 176 refused rather than an
+  unbounded graph.
+
+It listens on the emitter and never reaches into another system: footsteps come
+from the Phase 5 noise field, gunfire and the takedown from Phase 7's events.
+
+### One deliberate use of Math.random
+
+The shared white-noise buffer is filled with `Math.random`. Section 2 bans it so
+that gameplay is reproducible from a seed; a one-off audio texture has no
+gameplay meaning, and drawing 44,100 values from the seeded stream would shift
+every downstream draw and break check 28. Called out in the code at the line.
+
+### New AUTO checks
+
+```
+PASS  gun-damage-falloff-and-lethality
+      0m 25, 15m 25, 22.5m 18.5, 30m 12, beyond 12; 4 body shots kill, headshot x2
+PASS  gun-spread-recoil-and-reload
+      30 rounds, spread 0.6 -> 4.00 (cap 4), reload 2.20s refilled to 30,
+      recoil decayed to 0.0000
+PASS  hitscan-respects-cover-and-the-head-line
+PASS  rear-takedown-needs-the-wardens-back
+PASS  finisher-always-returns-control
+      beats ran to completion in 1.20s (spec 1.2s) and restored; wall-clock guard
+      at 1.5s restored on the next step; 1 camera throughout
+PASS  warden-respawns-furthest-from-last-known
+      died, held dead for 12s, returned at "server vault" (50.7m from the last
+      known position) on full health
+PASS  audio-graph-is-one-master-three-buses
+PASS  audio-spatialises-everything-but-ui
+PASS  audio-voices-are-capped-and-released
+      12 sounds all produce a voice; flooded 200 -> 24 active (cap 24, 176 refused);
+      reset drained to 0
+PASS  audio-tension-tracks-the-ai-accumulator
+      silent at 40, 58Hz pad running at 75 (threshold 50, max gain 0.22)
+```
+
+### Known issues
+
+- **Nothing fires the gun in competitive yet.** The AI fills `intent.fire` and
+  combat reads it, but the Shade is the human role, so the only way to see the
+  gun today is free-roam — where the human intent is not yet routed into combat.
+  Wiring free-roam's trigger is a one-line change I have not made because it
+  belongs with the Phase 9 gadget loadout and the Phase 13 crosshair.
+- **The Shade cannot die properly yet.** Combat takes it to 0 health and emits
+  `combat:death`; lives, the death camera and reinsert are Section 10.2, which
+  Phase 10 owns.
+- **Audio has never been heard.** Everything below is graph assertions.
+
+### Verification actually performed
+
+- **AUTO suite: 57 passed, 0 failed.**
+- Live: 10s of competitive sim with all systems on — AI in INVESTIGATE, audio
+  context `running` with 12 live voices from Warden footsteps, one camera, time
+  scale 1, both actors on full health.
+
+### Not verified (needs a human)
+
+- **Everything about how it sounds.** I can prove the graph is one master and
+  three buses, that each builder starts a voice, that voices are capped and
+  released, and that the pad tracks the accumulator. I cannot hear any of it.
+  Whether the gunfire reads as a gun is entirely yours.
+- Weapon feel: check 15 (fire a full magazine in free-roam, watch spread grow
+  and recoil climb) needs the free-roam trigger wired first.
+- Check 13: the takedown finisher on screen — whether 1.2s reads as a payoff or
+  an interruption, and whether the orbit is legible.
+
 ### Exact next action
 
-Phase 7 — `systems/combat.js`: hitscan against the capsule, damage falloff and
-the headshot multiplier, spread and recoil, reload, death, the knife arc and
-rear takedown, and the Section 8.3 finisher cinematic with its hard wall-clock
-restore. `intent.fire` and `intent.reload` are already being filled by both
-drivers and are waiting to be read.
+Phase 9 — `systems/gadgets.js`: one effect registry ticked from the fixed step,
+no `setTimeout`, and the six gadget types. The AI already emits `ai:throw` for
+frags and stun grenades and is waiting for something to subscribe.
 
 ---
 

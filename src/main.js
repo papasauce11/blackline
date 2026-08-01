@@ -17,7 +17,9 @@ import { classifyLedge } from './physics.js';
 import { Shade, SHADE_STATE, createIntent } from './entities/agent.js';
 import { Warden, WARDEN_STATE, createWardenIntent } from './entities/enforcer.js';
 import { createDetection } from './systems/detection.js';
-import { createWardenAI, AI_STATE } from './systems/ai.js';
+import { createWardenAI } from './systems/ai.js';
+import { createCombat } from './systems/combat.js';
+import { createAudio } from './systems/audio.js';
 import { DebugTools } from './ui/debug.js';
 import { registerAutoTests } from './tests/index.js';
 
@@ -133,6 +135,8 @@ export function computeStepPlan(accumulator, wallDelta, timeScale) {
 /** @type {Warden} */ let warden = null;
 /** @type {import('./systems/detection.js').Detection} */ let detection = null;
 /** @type {import('./systems/ai.js').WardenAI} */ let wardenAI = null;
+/** @type {import('./systems/combat.js').Combat} */ let combat = null;
+/** @type {import('./systems/audio.js').AudioSystem} */ let audio = null;
 const shadeIntent = createIntent();
 const wardenIntent = createWardenIntent();
 /**
@@ -251,6 +255,8 @@ export function initMatch(options = {}) {
   // Reseeded above, so the patrol circuit is redrawn from the new stream and a
   // replayed seed reproduces the same patrol order (Section 16 check 28).
   if (wardenAI) wardenAI.reset();
+  if (combat) combat.reset();
+  if (audio) audio.reset();
   cameraOwner = null;
 
   emitter.emit('match:init', match);
@@ -341,11 +347,24 @@ function bootstrap() {
   // one path into the Warden.
   wardenAI = createWardenAI({ map, warden, detection, emitter });
 
+  // Section 8. The finisher needs the camera and the time scale, so it is
+  // handed the same two functions the composition root uses rather than
+  // reaching for them.
+  combat = createCombat({
+    map, emitter, detection, ai: wardenAI, scene, camera, setTimeScale, setCameraOwner,
+  });
+  // Section 14. Listens on the emitter and is unlocked by the first gesture,
+  // because a context built before one starts suspended (Section 15).
+  audio = createAudio({ emitter, listener: shade });
+
   freefly.enabled = false;
   freefly.position.copy(map.shadeSpawns[0].position).setY(map.shadeSpawns[0].position.y + 1.7);
 
   input = new Input(canvas);
-  canvas.addEventListener('mousedown', () => input.requestLock());
+  canvas.addEventListener('mousedown', () => {
+    input.requestLock();
+    audio.unlock();
+  });
 
   window.addEventListener('resize', onResize);
 
@@ -448,6 +467,11 @@ function fixedStep(dt) {
   // After the actors, never before: the landing noise reads a flag the Shade
   // sets during its own step and clears at the top of the next one.
   detection.step(dt, { shade, warden });
+  combat.step(dt, {
+    shade, warden,
+    shadeIntent: match.role === 'shade' && !freefly.enabled ? shadeIntent : null,
+    wardenIntent: wardenAI.intent,
+  });
 
   if (DEBUG) {
     // Keys and types the overlay's field table actually consumes (Section 17:
@@ -479,6 +503,7 @@ function readShadeIntent() {
   shadeIntent.crouch = input.down('crouch');
   shadeIntent.crouchPressed = input.pressed('crouch');
   shadeIntent.sprint = input.down('sprint');
+  shadeIntent.melee = input.pressed('melee');
   return shadeIntent;
 }
 
@@ -772,6 +797,12 @@ const harness = {
   },
   get wardenAI() {
     return wardenAI;
+  },
+  get combat() {
+    return combat;
+  },
+  get audio() {
+    return audio;
   },
   get cameraOwner() {
     return cameraOwner;

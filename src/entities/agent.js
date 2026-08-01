@@ -46,6 +46,8 @@ export function createIntent() {
     crouch: false,
     crouchPressed: false,
     sprint: false,
+    /** Knife (Section 8.2). Read by systems/combat.js, not by the controller. */
+    melee: false,
   };
 }
 

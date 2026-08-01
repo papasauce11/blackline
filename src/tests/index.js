@@ -20,6 +20,8 @@ import { register as registerShade } from './shade.js';
 import { register as registerWarden } from './warden.js';
 import { register as registerDetection } from './detection.js';
 import { register as registerAI } from './ai.js';
+import { register as registerCombat } from './combat.js';
+import { register as registerAudio } from './audio.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -30,4 +32,6 @@ export function registerAutoTests(debugTools) {
   registerWarden(debugTools);
   registerDetection(debugTools);
   registerAI(debugTools);
+  registerCombat(debugTools);
+  registerAudio(debugTools);
 }
