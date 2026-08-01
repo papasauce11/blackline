@@ -1259,12 +1259,149 @@ with a ~4.8s frame time — an artefact of driving it through tooling, not a
 performance result. Section 16 check 29 remains yours to run, with the window
 focused.
 
+---
+
+## Phase 6 — Warden AI
+
+**Status:** complete. Suite: **47 passed, 0 failed**, zero console warnings or
+errors.
+
+### What was built
+
+**`src/systems/ai.js` (new).** The Section 11 state machine, A* over the
+waypoint graph, and perception fed by the Phase 5 meter and noise field.
+
+The load-bearing decision: **the AI never touches the Warden's position.** It
+fills the same `intent` object a human fills in free-roam and hands it back, and
+the composition root steps the controller with it. Section 12 requires free-roam
+to be "a configuration, never a duplicated code path", and the only way to
+guarantee that is to give the AI no privileged route into the controller. If the
+AI can do something the player cannot, it is because the intent has a field for
+it.
+
+| State | Implemented as |
+|---|---|
+| PATROL | Randomised circuit from the seeded stream, 2-4s pauses, scanning |
+| SUSPICIOUS | Stop, turn to the noise, hold 1.5s |
+| INVESTIGATE | Path to it, scan 4s on arrival, 12s timeout to SEARCH |
+| ENGAGE | Close to 18m, burst fire, break line of sight between bursts, call a frag on a 2s-static target |
+| SEARCH | Three nearest waypoints to the last known position over 15s, one stun grenade |
+| DEFEND | Path to the charge and hold it |
+| STUNNED | Observes the controller's own stun timer; exits to SEARCH |
+
+### The bug that wedged the browser
+
+The first run hung the tab so hard that `1 + 1` timed out. A* had
+
+```js
+if (tentative >= (gScore.get(next) || Infinity)) continue;
+```
+
+The start node's score is `0`, and `0 || Infinity` is **Infinity** — so every
+relaxation back into the start looked like an improvement. That wrote
+`cameFrom[start]`, which put a cycle in the parent chain, and the path
+reconstruction walked that cycle forever.
+
+Fixed with `has()` instead of `||`, plus a bound on the reconstruction: a parent
+chain can visit each node at most once, so anything longer is a cycle. The check
+walks **all 400 node pairs** and asserts each route starts and ends where asked,
+never repeats a node, and only steps along declared links — a cycle shows up
+there as a repeat rather than as a hung tab.
+
+### Two gaps the state-machine check exposed
+
+- **ENGAGE did not re-path when it lost sight.** It called `_followRoute` on
+  whatever route it happened to be on, which was the patrol circuit — so a
+  Warden that lost the Shade walked off to its next patrol node instead of
+  pushing to the last known position.
+- **"Use cover" was not implemented.** Now sampled on a ring between bursts:
+  eight probes for a spot that breaks the Shade's line back without leaving
+  effective range, strafed into so the gun stays on target. Sampled rather than
+  read from authored cover points, so it works anywhere and cannot go stale when
+  the map changes.
+
+### What is deferred, and why it is not a stub
+
+Section 3.2 forbids stubs, so it is worth being precise about the seams:
+
+- **Firing sets `intent.fire`** in bursts of 3-7 with 0.25-0.7s pauses. Nothing
+  reads it until Phase 7 wires the gun. That is the same field a human's mouse
+  button fills — the Phase 4 notes already carried `fire` and `reload` unread.
+- **Frag and stun-grenade decisions emit `ai:throw`.** The decision is made
+  here and is complete; Phase 9 owns the throw. Cross-system messaging goes
+  through the emitter by Section 3.1 anyway.
+- **DEFEND is implemented but cannot be entered yet**, because nothing plants a
+  charge until Phase 10. `setDefendTarget()` is the seam, and the state is
+  drivable through it today.
+
+### New AUTO checks
+
+```
+PASS  ai-paths-between-every-waypoint-pair
+      400 node pairs, every route valid and acyclic, longest 11 nodes
+PASS  ai-patrols-without-getting-stuck
+      walked 135.7m over 60s (net 29.0m), states [patrol], stuck re-paths 0,
+      feet 0.02, capsule clear=true
+PASS  ai-perception-cone-and-accumulator
+      ahead acc 7.9; behind/out-of-range/through-wall all unseen;
+      peaked 38.9 then drained 15.0/s (spec 15)
+PASS  ai-state-machine-follows-section-11
+      noise -> suspicious -> investigate; accumulator 100 -> engage;
+      sight lost 2.5s -> search; search timeout -> patrol;
+      stun freezes then -> search
+PASS  ai-patrol-order-is-seed-reproducible
+      same seed identical, seed+1 differs, circuit covers all 20 nodes
+```
+
+The last one is the AUTO half of Section 16 check 28.
+
+`ai-state-machine-follows-section-11` drives the whole escalation the way play
+drives it — a noise, then a walk-in, then the accumulator carrying it to ENGAGE
+— rather than assigning the accumulator. Assigning it does not work and should
+not: the drain runs before the threshold test, so a poked-in 100 is already
+below the line by the time the state is read back. Two earlier versions of this
+check failed for reasons that were the test's fault, not the AI's, including one
+where the test never ticked the noise field so a stale event lived forever and
+the Warden kept re-investigating it.
+
+### Known issues
+
+- **The accumulator only builds while the Shade is inside the cone**, and a
+  patrolling Warden turns away quickly. Filling from 0 to 100 on a still,
+  fully-lit Shade at 8m takes about 5s at medium. That reads right to me — a
+  glimpse should not be an instant engage — but it is a feel question and it is
+  the number most likely to want tuning once you can play against it.
+- `main.js` is 3182 lines and about 2400 of that is the 47 AUTO checks. This is
+  the third phase in a row I have flagged the split. It should happen before
+  Phase 7 adds more.
+- ENGAGE has never been seen against a moving human. The cover-seeking in
+  particular is asserted only through its own geometry, not by watching whether
+  it looks like taking cover or like jittering.
+
+### Verification actually performed
+
+- **AUTO suite: 47 passed, 0 failed.** Zero warnings, zero errors.
+- 120 fixed steps of live AI cost 12.5ms.
+- A minute of patrol: 135.7m walked, stays in PATROL throughout with no Shade to
+  notice, never leaves the floor, capsule always clear, 0 stuck re-paths.
+
+### Not verified (needs a human)
+
+- Whether the patrol *reads* as a patrol — pacing, scan speed, whether the
+  pauses land somewhere sensible.
+- Whether losing a Warden feels fair: the 2.5s sight-loss grace and the 15s
+  search are spec'd, but whether they produce good hide-and-seek is a play
+  question.
+- Framerate with the AI live, for the same reason as Phase 5: a backgrounded tab
+  reports nothing useful.
+
 ### Exact next action
 
-Phase 6 — `systems/ai.js`: the Warden FSM (PATROL, SUSPICIOUS, INVESTIGATE,
-ENGAGE, SEARCH, STUNNED), waypoint navigation over the graph
-`waypoint-links-are-walkable` now guarantees, and perception built on
-`detection.smoothed` and `detection.noise.heard()`, which are both live.
+Phase 7 — `systems/combat.js`: hitscan against the capsule, damage falloff and
+the headshot multiplier, spread and recoil, reload, death, the knife arc and
+rear takedown, and the Section 8.3 finisher cinematic with its hard wall-clock
+restore. `intent.fire` and `intent.reload` are already being filled by both
+drivers and are waiting to be read.
 
 ---
 

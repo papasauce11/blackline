@@ -653,6 +653,14 @@ export const CONFIG = {
     engageBurstPauseMax: 0.7,
     /** One stun grenade thrown into a likely hiding spot during SEARCH. */
     searchStunGrenades: 1,
+    /**
+     * "Use cover" in ENGAGE. Sampled on a ring around the Warden between
+     * bursts rather than read from authored cover points, so it works anywhere
+     * and cannot go stale when the map changes. Kept small: this is a handful
+     * of rays, and only while a burst is paused.
+     */
+    coverProbeCount: 8,
+    coverProbeDistance: 2.2,
 
     /** Stuck handling: <0.3m over 2s in a moving state forces a re-path. */
     stuckDistance: 0.3,
