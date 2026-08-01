@@ -1,585 +1,82 @@
 /**
  * BLACKLINE — map.js
  *
- * "Meridian Substation". Level geometry, collision volumes, spawns, plant
- * sites, lights and AI waypoints.
+ * "Meridian Substation", v2. The level: geometry, collision volumes, spawns,
+ * plant sites, lights and AI waypoints. The machinery that builds it lives in
+ * `mapkit.js`; this file is the layout.
  *
- * Layering (Section 3.1): may import from physics and config.
+ * Layering (Section 3.1): may import from mapkit, physics and config.
  *
- * The central rule of this file (Section 5): every visual is generated from the
- * same data the collision solver reads. `addSolid()` creates the mesh and the
- * CollisionBox together from one spec, and the affordance markings are emitted
- * in a single pass over the collision boxes using `classifyLedge()` — the same
- * function the Shade controller calls. A stripe cannot disagree with what the
- * controller will actually let you climb, because neither is authored by hand.
+ * The central rule (Section 5): every visual is generated from the same data
+ * the collision solver reads. `addSolid()` creates the mesh and the
+ * CollisionBox together, climbability is derived from the geometry rather than
+ * typed on, and the affordance markings are emitted in one pass using
+ * `classifyLedge()` — the same function the Shade controller calls. A stripe
+ * cannot disagree with what the controller will let you climb, because neither
+ * is authored by hand.
  *
- * Coordinates: X spans -30..30 (60m), Z spans -22.5..22.5 (45m), Y is up.
+ * What v2 changes, and why (see PROGRESS.md):
+ *
+ *  1. Level 1 is 6m tall instead of 4m, and level 2 has 5m of headroom.
+ *  2. Level 2 is ONE continuous deck. It is laid as a single plate and holes
+ *     are subtracted from it, so it cannot quietly become fragments again.
+ *  3. The Shade starts outside. The building is a shell to infiltrate, with a
+ *     10m approach apron on every face.
+ *  4. Five ways up that are not the Warden's staircases.
+ *  5. No room has one door.
+ *
+ * Coordinates: the site spans X -40..40 and Z -32.5..32.5. The building's
+ * interior is X -30..30, Z -22.5..22.5, with its shell walls outside that.
  */
 
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
-import { CollisionWorld, classifyLedge } from './physics.js';
+import { GameMap, facing } from './mapkit.js';
+import { classifyLedge } from './physics.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
+
+// Building interior.
 const HALF_W = M.width / 2;
 const HALF_D = M.depth / 2;
+// Exterior site.
+const SITE_W = M.siteWidth / 2;
+const SITE_D = M.siteDepth / 2;
 
-// ---------------------------------------------------------------------------
-// Materials
-// ---------------------------------------------------------------------------
+const G = M.groundY;
+const DECK = M.catwalkY;
+const CEIL = M.ceilingY;
+const WALL = M.wallThickness;
+const SLAB = M.floorThickness;
+/** Top of the roof slab, which is what you stand on up there. */
+const ROOF = CEIL + WALL;
 
-/**
- * Toon materials are shared by colour so the whole shell draws from a handful
- * of programs. Per-box contact darkness rides on a vertex-colour attribute
- * (Section 4.1) rather than on a per-box material.
- */
-function createMaterialCache(gradientMap) {
-  const cache = new Map();
-  return {
-    toon(color) {
-      let material = cache.get(color);
-      if (!material) {
-        material = new THREE.MeshToonMaterial({ color, gradientMap, vertexColors: true });
-        cache.set(color, material);
-      }
-      return material;
-    },
-    dispose() {
-      for (const material of cache.values()) material.dispose();
-      cache.clear();
-    },
-    get size() {
-      return cache.size;
-    },
-  };
-}
+const V1 = M.ventFloorY;
+const V2 = M.ventUpperY;
+const GANTRY = M.gantryY;
 
-// ---------------------------------------------------------------------------
-// GameMap
-// ---------------------------------------------------------------------------
+// Interior block edges. The corridor ring is the negative space between the
+// Turbine Hall, the Loading Bay and the shell.
+const HALL_EAST = -6.0;
+const HALL_SOUTH = 8.0;
+const BAY_WEST = 6.0;
+const BAY_SOUTH = 2.0;
 
-class GameMap {
-  constructor(gradientMap) {
-    this.root = new THREE.Group();
-    this.root.name = 'meridian-substation';
+// Upper-deck rooms.
+const VAULT = { x0: 10.0, x1: 26.0, z0: 6.0, z1: 19.0 };
+const OFFICE = { x0: 10.0, x1: 26.0, z0: -20.0, z1: -6.0, divider: 18.0 };
 
-    this.collision = new CollisionWorld();
-    this.materials = createMaterialCache(gradientMap);
+// The void that keeps the Turbine Hall open to the roof, inset from the hall
+// walls so a catwalk band survives on all four sides.
+const HALL_VOID = { x0: -27.6, x1: -8.6, z0: -20.0, z1: 5.6 };
 
-    /** @type {{position:THREE.Vector3, yaw:number, name:string}[]} */
-    this.shadeSpawns = [];
-    this.wardenSpawns = [];
-    /** @type {{id:string, position:THREE.Vector3, ring:THREE.Mesh}[]} */
-    this.sites = [];
-    /** @type {object[]} */
-    this.lights = [];
-    /** @type {object[]} */
-    this.waypoints = [];
-    /** @type {object[]} */
-    this.ledges = [];
-    /** @type {object[]} */
-    this.vents = [];
-    /** @type {object[]} */
-    this.staircases = [];
-
-    this.keyLight = null;
-    this._siteTime = 0;
-    this._outlineGroup = new THREE.Group();
-    this._outlineGroup.name = 'outlines';
-    this.root.add(this._outlineGroup);
-  }
-
-  // -------------------------------------------------------------------------
-  // Building blocks
-  // -------------------------------------------------------------------------
-
-  /**
-   * Create a visual box and its collision volume from one spec. Nothing in this
-   * file creates one without the other.
-   *
-   * @param {object} spec
-   * @param {number[]} spec.min [x, y, z]
-   * @param {number[]} spec.max [x, y, z]
-   * @param {number} [spec.color]
-   * @param {boolean} [spec.climbable] top face is a usable ledge
-   * @param {boolean} [spec.vent] crouch-only silent volume (non-solid interior)
-   * @param {boolean} [spec.solid]
-   * @param {boolean} [spec.blocksSight]
-   * @param {boolean} [spec.outline] give it an inverted-hull outline
-   * @param {string} [spec.tag]
-   */
-  addSolid(spec) {
-    const [x0, y0, z0] = spec.min;
-    const [x1, y1, z1] = spec.max;
-    const width = x1 - x0;
-    const height = y1 - y0;
-    const depth = z1 - z0;
-    const cx = (x0 + x1) / 2;
-    const cy = (y0 + y1) / 2;
-    const cz = (z0 + z1) / 2;
-
-    const geometry = new THREE.BoxGeometry(width, height, depth);
-    applyContactTint(geometry, cy);
-
-    const material = this.materials.toon(spec.color !== undefined ? spec.color : P.concrete);
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(cx, cy, cz);
-    mesh.name = spec.tag || 'solid';
-    // Section 4.1: only the one directional light casts, so receiving is cheap
-    // but casting is limited to geometry that reads as an occluder.
-    mesh.castShadow = spec.castShadow !== false && height > 0.5;
-    mesh.receiveShadow = true;
-    this.root.add(mesh);
-
-    if (spec.outline) this._addOutline(mesh, geometry);
-
-    const box = this.collision.addBox(
-      { x: x0, y: y0, z: z0 },
-      { x: x1, y: y1, z: z1 },
-      {
-        solid: spec.solid !== false,
-        climbable: spec.climbable === true,
-        noClimb: spec.noClimb === true,
-        vent: spec.vent === true,
-        blocksSight: spec.blocksSight !== false,
-        tag: spec.tag,
-      }
-    );
-    box.mesh = mesh;
-    return box;
-  }
-
-  /**
-   * A walkable staircase, generated as a run of solid steps.
-   *
-   * Each step is a full block from the floor up to its own tread height rather
-   * than a floating slab, so there is no gap underneath to fall into and the
-   * swept solver only ever sees one clean face per step.
-   *
-   * Steps are deliberately shallower in tread depth than an actor diameter, so
-   * `deriveClimbableSurfaces()` skips them and they carry no affordance
-   * stripes — a staircase is walked, not vaulted.
-   *
-   * @param {object} spec
-   * @param {'x'|'z'} spec.axis direction the stairs ascend
-   * @param {number} spec.start along-axis coordinate of the first step
-   * @param {number} spec.crossMin across-axis minimum (the stair's width)
-   * @param {number} spec.crossMax across-axis maximum
-   * @param {number} spec.baseY floor the stairs rise from
-   */
-  addStaircase(spec) {
-    const steps = M.stairSteps;
-    const rise = M.stairRise;
-    const run = M.stairRun;
-    const built = [];
-
-    for (let i = 0; i < steps; i++) {
-      const from = spec.start + i * run;
-      const to = from + run;
-      const top = spec.baseY + (i + 1) * rise;
-      const min = spec.axis === 'x' ? [from, spec.baseY, spec.crossMin] : [spec.crossMin, spec.baseY, from];
-      const max = spec.axis === 'x' ? [to, top, spec.crossMax] : [spec.crossMax, top, to];
-      built.push(
-        this.addSolid({
-          min,
-          max,
-          color: P.concrete,
-          tag: `${spec.tag}-step-${i}`,
-          castShadow: false,
-        })
-      );
-    }
-
-    this.staircases.push({
-      tag: spec.tag,
-      axis: spec.axis,
-      bottom: spec.start,
-      top: spec.start + steps * run,
-      topY: spec.baseY + steps * rise,
-      crossMin: spec.crossMin,
-      crossMax: spec.crossMax,
-      baseY: spec.baseY,
-    });
-    return built;
-  }
-
-  /** Section 4: inverted hull. Duplicate mesh, BackSide, scaled 1.03. */
-  _addOutline(mesh, geometry) {
-    const outline = new THREE.Mesh(
-      geometry,
-      new THREE.MeshBasicMaterial({ color: P.outline, side: THREE.BackSide, fog: true })
-    );
-    outline.position.copy(mesh.position);
-    outline.scale.setScalar(CONFIG.render.outlineScale);
-    outline.castShadow = false;
-    outline.receiveShadow = false;
-    this._outlineGroup.add(outline);
-  }
-
-  /** A flat, unlit decal lying on a surface. Used for markings and site rings. */
-  _addDecal(geometry, color, position, rotationX, opacity = 1) {
-    const material = new THREE.MeshBasicMaterial({
-      color,
-      transparent: opacity < 1,
-      opacity,
-      depthWrite: false,
-      fog: true,
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.copy(position);
-    mesh.rotation.x = rotationX;
-    this.root.add(mesh);
-    return mesh;
-  }
-
-  // -------------------------------------------------------------------------
-  // Affordance markings (Section 5) — ONE pass, driven by the collision flags
-  // -------------------------------------------------------------------------
-
-  /**
-   * Decide which surfaces are climbable from the geometry itself, rather than
-   * from a per-box flag typed by hand.
-   *
-   * Hand-flagging every ledge is the same failure Section 5 warns about, just
-   * one level up: miss a box and the player meets an invisible wall on a
-   * surface that plainly looks climbable. A surface qualifies when it is
-   * something you could actually stand on and get to:
-   *
-   *   - the top face is at least an actor-diameter across in both axes, so
-   *     there is somewhere to land (a 0.12m parapet is not a ledge)
-   *   - there is at least crouch headroom above it, which excludes walls that
-   *     run all the way to the ceiling
-   *   - the rise above whatever you would climb from falls in a traversal band
-   *
-   * `noClimb` opts a surface out. It is used only where the level design needs
-   * a one-way drop.
-   */
-  deriveClimbableSurfaces() {
-    const minSupport = CONFIG.shade.radius * 2;
-    const headroom = CONFIG.shade.crouchHeight;
-    const probeHalf = { x: minSupport * 0.5, y: headroom * 0.5, z: minSupport * 0.5 };
-
-    for (const box of this.collision.boxes) {
-      if (box.noClimb || !box.solid) continue;
-      if (box.max.x - box.min.x < minSupport) continue;
-      if (box.max.z - box.min.z < minSupport) continue;
-
-      const standY = this._supportHeightBelow(box);
-      if (!classifyLedge(box.max.y - standY)) continue;
-
-      // Somewhere to actually stand once you are up. Sample along the surface
-      // rather than at its centre alone: a long ledge that passes under one
-      // obstruction is still climbable everywhere else, and judging it by a
-      // single point excludes the whole thing.
-      const y = box.max.y + headroom * 0.5 + 0.05;
-      let standable = false;
-      for (let i = 1; i <= 3 && !standable; i++) {
-        const t = i / 4;
-        const point = {
-          x: box.min.x + (box.max.x - box.min.x) * t,
-          y,
-          z: box.min.z + (box.max.z - box.min.z) * t,
-        };
-        // Keep the sample inside the footprint so an edge point does not
-        // wrongly report clear air beside the box.
-        point.x = Math.min(Math.max(point.x, box.min.x + probeHalf.x), box.max.x - probeHalf.x);
-        point.z = Math.min(Math.max(point.z, box.min.z + probeHalf.z), box.max.z - probeHalf.z);
-        if (this.collision.isClear(point, probeHalf)) standable = true;
-      }
-      if (!standable) continue;
-
-      box.climbable = true;
-    }
-  }
-
-  /**
-   * For every climbable collision box, work out how high its top face sits
-   * above whatever you would be standing on to climb it, classify that height
-   * with the same `classifyLedge()` the controller uses, and emit the marking
-   * the spec assigns to that band.
-   *
-   * Nothing here is authored per-ledge. Flip `climbable` on a box and its
-   * stripe appears; move the box and the band reclassifies.
-   */
-  generateAffordanceMarkings() {
-    const mark = M.marking;
-    const stripeMaterialCache = new Map();
-
-    const stripeMaterial = (intensity) => {
-      const key = intensity.toFixed(2);
-      let material = stripeMaterialCache.get(key);
-      if (!material) {
-        const color = new THREE.Color(P.signageTeal).multiplyScalar(intensity);
-        material = new THREE.MeshBasicMaterial({ color, fog: true });
-        stripeMaterialCache.set(key, material);
-      }
-      return material;
-    };
-
-    for (const box of this.collision.boxes) {
-      if (!box.climbable) continue;
-
-      const standY = this._supportHeightBelow(box);
-      const rise = box.max.y - standY;
-      const band = classifyLedge(rise);
-      box.ledgeBand = band;
-      if (!band) continue;
-
-      const intensity =
-        band === 'vault' ? mark.vaultIntensity : band === 'mantle' ? mark.mantleIntensity : mark.hangIntensity;
-      const material = stripeMaterial(intensity);
-      const y = box.max.y + mark.stripeInset;
-      const t = mark.stripeThickness;
-
-      const edges = [
-        { horizontal: true, z: box.min.z + t / 2 },
-        { horizontal: true, z: box.max.z - t / 2 },
-        { horizontal: false, x: box.min.x + t / 2 },
-        { horizontal: false, x: box.max.x - t / 2 },
-      ];
-
-      for (const edge of edges) {
-        const length = edge.horizontal ? box.max.x - box.min.x : box.max.z - box.min.z;
-        if (length <= t) continue;
-        const centre = edge.horizontal
-          ? new THREE.Vector3(box.centerX, y, edge.z)
-          : new THREE.Vector3(edge.x, y, box.centerZ);
-
-        if (band === 'hang') {
-          // Section 5: hang edges use a dashed stripe.
-          this._addDashedStripe(centre, length, t, edge.horizontal, material);
-        } else {
-          const geometry = edge.horizontal
-            ? new THREE.BoxGeometry(length, t, t)
-            : new THREE.BoxGeometry(t, t, length);
-          const mesh = new THREE.Mesh(geometry, material);
-          mesh.position.copy(centre);
-          this.root.add(mesh);
-        }
-      }
-
-      // Section 5: mantle ledges also get chevrons on the face below.
-      if (band === 'mantle') this._addChevrons(box, standY, material);
-
-      this.ledges.push({ box, band, topY: box.max.y, standY, rise });
-    }
-  }
-
-  /**
-   * Height of the surface an actor would be standing on to climb this box:
-   * the tallest solid top face directly beneath it that is below its own top.
-   * Falls back to the ground plane.
-   *
-   * A candidate must be wide enough to actually stand on. Without this, a thin
-   * wall or parapet passing under a ledge is treated as a foothold and collapses
-   * the ledge's rise to almost nothing, so it classifies into no band and goes
-   * unmarked — which is exactly the drift Section 5 forbids.
-   */
-  _supportHeightBelow(box) {
-    let best = M.groundY;
-    const minSupport = CONFIG.shade.radius * 2;
-    for (const other of this.collision.boxes) {
-      if (other === box || !other.solid) continue;
-      if (other.max.y >= box.max.y) continue;
-      if (other.max.x - other.min.x < minSupport) continue;
-      if (other.max.z - other.min.z < minSupport) continue;
-      // Overlapping footprint, allowing a small reach margin either side.
-      const margin = CONFIG.shade.vaultReach;
-      if (other.max.x < box.min.x - margin || other.min.x > box.max.x + margin) continue;
-      if (other.max.z < box.min.z - margin || other.min.z > box.max.z + margin) continue;
-      if (other.max.y > best) best = other.max.y;
-    }
-    return best;
-  }
-
-  _addDashedStripe(centre, length, thickness, horizontal, material) {
-    const mark = M.marking;
-    const period = mark.hangDashLength + mark.hangGapLength;
-    const count = Math.max(1, Math.floor(length / period));
-    const start = -length / 2 + mark.hangDashLength / 2;
-    for (let i = 0; i < count; i++) {
-      const offset = start + i * period;
-      const geometry = horizontal
-        ? new THREE.BoxGeometry(mark.hangDashLength, thickness, thickness)
-        : new THREE.BoxGeometry(thickness, thickness, mark.hangDashLength);
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(
-        centre.x + (horizontal ? offset : 0),
-        centre.y,
-        centre.z + (horizontal ? 0 : offset)
-      );
-      this.root.add(mesh);
-    }
-  }
-
-  _addChevrons(box, standY, material) {
-    const mark = M.marking;
-    const faceY = (box.max.y + standY) / 2;
-    const spread = mark.chevronHeight * 1.6;
-    // Chevrons go on the two longer faces so the route reads from a distance.
-    const spanX = box.max.x - box.min.x;
-    const spanZ = box.max.z - box.min.z;
-    const onX = spanX >= spanZ;
-
-    for (let side = 0; side < 2; side++) {
-      for (let i = 0; i < mark.chevronCount; i++) {
-        const geometry = onX
-          ? new THREE.BoxGeometry(mark.chevronWidth, mark.chevronHeight, mark.stripeThickness)
-          : new THREE.BoxGeometry(mark.stripeThickness, mark.chevronHeight, mark.chevronWidth);
-        const mesh = new THREE.Mesh(geometry, material);
-        const along = (i - (mark.chevronCount - 1) / 2) * spread * 2;
-        if (onX) {
-          mesh.position.set(
-            box.centerX + along,
-            faceY,
-            side === 0 ? box.min.z - mark.stripeInset : box.max.z + mark.stripeInset
-          );
-        } else {
-          mesh.position.set(
-            side === 0 ? box.min.x - mark.stripeInset : box.max.x + mark.stripeInset,
-            faceY,
-            box.centerZ + along
-          );
-        }
-        mesh.rotation.z = onX ? 0.32 : 0;
-        mesh.rotation.x = onX ? 0 : 0.32;
-        this.root.add(mesh);
-      }
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // Lights
-  // -------------------------------------------------------------------------
-
-  /**
-   * Section 4.1 is explicit: the 12 destructible point lights cast NO shadows,
-   * and exactly one directional light does, at 1024x1024 with a tight frustum.
-   */
-  addPointLight(id, x, y, z, intensity, tag) {
-    const L = M.lighting;
-    const light = new THREE.PointLight(P.lightWarm, intensity, L.pointDistance, L.pointDecay);
-    light.position.set(x, y, z);
-    light.castShadow = false; // Section 4.1. Never change this.
-    this.root.add(light);
-
-    // Fixture housing plus a separate glass element so breaking it is visible.
-    const housing = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.22, 0.3, 0.16, 10),
-      this.materials.toon(P.wardenGunmetal)
-    );
-    housing.position.set(x, y + 0.16, z);
-    this.root.add(housing);
-
-    const glassMaterial = new THREE.MeshBasicMaterial({ color: P.lightWarm, fog: true });
-    const glass = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 8), glassMaterial);
-    glass.position.set(x, y, z);
-    this.root.add(glass);
-
-    const record = {
-      lightId: id,
-      light,
-      housing,
-      glass,
-      glassMaterial,
-      position: new THREE.Vector3(x, y, z),
-      intensity,
-      range: L.pointDistance,
-      broken: false,
-      tag,
-    };
-    this.lights.push(record);
-    return record;
-  }
-
-  /**
-   * Break a light permanently. Callers must also invalidate the visibility
-   * cache immediately (Section 7.1, Section 15) — that is wired in Phase 5.
-   */
-  breakLight(lightId) {
-    const record = this.lights.find((entry) => entry.lightId === lightId);
-    if (!record || record.broken) return null;
-    record.broken = true;
-    record.light.intensity = 0;
-    record.glassMaterial.color.set(P.brokenGlass);
-    return record;
-  }
-
-  /** True when the light is alive and should contribute to visibility. */
-  activeLights() {
-    return this.lights.filter((entry) => !entry.broken);
-  }
-
-  // -------------------------------------------------------------------------
-  // Waypoints (Section 5: 14 nodes with explicit bidirectional links)
-  // -------------------------------------------------------------------------
-
-  addWaypoint(id, x, y, z, tag) {
-    const node = { id, position: new THREE.Vector3(x, y, z), links: [], tag };
-    this.waypoints[id] = node;
-    return node;
-  }
-
-  linkWaypoints(a, b) {
-    const nodeA = this.waypoints[a];
-    const nodeB = this.waypoints[b];
-    if (!nodeA || !nodeB) throw new Error(`linkWaypoints: unknown node ${a} or ${b}`);
-    if (nodeA.links.indexOf(b) === -1) nodeA.links.push(b);
-    if (nodeB.links.indexOf(a) === -1) nodeB.links.push(a);
-  }
-
-  /** Nearest waypoint to a world position. */
-  nearestWaypoint(position) {
-    let best = null;
-    let bestDistance = Infinity;
-    for (const node of this.waypoints) {
-      if (!node) continue;
-      const distance = node.position.distanceToSquared(position);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = node;
-      }
-    }
-    return best;
-  }
-
-  // -------------------------------------------------------------------------
-  // Per-frame
-  // -------------------------------------------------------------------------
-
-  /** Section 5: plant site rings pulse slowly. */
-  update(dt) {
-    this._siteTime += dt;
-    const mark = M.marking;
-    const phase = (this._siteTime % mark.siteRingPulsePeriod) / mark.siteRingPulsePeriod;
-    const wave = 0.5 - 0.5 * Math.cos(phase * Math.PI * 2);
-    const opacity = mark.siteRingPulseMin + (mark.siteRingPulseMax - mark.siteRingPulseMin) * wave;
-    for (const site of this.sites) site.ring.material.opacity = opacity;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Contact tint (Section 4.1: baked vertex tint, applied once at build time)
-// ---------------------------------------------------------------------------
-
-function applyContactTint(geometry, centreY) {
-  const position = geometry.attributes.position;
-  const count = position.count;
-  const colors = new Float32Array(count * 3);
-  const strength = M.vertexTintStrength;
-  const height = M.vertexTintHeight;
-
-  for (let i = 0; i < count; i++) {
-    const worldY = position.getY(i) + centreY;
-    const t = Math.min(1, Math.max(0, worldY / height));
-    const shade = 1 - strength * (1 - t);
-    colors[i * 3] = shade;
-    colors[i * 3 + 1] = shade;
-    colors[i * 3 + 2] = shade;
-  }
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-}
+// A doorway or window, in the (along-wall, vertical) space addWall() wants.
+const opening = (from, to, y0, y1) => ({ from, to, y0, y1 });
+/** Standard walk-through door on a floor at `base`. */
+const doorway = (from, to, base) => opening(from, to, base, base + 2.4);
+/** Window: a crouch-height slot the Shade fits through and the Warden does not. */
+const window_ = (from, to, base) => opening(from, to, base + 0.4, base + 1.6);
 
 // ---------------------------------------------------------------------------
 // buildMap
@@ -591,403 +88,384 @@ function applyContactTint(geometry, centreY) {
  * @returns {GameMap}
  */
 export function buildMap({ gradientMap }) {
-  const map = new GameMap(gradientMap);
-  const G = M.groundY;
-  const C = M.catwalkY;
-  const CEIL = M.ceilingY;
-  const wall = M.wallThickness;
-  const V = M.ventFloorY;
+  const map = new GameMap(gradientMap, 'meridian-substation-v2');
+  map.shell = { x0: -HALF_W - WALL, x1: HALF_W + WALL, z0: -HALF_D - WALL, z1: HALF_D + WALL };
 
   // -------------------------------------------------------------------------
-  // Shell: floor, ceiling, perimeter walls
+  // Ground. One plane covering the whole site: the building's floor and the
+  // approach apron are the same surface, so there is no seam to fall through.
   // -------------------------------------------------------------------------
 
   map.addSolid({
-    min: [-HALF_W, G - M.floorThickness, -HALF_D],
-    max: [HALF_W, G, HALF_D],
+    min: [-SITE_W, G - SLAB, -SITE_D],
+    max: [SITE_W, G, SITE_D],
     color: P.concreteDark,
-    tag: 'ground-floor',
-    castShadow: false,
-  });
-  map.addSolid({
-    min: [-HALF_W, CEIL, -HALF_D],
-    max: [HALF_W, CEIL + wall, HALF_D],
-    color: P.concreteDark,
-    tag: 'ceiling',
+    tag: 'ground-plane',
     castShadow: false,
   });
 
-  const perimeter = [
-    { min: [-HALF_W - wall, G, -HALF_D], max: [-HALF_W, CEIL, HALF_D], tag: 'wall-west' },
-    { min: [HALF_W, G, -HALF_D], max: [HALF_W + wall, CEIL, HALF_D], tag: 'wall-east' },
-    { min: [-HALF_W - wall, G, -HALF_D - wall], max: [HALF_W + wall, CEIL, -HALF_D], tag: 'wall-north' },
-    { min: [-HALF_W - wall, G, HALF_D], max: [HALF_W + wall, CEIL, HALF_D + wall], tag: 'wall-south' },
+  // Compound fence. The play space has to be closed now that the Shade starts
+  // outside it — without this the apron is an open edge to walk off. Thin, so
+  // the climbability pass correctly refuses it as somewhere to stand, and tall
+  // enough to sit above the hang band so it cannot be grabbed either.
+  const FENCE_HEIGHT = 4.5;
+  const fence = [
+    { min: [-SITE_W - WALL, G, -SITE_D - WALL], max: [SITE_W + WALL, G + FENCE_HEIGHT, -SITE_D] },
+    { min: [-SITE_W - WALL, G, SITE_D], max: [SITE_W + WALL, G + FENCE_HEIGHT, SITE_D + WALL] },
+    { min: [-SITE_W - WALL, G, -SITE_D], max: [-SITE_W, G + FENCE_HEIGHT, SITE_D] },
+    { min: [SITE_W, G, -SITE_D], max: [SITE_W + WALL, G + FENCE_HEIGHT, SITE_D] },
   ];
-  for (const spec of perimeter) map.addSolid({ ...spec, color: P.concrete });
+  for (const spec of fence) {
+    map.addSolid({ ...spec, color: P.concreteDark, tag: 'site-fence', castShadow: false });
+  }
 
   // -------------------------------------------------------------------------
-  // Interior partitions. The corridor ring is the negative space between the
-  // Turbine Hall block, the Loading Bay block and the perimeter.
+  // Vent runs. Declared before any wall, because every wall they cross is
+  // generated around them (Section 5, and the Phase 3 bug that motivated it).
   // -------------------------------------------------------------------------
 
-  // Vent runs are declared first: the Turbine Hall's east wall is generated
-  // around them, so a run can never end up buried inside a wall.
-  // Each runs west from the corridor into the hall at crouch height.
-  const VENT_X_EAST = -1.0;
-  const VENT_X_WEST = -13.0;
-  const ventRuns = [
-    { z: -16.0, tag: 'vent-north', piercesWall: true },
-    // This one lines up with the existing doorway, so it needs no penetration.
-    { z: -3.75, tag: 'vent-mid', piercesWall: false },
-    { z: 4.0, tag: 'vent-south', piercesWall: true },
+  // Tier one, 2.3m: hall to corridor. Climbed into from the floor at either
+  // mouth, and roofed, because at this height the deck above is too far away
+  // to stop the Shade standing up.
+  const ventLowNorth = map.addVentRun({
+    tag: 'vent-low-north', axis: 'x', from: -13.0, to: -1.0, cross: -16.0, floorY: V1, lipAt: 'both',
+  });
+  const ventLowSouth = map.addVentRun({
+    tag: 'vent-low-south', axis: 'x', from: -13.0, to: -1.0, cross: 4.0, floorY: V1, lipAt: 'both',
+  });
+
+  // Tier two, 4.3m: the corridor up into the Server Vault's floor. No roof —
+  // the deck 1.35m above it already makes the run crouch-only, and a redundant
+  // roof slab is wide enough to be read as the standing surface the next ledge
+  // is measured from, which would put the vault lip in the wrong band.
+  const ventUpVault = map.addVentRun({
+    tag: 'vent-up-vault', axis: 'z', from: 5.0, to: 11.0, cross: 14.0, floorY: V2,
+    roof: false, lipAt: 'from',
+  });
+
+  // At grade, through the shell: the two quietest ways in.
+  const ventGradeWest = map.addVentRun({
+    tag: 'vent-grade-west', axis: 'x', from: -37.0, to: -25.0, cross: -3.0, floorY: G, floor: false,
+  });
+  const ventGradeSouth = map.addVentRun({
+    tag: 'vent-grade-south', axis: 'z', from: 17.0, to: 29.0, cross: 2.0, floorY: G, floor: false,
+  });
+
+  // -------------------------------------------------------------------------
+  // Shell. Breached in five places: two roller doors, two vent mouths at
+  // grade, and the fire escape's opening onto the upper deck.
+  // -------------------------------------------------------------------------
+
+  const ROLLER_DOOR_HEIGHT = 3.4;
+  const rollerDoors = [
+    { from: -20.0, to: -16.0 },
+    { from: -8.0, to: -4.0 },
   ];
-  const ventHalfWidth = M.ventWidth / 2;
-  const ventGapLow = V - 0.3;
-  const ventGapHigh = V + M.ventHeight + 0.3;
+  // Where the fire escape lets you step in. The landing is flush with the deck
+  // rather than a step above it: an offset landing is measured against the deck
+  // as its support, which collapses a 2.0m mantle to a 0.3m nothing and takes
+  // the platform out of every traversal band.
+  const FIRE_ESCAPE = { x0: 8.4, x1: 10.6, landing: DECK };
 
-  // Hall east wall, segmented around the doorway and the two vent penetrations.
-  const hallWallSpans = [];
-  let cursor = -HALF_D;
-  const stops = [];
-  for (const run of ventRuns) {
-    if (!run.piercesWall) continue;
-    stops.push({ z0: run.z - ventHalfWidth - 0.05, z1: run.z + ventHalfWidth + 0.05 });
-  }
-  stops.push({ z0: -6.0, z1: -1.5, doorway: true }); // full-height opening
-  stops.sort((a, b) => a.z0 - b.z0);
+  map.addWall({
+    tag: 'shell-west', axis: 'x', at: -HALF_W - WALL, thickness: WALL,
+    from: -HALF_D, to: HALF_D, y0: G, y1: CEIL,
+    openings: [map.ventOpening(ventGradeWest)],
+  });
+  map.addWall({
+    tag: 'shell-east', axis: 'x', at: HALF_W, thickness: WALL,
+    from: -HALF_D, to: HALF_D, y0: G, y1: CEIL,
+    openings: rollerDoors.map((door) => opening(door.from, door.to, G, G + ROLLER_DOOR_HEIGHT)),
+  });
+  map.addWall({
+    tag: 'shell-north', axis: 'z', at: -HALF_D - WALL, thickness: WALL,
+    from: -HALF_W - WALL, to: HALF_W + WALL, y0: G, y1: CEIL,
+    openings: [opening(FIRE_ESCAPE.x0, FIRE_ESCAPE.x1, FIRE_ESCAPE.landing, FIRE_ESCAPE.landing + 2.4)],
+  });
+  map.addWall({
+    tag: 'shell-south', axis: 'z', at: HALF_D, thickness: WALL,
+    from: -HALF_W - WALL, to: HALF_W + WALL, y0: G, y1: CEIL,
+    openings: [map.ventOpening(ventGradeSouth)],
+  });
 
-  for (const stop of stops) {
-    if (stop.z0 > cursor) {
-      hallWallSpans.push({ z0: cursor, z1: stop.z0, y0: G, y1: CEIL });
-    }
-    if (!stop.doorway) {
-      // Leave a vent-sized hole: wall below it and wall above it.
-      hallWallSpans.push({ z0: stop.z0, z1: stop.z1, y0: G, y1: ventGapLow });
-      hallWallSpans.push({ z0: stop.z0, z1: stop.z1, y0: ventGapHigh, y1: CEIL });
-    }
-    cursor = stop.z1;
-  }
-  if (cursor < 8.0) hallWallSpans.push({ z0: cursor, z1: 8.0, y0: G, y1: CEIL });
-
-  for (let i = 0; i < hallWallSpans.length; i++) {
-    const span = hallWallSpans[i];
+  // Roller shutters, rolled up: the visual that says the opening below is a
+  // door rather than a hole in the wall.
+  for (const door of rollerDoors) {
     map.addSolid({
-      min: [-6.0, span.y0, span.z0],
-      max: [-6.0 + wall, span.y1, span.z1],
-      color: P.concrete,
-      tag: `hall-east-wall-${i}`,
-    });
-  }
-
-  const partitions = [
-    { min: [-HALF_W, G, 8.0], max: [-6.0 + wall, CEIL, 8.0 + wall], tag: 'hall-south-wall' },
-
-    // Loading Bay enclosure (east), two roller-door openings on the west face.
-    { min: [6.0, G, -HALF_D], max: [6.0 + wall, CEIL, -14.0], tag: 'bay-west-wall-n' },
-    { min: [6.0, G, -10.0], max: [6.0 + wall, CEIL, -6.0], tag: 'bay-west-wall-m' },
-    { min: [6.0, G, -2.0], max: [6.0 + wall, CEIL, 2.0], tag: 'bay-west-wall-s' },
-    { min: [6.0, G, 2.0], max: [HALF_W, CEIL, 2.0 + wall], tag: 'bay-south-wall' },
-  ];
-  for (const spec of partitions) map.addSolid({ ...spec, color: P.concrete });
-
-  // Roller doors: visual only, set into the two bay openings.
-  for (const z of [-12.0, -4.0]) {
-    map.addSolid({
-      min: [6.0, G + 3.2, z - 2.0],
-      max: [6.0 + wall, CEIL, z + 2.0],
+      min: [HALF_W, G + ROLLER_DOOR_HEIGHT, door.from],
+      max: [HALF_W + WALL, G + ROLLER_DOOR_HEIGHT + 0.6, door.to],
       color: P.hazardOrange,
       tag: 'roller-door',
+      castShadow: false,
     });
   }
 
   // -------------------------------------------------------------------------
-  // Upper floor slabs: Server Vault, two offices, catwalks over Turbine Hall
+  // Ground-floor partitions. These stop at the deck: above 6m, level 2 is one
+  // open mezzanine and only its rooms have walls.
   // -------------------------------------------------------------------------
 
-  // Server Vault (south-east upper). Tight, dark, longest approach.
-  map.addSolid({
-    min: [10.0, C - M.floorThickness, 6.0],
-    max: [26.0, C, 19.0],
-    color: P.concreteDark,
-    tag: 'vault-floor',
-    castShadow: false,
+  map.addWall({
+    tag: 'hall-east-wall', axis: 'x', at: HALL_EAST, thickness: WALL,
+    from: -HALF_D, to: HALL_SOUTH + WALL, y0: G, y1: DECK,
+    openings: [
+      doorway(-6.0, -2.0, G),
+      map.ventOpening(ventLowNorth),
+      map.ventOpening(ventLowSouth),
+    ],
   });
-  const vaultWalls = [
-    { min: [10.0, C, 6.0], max: [10.0 + wall, CEIL, 19.0], tag: 'vault-wall-w' },
-    { min: [26.0 - wall, C, 6.0], max: [26.0, CEIL, 19.0], tag: 'vault-wall-e' },
-    { min: [10.0, C, 6.0], max: [26.0, CEIL, 6.0 + wall], tag: 'vault-wall-n' },
-    { min: [10.0, C, 19.0 - wall], max: [18.0, CEIL, 19.0], tag: 'vault-wall-s-a' },
-    { min: [21.0, C, 19.0 - wall], max: [26.0, CEIL, 19.0], tag: 'vault-wall-s-b' },
-  ];
-  for (const spec of vaultWalls) map.addSolid({ ...spec, color: P.concrete });
-
-  // Server racks: waist-high-plus cover inside the vault.
-  for (let i = 0; i < 4; i++) {
-    const x = 12.5 + i * 3.2;
-    map.addSolid({
-      min: [x, C, 9.0],
-      max: [x + 1.1, C + 1.9, 16.0],
-      color: P.wardenGunmetal,
-      outline: true,
-      tag: `server-rack-${i}`,
-    });
-  }
-
-  // Two office rooms (north-east upper) with waist-high cover. The floor is
-  // built in four pieces so the drop shaft is a genuine hole in it rather than
-  // a decorative lip: x 21.6..25.4, z -18.2..-14.8 is open to the Loading Bay.
-  const shaft = { x0: 21.6, x1: 25.4, z0: -18.2, z1: -14.8 };
-  const officeFloorPieces = [
-    { min: [10.0, C - M.floorThickness, -20.0], max: [shaft.x0, C, -6.0], tag: 'office-floor-w' },
-    { min: [shaft.x0, C - M.floorThickness, -20.0], max: [26.0, C, shaft.z0], tag: 'office-floor-n' },
-    { min: [shaft.x0, C - M.floorThickness, shaft.z1], max: [26.0, C, -6.0], tag: 'office-floor-s' },
-    { min: [shaft.x1, C - M.floorThickness, shaft.z0], max: [26.0, C, shaft.z1], tag: 'office-floor-e' },
-  ];
-  for (const spec of officeFloorPieces) {
-    // noClimb keeps the drop shaft one-way (Section 5). Without it the office
-    // floor's edge around the opening becomes a grabbable ledge and the shaft
-    // turns into a two-way route.
-    map.addSolid({ ...spec, color: P.concreteDark, castShadow: false, noClimb: true });
-  }
-  const officeWalls = [
-    // Stops short of z = -9 to leave a doorway onto the cross walkway. It
-    // previously ran to z = -6, leaving a 0.4m slot the Warden's 0.84m capsule
-    // could not fit through, which sealed the upper east rooms off entirely.
-    { min: [10.0, C, -20.0], max: [10.0 + wall, CEIL, -9.0], tag: 'office-wall-w' },
-    { min: [26.0 - wall, C, -20.0], max: [26.0, CEIL, -6.0], tag: 'office-wall-e' },
-    { min: [10.0, C, -6.0 - wall], max: [26.0, CEIL, -6.0], tag: 'office-wall-s' },
-    { min: [17.6, C, -20.0], max: [18.4, CEIL, -12.0], tag: 'office-divider' },
-  ];
-  for (const spec of officeWalls) map.addSolid({ ...spec, color: P.concrete });
-
-  // Waist-high cover in both offices.
-  const coverSpots = [
-    [12.5, -17.5], [14.5, -9.0], [19.0, -17.0], [23.0, -10.0],
-  ];
-  for (let i = 0; i < coverSpots.length; i++) {
-    const [x, z] = coverSpots[i];
-    map.addSolid({
-      min: [x, C, z],
-      max: [x + 2.0, C + 0.95, z + 0.8],
-      color: P.wardenGunmetal,
-      climbable: true,
-      outline: true,
-      tag: `office-cover-${i}`,
-    });
-  }
-
-  // Catwalks overlooking the Turbine Hall.
-  const catwalks = [
-    { min: [-28.0, C - 0.25, -8.0], max: [-6.0, C, -5.0], tag: 'catwalk-north' },
-    { min: [-9.6, C - 0.25, -20.0], max: [-6.0, C, -5.0], tag: 'catwalk-east' },
-    { min: [-28.0, C - 0.25, 4.0], max: [-14.0, C, 6.4], tag: 'catwalk-south' },
-    // North-south spine linking all three vent exit platforms to the catwalk
-    // network. Without it the vent runs would dead-end on isolated platforms.
-    { min: [-18.0, C - 0.25, -18.0], max: [-15.0, C, 5.2], tag: 'catwalk-spine' },
-  ];
-  for (const spec of catwalks) {
-    map.addSolid({ ...spec, color: P.wardenGunmetal, climbable: true, castShadow: false });
-  }
-
-  // A connecting walkway from the catwalks across to the upper east rooms.
-  map.addSolid({
-    min: [-6.0, C - 0.25, -7.4],
-    max: [10.4, C, -5.6],
-    color: P.wardenGunmetal,
-    climbable: true,
-    tag: 'walkway-cross',
-    castShadow: false,
+  map.addWall({
+    tag: 'hall-south-wall', axis: 'z', at: HALL_SOUTH, thickness: WALL,
+    from: -HALF_W, to: HALL_EAST + WALL, y0: G, y1: DECK,
+    openings: [doorway(-20.0, -16.0, G)],
+  });
+  map.addWall({
+    tag: 'bay-west-wall', axis: 'x', at: BAY_WEST, thickness: WALL,
+    from: -HALF_D, to: BAY_SOUTH + WALL, y0: G, y1: DECK,
+    openings: [doorway(-10.0, -6.0, G), doorway(-3.0, 1.0, G)],
+  });
+  map.addWall({
+    tag: 'bay-south-wall', axis: 'z', at: BAY_SOUTH, thickness: WALL,
+    from: BAY_WEST, to: HALF_W, y0: G, y1: DECK,
+    openings: [doorway(24.0, 28.0, G)],
   });
 
   // -------------------------------------------------------------------------
   // Staircases (Section 6.2: the Warden walks, so the level must let it)
   // -------------------------------------------------------------------------
 
-  // West wall of the Turbine Hall, rising north-to-south onto catwalk-north.
-  map.addStaircase({
-    tag: 'stair-hall',
-    axis: 'z',
-    start: -13.2,
-    crossMin: -28.0,
-    crossMax: -26.4,
-    baseY: G,
+  const stairHall = map.addStaircase({
+    tag: 'stair-hall', axis: 'x', start: -26.0, crossMin: -22.1, crossMax: -20.1, baseY: G, deckY: DECK,
   });
-
-  // South-east strip, rising west-to-east onto a landing at the Server Vault's
-  // south entrance. Without this, site C is undefendable: the vault is cut off
-  // from the rest of the upper floor.
-  map.addStaircase({
-    tag: 'stair-vault',
-    axis: 'x',
-    start: 8.0,
-    crossMin: 19.4,
-    crossMax: 22.4,
-    baseY: G,
-  });
-  map.addSolid({
-    min: [13.2, C - M.floorThickness, 19.0],
-    max: [21.0, C, 22.4],
-    color: P.concreteDark,
-    tag: 'stair-vault-landing',
-    castShadow: false,
+  const stairCorridor = map.addStaircase({
+    tag: 'stair-corridor', axis: 'z', start: 6.0, crossMin: 3.0, crossMax: 5.0, baseY: G, deckY: DECK,
   });
 
   // -------------------------------------------------------------------------
-  // Traversal
+  // The upper deck: one plate, minus voids
   // -------------------------------------------------------------------------
 
-  // Crate stacks. Heights are chosen so classifyLedge() lands them in the
-  // intended bands: 1.0 vault, 2.3 mantle from the crate, 4.0 mantle from 2.3.
-  const stacks = [
-    { x: -12.0, z: -12.0, tag: 'stack-hall' },
-    { x: 16.0, z: -16.0, tag: 'stack-bay' },
+  // One-way down (Section 5): the drop shaft, and the opening that keeps the
+  // Turbine Hall a full-height space. Neither carries a lip.
+  const dropShaft = { x0: 21.6, x1: 25.4, z0: -18.2, z1: -14.8 };
+  // Two-way: each of these has a climbing route arriving at the lip beside it.
+  const bayVoid = { x0: 19.6, x1: 22.6, z0: -5.6, z1: -2.6 };
+  const vaultHatch = { x0: 13.0, x1: 15.0, z0: 9.2, z1: 11.2 };
+
+  const deckLips = [
+    { x0: -8.6, x1: -7.4, z0: -12.0, z1: -9.0, tag: 'lip-hall-east' },
+    { x0: -16.5, x1: -13.2, z0: 5.6, z1: 6.8, tag: 'lip-hall-south' },
+    { x0: 18.4, x1: 19.6, z0: -5.6, z1: -2.6, tag: 'lip-bay' },
+    { x0: 15.0, x1: 16.2, z0: 9.2, z1: 11.2, tag: 'lip-vault' },
   ];
-  for (const stack of stacks) {
+
+  map.addFloorPlate({
+    tag: 'deck',
+    min: [-HALF_W, -HALF_D],
+    max: [HALF_W, HALF_D],
+    top: DECK,
+    thickness: SLAB,
+    color: P.concreteDark,
+    lipColor: P.wardenGunmetal,
+    voids: [HALL_VOID, stairHall.stairwell, stairCorridor.stairwell, dropShaft, bayVoid, vaultHatch],
+    lips: deckLips,
+  });
+
+  // Hazard-striped lip bars around the one-way drop, so it reads as a
+  // deliberate opening rather than a missing floor.
+  for (const bar of edgeBars(dropShaft, DECK)) {
+    map.addSolid({ ...bar, color: P.hazardOrange, tag: 'drop-shaft-lip', castShadow: false });
+  }
+
+  // -------------------------------------------------------------------------
+  // Upper-deck rooms
+  // -------------------------------------------------------------------------
+
+  // Server Vault (site C). Tight, dark, longest approach. Entered by the north
+  // door, the hatch its floor shares with the upper vent, or the east window.
+  map.addWall({
+    tag: 'vault-wall-w', axis: 'x', at: VAULT.x0 - WALL, thickness: WALL,
+    from: VAULT.z0 - WALL, to: VAULT.z1 + WALL, y0: DECK, y1: CEIL,
+  });
+  map.addWall({
+    tag: 'vault-wall-e', axis: 'x', at: VAULT.x1, thickness: WALL,
+    from: VAULT.z0 - WALL, to: VAULT.z1 + WALL, y0: DECK, y1: CEIL,
+    openings: [window_(12.0, 14.0, DECK)],
+  });
+  map.addWall({
+    tag: 'vault-wall-n', axis: 'z', at: VAULT.z0 - WALL, thickness: WALL,
+    from: VAULT.x0 - WALL, to: VAULT.x1 + WALL, y0: DECK, y1: CEIL,
+    openings: [doorway(15.0, 18.0, DECK)],
+  });
+  map.addWall({
+    tag: 'vault-wall-s', axis: 'z', at: VAULT.z1, thickness: WALL,
+    from: VAULT.x0 - WALL, to: VAULT.x1 + WALL, y0: DECK, y1: CEIL,
+  });
+
+  for (let i = 0; i < 4; i++) {
+    const x = 10.6 + (i < 2 ? i * 1.8 : 8.8 + (i - 2) * 2.2);
     map.addSolid({
-      min: [stack.x, G, stack.z],
-      max: [stack.x + 2.2, G + 1.0, stack.z + 2.2],
-      color: P.hazardOrange,
-      climbable: true,
+      min: [x, DECK, 14.5],
+      max: [x + 1.1, DECK + 1.9, 18.5],
+      color: P.wardenGunmetal,
       outline: true,
-      tag: `${stack.tag}-low`,
-    });
-    map.addSolid({
-      min: [stack.x + 2.2, G, stack.z + 0.2],
-      max: [stack.x + 4.2, G + 2.3, stack.z + 2.0],
-      color: P.hazardOrange,
-      climbable: true,
-      outline: true,
-      tag: `${stack.tag}-mid`,
+      tag: `server-rack-${i}`,
     });
   }
 
-  // A tall container in the Turbine Hall. At 3.0m its top is above the mantle
-  // band, so jumping at it fails the mantle and drops into a ledge hang
-  // (Section 6.1, and Section 16 check 6). Without a ledge in this band that is
-  // actually within reach, the hang mechanic could never be exercised.
+  // Two office rooms. Each has a door onto the deck, a window the Warden
+  // cannot fit through, and a way into its neighbour.
+  map.addWall({
+    tag: 'office-wall-w', axis: 'x', at: OFFICE.x0 - WALL, thickness: WALL,
+    from: OFFICE.z0 - WALL, to: OFFICE.z1 + WALL, y0: DECK, y1: CEIL,
+    openings: [window_(-16.0, -14.0, DECK)],
+  });
+  map.addWall({
+    tag: 'office-wall-e', axis: 'x', at: OFFICE.x1, thickness: WALL,
+    from: OFFICE.z0 - WALL, to: OFFICE.z1 + WALL, y0: DECK, y1: CEIL,
+    openings: [window_(-14.0, -12.0, DECK)],
+  });
+  map.addWall({
+    tag: 'office-wall-n', axis: 'z', at: OFFICE.z0 - WALL, thickness: WALL,
+    from: OFFICE.x0 - WALL, to: OFFICE.x1 + WALL, y0: DECK, y1: CEIL,
+    openings: [doorway(13.0, 16.0, DECK), doorway(21.0, 24.0, DECK)],
+  });
+  map.addWall({
+    tag: 'office-wall-s', axis: 'z', at: OFFICE.z1, thickness: WALL,
+    from: OFFICE.x0 - WALL, to: OFFICE.x1 + WALL, y0: DECK, y1: CEIL,
+    openings: [doorway(13.0, 16.0, DECK)],
+  });
+  map.addWall({
+    tag: 'office-divider', axis: 'x', at: OFFICE.divider - WALL / 2, thickness: WALL,
+    from: OFFICE.z0 - WALL, to: OFFICE.z1, y0: DECK, y1: CEIL,
+    openings: [doorway(-12.0, -9.0, DECK)],
+  });
+
+  const officeCover = [[11.5, -17.5], [15.8, -9.4], [19.5, -17.0], [22.6, -10.4]];
+  for (let i = 0; i < officeCover.length; i++) {
+    const [x, z] = officeCover[i];
+    map.addSolid({
+      min: [x, DECK, z],
+      max: [x + 2.0, DECK + 0.95, z + 0.8],
+      color: P.wardenGunmetal,
+      outline: true,
+      tag: `office-cover-${i}`,
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Traversal: four routes to the deck that never touch a staircase
+  // -------------------------------------------------------------------------
+
+  // 1. Turbine Hall, west. Crates to a container to a gantry to the deck lip:
+  //    1.0 vault, 1.3 mantle, 0.7 vault, 1.0 vault, 2.0 mantle.
   //
-  // Placed just short of the catwalk spine so the top is not a dead end: from
-  // 3.0m the spine at 4.0m is a 1.0m rise, which is a vault. Standing on an
-  // isolated 3m box with nothing reachable is a trap, not a traversal route.
+  // The chain climbs south: crates on the container's north side, gantry on its
+  // south side. That is not arbitrary. The container is the map's only ledge in
+  // the hang band, and a hang needs a body's worth of clear air below the lip —
+  // so its east face is deliberately left with nothing against it.
+  crate(map, 'stack-hall-low', [-14.6, -19.4], [-12.4, -17.2], G, 1.0);
+  crate(map, 'stack-hall-mid', [-14.4, -17.2], [-12.4, -15.0], G, 2.3);
+  // At 3.0 the container's top is above the mantle band from the floor, so
+  // jumping at it from ground level fails the mantle and drops into a ledge
+  // hang (Section 6.1, Section 16 check 6). Nothing else on the map exercises
+  // that path.
   map.addSolid({
-    min: [-21.5, G, -10.0],
-    max: [-18.5, G + 3.0, -7.0],
+    min: [-14.6, G, -15.0],
+    max: [-11.6, G + 3.0, -12.0],
     color: P.hazardOrange,
     climbable: true,
     outline: true,
     tag: 'hall-container',
   });
+  gantry(map, 'gantry-hall', [-14.6, -12.0], [-8.0, -9.0], GANTRY);
 
-  // Loose vaultable crates scattered for cover and vault practice.
+  // 2. Turbine Hall, south. Out of the lower vent onto a maintenance platform,
+  //    then onto the deck: 2.0 mantle, 1.7 mantle.
+  gantry(map, 'gantry-hall-south', [-16.6, 3.0], [-13.2, 5.0], V2);
+
+  // 3. Loading Bay. The same shape as the hall route, arriving beside the bay
+  //    void: 1.0 vault, 1.3 mantle, 1.7 mantle, 2.0 mantle.
+  crate(map, 'stack-bay-low', [13.0, -5.6], [15.2, -3.4], G, 1.0);
+  crate(map, 'stack-bay-mid', [15.2, -5.4], [17.2, -3.6], G, 2.3);
+  gantry(map, 'gantry-bay', [17.4, -5.6], [19.6, -2.6], GANTRY);
+
+  // 4. Corridor to the Server Vault, silently. Crates to the upper vent, crawl
+  //    it, then up through the hatch in the vault floor: 1.0 vault, 1.3 mantle,
+  //    2.0 mantle, 1.7 mantle.
+  crate(map, 'stack-vault-low', [11.4, 2.6], [13.6, 4.8], G, 1.0);
+  crate(map, 'stack-vault-mid', [13.6, 2.8], [15.6, 4.6], G, 2.3);
+
+  // Loose crates: cover, and somewhere to practise a vault.
   const looseCrates = [
-    [-20.0, 2.0, 0.9], [-24.0, -6.0, 0.7], [2.0, -18.0, 1.0],
-    [14.0, -2.0, 0.8], [22.0, -6.0, 1.05], [-2.0, 12.0, 0.75],
-    [20.0, 12.0, 0.9],
+    [-25.0, 1.0, 0.9], [-20.0, -19.0, 0.7], [2.0, -16.0, 1.0],
+    [20.0, -18.0, 0.8], [26.0, -6.0, 1.05], [-3.0, 10.0, 0.75],
+    [24.0, 8.0, 0.9], [-16.0, 14.0, 0.85],
   ];
   for (let i = 0; i < looseCrates.length; i++) {
     const [x, z, h] = looseCrates[i];
-    map.addSolid({
-      min: [x, G, z],
-      max: [x + 1.5, G + h, z + 1.5],
-      color: P.hazardOrange,
-      climbable: true,
-      outline: true,
-      tag: `crate-${i}`,
-    });
+    crate(map, `crate-${i}`, [x, z], [x + 1.5, z + 1.5], G, h);
   }
 
-  // Build the three vent runs declared above. Each is a floor slab at V with
-  // side walls and a roof; the lip at V is a mantle up from the ground floor,
-  // and the roof makes the run crouch-only.
-  for (const run of ventRuns) {
-    run.x0 = VENT_X_WEST;
-    run.x1 = VENT_X_EAST;
-    const w = M.ventWidth;
-    const h = M.ventHeight;
-    // Floor of the run — climbable, so the entrance lip gets marked.
-    map.addSolid({
-      min: [run.x0, V - 0.2, run.z - w / 2],
-      max: [run.x1, V, run.z + w / 2],
-      color: P.concreteDark,
-      climbable: true,
-      tag: `${run.tag}-floor`,
-      castShadow: false,
-    });
-    // Side walls define the crouch-only tube.
-    map.addSolid({
-      min: [run.x0, V, run.z - w / 2 - 0.12],
-      max: [run.x1, V + h, run.z - w / 2],
-      color: P.concreteDark,
-      tag: `${run.tag}-wall-a`,
-      castShadow: false,
-    });
-    map.addSolid({
-      min: [run.x0, V, run.z + w / 2],
-      max: [run.x1, V + h, run.z + w / 2 + 0.12],
-      color: P.concreteDark,
-      tag: `${run.tag}-wall-b`,
-      castShadow: false,
-    });
-    // Roof: this is what makes it crouch-only. Inset from both ends so each
-    // mouth has standing headroom — a mantle onto the lip commits at standing
-    // height, so a roof flush to the end would make the run unenterable.
-    map.addSolid({
-      min: [run.x0 + M.ventMouthLength, V + h, run.z - w / 2],
-      max: [run.x1 - M.ventMouthLength, V + h + 0.12, run.z + w / 2],
-      color: P.concreteDark,
-      vent: true,
-      tag: `${run.tag}-roof`,
-      castShadow: false,
-    });
+  // -------------------------------------------------------------------------
+  // Exterior: the fire escape, and the roof
+  // -------------------------------------------------------------------------
 
-    // Section 5: vent interior lit by a dim self-illuminated panel so the run
-    // reads as passable from outside.
-    const panelMaterial = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(P.signageTeal).multiplyScalar(M.marking.ventPanelIntensity),
-      fog: true,
-    });
-    const panel = new THREE.Mesh(
-      new THREE.BoxGeometry(run.x1 - run.x0 - 0.2, 0.04, M.ventWidth - 0.2),
-      panelMaterial
-    );
-    panel.position.set((run.x0 + run.x1) / 2, V + h - 0.06, run.z);
-    map.root.add(panel);
-
-    map.vents.push({
-      tag: run.tag,
-      min: new THREE.Vector3(run.x0, V, run.z - w / 2),
-      max: new THREE.Vector3(run.x1, V + h, run.z + w / 2),
-    });
+  // Switchbacks against the north wall. Every rise is 2.0m or less, so the
+  // whole climb stays inside the mantle band. The platform at deck height steps
+  // in through the shell; carry on up and the last one vaults onto the roof.
+  const FE_WEST = [6.0, 8.2];
+  const FE_EAST = [FIRE_ESCAPE.x0, FIRE_ESCAPE.x1];
+  const FE_Z = [-25.0, -HALF_D - WALL];
+  crate(map, 'fire-escape-base', [FE_WEST[0], -27.0], [FE_WEST[1], -24.0], G, 1.0);
+  const feHeights = [2.3, 4.3, FIRE_ESCAPE.landing, 8.0, 10.0];
+  for (let i = 0; i < feHeights.length; i++) {
+    const span = i % 2 === 0 ? FE_EAST : FE_WEST;
+    gantry(map, `fire-escape-${i}`, [span[0], FE_Z[0]], [span[1], FE_Z[1]], feHeights[i]);
   }
 
-  // Exit platform at the west mouth of each run, level with the vent floor.
-  // It sits between the vent and the catwalk spine, so the route reads
-  // ground -> mantle 2.3 -> crouch the vent -> step out -> mantle 1.7 -> catwalk.
-  for (let i = 0; i < ventRuns.length; i++) {
-    const run = ventRuns[i];
-    map.addSolid({
-      min: [-15.0, G, run.z - 1.2],
-      max: [VENT_X_WEST, V, run.z + 1.2],
-      color: P.concrete,
-      climbable: true,
-      tag: `vent-exit-platform-${i}`,
-    });
+  // Roof. Same generator as the deck, so the hatch is a real hole and the only
+  // climbable piece is the parapet the fire escape arrives at.
+  const roofHatch = { x0: -3.0, x1: 0.0, z0: 12.0, z1: 15.0 };
+  map.addFloorPlate({
+    tag: 'roof',
+    min: [-HALF_W - WALL, -HALF_D - WALL],
+    max: [HALF_W + WALL, HALF_D + WALL],
+    top: ROOF,
+    thickness: WALL,
+    color: P.concreteDark,
+    lipColor: P.concrete,
+    voids: [roofHatch],
+    lips: [{ x0: FE_EAST[0], x1: FE_EAST[1], z0: -HALF_D - WALL, z1: -HALF_D - WALL + 1.2, tag: 'lip-roof' }],
+  });
+  for (const bar of edgeBars(roofHatch, ROOF)) {
+    map.addSolid({ ...bar, color: P.hazardOrange, tag: 'roof-hatch-lip', castShadow: false });
   }
 
-  // One-way drop shaft (Section 5). Hazard-striped lip bars ring the hole in
-  // the office floor so it reads as a deliberate opening. The surrounding floor
-  // is deliberately NOT flagged climbable, which is what makes the route
-  // one-way: with no climbable flag there is no ledge to hang from, so ground
-  // to upper is blocked exactly as the spec requires.
-  const lipBars = [
-    { min: [shaft.x0 - 0.2, C, shaft.z0 - 0.2], max: [shaft.x1 + 0.2, C + 0.12, shaft.z0] },
-    { min: [shaft.x0 - 0.2, C, shaft.z1], max: [shaft.x1 + 0.2, C + 0.12, shaft.z1 + 0.2] },
-    { min: [shaft.x0 - 0.2, C, shaft.z0], max: [shaft.x0, C + 0.12, shaft.z1] },
-    { min: [shaft.x1, C, shaft.z0], max: [shaft.x1 + 0.2, C + 0.12, shaft.z1] },
-  ];
-  for (let i = 0; i < lipBars.length; i++) {
-    map.addSolid({ ...lipBars[i], color: P.hazardOrange, tag: `drop-shaft-lip-${i}`, castShadow: false });
-  }
+  // -------------------------------------------------------------------------
+  // Rooms (Section 5 readability). Entries are derived, never declared.
+  // -------------------------------------------------------------------------
+
+  map.addRoom({
+    id: 'turbine-hall', name: 'Turbine Hall',
+    min: [-HALF_W, -HALF_D], max: [HALL_EAST, HALL_SOUTH], floorY: G, ceilingY: DECK,
+  });
+  map.addRoom({
+    id: 'loading-bay', name: 'Loading Bay',
+    min: [BAY_WEST + WALL, -HALF_D], max: [HALF_W, BAY_SOUTH], floorY: G, ceilingY: DECK,
+  });
+  map.addRoom({
+    id: 'server-vault', name: 'Server Vault',
+    min: [VAULT.x0, VAULT.z0], max: [VAULT.x1, VAULT.z1], floorY: DECK, ceilingY: CEIL,
+  });
+  map.addRoom({
+    id: 'office-west', name: 'Office West',
+    min: [OFFICE.x0, OFFICE.z0], max: [OFFICE.divider, OFFICE.z1], floorY: DECK, ceilingY: CEIL,
+  });
+  map.addRoom({
+    id: 'office-east', name: 'Office East',
+    min: [OFFICE.divider, OFFICE.z0], max: [OFFICE.x1, OFFICE.z1], floorY: DECK, ceilingY: CEIL,
+  });
 
   // -------------------------------------------------------------------------
   // Plant sites (Section 5)
@@ -996,15 +474,11 @@ export function buildMap({ gradientMap }) {
   const siteSpecs = [
     { id: 'A', x: -18.0, y: G, z: -4.0, name: 'Turbine Hall' },
     { id: 'B', x: 18.0, y: G, z: -10.0, name: 'Loading Bay' },
-    { id: 'C', x: 18.0, y: C, z: 12.5, name: 'Server Vault' },
+    { id: 'C', x: 18.0, y: DECK, z: 12.5, name: 'Server Vault' },
   ];
-  const ringGeometry = new THREE.RingGeometry(
-    M.marking.siteRingInner,
-    M.marking.siteRingOuter,
-    36
-  );
+  const ringGeometry = new THREE.RingGeometry(M.marking.siteRingInner, M.marking.siteRingOuter, 36);
   for (const spec of siteSpecs) {
-    const ring = map._addDecal(
+    const ring = map.addDecal(
       ringGeometry,
       P.hazardOrange,
       new THREE.Vector3(spec.x, spec.y + 0.02, spec.z),
@@ -1021,58 +495,72 @@ export function buildMap({ gradientMap }) {
   }
 
   // -------------------------------------------------------------------------
-  // Spawns
+  // Spawns. The Shade starts outside the shell (v2 requirement 3); the Warden
+  // starts inside, on both floors.
   // -------------------------------------------------------------------------
 
-  // Index 0 is the fixed round-start spawn (Section 5). 1-3 are reinsert-only
-  // candidates, required by Section 10.2 and Section 15. See PROGRESS.md Q1.
+  // Index 0 is the fixed round-start spawn (Section 5): the darkest corner of
+  // the apron, furthest from any lit opening. 1-3 are reinsert-only candidates
+  // required by Section 10.2 and Section 15. See PROGRESS.md Q1.
   const shadeSpawnSpecs = [
-    { x: -27.0, y: G, z: 19.0, yaw: -Math.PI / 4, name: 'south-west perimeter' },
-    { x: 27.0, y: G, z: 19.5, yaw: Math.PI * 0.75, name: 'south-east perimeter' },
-    { x: -27.0, y: G, z: -19.5, yaw: Math.PI / 4, name: 'north-west perimeter' },
-    { x: 1.0, y: G, z: 19.5, yaw: Math.PI, name: 'south corridor' },
+    { x: -35.0, z: 27.0, name: 'south-west apron' },
+    { x: 35.0, z: -27.0, name: 'north-east apron' },
+    { x: -35.0, z: -27.0, name: 'north-west apron' },
+    { x: 35.0, z: 27.0, name: 'south-east apron' },
   ];
   for (const spec of shadeSpawnSpecs) {
-    map.shadeSpawns.push({ position: new THREE.Vector3(spec.x, spec.y, spec.z), yaw: spec.yaw, name: spec.name });
+    map.shadeSpawns.push({
+      position: new THREE.Vector3(spec.x, G, spec.z),
+      yaw: facing(spec.x, spec.z, 0, 0),
+      name: spec.name,
+    });
   }
 
   const wardenSpawnSpecs = [
-    { x: -20.0, y: G, z: -18.0, yaw: Math.PI * 0.75, name: 'turbine hall north' },
-    { x: 24.0, y: G, z: -18.0, yaw: Math.PI * 1.25, name: 'loading bay north' },
-    { x: 18.0, y: C, z: 16.0, yaw: 0, name: 'server vault' },
-    { x: -20.0, y: C, z: -6.8, yaw: Math.PI / 2, name: 'catwalk north' },
+    { x: -22.0, y: G, z: -12.0, yaw: Math.PI * 0.75, name: 'turbine hall' },
+    { x: 24.0, y: G, z: -10.0, yaw: Math.PI * 1.25, name: 'loading bay' },
+    { x: 18.0, y: DECK, z: 16.5, yaw: 0, name: 'server vault' },
+    { x: -28.8, y: DECK, z: -14.0, yaw: Math.PI / 2, name: 'deck west catwalk' },
   ];
   for (const spec of wardenSpawnSpecs) {
-    map.wardenSpawns.push({ position: new THREE.Vector3(spec.x, spec.y, spec.z), yaw: spec.yaw, name: spec.name });
+    map.wardenSpawns.push({
+      position: new THREE.Vector3(spec.x, spec.y, spec.z),
+      yaw: spec.yaw,
+      name: spec.name,
+    });
   }
 
   // -------------------------------------------------------------------------
   // Destructible point lights (Section 5: 12, each with a lightId)
+  //
+  // Heights are re-keyed to the v2 layout. The hall's pendants hang at deck
+  // level in the void, so they light the floor 6m below and the catwalk band
+  // beside them; everything under the deck hangs just below it.
   // -------------------------------------------------------------------------
 
   const L = M.lighting;
   const bright = L.pointIntensity;
   const dim = L.pointIntensity * 0.45;
   const veryDim = L.pointIntensity * 0.22;
+  const UNDER_DECK = DECK - 1.0;
 
   const lightSpecs = [
     // Turbine Hall — brightly lit, high risk (site A).
-    { x: -22.0, y: 6.6, z: -12.0, i: bright, tag: 'hall-1' },
-    { x: -22.0, y: 6.6, z: 0.0, i: bright, tag: 'hall-2' },
-    { x: -12.0, y: 6.6, z: -12.0, i: bright, tag: 'hall-3' },
-    { x: -12.0, y: 6.6, z: 0.0, i: bright, tag: 'hall-4' },
-    { x: -18.0, y: 5.4, z: -4.0, i: bright, tag: 'hall-site-a' },
-    // Loading Bay — mixed light (site B). These hang BELOW the office floor at
-    // y = 4.0, otherwise they light the upper rooms and leave the bay dark.
-    { x: 12.0, y: 3.5, z: -16.0, i: dim, tag: 'bay-1' },
-    { x: 20.0, y: 3.5, z: -8.0, i: bright, tag: 'bay-2' },
-    { x: 28.0, y: 6.4, z: -16.0, i: dim, tag: 'bay-3' },
+    { x: -22.0, y: 6.6, z: -14.0, i: bright, tag: 'hall-1' },
+    { x: -22.0, y: 6.6, z: -2.0, i: bright, tag: 'hall-2' },
+    { x: -13.0, y: 6.6, z: -14.0, i: bright, tag: 'hall-3' },
+    { x: -13.0, y: 6.6, z: -2.0, i: bright, tag: 'hall-4' },
+    { x: -18.0, y: 5.0, z: -4.0, i: bright, tag: 'hall-site-a' },
+    // Loading Bay — mixed light (site B).
+    { x: 12.0, y: UNDER_DECK, z: -16.0, i: dim, tag: 'bay-1' },
+    { x: 20.0, y: UNDER_DECK, z: -8.0, i: bright, tag: 'bay-2' },
+    { x: 27.0, y: UNDER_DECK, z: -18.0, i: dim, tag: 'bay-3' },
     // Corridor ring — three destructible ceiling lights (Section 5).
-    { x: 0.0, y: 6.8, z: -20.0, i: dim, tag: 'corridor-n' },
-    { x: 0.0, y: 6.8, z: 16.0, i: dim, tag: 'corridor-s' },
-    { x: -2.0, y: 6.8, z: 4.0, i: dim, tag: 'corridor-w' },
+    { x: 0.0, y: UNDER_DECK, z: -18.0, i: dim, tag: 'corridor-n' },
+    { x: 0.0, y: UNDER_DECK, z: 14.0, i: dim, tag: 'corridor-s' },
+    { x: -2.0, y: UNDER_DECK, z: 3.0, i: dim, tag: 'corridor-w' },
     // Server Vault — lowest light in the map (site C).
-    { x: 18.0, y: 7.4, z: 12.0, i: veryDim, tag: 'vault-1' },
+    { x: 18.0, y: 9.5, z: 12.0, i: veryDim, tag: 'vault-1' },
   ];
   for (let i = 0; i < lightSpecs.length; i++) {
     const spec = lightSpecs[i];
@@ -1085,7 +573,7 @@ export function buildMap({ gradientMap }) {
   map.root.add(hemisphere);
 
   const key = new THREE.DirectionalLight(P.lightCool, L.keyIntensity);
-  key.position.set(-L.keyDirection[0] * 40, -L.keyDirection[1] * 40, -L.keyDirection[2] * 40);
+  key.position.set(-L.keyDirection[0] * 60, -L.keyDirection[1] * 60, -L.keyDirection[2] * 60);
   key.target.position.set(0, 0, 0);
   key.castShadow = true; // The one and only shadow caster in the scene.
   key.shadow.mapSize.set(CONFIG.render.shadowMapSize, CONFIG.render.shadowMapSize);
@@ -1104,31 +592,38 @@ export function buildMap({ gradientMap }) {
   map.keyLight = key;
 
   const fill = new THREE.DirectionalLight(P.ambientSky, L.fillIntensity);
-  fill.position.set(-L.fillDirection[0] * 40, -L.fillDirection[1] * 40, -L.fillDirection[2] * 40);
+  fill.position.set(-L.fillDirection[0] * 60, -L.fillDirection[1] * 60, -L.fillDirection[2] * 60);
   fill.castShadow = false;
   map.root.add(fill);
   map.root.add(fill.target);
 
   // -------------------------------------------------------------------------
-  // AI waypoints (Section 5: 14 nodes, explicit bidirectional links, both
-  // floors, all three sites)
+  // AI waypoints (Section 5: explicit bidirectional links, both floors, all
+  // three sites). Every link is a straight line the Warden can walk — asserted,
+  // because Phase 4 shipped a graph whose cross-floor links were not.
   // -------------------------------------------------------------------------
 
   const waypointSpecs = [
-    { x: -22.0, y: G, z: -14.0, tag: 'hall-north' },        // 0
-    { x: -18.0, y: G, z: -4.0, tag: 'site-a' },             // 1
-    { x: -22.0, y: G, z: 4.0, tag: 'hall-south' },          // 2
-    { x: -3.0, y: G, z: -19.5, tag: 'corridor-nw' },        // 3
-    { x: 0.0, y: G, z: -19.0, tag: 'corridor-n' },          // 4
-    { x: 0.0, y: G, z: 0.0, tag: 'corridor-mid' },          // 5
-    { x: 0.0, y: G, z: 16.0, tag: 'corridor-s' },           // 6
-    { x: 12.0, y: G, z: -16.0, tag: 'bay-north' },          // 7
-    { x: 18.0, y: G, z: -10.0, tag: 'site-b' },             // 8
-    { x: 25.0, y: G, z: -4.0, tag: 'bay-south' },           // 9
-    { x: -18.0, y: C, z: -6.8, tag: 'catwalk-north' },      // 10
-    { x: -20.0, y: C, z: 5.2, tag: 'catwalk-south' },       // 11
-    { x: 14.0, y: C, z: -12.0, tag: 'office' },             // 12
-    { x: 18.0, y: C, z: 12.5, tag: 'site-c' },              // 13
+    { x: -22.0, y: G, z: -15.0, tag: 'hall-north' },              // 0
+    { x: -18.0, y: G, z: -4.0, tag: 'site-a' },                   // 1
+    { x: -24.0, y: G, z: 5.0, tag: 'hall-south' },                // 2
+    { x: -27.5, y: G, z: -21.1, tag: 'stair-hall-foot' },         // 3
+    { x: -8.5, y: G, z: -4.0, tag: 'hall-door' },                 // 4
+    { x: 0.0, y: G, z: -18.0, tag: 'corridor-n' },                // 5
+    { x: 0.0, y: G, z: -4.0, tag: 'corridor-mid' },               // 6
+    { x: 4.0, y: G, z: 4.0, tag: 'stair-corridor-foot' },         // 7
+    { x: 12.0, y: G, z: -12.0, tag: 'bay-north' },                // 8
+    { x: 18.0, y: G, z: -10.0, tag: 'site-b' },                   // 9
+    { x: -17.0, y: DECK, z: -21.1, tag: 'stair-hall-head' },      // 10
+    { x: -28.8, y: DECK, z: -21.1, tag: 'deck-nw' },              // 11
+    { x: -28.8, y: DECK, z: 10.0, tag: 'deck-sw' },               // 12
+    { x: -14.0, y: DECK, z: 12.0, tag: 'deck-south' },            // 13
+    { x: 4.0, y: DECK, z: 16.5, tag: 'stair-corridor-head' },     // 14
+    { x: 2.0, y: DECK, z: 0.0, tag: 'deck-mid' },                 // 15
+    { x: 14.5, y: DECK, z: -21.0, tag: 'deck-office-door' },      // 16
+    { x: 14.5, y: DECK, z: -13.0, tag: 'deck-office' },           // 17
+    { x: 16.5, y: DECK, z: 4.0, tag: 'deck-vault-door' },         // 18
+    { x: 18.0, y: DECK, z: 12.5, tag: 'site-c' },                 // 19
   ];
   for (let i = 0; i < waypointSpecs.length; i++) {
     const spec = waypointSpecs[i];
@@ -1136,9 +631,15 @@ export function buildMap({ gradientMap }) {
   }
 
   const links = [
-    [0, 1], [0, 3], [1, 2], [1, 5], [2, 11], [3, 4], [4, 5], [4, 7],
-    [5, 6], [6, 9], [7, 8], [8, 9], [0, 10], [10, 11], [10, 12], [12, 13],
-    [9, 13], [3, 10],
+    // Ground floor.
+    [0, 1], [0, 3], [1, 2], [1, 4], [4, 6], [5, 6], [6, 7], [6, 8], [8, 9],
+    // The only two ways between floors on foot.
+    [3, 10], [7, 14],
+    // Upper deck. 10 reaches the rest of the deck eastward along the north
+    // strip; 11 is cut off from it by the stairwell and connects round the
+    // west catwalk instead, which is what makes the deck a ring.
+    [10, 16], [16, 17], [17, 18], [18, 19], [15, 18], [13, 15], [13, 14],
+    [12, 13], [11, 12],
   ];
   for (const [a, b] of links) map.linkWaypoints(a, b);
 
@@ -1149,34 +650,74 @@ export function buildMap({ gradientMap }) {
   map.collision.build();
   map.deriveClimbableSurfaces();
   map.generateAffordanceMarkings();
+  map.deriveRoomEntries();
   validateMap(map);
 
   return map;
 }
 
 // ---------------------------------------------------------------------------
-// Build-time validation. The counts in Section 5 are contractual, so the map
-// asserts them rather than letting a miscount drift in silently.
+// Small local builders. These exist so a prop's height and its role in a
+// traversal chain are stated once, in the chain, rather than as two numbers
+// that can drift apart.
+// ---------------------------------------------------------------------------
+
+/** A vaultable box sitting on a floor. */
+function crate(map, tag, min, max, baseY, height) {
+  return map.addSolid({
+    min: [min[0], baseY, min[1]],
+    max: [max[0], baseY + height, max[1]],
+    color: P.hazardOrange,
+    outline: true,
+    tag,
+  });
+}
+
+/**
+ * A raised platform whose top is at `top`. It hangs deep enough for the Shade's
+ * ledge probe to get two rays into its face — a thin slab can fall between two
+ * probe heights and become invisible to the climb.
+ */
+function gantry(map, tag, min, max, top) {
+  return map.addSolid({
+    min: [min[0], top - M.deckLipDepth, min[1]],
+    max: [max[0], top, max[1]],
+    color: P.wardenGunmetal,
+    tag,
+    castShadow: false,
+  });
+}
+
+/** Four hazard bars ringing a hole in a floor. */
+function edgeBars(rect, top) {
+  const t = 0.2;
+  const h = 0.12;
+  return [
+    { min: [rect.x0 - t, top, rect.z0 - t], max: [rect.x1 + t, top + h, rect.z0] },
+    { min: [rect.x0 - t, top, rect.z1], max: [rect.x1 + t, top + h, rect.z1 + t] },
+    { min: [rect.x0 - t, top, rect.z0], max: [rect.x0, top + h, rect.z1] },
+    { min: [rect.x1, top, rect.z0], max: [rect.x1 + t, top + h, rect.z1] },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Build-time validation. The counts in Section 5 are contractual, and the v2
+// requirements are structural, so the map asserts both rather than letting a
+// miscount or a severed deck drift in silently.
 // ---------------------------------------------------------------------------
 
 function validateMap(map) {
   const problems = [];
 
-  if (map.lights.length !== M.destructibleLightCount) {
-    problems.push(`expected ${M.destructibleLightCount} destructible lights, built ${map.lights.length}`);
-  }
-  if (map.waypoints.length !== M.waypointCount) {
-    problems.push(`expected ${M.waypointCount} waypoints, built ${map.waypoints.length}`);
-  }
-  if (map.shadeSpawns.length !== M.shadeSpawnCount) {
-    problems.push(`expected ${M.shadeSpawnCount} shade spawns, built ${map.shadeSpawns.length}`);
-  }
-  if (map.wardenSpawns.length !== M.wardenSpawnCount) {
-    problems.push(`expected ${M.wardenSpawnCount} warden spawns, built ${map.wardenSpawns.length}`);
-  }
-  if (map.sites.length !== M.plantSiteCount) {
-    problems.push(`expected ${M.plantSiteCount} plant sites, built ${map.sites.length}`);
-  }
+  const expect = (actual, wanted, what) => {
+    if (actual !== wanted) problems.push(`expected ${wanted} ${what}, built ${actual}`);
+  };
+  expect(map.lights.length, M.destructibleLightCount, 'destructible lights');
+  expect(map.waypoints.length, M.waypointCount, 'waypoints');
+  expect(map.shadeSpawns.length, M.shadeSpawnCount, 'shade spawns');
+  expect(map.wardenSpawns.length, M.wardenSpawnCount, 'warden spawns');
+  expect(map.sites.length, M.plantSiteCount, 'plant sites');
+  expect(map.rooms.length, M.roomCount, 'rooms');
 
   for (const light of map.lights) {
     if (light.light.castShadow) problems.push(`point light ${light.lightId} casts shadows (Section 4.1)`);
@@ -1212,6 +753,36 @@ function validateMap(map) {
   for (const box of map.collision.boxes) {
     if (box.climbable && box.ledgeBand === null) {
       problems.push(`climbable box "${box.tag}" classified into no band (rise out of range)`);
+    }
+  }
+
+  // v2 requirement 3: the Shade infiltrates, so it cannot start inside.
+  for (let i = 0; i < map.shadeSpawns.length; i++) {
+    const p = map.shadeSpawns[i].position;
+    const inside =
+      p.x > map.shell.x0 && p.x < map.shell.x1 && p.z > map.shell.z0 && p.z < map.shell.z1;
+    if (inside) problems.push(`shade spawn ${i} is inside the building shell`);
+  }
+
+  // v2 requirement 5: no room is a single-door trap.
+  for (const room of map.rooms) {
+    if (room.entries.length < M.roomMinEntries) {
+      problems.push(
+        `room "${room.id}" has ${room.entries.length} entries, needs ${M.roomMinEntries}`
+      );
+    }
+  }
+
+  // v2 requirement 4: at least one lip on the deck for each climbing route, or
+  // the routes end at a wall.
+  const lips = map.collision.boxes.filter((box) => box.tag && box.tag.startsWith('lip-'));
+  const unclimbable = lips.filter((box) => !box.climbable).map((box) => box.tag);
+  if (unclimbable.length) {
+    problems.push(`declared lips that did not derive as climbable: ${unclimbable.join(', ')}`);
+  }
+  for (const box of lips) {
+    if (box.climbable && classifyLedge(box.max.y - map._supportHeightBelow(box)) === null) {
+      problems.push(`lip "${box.tag}" is not in a traversal band`);
     }
   }
 

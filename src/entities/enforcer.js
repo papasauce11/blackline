@@ -362,12 +362,15 @@ function outlined(geometry, material, group) {
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   group.add(mesh);
+  // Child of the mesh, not a sibling. A limb segment is repositioned by its
+  // caller after this returns, and a sibling outline would stay behind at the
+  // pivot. Same fault the Shade had.
   const outline = new THREE.Mesh(
     geometry,
     new THREE.MeshBasicMaterial({ color: P.outline, side: THREE.BackSide, fog: true })
   );
   outline.scale.setScalar(CONFIG.render.outlineScale);
-  group.add(outline);
+  mesh.add(outline);
   return mesh;
 }
 

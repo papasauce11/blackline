@@ -16,6 +16,7 @@ import { buildMap } from './map.js';
 import { classifyLedge } from './physics.js';
 import { Shade, SHADE_STATE, createIntent } from './entities/agent.js';
 import { Warden, WARDEN_STATE, createWardenIntent } from './entities/enforcer.js';
+import { createDetection } from './systems/detection.js';
 import { DebugTools } from './ui/debug.js';
 
 // ---------------------------------------------------------------------------
@@ -128,6 +129,7 @@ export function computeStepPlan(accumulator, wallDelta, timeScale) {
 /** @type {THREE.DataTexture} */ let gradientMap = null;
 /** @type {Shade} */ let shade = null;
 /** @type {Warden} */ let warden = null;
+/** @type {import('./systems/detection.js').Detection} */ let detection = null;
 const shadeIntent = createIntent();
 const wardenIntent = createWardenIntent();
 /**
@@ -240,6 +242,9 @@ export function initMatch(options = {}) {
   // previous match's owner survives (Section 15).
   if (shade) shade.reset(map.shadeSpawns[0]);
   if (warden) warden.reset(map.wardenSpawns[0]);
+  // Noise events and the visibility cache are round state and must not bleed
+  // across a match boundary (Section 15).
+  if (detection) detection.reset(shade);
   cameraOwner = null;
 
   emitter.emit('match:init', match);
@@ -318,6 +323,12 @@ function bootstrap() {
   scene.add(warden.groundBlob);
   scene.add(warden.cameraRig);
   warden.reset(map.wardenSpawns[0]);
+
+  // Section 7: light sampling, the visibility meter, the Section 4.2 feedback
+  // and the noise field. Built after both actors, because it seeds the meter
+  // from the Shade's spawn rather than letting it ramp up from zero.
+  detection = createDetection({ map, emitter });
+  detection.reset(shade);
 
   freefly.enabled = false;
   freefly.position.copy(map.shadeSpawns[0].position).setY(map.shadeSpawns[0].position.y + 1.7);
@@ -423,6 +434,19 @@ function fixedStep(dt) {
     // Nothing is driving the Warden until the AI lands in Phase 6, but it still
     // needs stepping so gravity settles it onto its spawn.
     warden.step(dt, wardenIdleIntent);
+  }
+
+  // After the actors, never before: the landing noise reads a flag the Shade
+  // sets during its own step and clears at the top of the next one.
+  detection.step(dt, { shade, warden });
+
+  if (DEBUG) {
+    // Keys and types the overlay's field table actually consumes (Section 17:
+    // "visibility meter raw and smoothed", "active noise events"). Anything
+    // else here is silently dropped, so it must match.
+    debugState.visibilityRaw = detection.raw;
+    debugState.visibilitySmoothed = detection.smoothed;
+    debugState.activeNoise = detection.noise.activeCount;
   }
 
   emitter.emit('sim:step', dt);
@@ -1010,7 +1034,7 @@ function registerAutoTests() {
 
       // The surfaces a player will obviously try must all be climbable.
       const mustClimb = h.map.collision.boxes.filter((box) =>
-        /^(catwalk|walkway|crate|stack|vent-exit|office-cover|server-rack|hall-container)/.test(box.tag)
+        /^(crate|stack|gantry|lip-|office-cover|server-rack|hall-container|fire-escape)/.test(box.tag)
       );
       const missed = mustClimb.filter((box) => !box.climbable).map((box) => box.tag);
 
@@ -1020,6 +1044,44 @@ function registerAutoTests() {
           unjustified.length === 0 && missed.length === 0
             ? `${h.map.ledges.length} climbable surfaces derived and marked; ${mustClimb.length} obvious traversal surfaces all climbable; every exclusion justified (too thin, out of band, no headroom, or noClimb)`
             : `unjustified exclusions: [${unjustified.join(', ')}]; obvious surfaces missed: [${missed.join(', ')}]`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'markings-sit-on-real-geometry',
+    spec: 'Section 5 / reported bug: chevrons floating in mid-air',
+    name: 'Every affordance decal lies on the surface it describes',
+    run: (h) => {
+      const floating = [];
+      let marked = 0;
+
+      for (const ledge of h.map.ledges) {
+        // Top-edge stripes ride the ledge's own top face, so they cannot drift.
+        // Chevrons go on the face BELOW the ledge, which only exists where the
+        // ledge reaches down to whatever it was measured against. A lip, gantry
+        // or duct hangs, so its face stops well short of that.
+        if (ledge.band !== 'mantle') continue;
+        const box = ledge.box;
+        if (!ledge.chevrons) {
+          floating.push(`${box.tag} is a mantle ledge with no chevrons`);
+          continue;
+        }
+        marked++;
+        // Asserted against where the map actually put them, not a recomputation.
+        if (ledge.chevrons.y0 < box.min.y - 1e-6 || ledge.chevrons.y1 > box.max.y + 1e-6) {
+          floating.push(
+            `${box.tag} decal spans ${ledge.chevrons.y0.toFixed(2)}..${ledge.chevrons.y1.toFixed(2)}, box is ${box.min.y.toFixed(2)}..${box.max.y.toFixed(2)}`
+          );
+        }
+      }
+
+      return {
+        pass: floating.length === 0 && marked > 0,
+        detail:
+          floating.length === 0
+            ? `${marked} mantle ledges: every chevron sits within the face of the box it marks`
+            : `${floating.length} floating: ${floating.slice(0, 5).join('; ')}`,
       };
     },
   });
@@ -1271,11 +1333,14 @@ function registerAutoTests() {
       const container = h.map.collision.boxes.find((box) => box.tag === 'hall-container');
       if (!container) return { pass: false, detail: 'hall-container missing from the map' };
 
+      // Derived from the box rather than typed, so moving the container in the
+      // map does not silently make this test probe empty air.
+      const midZ = (container.min.z + container.max.z) / 2;
       const approach = () => {
         h.shade.reset(h.map.shadeSpawns[0]);
         // Airborne just off the container's east face, facing into it.
         // Feet at 0.5 so the 3.0m top is a 2.5m rise — above the mantle band.
-        h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, -8.5);
+        h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, midZ);
         h.shade.velocity.set(0, 0, 0);
         h.shade.yaw = Math.PI / 2; // face -X, into the container
         h.shade.state = SHADE_STATE.AIR;
@@ -1360,19 +1425,34 @@ function registerAutoTests() {
     name: 'A vault-band ledge climbs from the air, so a small platform is never a trap',
     run: (h) => {
       const container = h.map.collision.boxes.find((box) => box.tag === 'hall-container');
-      const spine = h.map.collision.boxes.find((box) => box.tag === 'catwalk-spine');
-      if (!container || !spine) return { pass: false, detail: 'container or catwalk-spine missing' };
+      const gantry = h.map.collision.boxes.find((box) => box.tag === 'gantry-hall');
+      if (!container || !gantry) return { pass: false, detail: 'hall-container or gantry-hall missing' };
 
-      const rise = spine.max.y - container.max.y;
+      const rise = gantry.max.y - container.max.y;
       const band = classifyLedge(rise);
 
-      // Stand on the container top and hop toward the spine. Sprint is
+      // Stand on the container top and hop toward the gantry. Sprint is
       // deliberately NOT given: there is no room to build speed up here, which
-      // is exactly the situation that stranded the player.
+      // is exactly the situation that stranded the player. Start point and
+      // facing are derived from the two boxes so that moving either in the map
+      // cannot leave this test walking at empty air.
+      const target = { x: (gantry.min.x + gantry.max.x) / 2, z: (gantry.min.z + gantry.max.z) / 2 };
+      const near = {
+        x: Math.min(Math.max(target.x, container.min.x), container.max.x),
+        z: Math.min(Math.max(target.z, container.min.z), container.max.z),
+      };
+      const length = Math.hypot(target.x - near.x, target.z - near.z) || 1;
+      const dx = (target.x - near.x) / length;
+      const dz = (target.z - near.z) / length;
+
       h.shade.reset(h.map.shadeSpawns[0]);
-      h.shade.position.set(container.max.x - 0.6, container.max.y + CONFIG.shade.standHeight / 2 + 0.05, -8.5);
+      h.shade.position.set(
+        near.x - dx * 0.6,
+        container.max.y + CONFIG.shade.standHeight / 2 + 0.05,
+        near.z - dz * 0.6
+      );
       h.shade.velocity.set(0, 0, 0);
-      h.shade.yaw = -Math.PI / 2; // face +X, toward the spine
+      h.shade.yaw = Math.atan2(-dx, -dz); // face the gantry
       h.shade.state = SHADE_STATE.GROUND;
 
       const intent = createIntent();
@@ -1384,16 +1464,20 @@ function registerAutoTests() {
         intent.jump = intent.jumpPressed;
         h.shade.step(CONFIG.time.fixedDt, intent);
         if (h.shade.state === SHADE_STATE.VAULT || h.shade.state === SHADE_STATE.MANTLE) climbed = true;
-        if (h.shade.feetY > spine.max.y - 0.3) break;
+        if (h.shade.feetY > gantry.max.y - 0.3 && h.shade.state !== SHADE_STATE.VAULT &&
+            h.shade.state !== SHADE_STATE.MANTLE) break;
       }
+      // Let the landing settle: mid-traversal the capsule is interpolating
+      // through the ledge, so "clean" can only be judged once it is down.
+      for (let i = 0; i < 30; i++) h.shade.step(CONFIG.time.fixedDt, createIntent());
 
-      const onSpine = h.shade.feetY > spine.max.y - 0.3;
+      const onGantry = h.shade.feetY > gantry.max.y - 0.3;
       const clear = h.map.collision.isClear(h.shade.position, h.shade.half);
       h.shade.reset(h.map.shadeSpawns[0]);
 
       return {
-        pass: band === 'vault' && climbed && onSpine && clear,
-        detail: `container top ${container.max.y.toFixed(1)} -> spine ${spine.max.y.toFixed(1)} is ${rise.toFixed(2)}m (${band}); climbed without sprint=${climbed}, reached spine=${onSpine}, clear=${clear}`,
+        pass: band === 'vault' && climbed && onGantry && clear,
+        detail: `container top ${container.max.y.toFixed(1)} -> gantry ${gantry.max.y.toFixed(1)} is ${rise.toFixed(2)}m (${band}); climbed without sprint=${climbed}, reached gantry=${onGantry}, clear=${clear}`,
       };
     },
   });
@@ -1410,9 +1494,10 @@ function registerAutoTests() {
       // walk backwards off that west edge. The probe follows the facing
       // direction, so the ledge just left is squarely in front of it — this is
       // the exact geometry that used to haul the player back up. The west edge
-      // is used because the catwalk spine overhangs the east side.
+      // is used because the gantry adjoins the east side.
+      const midZ = (container.min.z + container.max.z) / 2;
       h.shade.reset(h.map.shadeSpawns[0]);
-      h.shade.position.set(container.min.x + 0.55, container.max.y + CONFIG.shade.standHeight / 2 + 0.02, -8.5);
+      h.shade.position.set(container.min.x + 0.55, container.max.y + CONFIG.shade.standHeight / 2 + 0.02, midZ);
       h.shade.velocity.set(0, 0, 0);
       h.shade.yaw = -Math.PI / 2; // face +X, into the container
       h.shade.state = SHADE_STATE.GROUND;
@@ -1441,7 +1526,7 @@ function registerAutoTests() {
 
       // The forward approach must still work, or the fix has broken climbing.
       h.shade.reset(h.map.shadeSpawns[0]);
-      h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, -8.5);
+      h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, midZ);
       h.shade.velocity.set(0, 0, 0);
       h.shade.yaw = Math.PI / 2;
       h.shade.state = SHADE_STATE.AIR;
@@ -1462,9 +1547,10 @@ function registerAutoTests() {
     name: 'Shimmy moves along a grabbed ledge and refuses to run off the end',
     run: (h) => {
       const container = h.map.collision.boxes.find((box) => box.tag === 'hall-container');
+      const midZ = (container.min.z + container.max.z) / 2;
       const grab = () => {
         h.shade.reset(h.map.shadeSpawns[0]);
-        h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, -8.5);
+        h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, midZ);
         h.shade.velocity.set(0, 0, 0);
         h.shade.yaw = Math.PI / 2;
         h.shade.state = SHADE_STATE.AIR;
@@ -1552,40 +1638,472 @@ function registerAutoTests() {
   debugTools.registerAutoTest({
     id: 'vent-runs-are-crouch-only-and-enterable',
     spec: 'Section 5 / check 5',
-    name: 'Both vent mouths admit a standing mantle; mid-run fits crouched only',
+    name: 'Every vent run is crouch-only along its length and open at both mouths',
     run: (h) => {
-      const V = CONFIG.map.ventFloorY;
-      const standHalf = { x: CONFIG.shade.radius, y: CONFIG.shade.standHeight / 2, z: CONFIG.shade.radius };
       const crouchHalf = { x: CONFIG.shade.radius, y: CONFIG.shade.crouchHeight / 2, z: CONFIG.shade.radius };
+      const standHalf = { x: CONFIG.shade.radius, y: CONFIG.shade.standHeight / 2, z: CONFIG.shade.radius };
       const problems = [];
+      let grade = 0;
 
       for (const vent of h.map.vents) {
-        const z = (vent.min.z + vent.max.z) / 2;
-        const midX = (vent.min.x + vent.max.x) / 2;
-        const at = (x, half, height) =>
-          h.map.collision.isClear({ x, y: V + height / 2 + 0.02, z }, half);
+        if (vent.grade) grade++;
+        const alongX = vent.axis === 'x';
+        const from = alongX ? vent.min.x : vent.min.z;
+        const to = alongX ? vent.max.x : vent.max.z;
+        const cross = alongX ? (vent.min.z + vent.max.z) / 2 : (vent.min.x + vent.max.x) / 2;
+        const floorY = vent.min.y;
+        const at = (along, half, height) => {
+          const y = floorY + height / 2 + 0.02;
+          const point = alongX ? { x: along, y, z: cross } : { x: cross, y, z: along };
+          return h.map.collision.isClear(point, half);
+        };
 
-        // Mantling onto the lip commits a STANDING capsule, so both mouths must
-        // clear standing height or the run can never be entered.
-        if (!at(vent.min.x + 0.5, standHalf, CONFIG.shade.standHeight)) problems.push(`${vent.tag} west mouth blocked standing`);
-        if (!at(vent.max.x - 0.5, standHalf, CONFIG.shade.standHeight)) problems.push(`${vent.tag} east mouth blocked standing`);
-        // Mid-run must be crouch-only.
-        if (at(midX, standHalf, CONFIG.shade.standHeight)) problems.push(`${vent.tag} mid-run allows standing`);
-        if (!at(midX, crouchHalf, CONFIG.shade.crouchHeight)) problems.push(`${vent.tag} mid-run blocks crouching`);
+        // Crouch-only wherever the run is enclosed, mouth to mouth. Sampling
+        // the midpoint alone would pass a run that is only capped over part of
+        // its length. Samples under a deck void are skipped: there the run has
+        // deliberately opened into the room above, which is the whole point of
+        // the hatch the upper run climbs through.
+        const samples = Math.max(4, Math.floor((to - from) / 1.0));
+        let standing = 0;
+        let cramped = 0;
+        let enclosed = 0;
+        for (let i = 1; i < samples; i++) {
+          const along = from + ((to - from) * i) / samples;
+          const x = alongX ? along : cross;
+          const z = alongX ? cross : along;
+          const underVoid = h.map.deckVoids.some(
+            (hole) => x > hole.x0 && x < hole.x1 && z > hole.z0 && z < hole.z1 && hole.top > floorY
+          );
+          if (underVoid) continue;
+          enclosed++;
+          if (at(along, standHalf, CONFIG.shade.standHeight)) standing++;
+          if (!at(along, crouchHalf, CONFIG.shade.crouchHeight)) cramped++;
+        }
+        if (standing > 0) problems.push(`${vent.tag} allows standing at ${standing}/${enclosed} enclosed samples`);
+        if (cramped > 0) problems.push(`${vent.tag} blocks crouching at ${cramped}/${enclosed} enclosed samples`);
+        if (enclosed < (samples - 1) * 0.6) {
+          problems.push(`${vent.tag} is open to a void along ${samples - 1 - enclosed}/${samples - 1} of its length`);
+        }
+        if (!at(from + 0.4, crouchHalf, CONFIG.shade.crouchHeight)) problems.push(`${vent.tag} start mouth blocked`);
+        if (!at(to - 0.4, crouchHalf, CONFIG.shade.crouchHeight)) problems.push(`${vent.tag} end mouth blocked`);
       }
 
-      // And the traversal chain heights must land in the spec bands.
-      const lipRise = V - CONFIG.map.groundY;
-      const spine = h.map.collision.boxes.find((box) => box.tag === 'catwalk-spine');
-      const spineRise = spine ? spine.max.y - V : -1;
-      if (classifyLedge(lipRise) !== 'mantle') problems.push(`vent lip rise ${lipRise} is not a mantle`);
-      if (classifyLedge(spineRise) !== 'mantle') problems.push(`platform to catwalk rise ${spineRise} is not a mantle`);
+      // The two-tier chain heights must land in the spec bands by construction.
+      const chain = [
+        ['ground -> lower vent', CONFIG.map.ventFloorY - CONFIG.map.groundY],
+        ['lower vent -> upper vent', CONFIG.map.ventUpperY - CONFIG.map.ventFloorY],
+        ['upper vent -> deck', CONFIG.map.catwalkY - CONFIG.map.ventUpperY],
+      ];
+      for (const [label, rise] of chain) {
+        if (classifyLedge(rise) !== 'mantle') problems.push(`${label} rise ${rise.toFixed(2)}m is not a mantle`);
+      }
+      if (grade < 2) problems.push(`only ${grade} vent mouths at grade, v2 wants at least 2`);
 
       return {
         pass: problems.length === 0,
         detail:
           problems.length === 0
-            ? `${h.map.vents.length} runs crouch-only and enterable; chain ground -> lip ${lipRise.toFixed(2)}m (mantle) -> platform -> catwalk ${spineRise.toFixed(2)}m (mantle)`
+            ? `${h.map.vents.length} runs crouch-only end to end (${grade} at grade); chain ${chain.map(([label, rise]) => `${label} ${rise.toFixed(2)}m`).join(', ')}, all mantle`
+            : problems.join('; '),
+      };
+    },
+  });
+
+  // -------------------------------------------------------------------------
+  // v2 map redesign. Each of the five requirements is asserted rather than
+  // trusted, in the same spirit as the derived-climbability check: the map is
+  // large enough that a hand walkthrough would not reliably catch a regression.
+  // -------------------------------------------------------------------------
+
+  debugTools.registerAutoTest({
+    id: 'warden-upper-deck-fully-connected',
+    spec: 'v2 requirement 2',
+    name: 'Every walkable square of the upper deck is one connected region',
+    run: (h) => {
+      const cell = CONFIG.debug.deckFloodCell;
+      const deck = CONFIG.map.catwalkY;
+      const half = { x: CONFIG.warden.radius, y: CONFIG.warden.standHeight / 2, z: CONFIG.warden.radius };
+      const world = h.map.collision;
+      const x0 = -CONFIG.map.width / 2;
+      const z0 = -CONFIG.map.depth / 2;
+      const nx = Math.ceil(CONFIG.map.width / cell);
+      const nz = Math.ceil(CONFIG.map.depth / cell);
+
+      // A square counts when a standing Warden fits there AND the thing under
+      // its feet is the deck surface itself — not a stair tread on the way up,
+      // not a crate top, not thin air over a void.
+      const walkable = [];
+      let total = 0;
+      for (let j = 0; j < nz; j++) {
+        walkable.push(new Array(nx).fill(false));
+        for (let i = 0; i < nx; i++) {
+          const x = x0 + (i + 0.5) * cell;
+          const z = z0 + (j + 0.5) * cell;
+          const floor = world.raycast({ x, y: deck + 0.5, z }, { x: 0, y: -1, z: 0 }, 1.0);
+          if (!floor || Math.abs(floor.y - deck) > 0.05) continue;
+          if (!world.isClear({ x, y: deck + half.y + 0.05, z }, half)) continue;
+          walkable[j][i] = true;
+          total++;
+        }
+      }
+
+      // Flood from the top of a staircase: if the Warden can walk up, it must
+      // be able to reach everything up there.
+      const head = h.map.staircases[0];
+      const seed = {
+        i: Math.round((((head.axis === 'x' ? head.top : (head.crossMin + head.crossMax) / 2) - x0) / cell) - 0.5),
+        j: Math.round((((head.axis === 'x' ? (head.crossMin + head.crossMax) / 2 : head.top) - z0) / cell) - 0.5),
+      };
+      // Nudge onto the nearest walkable square; the exact top step may straddle
+      // the stairwell edge.
+      let start = null;
+      for (let r = 0; r <= 8 && !start; r++) {
+        for (let dj = -r; dj <= r && !start; dj++) {
+          for (let di = -r; di <= r && !start; di++) {
+            const i = seed.i + di;
+            const j = seed.j + dj;
+            if (i < 0 || j < 0 || i >= nx || j >= nz) continue;
+            if (walkable[j][i]) start = { i, j };
+          }
+        }
+      }
+      if (!start) return { pass: false, detail: 'no walkable deck square near the stair head' };
+
+      const seen = [];
+      for (let j = 0; j < nz; j++) seen.push(new Array(nx).fill(false));
+      const stack = [start];
+      seen[start.j][start.i] = true;
+      let reached = 0;
+      while (stack.length) {
+        const { i, j } = stack.pop();
+        reached++;
+        const neighbours = [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]];
+        for (const [ni, nj] of neighbours) {
+          if (ni < 0 || nj < 0 || ni >= nx || nj >= nz) continue;
+          if (!walkable[nj][ni] || seen[nj][ni]) continue;
+          seen[nj][ni] = true;
+          stack.push({ i: ni, j: nj });
+        }
+      }
+
+      // Name what was stranded, so a failure points at a place rather than a count.
+      const stranded = [];
+      for (let j = 0; j < nz && stranded.length < 4; j++) {
+        for (let i = 0; i < nx && stranded.length < 4; i++) {
+          if (walkable[j][i] && !seen[j][i]) {
+            stranded.push(`(${(x0 + (i + 0.5) * cell).toFixed(1)}, ${(z0 + (j + 0.5) * cell).toFixed(1)})`);
+          }
+        }
+      }
+
+      // And every upper waypoint and room must actually be on that region.
+      const missed = [];
+      for (const node of h.map.waypoints) {
+        if (Math.abs(node.position.y - deck) > 0.05) continue;
+        const i = Math.floor((node.position.x - x0) / cell);
+        const j = Math.floor((node.position.z - z0) / cell);
+        if (!(seen[j] && seen[j][i])) missed.push(`waypoint ${node.id} (${node.tag})`);
+      }
+      for (const room of h.map.rooms) {
+        if (Math.abs(room.floorY - deck) > 0.05) continue;
+        let found = false;
+        for (let j = 0; j < nz && !found; j++) {
+          for (let i = 0; i < nx && !found; i++) {
+            const x = x0 + (i + 0.5) * cell;
+            const z = z0 + (j + 0.5) * cell;
+            if (x < room.min.x || x > room.max.x || z < room.min.z || z > room.max.z) continue;
+            if (seen[j][i]) found = true;
+          }
+        }
+        if (!found) missed.push(`room ${room.id}`);
+      }
+
+      const pass = total > 0 && reached === total && missed.length === 0;
+      return {
+        pass,
+        detail: pass
+          ? `${total} walkable deck squares at ${cell}m, all ${reached} reachable from ${h.map.staircases[0].tag}; every upper waypoint and room on the same region`
+          : `${reached}/${total} reachable; stranded near ${stranded.join(' ') || 'n/a'}; unreached: [${missed.join(', ')}]`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'shade-spawns-are-outside-the-shell',
+    spec: 'v2 requirement 3',
+    name: 'The Shade starts outside the building, on clear ground',
+    run: (h) => {
+      const shell = h.map.shell;
+      const half = { x: CONFIG.shade.radius, y: CONFIG.shade.standHeight / 2, z: CONFIG.shade.radius };
+      const problems = [];
+
+      for (let i = 0; i < h.map.shadeSpawns.length; i++) {
+        const spawn = h.map.shadeSpawns[i];
+        const p = spawn.position;
+        if (p.x > shell.x0 && p.x < shell.x1 && p.z > shell.z0 && p.z < shell.z1) {
+          problems.push(`spawn ${i} (${spawn.name}) is inside the shell`);
+        }
+        if (!h.map.collision.isClear({ x: p.x, y: p.y + half.y + 0.02, z: p.z }, half)) {
+          problems.push(`spawn ${i} (${spawn.name}) has no room to stand`);
+        }
+        const ground = h.map.collision.raycast({ x: p.x, y: p.y + 1.0, z: p.z }, { x: 0, y: -1, z: 0 }, 2.0);
+        if (!ground || Math.abs(ground.y - p.y) > 0.05) {
+          problems.push(`spawn ${i} (${spawn.name}) is not standing on the ground plane`);
+        }
+      }
+
+      // The Warden stays inside, or the two roles start on the same side of
+      // the wall and the infiltration premise is gone.
+      for (let i = 0; i < h.map.wardenSpawns.length; i++) {
+        const p = h.map.wardenSpawns[i].position;
+        const inside = p.x > shell.x0 && p.x < shell.x1 && p.z > shell.z0 && p.z < shell.z1;
+        if (!inside) problems.push(`warden spawn ${i} is outside the shell`);
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail:
+          problems.length === 0
+            ? `${h.map.shadeSpawns.length} shade spawns outside the shell (x ${shell.x0}..${shell.x1}, z ${shell.z0}..${shell.z1}) and clear; ${h.map.wardenSpawns.length} warden spawns inside`
+            : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'shade-reaches-level-2-without-stairs',
+    spec: 'v2 requirement 4',
+    name: 'Four routes climb to the upper deck without using a staircase',
+    run: (h) => {
+      const deck = CONFIG.map.catwalkY;
+      const roof = CONFIG.map.ceilingY + CONFIG.map.wallThickness;
+
+      /**
+       * Drive the Shade from the top of one box onto the top of the next,
+       * starting from the point on the lower surface closest to the upper one.
+       * No teleporting into the destination: the move has to be committed by
+       * the controller, through the same parkour gate real play uses.
+       */
+      const hop = (from, to) => {
+        const mid = (box, axis) => (box.min[axis] + box.max[axis]) / 2;
+        // Walk at the ledge along the axis the two surfaces are separated on.
+        // A ledge probe is a ray at a face; approaching diagonally puts the
+        // face outside its reach even when the climb itself is fine.
+        const gapX = Math.max(from.min.x - to.max.x, to.min.x - from.max.x);
+        const gapZ = Math.max(from.min.z - to.max.z, to.min.z - from.max.z);
+        const useX =
+          gapX > gapZ ||
+          (gapX === gapZ && Math.abs(mid(to, 'x') - mid(from, 'x')) >= Math.abs(mid(to, 'z') - mid(from, 'z')));
+        const axis = useX ? 'x' : 'z';
+        const cross = useX ? 'z' : 'x';
+        const sign = mid(to, axis) >= mid(from, axis) ? 1 : -1;
+        const inset = CONFIG.shade.radius + 0.06;
+
+        const along = Math.min(
+          Math.max((sign > 0 ? from.max[axis] : from.min[axis]) - sign * 0.55, from.min[axis] + inset),
+          from.max[axis] - inset
+        );
+        const lo = Math.max(from.min[cross], to.min[cross]);
+        const hi = Math.min(from.max[cross], to.max[cross]);
+        const across =
+          lo < hi
+            ? (lo + hi) / 2
+            : Math.min(Math.max(mid(to, cross), from.min[cross] + inset), from.max[cross] - inset);
+        const start = { x: useX ? along : across, z: useX ? across : along };
+        const dir = { x: useX ? sign : 0, z: useX ? 0 : sign };
+
+        h.shade.reset(h.map.shadeSpawns[0]);
+        // Some surfaces in these chains sit under the deck with only crouch
+        // headroom. Start the way the controller would leave you there.
+        const place = (height) => {
+          h.shade.height = height;
+          h.shade.half.y = height / 2;
+          h.shade.crouching = height < CONFIG.shade.standHeight;
+          h.shade.position.set(start.x, from.max.y + height / 2 + 0.05, start.z);
+          return h.map.collision.isClear(h.shade.position, h.shade.half);
+        };
+        if (!place(CONFIG.shade.standHeight) && !place(CONFIG.shade.crouchHeight)) {
+          return { ok: false, why: `no room to stand on ${from.tag}` };
+        }
+        h.shade.velocity.set(0, 0, 0);
+        h.shade.yaw = Math.atan2(-dir.x, -dir.z);
+        h.shade.state = SHADE_STATE.GROUND;
+
+        const intent = createIntent();
+        intent.forward = 1;
+        for (let i = 0; i < 300; i++) {
+          intent.jumpPressed = i % 22 === 0;
+          intent.jump = intent.jumpPressed;
+          h.shade.step(CONFIG.time.fixedDt, intent);
+          if (Math.abs(h.shade.feetY - to.max.y) < 0.3) {
+            // Let the traversal finish and gravity settle before believing it.
+            for (let k = 0; k < 40; k++) h.shade.step(CONFIG.time.fixedDt, createIntent());
+            const landed = Math.abs(h.shade.feetY - to.max.y) < 0.35;
+            const clear = h.map.collision.isClear(h.shade.position, h.shade.half);
+            return { ok: landed && clear, why: landed ? (clear ? '' : 'landed inside geometry') : 'slid off' };
+          }
+        }
+        return { ok: false, why: `never reached ${to.max.y.toFixed(1)}m (ended ${h.shade.feetY.toFixed(2)})` };
+      };
+
+      const box = (tag) => h.map.collision.boxes.find((entry) => entry.tag === tag);
+      const routes = [
+        { name: 'turbine hall crates', top: deck, tags: ['stack-hall-low', 'stack-hall-mid', 'hall-container', 'gantry-hall', 'lip-hall-east'] },
+        { name: 'lower vent to hall deck', top: deck, tags: ['vent-low-south-lip-from', 'gantry-hall-south', 'lip-hall-south'] },
+        { name: 'loading bay crates', top: deck, tags: ['stack-bay-low', 'stack-bay-mid', 'gantry-bay', 'lip-bay'] },
+        { name: 'upper vent into the vault', top: deck, tags: ['stack-vault-low', 'stack-vault-mid', 'vent-up-vault-floor', 'lip-vault'] },
+        { name: 'fire escape to the roof', top: roof, tags: ['fire-escape-base', 'fire-escape-0', 'fire-escape-1', 'fire-escape-2', 'fire-escape-3', 'fire-escape-4', 'lip-roof'] },
+      ];
+
+      const problems = [];
+      const summaries = [];
+      for (const route of routes) {
+        const boxes = route.tags.map(box);
+        const missing = route.tags.filter((tag, i) => !boxes[i]);
+        if (missing.length) {
+          problems.push(`${route.name}: missing [${missing.join(', ')}]`);
+          continue;
+        }
+        if (boxes.some((entry) => /^stair-/.test(entry.tag))) {
+          problems.push(`${route.name} uses a staircase`);
+          continue;
+        }
+        let ok = true;
+        for (let i = 0; i < boxes.length - 1 && ok; i++) {
+          const result = hop(boxes[i], boxes[i + 1]);
+          if (!result.ok) {
+            problems.push(`${route.name}: ${boxes[i].tag} -> ${boxes[i + 1].tag} ${result.why}`);
+            ok = false;
+          }
+        }
+        if (!ok) continue;
+        const reached = boxes[boxes.length - 1].max.y;
+        if (Math.abs(reached - route.top) > 0.05) {
+          problems.push(`${route.name} ends at ${reached.toFixed(2)}m, not ${route.top.toFixed(2)}m`);
+          continue;
+        }
+        const rises = [];
+        for (let i = 0; i < boxes.length - 1; i++) rises.push((boxes[i + 1].max.y - boxes[i].max.y).toFixed(1));
+        summaries.push(`${route.name} (${rises.join('/')}m)`);
+      }
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      return {
+        pass: problems.length === 0,
+        detail:
+          problems.length === 0
+            ? `${summaries.length} stairless routes driven end to end: ${summaries.join('; ')}`
+            : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'every-room-has-two-entries',
+    spec: 'v2 requirement 5',
+    name: 'No room can be sealed by standing in one doorway',
+    run: (h) => {
+      const half = { x: CONFIG.shade.radius, y: CONFIG.shade.crouchHeight / 2, z: CONFIG.shade.radius };
+      const problems = [];
+      const summaries = [];
+
+      for (const room of h.map.rooms) {
+        if (room.entries.length < CONFIG.map.roomMinEntries) {
+          problems.push(`${room.id}: ${room.entries.length} entries`);
+          continue;
+        }
+        // Re-test each reported entry independently: a derived count is only
+        // worth anything if the openings it counted are really passable.
+        const bad = room.entries.filter((entry) => {
+          const y = entry.kind === 'lateral' ? entry.at.y + half.y + 0.02 : entry.at.y;
+          return !h.map.collision.isClear({ x: entry.at.x, y, z: entry.at.z }, half);
+        });
+        if (bad.length) {
+          problems.push(`${room.id}: ${bad.length} reported entries are blocked`);
+          continue;
+        }
+        const kinds = room.entries.map((entry) => entry.edge).join('/');
+        summaries.push(`${room.id} ${room.entries.length} (${kinds})`);
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail:
+          problems.length === 0
+            ? `${h.map.rooms.length} rooms, all with >= ${CONFIG.map.roomMinEntries} verified entries: ${summaries.join('; ')}`
+            : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'waypoint-links-are-walkable',
+    spec: 'Section 11 / phase 4 known issue',
+    name: 'Every waypoint link is a straight line the Warden can actually walk',
+    run: (h) => {
+      const step = CONFIG.debug.linkWalkSample;
+      const half = { x: CONFIG.warden.radius, y: CONFIG.warden.standHeight / 2, z: CONFIG.warden.radius };
+      const maxRise = CONFIG.warden.stepHeight;
+      const world = h.map.collision;
+      const problems = [];
+      let checked = 0;
+      let samples = 0;
+
+      // Stair treads are the floor of a flight, not obstacles in it. A capsule
+      // standing on one always overlaps the risers ahead of it, so they are
+      // excluded from the clearance test — the per-sample rise limit below is
+      // what proves the flight is actually walkable.
+      const treads = new Set();
+      for (const stair of h.map.staircases) for (const step of stair.steps) treads.add(step);
+
+      for (const node of h.map.waypoints) {
+        for (const other of node.links) {
+          if (other < node.id) continue; // each undirected link once
+          const a = node.position;
+          const b = h.map.waypoints[other].position;
+          const length = Math.hypot(b.x - a.x, b.z - a.z);
+          const count = Math.max(2, Math.ceil(length / step));
+          let previous = null;
+          let failed = null;
+
+          for (let i = 0; i <= count && !failed; i++) {
+            const t = i / count;
+            const x = a.x + (b.x - a.x) * t;
+            const z = a.z + (b.z - a.z) * t;
+            // Probe around the height the route is expected to be at, so a
+            // staircase is traced along its treads rather than measured
+            // against the deck slab passing overhead.
+            const expected = a.y + (b.y - a.y) * t;
+            const floor = world.raycast({ x, y: expected + 1.5, z }, { x: 0, y: -1, z: 0 }, 4.0);
+            samples++;
+            if (!floor) {
+              failed = `no floor at (${x.toFixed(1)}, ${z.toFixed(1)})`;
+              break;
+            }
+            // Ignore stair treads and anything low enough to walk over.
+            const passable = (box) => !treads.has(box) && box.max.y > floor.y + maxRise;
+            if (!world.isClear({ x, y: floor.y + half.y + 0.05, z }, half, passable)) {
+              failed = `blocked at (${x.toFixed(1)}, ${z.toFixed(1)})`;
+              break;
+            }
+            if (previous !== null && Math.abs(floor.y - previous) > maxRise + 1e-6) {
+              failed = `${(floor.y - previous).toFixed(2)}m step at (${x.toFixed(1)}, ${z.toFixed(1)})`;
+              break;
+            }
+            previous = floor.y;
+          }
+
+          checked++;
+          if (failed) problems.push(`${node.id}(${node.tag}) -> ${other}(${h.map.waypoints[other].tag}): ${failed}`);
+        }
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail:
+          problems.length === 0
+            ? `${checked} links, ${samples} samples at ${step}m: floor found everywhere, Warden capsule fits, no rise above ${maxRise}m`
             : problems.join('; '),
       };
     },
@@ -1600,10 +2118,11 @@ function registerAutoTests() {
       const intent = createIntent();
 
       const settle = (sprint, crouch) => {
-        // A long clear lane down the west edge of the Turbine Hall: 26m of
-        // open floor before the south wall, well past what a 2s sprint covers.
+        // A long clear lane down the Turbine Hall: 27m of open floor before the
+        // south wall, well past what a 2s sprint covers. Kept east of the
+        // grade vent that now pierces the west wall, and north of the crates.
         h.shade.reset(h.map.shadeSpawns[0]);
-        h.shade.position.set(-27, CONFIG.shade.standHeight / 2 + 0.05, -18);
+        h.shade.position.set(-24, CONFIG.shade.standHeight / 2 + 0.05, -19);
         h.shade.yaw = Math.PI; // +Z, along the hall
         intent.forward = 1;
         intent.strafe = 0;
@@ -1737,8 +2256,8 @@ function registerAutoTests() {
 
       const settle = (sprint, ads) => {
         h.warden.reset(h.map.wardenSpawns[0]);
-        h.warden.position.set(-27, CONFIG.warden.standHeight / 2 + 0.05, -18);
-        h.warden.yaw = Math.PI; // down the clear west lane of the Turbine Hall
+        h.warden.position.set(-24, CONFIG.warden.standHeight / 2 + 0.05, -19);
+        h.warden.yaw = Math.PI; // down the clear lane of the Turbine Hall
         intent.forward = 1;
         intent.strafe = 0;
         intent.sprint = sprint;
@@ -1860,6 +2379,389 @@ function registerAutoTests() {
     },
   });
 
+  // -------------------------------------------------------------------------
+  // Phase 5 — detection (Section 7, Section 4.2)
+  // -------------------------------------------------------------------------
+
+  debugTools.registerAutoTest({
+    id: 'visibility-sampling-stays-in-budget',
+    spec: 'Section 7.1 / Section 15 (light sampling tanks framerate)',
+    name: 'Sampled on a 100ms cadence, never more than 5 rays per light',
+    run: (h) => {
+      const d = h.detection;
+      const dt = CONFIG.time.fixedDt;
+      const problems = [];
+
+      // Park the Shade under the brightest part of the map so lights are in
+      // range and the budget is actually being spent.
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.shade.position.set(-18, CONFIG.shade.standHeight / 2 + 0.05, -4);
+      d.reset(h.shade);
+
+      const before = d.samples;
+      const seconds = 2;
+      let maxRays = 0;
+      for (let i = 0; i < seconds / dt; i++) {
+        d.step(dt, { shade: h.shade, warden: h.warden });
+        maxRays = Math.max(maxRays, d.raysLastSample);
+      }
+      const taken = d.samples - before;
+      const expected = seconds / CONFIG.detection.sampleInterval;
+      // Captured here, not after the reset below: the reset resamples at the
+      // spawn, where nothing is in range, so reading it later would report a
+      // different moment than the one being asserted.
+      const lights = d.lightsLastSample;
+
+      // Two seconds at 100ms is 20 samples, not 120 steps' worth.
+      if (Math.abs(taken - expected) > 1) problems.push(`${taken} samples in ${seconds}s, expected ~${expected}`);
+      if (lights > 0 && maxRays !== lights * CONFIG.detection.raysPerLight) {
+        problems.push(`${maxRays} rays for ${lights} lights, cap is ${CONFIG.detection.raysPerLight}/light`);
+      }
+      if (lights === 0) problems.push('no lights in range at site A, so the budget was not exercised');
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+      d.reset(h.shade);
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${taken} samples over ${seconds}s at ${CONFIG.detection.sampleInterval * 1000}ms (${seconds / dt} steps); ${lights} lights in range, ${maxRays} rays (cap ${CONFIG.detection.raysPerLight}/light)`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'visibility-reads-lit-and-dark-zones',
+    spec: 'Section 16 checks 8 and 9 (auto half)',
+    name: 'Turbine Hall reads above 70; the Server Vault reads below 25',
+    run: (h) => {
+      const d = h.detection;
+      const dt = CONFIG.time.fixedDt;
+
+      const settle = (x, y, z, crouch) => {
+        h.shade.reset(h.map.shadeSpawns[0]);
+        h.shade.position.set(x, y + CONFIG.shade.standHeight / 2 + 0.05, z);
+        h.shade.velocity.set(0, 0, 0);
+        h.shade.crouching = !!crouch;
+        d.reset(h.shade);
+        // A second of simulation so the smoothed value has fully caught up.
+        for (let i = 0; i < 1 / dt; i++) d.step(dt, { shade: h.shade, warden: null });
+        return d.smoothed;
+      };
+
+      const siteA = h.map.sites.find((s) => s.id === 'A');
+      const siteC = h.map.sites.find((s) => s.id === 'C');
+      const hall = settle(siteA.position.x, siteA.position.y, siteA.position.z, false);
+      const vault = settle(siteC.position.x, siteC.position.y, siteC.position.z, false);
+      // A vent is unlit no matter what is outside it (Section 5).
+      const vent = h.map.vents[0];
+      const inVent = settle((vent.min.x + vent.max.x) / 2, vent.min.y, (vent.min.z + vent.max.z) / 2, true);
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+      d.reset(h.shade);
+
+      // Headroom matters as much as the threshold: a meter pegged at the clamp
+      // cannot show a light going out, which is check 10.
+      const headroom = hall < CONFIG.detection.meterMax - 5;
+      const pass = hall > 70 && headroom && vault < 25 && inVent === 0;
+      return {
+        pass,
+        detail: `Turbine Hall ${hall.toFixed(1)} (want >70, unclamped=${headroom}), Server Vault ${vault.toFixed(1)} (want <25), inside a vent ${inVent.toFixed(1)} (want 0); scoreScale ${CONFIG.detection.scoreScale}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'light-break-invalidates-the-cache',
+    spec: 'Section 16 check 10 / Section 15',
+    name: 'Shooting out the light overhead drops the meter within 200ms',
+    run: (h) => {
+      const d = h.detection;
+      const dt = CONFIG.time.fixedDt;
+
+      // Stand under site A's own fixture, the brightest spot on the map.
+      const lamp = h.map.lights.find((entry) => entry.tag === 'hall-site-a');
+      if (!lamp) return { pass: false, detail: 'hall-site-a light missing' };
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.shade.position.set(lamp.position.x, CONFIG.shade.standHeight / 2 + 0.05, lamp.position.z);
+      d.reset(h.shade);
+      for (let i = 0; i < 1 / dt; i++) d.step(dt, { shade: h.shade, warden: null });
+      const before = d.smoothed;
+      const rawBefore = d.raw;
+      const noiseBefore = d.noise.activeCount;
+
+      // Break it mid-interval, so a system that only resampled on the tick
+      // would still be serving the stale value.
+      d.step(dt * 0.5, { shade: h.shade, warden: null });
+      d.breakLight(lamp.lightId, 'test');
+      const rawAfterOneStep = (() => {
+        d.step(dt, { shade: h.shade, warden: null });
+        return d.raw;
+      })();
+
+      // 200ms of simulation, per check 10.
+      for (let i = 0; i < 0.2 / dt - 1; i++) d.step(dt, { shade: h.shade, warden: null });
+      const after = d.smoothed;
+
+      const noiseFired = d.noise.active().some((e) => e.type === 'light-destroyed');
+      const cacheUpdatedImmediately = rawAfterOneStep < rawBefore - 1;
+      const meterDropped = after < before - 1;
+
+      // Restore, or the suite leaves the map dark for everything after it.
+      lamp.broken = false;
+      lamp.light.intensity = lamp.intensity;
+      lamp.glassMaterial.color.set(CONFIG.palette.lightWarm);
+      h.shade.reset(h.map.shadeSpawns[0]);
+      d.reset(h.shade);
+
+      return {
+        pass: cacheUpdatedImmediately && meterDropped && noiseFired,
+        detail: `raw ${rawBefore.toFixed(1)} -> ${rawAfterOneStep.toFixed(1)} on the next step (no wait for the 100ms tick)=${cacheUpdatedImmediately}; smoothed ${before.toFixed(1)} -> ${after.toFixed(1)} within 200ms=${meterDropped}; 20m noise emitted=${noiseFired} (${noiseBefore} events before)`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'shade-is-quieter-than-the-warden',
+    spec: 'Section 7.2',
+    name: 'Noise radii match spec, and crouch and vents are silent',
+    run: (h) => {
+      const d = h.detection;
+      const dt = CONFIG.time.fixedDt;
+      const problems = [];
+
+      // Walk an actor in a straight clear lane and collect what it emitted.
+      const walk = (actor, intent, steps, reset) => {
+        d.noise.clear();
+        reset();
+        const seen = [];
+        const off = h.emitter.on('noise', (event) => {
+          if (event.source === (actor === h.shade ? 'shade' : 'warden')) seen.push(event.radius);
+        });
+        for (let i = 0; i < steps; i++) {
+          actor.step(dt, intent);
+          d.step(dt, { shade: actor === h.shade ? actor : null, warden: actor === h.warden ? actor : null });
+        }
+        off();
+        return seen;
+      };
+
+      const lane = (actor, height) => () => {
+        actor.reset(actor === h.shade ? h.map.shadeSpawns[0] : h.map.wardenSpawns[0]);
+        actor.position.set(-24, height / 2 + 0.05, -19);
+        actor.yaw = Math.PI;
+        actor.velocity.set(0, 0, 0);
+      };
+
+      const shadeIntentLocal = createIntent();
+      shadeIntentLocal.forward = 1;
+      const shadeWalk = walk(h.shade, shadeIntentLocal, 180, lane(h.shade, CONFIG.shade.standHeight));
+      shadeIntentLocal.sprint = true;
+      const shadeSprint = walk(h.shade, shadeIntentLocal, 180, lane(h.shade, CONFIG.shade.standHeight));
+      shadeIntentLocal.sprint = false;
+      shadeIntentLocal.crouch = true;
+      const shadeCrouch = walk(h.shade, shadeIntentLocal, 240, lane(h.shade, CONFIG.shade.standHeight));
+
+      const wardenIntentLocal = createWardenIntent();
+      wardenIntentLocal.forward = 1;
+      const wardenWalk = walk(h.warden, wardenIntentLocal, 180, lane(h.warden, CONFIG.warden.standHeight));
+      wardenIntentLocal.sprint = true;
+      const wardenSprint = walk(h.warden, wardenIntentLocal, 180, lane(h.warden, CONFIG.warden.standHeight));
+
+      const R = CONFIG.noise.radii;
+      const only = (list, value, label) => {
+        if (list.length === 0) return problems.push(`${label} emitted nothing`);
+        if (list.some((r) => r !== value)) problems.push(`${label} emitted ${[...new Set(list)].join('/')}, expected ${value}`);
+      };
+      only(shadeWalk, R.shadeWalk, 'shade walk');
+      only(shadeSprint, R.shadeSprint, 'shade sprint');
+      only(wardenWalk, R.wardenWalk, 'warden walk');
+      only(wardenSprint, R.wardenSprint, 'warden sprint');
+      if (shadeCrouch.length !== 0) problems.push(`crouch-walk emitted ${shadeCrouch.length} events, must be silent`);
+
+      // The core design pillar (Section 7.2): the Shade is quieter than the
+      // Warden at every equivalent stance.
+      if (!(R.shadeWalk < R.wardenWalk)) problems.push('shade walk is not quieter than warden walk');
+      if (!(R.shadeSprint < R.wardenSprint)) problems.push('shade sprint is not quieter than warden sprint');
+
+      // And a vent is silent regardless of stance.
+      const vent = h.map.vents[0];
+      d.noise.clear();
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.shade.height = CONFIG.shade.crouchHeight;
+      h.shade.half.y = h.shade.height / 2;
+      h.shade.crouching = true;
+      h.shade.position.set((vent.min.x + vent.max.x) / 2, vent.min.y + h.shade.half.y + 0.02, (vent.min.z + vent.max.z) / 2);
+      h.shade.strideDistance += 100; // force the cadence
+      d.step(dt, { shade: h.shade, warden: null });
+      if (d.noise.activeCount !== 0) problems.push('a vent emitted noise');
+
+      d.noise.clear();
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.warden.reset(h.map.wardenSpawns[0]);
+      d.reset(h.shade);
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `shade walk ${R.shadeWalk}m (${shadeWalk.length} steps) / sprint ${R.shadeSprint}m (${shadeSprint.length}) / crouch silent; warden walk ${R.wardenWalk}m (${wardenWalk.length}) / sprint ${R.wardenSprint}m (${wardenSprint.length}); vent silent`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'noise-events-expire-and-are-capped',
+    spec: 'Section 7.2 / Section 15 (effects never expire)',
+    name: 'Noise events expire after 0.4s and the pool never grows',
+    run: (h) => {
+      const d = h.detection;
+      const dt = CONFIG.time.fixedDt;
+      d.noise.clear();
+
+      // Flood well past the cap from one spot.
+      for (let i = 0; i < CONFIG.noise.maxEvents * 3; i++) {
+        d.noise.emit(0, 0, 0, 5, 'flood', 'test');
+      }
+      const peak = d.noise.activeCount;
+      const poolSize = d.noise.pool.length;
+
+      // Silence must not occupy a slot.
+      const silent = d.noise.emit(0, 0, 0, 0, 'silent', 'test');
+
+      let steps = 0;
+      while (d.noise.activeCount > 0 && steps < 120) {
+        d.noise.step(dt);
+        steps++;
+      }
+      const drainedSeconds = steps * dt;
+      const settled = d.noise.activeCount;
+
+      // And hearing is a plain distance test (Section 7.2).
+      d.noise.clear();
+      d.noise.emit(10, 0, 0, 8, 'probe', 'test');
+      const nearHeard = d.noise.heard({ x: 14, y: 0, z: 0 }) !== null;
+      const farHeard = d.noise.heard({ x: 22, y: 0, z: 0 }) !== null;
+      d.noise.clear();
+      d.reset(h.shade);
+
+      const pass =
+        peak <= CONFIG.noise.maxEvents && poolSize === CONFIG.noise.maxEvents &&
+        silent === null && settled === 0 &&
+        drainedSeconds <= CONFIG.noise.lifetime + dt * 2 && nearHeard && !farHeard;
+      return {
+        pass,
+        detail: `flooded ${CONFIG.noise.maxEvents * 3} -> ${peak} active (cap ${CONFIG.noise.maxEvents}), pool fixed at ${poolSize}; silence took no slot=${silent === null}; drained to ${settled} in ${drainedSeconds.toFixed(2)}s (lifetime ${CONFIG.noise.lifetime}s); heard at 4m=${nearHeard}, at 12m past an 8m radius=${farHeard}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'outlines-sit-on-the-body-they-outline',
+    spec: 'Section 4 / reported bug: teal capsules floating at the shoulders',
+    name: 'Every inverted-hull outline is coincident with its own mesh',
+    run: (h) => {
+      const strays = [];
+      const bodyPosition = new THREE.Vector3();
+      const outlinePosition = new THREE.Vector3();
+
+      const audit = (root, label) => {
+        root.updateMatrixWorld(true);
+        let pairs = 0;
+        root.traverse((object) => {
+          if (!object.isMesh) return;
+          // An outline is the BackSide duplicate parented to the mesh it hulls.
+          const outlines = object.children.filter((child) => child.isMesh && child.material.side === THREE.BackSide);
+          for (const outline of outlines) {
+            pairs++;
+            object.getWorldPosition(bodyPosition);
+            outline.getWorldPosition(outlinePosition);
+            const drift = bodyPosition.distanceTo(outlinePosition);
+            if (drift > 1e-6) {
+              strays.push(`${label} ${object.geometry.type} outline drifts ${drift.toFixed(3)}m`);
+            }
+          }
+        });
+        return pairs;
+      };
+
+      const shadePairs = audit(h.shade.mesh, 'shade');
+      const wardenPairs = audit(h.warden.mesh, 'warden');
+
+      // Every visible body part must actually carry one, or an outline could
+      // "not drift" simply by not existing.
+      const bodies = [];
+      for (const [root, label] of [[h.shade.mesh, 'shade'], [h.warden.mesh, 'warden']]) {
+        root.traverse((object) => {
+          if (!object.isMesh) return;
+          if (object.material.side === THREE.BackSide) return;
+          if (!object.children.some((child) => child.isMesh && child.material.side === THREE.BackSide)) {
+            strays.push(`${label} ${object.geometry.type} has no outline`);
+          }
+          bodies.push(label);
+        });
+      }
+
+      return {
+        pass: strays.length === 0 && shadePairs > 0 && wardenPairs > 0,
+        detail:
+          strays.length === 0
+            ? `${bodies.length} body meshes across both actors, ${shadePairs + wardenPairs} outlines, all coincident with the mesh they hull`
+            : strays.slice(0, 6).join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'visibility-feedback-matches-the-meter',
+    spec: 'Section 4.2',
+    name: 'The Shade darkens and brightens in step with the smoothed meter',
+    run: (h) => {
+      const d = h.detection;
+      const materials = h.shade.mesh.userData.materials;
+      if (!materials || !materials.outline) return { pass: false, detail: 'shade materials not exposed' };
+
+      const F = CONFIG.detection.feedback;
+      const readings = [];
+      // Drive the meter directly across its whole range and read what the
+      // player would see. This is the disagreement Section 4.2 forbids.
+      for (const value of [0, 25, 50, 75, 100]) {
+        d.smoothed = value;
+        d._applyFeedback(h.shade);
+        readings.push({
+          meter: value,
+          body: materials.teal.color.getHSL({ h: 0, s: 0, l: 0 }).l,
+          rim: materials.outline.color.getHSL({ h: 0, s: 0, l: 0 }).l,
+        });
+      }
+
+      let monotonic = true;
+      for (let i = 1; i < readings.length; i++) {
+        if (readings[i].body <= readings[i - 1].body) monotonic = false;
+        if (readings[i].rim <= readings[i - 1].rim) monotonic = false;
+      }
+      const darkAtZero = readings[0].body < readings[4].body * (F.silhouetteDarkness + 0.1);
+      const rimVisibleAtZero = readings[0].rim > 0;
+
+      // Restore, and prove the value the player sees is the smoothed one and
+      // not the raw sample: the two differ mid-transition.
+      d.reset(h.shade);
+      const rawOnly = d.raw;
+      d.smoothed = 0;
+      d.raw = 100;
+      d.step(CONFIG.time.fixedDt, { shade: h.shade, warden: null });
+      const tracksSmoothed = d.litFraction < 0.5;
+      d.reset(h.shade);
+
+      return {
+        pass: monotonic && darkAtZero && rimVisibleAtZero && tracksSmoothed,
+        detail: `body lightness ${readings.map((r) => r.body.toFixed(2)).join(' -> ')}, rim ${readings.map((r) => r.rim.toFixed(2)).join(' -> ')} across meter 0..100; monotonic=${monotonic}, near-black at 0=${darkAtZero}, teal edge still visible at 0=${rimVisibleAtZero}, driven by smoothed not raw=${tracksSmoothed} (raw was ${rawOnly.toFixed(1)})`,
+      };
+    },
+  });
+
   debugTools.registerAutoTest({
     id: 'match-state-rebuilt-on-init',
     spec: 'Section 15 (state bleed)',
@@ -1920,6 +2822,9 @@ const harness = {
   },
   get warden() {
     return warden;
+  },
+  get detection() {
+    return detection;
   },
   get cameraOwner() {
     return cameraOwner;

@@ -710,7 +710,8 @@ and site C all admit a standing Warden capsule.
 
 Josh requested this after Phase 4. It is a redesign of `map.js`, not a tweak: it
 changes the vertical layout, the building shell, the spawn model and every
-traversal chain. **Not started** — flagged rather than half-built.
+traversal chain. **Done — see the entry below.** The plan as written is left
+intact for comparison against what was actually built.
 
 ### Requirements, verbatim intent
 
@@ -779,12 +780,491 @@ loosen the assertions.
 
 ---
 
+---
+
+## Meridian Substation v2 — map redesign
+
+**Status:** complete. All five requirements are enforced by AUTO checks rather
+than trusted. Suite: **34 passed, 0 failed.**
+
+### What was built
+
+- **`src/mapkit.js` (new)** — the construction kit. `addSolid()` is still the
+  only way to make geometry, and everything above it generates calls into it:
+  `addWall()` subtracts openings from a wall plane, `addFloorPlate()` subtracts
+  voids from a slab, `addStaircase()` derives its own stairwell, `addVentRun()`
+  builds a duct and hands back the opening every wall it crosses needs.
+- **`src/map.js` (rewritten)** — the level. 214 collision boxes, an 80×65 site
+  with the building as a shell inside it, one continuous upper deck, five
+  stairless routes up, and five declared rooms whose entries are derived.
+
+### The five requirements, and how each is held in place
+
+| Requirement | Built | Enforced by |
+|---|---|---|
+| 1. Raise level 2 | `catwalkY` 4.0 → **6.0**, `ceilingY` 8.0 → **11.0**. Level 1 gains 2m, level 2 gets 5m. | The traversal chains below; a rise out of band fails at build time |
+| 2. Level 2 is one deck | One plate at y=6.0 over the whole footprint, minus six voids | `warden-upper-deck-fully-connected` |
+| 3. Shade starts outside | All four spawns on the apron; Warden spawns stay inside | `shade-spawns-are-outside-the-shell` |
+| 4. Stairless routes | Five, driven end to end by the controller | `shade-reaches-level-2-without-stairs` |
+| 5. No single-door rooms | 5 rooms, 3–7 entries each | `every-room-has-two-entries` |
+
+### Vertical layout
+
+A 6m deck is above `hangBand`, so intermediate tiers are structural, not
+decorative — the Shade physically cannot reach level 2 in one move. Both chains
+land inside the Section 6.1 bands by construction:
+
+```
+crates   ground -> 1.0 vault -> 2.3 mantle -> 3.0 vault -> 4.0 vault -> 6.0 mantle
+vents    ground -> 2.3 mantle -> 4.3 mantle -> 6.0 mantle
+```
+
+The five ways up, all verified by driving the controller through every hop:
+
+| Route | Rises |
+|---|---|
+| Turbine Hall crates → gantry → deck lip | 1.3 / 0.7 / 1.0 / 2.0 |
+| Lower vent → maintenance platform → deck lip | 2.0 / 1.7 |
+| Loading Bay crates → gantry → deck lip | 1.3 / 1.7 / 2.0 |
+| Corridor crates → upper vent → hatch in the vault floor | 1.3 / 2.0 / 1.7 |
+| Fire escape (outside the north wall) → roof | 1.3 / 2.0 / 1.7 / 2.0 / 2.0 / 1.4 |
+
+### Two decisions worth stating
+
+**The deck is `noClimb` except at four declared lips.** A 6m edge is not
+something to scramble up, and without the flag every cell that happened to have
+a gantry beneath it would silently become a ledge. Climbing onto level 2 happens
+only where a route arrives, which is what makes the routes mean anything. The
+lips hang deeper than the slab so the Shade's ledge probe gets more than one ray
+into the face — see the bug below.
+
+**Stairwells are derived, not authored.** `addStaircase()` finds the first step
+whose tread plus standing headroom breaks the deck underside and opens the hole
+from there, backed off by a radius, a tread and a step-height. Move a flight or
+change the deck height and the hole follows.
+
+### Bugs this found (three were latent in v1)
+
+1. **Every v1 vent lip was unclimbable.** The ledge probe samples six fixed
+   heights above the feet; from the ground those are 0.25/0.6/1.0/1.45/1.9/2.35,
+   and a 0.2m floor slab at 2.1–2.3 falls between the last two. The lip
+   classified as a mantle, was marked as one, and could never be climbed. Fixed
+   with `lipAt`, which thickens the floor at a mouth the Shade climbs into. This
+   is the exact class of failure Section 5 warns about, one level lower down —
+   the marking and the collision flag agreed with each other and both disagreed
+   with the controller.
+2. **A redundant vent roof puts the next ledge in the wrong band.** A roof slab
+   is wide enough to count as a standing surface, so the marking pass measured
+   the vault lip against the roof (0.55m, vault) instead of the vent floor
+   (1.7m, mantle). The upper run has no roof: the deck 1.35m above it already
+   makes it crouch-only.
+3. **A staircase dead-ends two treads from the top** if the stairwell opens at
+   the step that breaks headroom. The solver lifts an actor by a full step
+   height to test the next tread while it is still centred over the previous
+   one, and its body reaches a radius further back again.
+4. **Lip cells were split by unrelated cut lines.** The plate tiler cut at every
+   void edge on the map, so a lip could be sliced into an offcut narrower than
+   an actor and quietly stop being climbable. Lips are now emitted whole.
+5. **A fire-escape landing offset above the deck collapses its own climb.** The
+   support search takes the tallest nearby surface, so a landing at 6.3 measured
+   against the deck at 6.0 read as a 0.3m step, not a 2.0m mantle. The landing
+   is now flush.
+
+### Draw calls
+
+The map roughly doubled in footprint and gained a full upper floor, and draw
+calls went 171 → 624 worst case. 372 of the 586 meshes were affordance stripes,
+dashes and chevrons — decoration, one draw call each. They are now baked into
+one mesh per band (three total), which is safe because they never move and share
+a material per band. Worst case is **310 calls / 11k triangles**, 102 on the
+deck, GL error 0, 6 programs. Section 16 check 29 is still a human check.
+
+Three's `BufferGeometryUtils` lives in the addons bundle, which `index.html`
+deliberately does not fetch, so `mergeGeometries()` in `mapkit.js` is the sliver
+of it this needs.
+
+### Files touched
+
+```
+src/mapkit.js   (new — GameMap and the generators)
+src/map.js      (rewritten — Meridian Substation v2)
+src/config.js   (vertical layout, stair/vent/room constants, shadow frustum)
+src/main.js     (5 new AUTO checks, 8 re-derived)
+PROGRESS.md
+```
+
+### Deviations from spec
+
+12. **`src/mapkit.js` is an additional file not listed in Section 3.** Section
+    3.1 also requires anything past ~600 lines to be split, and the v2 level
+    data alone is larger than that. The split is builder vs. level: mapkit knows
+    how to make geometry, map.js is the layout. It imports physics and config
+    only, so the layering rule holds. **Say the word and I will fold it back in.**
+13. **`CONFIG.map.waypointCount` 14 → 20.** Section 5 specifies 14. On an 80×65
+    site with a single upper deck, 14 nodes cannot express a graph whose every
+    link is a route the Warden can walk — which is the Phase 4 blocker. The
+    extra six are stair feet and heads and the deck's ring. If you want 14 back,
+    the graph has to accept links that cross the Turbine Hall void.
+14. **A site fence.** The play space has to be closed now that the Shade starts
+    outside it; without it the apron is an open edge to walk off, and the fuzz
+    check duly walked off it. Thin, so it is correctly not climbable, and 4.5m
+    so it sits above the hang band.
+15. **Affordance markings are one merged mesh per band.** See draw calls above.
+    They are still generated in one pass from the collision flags; the merge is
+    the last step. Individual stripes can no longer be hidden or moved at
+    runtime, which nothing needs.
+
+### New AUTO checks
+
+```
+PASS  warden-upper-deck-fully-connected
+      5056 walkable deck squares at 0.6m, all 5056 reachable from stair-hall;
+      every upper waypoint and room on the same region
+PASS  shade-spawns-are-outside-the-shell
+      4 shade spawns outside the shell (x -30.4..30.4, z -22.9..22.9) and clear;
+      4 warden spawns inside
+PASS  shade-reaches-level-2-without-stairs
+      5 stairless routes driven end to end: turbine hall crates (1.3/0.7/1.0/2.0m);
+      lower vent to hall deck (2.0/1.7m); loading bay crates (1.3/1.7/2.0m);
+      upper vent into the vault (1.3/2.0/1.7m); fire escape to the roof
+      (1.3/2.0/1.7/2.0/2.0/1.4m)
+PASS  every-room-has-two-entries
+      5 rooms, all with >= 2 verified entries: turbine-hall 3 (east/south/ceiling);
+      loading-bay 7 (west/west/east/east/south/ceiling/ceiling);
+      server-vault 3 (east/north/floor); office-west 4 (west/east/north/south);
+      office-east 3 (west/east/north)
+PASS  waypoint-links-are-walkable
+      20 links, 965 samples at 0.3m: floor found everywhere, Warden capsule fits,
+      no rise above 0.35m
+```
+
+`waypoint-links-are-walkable` is not one of the five requirements. It closes the
+Phase 4 known issue — the AI was going to path across links it could not walk —
+so Phase 6 starts from a graph that has been proven, not assumed.
+
+Room entries are **derived**, not declared: the boundary is walked at a range of
+sill heights looking for an opening a crouched Shade can pass through, and the
+floor and ceiling planes are sampled for holes. A ceiling hole always counts. A
+floor hole only counts when a climbable lip borders it, which is exactly what
+separates the vault's hatch from the deliberately one-way drop shaft — the drop
+shaft is correctly not counted as an entry to Office East.
+
+### Checks that were re-derived rather than loosened
+
+Eight existing checks pinned v1 geometry. As predicted, several failed. None
+were relaxed:
+
+- `hall-container` tests stopped hard-coding `z = -8.5` and now read the box's
+  own centre. The container's east face is deliberately kept clear of the gantry
+  so a hang has a body's worth of air below the lip.
+- `container-top-is-not-a-dead-end` compared against `catwalk-spine`, which v2
+  does not have. It now uses `gantry-hall`, and derives its start point and
+  facing from the two boxes rather than typing a coordinate.
+- The two speed tests moved their run-up lane clear of the new grade vent.
+- `vent-runs-are-crouch-only-and-enterable` sampled one midpoint; it now walks
+  the whole length of all five runs, skipping samples under a deck void (where
+  a run has deliberately opened into the room above), and asserts the two-tier
+  chain.
+- `waypoint-links-are-walkable` excludes stair treads from its clearance test.
+  A capsule standing on a tread always overlaps the risers ahead of it; the
+  per-sample rise limit is what proves the flight is walkable.
+
+### Known issues
+
+- **Level 2 is dark.** Only the vault light and the hall pendants (which hang at
+  deck level in the void) reach it. Thematically right, but if it reads as
+  broken rather than dark, the fix is a light or two on the deck — that costs
+  nothing structurally but I did not want to spend the destructible-light budget
+  without asking, since Section 5 fixes it at 12.
+- **The Turbine Hall's east strip** and the deck above the offices are the two
+  places where I am least confident the light contrast reads. Worth an eye.
+- **`CONFIG.detection.scoreScale` (1.85) has not been retuned.** It was fitted to
+  the v1 light heights. The hall lights kept their height above the floor, so
+  check 8 should be close, but Phase 5 owns tuning this against checks 8 and 9.
+- Room-entry derivation costs 75ms at build time. One-off; the page loads in
+  300ms.
+- **Two files are over the ~600-line guidance in Section 3.1.** `map.js` came
+  down 1222 → 793 by splitting the kit out, but `mapkit.js` is 1190 and
+  `main.js` is 2441. main.js is the older problem and it is almost entirely the
+  AUTO suite — roughly 1700 of those lines are the 34 checks, which Section 3
+  gives no home to, the same gap that produced `ui/debug.js` in Phase 1. The
+  obvious split is a `tests/` module the composition root registers, and
+  `mapkit.js` divides cleanly into generators and the derivation passes. Neither
+  is v2 scope, so I have not done it unasked. **Say the word.**
+- The v2 plan suggested keeping a vent tier at 2.3 and adding one at 4.3. Built
+  as two lower runs at 2.3 and one upper at 4.3, plus two at grade — five runs
+  against the spec's three. The extra two are the shell breaches.
+
+### Verification actually performed
+
+Served on port 5173 and driven in a real browser.
+
+- **AUTO suite: 34 passed, 0 failed.** Run after every change, not once at the end.
+- **Boot:** zero console errors, zero warnings, on a fresh tab and at
+  `?mode=freeroam&seed=12345`. Free-roam config correct; the Warden holds deck
+  height while walking on level 2.
+- **Render path:** driven synchronously (see below). 295–310 draw calls worst
+  case, 102 on the deck, 11k triangles, 6 programs, 2 textures, `gl.getError()`
+  returns 0 from every viewpoint.
+- **Spot checks by raycast:** the roof hatch drops onto the deck at 6.0; the
+  drop shaft drops to the ground and has no climbable lip, so it stays one-way;
+  the vault hatch drops onto the upper vent floor at 4.3; the hall void drops to
+  the ground.
+- **Counts:** 214 collision boxes, 49 climbable surfaces all marked (19 vault,
+  30 mantle), 20 waypoints, 5 vent runs, 2 staircases, 12 destructible lights.
+
+### Not verified (needs a human)
+
+Still nothing visual. The browser pane was not displayed, so it never
+composited: `document.hidden` stayed `true`, `requestAnimationFrame` never
+fired, and screenshots time out. Everything above was driven synchronously by
+calling `renderer.render()` directly. **I have still never seen this map on a
+screen.**
+
+Specifically unverified, and worth your eye when you walk it:
+
+1. Whether the exterior reads as a building to break into, or as a box in a car
+   park.
+2. Whether the upper deck reads as one place. It is provably connected; that is
+   not the same as legible.
+3. Whether the affordance stripes still read at distance now that they are
+   merged into one mesh per band — the geometry is identical, but I have not
+   seen it.
+4. Light contrast on level 2 and in the Turbine Hall (see Known issues).
+5. Whether a 6m hall feels good or cavernous, and whether the four-hop climb to
+   the deck is satisfying or a chore. No assertion can measure that.
+6. The fire escape: five platforms is a lot of climbing. It may want to be
+   shorter.
+
+### Post-v2 fix: affordance chevrons were floating in mid-air
+
+Reported from play, with a screenshot: two teal chevrons hanging in space near
+the Turbine Hall gantry, unattached to anything.
+
+**Cause.** Section 5 puts the chevrons "on the face below" a mantle ledge, and
+`_addChevrons()` put them halfway between the ledge top and the surface it was
+measured against. That assumed every climbable box stands on the ground, which
+was true in v1. Every v2 lip, gantry, duct floor and fire-escape platform
+*hangs* — a thin slab with air beneath it — so the midpoint was empty space.
+**22 of 30 mantle ledges** had chevrons floating up to 1.04m below their own
+geometry.
+
+**Fix.** The decal is clamped into the box's own vertical span, and also *sized*
+to it: a duct roof is 0.12m thick, thinner than the 0.18m decal, so the chevron
+shrinks to fit rather than overhanging a face that is not there.
+
+The check asserts against the placement the map actually recorded, not a second
+copy of the formula, so it cannot agree with a bug by sharing it:
+
+```
+PASS  markings-sit-on-real-geometry
+      30 mantle ledges: every chevron sits within the face of the box it marks
+```
+
+Also audited while in there: the top-edge stripes ride the ledge's own top face
+and cannot drift, and the site rings are floor decals. Chevrons were the only
+marking with a free vertical parameter.
+
+---
+
+## Phase 5 — detection: light, visibility, feedback, noise
+
+**Status:** complete. Suite: **41 passed, 0 failed**, zero console warnings or
+errors.
+
+### What was built
+
+**`src/systems/detection.js` (new).** Three responsibilities that share one tick
+and the same two actors:
+
+- **The visibility meter (7.1).** Sampled every 100ms, never per frame, with a
+  hard cap of 5 rays per light and only lights within 20m considered. Score per
+  light is `intensity * (1 - distance/range) * unobstructedFraction`, summed,
+  scaled, floored, then multiplied by the crouch (0.75) and vent (0) modifiers
+  and clamped. Smoothed toward the target with a 250ms time constant.
+- **Section 4.2 feedback.** The body colour and the outline brightness are
+  written from `this.smoothed` in one function, on the Shade only. They cannot
+  disagree with the meter because there is no second source for them to
+  disagree from.
+- **Noise (7.2).** A fixed pool of 48 events aged down on the fixed step. No
+  timers anywhere.
+
+### Three things worth stating
+
+**Breaking a light goes through detection, not the map.** `detection.breakLight()`
+is the only route: it calls `map.breakLight()`, invalidates the cache and emits
+the 20m noise. Section 15 requires the invalidate to be explicit; routing every
+caller through one function is what makes it impossible to forget rather than
+merely documented. Verified by breaking a light *mid-interval* — a system that
+only resampled on the tick would still have been serving the stale value.
+
+**The sample cadence uses an accumulator, not a reset.** Six 1/60 steps fall a
+float's hair short of 100ms, so zeroing the timer silently sampled at 8.6Hz
+instead of 10Hz — 18 samples in two seconds rather than 20. Subtracting the
+interval keeps the phase. Same discipline as the fixed step itself.
+
+**Silence emits nothing.** A crouch-walking Shade and a Shade in a vent produce
+no event at all, rather than a zero-radius event occupying a pool slot that the
+AI then has to filter.
+
+### scoreScale, fitted rather than guessed
+
+The Phase 1 placeholder of 1.85 pegged the Turbine Hall at 100 on the v2 map. A
+clamped meter passes check 8 and fails the mechanic: it cannot show a light
+going out, which is check 10 and half the point of destructible lights.
+
+Measured the unscaled sums on the built map — site A 68.0, site B 28.3, site C
+5.0 — and picked **1.2**:
+
+| Where | Meter | Reads as |
+|---|---|---|
+| Turbine Hall (site A) | 84.6 | exposed, 15 points below the clamp |
+| Loading Bay (site B) | 37.0 | mixed |
+| Corridor ring | 13.4 | hidden |
+| Server Vault (site C) | 9.0 | hidden |
+| Inside a vent | 0.0 | unlit regardless of what is outside |
+
+Breaking site A's own fixture now drops the raw value 84.6 → 60.0 on the very
+next step. At 1.85 the same break moved it 100 → 90.9, because it had been
+sitting against the clamp.
+
+### Files touched
+
+```
+src/systems/detection.js  (new)
+src/config.js             (feedback constants, scoreScale 1.85 -> 1.2)
+src/entities/agent.js     (one shared outline material instead of nine)
+src/main.js               (wiring, 5 overlay fields, 6 AUTO checks)
+```
+
+`agent.js` gave every outlined part its own `MeshBasicMaterial`. Section 4.2
+drives edge brightness every frame, and that should be one assignment, not a
+walk over nine materials.
+
+### New AUTO checks
+
+```
+PASS  visibility-sampling-stays-in-budget
+      20 samples over 2s at 100ms (120 steps); 6 lights in range, 30 rays (cap 5/light)
+PASS  visibility-reads-lit-and-dark-zones
+      Turbine Hall 84.6 (want >70, unclamped=true), Server Vault 9.0 (want <25),
+      inside a vent 0.0 (want 0); scoreScale 1.2
+PASS  light-break-invalidates-the-cache
+      raw 84.6 -> 60.0 on the next step (no wait for the 100ms tick)=true;
+      smoothed 84.6 -> 71.1 within 200ms=true; 20m noise emitted=true
+PASS  shade-is-quieter-than-the-warden
+      shade walk 4m (4 steps) / sprint 12m (7) / crouch silent;
+      warden walk 8m (4) / sprint 18m (6); vent silent
+PASS  noise-events-expire-and-are-capped
+      flooded 144 -> 48 active (cap 48), pool fixed at 48; silence took no slot;
+      drained to 0 in 0.42s (lifetime 0.4s); heard at 4m, not at 12m past an 8m radius
+PASS  visibility-feedback-matches-the-meter
+      body lightness 0.05 -> 0.35, rim 0.07 -> 0.35 across meter 0..100;
+      monotonic, near-black at 0, teal edge still visible at 0,
+      driven by smoothed not raw
+```
+
+Checks 8, 9 and 10 were **HUMAN** in Section 16. The first two now have an AUTO
+half that pins the numbers; you still confirm the on-screen meter agrees with
+what you see, which is the part no assertion can make.
+
+### Known issues
+
+- **Level 2 and the corridor read as "hidden" (13 and 8).** That is the lighting
+  gap flagged in the v2 entry, not a detection bug — there is little light up
+  there to sample. If the deck should be riskier it needs fixtures, and Section 5
+  fixes the destructible count at 12, so that is a call for you.
+- **Outside is 3 (the ambient floor) everywhere.** Section 7.1 counts point
+  lights only, and the apron has none, so infiltration is unlit until you are
+  inside. Reads correct to me; worth confirming it does not feel like the meter
+  is broken before you enter.
+- The Shade's rim is the inverted-hull outline recoloured, not a shader fresnel.
+  Section 4.2 asks for "rim light intensity and outline brightness"; this drives
+  the second and reads as the first. A true fresnel needs `onBeforeCompile` on
+  MeshToonMaterial, which I did not want to take on unasked.
+- `main.js` is now 2832 lines, of which roughly 2100 are the 41 AUTO checks. The
+  split flagged in the v2 entry is overdue.
+
+### Verification actually performed
+
+- **AUTO suite: 41 passed, 0 failed.** Zero console warnings, zero errors.
+- Draw calls unchanged by this phase: 278–310 worst case, GL error 0. The
+  feedback is two colour writes per frame on existing materials.
+- Sample budget measured live: 20 samples per 2 seconds, 30 rays for 6 lights in
+  range at site A.
+
+### Not verified (needs a human)
+
+- **Whether the Shade visibly dims in step with the meter** — Section 16 check
+  27, and the whole point of 4.2. I can prove the numbers move together and that
+  both come from one value; I cannot see it.
+- Whether `silhouetteDarkness` 0.14 is too dark to read the character against a
+  dark floor, or `rimMin` 0.2 too faint to find yourself in shadow.
+- Whether the noise cadence *feels* right. The radii are spec'd; the stride
+  lengths that trigger them are not.
+
+### Post-phase-5 fixes: found by actually running the game
+
+First time the game has been driven on a real screen. Two bugs, both surfaced
+by Phase 5 rather than caused by it.
+
+**1. Limb outlines were stranded at the shoulders and hips.** `outlined()` added
+the inverted-hull duplicate to the *group*, then the caller repositioned the
+mesh it got back — `segment.position.y = -length / 2 - radius` — and the outline
+stayed at the pivot. The four limb segments on each actor were therefore
+outlined in the wrong place: the Shade's arm hulls sat 0.336m high, its leg
+hulls 0.438m high, and the Warden had the same fault.
+
+This had been wrong since Phase 3 and was invisible while the outline was
+painted near-black on a near-black background. Section 4.2 recolours the Shade's
+outline teal, which lit four floating capsules up like signal flares.
+
+The outline is now a **child of the mesh** rather than a sibling, so it inherits
+the transform and cannot drift no matter what a caller does afterwards.
+
+```
+PASS  outlines-sit-on-the-body-they-outline
+      18 body meshes across both actors, 18 outlines, all coincident with the
+      mesh they hull
+```
+
+The check also fails an outline that is missing entirely, so "does not drift"
+cannot be satisfied by not existing.
+
+**2. Half the Phase 5 overlay fields were being silently dropped.** The overlay
+renders from a field table keyed by name, and I wrote `visibility`,
+`noiseEvents` and `lightsSampled` where it expects `visibilitySmoothed` and
+`activeNoise` — and wrote pre-formatted strings into slots with numeric
+formatters. Section 17 requires raw *and* smoothed visibility and the active
+noise count; only the raw value was appearing. Fixed to the keys and types the
+table consumes.
+
+Suite: **42 passed, 0 failed.**
+
+### What running it actually showed
+
+- Boots and renders in Chrome: 310 draw calls, 11,092 triangles, `shadow lights
+  1 (want 1)`, `assert failures 0`, 214 collision boxes, 49 marked ledges.
+- F3 toggles the overlay from a real keypress — input, tooling and DOM all wired.
+- Holding W walks the Shade 5.13m in 1.5s (≈3.4 m/s against a 3.5 spec walk),
+  stops dead on release, and emits 2 footstep noise events on the way. Phase 5
+  works from real input, not just from the harness.
+- At the spawn the Shade is a near-black silhouette with a faint teal edge, on an
+  unlit apron reading 3.0. That is Section 4.2 at the bottom of its range, and it
+  looks right.
+
+**Still not measured: framerate.** The tab throttles `requestAnimationFrame`
+whenever it is not the focused window, so every FPS reading I could take was 0
+with a ~4.8s frame time — an artefact of driving it through tooling, not a
+performance result. Section 16 check 29 remains yours to run, with the window
+focused.
+
 ### Exact next action
 
-The v2 map redesign above, then Phase 5 —
-`systems/detection.js`: light sampling on a 100ms tick with a 5-ray cap and an
-explicit cache invalidate on light break, the visibility meter, the Section 4.2
-rim-light feedback on the Shade, and noise emitters.
+Phase 6 — `systems/ai.js`: the Warden FSM (PATROL, SUSPICIOUS, INVESTIGATE,
+ENGAGE, SEARCH, STUNNED), waypoint navigation over the graph
+`waypoint-links-are-walkable` now guarantees, and perception built on
+`detection.smoothed` and `detection.noise.heard()`, which are both live.
 
 ---
 

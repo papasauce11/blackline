@@ -167,8 +167,12 @@ export const CONFIG = {
     shadowMapSize: 1024,
     shadowBias: -0.0006,
     shadowNormalBias: 0.02,
-    /** Tight frustum fitted to the play area (Section 4.1). */
-    shadowFrustum: { left: -38, right: 38, top: 30, bottom: -30, near: 1, far: 120 },
+    /**
+     * Tight frustum fitted to the play area (Section 4.1). Sized to the v2 site
+     * (80 x 65 exterior, 11m tall) rather than the building alone, or the
+     * approach apron and the fire escape fall outside the shadow map.
+     */
+    shadowFrustum: { left: -52, right: 52, top: 46, bottom: -46, near: 1, far: 150 },
     /** Section 4: 4-step gradient map generated in code via DataTexture. */
     toonSteps: 4,
     /** Section 4: inverted-hull outline scale. */
@@ -364,17 +368,34 @@ export const CONFIG = {
      *   intensity * (1 - distance/range) * unobstructedRayFraction
      * Three.js r155+ light intensity is physical (candela), so raw values are
      * in the tens and the summed score would peg at 100 permanently. This
-     * scalar maps the physical sum into the 0-100 meter range. Tuned so
-     * Turbine Hall reads above 70 and the Server Vault below 25
-     * (Section 16, checks 8 and 9).
+     * scalar maps the physical sum into the 0-100 meter range.
+     *
+     * Fitted in Phase 5 against the measured light sums on the v2 map, not
+     * guessed: site A sums to 68.0, site B to 28.3, site C to 5.0. At 1.2 that
+     * reads 85 / 37 / 9, which clears Section 16 checks 8 and 9 (>70 and <25)
+     * and — the reason it is not higher — leaves the Turbine Hall 15 points of
+     * headroom below the clamp. Pegged at 100 the meter cannot show a light
+     * going out, which is check 10 and half the point of destructible lights.
      */
-    scoreScale: 1.85,
+    scoreScale: 1.2,
     /** Ray origin height on the torso, as a fraction of capsule height. */
     torsoHeightRatio: 0.62,
     /** Lateral spread of the sample rays around the torso, in metres. */
     torsoSpread: 0.22,
     /** Ambient floor. The Shade is never perfectly invisible in the open. */
     ambientFloor: 3,
+
+    /**
+     * Section 4.2 feedback. The meter and what is on screen must never
+     * disagree, so both are driven from the smoothed value by one function.
+     * At visibility 0 the body sits at `silhouetteDarkness` of its palette
+     * colour with a faint teal edge; at 100 it is fully lit with a bright rim.
+     */
+    feedback: {
+      silhouetteDarkness: 0.14,
+      rimMin: 0.2,
+      rimMax: 1.0,
+    },
   },
 
   // -------------------------------------------------------------------------
@@ -654,23 +675,53 @@ export const CONFIG = {
   // Map: "Meridian Substation" (Section 5)
   // -------------------------------------------------------------------------
   map: {
-    /** Roughly 60m x 45m footprint, two floors. */
+    /** Building footprint, roughly 60m x 45m, two floors (Section 5). */
     width: 60,
     depth: 45,
     /**
+     * Exterior site. The Shade starts outside and infiltrates, so the ground
+     * plane extends past the shell to give an approach apron on every face.
+     */
+    siteWidth: 80,
+    siteDepth: 65,
+    /**
      * Vertical layout. Every height in the map derives from these, so the
-     * traversal chains stay inside the Section 6.1 bands by construction:
-     * ground -> mantle 2.3m onto a vent lip -> crouch the vent -> mantle 1.7m
-     * onto the catwalk.
+     * traversal chains stay inside the Section 6.1 bands by construction.
+     *
+     * Level 1 is 6m to the underside of the upper deck and level 2 is 5m to
+     * the ceiling. A 6m rise is above hangBand, so the Shade cannot reach the
+     * deck in one move and the intermediate tiers below are mandatory, not
+     * decorative:
+     *
+     *   ground -> 1.0 crate  (vault  1.0)
+     *          -> 2.3 stack  (mantle 1.3)
+     *          -> 4.0 gantry (mantle 1.7)
+     *          -> 6.0 deck   (mantle 2.0)
+     *
+     * and the vent chain, which is the silent version of the same climb:
+     *
+     *   ground -> 2.3 lower vent (mantle 2.3)
+     *          -> 4.3 upper vent (mantle 2.0)
+     *          -> 6.0 deck       (mantle 1.7)
      */
     groundY: 0,
-    catwalkY: 4.0,
-    ceilingY: 8.0,
+    catwalkY: 6.0,
+    ceilingY: 11.0,
     ventFloorY: 2.3,
-    groundFloorHeight: 4.0,
-    upperFloorHeight: 4.0,
+    ventUpperY: 4.3,
+    /** Intermediate mantle tier between the crate stacks and the deck. */
+    gantryY: 4.0,
+    groundFloorHeight: 6.0,
+    upperFloorHeight: 5.0,
     wallThickness: 0.4,
     floorThickness: 0.35,
+    /**
+     * Deck edges are climbable only where the level design puts a lip, and a
+     * lip hangs deeper than the floor slab so the Shade's forward ledge probe
+     * (which samples six fixed heights) gets more than one ray into its face.
+     */
+    deckLipWidth: 1.2,
+    deckLipDepth: 0.7,
 
     /** Ledge classification bands. These drive BOTH collision and markings. */
     vaultBand: [0.4, 1.2],
@@ -688,12 +739,30 @@ export const CONFIG = {
      * the upper floor. Step rise must stay below BOTH actors' step-up heights
      * (Shade 0.32, Warden 0.35) or the solver will not carry them over the lip.
      */
-    stairSteps: 13,
-    stairRise: 4.0 / 13,
+    stairSteps: 20,
+    stairRise: 6.0 / 20,
     stairRun: 0.4,
+    stairWidth: 2.0,
+    /**
+     * Headroom a staircase needs under the deck it climbs through. The stairwell
+     * opening is derived from this rather than authored: the first step whose
+     * tread plus this clearance breaks the deck underside is where the hole
+     * starts. Sized to the taller actor.
+     */
+    stairHeadroom: 1.95,
 
     ventHeight: 1.15,
     ventWidth: 1.1,
+    /** Thickness of the duct floor where it spans a room. */
+    ventFloorDepth: 0.2,
+    /**
+     * A mouth the Shade mantles into thickens to this, over this length. The
+     * ledge probe samples six fixed heights above the feet and a thin slab can
+     * fall between two of them, which made every v1 vent lip unclimbable
+     * despite being correctly classified and marked.
+     */
+    ventLipDepth: 0.9,
+    ventLipLength: 1.0,
     /**
      * The roof is inset this far from each end, so the mouth of a run has full
      * standing headroom. Without it a mantle onto the vent lip can never commit
@@ -704,7 +773,13 @@ export const CONFIG = {
 
     /** Counts, asserted at build time so the map cannot silently drift. */
     destructibleLightCount: 12,
-    waypointCount: 14,
+    /**
+     * Section 5 specifies 14. The v2 redesign grew the map to an 80x65 site
+     * with a single continuous upper deck, and 14 nodes cannot express a graph
+     * whose every link is a route the Warden can actually walk — which is the
+     * failure Phase 4 flagged. See PROGRESS.md deviation 13.
+     */
+    waypointCount: 20,
     wardenSpawnCount: 4,
     /**
      * Section 5 specifies 1 fixed Shade spawn; Section 10.2 and Section 15
@@ -713,6 +788,30 @@ export const CONFIG = {
      */
     shadeSpawnCount: 4,
     plantSiteCount: 3,
+    /**
+     * Declared rooms, and the minimum number of independent Shade entries each
+     * must have. A single-door room is a chokepoint the Warden can simply stand
+     * in, so the requirement is enforced rather than trusted: entries are
+     * derived from geometry by sampling the room boundary and floor.
+     */
+    roomCount: 5,
+    roomMinEntries: 2,
+    /** Spacing used when walking a room boundary looking for openings. */
+    roomEntrySample: 0.3,
+    /**
+     * Sill heights above a room floor tested for a crouch-height opening, so a
+     * window counts as an entry and not only a doorway. Capped well below the
+     * ceiling: an opening the Shade cannot reach is not a way in.
+     */
+    roomEntrySillStep: 0.5,
+    roomEntrySillMax: 4.0,
+    /**
+     * Grid spacing used when looking for holes in a room's floor or ceiling.
+     * Finer than the boundary walk: a vertical shaft can be as narrow as a vent
+     * (1.1m), and a coarse grid puts every sample point close enough to a duct
+     * wall that the capsule clips it, hiding a hatch that is genuinely usable.
+     */
+    roomVerticalSample: 0.3,
 
     /** Section 4.1: contact darkness faked with baked vertex tint. */
     vertexTintStrength: 0.45,
@@ -850,6 +949,13 @@ export const CONFIG = {
     autoTestMaxFrames: 2400,
     /** Number of PRNG values compared in the determinism check. */
     prngCompareCount: 2000,
+    /**
+     * Cell size for the upper-deck flood fill. Small enough to find a Warden-
+     * width gap, large enough that a 60x45 deck is a few thousand cells.
+     */
+    deckFloodCell: 0.6,
+    /** Spacing used when sampling a waypoint link for walkability. */
+    linkWalkSample: 0.3,
   },
 
   settings: {
