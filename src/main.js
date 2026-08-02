@@ -17,7 +17,7 @@ import { classifyLedge } from './physics.js';
 import { Shade, SHADE_STATE, createIntent } from './entities/agent.js';
 import { Warden, WARDEN_STATE, createWardenIntent } from './entities/enforcer.js';
 import { createDetection } from './systems/detection.js';
-import { createWardenAI } from './systems/ai.js';
+import { createWardenAI, AI_STATE } from './systems/ai.js';
 import { createCombat } from './systems/combat.js';
 import { createAudio } from './systems/audio.js';
 import { createGadgets } from './systems/gadgets.js';
@@ -147,6 +147,8 @@ export function computeStepPlan(accumulator, wallDelta, timeScale) {
 /** @type {import('./systems/objective.js').Objective} */ let objective = null;
 /** @type {import('./systems/effects.js').Effects} */ let effects = null;
 /** @type {import('./ui/hud.js').Hud} */ let hud = null;
+/** Section 17.1 test mode: the Shade ignores damage while set. */
+let godMode = false;
 /** @type {import('./ui/menu.js').Menu} */ let menu = null;
 /** @type {import('./ui/scoreboard.js').Scoreboard} */ let scoreboard = null;
 const shadeIntent = createIntent();
@@ -399,6 +401,7 @@ function bootstrap() {
 
   // Frag blasts are damage from outside combat; combat still owns applying it.
   emitter.on('gadget:damage', (event) => {
+    if (godMode) return;
     if (event.target === 'shade') combat.applyDamage(shade, event.amount, 'shade', event.source);
   });
   emitter.on('objective:life-lost', (event) => {
@@ -817,6 +820,67 @@ function frame(now) {
 
 function wireTestCommands() {
   emitter.on('test:cycle-time-scale', cycleTimeScale);
+
+  // Section 17.1's test mode. These exist so a human can reach a situation in
+  // one keypress instead of a two-minute walk — the HUMAN checks in Section 16
+  // are hard enough to run without the setup costing more than the check.
+  emitter.on('test:teleport-site', ({ site }) => {
+    const target = map.sites[site];
+    if (!target) return;
+    shade.reset({
+      position: target.position,
+      yaw: shade.yaw,
+    });
+  });
+
+  emitter.on('test:teleport-warden', () => {
+    // Just behind the Warden, facing its back: the takedown setup (check 13).
+    const behind = 1.2;
+    shade.reset({
+      position: {
+        x: warden.position.x + Math.sin(warden.yaw) * behind,
+        y: warden.feetY,
+        z: warden.position.z + Math.cos(warden.yaw) * behind,
+      },
+      yaw: warden.yaw,
+    });
+  });
+
+  emitter.on('test:god-mode', () => {
+    godMode = !godMode;
+    debugState.godMode = godMode;
+  });
+
+  emitter.on('test:kill-shade', () => {
+    if (shade.health <= 0) return;
+    objective.markDeathPosition(shade.position);
+    shade.health = 0;
+    emitter.emit('combat:death', { target: 'shade', kind: 'test' });
+  });
+
+  emitter.on('test:instant-plant', () => {
+    const site = objective.siteNear(shade.position) || map.sites[0];
+    shade.reset({ position: site.position, yaw: shade.yaw });
+    objective.round.plantProgress = CONFIG.round.plantHoldTime;
+    objective.step(CONFIG.time.fixedDt, {
+      shade, warden, intent: { interact: true },
+    });
+  });
+
+  emitter.on('test:cycle-ai-state', () => {
+    const states = Object.keys(AI_STATE).map((key) => AI_STATE[key]);
+    const next = states[(states.indexOf(wardenAI.state) + 1) % states.length];
+    wardenAI.lastKnown = wardenAI.lastKnown || {
+      x: shade.position.x, y: shade.feetY, z: shade.position.z,
+    };
+    wardenAI._enter(next);
+  });
+
+  emitter.on('test:refill-gadgets', () => {
+    gadgets.reset();
+    combat.weapon.reset();
+    shade.health = CONFIG.shade.health;
+  });
 }
 
 // ---------------------------------------------------------------------------
