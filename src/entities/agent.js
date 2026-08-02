@@ -21,6 +21,9 @@ import { applyGravity, classifyLedge } from '../physics.js';
 
 const S = CONFIG.shade;
 const P = CONFIG.palette;
+/** The knife lives in combat config; the arc that draws it reads the same
+ *  number rather than a second copy under `shade`. */
+const KNIFE_SWING_TIME = CONFIG.combat.knife.swingAnimTime;
 
 export const SHADE_STATE = {
   GROUND: 'ground',
@@ -111,6 +114,8 @@ export class Shade {
 
     this._smoothPosition = new THREE.Vector3();
     this._animTime = 0;
+    /** Counts down while the knife arm is mid-arc (Section 8.2). */
+    this._swingTimer = 0;
     this._scratchCentre = { x: 0, y: 0, z: 0 };
   }
 
@@ -144,6 +149,7 @@ export class Shade {
     this._hangTimer = 0;
     this.strideDistance = 0;
     this.landedFallHeight = 0;
+    this._swingTimer = 0;
     this._smoothPosition.copy(this.position);
     this._cameraDistance = S.camera.back;
     this.updateVisual(0);
@@ -151,6 +157,15 @@ export class Shade {
 
   get feetY() {
     return this.position.y - this.half.y;
+  }
+
+  /**
+   * Play the knife arc. Called by systems/combat.js when a swing is actually
+   * committed, so what you see and what the game did cannot disagree — a swing
+   * on cooldown draws nothing because it did nothing.
+   */
+  swing() {
+    this._swingTimer = KNIFE_SWING_TIME;
   }
 
   get speed() {
@@ -777,6 +792,23 @@ export class Shade {
       parts.legR.rotation.x = -swing;
       parts.armL.rotation.x = -swing * 0.75;
       parts.armR.rotation.x = swing * 0.75;
+    }
+
+    // The knife arc overrides the right arm for its duration: a fast wind-up
+    // and a slower follow-through, so the swing reads as a strike rather than
+    // a twitch.
+    if (this._swingTimer > 0) {
+      this._swingTimer = Math.max(0, this._swingTimer - wallDt);
+      const t = 1 - this._swingTimer / KNIFE_SWING_TIME;
+      const arc = t < 0.35
+        ? -1.9 * (t / 0.35)
+        : -1.9 + 2.9 * ((t - 0.35) / 0.65);
+      parts.armR.rotation.x = arc;
+      parts.armR.rotation.z = -0.5 * Math.sin(t * Math.PI);
+      parts.torso.rotation.y = -0.35 * Math.sin(t * Math.PI);
+    } else {
+      parts.armR.rotation.z = 0;
+      parts.torso.rotation.y = 0;
     }
 
     parts.torso.position.y = parts.torso.userData.baseY + idle;

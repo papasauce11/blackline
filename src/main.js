@@ -410,6 +410,7 @@ function bootstrap() {
   });
   emitter.on('objective:planted', (event) => hud.push(`charge armed at ${event.site}`));
   emitter.on('combat:takedown', () => hud.push('takedown'));
+  emitter.on('combat:knife-hit', (event) => hud.push(`knife hit - warden ${Math.round(event.remaining)}`));
   emitter.on('objective:round-end', () => {
     scoreboard.show({ rounds: objective.rounds, score: objective.score, matchOver: objective.matchOver });
   });

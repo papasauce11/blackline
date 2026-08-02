@@ -464,6 +464,12 @@ export const CONFIG = {
       /** Rear takedown: within a 100 deg cone behind the target, range 1.8m. */
       rearConeDegrees: 100,
       rearRange: 1.8,
+      /**
+       * How long the swing animation reads for. Shorter than swingInterval so
+       * the arm is back at rest before the next swing is allowed - a knife
+       * with no visible swing looks like a knife that does not work.
+       */
+      swingAnimTime: 0.28,
     },
   },
 

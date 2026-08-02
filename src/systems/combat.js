@@ -301,6 +301,9 @@ export class Combat {
     if (this.knifeTimer > 0) return null;
     this.knifeTimer = K.swingInterval;
 
+    // Only now, once the swing is actually committed rather than eaten by the
+    // cooldown, so the animation cannot claim something the game did not do.
+    if (shade.swing) shade.swing();
     this.emitter.emit('combat:knife', { actor: 'shade' });
     this.detection.noise.emit(
       shade.position.x, shade.feetY, shade.position.z, N.radii.knifeSwing, 'knife', 'shade'
@@ -314,8 +317,10 @@ export class Combat {
     }
     if (kind === 'arc') {
       this._damage(warden, K.damage, 'warden', 'knife');
+      this.emitter.emit('combat:knife-hit', { kind: 'arc', remaining: warden.health });
       return 'arc';
     }
+    this.emitter.emit('combat:knife-miss', {});
     return null;
   }
 
