@@ -1716,10 +1716,99 @@ behind a stale intermission regardless of who opened it.
 
 ### Exact next action
 
-The build is feature-complete against Section 3's file list. What is left is
-joining the last two seams — the Shade's gadget throw and the free-roam trigger
-— and then Section 16's HUMAN checks, which are yours: 1-7, 13-16, 19, 26-27
-and 29.
+Superseded — see the play-testing session below.
+
+---
+
+## First play-testing session
+
+Josh played it. Four things came back, three of them real bugs and one a gap I
+had left open on purpose. All fixed and committed; suite still **69 passing**.
+
+### Wired the Section 17.1 test-mode commands
+
+Six of the eight test-mode shortcuts emitted events nothing listened to and
+printed "no handler yet". The panel was honest about it, but the tools were not
+there — and Section 17.1 asks for them in Phase 1. Most of what remains in
+Section 16 is HUMAN checks, and they are hard enough to run without the setup
+costing more than the check.
+
+`1`/`2`/`3` teleport to sites A/B/C · `4` teleport behind the Warden (the
+takedown setup for check 13) · `G` god mode · `H` kill the Shade to exercise
+reinsert · `J` instant plant · `K` cycle the AI state · `L` refill gadgets and
+health · `T` time scale · `Y` run the suite.
+
+### "F to knife doesn't work"
+
+It did work. A single `KeyF` press fired the swing, the takedown and the damage,
+verified live. **What was missing was any way to tell**: no arm animation, no
+hit marker, no HUD line. Swing at empty air and nothing at all happens on
+screen, so "doesn't work" was the only reasonable conclusion.
+
+The Shade now plays a knife arc — fast wind-up, slower follow-through, slight
+torso turn — driven from combat at the moment the swing is *committed*, so a
+swing eaten by the 0.5s cooldown correctly draws nothing. `combat:knife-hit`
+and `combat:knife-miss` are emitted, and a hit reports the Warden's remaining
+health to the kill feed.
+
+A duplicated config number surfaced on the way: the swing duration briefly
+existed under both `combat.knife` and `shade`, and the alias silently failed to
+apply, which made the animation a no-op. `agent.js` reads
+`CONFIG.combat.knife.swingAnimTime` directly now.
+
+### "F behind the Warden made it basically disappear"
+
+`setFirstPerson()` had hidden the mesh whenever `state === DEAD` since Phase 4.
+Defensible when there was nothing to leave behind — but Phase 11 built a ragdoll
+and **nothing ever called it**. Death now ragdolls the body and it stays visible.
+
+A second fault underneath: `updateVisual()` rewrites the mesh transform every
+frame, so it would have overwritten the tumble immediately. It now steps aside
+while a ragdoll owns the transform. The controller runs later in the frame than
+the effects step, so without that it always won.
+
+### "No animation other than an arm moving"
+
+The Section 8.3 camera orbit never played. `frame()` reasserted camera ownership
+**every frame**, so combat parented the camera to its orbit pivot and the next
+frame yanked it back to the Shade rig. What Josh saw was the hit-stop and
+slow-mo timing with the camera glued behind his own back.
+
+The frame loop now leaves the camera alone while the finisher owns it, and does
+not steer it either — it is not the player's camera for those 1.2s.
+
+**Not observed.** This one is a guard in the frame loop, and the frame loop only
+runs with the window focused, which the tooling cannot do. The logic is
+straightforward but nobody has yet watched the orbit play.
+
+### Gadget throwing, wired
+
+Slots `1`/`2`/`3` are smoke, flashbang and taser, thrown from the eye along the
+camera facing so what you are looking at is what you are throwing at. Each
+pushes a HUD line saying what happened and what is left. Verified: smoke goes
+2 → 1 with a projectile in flight and a 200-sprite cloud on landing.
+
+### Still open
+
+- **Free-roam does not route its trigger into combat**, so Section 16 check 15
+  (fire a full magazine, watch spread grow and recoil climb) still cannot be
+  run. One line, deliberately unwritten — it wants the Phase 13 crosshair work
+  beside it.
+- **The Shade's death is not dramatised.** The life is taken and the reinsert
+  happens, but there is no death camera on the killing Warden (Section 10.2) and
+  no ragdoll on the Shade.
+- **Framerate has still never been measured.** Every reading taken through
+  tooling was 0 FPS with a ~4.8s frame time, which is a backgrounded tab, not a
+  result. Check 29 needs the window focused.
+- **No audio has ever been heard.**
+
+### Exact next action
+
+Ask Josh what the play session actually felt like before writing more code. The
+open items above are known; what is not known is whether the map reads, whether
+the meter and the character agree on screen (check 27), whether the finisher
+lands now that the camera is free, and what the framerate is. Those answers
+should decide the next phase, not the backlog.
 
 ---
 
