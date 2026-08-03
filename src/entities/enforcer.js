@@ -84,6 +84,9 @@ export class Warden {
 
   /** Place at a spawn and clear every scrap of transient state. */
   reset(spawn) {
+    this.ragdolled = false;
+    this.mesh.rotation.set(0, 0, 0);
+    this.mesh.visible = !this._firstPerson;
     this.position.set(spawn.position.x, spawn.position.y + this.half.y + 0.02, spawn.position.z);
     this.velocity.set(0, 0, 0);
     this.yaw = spawn.yaw || 0;
@@ -129,7 +132,9 @@ export class Warden {
    */
   setFirstPerson(enabled) {
     this._firstPerson = enabled;
-    this.mesh.visible = !enabled && this.state !== WARDEN_STATE.DEAD;
+    // Deliberately not hidden when dead. A corpse that vanishes the instant it
+    // dies reads as a bug, and Phase 11's ragdoll needs something to tumble.
+    this.mesh.visible = !enabled;
   }
 
   /** Stun for a duration (taser, stun grenade). No movement, no fire. */
@@ -283,6 +288,13 @@ export class Warden {
   }
 
   updateVisual(wallDt) {
+    // While a ragdoll owns the mesh, do not write position or rotation: the
+    // controller and the ragdoll would fight over the same transform every
+    // frame and the controller, running later, would always win.
+    if (this.ragdolled) {
+      this._updateGroundBlob(this.mesh.position.y);
+      return;
+    }
     const smoothing = wallDt > 0 ? 1 - Math.pow(0.0001, wallDt) : 1;
     this._smoothPosition.lerp(this.position, smoothing);
 

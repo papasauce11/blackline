@@ -411,6 +411,18 @@ function bootstrap() {
   emitter.on('objective:planted', (event) => hud.push(`charge armed at ${event.site}`));
   emitter.on('combat:takedown', () => hud.push('takedown'));
   emitter.on('combat:knife-hit', (event) => hud.push(`knife hit - warden ${Math.round(event.remaining)}`));
+  // Section 15's ragdoll-lite. A body that stays is also the only feedback
+  // that a takedown actually landed on something.
+  emitter.on('combat:death', (event) => {
+    if (event.target !== 'warden') return;
+    warden.ragdolled = true;
+    const dx = warden.position.x - shade.position.x;
+    const dz = warden.position.z - shade.position.z;
+    const length = Math.hypot(dx, dz) || 1;
+    warden.mesh.position.set(warden.position.x, warden.feetY, warden.position.z);
+    effects.ragdoll(warden.mesh, { x: dx / length, z: dz / length });
+    hud.push('warden down');
+  });
   emitter.on('objective:round-end', () => {
     scoreboard.show({ rounds: objective.rounds, score: objective.score, matchOver: objective.matchOver });
   });
@@ -538,6 +550,10 @@ function fixedStep(dt) {
     wardenIntent: wardenAI.intent,
   });
   gadgets.step(dt, { shade, warden });
+  if (match.role === 'shade' && !freefly.enabled && shadeIntent.gadget) {
+    useGadget(shadeIntent.gadget);
+    shadeIntent.gadget = 0;
+  }
   // Section 9.2: the slow is applied to the controller, never to the physics.
   shade.speedMultiplier = gadgets.shadeSpeedMultiplier();
   if (match.objectiveEnabled) {
@@ -573,6 +589,37 @@ function fixedStep(dt) {
  * keeps the fixed step allocation-free. Edge flags are true only on the first
  * step of a frame, because input.clearEdges() runs after each step.
  */
+/**
+ * Section 9.1's Shade loadout, on slots 1-3. Everything is thrown or aimed
+ * along the camera's facing, from the Shade's eye, so what you are looking at
+ * is what you are throwing at.
+ */
+function useGadget(slot) {
+  const eye = {
+    x: shade.position.x,
+    y: shade.feetY + shade.height * CONFIG.shade.eyeHeightRatio,
+    z: shade.position.z,
+  };
+  const cosPitch = Math.cos(shade.pitch);
+  const direction = {
+    x: -Math.sin(shade.yaw) * cosPitch,
+    y: Math.sin(shade.pitch),
+    z: -Math.cos(shade.yaw) * cosPitch,
+  };
+
+  if (slot === 3) {
+    const hit = gadgets.fireTaser(shade, warden, direction);
+    hud.push(hit === 'warden' ? 'taser - warden stunned'
+      : hit === 'light' ? 'taser - light destroyed'
+        : gadgets.taserCharge > 0 ? 'taser - nothing in range' : 'taser recharging');
+    return;
+  }
+
+  const type = slot === 1 ? 'smoke' : 'flashbang';
+  const thrown = gadgets.throwGadget(type, eye, direction, 'shade');
+  hud.push(thrown ? `${type} thrown - ${gadgets.loadout[type]} left` : `no ${type} left`);
+}
+
 function readShadeIntent() {
   shadeIntent.forward = input.axis('back', 'forward');
   shadeIntent.strafe = input.axis('left', 'right');
@@ -720,8 +767,15 @@ function frame(now) {
   // Mouse delta is a displacement, not a rate, so look is applied once per
   // frame rather than once per fixed step.
   const owner = humanOwner();
-  setCameraOwner(owner);
-  if (owner === 'freefly') {
+  // Section 8.3: the finisher owns the camera while it runs. Reasserting
+  // ownership every frame here is what stopped the 40 degree orbit from ever
+  // being seen — combat parented the camera to its pivot and the next frame
+  // yanked it straight back to the Shade rig.
+  const cinematic = combat && combat.inFinisher;
+  if (!cinematic) setCameraOwner(owner);
+  if (cinematic) {
+    // No steering during the cinematic either; it is not the player's camera.
+  } else if (owner === 'freefly') {
     freefly.look();
   } else if (input.locked) {
     // ADS uses a reduced sensitivity so the narrower FOV still tracks 1:1.
@@ -747,7 +801,7 @@ function frame(now) {
 
   // Section 6.2: ADS narrows the FOV. Only the Warden touches it, and only
   // while it owns the camera; setCameraOwner() restores it on every handover.
-  if (owner === 'warden') {
+  if (owner === 'warden' && !cinematic) {
     const fov = warden.desiredFov();
     if (Math.abs(camera.fov - fov) > 0.01) {
       camera.fov = fov;
