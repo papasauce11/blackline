@@ -383,6 +383,13 @@ export class Objective {
   _end(winner, reason) {
     const round = this.round;
     if (round.state !== ROUND.ACTIVE) return;
+    // Section 10.5: best of N, first to the target. Once someone has reached
+    // it the match is decided, and a round ending afterwards must not move the
+    // score past it — `matchOver` is only cleared by resetMatch(), so anything
+    // that starts another round without resetting the match is playing an
+    // exhibition. Found by driving a round end into an already-finished match:
+    // the score went to 4 against a target of 3.
+    if (this.matchOver) return;
     round.state = ROUND.ENDED;
     round.winner = winner;
     round.reason = reason;

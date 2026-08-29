@@ -1,0 +1,383 @@
+/**
+ * BLACKLINE - tests/fuzz.js
+ *
+ * AUTO suite: adversarial. Two checks that try to break the game rather than
+ * confirm it works.
+ *
+ * Both exist because of the same lesson, learned twice. Phase 3's ledge hang
+ * and Phase 21's slide were each unreachable from a keyboard while every check
+ * covering them passed, because the checks set intent fields directly and could
+ * therefore pick combinations no player can produce. A held key and its press
+ * edge arrive on the SAME step; a test that sets one without the other is
+ * testing a machine nobody is sitting at.
+ *
+ * So the input fuzz drives real key codes through the real binding layer, and
+ * the lifecycle fuzz drives the round, match and cinematic state machines into
+ * each other rather than exercising them one at a time.
+ *
+ * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
+ */
+
+import { CONFIG, rng } from '../config.js';
+import { SHADE_STATE } from '../entities/agent.js';
+import { ROUND } from '../systems/objective.js';
+
+/**
+ * Everything that must be true after anything at all has happened. Returns a
+ * list of whatever is not.
+ */
+function invariants(h, where) {
+  const bad = [];
+  const shade = h.shade;
+  const warden = h.warden;
+
+  for (const [name, actor] of [['shade', shade], ['warden', warden]]) {
+    for (const field of ['position', 'velocity']) {
+      const v = actor[field];
+      if (!Number.isFinite(v.x) || !Number.isFinite(v.y) || !Number.isFinite(v.z)) {
+        bad.push(`${where}: ${name}.${field} is not finite`);
+      }
+    }
+  }
+  const floor = CONFIG.map.groundY - CONFIG.debug.floorTolerance;
+  if (shade.feetY < floor) bad.push(`${where}: shade fell to y=${shade.feetY.toFixed(2)}`);
+
+  let states = 0;
+  for (const key of Object.keys(SHADE_STATE)) if (SHADE_STATE[key] === shade.state) states++;
+  if (states !== 1) bad.push(`${where}: shade in unknown state "${shade.state}"`);
+
+  let cameras = 0;
+  h.scene.traverse((object) => { if (object.isCamera) cameras++; });
+  if (cameras !== 1) bad.push(`${where}: ${cameras} cameras in the scene`);
+
+  if (!(h.clock.timeScale > 0) || !Number.isFinite(h.clock.timeScale)) {
+    bad.push(`${where}: time scale is ${h.clock.timeScale}`);
+  }
+  if (!Number.isFinite(h.detection.smoothed) || h.detection.smoothed < 0) {
+    bad.push(`${where}: visibility meter is ${h.detection.smoothed}`);
+  }
+  return bad;
+}
+
+export function register(debugTools) {
+  debugTools.registerAutoTest({
+    id: 'random-real-input-never-breaks-anything',
+    spec: 'Section 17 / Section 15',
+    name: 'Seeded random KEY PRESSES, not intents, for a simulated minute',
+    run: (h) => {
+      const problems = [];
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: 8675309 });
+      h.menu.hide();
+      h.setPaused(false);
+      h.input.clearAll();
+
+      const steps = Math.round(60 / CONFIG.time.fixedDt);
+      const seen = new Set();
+      let checks = 0;
+
+      /**
+       * Uniform key churn produces a player having a seizure, and it reached
+       * only ground and air. Real input arrives in BURSTS: a run held for a
+       * second, then a crouch, then a jump. Picking a behaviour and holding it
+       * is what gets the controller into its interesting states, and each
+       * burst still enters through held+pressed on the same step.
+       */
+      const BEHAVIOURS = [
+        { name: 'idle', hold: [] },
+        { name: 'walk', hold: ['KeyW'] },
+        { name: 'sprint', hold: ['KeyW', 'ShiftLeft'] },
+        { name: 'slide', hold: ['KeyW', 'ShiftLeft'], then: 'ControlLeft', after: 30 },
+        { name: 'crouch-walk', hold: ['KeyW', 'ControlLeft'] },
+        { name: 'jump-run', hold: ['KeyW', 'ShiftLeft'], repeat: 'Space', every: 20 },
+        { name: 'strafe', hold: ['KeyA', 'ShiftLeft'] },
+        { name: 'back', hold: ['KeyS'] },
+        { name: 'knife-run', hold: ['KeyW'], repeat: 'KeyF', every: 25 },
+        { name: 'gadgets', hold: [], repeat: 'Digit1', every: 40 },
+      ];
+
+      let burst = null;
+      let burstStep = 0;
+      let burstLeft = 0;
+      const used = new Set();
+
+      for (let step = 0; step < steps; step++) {
+        if (burstLeft <= 0) {
+          // Drop everything from the last burst, as releasing keys does.
+          h.input.clearAll();
+          burst = BEHAVIOURS[rng.int(0, BEHAVIOURS.length - 1)];
+          used.add(burst.name);
+          burstLeft = rng.int(30, 120);
+          burstStep = 0;
+          // A fresh press is held AND pressed on the same step.
+          for (const code of burst.hold) {
+            h.input.heldCodes.add(code);
+            h.input.pressedCodes.add(code);
+          }
+          // Look somewhere new, so the run meets different geometry. Mouse look
+          // happens per frame rather than per step, so this is the same write
+          // the look path makes.
+          h.shade.yaw = rng.next() * Math.PI * 2;
+        }
+
+        if (burst.then && burstStep === burst.after) {
+          h.input.heldCodes.add(burst.then);
+          h.input.pressedCodes.add(burst.then);
+        }
+        if (burst.repeat && burstStep % burst.every === 0) {
+          h.input.heldCodes.add(burst.repeat);
+          h.input.pressedCodes.add(burst.repeat);
+        }
+
+        h.stepFrames(1);
+        // The frame loop clears edges after each step; do the same, or a press
+        // lasts forever and nothing is ever a genuine edge.
+        h.input.clearEdges();
+        if (burst.repeat) h.input.heldCodes.delete(burst.repeat);
+        seen.add(h.shade.state);
+        burstStep++;
+        burstLeft--;
+
+        if (step % 30 === 0) {
+          checks++;
+          const bad = invariants(h, `step ${step} (${burst.name})`);
+          if (bad.length) {
+            problems.push(...bad.slice(0, 2));
+            break;
+          }
+        }
+      }
+
+      h.input.clearAll();
+      problems.push(...invariants(h, 'end').slice(0, 2));
+      if (h.debugTools.assertionFailures !== 0) {
+        problems.push(`${h.debugTools.assertionFailures} runtime assertion failures`);
+      }
+
+      // Which states real input actually reaches. Reported rather than
+      // asserted: what matters is that nothing broke, and that the number is
+      // visible so a change making a state unreachable is noticeable.
+      const reached = [...seen].sort().join(' ');
+
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${steps} steps of bursty real key input, `
+            + `${checks} invariant sweeps across ${used.size} behaviours: no NaN, nothing through the `
+            + `floor, one camera throughout, every state valid; reached [${reached}]`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'a-zero-size-viewport-does-not-blind-the-renderer',
+    spec: 'Section 15',
+    name: 'A resize reporting 0x0 is ignored rather than latched',
+    run: (h) => {
+      const problems = [];
+      const gl = h.renderer.getContext();
+      const canvas = h.renderer.domElement;
+      const before = { w: canvas.width, h: canvas.height };
+      if (before.w <= 0 || before.h <= 0) {
+        return { pass: false, detail: `the canvas is already ${before.w}x${before.h}` };
+      }
+
+      // A viewport reports zero transiently: a minimised window, a tab moved
+      // between displays, devtools resizing an emulated frame. Taking it at
+      // face value sets a 0x0 drawing buffer and an infinite aspect, and every
+      // frame after that is blank until some later resize happens to rescue
+      // it. Found for real: an emulated resize left the canvas 0x0 while CSS
+      // still read 1280x720, and all eight pixel checks went black at once.
+      const original = Object.getOwnPropertyDescriptor(window, 'innerWidth');
+      const restore = () => {
+        if (original) Object.defineProperty(window, 'innerWidth', original);
+        else delete window.innerWidth;
+      };
+      try {
+        Object.defineProperty(window, 'innerWidth', { configurable: true, get: () => 0 });
+        window.dispatchEvent(new Event('resize'));
+      } finally {
+        restore();
+      }
+
+      const after = { w: canvas.width, h: canvas.height };
+      if (after.w !== before.w || after.h !== before.h) {
+        problems.push(`a 0-width resize took the canvas ${before.w}x${before.h} -> ${after.w}x${after.h}`);
+      }
+      if (gl.drawingBufferWidth <= 1 || gl.drawingBufferHeight <= 1) {
+        problems.push(`the drawing buffer collapsed to ${gl.drawingBufferWidth}x${gl.drawingBufferHeight}`);
+      }
+      if (!Number.isFinite(h.camera.aspect) || h.camera.aspect <= 0) {
+        problems.push(`the camera aspect is ${h.camera.aspect}`);
+      }
+
+      // And it still draws something afterwards.
+      h.renderFrame(1 / 60);
+      if (!(h.debugState.drawCalls > 0)) problems.push('nothing drew after the zero resize');
+      if (gl.getError() !== 0) problems.push('GL error after the zero resize');
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `a resize reporting a 0 width left the canvas at ${after.w}x${after.h}, the aspect at `
+            + `${h.camera.aspect.toFixed(3)} and ${h.debugState.drawCalls} draw calls on the next frame`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'the-state-machines-survive-each-other',
+    spec: 'Section 15',
+    name: 'Pause, death, finisher, reinsert and match end driven into one another',
+    run: (h) => {
+      const problems = [];
+      const settle = () => {
+        h.input.clearAll();
+        h.menu.hide();
+        h.setPaused(false);
+        if (h.deathCam.active) h.deathCam.restore();
+        h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+        h.menu.hide();
+        h.stepFrames(10);
+      };
+
+      const kill = () => {
+        h.shade.health = 0;
+        h.emitter.emit('combat:death', { target: 'shade', kind: 'test' });
+      };
+
+      // Each scenario is a collision between two things that each work alone.
+      const scenarios = [
+        ['pause during the death camera', () => {
+          kill();
+          h.setPaused(true);
+          for (let i = 0; i < 30; i++) h.renderFrame(1 / 60);
+          h.menu.hide();
+          h.setPaused(false);
+          h.stepFrames(60);
+        }],
+
+        ['a second death while already dead', () => {
+          kill();
+          const lives = h.objective.round.lives;
+          kill();
+          if (h.objective.round.lives !== lives) {
+            problems.push('dying twice in one death cost two lives');
+          }
+          h.stepFrames(30);
+        }],
+
+        ['initMatch while on the death camera', () => {
+          kill();
+          h.stepFrames(30);
+          h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+          h.menu.hide();
+          if (h.deathCam.active) problems.push('a new match started on the previous death camera');
+          if (h.shade.ragdolled) problems.push('a new match started with the body ragdolled');
+        }],
+
+        ['initMatch while paused', () => {
+          h.setPaused(true);
+          h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+          h.menu.hide();
+          h.setPaused(false);
+          h.stepFrames(30);
+          if (h.paused) problems.push('still paused after a new match');
+        }],
+
+        ['round ends while awaiting reinsert', () => {
+          kill();
+          if (!h.objective.round.awaitingReinsert) return;
+          h.objective._end('warden', 'test');
+          h.stepFrames(60);
+          if (h.deathCam.active) problems.push('the death camera outlived the round');
+        }],
+
+        ['a finisher interrupted by a match reset', () => {
+          // Stand the Warden in front of the Shade, facing away, and knife it.
+          const site = h.map.sites[0];
+          h.shade.reset({ position: site.position, yaw: 0 });
+          h.stepFrames(5);
+          h.warden.reset({
+            position: {
+              x: h.shade.position.x - Math.sin(h.shade.yaw) * 1.0,
+              y: h.shade.feetY,
+              z: h.shade.position.z - Math.cos(h.shade.yaw) * 1.0,
+            },
+            yaw: h.shade.yaw,
+          });
+          h.stepFrames(2);
+          h.combat.knifeTimer = 0;
+          h.combat._swingKnife(h.shade, h.warden);
+          const started = h.combat.inFinisher;
+          h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+          h.menu.hide();
+          h.stepFrames(30);
+          if (!started) problems.push('the rear knife did not start a finisher, so this tested nothing');
+          if (h.combat.inFinisher) problems.push('the finisher survived a match reset');
+          if (Math.abs(h.clock.timeScale - 1) > 1e-9) {
+            problems.push(`time scale left at ${h.clock.timeScale} after a reset mid-finisher`);
+          }
+        }],
+
+        ['plant completing as the round timer expires', () => {
+          h.objective.resetRound(1);
+          const site = h.map.sites[0];
+          h.shade.reset({ position: site.position, yaw: 0 });
+          h.objective.round.timeRemaining = CONFIG.time.fixedDt * 2;
+          h.objective.round.plantProgress = CONFIG.round.plantHoldTime - CONFIG.time.fixedDt;
+          for (let i = 0; i < 10; i++) {
+            h.objective.step(CONFIG.time.fixedDt, {
+              shade: h.shade, warden: h.warden, intent: { interact: true },
+            });
+          }
+          if (h.objective.round.state === ROUND.ACTIVE && h.objective.round.charge === 'carried') {
+            problems.push('the round neither ended nor planted when the timer met the plant');
+          }
+        }],
+
+        ['scoring past the end of the match', () => {
+          h.objective.resetMatch();
+          const target = h.objective.target;
+          for (let i = 0; i < target; i++) {
+            h.objective.resetRound(i + 1);
+            h.objective._end('warden', 'test');
+          }
+          if (!h.objective.matchOver) problems.push('reaching the target did not end the match');
+          h.objective.resetRound(target + 1);
+          h.objective._end('warden', 'test again');
+          if (h.objective.score.warden > target) {
+            problems.push(`scoring past match end took the score to ${h.objective.score.warden}, target ${target}`);
+          }
+          h.objective.resetMatch();
+        }],
+      ];
+
+      for (const [name, scenario] of scenarios) {
+        settle();
+        try {
+          scenario();
+        } catch (error) {
+          problems.push(`${name}: threw ${error && error.message}`);
+          continue;
+        }
+        problems.push(...invariants(h, name));
+      }
+
+      settle();
+      if (h.debugTools.assertionFailures !== 0) {
+        problems.push(`${h.debugTools.assertionFailures} runtime assertion failures`);
+      }
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${scenarios.length} collisions between the round, match, cinematic and pause state machines: `
+            + 'every one left one camera, a valid state, time scale 1 and control with the player'
+          : problems.join('; '),
+      };
+    },
+  });
+}

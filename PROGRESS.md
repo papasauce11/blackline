@@ -2589,3 +2589,169 @@ For the first time this is a short list, and none of it is "does it draw".
 Open `http://localhost:5173`, press Play, and walk the Turbine Hall — the
 lighting is materially different from anything described in earlier entries in
 this file, and it is the thing most worth a first look.
+
+---
+
+## Phases 46 to 49 — adversarial, and the end of the spec-traceable work
+
+**Status:** complete. Suite: **105 → 108 passed, 0 failed.**
+
+Four phases, not the twenty-five asked for. The reason is in the last section
+and it is not a complaint: after forty-eight phases the spec is implemented,
+Section 16 is covered, Section 18 is met, and the honest remaining work is a
+level decision and a judgement call about file sizes. What was left that had
+real value was **adversarial** — every bug found in the last thirty phases came
+from a path the tests drove differently from the way a player does, so these
+three go looking for more of exactly that.
+
+### Phase 46 — random input, through the keys
+
+The Phase 3 ledge hang and the Phase 21 slide were both unreachable from a
+keyboard while every check covering them passed. Both had the same cause: the
+checks set intent fields directly, so they could choose a combination no player
+can produce. A held key and its press edge arrive on the **same step**; a test
+that sets one without the other is testing a machine nobody is sitting at.
+
+`random-real-input-never-breaks-anything` drives `input.heldCodes` and
+`input.pressedCodes` — the real binding layer — for a simulated minute, checking
+every invariant that has to hold no matter what: no NaN in either actor, nothing
+below the floor, exactly one camera, a valid Shade state, a positive time scale,
+a finite meter.
+
+The first version churned keys uniformly at 8% per step and reached only
+`ground` and `air`. That is a player having a seizure, not a player. Real input
+arrives in **bursts** — a run held for a second, then a crouch, then a jump — so
+the generator now picks a behaviour (walk, sprint, slide, crouch-walk, jump-run,
+strafe, knife-run, gadget-spam) and holds it for 30-120 steps, turning to face
+somewhere new each time.
+
+```
+PASS  random-real-input-never-breaks-anything
+      3600 steps of bursty real key input, 120 invariant sweeps across 10 behaviours:
+      no NaN, nothing through the floor, one camera throughout, every state valid;
+      reached [air ground slide]
+```
+
+Reaching `slide` matters: that is the Phase 21 fix holding up under input
+generated without knowing the fix exists.
+
+### Phase 47 — the state machines driven into each other
+
+Everything in this game has been tested alone. The round machine, the match
+score, the finisher, the death camera and the pause each work. What had never
+been tried is two of them at once.
+
+Eight collisions, each a thing that works alone meeting another thing that works
+alone: pausing during the death camera, dying while already dead, `initMatch`
+mid-death-camera, `initMatch` while paused, a round ending while a reinsert is
+pending, a finisher interrupted by a match reset, a plant completing on the step
+the round timer expires, and scoring after the match is already decided.
+
+**One of them was a real bug.** `_end()` incremented the score unconditionally,
+so a round ending after the match was already over pushed the score past the
+target — 4 against a best-of-5 target of 3. `matchOver` is only cleared by
+`resetMatch()`, so anything that started another round without resetting the
+match would keep scoring into a finished one. It is hard to reach through the
+menu, which offers "Main menu" rather than "Next round" once the match is over,
+but it is exactly the kind of thing that becomes reachable the moment someone
+adds a rematch button.
+
+`_end()` now refuses once `matchOver` is set.
+
+```
+PASS  the-state-machines-survive-each-other
+      8 collisions between the round, match, cinematic and pause state machines:
+      every one left one camera, a valid state, time scale 1 and control with the player
+```
+
+### Phase 48 — other window shapes
+
+Section 2 targets 1080p and nothing had ever been rendered at any size but the
+pane's own. Verified live at **1024x768 (4:3)** and **2560x1080 (21:9)**: the
+camera aspect follows the viewport, the canvas resizes with it, all five HUD
+panels stay inside the frame with no overlaps, 313 draw calls, `gl.getError()`
+zero at both.
+
+Worth recording how that was checked, because the first reading looked like a
+bug: setting the viewport through devtools emulation does **not** dispatch a
+`resize` event, so the camera kept its old aspect and the canvas its old size.
+Dispatching the event by hand corrected everything immediately, which says the
+handler is right and the emulation is quiet. A real window resize fires it.
+
+### Phase 49 — a zero-size viewport used to blind the renderer
+
+Found by accident while doing Phase 48, which is the best way to find things.
+After the emulated viewport was reset, **all eight pixel-readback checks
+returned zero pixels at once** — every frame black.
+
+The canvas backing store was 0x0 while CSS still reported 1280x720.
+`onResize()` reads `window.innerWidth`, and the emulation had fired a resize at
+a moment it reported 0, so the renderer latched a 0x0 drawing buffer and an
+infinite camera aspect. Nothing recovers from that until another resize happens
+to arrive.
+
+A viewport reporting zero is not exotic — a minimised window, a tab dragged
+between displays, and devtools all do it. `onResize()` now ignores a
+non-positive size, and there is a check that fires a zero-width resize at the
+live renderer and asserts the canvas, the aspect and the draw calls all survive
+it.
+
+```
+PASS  a-zero-size-viewport-does-not-blind-the-renderer
+      a resize reporting a 0 width left the canvas at 1280x720, the aspect at 1.778
+      and 313 draw calls on the next frame
+```
+
+Worth noting what nearly happened here: eight checks went red at once and the
+obvious reading was that something in the last commit had broken rendering. It
+had not. The checks were right, the game was wrong, and the cause was two
+layers away from anything that had just changed.
+
+### Why four and not twenty-five
+
+The spec is frozen — Section 3 says so in its second line. After forty-eight
+phases:
+
+- All 29 Section 16 checks have AUTO coverage, and the named regression set runs
+  from one keypress.
+- Section 18's definition of done is met except for the items that require a
+  person: how it looks, how it sounds, and the framerate on your machine.
+- 107 AUTO checks, 8 runtime assertions, zero failures.
+
+What genuinely remains is two things, and both are **yours**, not mine:
+
+1. **The map has no hang-band markings.** Bands are vault 19, mantle 30, hang 0,
+   so Section 5's dashed stripe is code that never runs. The ledge that should
+   carry one is `hall-container` — a 0.7m vault from the crate stack beside it
+   and a 3.0m hang from the Turbine Hall floor, both real moves, one stripe.
+   Moving `stack-hall-mid` off its south face would restore the third band, but
+   that stack is the 0.7m step in the Turbine Hall route that
+   `shade-reaches-level-2-without-stairs` drives end to end. Reshaping a
+   verified route to satisfy a stripe is a level-design call, and I have flagged
+   it three times rather than make it.
+
+2. **Six files are over Section 3.1's ~600 lines** (config.js 1165, main.js
+   1083, mapkit.js 945, agent.js 905, ai.js 754, map.js 793, physics.js 737).
+   Eight modules have already been split out and each was a real seam. What is
+   left in each of these is cohesive: splitting `ai.js` further means turning
+   eight methods that share instance state into free functions that take the AI,
+   which makes the code harder to read rather than easier — the opposite of what
+   the rule exists for. `config.js` is exempt by Section 3's own single-source-
+   of-truth requirement.
+
+Everything beyond that would be **new features**, which Section 3 forbids
+without a decision from you. Say what you want built and I will build it; ask
+for more phases against this spec and I would be inventing work to fill a
+number, which is worse than saying so.
+
+### Verification actually performed
+
+- **AUTO suite: 108 passed, 0 failed**, run twice in succession.
+- 8 runtime assertions, 0 failures.
+- Live at three viewport shapes; camera, canvas and HUD correct at each.
+- The fuzz reaches `ground`, `air` and `slide` from generated key input alone.
+
+### Not verified (still needs a human)
+
+Unchanged and short: how it looks, how it sounds, the vsync framerate on
+integrated graphics, and the `hall-container` stripe decision above.

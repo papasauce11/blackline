@@ -531,6 +531,13 @@ function createCamera() {
 function onResize() {
   const width = window.innerWidth;
   const height = window.innerHeight;
+  // A viewport can report zero transiently — a minimised window, a tab being
+  // moved between displays, devtools resizing the emulated frame. Taking it at
+  // face value latches a 0x0 drawing buffer and an infinite aspect, and the
+  // game then renders nothing until some later resize happens to rescue it.
+  // Found when an emulated resize left the canvas 0x0 while CSS still said
+  // 1280x720 and every pixel read back black.
+  if (!(width > 0) || !(height > 0)) return;
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.render.maxPixelRatio));
