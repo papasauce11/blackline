@@ -1,5 +1,12 @@
 # Blackline — build progress
 
+> **Starting a new session? Read [HANDOFF.md](HANDOFF.md) first.** It is one
+> page: current state, the redesign now in progress, the work queue, how to run
+> the suite, and the environment traps. This file is the full history and is
+> long — come here for the detail behind a specific phase, not to get oriented.
+>
+> The live entry is the last one, **THE ENDGAME REDESIGN**.
+
 Append-only log. One entry per phase. Read this and the relevant sections of
 `BLACKLINE_SPEC.md` before touching any code, especially after a context
 compaction.

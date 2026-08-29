@@ -7,9 +7,10 @@ kill the Shade or defuse the charge.
 
 Built to `BLACKLINE_SPEC.md`, which is the contract for this repo.
 
-> **Build status:** in progress. See [PROGRESS.md](PROGRESS.md) for exactly what
-> is wired up and what is not. The controls below are the full intended scheme;
-> PROGRESS.md records which of them are live right now.
+> **Build status:** in progress, mid-redesign. See [HANDOFF.md](HANDOFF.md) to
+> get oriented in one page, and [PROGRESS.md](PROGRESS.md) for the full history.
+> The affordance markings described in Section 5 of the spec have been removed
+> and traversal is being rebuilt around physical reach — HANDOFF.md explains.
 
 ---
 
