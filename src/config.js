@@ -233,6 +233,36 @@ export const CONFIG = {
     jumpBuffer: 0.12,
     /** Max step-up height handled silently without a vault. */
     stepHeight: 0.32,
+
+    /**
+     * Reach (Section 6.1, amended). What the Shade can climb is a property of
+     * its body, not of three authored height bands.
+     *
+     * The bands were `vault 0.4-1.2 / mantle 1.2-2.4 / hang 2.4-4.2`, and they
+     * decided BOTH what was possible and what the map painted a stripe on. With
+     * the markings gone the map has to explain itself, so the only question
+     * left is the honest one: can this body get up there?
+     *
+     * Athletic, and a jump extends it. Standing, the Shade mantles anything up
+     * to `standing`; at the apex of a jump it gets `jumpBonus` more. A rise
+     * under `stepOver` is not a climb at all, the solver just carries it.
+     *
+     * The consequence worth knowing: 6m is the upper deck and 4.5m is the site
+     * fence, so both stay out of reach and the vertical layout still enforces
+     * the one-way routes that `noClimb` used to fake.
+     */
+    reach: {
+      standing: 2.6,
+      jumpBonus: 1.2,
+      stepOver: 0.32,
+      /**
+       * At or below this it reads as a vault - you plant a hand and swing
+       * over. Above it you pull yourself up. Chest height on a 1.85m body,
+       * which puts the classic 1.0m crate on the vault side where it
+       * belongs; at 0.95 it read as a mantle and felt wrong.
+       */
+      vaultTop: 1.15,
+    },
     /** Above this cosine the surface counts as ground, not wall. */
     groundNormalY: 0.6,
 
@@ -777,9 +807,6 @@ export const CONFIG = {
     deckLipDepth: 0.7,
 
     /** Ledge classification bands. These drive BOTH collision and markings. */
-    vaultBand: [0.4, 1.2],
-    mantleBand: [1.2, 2.4],
-    hangBand: [2.4, 4.2],
 
     /**
      * Vent runs are crouch-only and silent. Interior height must clear the
@@ -880,20 +907,18 @@ export const CONFIG = {
 
     /** Affordance markings (Section 5). Generated from the collision flags. */
     marking: {
-      stripeThickness: 0.035,
-      stripeInset: 0.01,
-      vaultIntensity: 0.35,
-      mantleIntensity: 0.75,
-      hangIntensity: 0.75,
-      /** Dashed pattern for hang edges. */
-      hangDashLength: 0.3,
-      hangGapLength: 0.22,
-      /** Chevron decal on the face below a mantle ledge. */
-      chevronWidth: 0.42,
-      chevronHeight: 0.18,
-      chevronCount: 2,
-      /** Vent interiors are self-illuminated so the run reads as passable. */
-      ventPanelIntensity: 0.22,
+      /**
+       * Section 5, amended: there are no affordance markings.
+       *
+       * The stripes, chevrons, dashed hang edges and self-illuminated vent
+       * panels are gone. A ledge is climbable because the geometry says so and
+       * the body can reach it, and it has to LOOK climbable for the same
+       * reason. Painting a hint on a shape that does not read is treating the
+       * symptom.
+       *
+       * The plant-site ring stays. A bomb site is information about the
+       * objective, not a hint about traversal.
+       */
       /** Plant site: flat ring decal, 2m diameter, hazard orange, pulsing. */
       siteRingInner: 0.86,
       siteRingOuter: 1.0,

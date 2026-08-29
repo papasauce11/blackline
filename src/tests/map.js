@@ -10,7 +10,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { classifyLedge } from '../physics.js';
+import { classifyReach } from '../physics.js';
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
@@ -32,116 +32,6 @@ export function register(debugTools) {
       return {
         pass: casters === 1 && pointCasters === 0 && mapOk,
         detail: `${total} lights, ${casters} shadow caster(s), ${pointCasters} shadowed point lights, shadow map ${size.x}x${size.y}`,
-      };
-    },
-  });
-
-  debugTools.registerAutoTest({
-    id: 'markings-match-collision-flags',
-    spec: 'check 26 (auto half) / Section 15',
-    name: 'Every climbable box is marked, in the band its geometry implies',
-    run: (h) => {
-      let climbable = 0;
-      let marked = 0;
-      let mismatched = 0;
-      const bands = { vault: 0, mantle: 0, hang: 0 };
-
-      for (const box of h.map.collision.boxes) {
-        if (!box.climbable) continue;
-        climbable++;
-        const ledge = h.map.ledges.find((entry) => entry.box === box);
-        if (!ledge) continue;
-        marked++;
-        // Recompute the band independently from the stored rise and compare.
-        if (classifyLedge(ledge.rise) !== box.ledgeBand) mismatched++;
-        if (box.ledgeBand) bands[box.ledgeBand]++;
-      }
-
-      return {
-        pass: climbable > 0 && marked === climbable && mismatched === 0,
-        detail: `${climbable} climbable, ${marked} marked, ${mismatched} band mismatches (vault ${bands.vault}, mantle ${bands.mantle}, hang ${bands.hang})`,
-      };
-    },
-  });
-
-  debugTools.registerAutoTest({
-    id: 'climbable-surfaces-are-derived-not-hand-flagged',
-    spec: 'Section 5 / reported bug',
-    name: 'Every standable surface in a traversal band is climbable; exclusions are justified',
-    run: (h) => {
-      const minSupport = CONFIG.shade.radius * 2;
-      const unjustified = [];
-
-      for (const box of h.map.collision.boxes) {
-        if (box.climbable || !box.solid) continue;
-        // Every non-climbable surface must have a reason. Anything wide enough
-        // to stand on, in a traversal band, and not explicitly opted out is an
-        // invisible wall on a surface that looks climbable.
-        const wideX = box.max.x - box.min.x >= minSupport;
-        const wideZ = box.max.z - box.min.z >= minSupport;
-        if (!wideX || !wideZ) continue; // too thin to land on
-        if (box.noClimb) continue; // deliberate one-way drop
-        const standY = h.map._supportHeightBelow(box);
-        if (!classifyLedge(box.max.y - standY)) continue; // out of every band
-        // Wide, in-band, not opted out: the only remaining excuse is no
-        // headroom, which deriveClimbableSurfaces() already tested.
-        const headroom = CONFIG.shade.crouchHeight;
-        const probeHalf = { x: minSupport * 0.5, y: headroom * 0.5, z: minSupport * 0.5 };
-        const point = { x: box.centerX, y: box.max.y + headroom * 0.5 + 0.05, z: box.centerZ };
-        if (!h.map.collision.isClear(point, probeHalf)) continue;
-        unjustified.push(box.tag);
-      }
-
-      // The surfaces a player will obviously try must all be climbable.
-      const mustClimb = h.map.collision.boxes.filter((box) =>
-        /^(crate|stack|gantry|lip-|office-cover|server-rack|hall-container|fire-escape)/.test(box.tag)
-      );
-      const missed = mustClimb.filter((box) => !box.climbable).map((box) => box.tag);
-
-      return {
-        pass: unjustified.length === 0 && missed.length === 0 && h.map.ledges.length === h.map.collision.boxes.filter((b) => b.climbable).length,
-        detail:
-          unjustified.length === 0 && missed.length === 0
-            ? `${h.map.ledges.length} climbable surfaces derived and marked; ${mustClimb.length} obvious traversal surfaces all climbable; every exclusion justified (too thin, out of band, no headroom, or noClimb)`
-            : `unjustified exclusions: [${unjustified.join(', ')}]; obvious surfaces missed: [${missed.join(', ')}]`,
-      };
-    },
-  });
-
-  debugTools.registerAutoTest({
-    id: 'markings-sit-on-real-geometry',
-    spec: 'Section 5 / reported bug: chevrons floating in mid-air',
-    name: 'Every affordance decal lies on the surface it describes',
-    run: (h) => {
-      const floating = [];
-      let marked = 0;
-
-      for (const ledge of h.map.ledges) {
-        // Top-edge stripes ride the ledge's own top face, so they cannot drift.
-        // Chevrons go on the face BELOW the ledge, which only exists where the
-        // ledge reaches down to whatever it was measured against. A lip, gantry
-        // or duct hangs, so its face stops well short of that.
-        if (ledge.band !== 'mantle') continue;
-        const box = ledge.box;
-        if (!ledge.chevrons) {
-          floating.push(`${box.tag} is a mantle ledge with no chevrons`);
-          continue;
-        }
-        marked++;
-        // Asserted against where the map actually put them, not a recomputation.
-        if (ledge.chevrons.y0 < box.min.y - 1e-6 || ledge.chevrons.y1 > box.max.y + 1e-6) {
-          floating.push(
-            `${box.tag} decal spans ${ledge.chevrons.y0.toFixed(2)}..${ledge.chevrons.y1.toFixed(2)}, box is ${box.min.y.toFixed(2)}..${box.max.y.toFixed(2)}`
-          );
-        }
-      }
-
-      return {
-        pass: floating.length === 0 && marked > 0,
-        detail:
-          floating.length === 0
-            ? `${marked} mantle ledges: every chevron sits within the face of the box it marks`
-            : `${floating.length} floating: ${floating.slice(0, 5).join('; ')}`,
       };
     },
   });
@@ -315,7 +205,7 @@ export function register(debugTools) {
         ['upper vent -> deck', CONFIG.map.catwalkY - CONFIG.map.ventUpperY],
       ];
       for (const [label, rise] of chain) {
-        if (classifyLedge(rise) !== 'mantle') problems.push(`${label} rise ${rise.toFixed(2)}m is not a mantle`);
+        if (classifyReach(rise, CONFIG.shade.reach.standing + CONFIG.shade.reach.jumpBonus) !== 'mantle') problems.push(`${label} rise ${rise.toFixed(2)}m is not a mantle`);
       }
       if (grade < 2) problems.push(`only ${grade} vent mouths at grade, v2 wants at least 2`);
 

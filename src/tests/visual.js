@@ -16,15 +16,6 @@
 import { CONFIG } from '../config.js';
 import { createLens, difference, meanLuma, meanLumaIn, brightnessDelta, erode, quiesce } from './pixels.js';
 
-/** Every merged marking mesh (one per band, named at build time). */
-function markingMeshes(h) {
-  const found = [];
-  h.map.root.traverse((object) => {
-    if (object.name === 'affordance-markings') found.push(object);
-  });
-  return found;
-}
-
 /** Look at `target` from `distance` away, on a bearing, at eye height. */
 function eyeOn(target, distance, bearing, height = 1.4) {
   return {
@@ -35,75 +26,6 @@ function eyeOn(target, distance, bearing, height = 1.4) {
 }
 
 export function register(debugTools) {
-  // -------------------------------------------------------------------------
-  // Section 5 — the markings are visible, and the bands differ
-  // -------------------------------------------------------------------------
-  debugTools.registerAutoTest({
-    id: 'affordance-markings-actually-render',
-    spec: 'Section 5 / check 26',
-    name: 'The stripes are drawn, brighter than the surface, and the bands differ',
-    run: (h) => {
-      const problems = [];
-      const restore = quiesce(h);
-      const lens = createLens(h);
-      const meshes = markingMeshes(h);
-
-      if (meshes.length === 0) {
-        lens.restore();
-        restore();
-        return { pass: false, detail: 'no merged marking meshes in the scene' };
-      }
-
-      // A vault ledge on the ground floor, framed from just above and in front
-      // so its top edge — where the stripe lives — fills a good part of frame.
-      const ledge = h.map.ledges.find((entry) => entry.band === 'vault' && entry.box.max.y < 2)
-        || h.map.ledges[0];
-      const box = ledge.box;
-      const centre = { x: (box.min.x + box.max.x) / 2, y: box.max.y, z: (box.min.z + box.max.z) / 2 };
-      lens.look(eyeOn(centre, 2.2, 0, 1.1), centre);
-
-      const withMarks = lens.grab();
-      for (const mesh of meshes) mesh.visible = false;
-      const without = lens.grab();
-      for (const mesh of meshes) mesh.visible = true;
-
-      const diff = difference(withMarks, without, lens.width, lens.height, 6);
-      // Section 5's stripes are emissive teal on concrete: they must ADD light.
-      const delta = brightnessDelta(without, withMarks, diff.mask);
-
-      if (diff.count < 200) problems.push(`the stripe covered only ${diff.count} pixels — it is not being drawn`);
-      if (delta <= 0) problems.push(`the marking darkened the surface by ${(-delta).toFixed(1)} instead of lighting it`);
-
-      // The three bands must be distinguishable, or the marking says "ledge"
-      // without saying which move. Compared as materials, since the bands are
-      // merged per intensity and each is one mesh.
-      const intensities = meshes.map((mesh) => {
-        const c = mesh.material.color;
-        return Math.round((0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) * 1000) / 1000;
-      }).sort((a, b) => a - b);
-      const bands = new Set(h.map.ledges.map((entry) => entry.band));
-      if (intensities.length !== bands.size) {
-        problems.push(`${bands.size} bands on the map but ${intensities.length} marking materials`);
-      }
-      for (let i = 1; i < intensities.length; i++) {
-        if (intensities[i] - intensities[i - 1] < 0.02) {
-          problems.push(`two bands render at ${intensities[i - 1]} and ${intensities[i]} — indistinguishable`);
-        }
-      }
-      if (lens.glError() !== 0) problems.push('GL error during the reads');
-
-      lens.restore();
-      restore();
-      return {
-        pass: problems.length === 0,
-        detail: problems.length === 0
-          ? `${ledge.band} stripe on "${box.tag}": ${diff.count} pixels drawn, +${delta.toFixed(1)} brighter than `
-            + `the bare surface; ${intensities.length} band materials at luma ${intensities.join(' / ')}, all distinct`
-          : problems.join('; '),
-      };
-    },
-  });
-
   // -------------------------------------------------------------------------
   // Section 4 — "high contrast between lit pools and dark gaps"
   // -------------------------------------------------------------------------
@@ -119,11 +41,29 @@ export function register(debugTools) {
       // Measured looking DOWN at the floor from standing height, so the reading
       // is of the light landing in the room rather than of whatever wall
       // happens to be on the far side of it.
+      // Sampled OFF the site centre. A plant site carries a 2m hazard ring that
+      // pulses between 0.35 and 0.9 opacity, and it sits exactly under a camera
+      // pointed straight down at the site. In the dark rooms it dominated the
+      // crop, and because the lit and unlit samples are taken at different
+      // moments it was read at different points in its pulse — which is how an
+      // "ambient floor" came out brighter than the same floor with the lights on.
+      const OFF_RING = CONFIG.map.marking.siteRingOuter + 2.5;
       const sample = (position) => {
-        const target = { x: position.x, y: position.y, z: position.z };
-        lens.look({ x: position.x, y: position.y + 2.2, z: position.z + 0.01 }, target);
-        return meanLumaIn(lens.grab(), lens.width, lens.height, 0.5);
+        const at = { x: position.x + OFF_RING, y: position.y, z: position.z };
+        lens.look({ x: at.x, y: at.y + 2.2, z: at.z + 0.01 }, at);
+        return meanLumaIn(lens.grab(), lens.width, lens.height, 0.4);
       };
+
+      // Get both actors out of the frame first. The sample looks straight down
+      // at a site floor, and a body standing on it is lit geometry inside the
+      // crop — which made this reading depend on wherever the previous check
+      // happened to leave someone.
+      const parked = { x: 0, y: -400, z: 0 };
+      h.shade.mesh.visible = false;
+      h.warden.mesh.visible = false;
+      h.shade.groundBlob.visible = false;
+      h.warden.groundBlob.visible = false;
+      void parked;
 
       // The first draw after a load compiles programs and returns a frame that
       // is not representative. Warm up before measuring anything.
@@ -169,6 +109,10 @@ export function register(debugTools) {
       }
       if (lens.glError() !== 0) problems.push('GL error during the reads');
 
+      h.shade.mesh.visible = true;
+      h.warden.mesh.visible = true;
+      h.shade.groundBlob.visible = true;
+      h.warden.groundBlob.visible = true;
       lens.restore();
       restore();
       const summary = Object.entries(readings)

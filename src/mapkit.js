@@ -22,7 +22,7 @@
 
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
-import { CollisionWorld, classifyLedge } from './physics.js';
+import { CollisionWorld, classifyReach } from './physics.js';
 import {
   CUT_EPSILON, SWEEP_STEP, createMaterialCache, applyContactTint,
   collectCuts, containsPoint, bake, mergeGeometries,
@@ -86,7 +86,6 @@ export class GameMap {
    * @param {number[]} spec.max [x, y, z]
    * @param {number} [spec.color]
    * @param {boolean} [spec.climbable] force the top face to be a usable ledge
-   * @param {boolean} [spec.noClimb] opt out of automatic climbability
    * @param {boolean} [spec.vent] crouch-only silent volume
    * @param {boolean} [spec.solid]
    * @param {boolean} [spec.blocksSight]
@@ -139,7 +138,6 @@ export class GameMap {
       {
         solid: spec.solid !== false,
         climbable: spec.climbable === true,
-        noClimb: spec.noClimb === true,
         vent: spec.vent === true,
         blocksSight: spec.blocksSight !== false,
         tag: spec.tag,
@@ -259,13 +257,7 @@ export class GameMap {
    * deck is to declare a void that severs it, which the connectivity check
    * catches.
    *
-   * Plain cells carry `noClimb`. A 6m deck edge is not something to scramble
-   * up, and without the flag every cell that happens to have a gantry beneath
-   * it would silently become a ledge. Climbing onto the deck happens at
-   * declared `lips` — cells that hang deeper than the slab so the Shade's
-   * forward probe gets more than one ray into the face, and that are left
-   * eligible for the automatic climbability pass.
-   *
+   * A 6m deck edge is out of reach on its own, so nothing has to say so.
    * @param {object} spec
    * @param {number[]} spec.min [x, z]
    * @param {number[]} spec.max [x, z]
@@ -301,7 +293,6 @@ export class GameMap {
             max: [runTo, spec.top, zb],
             color: spec.color,
             tag: `${spec.tag}-${plain++}`,
-            noClimb: true,
             // Deliberately NOT castShadow:false. A plate is the roof or the
             // upper deck — the largest occluders on the map — and switching
             // them out of the shadow pass let the one directional key light
@@ -509,20 +500,9 @@ export class GameMap {
       span(spec.from + insetFrom, spec.to - insetTo, c0, c1, y1, y1 + wallT, `${spec.tag}-roof`, { vent: true });
     }
 
-    // Section 5: vent interiors are lit by a dim self-illuminated panel so the
-    // run reads as passable from outside.
-    const panelMaterial = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(P.signageTeal).multiplyScalar(M.marking.ventPanelIntensity),
-      fog: true,
-    });
-    const length = spec.to - spec.from;
-    const panel = new THREE.Mesh(
-      new THREE.BoxGeometry(alongX ? length - 0.2 : w - 0.2, 0.04, alongX ? w - 0.2 : length - 0.2),
-      panelMaterial
-    );
-    const mid = (spec.from + spec.to) / 2;
-    panel.position.set(alongX ? mid : spec.cross, y1 - 0.06, alongX ? spec.cross : mid);
-    this.root.add(panel);
+    // Section 5, amended: the self-illuminated interior panel is gone with the
+    // rest of the affordance markings. A duct says it is passable by being
+    // visibly a duct - metal, rimmed, person-sized - not by glowing.
 
     const record = {
       tag: spec.tag,
@@ -587,38 +567,47 @@ export class GameMap {
   // -------------------------------------------------------------------------
 
   /**
-   * Decide which surfaces are climbable from the geometry itself, rather than
-   * from a per-box flag typed by hand.
+   * Decide which surfaces are climbable, from the geometry and the body alone.
    *
-   * Hand-flagging every ledge is the same failure Section 5 warns about, just
-   * one level up: miss a box and the player meets an invisible wall on a
-   * surface that plainly looks climbable. A surface qualifies when it is
-   * something you could actually stand on and get to:
+   * Section 5, amended: there are no markings, so this is the whole contract.
+   * The rule is mechanical and has NO exceptions — no `noClimb`, no tags, no
+   * per-box judgement:
    *
-   *   - the top face is at least an actor-diameter across in both axes, so
-   *     there is somewhere to land (a 0.12m parapet is not a ledge)
-   *   - there is at least crouch headroom above it, which excludes walls that
-   *     run all the way to the ceiling
-   *   - the rise above whatever you would climb from falls in a traversal band
+   *   a surface is climbable when you could stand on top of it
+   *   and the body could reach it from whatever is below.
    *
-   * `noClimb` opts a surface out. It is used where the level design needs a
-   * one-way drop, and across the upper deck, whose edges are climbable only at
-   * the lips the routes actually arrive on.
+   * "Stand on top of it" means a top face at least an actor-diameter across in
+   * both axes with crouch headroom above. "Reach it" means the rise from the
+   * surface below is inside `CONFIG.shade.reach` at full stretch — standing
+   * reach plus what a jump adds.
+   *
+   * `noClimb` used to opt surfaces out: the office floor to keep the drop shaft
+   * one-way, and the whole upper deck except four declared lips. Both are now
+   * enforced by the vertical layout instead. The deck is 6m and full reach is
+   * 3.8m, so it is unreachable on its own merits and nothing has to say so —
+   * which means a future change to a floor height cannot silently turn a
+   * one-way route into a two-way one without the census noticing.
    */
   deriveClimbableSurfaces() {
     const minSupport = CONFIG.shade.radius * 2;
     const headroom = CONFIG.shade.crouchHeight;
     const probeHalf = { x: minSupport * 0.5, y: headroom * 0.5, z: minSupport * 0.5 };
+    const fullReach = CONFIG.shade.reach.standing + CONFIG.shade.reach.jumpBonus;
+
+    this.ledges.length = 0;
 
     for (const box of this.collision.boxes) {
-      if (box.noClimb || !box.solid) continue;
+      if (!box.solid) continue;
       if (box.max.x - box.min.x < minSupport) continue;
       if (box.max.z - box.min.z < minSupport) continue;
 
       const standY = this._supportHeightBelow(box);
-      if (!classifyLedge(box.max.y - standY)) continue;
+      const rise = box.max.y - standY;
+      const move = classifyReach(rise, fullReach);
+      // `step` is not a climb: the swept solver carries you over it.
+      if (move === null || move === 'step') continue;
 
-      // Somewhere to actually stand once you are up. Sample along the surface
+      // Somewhere to actually stand once you are up. Sampled along the surface
       // rather than at its centre alone: a long ledge that passes under one
       // obstruction is still climbable everywhere else, and judging it by a
       // single point excludes the whole thing.
@@ -640,93 +629,11 @@ export class GameMap {
       if (!standable) continue;
 
       box.climbable = true;
+      box.reachMove = move;
+      this.ledges.push({ box, move, topY: box.max.y, standY, rise });
     }
   }
 
-  /**
-   * For every climbable collision box, work out how high its top face sits
-   * above whatever you would be standing on to climb it, classify that height
-   * with the same `classifyLedge()` the controller uses, and emit the marking
-   * the spec assigns to that band.
-   *
-   * Nothing here is authored per-ledge. Flip `climbable` on a box and its
-   * stripe appears; move the box and the band reclassifies.
-   */
-  generateAffordanceMarkings() {
-    const mark = M.marking;
-    // Every stripe, dash and chevron of one band shares a material and never
-    // moves, so they are baked into a single mesh per band. Left as individual
-    // meshes they were 372 of the map's 586 draw calls — most of the frame's
-    // submissions, for decoration. Merging costs nothing in readability: they
-    // are still generated in one pass from the collision flags.
-    const buckets = new Map();
-
-    const bucketFor = (intensity) => {
-      const key = intensity.toFixed(2);
-      let bucket = buckets.get(key);
-      if (!bucket) {
-        const color = new THREE.Color(P.signageTeal).multiplyScalar(intensity);
-        bucket = { material: new THREE.MeshBasicMaterial({ color, fog: true }), parts: [] };
-        buckets.set(key, bucket);
-      }
-      return bucket;
-    };
-
-    for (const box of this.collision.boxes) {
-      if (!box.climbable) continue;
-
-      const standY = this._supportHeightBelow(box);
-      const rise = box.max.y - standY;
-      const band = classifyLedge(rise);
-      box.ledgeBand = band;
-      if (!band) continue;
-
-      const intensity =
-        band === 'vault' ? mark.vaultIntensity : band === 'mantle' ? mark.mantleIntensity : mark.hangIntensity;
-      const bucket = bucketFor(intensity);
-      const y = box.max.y + mark.stripeInset;
-      const t = mark.stripeThickness;
-
-      const edges = [
-        { horizontal: true, z: box.min.z + t / 2 },
-        { horizontal: true, z: box.max.z - t / 2 },
-        { horizontal: false, x: box.min.x + t / 2 },
-        { horizontal: false, x: box.max.x - t / 2 },
-      ];
-
-      for (const edge of edges) {
-        const length = edge.horizontal ? box.max.x - box.min.x : box.max.z - box.min.z;
-        if (length <= t) continue;
-        const centre = edge.horizontal
-          ? new THREE.Vector3(box.centerX, y, edge.z)
-          : new THREE.Vector3(edge.x, y, box.centerZ);
-
-        if (band === 'hang') {
-          // Section 5: hang edges use a dashed stripe.
-          this._addDashedStripe(centre, length, t, edge.horizontal, bucket);
-        } else {
-          const geometry = edge.horizontal
-            ? new THREE.BoxGeometry(length, t, t)
-            : new THREE.BoxGeometry(t, t, length);
-          bake(bucket, geometry, centre.x, centre.y, centre.z);
-        }
-      }
-
-      // Section 5: mantle ledges also get chevrons on the face below.
-      const chevrons = band === 'mantle' ? this._addChevrons(box, standY, bucket) : null;
-
-      this.ledges.push({ box, band, topY: box.max.y, standY, rise, chevrons });
-    }
-
-    for (const bucket of buckets.values()) {
-      if (!bucket.parts.length) continue;
-      const mesh = new THREE.Mesh(mergeGeometries(bucket.parts), bucket.material);
-      mesh.name = 'affordance-markings';
-      mesh.castShadow = false;
-      mesh.receiveShadow = false;
-      this.root.add(mesh);
-    }
-  }
 
   /**
    * Height of the surface an actor would be standing on to climb this box:
@@ -765,90 +672,6 @@ export class GameMap {
     return heights;
   }
 
-  /**
-   * Every band this ledge really gives, one per height it can be climbed from.
-   *
-   * A stripe is one mesh on one top edge, seen from every floor at once, but a
-   * box reachable from two floors has two bands and no single marking can say
-   * both. `hall-container` is the live case: a 0.7m vault from the crate stack
-   * beside it, part of the Turbine Hall route, and a 3.0m hang from the floor,
-   * which is what it was added for. Both are real moves.
-   *
-   * The marking names the tallest approach, because that is the designed one
-   * on every multi-tier route on the map — the intermediate tiers exist
-   * precisely so the climb is made from them. This exists so the readability
-   * check can hold the marking to "a move this ledge actually gives" rather
-   * than to a single answer the geometry does not have.
-   */
-  ledgeBandsFor(box) {
-    const bands = new Set();
-    for (const height of this._supportCandidates(box)) {
-      const band = classifyLedge(box.max.y - height);
-      if (band) bands.add(band);
-    }
-    return [...bands];
-  }
-
-  _addDashedStripe(centre, length, thickness, horizontal, bucket) {
-    const mark = M.marking;
-    const period = mark.hangDashLength + mark.hangGapLength;
-    const count = Math.max(1, Math.floor(length / period));
-    const start = -length / 2 + mark.hangDashLength / 2;
-    for (let i = 0; i < count; i++) {
-      const offset = start + i * period;
-      const geometry = horizontal
-        ? new THREE.BoxGeometry(mark.hangDashLength, thickness, thickness)
-        : new THREE.BoxGeometry(thickness, thickness, mark.hangDashLength);
-      bake(
-        bucket,
-        geometry,
-        centre.x + (horizontal ? offset : 0),
-        centre.y,
-        centre.z + (horizontal ? 0 : offset)
-      );
-    }
-  }
-
-  _addChevrons(box, standY, bucket) {
-    const mark = M.marking;
-    // Section 5 puts the chevrons "on the face below" a mantle ledge, and the
-    // natural height is halfway between the ledge top and the surface you climb
-    // from. That assumed every ledge stands on the ground. A v2 lip, gantry,
-    // duct or fire-escape platform HANGS — it is a slab with air beneath it —
-    // so the midpoint is empty space and the decals float there, unattached.
-    // Keep them on the box's own face.
-    // A duct roof is 0.12m thick, thinner than the decal itself, so the decal
-    // is also sized to the face rather than only positioned on it.
-    const span = box.max.y - box.min.y;
-    const height = Math.min(mark.chevronHeight, Math.max(span - 2 * mark.stripeInset, span * 0.6));
-    const halfChevron = height / 2;
-    const midpoint = (box.max.y + standY) / 2;
-    const faceY = Math.min(Math.max(midpoint, box.min.y + halfChevron), box.max.y - halfChevron);
-    const spread = mark.chevronHeight * 1.6;
-    // Chevrons go on the two longer faces so the route reads from a distance.
-    const spanX = box.max.x - box.min.x;
-    const spanZ = box.max.z - box.min.z;
-    const onX = spanX >= spanZ;
-
-    for (let side = 0; side < 2; side++) {
-      for (let i = 0; i < mark.chevronCount; i++) {
-        const geometry = onX
-          ? new THREE.BoxGeometry(mark.chevronWidth, height, mark.stripeThickness)
-          : new THREE.BoxGeometry(mark.stripeThickness, height, mark.chevronWidth);
-        const along = (i - (mark.chevronCount - 1) / 2) * spread * 2;
-        const x = onX
-          ? box.centerX + along
-          : side === 0 ? box.min.x - mark.stripeInset : box.max.x + mark.stripeInset;
-        const z = onX
-          ? side === 0 ? box.min.z - mark.stripeInset : box.max.z + mark.stripeInset
-          : box.centerZ + along;
-        bake(bucket, geometry, x, faceY, z, onX ? 0 : 0.32, onX ? 0.32 : 0);
-      }
-    }
-    // Where the decals actually ended up, so the check asserts what was built
-    // rather than recomputing the placement and agreeing with itself.
-    return { y0: faceY - halfChevron, y1: faceY + halfChevron };
-  }
 
   // -------------------------------------------------------------------------
   // Lights

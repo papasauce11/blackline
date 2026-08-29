@@ -17,7 +17,7 @@
 
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { applyGravity, classifyLedge } from '../physics.js';
+import { applyGravity, classifyReach } from '../physics.js';
 import { buildShadeMesh, buildGroundBlob } from './agentmesh.js';
 
 const S = CONFIG.shade;
@@ -35,8 +35,15 @@ export const SHADE_STATE = {
   PULLUP: 'pullup',
 };
 
-/** Heights above the feet at which a ledge probe looks for a climbable face. */
-const PROBE_HEIGHTS = [0.25, 0.6, 1.0, 1.45, 1.9, 2.35];
+/**
+ * Spacing of the ledge probe's sample heights.
+ *
+ * This used to be six fixed heights (0.25 / 0.6 / 1.0 / 1.45 / 1.9 / 2.35) and
+ * a 0.2m-thick floor slab sitting between the last two was invisible to it —
+ * the v2 vent lips classified, marked, and could never actually be climbed. A
+ * fixed ladder of samples has gaps by construction; a sweep does not.
+ */
+const PROBE_STEP = 0.12;
 
 /** Blank intent, so callers can omit fields without the controller reading NaN. */
 export function createIntent() {
@@ -393,19 +400,24 @@ export class Shade {
 
   /**
    * Look for a climbable face ahead and return what the controller would do
-   * with it. Uses `classifyLedge()` — the same function map.js used to place
+   * with it. Uses `classifyReach()` — the same function the map derives
    * the affordance stripes, so what is marked is exactly what is climbable.
    */
-  _probeLedge(reach) {
+  _probeLedge(forward) {
     const dirX = -Math.sin(this.yaw);
     const dirZ = -Math.cos(this.yaw);
     const direction = { x: dirX, y: 0, z: dirZ };
-    const distance = reach + this.half.x;
+    const distance = forward + this.half.x;
     const feet = this.feetY;
+    // How high this body can get right now (Section 6.1, amended). Airborne is
+    // taken at full stretch: you are already off the ground, so the jump has
+    // been spent and its height is what put the ledge in range.
+    const reach = S.reach.standing + (this.grounded ? 0 : S.reach.jumpBonus);
 
-    for (let i = 0; i < PROBE_HEIGHTS.length; i++) {
-      const probeY = feet + PROBE_HEIGHTS[i];
-      const origin = { x: this.position.x, y: probeY, z: this.position.z };
+    // Sweep from the feet to the top of reach. Every sample is a face the
+    // player could plausibly have their hands on.
+    for (let probe = PROBE_STEP; probe <= reach + PROBE_STEP; probe += PROBE_STEP) {
+      const origin = { x: this.position.x, y: feet + probe, z: this.position.z };
       const hit = this.collision.raycast(origin, direction, distance);
       if (!hit || !hit.box.climbable) continue;
       // Only a face gives a ledge; a top or bottom hit is not something to climb.
@@ -413,13 +425,14 @@ export class Shade {
 
       const topY = hit.box.max.y;
       const rise = topY - feet;
-      const band = classifyLedge(rise);
-      if (!band) continue;
+      const move = classifyReach(rise, reach);
+      if (move === null || move === 'step') continue;
 
-      return { box: hit.box, topY, rise, band, hitX: hit.x, hitZ: hit.z, dirX, dirZ };
+      return { box: hit.box, topY, rise, move, reach, hitX: hit.x, hitZ: hit.z, dirX, dirZ };
     }
     return null;
   }
+
 
   /**
    * Destination centre for standing on top of a probed ledge: past the edge by
@@ -478,7 +491,7 @@ export class Shade {
 
   _tryVault() {
     const ledge = this._probeLedge(S.vaultReach);
-    if (!ledge || ledge.band !== 'vault') return false;
+    if (!ledge || ledge.move !== 'vault') return false;
     return this._climbOnto(SHADE_STATE.VAULT, ledge, S.vaultDuration);
   }
 
@@ -502,17 +515,19 @@ export class Shade {
     // available — on top of a crate there is no room to build speed — and
     // without this a 0.4m to 1.2m ledge cannot be climbed at all except by
     // running at it, which strands the player on small platforms.
-    if (ledge.band === 'vault' || ledge.band === 'mantle') {
-      const duration = ledge.band === 'vault' ? S.vaultDuration : S.mantleDuration;
-      const state = ledge.band === 'vault' ? SHADE_STATE.VAULT : SHADE_STATE.MANTLE;
+    if (ledge.move === 'vault' || ledge.move === 'mantle') {
+      const duration = ledge.move === 'vault' ? S.vaultDuration : S.mantleDuration;
+      const state = ledge.move === 'vault' ? SHADE_STATE.VAULT : SHADE_STATE.MANTLE;
       if (this._climbOnto(state, ledge, duration)) return true;
-      // Blocked. Section 6.1: fall back to a hang rather than clipping.
+      // Blocked destination. The parkour safety rule forbids committing, so
+      // catch the lip instead of clipping through it.
       return this._tryHang(ledge);
     }
 
-    // Failed mantle above 2.4m: grab and hang (Section 6.1).
-    if (ledge.band === 'hang') return this._tryHang(ledge);
-
+    // There is no third case any more. Overreaching used to catch the ledge and
+    // leave you hanging; Section 6.1 as amended says a climb you cannot make
+    // simply does not happen, and the body checks against the surface instead.
+    // Hanging is something you choose, not something that happens to you.
     return false;
   }
 

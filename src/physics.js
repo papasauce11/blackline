@@ -78,13 +78,12 @@ export class CollisionBox {
     this.max = { x: max.x, y: max.y, z: max.z };
     this.solid = flags.solid !== false;
     this.climbable = flags.climbable === true;
-    /** Opt out of automatic climbability. Used for deliberate one-way drops. */
-    this.noClimb = flags.noClimb === true;
+    /** Crouch-only, silent volume (Section 5). */
     this.vent = flags.vent === true;
     this.blocksSight = flags.blocksSight !== false;
     this.tag = flags.tag || '';
-    /** Set by the marking pass: 'vault' | 'mantle' | 'hang' | null. */
-    this.ledgeBand = null;
+    /** Set by the map derivation: what move this ledge calls for. */
+    this.reachMove = null;
   }
 
   get topY() {
@@ -728,10 +727,9 @@ export function applyGravity(velocity, dt, gravity, maxFallSpeed) {
  * @param {number} height metres above the surface the actor is standing on
  * @returns {'vault'|'mantle'|'hang'|null}
  */
-export function classifyLedge(height) {
-  const map = CONFIG.map;
-  if (height >= map.vaultBand[0] && height < map.vaultBand[1]) return 'vault';
-  if (height >= map.mantleBand[0] && height < map.mantleBand[1]) return 'mantle';
-  if (height >= map.hangBand[0] && height <= map.hangBand[1]) return 'hang';
-  return null;
+export function classifyReach(rise, reach = CONFIG.shade.reach.standing) {
+  const R = CONFIG.shade.reach;
+  if (rise < R.stepOver) return 'step';
+  if (rise > reach) return null;
+  return rise <= R.vaultTop ? 'vault' : 'mantle';
 }

@@ -11,7 +11,7 @@
  * the collision solver reads. `addSolid()` creates the mesh and the
  * CollisionBox together, climbability is derived from the geometry rather than
  * typed on, and the affordance markings are emitted in one pass using
- * `classifyLedge()` — the same function the Shade controller calls. A stripe
+ * `classifyReach()` — the same function the Shade controller calls. Nothing
  * cannot disagree with what the controller will let you climb, because neither
  * is authored by hand.
  *
@@ -32,7 +32,7 @@
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { GameMap, facing } from './mapkit.js';
-import { classifyLedge } from './physics.js';
+import { classifyReach } from './physics.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
@@ -649,7 +649,6 @@ export function buildMap({ gradientMap }) {
 
   map.collision.build();
   map.deriveClimbableSurfaces();
-  map.generateAffordanceMarkings();
   map.deriveRoomEntries();
   validateMap(map);
 
@@ -751,9 +750,6 @@ function validateMap(map) {
   // Every climbable box must have resolved to a band, or it is unmarked and
   // therefore unusable-looking (Section 16 check 26).
   for (const box of map.collision.boxes) {
-    if (box.climbable && box.ledgeBand === null) {
-      problems.push(`climbable box "${box.tag}" classified into no band (rise out of range)`);
-    }
   }
 
   // v2 requirement 3: the Shade infiltrates, so it cannot start inside.
@@ -781,7 +777,8 @@ function validateMap(map) {
     problems.push(`declared lips that did not derive as climbable: ${unclimbable.join(', ')}`);
   }
   for (const box of lips) {
-    if (box.climbable && classifyLedge(box.max.y - map._supportHeightBelow(box)) === null) {
+    if (box.climbable && classifyReach(box.max.y - map._supportHeightBelow(box),
+      CONFIG.shade.reach.standing + CONFIG.shade.reach.jumpBonus) === null) {
       problems.push(`lip "${box.tag}" is not in a traversal band`);
     }
   }

@@ -2755,3 +2755,141 @@ number, which is worse than saying so.
 
 Unchanged and short: how it looks, how it sounds, the vsync framerate on
 integrated graphics, and the `hall-container` stripe decision above.
+
+---
+
+# THE ENDGAME REDESIGN — no markings, reach-based traversal
+
+Josh, after phase 49: *"endgame there should be no markings. should be able to
+do on a ledge what you would expect to be able to."*
+
+That is a spec change, not a tweak. Section 5 mandates affordance markings and
+Section 6.1 fixes three traversal bands; both go. Interviewed and settled:
+
+| Decision | Answer |
+|---|---|
+| Scope | All traversal aids: ledge stripes, chevrons, dashes AND the lit vent interiors. Plant-site rings stay — a bomb site is objective information, not an affordance |
+| Climb rule | Reach-based, athletic: ~2.6m standing, ~3.8m with a jump |
+| Failed climb | A physical tell plus audio. Never silent |
+| Hang | A held option you choose, not a failed mantle |
+| Warden | Stays grounded. The asymmetry is the game |
+| The test | **Purely mechanical.** Standable top + within reach ⇒ climbable. No tags, no exceptions, no `noClimb` |
+| Map | Keep the five v2 requirements, reshape everything else freely |
+| Vents | Read as passable by material contrast — metal against concrete |
+| Spec | Amend Sections 5 and 6.1 with a changelog |
+
+Fifty phases in six blocks: strip and measure (1–7), reach-based traversal
+(8–18), area-by-area rebuild (19–34), legibility without markings (35–41), feel
+(42–46), close (47–50).
+
+## Phases 1 to 7 — strip and measure
+
+**Status:** complete. Suite: 108 → **102 passed, 1 failed** — and the one
+failure is deliberate. See the census below.
+
+### What came out
+
+- `generateAffordanceMarkings()`, `_addChevrons()`, `_addDashedStripe()` and
+  `ledgeBandsFor()` — 168 lines of marking generation.
+- The vent interiors' self-illuminated panels.
+- `noClimb`, entirely. It is gone from `addSolid`, from `addFloorPlate`, from
+  the collision box, and from the map.
+- `vaultBand` / `mantleBand` / `hangBand`, and every marking constant except
+  the plant-site ring.
+- Six AUTO checks that asserted markings exist or that a failed mantle becomes
+  a hang.
+
+### What went in
+
+**The reach model** (`CONFIG.shade.reach`) replaces the three bands. Standing
+2.6m, a jump adds 1.2m, anything under 0.32m is not a climb because the solver
+already carries it, and at or below 1.15m it reads as a vault rather than a
+mantle. `classifyLedge(height)` became `classifyReach(rise, reach)`.
+
+**The probe became a sweep.** It was six fixed heights — 0.25, 0.6, 1.0, 1.45,
+1.9, 2.35 — and a 0.2m floor slab sitting between the last two was invisible to
+it, which is exactly how the v2 vent lips classified, marked, and could never be
+climbed. A ladder of fixed samples has gaps by construction. It now steps
+continuously at 0.12m up to whatever the body can reach.
+
+**Hang stopped being a failure.** Overreaching used to catch the ledge. It now
+does nothing, and hanging becomes something you choose (block B).
+
+### The census — the new contract
+
+With no markings there is nothing to keep in sync, so the whole contract is one
+mechanical rule with no exceptions:
+
+> A surface is climbable when you could stand on top of it and the body could
+> reach it from whatever is below. If it is climbable, the controller must
+> actually climb it.
+
+Two checks hold it. The first is cheap and passes:
+
+```
+PASS  the-climb-rule-has-no-exceptions
+      214 boxes, 65 climbable, 0 disagreements with "standable top within 3.8m";
+      no opt-out flags remain, and the 6m deck stays out of reach on its own merits
+```
+
+Climbable surfaces went **49 → 65**: athletic reach opened sixteen that the old
+bands excluded. And the deck's one-way routes are now enforced by the vertical
+layout rather than by a flag — 6m against 3.8m of reach — so a future change to
+a floor height cannot silently make the drop shaft two-way without this
+noticing.
+
+The second check is the census. It walks the Shade up to all four faces of every
+climbable surface on the map and drives the real controller at it: hold forward,
+and jump if it is above standing reach.
+
+```
+FAIL  every-climbable-surface-can-actually-be-climbed
+      49 of 65 climbable surfaces cannot be climbed. Worst area: "turbine-hall"
+      with 14. By area: turbine-hall 14, loading-bay 14, interior 8,
+      server-vault 7, exterior 4, upper deck 2
+```
+
+**This failure is the deliverable.** It is the honest baseline the whole
+redesign is measured against, and its per-area breakdown is the work queue for
+blocks B and C. It will stay red until the traversal work and the area rebuilds
+close it, and leaving it red is the point — a contract nobody is failing is a
+contract nobody is holding.
+
+The first area is decided by the numbers rather than by taste: **the Turbine
+Hall**, with the Loading Bay level alongside it.
+
+### One thing found on the way
+
+The lighting check had been quietly measuring the wrong thing. It samples a site
+floor from straight above, and a plant site carries a 2m hazard ring pulsing
+between 0.35 and 0.9 opacity — sitting exactly in the crop. In the dark rooms it
+dominated the reading, and because the lit and unlit samples are taken moments
+apart it was caught at different points in its pulse, which is how an "ambient
+floor" came out brighter than the same floor with the lights on.
+
+Sampling 3.5m off the ring gives the real picture, and it is a much better one
+than the number recorded last round:
+
+```
+PASS  lit-pools-and-dark-gaps-are-actually-contrasty
+      floor luma: site A 28.4 (+27.4 from its lights), site B 20.2 (+19.1),
+      site C 12.7 (+10.0); with every destructible light off the interiors fall
+      to 1.1/1.1/2.6, so the pools are what light the rooms; the Turbine Hall is
+      2.24x the Server Vault, which is the darkest
+```
+
+Interiors at 1.1 luma with the lights off, and 2.24x between the brightest and
+darkest room. The 1.45x recorded in the previous entry was ring, not room.
+
+### Verification actually performed
+
+- **102 passed, 1 deliberate failure.** No syntax errors across 40 modules.
+- 214 collision boxes unchanged; climbable 49 → 65 by the new rule.
+- The census drives ~250 real climb attempts through the input layer in 0.9s.
+
+### Exact next action
+
+Block B, phases 8–18: make the controller generous enough that the obvious thing
+works — jump-extended reach at the probe, approach tolerance, input buffering,
+and the bump-plus-scuff when a climb genuinely cannot happen. Then block C takes
+the Turbine Hall first, because the census says so.

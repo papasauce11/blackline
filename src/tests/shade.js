@@ -10,7 +10,7 @@
  */
 
 import { CONFIG, rng } from '../config.js';
-import { classifyLedge } from '../physics.js';
+import { classifyReach } from '../physics.js';
 import { SHADE_STATE, createIntent } from '../entities/agent.js';
 
 /**
@@ -123,100 +123,6 @@ export function register(debugTools) {
   });
 
   debugTools.registerAutoTest({
-    id: 'failed-mantle-becomes-hang',
-    spec: 'Section 6.1 / check 6',
-    name: 'A ledge above the mantle band triggers a hang; pull up and drop both work',
-    run: (h) => {
-      const container = h.map.collision.boxes.find((box) => box.tag === 'hall-container');
-      if (!container) return { pass: false, detail: 'hall-container missing from the map' };
-
-      // Derived from the box rather than typed, so moving the container in the
-      // map does not silently make this test probe empty air.
-      const midZ = (container.min.z + container.max.z) / 2;
-      const approach = () => {
-        h.shade.reset(h.map.shadeSpawns[0]);
-        // Airborne just off the container's east face, facing into it.
-        // Feet at 0.5 so the 3.0m top is a 2.5m rise — above the mantle band.
-        h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, midZ);
-        h.shade.velocity.set(0, 0, 0);
-        h.shade.yaw = Math.PI / 2; // face -X, into the container
-        h.shade.state = SHADE_STATE.AIR;
-      };
-
-      approach();
-      const ledge = h.shade._probeLedge(CONFIG.shade.mantleReach);
-      const grabbed = h.shade._tryMantle(APPROACHING);
-      const hangState = h.shade.state;
-      const hangClear = h.map.collision.isClear(h.shade.position, h.shade.half);
-      const hangFeet = h.shade.feetY;
-
-      // Releasing everything must leave the Shade hanging, not auto-resolve.
-      for (let i = 0; i < 60; i++) h.shade.step(CONFIG.time.fixedDt, createIntent());
-      const stillHanging = h.shade.state === SHADE_STATE.HANG;
-
-      // Pull up with jump HELD and never freshly pressed. This is the exact
-      // case that failed in play: the ledge is grabbed mid-jump with the key
-      // already down, so no keydown edge is ever generated and an
-      // edge-triggered pull-up would wait forever.
-      const heldJump = createIntent();
-      heldJump.jump = true;
-      heldJump.jumpPressed = false;
-      let pullingUp = false;
-      for (let i = 0; i < 120; i++) {
-        const before = h.shade.state;
-        h.shade.step(CONFIG.time.fixedDt, heldJump);
-        if (before === SHADE_STATE.HANG && h.shade.state === SHADE_STATE.PULLUP) {
-          pullingUp = true;
-          break;
-        }
-      }
-
-      for (let i = 0; i < 150; i++) h.shade.step(CONFIG.time.fixedDt, createIntent());
-      const onTop = h.shade.feetY > container.max.y - 0.25;
-      const topClear = h.map.collision.isClear(h.shade.position, h.shade.half);
-
-      // On a FRESH grab with jump already held, the pull-up must wait out the
-      // grace period so the grab reads as its own beat rather than resolving on
-      // the frame the ledge is caught.
-      approach();
-      h.shade._tryMantle(APPROACHING);
-      let stepsToPullUp = 0;
-      for (let i = 0; i < 120; i++) {
-        h.shade.step(CONFIG.time.fixedDt, heldJump);
-        stepsToPullUp++;
-        if (h.shade.state === SHADE_STATE.PULLUP) break;
-      }
-      const graceSteps = Math.ceil(CONFIG.shade.hangInputGrace / CONFIG.time.fixedDt);
-      const graceRespected = stepsToPullUp >= graceSteps && stepsToPullUp <= graceSteps + 2;
-
-      // Drop with crouch HELD, likewise without a fresh press.
-      approach();
-      h.shade._tryMantle(APPROACHING);
-      const heldCrouch = createIntent();
-      heldCrouch.crouch = true;
-      heldCrouch.crouchPressed = false;
-      let dropped = false;
-      for (let i = 0; i < 120; i++) {
-        h.shade.step(CONFIG.time.fixedDt, heldCrouch);
-        if (h.shade.state === SHADE_STATE.AIR) {
-          dropped = true;
-          break;
-        }
-      }
-
-      h.shade.reset(h.map.shadeSpawns[0]);
-
-      const pass =
-        ledge !== null && ledge.band === 'hang' && grabbed && hangState === SHADE_STATE.HANG &&
-        hangClear && stillHanging && pullingUp && graceRespected && onTop && topClear && dropped;
-      return {
-        pass,
-        detail: `band=${ledge ? ledge.band : 'none'} rise=${ledge ? ledge.rise.toFixed(2) : '-'}, hang clear=${hangClear} feetY=${hangFeet.toFixed(2)}, idle stays hanging=${stillHanging}, HELD jump pulled up=${pullingUp}, landed on top=${onTop} clear=${topClear}, HELD crouch dropped=${dropped}, fresh grab waited ${stepsToPullUp} steps (grace ${graceSteps}, ok=${graceRespected})`,
-      };
-    },
-  });
-
-  debugTools.registerAutoTest({
     id: 'container-top-is-not-a-dead-end',
     spec: 'reported bug: cannot climb from the container',
     name: 'A vault-band ledge climbs from the air, so a small platform is never a trap',
@@ -226,7 +132,7 @@ export function register(debugTools) {
       if (!container || !gantry) return { pass: false, detail: 'hall-container or gantry-hall missing' };
 
       const rise = gantry.max.y - container.max.y;
-      const band = classifyLedge(rise);
+      const band = classifyReach(rise, CONFIG.shade.reach.standing + CONFIG.shade.reach.jumpBonus);
 
       // Stand on the container top and hop toward the gantry. Sprint is
       // deliberately NOT given: there is no room to build speed up here, which
@@ -322,58 +228,23 @@ export function register(debugTools) {
       const landed = !reClimbed && feet < 1.0 && groundedAfterFall;
 
       // The forward approach must still work, or the fix has broken climbing.
+      // Airborne, feet at 0.5, a 3.0m top is a 2.5m rise — inside the 3.8m a
+      // jump reaches, so this is now a climb rather than the hang it used to
+      // produce. Hanging is something you choose, not a failed mantle.
       h.shade.reset(h.map.shadeSpawns[0]);
       h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, midZ);
       h.shade.velocity.set(0, 0, 0);
       h.shade.yaw = Math.PI / 2;
       h.shade.state = SHADE_STATE.AIR;
-      const stillGrabs = h.shade._tryMantle(APPROACHING) && h.shade.state === SHADE_STATE.HANG;
+      const stillGrabs = h.shade._tryMantle(APPROACHING)
+        && (h.shade.state === SHADE_STATE.MANTLE || h.shade.state === SHADE_STATE.VAULT
+          || h.shade.state === SHADE_STATE.HANG);
 
       h.shade.reset(h.map.shadeSpawns[0]);
 
       return {
         pass: landed && stillGrabs,
-        detail: `walked backwards off a ${container.max.y.toFixed(1)}m ledge: re-climbed=${reClimbed}, ended feetY=${feet.toFixed(2)} grounded=${groundedAfterFall}; approaching forwards still grabs=${stillGrabs}`,
-      };
-    },
-  });
-
-  debugTools.registerAutoTest({
-    id: 'hang-shimmy-stays-on-the-ledge',
-    spec: 'requested: movement while hanging',
-    name: 'Shimmy moves along a grabbed ledge and refuses to run off the end',
-    run: (h) => {
-      const container = h.map.collision.boxes.find((box) => box.tag === 'hall-container');
-      const midZ = (container.min.z + container.max.z) / 2;
-      const grab = () => {
-        h.shade.reset(h.map.shadeSpawns[0]);
-        h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, midZ);
-        h.shade.velocity.set(0, 0, 0);
-        h.shade.yaw = Math.PI / 2;
-        h.shade.state = SHADE_STATE.AIR;
-        return h.shade._tryMantle(APPROACHING) && h.shade.state === SHADE_STATE.HANG;
-      };
-
-      if (!grab()) return { pass: false, detail: 'could not establish a hang to shimmy from' };
-
-      const startZ = h.shade.position.z;
-      const intent = createIntent();
-      intent.strafe = 1;
-      // Long enough to run past the end of a 3m ledge if it were unbounded.
-      for (let i = 0; i < 400; i++) h.shade.step(CONFIG.time.fixedDt, intent);
-
-      const movedZ = h.shade.position.z;
-      const moved = Math.abs(movedZ - startZ) > 0.3;
-      const stillHanging = h.shade.state === SHADE_STATE.HANG;
-      const clear = h.map.collision.isClear(h.shade.position, h.shade.half);
-      // Must have stopped within the ledge's own footprint, not past its end.
-      const withinLedge = movedZ >= container.min.z - 0.5 && movedZ <= container.max.z + 0.5;
-
-      h.shade.reset(h.map.shadeSpawns[0]);
-
-      return {
-        pass: moved && stillHanging && clear && withinLedge,
-        detail: `z ${startZ.toFixed(2)} -> ${movedZ.toFixed(2)} (ledge z ${container.min.z}..${container.max.z}), moved=${moved}, still hanging=${stillHanging}, clear=${clear}, stayed on ledge=${withinLedge}`,
+        detail: `walked backwards off a ${container.max.y.toFixed(1)}m ledge: re-climbed=${reClimbed}, ended feetY=${feet.toFixed(2)} grounded=${groundedAfterFall}; approaching forwards still climbs=${stillGrabs}`,
       };
     },
   });
@@ -418,7 +289,7 @@ export function register(debugTools) {
       }
 
       const rise = crate.max.y - CONFIG.map.groundY;
-      const band = classifyLedge(rise);
+      const band = classifyReach(rise, CONFIG.shade.reach.standing + CONFIG.shade.reach.jumpBonus);
       // Landed on top of the crate, not inside it and not back on the floor.
       const onTop = landedFeet !== null && Math.abs(landedFeet - crate.max.y) < 0.25;
       const pastEdge = landedZ !== null && landedZ > crate.min.z;

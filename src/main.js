@@ -15,7 +15,7 @@ import { Emitter } from './emitter.js';
 import { Freefly } from './freefly.js';
 import { Input } from './input.js';
 import { buildMap } from './map.js';
-import { classifyLedge } from './physics.js';
+import { classifyReach } from './physics.js';
 import { Shade, SHADE_STATE, createIntent } from './entities/agent.js';
 import { Warden, WARDEN_STATE, createWardenIntent } from './entities/enforcer.js';
 import { createDetection } from './systems/detection.js';
