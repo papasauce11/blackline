@@ -18,9 +18,9 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { applyGravity, classifyLedge } from '../physics.js';
+import { buildShadeMesh, buildGroundBlob } from './agentmesh.js';
 
 const S = CONFIG.shade;
-const P = CONFIG.palette;
 /** The knife lives in combat config; the arc that draws it reads the same
  *  number rather than a second copy under `shade`. */
 const KNIFE_SWING_TIME = CONFIG.combat.knife.swingAnimTime;
@@ -83,6 +83,8 @@ export class Shade {
 
     this.health = S.health;
     this.lives = S.lives;
+    /** Set while effects owns the mesh transform (Section 15 ragdoll-lite). */
+    this.ragdolled = false;
     /**
      * Set by systems/gadgets.js while a stun grenade is on the Shade
      * (Section 9.2). Non-lethal: it slows, it never damages.
@@ -128,6 +130,13 @@ export class Shade {
    * Reinsert (Section 10.2) calls this, so it must leave nothing behind.
    */
   reset(spawn) {
+    // Section 15: "reinsert leaves stale state (dead flag, ragdoll, ...)".
+    // Clearing it first, before anything reads the mesh transform, is what lets
+    // updateVisual() below take the body back off the floor.
+    this.ragdolled = false;
+    this.mesh.rotation.set(0, 0, 0);
+    this.mesh.visible = true;
+
     this.height = S.standHeight;
     this.half.y = this.height / 2;
     this.position.set(spawn.position.x, spawn.position.y + this.half.y + 0.02, spawn.position.z);
@@ -228,6 +237,30 @@ export class Shade {
   // -------------------------------------------------------------------------
 
   _stepGround(dt, intent) {
+    // Slide entry is tested BEFORE the crouch is applied (Section 6.1: "from
+    // sprint plus crouch").
+    //
+    // A player holds sprint and taps crouch, so on the step the edge fires,
+    // `crouch` and `crouchPressed` are BOTH true — that is what the keyboard
+    // produces, because a keydown adds the code to the held set and the pressed
+    // set together. Applying the crouch first therefore set `crouching`, which
+    // cleared `sprinting`, which meant the slide could never be entered from
+    // real input at all. The fuzz never caught it because random input happily
+    // produces a crouch edge with the key not held, which no player can.
+    //
+    // Same shape as the Phase 3 ledge-hang bug: an edge flag read after the
+    // state it depends on has already been changed by the held flag.
+    if (
+      intent.crouchPressed &&
+      intent.sprint &&
+      this.speed >= S.slideMinEntrySpeed &&
+      this._slideCooldown <= 0 &&
+      this._wishDirection(intent).magnitude > 0 &&
+      this._enterSlide()
+    ) {
+      return;
+    }
+
     this._applyCrouch(intent.crouch);
 
     const wish = this._wishDirection(intent);
@@ -237,17 +270,6 @@ export class Shade {
 
     this._accelerate(wish, targetSpeed, S.groundAccel, dt);
     this._applyFriction(S.groundFriction, dt, wish.magnitude > 0);
-
-    // Slide: from sprint plus crouch (Section 6.1).
-    if (
-      intent.crouchPressed &&
-      sprinting &&
-      this.speed >= S.slideMinEntrySpeed &&
-      this._slideCooldown <= 0 &&
-      this._enterSlide()
-    ) {
-      return;
-    }
 
     // Vault: forward input plus sprint into a flagged ledge (Section 6.1).
     if (intent.sprint && intent.forward > 0 && this._tryVault()) return;
@@ -739,6 +761,12 @@ export class Shade {
    * @param {number} wallDt unscaled frame delta, for smoothing only
    */
   updateVisual(wallDt) {
+    // While a ragdoll owns the mesh, do not write position or rotation: the
+    // controller and the ragdoll would fight over the same transform every
+    // frame and the controller, running later, would always win. Same rule the
+    // Warden follows — see enforcer.js.
+    if (this.ragdolled) return;
+
     // Smooth the render position so the 60Hz simulation does not read steppy at
     // higher refresh rates. Simulation state is untouched.
     const smoothing = wallDt > 0 ? 1 - Math.pow(0.0001, wallDt) : 1;
@@ -875,93 +903,3 @@ export class Shade {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Mesh construction
-//
-// Section 4: lanky. Tall capsule torso, long limbs, small head, oversized boots
-// and gloves. Teal and charcoal. No faces, no hair, no skeletal rig.
-// ---------------------------------------------------------------------------
-
-function outlined(geometry, material, group, outlineMaterial) {
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = false;
-  group.add(mesh);
-
-  // Child of the mesh, not a sibling of it. Callers reposition the mesh they
-  // get back — a limb segment hangs from its pivot — and a sibling outline
-  // stays at the pivot instead of following. That left four outline capsules
-  // stranded at the shoulders and hips, invisible only for as long as the
-  // outline was painted near-black. Parenting makes the drift impossible.
-  const outline = new THREE.Mesh(geometry, outlineMaterial);
-  outline.scale.setScalar(CONFIG.render.outlineScale);
-  mesh.add(outline);
-  return mesh;
-}
-
-function buildShadeMesh(gradientMap) {
-  const root = new THREE.Group();
-  root.name = 'shade';
-
-  const teal = new THREE.MeshToonMaterial({ color: P.shadeTeal, gradientMap });
-  const charcoal = new THREE.MeshToonMaterial({ color: P.shadeCharcoal, gradientMap });
-  // One outline material for the whole body, not one per part. Section 4.2
-  // drives the edge brightness from the visibility meter every frame, and that
-  // has to be a single assignment rather than a walk over nine materials.
-  const outline = new THREE.MeshBasicMaterial({ color: P.outline, side: THREE.BackSide, fog: true });
-
-  const H = S.standHeight;
-
-  // Torso: tall capsule.
-  const torso = new THREE.Group();
-  torso.position.y = H * 0.62;
-  torso.userData.baseY = torso.position.y;
-  outlined(new THREE.CapsuleGeometry(0.19, H * 0.34, 4, 10), teal, torso, outline);
-  root.add(torso);
-
-  // Small head, sat high on the torso.
-  const head = new THREE.Group();
-  head.position.y = H * 0.29;
-  outlined(new THREE.SphereGeometry(0.125, 12, 10), charcoal, head, outline);
-  torso.add(head);
-
-  // Long limbs, pivoting from the shoulder and hip.
-  const makeLimb = (parent, x, y, length, radius, boot) => {
-    const limb = new THREE.Group();
-    limb.position.set(x, y, 0);
-    const segment = outlined(new THREE.CapsuleGeometry(radius, length, 3, 8), charcoal, limb, outline);
-    segment.position.y = -length / 2 - radius;
-    // Oversized boots and gloves (Section 4).
-    const cap = new THREE.Group();
-    cap.position.y = -length - radius * 1.4;
-    outlined(new THREE.BoxGeometry(boot, boot * 0.62, boot * 1.25), teal, cap, outline);
-    limb.add(cap);
-    parent.add(limb);
-    return limb;
-  };
-
-  const armL = makeLimb(torso, -0.235, H * 0.16, H * 0.3, 0.058, 0.15);
-  const armR = makeLimb(torso, 0.235, H * 0.16, H * 0.3, 0.058, 0.15);
-  const legL = makeLimb(root, -0.105, H * 0.46, H * 0.4, 0.068, 0.17);
-  const legR = makeLimb(root, 0.105, H * 0.46, H * 0.4, 0.068, 0.17);
-
-  root.userData.parts = { torso, head, armL, armR, legL, legR };
-  root.userData.materials = { teal, charcoal, outline };
-  return root;
-}
-
-function buildGroundBlob() {
-  const mesh = new THREE.Mesh(
-    new THREE.CircleGeometry(CONFIG.effects.groundBlobRadius, 16),
-    new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      transparent: true,
-      opacity: CONFIG.effects.groundBlobOpacity,
-      depthWrite: false,
-      fog: true,
-    })
-  );
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.name = 'shade-ground-blob';
-  return mesh;
-}

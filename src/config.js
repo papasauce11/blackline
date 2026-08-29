@@ -254,6 +254,12 @@ export const CONFIG = {
     /** Slide: from sprint + crouch, 8.0 m/s decaying over 0.8s. */
     slideSpeed: 8.0,
     slideDuration: 0.8,
+    /**
+     * How far short of a vent mouth a slide has to start to carry you in. A
+     * duct is crouch-height, so a standing sprint at one stops dead against the
+     * wall above it.
+     */
+    slideLead: 2.5,
     /** Sprint speed must be at least this to start a slide. */
     slideMinEntrySpeed: 5.2,
     slideCooldown: 0.5,
@@ -395,6 +401,14 @@ export const CONFIG = {
       silhouetteDarkness: 0.14,
       rimMin: 0.2,
       rimMax: 1.0,
+      /**
+       * The fresnel rim itself (Section 4.2: "rim light intensity"). Driven by
+       * the same smoothed value as everything else, so it cannot disagree.
+       * `power` tightens the band to the silhouette edge; higher is narrower.
+       */
+      rimPower: 2.6,
+      rimStrengthMin: 0.18,
+      rimStrengthMax: 1.35,
     },
   },
 
@@ -572,6 +586,16 @@ export const CONFIG = {
       placeRange: 3.0,
       /** Re-trigger interval so the siren does not machine-gun. */
       retriggerInterval: 1.5,
+      /** Hit sphere for gunfire and the knife. The fixture is small. */
+      hitRadius: 0.26,
+      /** Fixture dimensions, built from primitives (Section 2). */
+      bodyLength: 0.34,
+      bodyRadius: 0.1,
+      mountRadius: 0.09,
+      mountDepth: 0.08,
+      lensRadius: 0.055,
+      /** How far off the wall the fixture floats, so it does not z-fight. */
+      surfaceOffset: 0.06,
     },
   },
 
@@ -605,6 +629,10 @@ export const CONFIG = {
     deathCamDistance: 3.4,
     deathCamHeight: 1.9,
     deathCamOrbitSpeed: 0.18,
+    /** Free-look pitch: starts slightly above and is clamped either side. */
+    deathCamPitch: 0.24,
+    deathCamPitchMin: -0.35,
+    deathCamPitchMax: 1.1,
     /** Reinsert restores full health, does NOT refill gadgets (Section 10.2). */
     restoreHealth: true,
     refillGadgets: false,
@@ -675,6 +703,17 @@ export const CONFIG = {
     waypointArriveRadius: 0.9,
     /** Turn rate, radians per second. */
     turnRate: 3.4,
+
+    /** Directions swept looking for a wall to hang the alarm camera on. */
+    alarmPlacementProbes: 8,
+    /** How often that sweep runs while searching or defending. */
+    alarmPlacementInterval: 0.5,
+    /**
+     * How close DEFEND has to be to the charge to stand and hold it. Inside
+     * the plant/defuse radius, so arriving means the defuse can actually run.
+     */
+    defendHoldRadius: 1.4,
+    defendRepathInterval: 1.5,
 
     /** Three difficulty presets (Section 11). Default is medium. */
     difficulty: {
@@ -764,6 +803,14 @@ export const CONFIG = {
      * starts. Sized to the taller actor.
      */
     stairHeadroom: 1.95,
+
+    /**
+     * A box this wide AND this deep casts a shadow however thin it is. Roofs,
+     * floor plates and decks are thin slabs; without this they sat out of the
+     * shadow pass and the key light lit the building's interior as if it had
+     * no roof (Section 4.1).
+     */
+    shadowCasterMinSpan: 2.0,
 
     ventHeight: 1.15,
     ventWidth: 1.1,
@@ -920,8 +967,36 @@ export const CONFIG = {
     /** Generic particle pool shared by impacts and sparks. */
     particlePoolSize: 120,
     particleLifetime: 0.7,
+    /** Sparks per bullet impact. Small: a burst of 30 must not flood the pool. */
+    impactSparks: 5,
+    /** Sparks per gadget detonation. */
+    detonationSparks: 18,
     /** Section 17 assertion: active effects must return to 0 within 10s. */
     idleAssertionWindow: 10,
+  },
+
+  // -------------------------------------------------------------------------
+  // Performance budget (Section 2 target, Section 16 check 29)
+  // -------------------------------------------------------------------------
+  performance: {
+    /** "60fps on integrated graphics at 1080p" (Section 2). */
+    targetFps: 60,
+    /** The frame budget that target implies, in milliseconds. */
+    frameBudgetMs: 1000 / 60,
+    /**
+     * How much of the budget the CPU side may take before the frame is at
+     * risk. Integrated graphics are usually GPU-bound, so a CPU frame that
+     * eats most of the budget on a dev machine will miss on Josh's.
+     */
+    cpuBudgetFraction: 0.5,
+    /**
+     * Frames the benchmark measures, and untimed frames it discards first.
+     * 180 frames is 3s, which at 600rpm is exactly one magazine downrange.
+     */
+    benchmarkFrames: 180,
+    benchmarkWarmupFrames: 30,
+    /** Rounds that must actually be fired during the check-29 stress load. */
+    stressRounds: 25,
   },
 
   // -------------------------------------------------------------------------
@@ -964,6 +1039,13 @@ export const CONFIG = {
     /** Number of PRNG values compared in the determinism check. */
     prngCompareCount: 2000,
     /**
+     * Section 16: "Regression set after any patch: 1, 3, 9, 13, 17, 20, 22,
+     * 23, 27." Verbatim, so the runner is the spec rather than a paraphrase.
+     */
+    regressionSet: [1, 3, 9, 13, 17, 20, 22, 23, 27],
+    /** How many Section 16 checks there are, for coverage reporting. */
+    specCheckCount: 29,
+    /**
      * Cell size for the upper-deck flood fill. Small enough to find a Warden-
      * width gap, large enough that a 60x45 deck is a few thousand cells.
      */
@@ -973,15 +1055,30 @@ export const CONFIG = {
   },
 
   settings: {
-    /** Defaults for the runtime-adjustable settings (Section 13). */
-    mouseSensitivity: 0.0022,
+    /** Bounds and fixed scalars. Not user-adjustable, so they live here. */
     mouseSensitivityMin: 0.0004,
     mouseSensitivityMax: 0.008,
     adsSensitivityMultiplier: 0.65,
-    invertY: false,
-    masterVolume: 0.7,
-    matchLength: 5,
-    difficulty: 'medium',
+
+    /**
+     * Seed values for SETTINGS, nested deliberately.
+     *
+     * These used to sit at this level, next to the bounds, and two call sites
+     * read `CONFIG.settings.difficulty` / `CONFIG.settings.matchLength` when
+     * they meant the LIVE value. Both compiled, both looked right, and both
+     * returned the default forever — so the Section 13 difficulty and match
+     * length controls moved a label on screen and changed nothing in the game.
+     *
+     * Under `defaults` there is no name left to read by accident: a stale site
+     * now reads `undefined` and fails loudly instead of quietly.
+     */
+    defaults: {
+      mouseSensitivity: 0.0022,
+      invertY: false,
+      masterVolume: 0.7,
+      matchLength: 5,
+      difficulty: 'medium',
+    },
   },
 };
 
@@ -1037,6 +1134,12 @@ export const DEBUG_KEYS = {
     refillGadgets: 'KeyL',
     cycleTimeScale: 'KeyT',
     runAutoTests: 'KeyY',
+    /**
+     * Section 16's regression set only. Not in the Section 17.1 table — added
+     * because the spec names a subset "to run after any patch" and the full
+     * suite is now large enough that people stop running it.
+     */
+    runRegressionSet: 'KeyU',
   },
 };
 
@@ -1062,19 +1165,9 @@ Object.freeze(SUPPRESSED_KEYS);
  * Mutable, user-adjustable settings (Section 13 settings menu). Seeded from
  * CONFIG.settings defaults. This is the only mutable export in this module.
  */
-export const SETTINGS = {
-  mouseSensitivity: CONFIG.settings.mouseSensitivity,
-  invertY: CONFIG.settings.invertY,
-  masterVolume: CONFIG.settings.masterVolume,
-  matchLength: CONFIG.settings.matchLength,
-  difficulty: CONFIG.settings.difficulty,
-};
+export const SETTINGS = { ...CONFIG.settings.defaults };
 
 /** Restore every setting to its CONFIG default. */
 export function resetSettings() {
-  SETTINGS.mouseSensitivity = CONFIG.settings.mouseSensitivity;
-  SETTINGS.invertY = CONFIG.settings.invertY;
-  SETTINGS.masterVolume = CONFIG.settings.masterVolume;
-  SETTINGS.matchLength = CONFIG.settings.matchLength;
-  SETTINGS.difficulty = CONFIG.settings.difficulty;
+  Object.assign(SETTINGS, CONFIG.settings.defaults);
 }

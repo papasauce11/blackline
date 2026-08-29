@@ -17,6 +17,224 @@ const GA = CONFIG.gadgets;
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
+    id: 'pause-stops-the-world-without-banking-time',
+    spec: 'Section 13',
+    name: 'Esc halts the simulation, releases the mouse, and resumes where it stopped',
+    run: (h) => {
+      const problems = [];
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      h.setPaused(false);
+      h.stepFrames(30);
+
+      const before = {
+        sim: h.clock.sim,
+        shade: h.shade.position.clone(),
+        warden: h.warden.position.clone(),
+        time: h.objective.round.timeRemaining,
+      };
+
+      h.setPaused(true);
+      if (!h.paused) problems.push('setPaused(true) did not take');
+      if (!h.menu.open) problems.push('pausing did not raise the menu');
+      if (h.menu.page !== 'pause') problems.push(`the menu is on "${h.menu.page}", want "pause"`);
+
+      // Real frames, with a full second of wall clock handed to each — the
+      // simulation must not advance by a single step.
+      for (let i = 0; i < 20; i++) h.renderFrame(1.0);
+
+      if (h.clock.sim !== before.sim) {
+        problems.push(`the sim clock moved ${(h.clock.sim - before.sim).toFixed(3)}s while paused`);
+      }
+      if (h.shade.position.distanceTo(before.shade) > 1e-9) problems.push('the Shade moved while paused');
+      if (h.warden.position.distanceTo(before.warden) > 1e-9) problems.push('the Warden moved while paused');
+      if (h.objective.round.timeRemaining !== before.time) problems.push('the round clock ran while paused');
+      if (h.debugState.stepsPerFrame !== 0) problems.push(`${h.debugState.stepsPerFrame} steps ran on a paused frame`);
+
+      // Resuming must not replay the twenty seconds it was paused for.
+      h.menu.hide();
+      h.setPaused(false);
+      h.renderFrame(1 / 60);
+      const caughtUp = h.clock.sim - before.sim;
+      if (caughtUp > CONFIG.time.fixedDt * CONFIG.time.maxStepsPerFrame + 1e-6) {
+        problems.push(`resuming replayed ${caughtUp.toFixed(3)}s of banked time`);
+      }
+      if (h.clock.sim <= before.sim) problems.push('resuming did not restart the simulation');
+
+      // Esc toggles both ways through the real binding, and one press does not
+      // pause and immediately unpause.
+      h.menu.hide();
+      h.setPaused(false);
+      h.input.clearAll();
+      h.input.pressedCodes.add('Escape');
+      h.renderFrame(1 / 60);
+      const pausedByKey = h.paused;
+      h.input.pressedCodes.add('Escape');
+      h.renderFrame(1 / 60);
+      const resumedByKey = !h.paused;
+      if (!pausedByKey) problems.push('Escape did not pause');
+      if (!resumedByKey) problems.push('Escape did not resume');
+
+      h.input.clearAll();
+      h.menu.hide();
+      h.setPaused(false);
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? '20 frames at 1s each while paused advanced the simulation by 0.000s and moved neither actor; '
+            + `resuming stepped forward ${caughtUp.toFixed(3)}s rather than replaying the pause; `
+            + 'Escape toggles both ways through the real binding'
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'the-rim-light-is-really-on-screen',
+    spec: 'Section 4.2 / check 27',
+    name: 'Reads the framebuffer: the rim brightens the Shade, and at its edges',
+    run: (h) => {
+      const problems = [];
+      const F = CONFIG.detection.feedback;
+      const renderer = h.renderer;
+      const gl = renderer.getContext();
+      const camera = h.camera;
+      const shade = h.shade;
+
+      const rim = shade.mesh.userData.rim;
+      if (!rim) return { pass: false, detail: 'the Shade has no rim uniforms' };
+
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.stepFrames(20);
+
+      // Frame the Shade close up, from the scene rather than from a rig, so
+      // nothing reparents the camera underneath the reads.
+      const owner = h.cameraOwner;
+      h.setCameraOwner(null);
+      h.scene.add(camera);
+      const feet = shade.feetY;
+      camera.position.set(shade.position.x + 3, feet + 1.2, shade.position.z + 3);
+      camera.lookAt(shade.position.x, feet + 1.0, shade.position.z);
+      camera.updateMatrixWorld(true);
+
+      const width = renderer.domElement.width;
+      const height = renderer.domElement.height;
+      const buffer = new Uint8Array(width * height * 4);
+      const grab = () => {
+        renderer.render(h.scene, camera);
+        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
+        return buffer.slice();
+      };
+
+      const startStrength = rim.uBlRimStrength.value;
+
+      // 1. The silhouette, by difference: the same scene with and without a body.
+      shade.mesh.visible = false;
+      const empty = grab();
+      shade.mesh.visible = true;
+      rim.uBlRimStrength.value = 0;
+      const bodyOnly = grab();
+
+      const count = width * height;
+      const mask = new Uint8Array(count);
+      let masked = 0;
+      for (let i = 0; i < count; i++) {
+        const p = i * 4;
+        const d = Math.abs(bodyOnly[p] - empty[p])
+          + Math.abs(bodyOnly[p + 1] - empty[p + 1])
+          + Math.abs(bodyOnly[p + 2] - empty[p + 2]);
+        if (d > 8) {
+          mask[i] = 1;
+          masked++;
+        }
+      }
+      if (masked < 500) {
+        rim.uBlRimStrength.value = startStrength;
+        h.setCameraOwner(owner);
+        return { pass: false, detail: `the Shade covered only ${masked} pixels — nothing to measure` };
+      }
+
+      // 2. The rim, by difference: same body, strength 0 vs its maximum.
+      rim.uBlRimStrength.value = F.rimStrengthMax;
+      const lit = grab();
+
+      // 3. Erode the mask to separate the edge band from the interior. A rim
+      //    light brightens grazing angles, which is the silhouette boundary —
+      //    if the delta were flat across the body it would be an ambient add
+      //    wearing a rim's name.
+      const erode = (source) => {
+        const out = new Uint8Array(count);
+        for (let y = 1; y < height - 1; y++) {
+          for (let x = 1; x < width - 1; x++) {
+            const i = y * width + x;
+            if (!source[i]) continue;
+            if (source[i - 1] && source[i + 1] && source[i - width] && source[i + width]) out[i] = 1;
+          }
+        }
+        return out;
+      };
+      const inner2 = erode(erode(mask));
+      const inner5 = erode(erode(erode(inner2)));
+
+      let edgeSum = 0;
+      let edgeCount = 0;
+      let coreSum = 0;
+      let coreCount = 0;
+      let brightened = 0;
+      for (let i = 0; i < count; i++) {
+        if (!mask[i]) continue;
+        const p = i * 4;
+        const delta = (lit[p] - bodyOnly[p]) + (lit[p + 1] - bodyOnly[p + 1]) + (lit[p + 2] - bodyOnly[p + 2]);
+        if (delta > 6) brightened++;
+        if (!inner2[i]) {
+          edgeSum += delta;
+          edgeCount++;
+        } else if (inner5[i]) {
+          coreSum += delta;
+          coreCount++;
+        }
+      }
+      const edgeMean = edgeCount ? edgeSum / edgeCount : 0;
+      const coreMean = coreCount ? coreSum / coreCount : 0;
+
+      if (brightened < 200) problems.push(`the rim changed only ${brightened} pixels of ${masked}`);
+      if (edgeMean <= 0) problems.push('the silhouette edge did not brighten at all');
+      if (!(edgeMean > coreMean * 1.5)) {
+        problems.push(`edge +${edgeMean.toFixed(1)} vs core +${coreMean.toFixed(1)} — that is a wash, not a rim`);
+      }
+
+      // 4. And the strength is driven by the meter, not set by hand.
+      const at = (value) => {
+        h.detection.smoothed = value;
+        h.detection._applyFeedback(shade);
+        return rim.uBlRimStrength.value;
+      };
+      const atDark = at(0);
+      const atLit = at(CONFIG.detection.meterMax);
+      if (!(atLit > atDark)) problems.push(`rim strength ${atDark} -> ${atLit} across the meter`);
+      if (Math.abs(atDark - F.rimStrengthMin) > 1e-6) problems.push(`at meter 0 the rim is ${atDark}, want ${F.rimStrengthMin}`);
+      if (Math.abs(atLit - F.rimStrengthMax) > 1e-6) problems.push(`at meter 100 the rim is ${atLit}, want ${F.rimStrengthMax}`);
+
+      if (gl.getError() !== 0) problems.push('GL reported an error during the reads');
+
+      rim.uBlRimStrength.value = startStrength;
+      h.setCameraOwner(owner);
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `read back ${width}x${height}: the Shade covers ${masked} pixels, the rim brightened `
+            + `${brightened} of them by +${edgeMean.toFixed(1)} at the silhouette against +${coreMean.toFixed(1)} `
+            + `in the interior (${(edgeMean / Math.max(coreMean, 0.01)).toFixed(1)}x); `
+            + `strength ${F.rimStrengthMin} -> ${F.rimStrengthMax} across meter 0..${CONFIG.detection.meterMax}`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
     id: 'effect-pools-are-fixed-and-drain',
     spec: 'Section 15 (footprint leak, particle framerate)',
     name: 'Footprints, particles and smoke recycle a fixed pool and return to zero',

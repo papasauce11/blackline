@@ -98,7 +98,39 @@ export class Menu {
 
   render() {
     if (this.page === 'settings') return this._renderSettings();
+    if (this.page === 'pause') return this._renderPause();
     this._renderMain();
+  }
+
+  /**
+   * The pause overlay. Deliberately the same surface as the main menu rather
+   * than a second one: the settings page has to be reachable from both, and a
+   * duplicated overlay is how the two drift apart.
+   *
+   * Settings returns here, not to the main menu, so adjusting sensitivity
+   * mid-match does not abandon the match.
+   */
+  _renderPause() {
+    this.root.innerHTML = `
+      <div class="card">
+        <h1 style="font-size:20px">Paused</h1>
+        <div class="tag">the round is stopped</div>
+        <button data-action="resume">Resume</button>
+        <button data-action="settings">Settings</button>
+        <button data-action="quit">Main menu</button>
+      </div>`;
+    this.root.querySelector('[data-action=resume]').onclick = () => {
+      this.hide();
+      if (this.handlers.onResume) this.handlers.onResume();
+    };
+    this.root.querySelector('[data-action=settings]').onclick = () => {
+      this._settingsReturn = 'pause';
+      this.show('settings');
+    };
+    this.root.querySelector('[data-action=quit]').onclick = () => {
+      this.show('main');
+      if (this.handlers.onQuit) this.handlers.onQuit();
+    };
   }
 
   _renderMain() {
@@ -120,7 +152,10 @@ export class Menu {
       this.hide();
       if (this.handlers.onFreeRoam) this.handlers.onFreeRoam();
     };
-    this.root.querySelector('[data-action=settings]').onclick = () => this.show('settings');
+    this.root.querySelector('[data-action=settings]').onclick = () => {
+      this._settingsReturn = 'main';
+      this.show('settings');
+    };
   }
 
   _renderSettings() {
@@ -157,6 +192,8 @@ export class Menu {
       len.textContent = `best of ${SETTINGS.matchLength}`;
     };
     const diff = this.root.querySelector('#bl-diff');
+    // The AI re-reads SETTINGS.difficulty on every reset(), so a change here
+    // takes effect at the next match rather than mid-round.
     const names = Object.keys(CONFIG.ai.difficulty);
     diff.onclick = () => {
       SETTINGS.difficulty = names[(names.indexOf(SETTINGS.difficulty) + 1) % names.length];
@@ -167,7 +204,7 @@ export class Menu {
       SETTINGS.invertY = !SETTINGS.invertY;
       inv.textContent = SETTINGS.invertY ? 'on' : 'off';
     };
-    this.root.querySelector('[data-action=back]').onclick = () => this.show('main');
+    this.root.querySelector('[data-action=back]').onclick = () => this.show(this._settingsReturn || 'main');
   }
 }
 

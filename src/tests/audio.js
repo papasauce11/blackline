@@ -125,10 +125,37 @@ export function register(debugTools) {
       }
       if (silent.length) problems.push(`no voice started for: ${silent.join(', ')}`);
 
-      // Every row of the Section 14 table should have a builder.
-      for (const wanted of ['shadeFootstep', 'wardenFootstep', 'gunfire', 'knifeSwing', 'takedown',
-        'taser', 'alarm', 'plantBeep', 'lifeLost']) {
-        if (names.indexOf(wanted) === -1) problems.push(`no builder for ${wanted}`);
+      // Every row of the Section 14 table needs a builder AND something that
+      // fires it. A builder with no trigger is silent in play and sounds
+      // exactly like a builder that was never written, which is how smoke,
+      // flashbang, grenade, taser, alarm and the plant beep went unheard.
+      const TABLE = [
+        { sound: 'shadeFootstep', event: 'noise', payload: { type: 'footstep', source: 'shade', x: 0, y: 1, z: 0 } },
+        { sound: 'wardenFootstep', event: 'noise', payload: { type: 'footstep', source: 'warden', x: 0, y: 1, z: 0 } },
+        { sound: 'gunfire', event: 'combat:shot', payload: { origin: at, direction: { x: 0, y: 0, z: -1 } } },
+        { sound: 'knifeSwing', event: 'combat:knife', payload: { actor: 'shade' } },
+        { sound: 'takedown', event: 'combat:takedown', payload: { at } },
+        { sound: 'reload', event: 'combat:reload', payload: { actor: 'warden' } },
+        { sound: 'landing', event: 'noise', payload: { type: 'landing', x: 0, y: 1, z: 0 } },
+        { sound: 'lightBreak', event: 'noise', payload: { type: 'light-destroyed', x: 0, y: 1, z: 0 } },
+        { sound: 'smoke', event: 'gadget:detonate', payload: { type: 'smoke', at } },
+        { sound: 'flashbang', event: 'gadget:detonate', payload: { type: 'flashbang', at } },
+        { sound: 'grenade', event: 'gadget:detonate', payload: { type: 'frag', at } },
+        { sound: 'taser', event: 'gadget:taser', payload: { hit: 'warden' } },
+        { sound: 'alarm', event: 'gadget:alarm', payload: { at } },
+        { sound: 'plantBeep', event: 'objective:beep', payload: { at, remaining: 0.5 } },
+      ];
+      for (const row of TABLE) {
+        if (names.indexOf(row.sound) === -1) problems.push(`no builder for ${row.sound}`);
+      }
+      const untriggered = [];
+      for (const row of TABLE) {
+        audio.reset();
+        h.emitter.emit(row.event, row.payload);
+        if (audio.voices.size === 0) untriggered.push(`${row.sound} (${row.event})`);
+      }
+      if (untriggered.length) {
+        problems.push(`built but never triggered in play: ${untriggered.join(', ')}`);
       }
 
       // Flood well past the cap: it must refuse rather than grow without bound.
@@ -148,7 +175,9 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${names.length} sounds all produce a voice; flooded 200 -> ${peak} active (cap 24, ${audio.dropped - before} refused); reset drained to 0`
+          ? `${names.length} sounds all produce a voice and all ${TABLE.length} Section 14 rows are `
+            + `triggered by a real game event; flooded 200 -> ${peak} active `
+            + `(cap 24, ${audio.dropped - before} refused); reset drained to 0`
           : problems.join('; '),
       };
     },

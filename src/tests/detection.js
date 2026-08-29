@@ -294,7 +294,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'visibility-feedback-matches-the-meter',
-    spec: 'Section 4.2',
+    spec: 'Section 4.2 / check 27',
     name: 'The Shade darkens and brightens in step with the smoothed meter',
     run: (h) => {
       const d = h.detection;

@@ -78,10 +78,21 @@ No addons are used.
 | `Left mouse` | Fire (Warden) |
 | `Right mouse` | Aim down sights (Warden) |
 | `R` | Reload |
-| `E` | Interact — plant, defuse, place a gadget |
+| `E` | Interact — plant the charge |
 | `F` | Knife |
-| `1` `2` `3` `4` | Select gadget |
-| `Esc` | Release the mouse / pause |
+| `Esc` | Pause — releases the mouse and stops the simulation; Resume, Settings or Main menu |
+
+Gadget slots depend on which faction you are driving. They fire on the press;
+there is no separate throw button.
+
+| Slot | Shade (competitive) | Warden (free roam) |
+|---|---|---|
+| `1` | Smoke grenade | Stun grenade |
+| `2` | Flashbang | Frag grenade |
+| `3` | Taser (also destroys lights) | Alarm camera — placed on the wall you are looking at, within 3m |
+
+Everything is thrown or aimed from the eye along the camera's facing, so what
+you are looking at is what you are throwing at.
 
 Click the canvas to capture the mouse. Bindings are rebindable at runtime via
 `input.rebind(action, code)`; the defaults live in `DEFAULT_BINDINGS` in
@@ -107,7 +118,12 @@ Test-mode keys are **inert unless the F4 panel is open**, which is what keeps
 | `K` | Cycle the Warden's FSM state |
 | `L` | Refill all gadgets |
 | `T` | Cycle time scale: 1x → 0.25x → 4x |
-| `Y` | Run the AUTO test suite, printing pass/fail per check to the console |
+| `Y` | Run the full AUTO suite, printing pass/fail per check to the console |
+| `U` | Run **only** Section 16's regression set (checks 1, 3, 9, 13, 17, 20, 22, 23, 27) |
+
+`U` is the one to run after a change. It resolves the spec's named regression
+set to the AUTO checks that cover those numbers — currently 16 of 94 — and says
+out loud if any of them has no cover rather than quietly skipping it.
 
 A test-mode command whose subsystem has not been built yet reports
 `no handler yet` in the panel rather than silently appearing to work.
@@ -140,13 +156,28 @@ magic numbers live anywhere else. The file is organised by spec section:
 | `ai` | FSM timings, perception cone, difficulty presets |
 | `map` | Dimensions, ledge classification bands, affordance markings, lighting |
 | `audio` | Synthesis parameters for every sound |
-| `effects` | Pool sizes, ragdoll damping, footprint fade |
+| `effects` | Pool sizes, ragdoll damping, footprint fade, impact sparks |
 | `hud` | Meter sizes, kill feed, crosshair scaling |
+| `performance` | The 60fps frame budget and the check-29 benchmark |
 | `debug` | Overlay refresh rate, assertion throttling |
 
 `CONFIG` is deep-frozen at load, so a stray assignment fails loudly instead of
-silently retuning the game. Runtime-adjustable settings (mouse sensitivity,
-volume, match length, difficulty) live in the mutable `SETTINGS` export.
+silently retuning the game.
+
+### `SETTINGS` vs `CONFIG.settings.defaults`
+
+Runtime-adjustable settings — mouse sensitivity, volume, match length,
+difficulty, invert Y — live in the **mutable `SETTINGS` export**. That is the
+one to read if you want what the player has chosen.
+
+`CONFIG.settings.defaults` holds only the values `SETTINGS` is seeded with. The
+two used to sit at the same level, and reading `CONFIG.settings.difficulty`
+where the live value was meant compiled fine, looked right, and returned the
+default forever — so the settings menu changed a label and nothing else. The
+defaults are nested now specifically so that mistake has no name to reach for.
+
+**Read `SETTINGS.x` for the live value. `CONFIG.settings.defaults.x` is a seed,
+not state.**
 
 ### Randomness
 

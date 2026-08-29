@@ -8,7 +8,7 @@
  * match, so it cannot disagree with the score that decided it.
  */
 
-import { CONFIG } from '../config.js';
+import { CONFIG, SETTINGS } from '../config.js';
 
 const P = CONFIG.palette;
 const hex = (value) => `#${value.toString(16).padStart(6, '0')}`;
@@ -78,7 +78,9 @@ export class Scoreboard {
   show(state) {
     const rounds = state.rounds || [];
     const last = rounds[rounds.length - 1];
-    const target = CONFIG.match.lengths[CONFIG.settings.matchLength]
+    // The live setting, not the CONFIG default: "first to N" has to agree with
+    // the target the objective system is actually counting to.
+    const target = CONFIG.match.lengths[SETTINGS.matchLength]
       || CONFIG.match.lengths[CONFIG.match.defaultLength];
 
     const heading = state.matchOver

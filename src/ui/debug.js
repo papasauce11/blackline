@@ -234,6 +234,7 @@ export class DebugTools {
     if (input.keyPressed(t.refillGadgets)) this._command('refill gadgets', 'test:refill-gadgets', {});
     if (input.keyPressed(t.cycleTimeScale)) this._command('cycle time scale', 'test:cycle-time-scale', {});
     if (input.keyPressed(t.runAutoTests)) this.runAutoTests();
+    if (input.keyPressed(t.runRegressionSet)) this.runRegressionSet();
   }
 
   /**
@@ -305,6 +306,7 @@ export class DebugTools {
       keyRow(k(t.refillGadgets), 'refill gadgets'),
       keyRow(k(t.cycleTimeScale), 'cycle time scale'),
       keyRow(k(t.runAutoTests), `run AUTO suite (${this._autoTests.length})`),
+      keyRow(k(t.runRegressionSet), `run regression set (${CONFIG.debug.regressionSet.join(', ')})`),
       '<div class="bl-sep"></div>',
     ];
     for (let i = 0; i < this._testLog.length; i++) {
@@ -379,22 +381,74 @@ export class DebugTools {
     this._autoTests.push(test);
   }
 
-  /** Run every registered AUTO check and print a pass/fail line each. */
-  async runAutoTests() {
+  /**
+   * Which Section 16 checks a registered test covers, read out of its `spec`
+   * string ("Section 6.1 / check 1", "checks 23, 24, 25").
+   *
+   * Parsed rather than declared in a second field, because a second field is
+   * one more thing to forget to update — and every check already states which
+   * spec check it is for, in the line it prints.
+   *
+   * @returns {number[]}
+   */
+  checksCovered(test) {
+    const found = new Set();
+    const spec = String(test.spec || '');
+    const groups = spec.match(/checks?\s*[\d,\s]+(?:and\s*\d+)?/gi) || [];
+    for (const group of groups) {
+      for (const digits of group.match(/\d+/g) || []) found.add(Number(digits));
+    }
+    return [...found];
+  }
+
+  /**
+   * Section 16: "Regression set after any patch: 1, 3, 9, 13, 17, 20, 22, 23,
+   * 27." Runs only the checks covering those, and says which of them no AUTO
+   * check covers — a regression run that silently skips half the set is worse
+   * than not having one.
+   */
+  runRegressionSet() {
+    const wanted = new Set(CONFIG.debug.regressionSet);
+    const covered = new Set();
+    const subset = this._autoTests.filter((test) => {
+      const hits = this.checksCovered(test).filter((number) => wanted.has(number));
+      for (const hit of hits) covered.add(hit);
+      return hits.length > 0;
+    });
+    const uncovered = [...wanted].filter((number) => !covered.has(number));
+    if (uncovered.length) {
+      console.log(
+        `%c[regression] no AUTO check covers Section 16 check${uncovered.length > 1 ? 's' : ''} `
+        + `${uncovered.join(', ')} — run ${uncovered.length > 1 ? 'those' : 'that'} by hand `,
+        'background:#f5c451;color:#08090b'
+      );
+    }
+    return this.runAutoTests({ subset, label: `REGRESSION SET (${[...wanted].join(', ')})` });
+  }
+
+  /**
+   * Run registered AUTO checks and print a pass/fail line each.
+   * @param {object} [options]
+   * @param {object[]} [options.subset] run only these, defaults to all
+   * @param {string} [options.label] banner text
+   */
+  async runAutoTests(options = {}) {
     if (this._autoRunning) {
       console.warn('[AUTO] suite already running');
       return null;
     }
+    const tests = options.subset || this._autoTests;
+    const label = options.label || 'AUTO SUITE';
     this._autoRunning = true;
-    this._log(`running AUTO suite (${this._autoTests.length})`);
+    this._log(`running ${label.toLowerCase()} (${tests.length})`);
 
     const results = [];
     console.log(
-      `%c BLACKLINE AUTO SUITE  seed=${rng.seed}  checks=${this._autoTests.length} `,
+      `%c BLACKLINE ${label}  seed=${rng.seed}  checks=${tests.length} `,
       'background:#2fd6c3;color:#08090b;font-weight:bold'
     );
 
-    for (const test of this._autoTests) {
+    for (const test of tests) {
       let result;
       const started = performance.now();
       try {
@@ -424,7 +478,7 @@ export class DebugTools {
         ? 'background:#4ade80;color:#08090b;font-weight:bold'
         : 'background:#f87171;color:#08090b;font-weight:bold'
     );
-    this._log(`AUTO: ${passed} passed, ${failed} failed`);
+    this._log(`${label}: ${passed} passed, ${failed} failed`);
 
     this._autoRunning = false;
     return { passed, failed, results };

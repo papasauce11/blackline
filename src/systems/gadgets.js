@@ -183,13 +183,85 @@ export class Gadgets {
     this.collision = map.collision;
     this.emitter = emitter;
     this.detection = detection;
+    this._unsubscribe = [];
+    this._subscribeToCombat();
 
     this.effects = new EffectRegistry();
     this.projectiles = [];
     this.loadout = null;
     this.taserCharge = 0;
     this.alarm = null;
+    /**
+     * Section 12: free-roam has "unlimited ammo and gadgets, instant recharge".
+     * A flag rather than a second Gadgets implementation, so every throw, every
+     * taser shot and every effect still runs the one code path.
+     */
+    this.unlimited = false;
     this.reset();
+  }
+
+  /**
+   * Section 9.2: the alarm camera is "destructible by gunfire, taser, or
+   * knife". Two of those three live in combat, which this file may not import
+   * and which may not import this one (Section 3.1) — so combat announces the
+   * geometry of every shot and every swing, and the alarm tests itself against
+   * them. Ownership of what an alarm camera is stays in one file.
+   */
+  _subscribeToCombat() {
+    if (!this.emitter) return;
+    const on = (event, handler) => this._unsubscribe.push(this.emitter.on(event, handler));
+
+    on('combat:shot', (event) => {
+      if (!this.alarm || !event.origin || !event.direction) return;
+      if (this._rayHitsAlarm(event.origin, event.direction, CONFIG.combat.gun.range)) {
+        this.destroyAlarm('gunfire');
+      }
+    });
+
+    on('combat:knife', (event) => {
+      if (!this.alarm || !event.origin || !event.direction) return;
+      // A swing is a short arc, not a ray: anything inside the blade's reach
+      // and roughly in front of the swinger is cut.
+      if (this._inCone(event.origin, event.direction, this.alarm, event.range, 0)) {
+        if (this.collision.lineOfSight(event.origin, this.alarm)) this.destroyAlarm('knife');
+      }
+    });
+  }
+
+  dispose() {
+    for (const off of this._unsubscribe) off();
+    this._unsubscribe.length = 0;
+  }
+
+  /**
+   * Does a shot reach the alarm before it reaches the wall behind it? The
+   * fixture is small, so it is treated as a sphere rather than as a box.
+   */
+  _rayHitsAlarm(origin, direction, range) {
+    const alarm = this.alarm;
+    const dx = alarm.x - origin.x;
+    const dy = alarm.y - origin.y;
+    const dz = alarm.z - origin.z;
+    const along = dx * direction.x + dy * direction.y + dz * direction.z;
+    if (along < 0 || along > range) return false;
+    const cx = dx - direction.x * along;
+    const cy = dy - direction.y * along;
+    const cz = dz - direction.z * along;
+    const radius = GA.alarmCamera.hitRadius;
+    if (cx * cx + cy * cy + cz * cz > radius * radius) return false;
+    // The camera sits ON a wall, so a world raycast stops at that same wall.
+    // Only a shot that arrives in front of the surface counts.
+    const world = this.collision.raycast(origin, direction, range);
+    return !world || world.distance >= along - radius;
+  }
+
+  /** Set by the composition root from the match mode. */
+  setUnlimited(value) {
+    this.unlimited = !!value;
+    if (this.unlimited) {
+      this.taserCharge = GA.taser.charges;
+      this.taserRecharge = 0;
+    }
   }
 
   /**
@@ -211,6 +283,7 @@ export class Gadgets {
     this.taserRecharge = 0;
     this.alarm = null;
     this.shadeMarkedFor = 0;
+    this.shadeMarkedAt = null;
   }
 
   // -------------------------------------------------------------------------
@@ -221,13 +294,17 @@ export class Gadgets {
     this.effects.step(dt);
 
     if (this.taserCharge < GA.taser.charges) {
-      this.taserRecharge += dt;
+      // Section 12: instant recharge in free-roam. Same accumulator, zero wait.
+      this.taserRecharge += this.unlimited ? GA.taser.rechargeTime : dt;
       if (this.taserRecharge >= GA.taser.rechargeTime) {
         this.taserCharge = GA.taser.charges;
         this.taserRecharge = 0;
       }
     }
-    if (this.shadeMarkedFor > 0) this.shadeMarkedFor -= dt;
+    if (this.shadeMarkedFor > 0) {
+      this.shadeMarkedFor -= dt;
+      if (this.shadeMarkedFor <= 0) this.shadeMarkedAt = null;
+    }
 
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const projectile = this.projectiles[i];
@@ -250,8 +327,8 @@ export class Gadgets {
    */
   throwGadget(type, from, direction, owner) {
     if (THROWN.indexOf(type) === -1) return null;
-    if (this.loadout[type] <= 0) return null;
-    this.loadout[type]--;
+    if (this.loadout[type] <= 0 && !this.unlimited) return null;
+    if (!this.unlimited) this.loadout[type]--;
     const projectile = new Projectile(type, from, direction, owner);
     this.projectiles.push(projectile);
     this.emitter.emit('gadget:thrown', { type, owner });
@@ -334,6 +411,13 @@ export class Gadgets {
    *
    * @returns {'warden'|'light'|null} what it hit
    */
+  _spendTaser() {
+    // Free-roam keeps the charge (Section 12); the recharge accumulator is
+    // still zeroed so the HUD ring reads full rather than mid-sweep.
+    if (!this.unlimited) this.taserCharge--;
+    this.taserRecharge = 0;
+  }
+
   fireTaser(shade, warden, aimDirection) {
     if (this.taserCharge <= 0) return null;
     const origin = {
@@ -348,20 +432,29 @@ export class Gadgets {
       const target = { x: warden.position.x, y: warden.eyeY, z: warden.position.z };
       if (this._inCone(origin, aimDirection, target, GA.taser.range, cone)
         && this.collision.lineOfSight(origin, target)) {
-        this.taserCharge--;
-        this.taserRecharge = 0;
+        this._spendTaser();
         warden.stun(GA.taser.stunDuration);
         this.emitter.emit('gadget:taser', { hit: 'warden' });
         return 'warden';
       }
     }
 
+    // Section 9.2: the alarm camera is destructible by the taser too. Ahead of
+    // the lights, because an alarm is something you aim at deliberately.
+    if (this.alarm
+      && this._inCone(origin, aimDirection, this.alarm, GA.taser.range, cone)
+      && this.collision.lineOfSight(origin, this.alarm)) {
+      this._spendTaser();
+      this.destroyAlarm('taser');
+      this.emitter.emit('gadget:taser', { hit: 'alarm' });
+      return 'alarm';
+    }
+
     if (GA.taser.destroysLights) {
       for (const light of this.map.activeLights()) {
         if (!this._inCone(origin, aimDirection, light.position, GA.taser.range, cone)) continue;
         if (!this.collision.lineOfSight(origin, light.position)) continue;
-        this.taserCharge--;
-        this.taserRecharge = 0;
+        this._spendTaser();
         this.detection.breakLight(light.lightId, 'shade');
         this.emitter.emit('gadget:taser', { hit: 'light', lightId: light.lightId });
         return 'light';
@@ -379,9 +472,33 @@ export class Gadgets {
    * renders no live feed, so there is no camera, no render target and no second
    * draw of the scene here — only a cone test.
    */
+  /**
+   * Find a wall along `direction` and hang the camera on it, facing back out.
+   *
+   * Section 9.2 says "placed on a wall", and there is exactly one way to do
+   * that — the free-roam human on slot 3 and the AI both come through here, so
+   * a camera the AI places is a camera a player could have placed.
+   *
+   * @returns {object|null} the alarm, or null if there is no wall in reach
+   */
+  placeAlarmOnWall(origin, direction) {
+    const C = GA.alarmCamera;
+    const surface = this.collision.raycast(origin, direction, C.placeRange);
+    // A floor or a ceiling is not a wall.
+    if (!surface || Math.abs(surface.ny) > 0.5) return null;
+    return this.placeAlarm(
+      {
+        x: surface.x + surface.nx * C.surfaceOffset,
+        y: surface.y + surface.ny * C.surfaceOffset,
+        z: surface.z + surface.nz * C.surfaceOffset,
+      },
+      Math.atan2(-surface.nx, -surface.nz)
+    );
+  }
+
   placeAlarm(position, yaw) {
-    if (this.loadout.alarmCamera <= 0) return null;
-    this.loadout.alarmCamera--;
+    if (this.loadout.alarmCamera <= 0 && !this.unlimited) return null;
+    if (!this.unlimited) this.loadout.alarmCamera--;
     this.alarm = {
       x: position.x, y: position.y, z: position.z, yaw,
       health: GA.alarmCamera.health, cooldown: 0,
@@ -413,10 +530,17 @@ export class Gadgets {
     if (!this.collision.lineOfSight(alarm, target)) return;
 
     this.shadeMarkedFor = GA.alarmCamera.markDuration;
+    // Where the Shade was when it tripped. Section 9.2 marks it "on the
+    // Warden's HUD" — in competitive the Warden is the AI and has no HUD, so
+    // this is the same information in the form it can use.
+    this.shadeMarkedAt = { x: target.x, y: shade.feetY, z: target.z };
     if (alarm.cooldown > 0) return;
     alarm.cooldown = GA.alarmCamera.retriggerInterval;
     this.detection.noise.emit(alarm.x, alarm.y, alarm.z, N.radii.gunfire * 0.5, 'alarm', 'alarm');
-    this.emitter.emit('gadget:alarm', { at: { x: alarm.x, y: alarm.y, z: alarm.z } });
+    this.emitter.emit('gadget:alarm', {
+      at: { x: alarm.x, y: alarm.y, z: alarm.z },
+      shadeAt: { ...this.shadeMarkedAt },
+    });
   }
 
   // -------------------------------------------------------------------------

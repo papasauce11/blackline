@@ -103,6 +103,73 @@ export class AudioSystem {
     if (this.master) this.master.gain.value = value;
   }
 
+  /**
+   * Render one sound to samples instead of to speakers.
+   *
+   * Nobody has ever heard this game. The suite could prove a voice started and
+   * that it was released, which is the difference between a graph that exists
+   * and a graph that makes the right noise — a builder with its envelope
+   * inverted or its frequency an order of magnitude out passes every one of
+   * those checks. Rendering it offline gives the samples themselves, so
+   * duration, envelope shape, level and rough pitch can be held against what
+   * Section 14 describes.
+   *
+   * It is not hearing it. It is a great deal more than counting voices.
+   *
+   * @param {string} name a Section 14 builder
+   * @param {number} seconds how long to render
+   * @returns {Promise<AudioBuffer|null>}
+   */
+  async renderOffline(name, seconds) {
+    const Ctor = typeof OfflineAudioContext !== 'undefined' ? OfflineAudioContext : null;
+    if (!Ctor || !AudioSystem.BUILDERS[name]) return null;
+
+    const rate = 44100;
+    const offline = new Ctor(1, Math.ceil(rate * seconds), rate);
+
+    // Swap the whole graph onto the offline context for the duration. The
+    // builders are untouched — the point is to render exactly what plays, not
+    // a re-implementation of it.
+    const live = {
+      context: this.context, master: this.master, buses: this.buses,
+      noise: this._noiseBuffer, voices: this.voices, enabled: this.enabled,
+    };
+
+    this.context = offline;
+    this.master = offline.createGain();
+    this.master.gain.value = A.masterGain;
+    this.master.connect(offline.destination);
+    this.buses = {};
+    for (const bus of ['sfx', 'ambience', 'ui']) {
+      const gain = offline.createGain();
+      gain.gain.value = A.busGain[bus];
+      gain.connect(this.master);
+      this.buses[bus] = gain;
+    }
+    const frames = Math.floor(rate);
+    const buffer = offline.createBuffer(1, frames, rate);
+    const data = buffer.getChannelData(0);
+    // Same one-off texture as unlock(); see the note there.
+    for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+    this._noiseBuffer = buffer;
+    this.voices = new Set();
+    this.enabled = true;
+
+    let rendered = null;
+    try {
+      AudioSystem.BUILDERS[name].call(this, { x: 0, y: 0, z: 0 });
+      rendered = await offline.startRendering();
+    } finally {
+      this.context = live.context;
+      this.master = live.master;
+      this.buses = live.buses;
+      this._noiseBuffer = live.noise;
+      this.voices = live.voices;
+      this.enabled = live.enabled;
+    }
+    return rendered;
+  }
+
   /** Stop everything and drop the graph. Used at teardown and between matches. */
   reset() {
     for (const voice of [...this.voices]) {
@@ -151,6 +218,19 @@ export class AudioSystem {
     on('combat:knife', () => this.play('knifeSwing', this._listenerPosition()));
     on('combat:takedown', (event) => this.play('takedown', event.at));
     on('combat:reload', () => this.play('reload', this._listenerPosition()));
+
+    // The rest of the Section 14 table. Each of these had a builder and no
+    // trigger, which sounds exactly like a builder that does not exist.
+    on('gadget:detonate', (event) => {
+      if (event.type === 'smoke') this.play('smoke', event.at);
+      else if (event.type === 'flashbang') this.play('flashbang', event.at);
+      else this.play('grenade', event.at);
+    });
+    on('gadget:taser', () => this.play('taser', this._listenerPosition()));
+    on('gadget:alarm', (event) => this.play('alarm', event.at));
+    // Section 14: "interval shortening as the detonation timer runs down".
+    // Objective owns the interval; this only sounds it.
+    on('objective:beep', (event) => this.play('plantBeep', event.at));
   }
 
   _listenerPosition() {
@@ -419,6 +499,42 @@ AudioSystem.BUILDERS = {
     return this._tone(position, {
       type: 'square', frequency: c.freqHigh, duration: c.toneDuration, gain: c.gain,
     });
+  },
+
+  /** Section 14: sustained noise with a slow low-pass sweep over 1.5s. */
+  smoke(position) {
+    const c = A.smoke;
+    return this._noiseBurst(position, {
+      filterType: 'lowpass', frequency: c.sweepFrom, sweepTo: c.sweepTo,
+      duration: c.duration, gain: c.gain,
+    });
+  },
+
+  /** Section 14: a sharp transient plus the 4kHz ring that decays over 4s. */
+  flashbang(position) {
+    const c = A.flashbang;
+    const crack = this._noiseBurst(position, {
+      filterType: 'highpass', frequency: 1200, duration: c.transientDuration, gain: c.gain,
+    });
+    // The ring is what the player is left with, so it is the longer voice.
+    this._tone(position, {
+      frequency: c.ringFreq, duration: c.ringDuration, gain: c.gain * 0.35,
+    });
+    return crack;
+  },
+
+  /** Section 14: a low noise burst with a pitched-down tail. */
+  grenade(position) {
+    const c = A.grenade;
+    const blast = this._noiseBurst(position, {
+      filterType: 'lowpass', frequency: c.sweepFrom, sweepTo: c.sweepTo,
+      duration: c.duration, gain: c.gain,
+    });
+    this._tone(position, {
+      frequency: c.sweepFrom * 0.25, sweepTo: c.sweepTo * 0.5,
+      duration: c.duration * 1.5, gain: c.gain * 0.5,
+    });
+    return blast;
   },
 
   plantBeep(position) {

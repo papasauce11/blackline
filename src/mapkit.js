@@ -4,11 +4,13 @@
  * The construction kit `map.js` builds "Meridian Substation" out of. This file
  * knows how to make geometry; it knows nothing about the level.
  *
- * Layering (Section 3.1): imports from physics and config only, so it sits at
- * the same layer as map.js and map.js imports it. Section 3 lists map.js as the
- * only map file, but Section 3.1 also requires anything past ~600 lines to be
- * split, and the v2 level data alone is larger than that. See PROGRESS.md
- * deviation 12.
+ * Layering (Section 3.1): imports from physics, config and mapbake only, so it
+ * sits at the same layer as map.js and map.js imports it. Section 3 lists
+ * map.js as the only map file, but Section 3.1 also requires anything past
+ * ~600 lines to be split, and the v2 level data alone is larger than that. See
+ * PROGRESS.md deviation 12. The build-time geometry helpers — materials, the
+ * contact tint, cut lines and geometry merging — live in `mapbake.js`, which is
+ * the part of this file that knows nothing about a map.
  *
  * The rule this file exists to enforce (Section 5): a visual and its collision
  * volume are created from one spec, never separately. `addSolid()` is the only
@@ -21,142 +23,14 @@
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { CollisionWorld, classifyLedge } from './physics.js';
+import {
+  CUT_EPSILON, SWEEP_STEP, createMaterialCache, applyContactTint,
+  collectCuts, containsPoint, bake, mergeGeometries,
+} from './mapbake.js';
+import { deriveRoomEntries } from './maprooms.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
-
-/** Coordinates closer than this are the same cut line. */
-const CUT_EPSILON = 1e-6;
-/** Step used when sweeping a capsule through a candidate opening. */
-const SWEEP_STEP = 0.15;
-
-// ---------------------------------------------------------------------------
-// Materials
-// ---------------------------------------------------------------------------
-
-/**
- * Toon materials are shared by colour so the whole shell draws from a handful
- * of programs. Per-box contact darkness rides on a vertex-colour attribute
- * (Section 4.1) rather than on a per-box material.
- */
-function createMaterialCache(gradientMap) {
-  const cache = new Map();
-  return {
-    toon(color) {
-      let material = cache.get(color);
-      if (!material) {
-        material = new THREE.MeshToonMaterial({ color, gradientMap, vertexColors: true });
-        cache.set(color, material);
-      }
-      return material;
-    },
-    dispose() {
-      for (const material of cache.values()) material.dispose();
-      cache.clear();
-    },
-    get size() {
-      return cache.size;
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Contact tint (Section 4.1: baked vertex tint, applied once at build time)
-// ---------------------------------------------------------------------------
-
-function applyContactTint(geometry, centreY) {
-  const position = geometry.attributes.position;
-  const count = position.count;
-  const colors = new Float32Array(count * 3);
-  const strength = M.vertexTintStrength;
-  const height = M.vertexTintHeight;
-
-  for (let i = 0; i < count; i++) {
-    const worldY = position.getY(i) + centreY;
-    const t = Math.min(1, Math.max(0, worldY / height));
-    const shade = 1 - strength * (1 - t);
-    colors[i * 3] = shade;
-    colors[i * 3 + 1] = shade;
-    colors[i * 3 + 2] = shade;
-  }
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-}
-
-// ---------------------------------------------------------------------------
-// Rectangle helpers used by the plate and wall generators
-// ---------------------------------------------------------------------------
-
-/**
- * Cut lines along one axis: the plate's own edges plus every rectangle edge
- * that falls strictly inside it. Splitting the plate on these means a void or
- * a lip always lands on cell boundaries, never half-covering a cell.
- */
-function collectCuts(low, high, rects, key0, key1) {
-  const cuts = [low, high];
-  for (const rect of rects) {
-    for (const value of [rect[key0], rect[key1]]) {
-      if (value > low + CUT_EPSILON && value < high - CUT_EPSILON) cuts.push(value);
-    }
-  }
-  cuts.sort((a, b) => a - b);
-  const unique = [];
-  for (const value of cuts) {
-    if (unique.length === 0 || value - unique[unique.length - 1] > CUT_EPSILON) unique.push(value);
-  }
-  return unique;
-}
-
-function containsPoint(rect, x, z) {
-  return x > rect.x0 && x < rect.x1 && z > rect.z0 && z < rect.z1;
-}
-
-// ---------------------------------------------------------------------------
-// Static-geometry merging
-//
-// Three's BufferGeometryUtils lives in the addons bundle, which index.html
-// deliberately does not fetch — the import map pins exactly one file and the
-// game makes no other network request. These two helpers are the sliver of it
-// this file needs, for baked decoration that never moves.
-// ---------------------------------------------------------------------------
-
-const bakeMatrix = new THREE.Matrix4();
-const bakeEuler = new THREE.Euler();
-
-/** Move a geometry into world space and add it to a merge bucket. */
-function bake(bucket, geometry, x, y, z, rotationX = 0, rotationZ = 0) {
-  bakeEuler.set(rotationX, 0, rotationZ);
-  bakeMatrix.makeRotationFromEuler(bakeEuler);
-  bakeMatrix.setPosition(x, y, z);
-  geometry.applyMatrix4(bakeMatrix);
-  bucket.parts.push(geometry);
-}
-
-/** Concatenate box geometries into one. Position and normal only. */
-function mergeGeometries(parts) {
-  let total = 0;
-  const flattened = parts.map((part) => {
-    const plain = part.index ? part.toNonIndexed() : part;
-    if (plain !== part) part.dispose();
-    total += plain.attributes.position.count;
-    return plain;
-  });
-
-  const position = new Float32Array(total * 3);
-  const normal = new Float32Array(total * 3);
-  let offset = 0;
-  for (const part of flattened) {
-    position.set(part.attributes.position.array, offset * 3);
-    normal.set(part.attributes.normal.array, offset * 3);
-    offset += part.attributes.position.count;
-    part.dispose();
-  }
-
-  const merged = new THREE.BufferGeometry();
-  merged.setAttribute('position', new THREE.BufferAttribute(position, 3));
-  merged.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
-  merged.computeBoundingSphere();
-  return merged;
-}
 
 // ---------------------------------------------------------------------------
 // GameMap
@@ -238,7 +112,22 @@ export class GameMap {
     mesh.name = spec.tag || 'solid';
     // Section 4.1: only the one directional light casts, so receiving is cheap
     // but casting is limited to geometry that reads as an occluder.
-    mesh.castShadow = spec.castShadow !== false && height > 0.5;
+    //
+    // "Occluder" was `height > 0.5`, which is right for walls and wrong for the
+    // things that make an interior an interior. A roof slab is 0.2m thick, so
+    // it failed the test — and the one shadowed directional light shone
+    // straight through the building onto everything inside it. Measured: with
+    // the point lights off, the Server Vault floor rendered BRIGHTER than the
+    // Turbine Hall's, because the upper deck was catching an unobstructed key
+    // through a roof that was not there as far as the shadow pass knew. That
+    // is the opposite of Section 5's "tight, dark" vault, and it flattens the
+    // high contrast Section 4 calls the core visual language.
+    //
+    // A slab is judged by its footprint instead: big in both horizontal axes
+    // is an occluder however thin it is. Trim and stripes stay out of the
+    // shadow pass, which is what the original test was protecting.
+    const broad = width >= M.shadowCasterMinSpan && depth >= M.shadowCasterMinSpan;
+    mesh.castShadow = spec.castShadow !== false && (height > 0.5 || broad);
     mesh.receiveShadow = true;
     this.root.add(mesh);
 
@@ -413,7 +302,13 @@ export class GameMap {
             color: spec.color,
             tag: `${spec.tag}-${plain++}`,
             noClimb: true,
-            castShadow: false,
+            // Deliberately NOT castShadow:false. A plate is the roof or the
+            // upper deck — the largest occluders on the map — and switching
+            // them out of the shadow pass let the one directional key light
+            // the whole interior as if the building had no lid. Measured: the
+            // Server Vault floor rendered brighter than the Turbine Hall's.
+            // addSolid() decides from the footprint, which keeps the trim and
+            // the stair treads out without excusing the roof.
           })
         );
         runFrom = null;
@@ -679,184 +574,16 @@ export class GameMap {
     return room;
   }
 
-  /** Derive every way a Shade can get into each declared room. */
-  deriveRoomEntries() {
-    for (const room of this.rooms) {
-      room.entries = this._lateralEntries(room)
-        .concat(this._verticalEntries(room, room.ceilingY, 'ceiling'))
-        .concat(this._verticalEntries(room, room.floorY, 'floor'));
-    }
-  }
-
-  /** Can a crouched Shade pass straight through this point on the boundary? */
-  _passesThrough(point, inward, half) {
-    const outer = -(M.wallThickness + CONFIG.shade.radius + 0.2);
-    const inner = CONFIG.shade.radius + 0.2;
-    for (let t = outer; t <= inner + CUT_EPSILON; t += SWEEP_STEP) {
-      const probe = {
-        x: point.x + inward.x * t,
-        y: point.y,
-        z: point.z + inward.z * t,
-      };
-      if (!this.collision.isClear(probe, half)) return false;
-    }
-    return true;
-  }
-
-  _lateralEntries(room) {
-    const radius = CONFIG.shade.radius;
-    const half = { x: radius, y: CONFIG.shade.crouchHeight / 2, z: radius };
-    const step = M.roomEntrySample;
-    const sillMax = Math.min(room.ceilingY - room.floorY, M.roomEntrySillMax + CONFIG.shade.crouchHeight)
-      - CONFIG.shade.crouchHeight;
-    const edges = [
-      { name: 'west', inward: { x: 1, z: 0 }, fixed: room.min.x, from: room.min.z, to: room.max.z, along: 'z' },
-      { name: 'east', inward: { x: -1, z: 0 }, fixed: room.max.x, from: room.min.z, to: room.max.z, along: 'z' },
-      { name: 'north', inward: { x: 0, z: 1 }, fixed: room.min.z, from: room.min.x, to: room.max.x, along: 'x' },
-      { name: 'south', inward: { x: 0, z: -1 }, fixed: room.max.z, from: room.min.x, to: room.max.x, along: 'x' },
-    ];
-
-    const entries = [];
-    for (const edge of edges) {
-      let runStart = null;
-      let runEnd = null;
-      let runSill = 0;
-      const flush = () => {
-        if (runStart === null) return;
-        const width = runEnd - runStart + step;
-        if (width >= radius * 2) {
-          const centre = (runStart + runEnd) / 2;
-          entries.push({
-            kind: 'lateral',
-            edge: edge.name,
-            width,
-            at: {
-              x: edge.along === 'x' ? centre : edge.fixed,
-              y: room.floorY + runSill,
-              z: edge.along === 'x' ? edge.fixed : centre,
-            },
-          });
-        }
-        runStart = null;
-      };
-
-      for (let a = edge.from + radius; a <= edge.to - radius + CUT_EPSILON; a += step) {
-        let sill = null;
-        for (let s = 0; s <= sillMax + CUT_EPSILON; s += M.roomEntrySillStep) {
-          const point = {
-            x: edge.along === 'x' ? a : edge.fixed,
-            y: room.floorY + s + half.y + 0.02,
-            z: edge.along === 'x' ? edge.fixed : a,
-          };
-          if (this._passesThrough(point, edge.inward, half)) {
-            sill = s;
-            break;
-          }
-        }
-        if (sill === null) {
-          flush();
-          continue;
-        }
-        if (runStart === null) {
-          runStart = a;
-          runSill = sill;
-        }
-        runEnd = a;
-      }
-      flush();
-    }
-    return entries;
-  }
-
   /**
-   * Openings in a room's floor or ceiling. A ceiling opening is always an entry
-   * — the Shade can drop through anything. A floor opening only counts when the
-   * level design put a climbable lip on it, which is what separates the vault's
-   * hatch from the deliberately one-way drop shaft.
+   * Section 5: every room's entries, derived from the geometry rather than
+   * declared. The derivation itself lives in maprooms.js.
    */
-  _verticalEntries(room, planeY, kind) {
-    const radius = CONFIG.shade.radius;
-    const half = { x: radius, y: CONFIG.shade.crouchHeight / 2, z: radius };
-    const step = M.roomVerticalSample;
-    const reach = CONFIG.shade.crouchHeight / 2 + M.floorThickness + 0.2;
-
-    const nx = Math.max(1, Math.floor((room.max.x - room.min.x - radius * 2) / step));
-    const nz = Math.max(1, Math.floor((room.max.z - room.min.z - radius * 2) / step));
-    const open = [];
-    for (let j = 0; j < nz; j++) {
-      open.push(new Array(nx).fill(false));
-      for (let i = 0; i < nx; i++) {
-        const x = room.min.x + radius + (i + 0.5) * step;
-        const z = room.min.z + radius + (j + 0.5) * step;
-        let clear = true;
-        for (let t = -reach; t <= reach + CUT_EPSILON && clear; t += SWEEP_STEP) {
-          if (!this.collision.isClear({ x, y: planeY + t, z }, half)) clear = false;
-        }
-        open[j][i] = clear;
-      }
-    }
-
-    const entries = [];
-    const seen = [];
-    for (let j = 0; j < nz; j++) seen.push(new Array(nx).fill(false));
-    for (let j = 0; j < nz; j++) {
-      for (let i = 0; i < nx; i++) {
-        if (!open[j][i] || seen[j][i]) continue;
-        // Flood the connected opening so two separate hatches are two entries.
-        const stack = [[i, j]];
-        seen[j][i] = true;
-        let i0 = i;
-        let i1 = i;
-        let j0 = j;
-        let j1 = j;
-        while (stack.length) {
-          const [ci, cj] = stack.pop();
-          i0 = Math.min(i0, ci);
-          i1 = Math.max(i1, ci);
-          j0 = Math.min(j0, cj);
-          j1 = Math.max(j1, cj);
-          const neighbours = [[ci - 1, cj], [ci + 1, cj], [ci, cj - 1], [ci, cj + 1]];
-          for (const [ni, nj] of neighbours) {
-            if (ni < 0 || nj < 0 || ni >= nx || nj >= nz) continue;
-            if (!open[nj][ni] || seen[nj][ni]) continue;
-            seen[nj][ni] = true;
-            stack.push([ni, nj]);
-          }
-        }
-        // No minimum size here, unlike the boundary walk. Every cell in this
-        // component already carried a full crouch capsule the whole way through
-        // the floor or ceiling plane, so one cell is proof enough — and demanding
-        // several would reject a vent-width shaft for being narrow rather than
-        // for being impassable.
-        const width = (i1 - i0 + 1) * step;
-        const depth = (j1 - j0 + 1) * step;
-        const at = {
-          x: room.min.x + radius + ((i0 + i1) / 2 + 0.5) * step,
-          y: planeY,
-          z: room.min.z + radius + ((j0 + j1) / 2 + 0.5) * step,
-        };
-        if (kind === 'floor' && !this._hasClimbableLip(at, planeY, Math.max(width, depth))) continue;
-        entries.push({ kind, edge: kind, width: Math.min(width, depth), at });
-      }
-    }
-    return entries;
-  }
-
-  /** Is there a climbable surface at this height bordering the opening? */
-  _hasClimbableLip(at, planeY, span) {
-    const reach = span / 2 + CONFIG.shade.vaultReach;
-    for (const box of this.collision.boxes) {
-      if (!box.climbable) continue;
-      if (Math.abs(box.max.y - planeY) > 0.05) continue;
-      if (box.max.x < at.x - reach || box.min.x > at.x + reach) continue;
-      if (box.max.z < at.z - reach || box.min.z > at.z + reach) continue;
-      return true;
-    }
-    return false;
+  deriveRoomEntries() {
+    deriveRoomEntries(this.collision, this.rooms);
   }
 
   // -------------------------------------------------------------------------
-  // Affordance markings (Section 5) — ONE pass, driven by the collision flags
+  // Affordance markings (Section 5) - ONE pass, driven by the collision flags
   // -------------------------------------------------------------------------
 
   /**
@@ -1012,7 +739,16 @@ export class GameMap {
    * unmarked — which is exactly the drift Section 5 forbids.
    */
   _supportHeightBelow(box) {
-    let best = M.groundY;
+    const candidates = this._supportCandidates(box);
+    return candidates[candidates.length - 1];
+  }
+
+  /**
+   * Every height an actor could be standing on to climb this box, lowest
+   * first. Always includes the ground plane.
+   */
+  _supportCandidates(box) {
+    const heights = [M.groundY];
     const minSupport = CONFIG.shade.radius * 2;
     for (const other of this.collision.boxes) {
       if (other === box || !other.solid) continue;
@@ -1023,9 +759,34 @@ export class GameMap {
       const margin = CONFIG.shade.vaultReach;
       if (other.max.x < box.min.x - margin || other.min.x > box.max.x + margin) continue;
       if (other.max.z < box.min.z - margin || other.min.z > box.max.z + margin) continue;
-      if (other.max.y > best) best = other.max.y;
+      heights.push(other.max.y);
     }
-    return best;
+    heights.sort((a, b) => a - b);
+    return heights;
+  }
+
+  /**
+   * Every band this ledge really gives, one per height it can be climbed from.
+   *
+   * A stripe is one mesh on one top edge, seen from every floor at once, but a
+   * box reachable from two floors has two bands and no single marking can say
+   * both. `hall-container` is the live case: a 0.7m vault from the crate stack
+   * beside it, part of the Turbine Hall route, and a 3.0m hang from the floor,
+   * which is what it was added for. Both are real moves.
+   *
+   * The marking names the tallest approach, because that is the designed one
+   * on every multi-tier route on the map — the intermediate tiers exist
+   * precisely so the climb is made from them. This exists so the readability
+   * check can hold the marking to "a move this ledge actually gives" rather
+   * than to a single answer the geometry does not have.
+   */
+  ledgeBandsFor(box) {
+    const bands = new Set();
+    for (const height of this._supportCandidates(box)) {
+      const band = classifyLedge(box.max.y - height);
+      if (band) bands.add(band);
+    }
+    return [...bands];
   }
 
   _addDashedStripe(centre, length, thickness, horizontal, bucket) {

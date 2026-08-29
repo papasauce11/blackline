@@ -352,6 +352,15 @@ export class Detection {
 
     const rim = F.rimMin + (F.rimMax - F.rimMin) * t;
     materials.outline.color.copy(this._baseRim).multiplyScalar(rim);
+
+    // Section 4.2 asks for rim light intensity AND outline brightness. This is
+    // the first of those — a fresnel on the body itself, from the same `t`, so
+    // there is still exactly one source for everything the player sees.
+    const uniforms = shade.mesh.userData.rim;
+    if (uniforms) {
+      uniforms.uBlRimStrength.value =
+        F.rimStrengthMin + (F.rimStrengthMax - F.rimStrengthMin) * t;
+    }
   }
 
   // -------------------------------------------------------------------------

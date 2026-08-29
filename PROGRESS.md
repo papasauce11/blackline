@@ -1819,3 +1819,773 @@ written as a shared controller driven by an intent object so the AI (Phase 6)
 and the free-roam human (Phase 12) feed the same interface. Exit gate: swapping
 the camera between Shade and Warden leaks no state — reuse `setCameraOwner()`
 and assert the camera count stays at 1 and FOV is restored.
+
+---
+
+## Phases 14 to 23 — closing out Section 16 and Section 18
+
+**Status:** complete. Suite: **69 → 85 passed, 0 failed.** Runtime assertions
+6 → 8. Zero console warnings or errors across 90 simulated seconds of live play.
+
+Every phase below traces to something already in the spec. Nothing new was
+invented: Section 3 says the scope is frozen, so these ten phases are the
+remaining distance between what the spec asks for and what the build did.
+
+### The ten phases
+
+| Phase | What it closed |
+|---|---|
+| 14 | Free-roam combat and the Warden HUD (check 15) |
+| 15 | The difficulty and match-length settings actually taking effect |
+| 16 | The Shade's death: ragdoll and the free-look death camera (Section 10.2) |
+| 17 | The alarm camera end to end (check 19), and the rest of Section 14's audio |
+| 18 | A real performance harness for check 29 |
+| 19 | AUTO coverage for detection checks 11 and 12 |
+| 20 | A full best-of-five played end to end (check 22) |
+| 21 | The mechanical half of movement checks 1, 5 and 7 |
+| 22 | Modules back toward the Section 3.1 line |
+| 23 | The Section 18 definition-of-done sweep |
+
+### The bug that matters most: the slide could not be performed
+
+Section 6.1 gives the Shade a slide "from sprint plus crouch". It was
+unreachable from the keyboard, and had been since Phase 3.
+
+`_stepGround()` applied the crouch first and only then tested for a slide:
+
+```js
+this._applyCrouch(intent.crouch);
+const sprinting = intent.sprint && !this.crouching && ...;
+if (intent.crouchPressed && sprinting && ...) this._enterSlide();
+```
+
+A keydown adds the code to the held set **and** the pressed set in the same
+event, so on the step the crouch edge fires, `intent.crouch` and
+`intent.crouchPressed` are both true. Applying the crouch first set
+`this.crouching`, which cleared `sprinting`, which meant the branch could never
+be taken. Holding Shift and tapping Ctrl produced a crouch-walk, every time.
+
+This is the Phase 3 ledge-hang bug again in a different place — an edge flag
+read after the held flag has already changed the state it depends on. And it
+survived for the same reason: `shade-invariants-under-fuzz` reported
+`states seen [ground air slide]`, because random input cheerfully produces a
+crouch *edge* with the key not *held*, which no player can produce.
+
+Slide entry is now tested before the crouch is applied, and the check drives it
+through `input.heldCodes` / `input.pressedCodes` rather than a hand-built intent,
+so a test can no longer pass by picking a key combination that does not exist.
+
+```
+PASS  slide-into-a-vent-lowers-the-capsule
+      vent-grade-west: 10m run-up, slid from 2.43m short of the mouth at 6.50 m/s,
+      slide began at 8.00 (spec 8), capsule dropped to 0.85m from 1.85m,
+      travelled 6.47m inside a 1.15m duct with 0 clips
+```
+
+### Two settings that moved a label and nothing else
+
+`ai.js` read `CONFIG.settings.difficulty` and `objective.js` read
+`CONFIG.settings.matchLength`. Both compiled, both looked right, and both
+returned the frozen **default** forever — so the Section 13 difficulty control
+did nothing to the Section 11 presets, and best-of-11 still ended at three wins.
+
+Rather than patch the two call sites, the trap was removed: the seed values now
+live under `CONFIG.settings.defaults`, so `CONFIG.settings.difficulty` is
+`undefined` and a stale read fails loudly. That immediately surfaced a third
+site nobody had noticed — `ui/scoreboard.js` printing "first to 3" regardless of
+the setting.
+
+The checks assert behaviour, not storage: they set the value, start a match, and
+read what the AI and the objective system are actually running.
+
+### The death camera, and why the guard forces a reinsert
+
+Section 10.2 asks for "a free-look death camera on the killing Warden" and
+Section 15 lists reinsert leaving stale state as its own risk, mitigated by a
+`respawnShade()` with "a hard wall-clock guard like the finisher". The config
+constants had been there since Phase 10; nothing used them.
+
+`systems/deathcam.js` now owns the ragdoll, the camera, and the restore. Two
+decisions worth stating:
+
+**The restore lives in one function, injected into objective.** Objective still
+chooses *where* the Shade comes back (Section 10.2's spawn scoring) but no
+longer performs the reinsert itself — it calls a `respawnShade` handed in by the
+composition root. Splitting a four-part restore across two files is exactly how
+three of the four parts get done.
+
+**The guard forces the reinsert rather than merely dropping the camera.** The
+countdown runs on the sim clock, which the time scale can stretch and a stalled
+frame can stop. Handing back a camera attached to a still-dead Shade is not
+"control restored" — it just moves where the player is stuck.
+
+The check proves the unhappy path, not the happy one: it freezes the countdown
+at its full 15s, rewinds the wall clock past the guard, and asserts the player
+gets everything back on the next step.
+
+### Section 14 had six sounds that could not be heard
+
+Builders existed for the taser, the alarm and the plant beep, and nothing ever
+called them; smoke, flashbang and grenade had no builder at all. A builder with
+no trigger is silent in play and indistinguishable from one that was never
+written, so the audio check now walks the Section 14 table and, for each row,
+**emits the real game event** and asserts a voice started. Rows triggered by a
+real event: **8 → 14**.
+
+The plant beep needed an interval that shortens as the detonation clock runs
+down, which is the clock made audible — so objective owns the interval and audio
+only sounds it.
+
+### Check 29, measured rather than reasoned about
+
+Section 16 classes check 29 AUTO and says to build the harness. `frame()` was
+split so `renderFrame(wallDelta)` is callable synchronously — the benchmark runs
+*the* frame function, not a copy of it — and the check assembles the exact load
+the spec names, then times 180 of them.
+
+```
+PASS  frame-budget-under-the-check-29-load
+      180 frames with 100 smoke sprites, a live flashbang, a ragdoll and 26 rounds:
+      CPU 1.90ms median / 4.10ms p95, GPU 2.26ms against a 16.67ms budget;
+      peak 98 draw calls, 6096 triangles, 137 live effects; pools held and drained to 0
+```
+
+**This is the first performance number this project has ever produced.** Read it
+for what it is: CPU cost and GPU cost of a real frame under the check-29 load, on
+this machine. It is not a vsync-paced frame rate on integrated graphics, and
+check 29 stays HUMAN for that reason.
+
+Assembling the load surfaced two genuine interactions worth knowing:
+
+- **Smoke blocks AI line of sight entirely** (Section 9.1), so a cloud on the
+  target stops the gunfire. The four loads only coexist when the smoke is
+  somewhere else in the room — which is where a real one gets thrown.
+- **A flashbang the AI saw disables its perception**, same result. The benchmark
+  uses a flash the player sees and the Warden does not, which Section 9.1 models
+  explicitly and which costs exactly the same to render.
+
+### Checks 11 and 12 as a controlled experiment
+
+The two checks are the same approach run twice down the same lane — crouch, then
+sprint — so anything that could confound them hits both runs equally and the
+difference isolates the Section 7.2 noise radii, which is what they are about.
+
+The Warden is held at its node facing away, because over five seconds a patrol
+scan sweeps far enough to simply *look* at the Shade, and that is a sight
+detection, not a hearing one. The check asserts `wardenAI.sees` stayed false for
+both runs and fails loudly if it did not, so it can never quietly become a test
+of something else.
+
+```
+PASS  crouch-approaches-unheard-sprint-does-not
+      crouch-walked to 0.0m: silent, states [patrol], accumulator 0.0;
+      sprinted the same lane to 5.4m: 3 noise events, states [patrol,suspicious,investigate]
+```
+
+### A hazard found by a test getting it wrong
+
+The 8m-fall check captured a noise event object and read its radius afterwards.
+It reported 8m for a landing that is spec'd at 10m — because noise events come
+from a **fixed pool of 48 that recycles**, and a later Warden footstep (radius 8)
+had overwritten the slot.
+
+Every production listener reads the fields immediately, so nothing was broken.
+But it is a real trap for the next listener that wants to keep one, and it is now
+called out at the two sites that hold on to an event.
+
+### Module splits (Section 3.1)
+
+Flagged as overdue for four phases. Six modules came out, all pure moves with
+no behaviour change — the suite reported the same checks, 214 collision boxes
+and 49 marked ledges before and after:
+
+| New file | Out of | Why it is a real seam |
+|---|---|---|
+| `src/emitter.js` | main.js | Imports nothing; belongs at the bottom of the graph |
+| `src/freefly.js` | main.js | Debug flycam, reads input, moves the one camera |
+| `src/testcommands.js` | main.js | Section 17.1 handlers; the panel knows no game, these know no keys |
+| `src/mapbake.js` | mapkit.js | The half that knows nothing about a map |
+| `src/entities/agentmesh.js` | agent.js | Build time vs. run time |
+| `src/tests/assertions.js` | main.js | The Section 17 assertions, beside the rest of the checks |
+
+main.js 1133 → 918, mapkit.js 1103 → 991, agent.js 869 → 790.
+
+Moving the assertions out surfaced that **two of Section 17's four were never
+written**: "the round state machine is in exactly one valid state" and "active
+effect count returns to 0 within 10s of the last gadget expiring". Both exist
+now, which is why the assertion count went 6 → 8.
+
+**Still over the ~600 line guidance**, with reasons rather than excuses:
+
+- **`config.js` (1059) — deliberately exempt.** Section 3 makes it "ALL tuning
+  constants, single source of truth" and Section 3.1's stated rationale for the
+  cap is that "long files are where bugs hide". It is pure data with no logic.
+  Splitting it would trade the property the spec explicitly asks for against a
+  guideline aimed at a problem it does not have. **Say the word and it becomes
+  `config/` with a barrel.**
+- **`main.js` (918)** — composition root, and now almost entirely wiring. Every
+  further split makes the one file whose job is to show how the pieces connect
+  show less of it.
+- **`mapkit.js` (991), `map.js` (714), `physics.js` (656), `ai.js` (606)** —
+  mapkit's remaining bulk is the room-entry and climbability derivation, which
+  are methods on `GameMap`; moving them means free functions taking the map plus
+  delegating methods, which is a larger and riskier edit than the rest and buys
+  nothing functional. Flagged rather than rushed.
+
+### Deviations from spec added by these phases
+
+19. **Bullet impact sparks** on `combat:impact`, from the existing pooled
+    particle system. Check 15 asks the player to watch spread grow and recoil
+    climb, and neither is observable without seeing where the rounds land. Five
+    sprites per shot from the existing 120 pool; no new subsystem. **Say the
+    word and it comes out.**
+20. **`src/emitter.js`, `src/freefly.js`, `src/testcommands.js`,
+    `src/mapbake.js`, `src/entities/agentmesh.js`, `src/systems/deathcam.js`,
+    `src/tests/assertions.js`** are files Section 3 does not list. Same class as
+    deviations 1, 12 and 16: Section 3.1's line cap and Section 3's file list
+    cannot both be satisfied, and the cap is the one with a stated reason.
+21. **One `setTimeout` in `src/tests/performance.js`.** Section 9 and the risk
+    register ban it for anything affecting gameplay. This yields the thread so a
+    GPU timer-query fence can resolve inside a test; it ends when the query does
+    and touches no game state. Called out at the line, as the audio noise
+    buffer's `Math.random` is.
+22. **The Shade is not a target in free-roam.** Section 12 says free-roam has no
+    opponent, so the gun interacts with the world only.
+
+### Section 16 after these phases
+
+| Check | Was | Now |
+|---|---|---|
+| 1 sprint into a wall | HUMAN | AUTO half: 0 overlaps, rests 0.341m off a 0.34m radius, 0.00mm/step |
+| 5 slide into a vent | HUMAN | AUTO half — and it did not work at all until this phase |
+| 7 fall 8m | HUMAN | AUTO half: lowest feet y=0.001, 10m landing noise, 1m drop silent |
+| 11 crouch-walk unnoticed | none | AUTO |
+| 12 sprint noticed | none | AUTO |
+| 15 free-roam magazine | blocked | AUTO, and now actually playable |
+| 19 alarm camera | none | AUTO: siren, re-trigger interval, gunfire/taser/knife, silence after |
+| 22 best of 5 | partial | AUTO: full match, every scoreboard row checked against what was played |
+| 29 performance | reasoned about | AUTO: measured, with an honest statement of what it cannot prove |
+
+### Verification actually performed
+
+- **AUTO suite: 85 passed, 0 failed**, run after every change rather than once
+  at the end. 8 runtime assertions, 0 failures.
+- **`a-live-match-logs-nothing`**: 90 simulated seconds of competitive play with
+  the AI, gadgets, deaths and reinserts running produced 0 warnings, 0 errors and
+  0 assertion failures. (The one warning the suite prints is the death-camera
+  check deliberately firing its own guard.)
+- **`no-network-beyond-the-three-cdn`**: 47 requests, 45 same-origin, 2 from
+  jsdelivr — `three@0.180.0` module and core, both pinned. Nothing else.
+- **Static:** `Math.random` — one occurrence, the documented audio buffer.
+  `setTimeout` — one, the documented GPU fence. `TODO`/`FIXME` — none. One empty
+  `on('combat:damage', () => {})` handler was removed, which Section 3.2 forbids.
+- **Live in Chrome:** free-roam boots as a configuration of `initMatch` with
+  unlimited gadgets; an alarm camera places on a real wall through the slot-3 key
+  path and its fixture appears; a held trigger empties the magazine and the HUD
+  reads `stun ∞  frag ∞  cam set` with the timer and score correctly absent;
+  competitive returns with exactly 1 camera and 0 assertion failures.
+
+### Not verified (still needs a human)
+
+- **Nothing has been seen on a screen.** The browser pane still does not
+  composite — `document.hidden` stays true, `requestAnimationFrame` never fires,
+  screenshots time out. Everything visual in these ten phases is unobserved: the
+  death camera's orbit, the ragdoll, the alarm camera fixture and its blinking
+  lens, the impact sparks, the Warden HUD's layout.
+- **The framerate you will actually see.** CPU and GPU cost per frame are now
+  measured and have ample headroom, but a vsync-paced number on integrated
+  graphics is yours to read with the window focused.
+- **Audio has still never been heard.** Six more sounds now fire in play; whether
+  any of them reads as the thing it is meant to be is entirely unverified.
+- **Whether the slide feels right.** It works now, which it did not before, but
+  `slideLead` (2.5m) — how far short of a vent mouth you have to commit — is a
+  number I picked, not one the spec gives.
+
+### Exact next action
+
+Play it. Specifically: slide into a vent (new), die to the Warden and watch the
+death camera (new), fire a magazine in free-roam and place an alarm camera (new),
+and read the framerate with the window focused. Those four are the whole of what
+these ten phases changed that no assertion can settle.
+
+---
+
+## Phases 24 to 33 — the gaps behind the green ticks
+
+**Status:** complete. Suite: **85 → 94 passed, 0 failed**, run twice end to end
+to catch flakiness. Runtime assertions 8, 0 failures. Section 16 coverage
+claimed: **29 of 29 checks**.
+
+The last ten phases closed the distance between the spec and the build. These
+ten closed the distance between *passing* and *working* — five of the ten found
+something that was wired, tested, green, and did not actually happen in play.
+
+### The ten phases
+
+| Phase | What it closed |
+|---|---|
+| 24 | The AI's alarm camera: it never placed one, and a trip told it nothing |
+| 25 | DEFEND never pathed to the charge, so check 21 could not happen |
+| 26 | Section 4.2's rim light, and the first pixel-level verification in the project |
+| 27 | Pause (Esc had a binding and no handler) |
+| 28 | Check 26 as a walk-up sweep of every climbable face on the map |
+| 29 | Check 28 end to end: a whole match replays from its seed |
+| 30 | The AI's grenades, from decision to damage |
+| 31 | Section 16's named regression set, runnable in one keypress |
+| 32 | Two more Section 3.1 splits, both behaviour-neutral |
+| 33 | Final sweep |
+
+### The one that mattered most: DEFEND never went to the charge
+
+Section 11 gives DEFEND one job — "path directly to the charge" — and
+`setDefendTarget()` set the state without ever calling `_pathTo()`. The Warden
+kept walking whatever patrol route it happened to be on and only reached the
+charge by coincidence.
+
+This is the third time this exact fault has appeared in this codebase. Phase 6
+found it in ENGAGE ("ENGAGE did not re-path when it lost sight"). It is easy to
+miss because entering a state and going somewhere look the same in a state
+diagram and are unrelated in code.
+
+Nothing caught it because `defuse-wins-and-partial-progress-decays` drives the
+defuse timer directly — it proves the objective system's arithmetic, not that a
+Warden ever arrives. Check 21 ("plant a charge, let the AI defuse it, Warden
+wins") had no AUTO cover at all.
+
+```
+PASS  the-ai-walks-to-the-charge-and-defuses-it
+      planted at A and hid: the Warden pathed 9.0m to the charge, held an 8s defuse
+      and won the round 12.8s after the plant, with 32.2s left on the detonation clock
+```
+
+DEFEND also gained the exit Section 11 lists and it did not have: "break off to
+ENGAGE if fired upon". `ai.js` subscribed to no events at all, so a Warden being
+knifed mid-defuse had no way to notice. `combat:damage` now carries where the
+attack came from — the AI has to break off *toward* something, and a Warden that
+knows it was hit but not from where can only spin on the spot.
+
+### The alarm camera the AI never had
+
+Section 9.2 gives the Warden an alarm camera, one per round, for AI use.
+`ai.js` did not mention it. In competitive nobody ever placed one, so a gadget
+with a mesh, a cone, a siren, three destruction routes and its own AUTO check
+had never once appeared in a match.
+
+The second half is subtler. Section 9.2 says a detection marks the Shade "on the
+Warden's HUD for 2s" — but in competitive the Warden *is* the AI and has no HUD.
+The mark was driving a DOM element nobody was looking at. It now arrives as
+knowledge: the AI learns where the **Shade** was, not where the camera is, which
+is the difference between a tripwire and a noise.
+
+Where it gets placed is a decision worth stating: it sweeps for a wall as it
+*walks* through SEARCH and DEFEND rather than only where it stops. Waypoints sit
+in open space by design — that is what makes them walkable — so a Warden
+standing on one is almost never within arm's reach of a wall, and the first
+version placed nothing across 40 seconds of searching.
+
+### A rim light, and the first thing in this project ever verified on screen
+
+Section 4.2 asks for "rim light intensity **and** outline brightness" driven by
+the smoothed meter. Phase 5 shipped the outline and flagged the rim as absent —
+a recoloured inverted hull reads as a thicker edge, not as light catching a
+shoulder.
+
+It is a fresnel term added to the Shade's toon materials by token replacement.
+Every injection point was verified present, and unique, in the pinned r180
+program *before* the code was written, which is what Section 2 asks for: "verify
+the API names for that exact version rather than recalling them." The view
+vector rides on varyings this project declares, so nothing depends on which
+internal varyings three happens to expose for toon.
+
+Then the part that matters more than the feature. **The browser pane still does
+not composite** — `requestAnimationFrame` never fires and screenshots time out,
+which is why nothing in eighteen phases had ever been seen. But `readPixels`
+does not need a compositor. So the check renders the Shade twice, once with the
+rim off and once with it at full, and reads the framebuffer back:
+
+```
+PASS  the-rim-light-is-really-on-screen
+      read back 1280x720: the Shade covers 8568 pixels, the rim brightened 5466 of
+      them by +131.7 at the silhouette against +58.2 in the interior (2.3x);
+      strength 0.18 -> 1.35 across meter 0..100
+```
+
+The silhouette-versus-interior comparison is the point. A flat brightening would
+also raise the pixel count; only a rim raises the *edge* 2.3x more than the
+middle. **This is the first rendered output this project has verified.** The
+technique generalises — anything with a visible signature can now be checked the
+same way, which closes some of the "needs a human" list permanently.
+
+### The map sweep found a ledge that lies to you
+
+Check 26 asks a human to walk the map confirming no unmarked usable ledge
+exists. `climbable-surfaces-are-derived-not-hand-flagged` proves the derivation
+agrees with itself — the flag and the stripe come from one pass, so they cannot
+disagree. It cannot prove the thing a human would actually notice: whether the
+stripe you see is the move you get.
+
+So the sweep walks up to every climbable face on the map, stands where a player
+would stand, and runs the controller's own `_probeLedge()`:
+
+```
+PASS  every-reachable-ledge-is-marked-with-the-move-it-gives
+      walked up to 480 standing positions around 49 climbable boxes; the controller's
+      own probe caught 39 of them (297 approaches) as vault 175 / mantle 116 / hang 6;
+      every one carried a marking naming a move it really gives; 1 ledge is climbable
+      from two floors and can only advertise one
+```
+
+It failed on its first run: `hall-container` marked vault, climbing as hang.
+
+The first fix made it worse — marking by the lowest approach put ten multi-tier
+route ledges wrong instead of one. That was the useful failure, because it showed
+the premise was wrong. **A box reachable from two floors genuinely has two bands
+and one stripe cannot say both.** The container is a 0.7m vault from the crate
+stack beside it (a designed step in the Turbine Hall route) and a 3.0m hang from
+the floor (what it was added for in Phase 3). Both are real moves.
+
+So the marking keeps naming the tallest approach, which is the designed one on
+every multi-tier route, and the check now holds it to "a move this ledge actually
+gives" — hard-failing on a marking no approach produces, and *naming* the
+ambiguous one rather than swallowing it. The check prints it every run:
+
+```
+  -> ledges climbable from two floors: hall-container marked vault, also climbs as hang from y=0.00
+```
+
+**Worth your eye on the walkthrough.** Standing on the Turbine Hall floor you
+will see a vault stripe on a 3m container you cannot vault. Options are to move
+the crate stack off its south face, or to accept it — I did not want to reshape a
+route to satisfy a stripe without asking.
+
+### Determinism, measured over a match rather than a shuffle
+
+`ai-patrol-order-is-seed-reproducible` covers the circuit — the first draw from
+the stream and the easiest thing to get right. A match is where the stream is
+actually spent: patrol pauses, aim error, burst lengths, spread offsets, grenade
+decisions, smoke puff positions.
+
+```
+PASS  a-match-replays-identically-from-its-seed
+      1200 steps of a live match (AI, detection, objective, scripted input) sampled
+      240 times: seed 20250814 replayed identically on every sample,
+      seed 20250815 differed on 225 of them
+```
+
+The input is scripted by step index rather than drawn from the PRNG, so driving
+the Shade does not perturb the stream it is testing.
+
+### The regression set, and what labelling it exposed
+
+Section 16 names a set to run after any patch — checks 1, 3, 9, 13, 17, 20, 22,
+23, 27 — and nothing ran it. F4 → **U** now runs exactly that subset: 16 of 94
+checks, and it says out loud which named checks nothing covers rather than
+quietly skipping them.
+
+Building it found that three of the nine had coverage that never declared it.
+Check 3 (mantle to a catwalk) was covered by the stairless-routes check labelled
+"v2 requirement 4"; check 13 (the finisher) by two combat checks labelled only
+with their spec sections; check 27 (the character dims with the meter) by the
+feedback check. Coverage is parsed out of each check's own `spec` string rather
+than a second field, so the label a check prints is the label it is counted by
+and the two cannot drift.
+
+Section 16 coverage claimed went **28 → 29 of 29**. "Claimed" is the honest word:
+many are the AUTO half of a check whose other half is still a human looking at a
+screen.
+
+### Module splits (Section 3.1)
+
+Two more, both pure moves, both proven behaviour-neutral — 214 collision boxes,
+49 marked ledges and identical room entries before and after:
+
+| New file | Out of | Why it is a real seam |
+|---|---|---|
+| `src/maprooms.js` | mapkit.js | The Section 5 room-entry derivation. Needs the collision world and the room list, nothing else from GameMap |
+| `src/systems/astar.js` | ai.js | Pure: nodes in, ids out. The one piece of navigation with no knowledge of a Warden — and the piece that once hung the tab so hard that `1 + 1` timed out |
+
+**Still over the ~600 line guidance**, unchanged in reasoning from the last
+round and now with the honest note that this round's features grew three of
+them:
+
+- `config.js` (1165) — deliberately exempt. Section 3 makes it the single source
+  of truth for every tuning number; Section 3.1's stated rationale for the cap is
+  that "long files are where bugs hide", and this is pure data with no logic.
+- `main.js` (1083) — composition root, almost entirely wiring. Grew this round
+  by the pause handling and the death-camera and alarm wiring.
+- `mapkit.js` (945), `agent.js` (905), `ai.js` (754), `map.js` (793),
+  `physics.js` (737), `gadgets.js` (633) — what remains in each is cohesive.
+  Splitting `ai.js` further means converting eight methods that share instance
+  state into free functions taking the AI, which makes the code harder to read,
+  not easier — the opposite of what the rule is for.
+
+### Deviations from spec added by these phases
+
+23. **`src/maprooms.js`, `src/systems/astar.js`** — files Section 3 does not
+    list. Same class as deviations 1, 12, 16 and 20.
+24. **A rim light implemented with `onBeforeCompile`.** Section 4 specifies
+    `MeshToonMaterial`; this extends it rather than replacing it, and every
+    injection token was verified against the pinned build first. The material is
+    still a toon material and the gradient map still drives the banding.
+25. **`U` in test mode**, running the Section 16 regression set. Not in the
+    Section 17.1 table — added because the spec names a subset "to run after any
+    patch" and the full suite is now large enough that people stop running it.
+26. **A pause page on the existing menu**, reached by the already-bound `Escape`.
+    Section 13 lists the menus and does not name a pause; the binding existed
+    with no handler, which is worse than either having it or not.
+
+### Verification actually performed
+
+- **AUTO suite: 94 passed, 0 failed**, run after every change, and **run twice
+  in succession at the end** — a flaky check shows up as a different answer, not
+  as a passing one. (That is how the stun-grenade assertion in the new grenade
+  check was caught: it was reading a rifle round as the grenade's damage.)
+- 8 runtime assertions, 0 failures across 600 stepped frames of live competitive.
+- **Both modes after the refactors:** free-roam boots with unlimited gadgets and
+  a full magazine; competitive holds exactly 1 camera, 1 shadow-casting light,
+  3 lives, AI in patrol.
+- **Render path:** 313 draw calls, 11,212 triangles, 9 programs (one more than
+  before — the rim variant), `gl.getError()` 0.
+- **Static:** `Math.random` — one occurrence, the documented audio buffer.
+  `setTimeout` — one, the documented GPU fence. `TODO`/`FIXME` — none.
+
+### Not verified (still needs a human)
+
+Shorter than last time, and more specific.
+
+- **Everything visual except the rim light.** The pane still does not composite.
+  The rim is now proven by framebuffer readback; the death camera's orbit, the
+  ragdoll, the alarm fixture and its blinking lens, the impact sparks and the
+  Warden HUD layout are not.
+- **Audio has still never been heard.** Fourteen Section 14 rows now fire from
+  real game events. Whether any of them reads as the thing it is meant to be is
+  entirely unverified.
+- **The framerate you will actually see.** CPU 1.9ms and GPU 2.3ms per frame
+  under the check-29 load leave a lot of headroom against 16.67ms, but a
+  vsync-paced number on integrated graphics is yours to read with the window
+  focused.
+- **`hall-container`'s stripe** — see the map sweep above. This is a real
+  readability call and it is yours.
+- **Whether the AI's alarm camera lands somewhere sensible.** It provably hangs
+  on a wall and provably works. Whether the walls it picks are ones you would
+  have picked is a judgement no assertion makes.
+
+### Exact next action
+
+Play it, and specifically look at the five things above. The regression set (F4
+then `U`) is the thing to run after any change from here — 16 checks, a few
+seconds, and it covers what Section 16 says matters.
+
+---
+
+## Phases 34 to 45 — looking at it
+
+**Status:** complete. Suite: **94 → 105 passed, 0 failed.** Section 16 coverage
+claimed: 29 of 29.
+
+Every entry in this file up to now ended with the same paragraph: *nothing has
+been seen on a screen.* The browser pane never composites — `document.hidden`
+stays true, `requestAnimationFrame` never fires, screenshots time out — so for
+thirty-odd phases the rendered output was the one thing no check could reach.
+
+`gl.readPixels` does not need a compositor. The renderer draws to the canvas
+whether or not anything is presenting it, and the pixels are there to be read.
+That is what these twelve phases are: the visual and audible half of the build,
+measured for the first time.
+
+It is not the same as looking at it. Every check below says which half it is
+settling, and the HUMAN list at the end is shorter and more specific than it has
+ever been.
+
+### The ten phases, and the one that mattered
+
+| Phase | What it settled |
+|---|---|
+| 34 | `tests/pixels.js` — frame a subject, render, read back, measure |
+| 35 | The affordance stripes are drawn, and brighter than the surface |
+| 36 | **Section 4's lit pools and dark gaps — and the bug that was flattening them** |
+| 37 | Check 27's visual half: the body dims with the meter, monotonically |
+| 38 | The death camera really is pointed at the killer; the ragdoll tumbles then stops |
+| 39 | Smoke obscures; the flashbang whiteout reaches the HUD |
+| 40 | The alarm fixture renders on its wall, its lens changes, it goes when destroyed |
+| 41 | The inverted hull is what draws the silhouette rim |
+| 42 | Every Section 14 sound rendered to samples and inspected |
+| 43 | The HUD fits on screen and does not overlap itself |
+| 44 | The frame budget across 92 viewpoints, not one |
+| 45 | A five-round soak: nothing grew |
+
+### The building had no lid
+
+Section 4 calls high contrast between lit pools and dark gaps "the core visual
+language". Measuring it found the opposite: with the destructible lights off,
+the **Server Vault floor rendered brighter than the Turbine Hall's** — 36.3
+against 26.9 — when Section 5 calls the vault "tight, dark ... lowest light".
+The detection meter read 72 and 18 for the same two places. The screen and the
+meter disagreed, which is precisely what Section 4.2 exists to forbid.
+
+The cause was two layers deep.
+
+`addSolid()` decided what casts a shadow with `height > 0.5`, which is right for
+walls and wrong for the things that make an interior an interior — a roof slab
+is 0.4m thick. And `addFloorPlate()`, which builds both the roof and the upper
+deck, passed `castShadow: false` outright.
+
+So the one shadowed directional light Section 4.1 allows shone **straight
+through the roof** onto everything inside the building. Every interior was lit
+as though the shell had no lid, and the point lights — the whole basis of the
+visibility mechanic — were a small addition on top of a flat wash.
+
+Both are fixed. `addSolid()` now judges an occluder by its footprint rather than
+its thickness, so slabs cast however thin they are while trim and stair treads
+stay out of the shadow pass; and the plate generator no longer opts its cells
+out. Measured after:
+
+```
+PASS  lit-pools-and-dark-gaps-are-actually-contrasty
+      floor luma: site A 38.2 (+29.3 from its lights), site B 26.8 (+17.9),
+      site C 26.1 (+15.7); with every destructible light off the interiors fall
+      to 8.9/8.9/10.4, so the pools are what light the rooms; the Turbine Hall
+      is 1.46x the Server Vault, which is the darkest
+```
+
+Interiors fell from 27–36 to 9–10 on ambient alone. The point lights now
+contribute more than the ambient floor everywhere, which is the measurable form
+of "the pools are what light the room" — and it means shooting a light out
+changes something, which is half the point of destructible lights.
+
+Cost: 24 more shadow casters, 84 → 108. The check-29 benchmark went 1.8ms to
+2.0ms median against a 16.67ms budget.
+
+**This is the single most consequential thing found in forty-five phases**, and
+nothing but reading the pixels could have found it. Every geometric check
+passed throughout: the roof existed, was in the right place, and had a
+collision volume. It just was not in the shadow pass.
+
+### What the other visual checks settled
+
+```
+PASS  affordance-markings-actually-render
+      vault stripe on "stack-hall-low": 51215 pixels drawn, +251.7 brighter than
+      the bare surface; 2 band materials at luma 0.184 / 0.395, all distinct
+
+PASS  the-shade-visibly-dims-with-the-meter
+      23205 body pixels: luma 37.6 -> 57.5 -> 71.1 -> 82 -> 91.2 across meter
+      0/25/50/75/100, monotonic, near-black (37.6) when hidden
+
+PASS  the-outline-darkens-the-silhouette-edge
+      10 hulls over 10 body meshes and 23212 pixels: hiding them moved the
+      silhouette edge by 54.2 against 4.1 in the interior, so the hull is what
+      draws the rim; that rim runs 46.1 hidden to 92.6 lit
+
+PASS  smoke-obscures-and-the-flash-whites-out
+      100 sprites covered 918314 pixels (99.6% of frame) and shifted them by
+      320.2; the flashbang whiteout reaches opacity 1 and clears to 0
+
+PASS  the-alarm-fixture-is-visible-and-changes-state
+      the fixture drew 5287 pixels on its wall, tripping it changed 1541 of them
+      (the lens), and destroying it left 1057
+
+PASS  the-death-camera-frames-the-killer
+      the killer covers 64769 pixels, centred within 0% of frame centre;
+      the body tumbled 3.45 then froze to 0.00000 drift
+```
+
+Check 27 is worth singling out. Its AUTO half already proved the numbers moved
+together; this proves the *pixels* do, across five points on the meter, without
+a band where hiding makes you brighter. That is the disagreement Section 4.2
+says would make players stop trusting the mechanic, and it is now measured
+rather than reasoned about.
+
+### Audio, rendered to samples
+
+Nobody has heard this game. The suite could prove a voice started and was
+released, which is the difference between a graph that exists and a graph that
+makes the right noise — a builder with its envelope inverted or its frequency
+an order of magnitude out passes every one of those checks.
+
+`audio.renderOffline(name, seconds)` swaps the whole graph onto an
+`OfflineAudioContext` and runs the same builder, so what is measured is exactly
+what plays rather than a re-implementation of it.
+
+```
+PASS  every-sound-renders-to-samples-that-match-section-14
+      15 sounds rendered to samples, none silent, none clipping, all decaying:
+      shadeFootstep 8051Hz/0.02s, wardenFootstep 1446Hz/0.03s, gunfire 2381Hz/0.05s,
+      knifeSwing 3191Hz/0.05s, takedown 60Hz/0.18s...; the Warden's footstep is
+      louder (0.05 vs 0.04) and lower (1446 vs 8051Hz)
+```
+
+The takedown renders at 60Hz against Section 14's "sub-bass sine thud at 55Hz".
+The Shade's footstep sits at 8kHz and the Warden's at 1.4kHz — Section 14 asks
+for a high-passed 800Hz burst and a low-passed 400Hz one, and Section 7.2's
+design pillar that the Warden is the loud one is now true **in the mix** and not
+only in the noise radii.
+
+Pitch is only asserted where the builder is a single oscillator. A thud that is
+a 55Hz sine mixed with a 900Hz noise crack has no single pitch, and asking for
+one is asking a question the signal does not answer.
+
+### Three checks that were wrong before the game was
+
+Worth recording, because in each case the first result looked like a defect and
+was not:
+
+- **The frame sweep reported 14.3ms frames.** It was timing `readPixels`, which
+  blocks until the GPU finishes and then copies 3.5MB. Timing the render alone
+  gives **mean 1.70ms, worst 5.40ms across 92 viewpoints**.
+- **Five sounds looked badly mistuned.** The zero-crossing counter divided
+  crossings from the whole buffer by only the audible span, so a 660Hz alarm
+  read as 16kHz. Windowing both to the same span fixed it.
+- **The soak reported 9 leaked effects.** It was counting footprints, which the
+  AI lays continuously as it walks. That is the pool working, not leaking.
+
+The lesson is the one from the slide bug in Phase 21, pointed the other way: a
+check that disagrees with the game is not automatically right about it.
+
+### Two findings for you rather than for the code
+
+- **The map has no hang-band markings.** Bands on the map are vault 19 and
+  mantle 30; nothing is marked hang, so `_addDashedStripe` never runs. Section 5
+  specifies a dashed stripe for ledges above 2.4m. The ledge that should carry
+  one is `hall-container`, which the Phase 28 sweep already flagged: a 0.7m
+  vault from the crate stack beside it and a 3.0m hang from the Turbine Hall
+  floor, both real, and one stripe. Moving the crate stack off its south face
+  would give the map its hang marking back.
+- **Mantle and hang share a marking intensity** (both 0.75). That is
+  spec-faithful — Section 5 distinguishes hang by its *dashed pattern*, not by
+  brightness — but it is worth knowing that if the dashes do not read at
+  distance, the two bands are identical to the eye.
+
+### Verification actually performed
+
+- **AUTO suite: 105 passed, 0 failed.**
+- **`the-frame-budget-holds-everywhere-not-just-at-site-a`**: 92 viewpoints
+  across 23 places, mean 1.70ms, worst 5.40ms at "hall-north" (219 draw calls),
+  peak 241 calls / 9220 triangles.
+- **`a-whole-match-leaks-nothing`**: five rounds with smoke, flashbangs and
+  deaths — scene 361 nodes, 272 geometries, 2 textures, 10 programs and 14
+  emitter listeners, all unchanged; every fixed pool still its declared size and
+  every live count drained to 0.
+- **`the-hud-fits-on-screen-and-does-not-overlap-itself`**: 6 panels, all inside
+  the viewport, none overlapping, and the overlay passes the mouse through.
+
+### Not verified (still needs a human)
+
+For the first time this is a short list, and none of it is "does it draw".
+
+- **Whether any of it looks good.** Every check here proves something is drawn,
+  where, how bright and that it changes on cue. None of them can tell you the
+  Turbine Hall reads as a place, the stripes read at a glance, or the finisher's
+  orbit is legible.
+- **Whether any of it sounds right.** The samples are the right length, level
+  and register. Whether the gunfire reads as a gun is still entirely yours.
+- **The vsync framerate on integrated graphics.** 1.70ms mean and 5.40ms worst
+  against a 16.67ms budget says there is room; it does not say what your GPU
+  does with it.
+- **`hall-container`'s stripe, and the missing hang band.** A level decision.
+
+### Exact next action
+
+Open `http://localhost:5173`, press Play, and walk the Turbine Hall — the
+lighting is materially different from anything described in earlier entries in
+this file, and it is the thing most worth a first look.

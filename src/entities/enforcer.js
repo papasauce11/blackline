@@ -35,6 +35,8 @@ export function createWardenIntent() {
     ads: false,
     fire: false,
     reload: false,
+    /** Section 9.2 loadout slot, 0 for none. Free-roam fills it from keys 1-3. */
+    gadget: 0,
   };
 }
 

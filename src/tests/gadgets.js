@@ -18,6 +18,150 @@ const GA = CONFIG.gadgets;
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
+    id: 'the-ais-grenades-fly-land-and-hurt',
+    spec: 'Section 9.2, Section 11 / check 17',
+    name: 'A static target draws a real frag that damages, and the counts are honoured',
+    run: (h) => {
+      const problems = [];
+      const GA = CONFIG.gadgets;
+      const A = CONFIG.ai;
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      const { shade, warden, wardenAI, gadgets } = h;
+
+      // Stand them in the Turbine Hall with sight of each other. ENGAGE calls
+      // for a frag on a target that has not moved for fragStaticTime.
+      const siteA = h.map.sites[0];
+      shade.reset({ position: siteA.position, yaw: 0 });
+      h.stepFrames(20);
+      const torso = {
+        x: shade.position.x,
+        y: shade.feetY + shade.height * CONFIG.detection.torsoHeightRatio,
+        z: shade.position.z,
+      };
+      const W = CONFIG.warden;
+      const half = { x: W.radius, y: W.standHeight / 2, z: W.radius };
+      let stand = null;
+      for (let radius = 8; radius <= 16 && !stand; radius += 2) {
+        for (let i = 0; i < 24 && !stand; i++) {
+          const angle = (i / 24) * Math.PI * 2;
+          const floorY = siteA.position.y;
+          const centre = {
+            x: torso.x + Math.sin(angle) * radius,
+            y: floorY + half.y + 0.05,
+            z: torso.z + Math.cos(angle) * radius,
+          };
+          const eye = { x: centre.x, y: floorY + W.standHeight * W.eyeHeightRatio, z: centre.z };
+          if (h.map.collision.lineOfSight(eye, torso) && h.map.collision.isClear(centre, half)) {
+            stand = { x: centre.x, y: floorY, z: centre.z };
+          }
+        }
+      }
+      if (!stand) return { pass: false, detail: 'no clear stand with sight of site A' };
+      warden.reset({ position: stand, yaw: 0 });
+      warden.lookAt(shade.position);
+      h.stepFrames(1);
+      const pinned = warden.position.clone();
+
+      const thrown = [];
+      const off = h.emitter.on('ai:throw', (event) => thrown.push(event.type));
+      let detonations = 0;
+      const offBoom = h.emitter.on('gadget:detonate', (event) => {
+        if (event.type === 'frag') detonations++;
+      });
+
+      // Hold it in ENGAGE on a Shade that never moves. Section 11: "throw a
+      // frag if the Shade is static for 2s".
+      const fragBefore = gadgets.loadout.frag;
+      const healthBefore = shade.health;
+      let projectileSeen = false;
+      const window = Math.round((A.fragStaticTime + GA.throw.fuse + 3) / CONFIG.time.fixedDt);
+      for (let i = 0; i < window; i++) {
+        warden.position.copy(pinned);
+        warden.velocity.set(0, 0, 0);
+        warden.lookAt(shade.position);
+        wardenAI.lastKnown = { x: shade.position.x, y: shade.feetY, z: shade.position.z };
+        if (wardenAI.state !== 'engage') wardenAI._enter('engage');
+        // God mode on the Shade, or four rifle rounds end the test before the
+        // grenade lands — the gun is not what is being measured here.
+        shade.health = CONFIG.shade.health;
+        h.stepFrames(1);
+        if (gadgets.projectiles.length > 0) projectileSeen = true;
+      }
+
+      if (thrown.indexOf('frag') === -1) {
+        problems.push(`a static target for ${A.fragStaticTime}s drew no frag (threw [${thrown}])`);
+      }
+      if (!projectileSeen) problems.push('the decision was made but nothing was ever in flight');
+      if (detonations === 0) problems.push('the frag never detonated');
+      if (gadgets.loadout.frag >= fragBefore) problems.push('throwing a frag did not cost one');
+
+      // It actually hurt: damage arrives through the real gadget:damage path.
+      let damaged = 0;
+      const offHurt = h.emitter.on('gadget:damage', (event) => {
+        if (event.target === 'shade' && event.source === 'frag') damaged += event.amount;
+      });
+      shade.health = CONFIG.shade.health;
+      const at = { x: shade.position.x, y: shade.feetY + 0.3, z: shade.position.z };
+      h.gadgets.effects.spawned = h.gadgets.effects.spawned;
+      h.emitter.emit('gadget:detonate', { type: 'frag', at });
+      // Detonating by hand only proves the event bus; drive the real one too.
+      gadgets._detonate({ type: 'frag', x: at.x, y: at.y, z: at.z, owner: 'warden' }, shade, warden);
+      offHurt();
+      if (damaged <= 0) problems.push('a frag on top of the Shade did no damage');
+      if (damaged > GA.frag.damageCentre + 1e-6) {
+        problems.push(`a single frag did ${damaged.toFixed(1)}, over its ${GA.frag.damageCentre} centre damage`);
+      }
+
+      // Section 9.2's counts. The AI asks as often as it likes; the loadout is
+      // what says no, which is the same gate a human hits.
+      gadgets.reset();
+      let allowed = 0;
+      for (let i = 0; i < GA.frag.count + 4; i++) {
+        const from = { x: warden.position.x, y: warden.eyeY, z: warden.position.z };
+        if (gadgets.throwGadget('frag', from, { x: 0, y: 0.2, z: -1 }, 'warden')) allowed++;
+      }
+      if (allowed !== GA.frag.count) problems.push(`the Warden got ${allowed} frags, Section 9.2 gives ${GA.frag.count}`);
+
+      // And a stun grenade slows the Shade to 40% rather than damaging it.
+      //
+      // Asserted on what the detonation emits, not on the Shade's health after
+      // stepping: the Warden is still standing over it in ENGAGE at this point,
+      // and a rifle round arriving during those steps would read as the stun
+      // having done the damage.
+      gadgets.reset();
+      let stunDamage = 0;
+      const offStun = h.emitter.on('gadget:damage', (event) => { stunDamage += event.amount; });
+      gadgets._detonate(
+        { type: 'stunGrenade', x: shade.position.x, y: shade.feetY, z: shade.position.z, owner: 'warden' },
+        shade, warden
+      );
+      offStun();
+      const slow = gadgets.shadeSpeedMultiplier();
+      if (Math.abs(slow - GA.stunGrenade.speedMultiplier) > 1e-6) {
+        problems.push(`a stun grenade slowed the Shade to ${slow}, spec ${GA.stunGrenade.speedMultiplier}`);
+      }
+      if (stunDamage !== 0) problems.push(`a stun grenade dealt ${stunDamage} damage — it is non-lethal`);
+
+      off();
+      offBoom();
+      gadgets.reset();
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      void healthBefore;
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `a target static for ${A.fragStaticTime}s drew ${thrown.filter((t) => t === 'frag').length} frag(s): `
+            + `in flight, ${detonations} detonation(s), ${damaged.toFixed(0)} damage through the real path `
+            + `(cap ${GA.frag.damageCentre}); the loadout allowed exactly ${allowed} of ${GA.frag.count}; `
+            + `a stun grenade slowed to ${(slow * 100).toFixed(0)}% and did no damage`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
     id: 'gadget-effects-all-expire',
     spec: 'Section 9 / Section 16 check 17 / Section 15',
     name: 'Every gadget type applies its effect and the registry returns to zero',

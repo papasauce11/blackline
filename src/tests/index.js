@@ -14,9 +14,12 @@
  */
 
 import { register as registerEngine } from './engine.js';
+import { register as registerDeterminism } from './determinism.js';
 import { register as registerMap } from './map.js';
 import { register as registerNavigation } from './navigation.js';
 import { register as registerShade } from './shade.js';
+import { register as registerMovement } from './movement.js';
+import { register as registerReadability } from './readability.js';
 import { register as registerWarden } from './warden.js';
 import { register as registerDetection } from './detection.js';
 import { register as registerAI } from './ai.js';
@@ -24,14 +27,24 @@ import { register as registerCombat } from './combat.js';
 import { register as registerAudio } from './audio.js';
 import { register as registerGadgets } from './gadgets.js';
 import { register as registerObjective } from './objective.js';
+import { register as registerFreeRoam } from './freeroam.js';
+import { register as registerSettings } from './settings.js';
+import { register as registerDeathCam } from './deathcam.js';
 import { register as registerPresentation } from './presentation.js';
+import { register as registerVisual } from './visual.js';
+import { register as registerPerformance } from './performance.js';
+import { register as registerDoneDef } from './donedef.js';
+import { register as registerSoak } from './soak.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
   registerEngine(debugTools);
+  registerDeterminism(debugTools);
   registerMap(debugTools);
   registerNavigation(debugTools);
   registerShade(debugTools);
+  registerMovement(debugTools);
+  registerReadability(debugTools);
   registerWarden(debugTools);
   registerDetection(debugTools);
   registerAI(debugTools);
@@ -39,5 +52,13 @@ export function registerAutoTests(debugTools) {
   registerAudio(debugTools);
   registerGadgets(debugTools);
   registerObjective(debugTools);
+  registerFreeRoam(debugTools);
+  registerSettings(debugTools);
+  registerDeathCam(debugTools);
   registerPresentation(debugTools);
+  registerVisual(debugTools);
+  registerDoneDef(debugTools);
+  registerSoak(debugTools);
+  // Last: it is the heaviest check and it leaves the world in a known state.
+  registerPerformance(debugTools);
 }

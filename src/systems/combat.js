@@ -283,7 +283,26 @@ export class Combat {
     const world = this.map.collision.raycast(this._origin, direction, G.range);
     const wall = world ? world.distance : Infinity;
     const hit = shade && shade.health > 0 ? rayHitsActor(this._origin, direction, shade, G.range) : null;
-    if (!hit || hit.distance > wall) return;
+
+    // Where the round actually landed. Section 16 check 15 asks the player to
+    // watch spread grow and recoil climb, and neither is observable without
+    // seeing where the bullets go.
+    if (!hit || hit.distance > wall) {
+      if (world) {
+        this.emitter.emit('combat:impact', {
+          at: { x: world.x, y: world.y, z: world.z }, target: 'world',
+        });
+      }
+      return;
+    }
+    this.emitter.emit('combat:impact', {
+      at: {
+        x: this._origin.x + direction.x * hit.distance,
+        y: this._origin.y + direction.y * hit.distance,
+        z: this._origin.z + direction.z * hit.distance,
+      },
+      target: 'shade',
+    });
 
     this.hits++;
     const damage = damageAtRange(hit.distance) * (hit.headshot ? G.headshotMultiplier : 1);
@@ -304,7 +323,18 @@ export class Combat {
     // Only now, once the swing is actually committed rather than eaten by the
     // cooldown, so the animation cannot claim something the game did not do.
     if (shade.swing) shade.swing();
-    this.emitter.emit('combat:knife', { actor: 'shade' });
+    // The geometry of the swing, not just the fact of it: Section 9.2's alarm
+    // camera is knife-destructible and gadgets tests itself against this.
+    this.emitter.emit('combat:knife', {
+      actor: 'shade',
+      origin: {
+        x: shade.position.x,
+        y: shade.feetY + shade.height * CONFIG.detection.torsoHeightRatio,
+        z: shade.position.z,
+      },
+      direction: { x: -Math.sin(shade.yaw), y: 0, z: -Math.cos(shade.yaw) },
+      range: K.range,
+    });
     this.detection.noise.emit(
       shade.position.x, shade.feetY, shade.position.z, N.radii.knifeSwing, 'knife', 'shade'
     );
@@ -316,7 +346,8 @@ export class Combat {
       return 'takedown';
     }
     if (kind === 'arc') {
-      this._damage(warden, K.damage, 'warden', 'knife');
+      this._damage(warden, K.damage, 'warden', 'knife',
+        { x: shade.position.x, y: shade.feetY, z: shade.position.z });
       this.emitter.emit('combat:knife-hit', { kind: 'arc', remaining: warden.health });
       return 'arc';
     }
@@ -361,10 +392,19 @@ export class Combat {
     this._damage(actor, amount, who, kind);
   }
 
-  _damage(actor, amount, who, kind) {
+  /**
+   * @param {object} [from] where the attack came from, when the caller knows.
+   *   Section 11's DEFEND breaks off to ENGAGE "if fired upon", and it needs
+   *   somewhere to break off *to* — a Warden that knows it was hit but not
+   *   from where can only spin on the spot.
+   */
+  _damage(actor, amount, who, kind, from) {
     if (actor.health <= 0) return;
     actor.health = Math.max(0, actor.health - amount);
-    this.emitter.emit('combat:damage', { target: who, amount, kind, remaining: actor.health });
+    this.emitter.emit('combat:damage', {
+      target: who, amount, kind, remaining: actor.health,
+      at: from ? { x: from.x, y: from.y, z: from.z } : null,
+    });
     if (actor.health > 0) return;
 
     if (who === 'warden') {
@@ -372,9 +412,17 @@ export class Combat {
       actor.velocity.set(0, 0, 0);
       this.wardenRespawnTimer = CONFIG.warden.respawnDelay;
     }
-    // The Shade's lives and reinsert are Section 10.2, which Phase 10 owns.
-    // Combat's job ends at reporting the death.
-    this.emitter.emit('combat:death', { target: who, kind });
+    // The Shade's lives and reinsert are Section 10.2, which objective owns.
+    // Combat's job ends at reporting the death — but it reports *where*, since
+    // this is the last moment the body is still standing where it fell, and
+    // Section 10.2 sends the Warden back to the death location rather than to
+    // the reinsert point. Anything reconstructing that afterwards is reading a
+    // position something else has already reset.
+    this.emitter.emit('combat:death', {
+      target: who,
+      kind,
+      at: { x: actor.position.x, y: actor.feetY, z: actor.position.z },
+    });
   }
 
   /**

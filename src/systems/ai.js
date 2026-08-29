@@ -17,8 +17,9 @@
  * intent has a field for it.
  */
 
-import { CONFIG } from '../config.js';
+import { CONFIG, SETTINGS } from '../config.js';
 import { rng } from '../config.js';
+import { findPath } from './astar.js';
 import { createWardenIntent, WARDEN_STATE } from '../entities/enforcer.js';
 
 const A = CONFIG.ai;
@@ -65,7 +66,7 @@ export class WardenAI {
     this.state = AI_STATE.PATROL;
     /** 0-100, Section 11. Fills on sight, drains without it. */
     this.accumulator = 0;
-    this.difficulty = A.difficulty[CONFIG.settings.difficulty] || A.difficulty[A.defaultDifficulty];
+    this.difficulty = A.difficulty[SETTINGS.difficulty] || A.difficulty[A.defaultDifficulty];
 
     /** Where the AI last had eyes on the Shade. Drives SEARCH. */
     this.lastKnown = null;
@@ -90,11 +91,42 @@ export class WardenAI {
     this._burstPause = 0;
     this._searchSpots = [];
     this._stunGrenades = A.searchStunGrenades;
+    this._alarmProbeTimer = 0;
+    this._repathTimer = 0;
     this._stuckAnchor = { x: 0, z: 0 };
     this._defendTarget = null;
     this._aimOffset = 0;
 
     this._scratch = { x: 0, y: 0, z: 0 };
+
+    this._unsubscribe = [];
+    this._subscribe();
+  }
+
+  /**
+   * Section 11's DEFEND exit: "break off to ENGAGE if fired upon".
+   *
+   * The AI drives nothing through this — it only listens. A Warden kneeling
+   * over a charge has to notice being attacked, and the only thing that can
+   * tell it is the system that applied the damage.
+   */
+  _subscribe() {
+    if (!this.emitter) return;
+    this._unsubscribe.push(this.emitter.on('combat:damage', (event) => {
+      if (event.target !== 'warden') return;
+      if (this.state !== AI_STATE.DEFEND) return;
+      // Whoever did that is within a knife's reach. Go and look at them.
+      if (event.at) this.lastKnown = { x: event.at.x, y: event.at.y, z: event.at.z };
+      else if (!this.lastKnown) {
+        this.lastKnown = { x: this.warden.position.x, y: this.warden.feetY, z: this.warden.position.z };
+      }
+      this._enter(AI_STATE.ENGAGE);
+    }));
+  }
+
+  dispose() {
+    for (const off of this._unsubscribe) off();
+    this._unsubscribe.length = 0;
   }
 
   // -------------------------------------------------------------------------
@@ -109,7 +141,7 @@ export class WardenAI {
   reset() {
     this.state = AI_STATE.PATROL;
     this.accumulator = 0;
-    this.difficulty = A.difficulty[CONFIG.settings.difficulty] || A.difficulty[A.defaultDifficulty];
+    this.difficulty = A.difficulty[SETTINGS.difficulty] || A.difficulty[A.defaultDifficulty];
     this.lastKnown = null;
     this.sees = false;
     this.stuckCount = 0;
@@ -127,6 +159,8 @@ export class WardenAI {
     this._burstPause = 0;
     this._searchSpots.length = 0;
     this._stunGrenades = A.searchStunGrenades;
+    this._alarmProbeTimer = 0;
+    this._repathTimer = 0;
     this._defendTarget = null;
     this._aimOffset = 0;
     this._stuckAnchor.x = this.warden.position.x;
@@ -141,7 +175,13 @@ export class WardenAI {
   /** Phase 10 hands the planted charge here; DEFEND takes over until it clears. */
   setDefendTarget(position) {
     this._defendTarget = position ? { x: position.x, y: position.y, z: position.z } : null;
-    if (this._defendTarget && this.state !== AI_STATE.ENGAGE) this._enter(AI_STATE.DEFEND);
+    if (!this._defendTarget || this.state === AI_STATE.ENGAGE) return;
+    this._enter(AI_STATE.DEFEND);
+    // Section 11: "path directly to the charge". Entering the state is not the
+    // same as going there — without this the Warden kept walking the patrol
+    // route it happened to be on and only reached the charge by coincidence,
+    // which is the same fault ENGAGE had before Phase 6 fixed it.
+    this._pathTo(this._defendTarget);
   }
 
   // -------------------------------------------------------------------------
@@ -270,6 +310,19 @@ export class WardenAI {
       if (heard && heard.source !== 'warden') {
         this.lastKnown = { x: heard.x, y: heard.y, z: heard.z };
         if (this.state === AI_STATE.PATROL) this._enter(AI_STATE.SUSPICIOUS);
+      }
+    }
+
+    // Section 9.2: the alarm camera marks the Shade "on the Warden's HUD for
+    // 2s". In competitive the Warden is this, and it has no HUD — so the mark
+    // arrives as knowledge instead. A camera trip is a confirmed sighting by a
+    // device, not a noise, so it goes straight to INVESTIGATE rather than
+    // through SUSPICIOUS: there is nothing to turn around and wonder about.
+    if (this.gadgets && this.gadgets.shadeMarked && this.gadgets.shadeMarkedAt && !this.sees) {
+      const marked = this.gadgets.shadeMarkedAt;
+      this.lastKnown = { x: marked.x, y: marked.y, z: marked.z };
+      if (this.state === AI_STATE.PATROL || this.state === AI_STATE.SUSPICIOUS) {
+        this._enterInvestigate();
       }
     }
 
@@ -468,6 +521,12 @@ export class WardenAI {
       this._pathTo(this.map.waypoints[this._circuit[this._circuitIndex]].position);
       return;
     }
+    // Section 9.2's camera, hung on any wall it passes while sweeping. Tried
+    // as it walks rather than only where it stops: waypoints sit in open
+    // space by design, so a Warden standing on one is usually nowhere near a
+    // wall, and a camera it can never place is a camera it does not have.
+    this._maybePlaceAlarm(dt);
+
     if (this._followRoute(dt, false)) {
       this._scan(dt);
       this._searchSpots.shift();
@@ -482,10 +541,65 @@ export class WardenAI {
       this._enter(AI_STATE.PATROL);
       return;
     }
-    if (this._followRoute(dt, false)) {
-      this._face(this._defendTarget, dt);
-      this._scan(dt);
+    // Guarding a charge is the best use of the one camera it gets: it cannot
+    // watch the approach and the charge at the same time, and this can.
+    this._maybePlaceAlarm(dt);
+
+    if (!this._followRoute(dt, false)) return;
+
+    // Arrived. If that is not actually the charge — a route can end at the
+    // nearest reachable node, and the Warden can be nudged off by a grenade or
+    // a body — go again rather than standing somewhere near it forever.
+    const dx = this._defendTarget.x - this.warden.position.x;
+    const dz = this._defendTarget.z - this.warden.position.z;
+    if (dx * dx + dz * dz > A.defendHoldRadius * A.defendHoldRadius) {
+      this._repathTimer -= dt;
+      if (this._repathTimer <= 0) {
+        this._repathTimer = A.defendRepathInterval;
+        this._pathTo(this._defendTarget);
+      }
+      return;
     }
+
+    this._face(this._defendTarget, dt);
+    this._scan(dt);
+  }
+
+  /**
+   * Section 9.2: one alarm camera per round, placed on a wall.
+   *
+   * The Warden gets a single one, so it is spent where it earns the most —
+   * standing over a charge in DEFEND, or at a spot it has just cleared in
+   * SEARCH and is about to walk away from. It sweeps for a wall in reach
+   * rather than firing straight ahead, because the useful direction is
+   * whichever one it will not be looking at.
+   *
+   * Throttled rather than run every step: it is a sweep of raycasts, and half
+   * a second of walking is the resolution at which "a wall it passed" means
+   * anything.
+   *
+   * @param {number} dt
+   * @returns {object|null} the alarm placed, or null
+   */
+  _maybePlaceAlarm(dt) {
+    if (!this.gadgets || this.gadgets.alarm) return null;
+    if (this.gadgets.loadout.alarmCamera <= 0) return null;
+
+    this._alarmProbeTimer -= dt;
+    if (this._alarmProbeTimer > 0) return null;
+    this._alarmProbeTimer = A.alarmPlacementInterval;
+
+    const warden = this.warden;
+    const origin = { x: warden.position.x, y: warden.eyeY, z: warden.position.z };
+    for (let i = 0; i < A.alarmPlacementProbes; i++) {
+      // Start behind and work around, so it covers what its back is turned on.
+      const angle = warden.yaw + Math.PI + (i / A.alarmPlacementProbes) * TAU;
+      const placed = this.gadgets.placeAlarmOnWall(origin, {
+        x: -Math.sin(angle), y: 0, z: -Math.cos(angle),
+      });
+      if (placed) return placed;
+    }
+    return null;
   }
 
   // -------------------------------------------------------------------------
@@ -513,53 +627,12 @@ export class WardenAI {
     this._route.push({ x: goal.x, y: goal.y, z: goal.z });
   }
 
-  /** A* with a straight-line heuristic. Twenty nodes: a linear open list is fine. */
+  /**
+   * A* over the waypoint graph. The search itself is in systems/astar.js —
+   * pure, and the one piece of navigation with no knowledge of a Warden.
+   */
   _findPath(startId, goalId) {
-    if (startId === goalId) return [startId];
-    const nodes = this.map.waypoints;
-    const goal = nodes[goalId].position;
-
-    const open = [startId];
-    const cameFrom = new Map();
-    const gScore = new Map([[startId, 0]]);
-    const fScore = new Map([[startId, nodes[startId].position.distanceTo(goal)]]);
-    // `has` and not `||`. The start node's score is 0, and `0 || Infinity` is
-    // Infinity — so every relaxation back into the start looked like an
-    // improvement, which wrote cameFrom[start] and put a cycle in the parent
-    // chain. Reconstruction then walked that cycle forever and wedged the tab.
-    const score = (table, id) => (table.has(id) ? table.get(id) : Infinity);
-
-    while (open.length) {
-      let bestIndex = 0;
-      for (let i = 1; i < open.length; i++) {
-        if (score(fScore, open[i]) < score(fScore, open[bestIndex])) bestIndex = i;
-      }
-      const current = open.splice(bestIndex, 1)[0];
-
-      if (current === goalId) {
-        const path = [current];
-        let node = current;
-        // Bounded: a parent chain can visit each node at most once, so anything
-        // longer is a cycle. Belt and braces after the above.
-        for (let guard = 0; cameFrom.has(node) && guard <= nodes.length; guard++) {
-          node = cameFrom.get(node);
-          path.unshift(node);
-        }
-        return path;
-      }
-
-      for (const next of nodes[current].links) {
-        const tentative =
-          score(gScore, current) + nodes[current].position.distanceTo(nodes[next].position);
-        if (tentative >= score(gScore, next)) continue;
-        cameFrom.set(next, current);
-        gScore.set(next, tentative);
-        fScore.set(next, tentative + nodes[next].position.distanceTo(goal));
-        if (open.indexOf(next) === -1) open.push(next);
-      }
-    }
-    // Disconnected: the map asserts this cannot happen, but never walk blind.
-    return [startId];
+    return findPath(this.map.waypoints, startId, goalId);
   }
 
   /**

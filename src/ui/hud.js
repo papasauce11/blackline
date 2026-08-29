@@ -61,8 +61,14 @@ const CSS = `
 #bl-crosshair { left: 50%; top: 50%; transform: translate(-50%,-50%);
   width: 40px; height: 40px; display: none; }
 #bl-crosshair i { position: absolute; background: ${hex(P.wardenOrange)}; }
+/* Section 13's Warden HUD: ammo, gadget counts, health, crosshair. */
+#bl-w-panel { display: none; color: ${hex(P.wardenOrange)}; }
+#bl-w-ammo { font-size: 24px; letter-spacing: 0.1em; line-height: 1.1; }
+#bl-w-ammo.reloading { opacity: 0.45; }
+#bl-w-gadgets { font-size: 11px; opacity: 0.85; margin-top: 3px; }
 #bl-flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 25; }
-#bl-marked { color: ${hex(P.hazardOrange)}; }
+/* Section 9.2: the alarm camera marks the Shade on the Warden HUD for 2s. */
+#bl-marked { color: ${hex(P.hazardOrange)}; font-size: 11px; margin-top: 4px; display: none; }
 `;
 
 export class Hud {
@@ -78,6 +84,11 @@ export class Hud {
           <div id="bl-g-smoke">smk 0</div>
           <div id="bl-g-flash">fsh 0</div>
           <div id="bl-taser" title="taser"></div>
+        </div>
+        <div id="bl-w-panel">
+          <div id="bl-w-ammo">30</div>
+          <div id="bl-w-gadgets">stun 2 &nbsp; frag 2 &nbsp; cam 1</div>
+          <div id="bl-marked">&#9679; shade marked</div>
         </div>
       </div>
       <div class="panel" id="bl-top"><div id="bl-timer">4:00</div><div id="bl-charge">charge carried</div></div>
@@ -116,6 +127,13 @@ export class Hud {
       centreSub: this.root.querySelector('#bl-centre .sub'),
       crosshair: this.root.querySelector('#bl-crosshair'),
       crossBars: [...this.root.querySelectorAll('#bl-crosshair i')],
+      shadeGadgets: this.root.querySelector('#bl-gadgets'),
+      wardenPanel: this.root.querySelector('#bl-w-panel'),
+      wardenAmmo: this.root.querySelector('#bl-w-ammo'),
+      wardenGadgets: this.root.querySelector('#bl-w-gadgets'),
+      marked: this.root.querySelector('#bl-marked'),
+      top: this.root.querySelector('#bl-top'),
+      scorePanel: this.root.querySelector('#bl-score'),
     };
 
     // Section 13: three pips, dimming as they are spent.
@@ -170,6 +188,8 @@ export class Hud {
     this.el.crosshair.style.display = warden ? 'block' : 'none';
     this.root.querySelector('#bl-vis').style.display = warden ? 'none' : 'block';
     this.root.querySelector('#bl-lives').style.display = warden ? 'none' : 'flex';
+    this.el.shadeGadgets.style.display = warden ? 'none' : 'flex';
+    this.el.wardenPanel.style.display = warden ? 'block' : 'none';
 
     if (warden) this._updateWarden(state);
     else this._updateShade(state);
@@ -218,11 +238,37 @@ export class Hud {
     setBar(3, -0.5, gap, 1, 6);
 
     this.el.health.style.width = `${Math.max(0, state.health || 0)}%`;
-    this.el.smoke.textContent = `ammo ${state.magazine !== undefined ? state.magazine : '--'}`;
-    this.el.flashbang.textContent = state.reloading ? 'reloading' : '';
+
+    // Ammo and the Section 9.2 gadget counts. Free-roam is unlimited
+    // (Section 12), so the counts read as such rather than ticking down.
+    const magazine = state.magazine !== undefined ? state.magazine : 0;
+    this.el.wardenAmmo.textContent = state.reloading ? '- -' : String(magazine);
+    this.el.wardenAmmo.classList.toggle('reloading', !!state.reloading);
+
+    const loadout = state.loadout || {};
+    const count = (value) => (state.unlimitedGadgets ? '∞' : String(value || 0));
+    this.el.wardenGadgets.innerHTML =
+      `stun ${count(loadout.stunGrenade)} &nbsp; frag ${count(loadout.frag)}` +
+      ` &nbsp; cam ${state.alarmPlaced ? 'set' : count(loadout.alarmCamera)}`;
+
+    // Section 9.2: the alarm camera marks the Shade here for 2s.
+    this.el.marked.style.display = state.shadeMarked ? 'block' : 'none';
   }
 
   _updateCommon(state) {
+    // Section 12: free-roam has "no objective, no timer, no score", so the
+    // chrome that reports them is not merely zeroed, it is absent.
+    const objective = !state.freeroam;
+    this.el.top.style.display = objective ? 'block' : 'none';
+    this.el.scorePanel.style.display = objective ? 'block' : 'none';
+    if (!objective) {
+      this.el.prompt.style.display = 'none';
+      this.el.centre.style.display = 'none';
+      this.el.feed.innerHTML = this.feed.map((line) => `<div>${line.text}</div>`).join('');
+      this.flash.style.opacity = String(Math.min(1, state.blind || 0));
+      return;
+    }
+
     const seconds = Math.max(0, Math.ceil(state.timeRemaining || 0));
     const minutes = Math.floor(seconds / 60);
     this.el.timer.textContent = `${minutes}:${String(seconds % 60).padStart(2, '0')}`;

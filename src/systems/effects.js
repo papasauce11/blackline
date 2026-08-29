@@ -45,6 +45,7 @@ export class Effects {
     this._buildFootprints();
     this._buildParticles();
     this._buildSmoke();
+    this._buildAlarmFixture();
     this.ragdolls = [];
 
     this._unsubscribe = [];
@@ -59,9 +60,19 @@ export class Effects {
     });
     on('gadget:detonate', (event) => {
       if (event.type === 'smoke') this.smokeBurst(event.at);
-      else this.sparks(event.at, 18);
+      else this.sparks(event.at, E.detonationSparks);
     });
-    on('combat:damage', () => {});
+    // Where a round landed. Section 16 check 15 asks the player to watch spread
+    // grow and recoil climb; neither is readable without seeing the impacts.
+    on('combat:impact', (event) => this.sparks(event.at, E.impactSparks));
+
+    // Section 9.2's alarm camera. Gadgets owns what it does; this owns what it
+    // looks like, because gadgets has no scene and must not acquire one.
+    on('gadget:alarm-placed', (event) => this.showAlarm(event.at));
+    on('gadget:alarm-destroyed', (event) => this.breakAlarm(event.by));
+    // The lens blinks on a detection, which is the only in-world tell that the
+    // thing has seen you — the siren is audio and the ping is HUD.
+    on('gadget:alarm', () => this.blinkAlarm());
   }
 
   dispose() {
@@ -75,9 +86,102 @@ export class Effects {
     for (let i = 0; i < this.smoke.length; i++) this.smoke[i].life = 0;
     for (const ragdoll of this.ragdolls) ragdoll.mesh.rotation.set(0, 0, 0);
     this.ragdolls.length = 0;
+    // Section 9.2 allows one alarm camera per round, so a new round starts
+    // with none placed rather than with the last one still on the wall.
+    this.alarmFixture.visible = false;
+    this._alarmBlink = 0;
     this._syncFootprints();
     this._syncParticles();
     this._syncSmoke();
+  }
+
+  // -------------------------------------------------------------------------
+  // Alarm camera fixture (Section 9.2)
+  //
+  // One mesh, built once and hidden, because Section 9.2 allows exactly one per
+  // round. It renders NO live feed — there is no second camera, no render
+  // target and no second draw of the scene here, only a body and a lens.
+  // -------------------------------------------------------------------------
+
+  _buildAlarmFixture() {
+    const C = GA.alarmCamera;
+    const group = new THREE.Group();
+    group.name = 'alarm-camera';
+    group.visible = false;
+
+    const bodyMaterial = new THREE.MeshToonMaterial({ color: P.wardenGunmetal });
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(C.bodyRadius, C.bodyRadius, C.bodyLength, 10),
+      bodyMaterial
+    );
+    // Lying along -Z, which is the direction the cone points.
+    body.rotation.x = Math.PI / 2;
+    body.position.z = -C.bodyLength / 2;
+    group.add(body);
+
+    const mount = new THREE.Mesh(
+      new THREE.CylinderGeometry(C.mountRadius, C.mountRadius, C.mountDepth, 8),
+      bodyMaterial
+    );
+    mount.rotation.x = Math.PI / 2;
+    group.add(mount);
+
+    // The lens is the state readout, exactly as a destructible light's glass is
+    // (Section 5): live and hot, or dark and dead.
+    this._alarmLensMaterial = new THREE.MeshBasicMaterial({ color: P.wardenOrange });
+    const lens = new THREE.Mesh(new THREE.SphereGeometry(C.lensRadius, 10, 8), this._alarmLensMaterial);
+    lens.position.z = -C.bodyLength;
+    group.add(lens);
+
+    this.alarmFixture = group;
+    this.root.add(group);
+  }
+
+  /** @param {{x:number,y:number,z:number,yaw:number}} at */
+  showAlarm(at) {
+    const fixture = this.alarmFixture;
+    fixture.position.set(at.x, at.y, at.z);
+    fixture.rotation.set(0, at.yaw, 0);
+    fixture.visible = true;
+    this._alarmLensMaterial.color.setHex(P.wardenOrange);
+    this._alarmBlink = 0;
+  }
+
+  breakAlarm() {
+    this.alarmFixture.visible = false;
+    this.sparks(this.alarmFixture.position, E.impactSparks);
+  }
+
+  blinkAlarm() {
+    this._alarmBlink = GA.alarmCamera.retriggerInterval;
+  }
+
+  _stepAlarmFixture(dt) {
+    if (!this.alarmFixture.visible) return;
+    if (this._alarmBlink > 0) this._alarmBlink -= dt;
+    // Alternates with the two-tone siren rather than glowing steadily, so a
+    // triggered camera reads as triggered from across the room.
+    const alerted = this._alarmBlink > 0;
+    const on = alerted ? Math.floor(this._alarmBlink * 6) % 2 === 0 : true;
+    this._alarmLensMaterial.color.setHex(
+      !on ? P.wardenGunmetal : alerted ? P.hazardOrange : P.wardenOrange
+    );
+  }
+
+  /**
+   * Drop one body's ragdoll and level its mesh. Section 15 requires reinsert to
+   * clear the ragdoll specifically, and a reinsert must not also wipe an
+   * unrelated Warden corpse, so this is per-mesh rather than reset().
+   * @returns {boolean} whether a ragdoll was actually holding that mesh
+   */
+  clearRagdoll(mesh) {
+    for (let i = this.ragdolls.length - 1; i >= 0; i--) {
+      if (this.ragdolls[i].mesh !== mesh) continue;
+      this.ragdolls.splice(i, 1);
+      mesh.rotation.set(0, 0, 0);
+      return true;
+    }
+    return false;
   }
 
   /** Section 17: the overlay reports this, and it must return to 0 when idle. */
@@ -242,6 +346,8 @@ export class Effects {
   // -------------------------------------------------------------------------
 
   step(dt) {
+    this._stepAlarmFixture(dt);
+
     let dirty = false;
     for (const slot of this.footprints) {
       if (slot.life <= 0) continue;

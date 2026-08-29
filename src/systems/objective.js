@@ -12,7 +12,7 @@
  * is no field to forget to clear, because clearing is not how it works.
  */
 
-import { CONFIG } from '../config.js';
+import { CONFIG, SETTINGS } from '../config.js';
 
 const R = CONFIG.round;
 const N = CONFIG.noise;
@@ -46,6 +46,8 @@ export function createRoundState(number) {
     defuseProgress: 0,
     defuseRetain: 0,
     detonationTimer: 0,
+    /** Section 14's plant beep. Shortens as the detonation clock runs down. */
+    beepTimer: 0,
     lives: CONFIG.shade.lives,
     reinsertTimer: 0,
     awaitingReinsert: false,
@@ -67,13 +69,19 @@ export class Objective {
    * @param {import('./detection.js').Detection} options.detection
    * @param {import('./ai.js').WardenAI} options.ai
    * @param {import('./gadgets.js').Gadgets} options.gadgets
+   * @param {(shade:object, spawn:object)=>void} [options.respawnShade]
+   *   Section 15's respawnShade. This system owns *where* the Shade comes back
+   *   (Section 10.2's spawn scoring) but not *what else* has to be undone —
+   *   the ragdoll, the death camera, the input. Splitting the restore across
+   *   two files is how three of the four get done, so it is injected whole.
    */
-  constructor({ map, emitter, detection, ai, gadgets }) {
+  constructor({ map, emitter, detection, ai, gadgets, respawnShade }) {
     this.map = map;
     this.emitter = emitter;
     this.detection = detection;
     this.ai = ai;
     this.gadgets = gadgets;
+    this.respawnShade = respawnShade || ((shade, spawn) => shade.reset(spawn));
 
     this.score = { shade: 0, warden: 0 };
     this.rounds = [];
@@ -87,7 +95,13 @@ export class Objective {
     if (!this.emitter) return;
     const on = (event, handler) => this._unsubscribe.push(this.emitter.on(event, handler));
     on('combat:death', (event) => {
-      if (event.target === 'shade') this._onShadeDeath();
+      if (event.target === 'shade') {
+        // Where the body fell, if the event carried it. A caller that marked
+        // the spot itself (the Section 17.1 kill command) sends no position and
+        // keeps the one it set.
+        if (event.at) this.markDeathPosition(event.at);
+        this._onShadeDeath();
+      }
       if (event.target === 'warden') this._onWardenDown(event);
     });
   }
@@ -115,8 +129,12 @@ export class Objective {
     if (this.gadgets) this.gadgets.reset();
   }
 
+  /**
+   * Wins needed to take the match. Reads the LIVE setting (Section 13's match
+   * length control), not the CONFIG default — see the note on CONFIG.settings.
+   */
   get target() {
-    return CONFIG.match.lengths[CONFIG.settings.matchLength] || CONFIG.match.lengths[CONFIG.match.defaultLength];
+    return CONFIG.match.lengths[SETTINGS.matchLength] || CONFIG.match.lengths[CONFIG.match.defaultLength];
   }
 
   // -------------------------------------------------------------------------
@@ -213,6 +231,17 @@ export class Objective {
     }
 
     const site = this.map.sites.find((entry) => entry.id === round.site);
+
+    // Section 14: "a single 1200Hz blip, interval shortening as the detonation
+    // timer runs down". The interval is the clock made audible, so it belongs
+    // with the clock; audio only sounds it.
+    round.beepTimer -= dt;
+    if (round.beepTimer <= 0 && site) {
+      const remaining = round.detonationTimer / R.detonationTime;
+      const beep = CONFIG.audio.plantBeep;
+      round.beepTimer = beep.intervalEnd + (beep.intervalStart - beep.intervalEnd) * remaining;
+      this.emitter.emit('objective:beep', { at: site.position, remaining });
+    }
     if (!site || !warden || warden.health <= 0) {
       this._decayDefuse(dt);
       return;
@@ -309,7 +338,7 @@ export class Objective {
 
     round.lastSpawnIndex = bestIndex;
     round.awaitingReinsert = false;
-    shade.reset(this.map.shadeSpawns[bestIndex]);
+    this.respawnShade(shade, this.map.shadeSpawns[bestIndex]);
     // Gadgets are deliberately NOT refilled (Section 10.2), and the taser
     // recharge kept running through the whole thing.
     this.detection.reset(shade);
@@ -322,6 +351,24 @@ export class Objective {
       this.ai._enterSearch();
     }
     this.emitter.emit('objective:reinsert', { spawn: bestIndex, lives: round.lives });
+  }
+
+  /**
+   * Reinsert right now, whatever the countdown says.
+   *
+   * The escape hatch for the death camera's wall-clock guard (Section 15). The
+   * countdown runs on the sim clock, which the time scale can stretch and a
+   * stalled frame can stop; if that happens the player is dead, cameraless and
+   * waiting on a timer that is not advancing. This is the way out.
+   *
+   * @returns {boolean} whether a reinsert was pending to be forced
+   */
+  forceReinsert(shade, warden) {
+    if (!this.round.awaitingReinsert) return false;
+    this.round.reinsertTimer = 0;
+    this._stepReinsert(0, shade, warden);
+    this.emitter.emit('objective:reinsert-forced', { lives: this.round.lives });
+    return true;
   }
 
   /** Called by the composition root the moment the Shade dies, before reset. */

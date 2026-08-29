@@ -159,7 +159,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'rear-takedown-needs-the-wardens-back',
-    spec: 'Section 8.2',
+    spec: 'Section 8.2 / checks 13, 14',
     name: 'Behind and close is a takedown; in front is a two-hit knife',
     run: (h) => {
       const combat = h.combat;
@@ -210,7 +210,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'finisher-always-returns-control',
-    spec: 'Section 8.3 / Section 15 (hard safety requirement)',
+    spec: 'Section 8.3 / Section 15 / check 13',
     name: 'The cinematic restores camera, FOV and time scale, and cannot strand the player',
     run: (h) => {
       const combat = h.combat;
