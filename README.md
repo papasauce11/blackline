@@ -73,8 +73,8 @@ No addons are used.
 |---|---|
 | `W` `A` `S` `D` | Move |
 | `Mouse` | Look |
-| `Space` | Jump / pull up from a ledge hang |
-| `Ctrl` or `C` | Crouch / slide (from a sprint) / drop from a ledge hang |
+| `Space` | Jump. A jump extends how high you can climb |
+| `Ctrl` or `C` | Crouch / slide (from a sprint) |
 | `Shift` | Sprint |
 | `Left mouse` | Fire (Warden) |
 | `Right mouse` | Aim down sights (Warden) |
@@ -98,6 +98,15 @@ you are looking at is what you are throwing at.
 Click the canvas to capture the mouse. Bindings are rebindable at runtime via
 `input.rebind(action, code)`; the defaults live in `DEFAULT_BINDINGS` in
 `src/config.js`.
+
+### Climbing
+
+There are no affordance markings. If a surface has a top you could stand on and
+your body can reach it, you climb it — about 2.6m from standing, about 3.8m out
+of a jump. Nothing is tagged and nothing opts out.
+
+Ledge-hang is mid-rebuild: it is becoming something you choose rather than what
+happens when a climb fails. See [HANDOFF.md](HANDOFF.md).
 
 ### Debug tooling
 
@@ -123,7 +132,7 @@ Test-mode keys are **inert unless the F4 panel is open**, which is what keeps
 | `U` | Run **only** Section 16's regression set (checks 1, 3, 9, 13, 17, 20, 22, 23, 27) |
 
 `U` is the one to run after a change. It resolves the spec's named regression
-set to the AUTO checks that cover those numbers — currently 16 of 94 — and says
+set to the AUTO checks that cover those numbers and says
 out loud if any of them has no cover rather than quietly skipping it.
 
 A test-mode command whose subsystem has not been built yet reports
@@ -144,7 +153,7 @@ magic numbers live anywhere else. The file is organised by spec section:
 | `time` | Fixed timestep, frame clamp, time-scale cycle |
 | `render` | FOV, fog, shadow map size and frustum, outline scale, toon steps |
 | `palette` | Every colour in the game |
-| `shade` | Speeds, gravity, vault / mantle / slide / ledge-hang bands, camera rig |
+| `shade` | Speeds, gravity, slide, **`reach`** (how high this body can climb), camera rig |
 | `warden` | Speeds, respawn delay, first-person camera |
 | `detection` | Light sampling interval, ray cap, smoothing, `scoreScale` |
 | `noise` | Every noise radius and event lifetime |
@@ -155,7 +164,7 @@ magic numbers live anywhere else. The file is organised by spec section:
 | `reinsert` | Lives, reinsert delay, spawn scoring, wall-clock guard |
 | `match` | Best-of-N lengths |
 | `ai` | FSM timings, perception cone, difficulty presets |
-| `map` | Dimensions, ledge classification bands, affordance markings, lighting |
+| `map` | Dimensions, vertical layout, shadow casters, plant-site rings, lighting |
 | `audio` | Synthesis parameters for every sound |
 | `effects` | Pool sizes, ragdoll damping, footprint fade, impact sparks |
 | `hud` | Meter sizes, kill feed, crosshair scaling |
