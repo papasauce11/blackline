@@ -45,6 +45,9 @@ export const SHADE_STATE = {
  */
 const PROBE_STEP = 0.12;
 
+/** Roughly a hand, for testing whether a probe sample is in open air. */
+const HAND_HALF = { x: 0.05, y: 0.05, z: 0.05 };
+
 /** Blank intent, so callers can omit fields without the controller reading NaN. */
 export function createIntent() {
   return {
@@ -104,6 +107,8 @@ export class Shade {
     this._slideCooldown = 0;
     this._fallStartY = 0;
     this._falling = false;
+    /** Feet height the body last stood at. `_reachNow()` measures against it. */
+    this._launchY = 0;
     /** Populated when a traversal move is in flight. */
     this._move = null;
     /** The ledge currently being hung from. */
@@ -160,6 +165,7 @@ export class Shade {
     this._slideCooldown = 0;
     this._falling = false;
     this._fallStartY = this.position.y;
+    this._launchY = this.feetY;
     this._move = null;
     this._hangLedge = null;
     this._hangTimer = 0;
@@ -217,6 +223,11 @@ export class Shade {
   step(dt, intent) {
     this.landedFallHeight = 0;
     if (this._slideCooldown > 0) this._slideCooldown -= dt;
+    // The height the jump bonus is measured against. While the feet are on
+    // something this is simply where they are; the moment the body leaves, it
+    // freezes at the surface it left from — whether that was a jump, a step off
+    // an edge or a shove. See `_reachNow()`.
+    if (this.grounded) this._launchY = this.feetY;
 
     switch (this.state) {
       case SHADE_STATE.VAULT:
@@ -278,11 +289,17 @@ export class Shade {
     this._accelerate(wish, targetSpeed, S.groundAccel, dt);
     this._applyFriction(S.groundFriction, dt, wish.magnitude > 0);
 
-    // Vault: forward input plus sprint into a flagged ledge (Section 6.1).
-    if (intent.sprint && intent.forward > 0 && this._tryVault()) return;
-
     if (intent.jumpPressed) this._jumpBuffer = S.jumpBuffer;
     if (this._jumpBuffer > 0) this._jumpBuffer -= dt;
+
+    // A jump into a ledge is a climb, not a jump (Section 6.1, amended). It is
+    // tested before the jump itself so the two can never both fire, and it
+    // reads the BUFFER rather than the press edge, which means a jump pressed
+    // slightly early still climbs instead of being spent in front of the wall.
+    if (this._jumpBuffer > 0 && this._tryClimbFromGround(intent)) {
+      this._jumpBuffer = 0;
+      return;
+    }
 
     if (this._jumpBuffer > 0 && (this.grounded || this._coyote > 0)) {
       this.velocity.y = S.jumpSpeed;
@@ -399,9 +416,36 @@ export class Shade {
   // -------------------------------------------------------------------------
 
   /**
+   * How high this body can climb from where it is right now (Section 6.1,
+   * amended). Standing, that is `reach.standing`. A jump adds
+   * `reach.jumpBonus` — added ONCE, spent at take-off, not re-granted on every
+   * step of the flight.
+   *
+   * The rule used to be "airborne means full stretch from the current feet",
+   * and it compounded: a jump lifts the feet 0.46m, and measuring the whole
+   * 3.8m from up there put the real ceiling at 4.26m. A controller that climbs
+   * what the map's own rule calls out of reach is not a generous controller,
+   * it is a second rule — and the one-way routes rest on the first one, with
+   * the site fence sitting 4.5m up.
+   *
+   * Measuring the bonus against the take-off height instead pins the ceiling at
+   * `launch + standing + jumpBonus` for the whole arc: exactly the 3.8m that
+   * `deriveClimbableSurfaces()` derives from. The jump extends the reach, it
+   * does not multiply it. Below the take-off height full stretch comes back —
+   * dropping past a lip, you are still the same body with the same arms.
+   */
+  _reachNow() {
+    if (this.grounded) return S.reach.standing;
+    const full = S.reach.standing + S.reach.jumpBonus;
+    const risen = this.feetY - this._launchY;
+    return Math.max(0, Math.min(full, full - risen));
+  }
+
+  /**
    * Look for a climbable face ahead and return what the controller would do
-   * with it. Uses `classifyReach()` — the same function the map derives
-   * the affordance stripes, so what is marked is exactly what is climbable.
+   * with it. Uses `classifyReach()` — the same function
+   * `deriveClimbableSurfaces()` calls, so the controller and the map cannot
+   * hold different opinions about what a body can get up.
    */
   _probeLedge(forward) {
     const dirX = -Math.sin(this.yaw);
@@ -409,15 +453,25 @@ export class Shade {
     const direction = { x: dirX, y: 0, z: dirZ };
     const distance = forward + this.half.x;
     const feet = this.feetY;
-    // How high this body can get right now (Section 6.1, amended). Airborne is
-    // taken at full stretch: you are already off the ground, so the jump has
-    // been spent and its height is what put the ledge in range.
-    const reach = S.reach.standing + (this.grounded ? 0 : S.reach.jumpBonus);
+    const reach = this._reachNow();
 
     // Sweep from the feet to the top of reach. Every sample is a face the
     // player could plausibly have their hands on.
     for (let probe = PROBE_STEP; probe <= reach + PROBE_STEP; probe += PROBE_STEP) {
       const origin = { x: this.position.x, y: feet + probe, z: this.position.z };
+      // Stop where the hand does. Each sample is a horizontal ray, and a ray
+      // that starts inside a slab passes straight through it and reports the
+      // face of whatever it is buried in — so the sweep could see, and the
+      // controller would then climb, through solid concrete. It did exactly
+      // that from inside a duct: 1.15m of roof overhead and the lip on TOP of
+      // that roof came back as the ledge ahead. `_commitMove()` had no
+      // objection, because it validates where a move ENDS, not what it passes
+      // through.
+      //
+      // Once the column above the body is blocked, everything higher is
+      // unreachable too, so this breaks rather than skipping: a hand cannot be
+      // in the open air above a ceiling it cannot get through.
+      if (!this.collision.isClear(origin, HAND_HALF)) break;
       const hit = this.collision.raycast(origin, direction, distance);
       if (!hit || !hit.box.climbable) continue;
       // Only a face gives a ledge; a top or bottom hit is not something to climb.
@@ -489,10 +543,43 @@ export class Shade {
     return false;
   }
 
-  _tryVault() {
+  /**
+   * Head into something with a jump and get up it — the whole ground-started
+   * climb. The caller gates this on the jump buffer.
+   *
+   * This used to be `intent.sprint && intent.forward > 0 && _tryVault()`, and
+   * `_tryVault()` accepted the vault band alone. Two consequences, both of them
+   * things a player would call broken. A 1.0m crate could not be climbed at all
+   * without sprinting at it. And nothing above 1.15m could be climbed from a
+   * standing start, because the mantle lived exclusively in `_stepAir()` — so a
+   * 2.3m lip, well inside a standing reach of 2.6m, ate every step of held
+   * forward and did nothing. The census counted 58 vault-band and 57
+   * mantle-band faces in exactly that state.
+   *
+   * Sprint is gone from the gate: it never made a climb possible, it only made
+   * it permitted, and "hold shift to be allowed onto a crate" is a marking by
+   * another name. The jump took its place, and it is a better gate for the
+   * reason sprint was a bad one — it is what you would press anyway. It also
+   * leaves waist-high cover usable, which a climb on contact does not: walk up
+   * to a crate with a rifle pointed at you and you stay behind it.
+   *
+   * One probe, at the longer of the two reaches. Which distance you are allowed
+   * to start a climb from should not depend on the height you are about to
+   * discover, because that is not a distinction anyone can feel through a
+   * keyboard.
+   */
+  _tryClimbFromGround(intent) {
+    if (!intent || intent.forward <= 0) return false;
     const ledge = this._probeLedge(S.vaultReach);
-    if (!ledge || ledge.move !== 'vault') return false;
-    return this._climbOnto(SHADE_STATE.VAULT, ledge, S.vaultDuration);
+    if (!ledge) return false;
+    if (!this._isApproaching(ledge, intent)) return false;
+
+    const vault = ledge.move === 'vault';
+    return this._climbOnto(
+      vault ? SHADE_STATE.VAULT : SHADE_STATE.MANTLE,
+      ledge,
+      vault ? S.vaultDuration : S.mantleDuration
+    );
   }
 
   /**

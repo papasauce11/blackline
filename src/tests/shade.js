@@ -252,7 +252,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'sprint-vault-clears-a-crate',
     spec: 'Section 6.1 / check 2',
-    name: 'Sprinting into a vault-band crate vaults it and lands clean on top',
+    name: 'Running at a vault-band crate and jumping vaults it, landing clean on top',
     run: (h) => {
       const crate = h.map.collision.boxes.find((box) => box.tag === 'stack-hall-low');
       if (!crate) return { pass: false, detail: 'stack-hall-low missing from the map' };
@@ -277,6 +277,12 @@ export function register(debugTools) {
       let landedZ = null;
       let landedClear = false;
       for (let i = 0; i < 200; i++) {
+        // A ground climb is a jump into a ledge (Section 6.1, amended). Sprint
+        // used to be the gate on its own; it no longer permits anything, so the
+        // run-up here is just a run-up and the jump is what asks for the vault.
+        // Held and pressed together, which is what a keydown produces.
+        intent.jumpPressed = i % 14 === 0;
+        intent.jump = intent.jumpPressed;
         h.shade.step(CONFIG.time.fixedDt, intent);
         if (h.shade.state === SHADE_STATE.VAULT) {
           entered = true;

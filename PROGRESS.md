@@ -2900,3 +2900,200 @@ Block B, phases 8–18: make the controller generous enough that the obvious thi
 works — jump-extended reach at the probe, approach tolerance, input buffering,
 and the bump-plus-scuff when a climb genuinely cannot happen. Then block C takes
 the Turbine Hall first, because the census says so.
+
+## Phases 8 to 11 - the controller reaches the way the rule says it does
+
+**Status:** complete. Suite: **102 passed, 1 deliberate failure**. The census
+went **49 -> 12**, and what is left in it is no longer controller work.
+
+### What a climb is now
+
+Two things were wrong, and the second was hiding behind the first.
+
+**The jump was being spent twice.** The probe read "airborne means full stretch
+from the current feet". A jump lifts the feet 0.46m, so measuring the whole 3.8m
+from up there put the real ceiling at 4.26m - a controller quietly climbing what
+`deriveClimbableSurfaces()` calls out of reach, with the site fence sitting at
+4.5m. `_reachNow()` measures the bonus against the take-off height instead, so
+the ceiling is `launch + 3.8` for the whole arc: the same number the map derives
+from. The jump extends the reach, it does not multiply it.
+
+**Nothing could be climbed from the ground.** The only ground path was
+`intent.sprint && forward && _tryVault()`, and `_tryVault()` took the vault band
+alone. A 1.0m crate could not be climbed without sprinting at it, and nothing
+above 1.15m could be climbed from a standing start at all, because the mantle
+lived exclusively in `_stepAir()`. A 2.3m lip, well inside a 2.6m standing
+reach, ate every step of held forward and did nothing. The census had counted 58
+vault-band and 57 mantle-band faces in exactly that state and I had read the
+number as "the map is wrong".
+
+`_tryClimbFromGround()` replaces it. Sprint is gone from the gate - it never made
+a climb possible, only permitted, and "hold shift to be allowed onto a crate" is
+a marking by another name.
+
+**What replaced it, decided by Josh:** the jump. Walking into a crate does not
+climb it; jumping into anything within reach does. Asked directly, because a
+climb on contact costs you waist-high cover - walk up to a crate with a rifle
+pointed at you and you go over it instead of behind it. The gate reads the jump
+BUFFER rather than the press edge, so a jump pressed slightly early still climbs
+instead of being spent in front of the wall. That is block B's input buffering,
+arriving for free.
+
+### The bug both of those were standing on
+
+The probe casts a horizontal ray at each sample height. A ray whose origin is
+already inside a slab passes straight through it and reports the face of
+whatever it is buried in. So the sweep could see through concrete, and the
+controller would climb through it - demonstrated from inside a duct, where 1.15m
+of roof overhead and the lip on TOP of that roof came back as the ledge ahead,
+and the body mantled through the slab onto it. `_commitMove()` had no objection:
+it validates where a move ENDS, not what it passes through.
+
+The sweep now stops where the hand does. Once the column above the body is
+blocked, everything higher is unreachable, so it breaks rather than skipping.
+
+Two green checks turned out to be resting on that bug:
+
+- `shade-reaches-level-2-without-stairs` started each hop 0.55m from the ledge -
+  inside the probe's own reach, so it never tested walking up to anything. On the
+  two gantry-to-deck hops the deck lip overhangs its gantry by 0.6m, so 0.55m
+  back put the body under the overhang, crouched, with concrete overhead. The hop
+  only ever succeeded by probing from inside that concrete. From a real standoff
+  both hops climb; the overhang is noted for the area rebuild.
+- `sprint-vault-clears-a-crate` asserted the sprint gate. It now runs at the
+  crate and jumps, which is what the amended rule says a vault is.
+
+### The census was testing a different sentence than the rule states
+
+The rule reads "the body could reach it **from whatever is below**". The census
+stood in one spot per face - the middle, `radius + 0.25` out - and dropped a ray.
+For anything on the floor that is right and complete. For anything stacked it was
+not: `lip-bay` got approached from the bay floor 6m down, which the rule already
+calls out of reach, while `gantry-bay` at 4m - the surface the rule derived it
+from, and the one the stairless route climbs from - was never stood on at all.
+Three of `lip-bay`'s four faces came back with a rise of 0.00, because the ray
+landed on the deck the lip is part of. The box was recorded as unclimbable while
+the body was standing on it.
+
+Three fixes, all of them making the check test the sentence:
+
+- Approach heights come from `_supportCandidates()`, the same list the rule
+  reads, each confirmed to be real ground at that spot.
+- Three distances back, furthest first, because a player backs up.
+- Three positions along each face, because judging a 6.6m gantry by its midpoint
+  excludes the whole thing - which `standableTop()` had already learned on the
+  other side of the same problem.
+
+A crouched approach counts too. Several surfaces in the stacked routes sit under
+the deck with only crouch headroom, and that is where the controller leaves you.
+
+Out of reach from a given surface is no longer a failure - it is the rule
+agreeing with itself. A box only fails if the rule says a body standing
+somewhere could make it and the controller cannot.
+
+```
+FAIL  every-climbable-surface-can-actually-be-climbed
+      12 of 65 climbable surfaces cannot be climbed (9 with nothing in reach
+      of them). By area: upper deck 5, loading-bay 3, turbine-hall 2,
+      server-vault 2; 20 need a leg up first
+```
+
+The nine are `_supportCandidates()` counting a neighbour within `vaultReach` of
+the footprint as "below" when it is really "beside" - the rule naming a support
+you cannot stand on. The other three (`deck-1`, `deck-16`, `deck-21`) are deck
+slabs reachable only from a gantry with 1.3m of headroom, where a crouched body
+genuinely cannot make a 2.0m rise - you get onto the deck by its lip instead.
+All of it is geometry, and all of it belongs to the area rebuild.
+
+"20 need a leg up first" is reported rather than failed, at Josh's call. A
+surface you have to climb something else to reach is the point of a stacked
+route; it is only worth knowing how much of the map is behind one.
+
+## The plant is a room, not a circle
+
+Josh, mid-session: *"able to plant the bomb anywhere in the room. not just in
+the circle."*
+
+Spec amended - Section 10.1, and a new Section 20 to hold the amendments the
+redesign has been promising since phase 47 was written down.
+
+The plant needed the body within 2m of a site centre, which made the hazard ring
+a target rather than a label and left the Warden three square metres of floor to
+watch. A site now knows its room, derived by containment so a site that moves
+cannot point at the room it used to be in, and the plant is allowed anywhere in
+that volume. The room's own floor and ceiling do the vertical separation that a
+hardcoded 2.5m tolerance used to: site C is on the deck directly above the
+Loading Bay, and standing under a floor is not standing in the room above it.
+
+The consequence that mattered more than the change: **the charge now sits where
+it was planted.** `round.chargeAt` is the position, the site id is only which
+room. The beep, the AI's defend target and the defuse proximity all read it. The
+defuse radius itself is untouched - it is arm's length, not a marking.
+
+And every objective check planted on the ring's centre pixel, the one spot where
+"the charge" and "the site" are the same point. The whole file would have gone
+on passing with the charge tracked at the site centre and the Warden defusing
+thin air ten metres from the bomb. `plantAt()` now plants as far off the ring as
+the room allows, and `the-ai-walks-to-the-charge-and-defuses-it` fails if the
+plant lands within a site radius of the centre - too close to prove anything.
+
+```
+PASS  the-ai-walks-to-the-charge-and-defuses-it
+      planted at A but 6.0m off the ring, then hid: the Warden pathed 12.8m to
+      the charge, held an 8s defuse and won the round 17.1s after the plant
+```
+
+### Verification actually performed
+
+- **102 passed, 1 deliberate failure**, twice, with identical answers.
+- Plant driven through the real key layer from four positions: on the ring, both
+  far corners of the Turbine Hall (18.6m and 13.4m off it) and outside the shell.
+  The three inside plant at A; the one outside does not plant at all.
+- Vertical separation driven the same way: the bay floor plants B, the deck above
+  it plants C, and the ground directly under site C plants nothing.
+- Census timing: 0.5s -> 1.9s for roughly four times the approaches. Suite 5.4s.
+
+### Two things that cost time, for whoever is next
+
+**A cold suite reports a false frame-budget failure.** `hall-north` came back at
+17.80ms against an 8.33ms ceiling on a suite run straight after a reload, and
+1.22ms mean on every warmed run. Drive 60 frames of `renderFrame()` before the
+suite. The handoff already says warm up before measuring; it is worth saying
+that the AUTO suite counts as measuring.
+
+**`every-sound-renders-to-samples-that-match-section-14` is flaky.** It failed
+once with "the Warden's footstep peaks at 0.045 against the Shade's 0.049" and
+has passed every run since, with nothing audio-related changed in between. Two
+peaks 0.004 apart is a threshold sitting on top of the value it is testing.
+
+### The hole the room rule left, found immediately
+
+Josh, straight after seeing it work: *"actually should only be plantable where
+the ward is able to defuse."*
+
+He is right and it is the redesign's own asymmetry biting. The Warden stays
+grounded; the Shade now climbs anything within 3.8m. So inside a site's room the
+Shade can get onto a gantry, a crate stack, a vent roof or a deck lip and plant
+where no Warden can kneel - an unloseable plant, and one that also strands the
+AI, because `setDefendTarget(round.chargeAt)` sends it at a charge it cannot
+reach and it stalls in DEFEND for the whole fuse.
+
+The rule agreed: **a plant is legal exactly where a Warden could stand and
+defuse it.** Not a second authored zone - it answers to the defuse check itself,
+so the two cannot drift.
+
+**Planned, deliberately not started** (Josh: "put into plan but dont start next
+steps yet"). Six phases, written up in `HANDOFF.md`: derive the Warden's
+reachable ground as map data, express `canDefuseAt()` against it, gate the plant
+every step of the hold rather than at commit, give refusal a tell, a
+census-shaped check over every climbable top and vent interior in a site room,
+and a decision on the `dy < 2.5` defuse tolerance that this makes load-bearing.
+
+### Exact next action
+
+The plant-must-be-defusable block, above, before anything else.
+
+Then block B, which is not finished: hang as a held option and the
+bump-plus-scuff are still to do, and neither has a check. Then block C, which
+now has an honest queue - the twelve, and the deck-lip overhang the route test
+walked into.

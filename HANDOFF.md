@@ -12,13 +12,13 @@ entry, "THE ENDGAME REDESIGN", is the live one.
 |---|---|
 | Branch | `phases-14-45` — **3 commits ahead of `main`, not merged** |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean |
+| Working tree | **dirty** — phases 8–11 and the plant change, verified but not committed |
 | AUTO suite | **102 passed, 1 failed** — the failure is deliberate, see below |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable |
 
 Phases 1–49 of the original build are done and committed. A **redesign** is now
-in progress and it is only 7 phases in.
+in progress, 11 phases in, and one directive arrived outside it (the plant, below).
 
 ---
 
@@ -43,7 +43,7 @@ by interview and is binding:
 | The test | **Purely mechanical.** Standable top + within reach ⇒ climbable. No tags, no exceptions, no `noClimb`. The map obeys the rule |
 | Map freedom | Keep the five v2 requirements (Shade starts outside, level 2 is one connected deck, stairless routes up, every room 2+ entries, raised ceilings). Reshape everything else freely |
 | Vents | Read as passable by **material contrast** — metal against concrete |
-| Spec | **Amend** Sections 5 and 6.1 with a changelog (phase 47, not yet done) |
+| Spec | **Amend** Sections 5 and 6.1 with a changelog (phase 47). The changelog exists now — Section 20 — but it holds only the 10.1 plant amendment; 5 and 6.1 are still unamended |
 
 ---
 
@@ -52,11 +52,16 @@ by interview and is binding:
 | Phases | Block | Status |
 |---|---|---|
 | 1–7 | **Strip and measure** | ✅ done, committed |
-| 8–18 | **Reach-based traversal** — jump-extended reach at the probe, approach tolerance, input buffering, hang as a held option, the bump-and-scuff | ⬅ **next** |
+| 8–11 | **Reach-based traversal** — jump-extended reach, ground climbs, approach tolerance, input buffering | ✅ done, **uncommitted** |
+| 12–18 | **Hang as a held option, and the bump-and-scuff** | pending |
 | 19–34 | **Area rebuild, lockstep** — geometry + controller together, worst area first | pending |
 | 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | pending |
 | 42–46 | **Feel** — camera, momentum, weight, timing, traversal fuzz | pending |
 | 47–50 | **Close** — amend the spec, re-sweep, Warden sanity, done-definition | pending |
+
+Outside that numbering, and **first** because it is a directive rather than a
+plan item: **the plant must be defusable**, six phases, laid out below.
+Josh: planned this session, to be built next.
 
 ---
 
@@ -64,22 +69,110 @@ by interview and is binding:
 
 ```
 FAIL  every-climbable-surface-can-actually-be-climbed
-      49 of 65 climbable surfaces cannot be climbed.
-      By area: turbine-hall 14, loading-bay 14, interior 8,
-               server-vault 7, exterior 4, upper deck 2
+      12 of 65 climbable surfaces cannot be climbed (9 with nothing in reach
+      of them). By area: upper deck 5, loading-bay 3, turbine-hall 2,
+      server-vault 2; 20 need a leg up first
 ```
 
-**Do not "fix" this by weakening it.** It is the honest baseline for the whole
-redesign and it stays red until blocks B and C close it. It walks the Shade up
-to all four faces of every climbable surface and drives the real controller at
-it. Named failures are logged to the F4 panel (`debugTools._testLog`).
+**Do not "fix" this by weakening it.** It stays red until the geometry closes
+it. It approaches every climbable face from every surface the rule derives it
+from — three distances back, three positions along the face, standing or
+crouched — and drives the real controller. Named failures are logged to the F4
+panel (`debugTools._testLog`).
 
-Start with the **Turbine Hall** — the census picked it, not taste.
+**All twelve are now geometry, not controller.** Nine are
+`_supportCandidates()` counting a neighbour within `vaultReach` of the footprint
+as "below" when it is really "beside" — the rule naming a support you cannot
+stand on. Three (`deck-1`, `deck-16`, `deck-21`) are deck slabs reachable only
+from a gantry with 1.3m of headroom, where a crouched body genuinely cannot make
+a 2.0m rise; you get onto the deck by its lip, which does climb. Also waiting
+for the rebuild: the deck lips overhang their gantries by 0.6m, so there is no
+spot on the gantry within 0.8m of the lip where a body can stand up.
+
+"20 need a leg up first" is reported, not failed — Josh's call. A surface you
+climb something else to reach is the point of a stacked route.
 
 Its sibling `the-climb-rule-has-no-exceptions` passes and must keep passing: it
 is what makes the rule the single source of truth.
 
 ---
+
+## The plant is a room, not a circle
+
+Josh, mid-session: *"able to plant the bomb anywhere in the room. not just in
+the circle."* Spec amended — Section 10.1, recorded in the new Section 20.
+
+A site knows its room (derived by containment, never declared twice) and the
+plant is allowed anywhere in that volume, floor to ceiling. The room's own
+bounds do the vertical separation the old hardcoded 2.5m did: site C is on the
+deck directly above the Loading Bay.
+
+**The charge now sits where it was planted** — `round.chargeAt`. The site id is
+only which room. The beep, the AI defend target and the defuse proximity all
+read it. The defuse radius is untouched: it is arm's length, not a marking.
+
+Open, and Josh's call: the ring now says "this room" while looking exactly like
+it used to say "plant here". Whether a room-sized marking reads better is not
+settled.
+
+---
+
+## NEXT SESSION — the plant must be defusable
+
+Josh, straight after the room change:
+
+> *"actually should only be plantable where the ward is able to defuse."*
+
+**Planned, not started. Nothing below is built.**
+
+### Why the room rule alone is wrong
+
+The redesign put this hole here on purpose and then walked into it. The Warden
+**stays grounded** — that is the asymmetry, and it is binding. The Shade is not:
+it now climbs anything within 3.8m. So inside a site's room the Shade can get
+onto a gantry, a crate stack, a vent roof or a deck lip and plant where no
+Warden can ever kneel. That is an unloseable plant, and it is worse than a
+balance problem — `setDefendTarget(round.chargeAt)` sends the AI at a charge it
+cannot reach, so it paths as far as it can and stalls in DEFEND for the whole
+45s fuse.
+
+### The rule
+
+> A plant is legal exactly where a Warden could stand and defuse it.
+
+Not a second authored zone. It answers to the defuse check itself, so the two
+cannot drift — the same trick `classifyReach()` plays for the map and the
+controller. The room stays as the outer bound; this carves out of it.
+
+Worth knowing before starting: on a flat room floor this changes nothing at all.
+It excludes the climbs, the vents and the ledges, which is exactly the list the
+Warden cannot follow the Shade onto.
+
+### Phases
+
+| # | Work |
+|---|---|
+| 1 | **Derive the Warden's reachable ground.** Flood fill from the Warden spawns over a grid (0.5m is probably right), each cell holding the floor height under it. Step up at most `warden.stepHeight`, capsule must fit standing, no climbing — the Warden has no climb path and must not gain one here. Built once at map build, beside `deriveClimbableSurfaces()`. Nothing in the codebase currently *states* "the Warden stays grounded"; this would be it |
+| 2 | **`canDefuseAt(position)`** — true iff some reachable cell is inside the defuse radius and vertical tolerance of that point. Reads the same constants the defuse reads, from one place |
+| 3 | **Gate the plant on it every step of the hold**, not at commit. Progress that never starts is the difference between "not yet" and "never"; four seconds of progress then a refusal is the worst of both |
+| 4 | **Tell the player.** Same standard the redesign set for a failed climb: never silent. An interact key that does nothing is the marking problem inverted — an invisible rule. The plant already owns a HUD line and a noise interval; a refusal wants the line plus a sound, and probably no noise event (a refused plant should not give the Shade away) |
+| 5 | **The check, census-shaped.** For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
+| 6 | **Re-examine `dy < 2.5`** in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
+
+### Questions to settle first
+
+- **Beside, or on?** Does "able to defuse" mean the Warden can stand *at* the
+  charge, or is standing beside a 2m crate with the charge on top enough? Phase
+  6 is the same question from the other end; answering it once decides both.
+- **What does refusal look like?** The tell in phase 4 is the first piece of
+  player-facing feedback the redesign has added rather than removed.
+
+### Side benefit worth taking
+
+The reachable set from phase 1 is the honest answer to a question three other
+systems currently guess at: whether a waypoint is standable, whether a DEFEND
+path can complete, and whether a patrol route is walkable end to end. It is
+worth building it as map data rather than as an objective-system private.
 
 ## Running it
 
@@ -116,8 +209,10 @@ Write tool for new files and a `python - <<'PY'` block for edits.
 **Never time `readPixels`.** It blocks on a GPU sync and copies megabytes; it
 reported a 2ms frame as 14ms. Use `lens.renderOnly()`.
 
-**Warm up before measuring.** The first draw after a load compiles shaders and
-is not representative.
+**Warm up before measuring — the AUTO suite counts as measuring.** The first
+draw after a load compiles shaders. A suite run straight after a reload reported
+`hall-north` at 17.80ms against an 8.33ms ceiling; warmed, the same viewpoint is
+1.22ms. Drive 60 frames of `renderFrame(1/60)` before running the suite.
 
 **Noise events come from a recycled pool of 48.** Copy the fields you need; a
 retained event gets overwritten (a landing read 8m instead of 10m because a
@@ -139,6 +234,16 @@ length controls for thirty phases.
 **One console warning during the suite is expected** — the death-camera check
 deliberately fires its own wall-clock guard.
 
+**`every-sound-renders-to-samples-that-match-section-14` is flaky.** It failed
+once ("the Warden's footstep peaks at 0.045 against the Shade's 0.049") and has
+passed every run since with nothing audio-related changed. Two peaks 0.004 apart
+is a threshold sitting on the value it tests. If you see it, run again before
+believing it.
+
+**Bash heredocs fail on some JS content even inside `python - <<'PY'`.** One
+patch died with `unexpected EOF` for no visible reason. Write the patch script
+to the scratchpad with the Write tool and run `python <path>` instead.
+
 ---
 
 ## The lesson that keeps repeating
@@ -157,6 +262,8 @@ sitting at. Drive `input.heldCodes` / `input.pressedCodes` — see
 
 ## Still needs a human
 
+- Whether the **site ring** still reads correctly now that the plant is the
+  whole room. Nobody has looked at it since the meaning changed.
 - How any of it **looks**. Pixels prove things are drawn, not that they read.
 - How any of it **sounds**. Samples are the right length, level and register;
   nobody has heard it.

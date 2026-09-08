@@ -485,11 +485,23 @@ export function buildMap({ gradientMap }) {
       -Math.PI / 2,
       M.marking.siteRingPulseMax
     );
+    // The room the site is the objective of. Derived by containment rather
+    // than declared, so a site that moves cannot end up pointing at the room
+    // it used to be in. The plant is allowed anywhere in this volume
+    // (Section 10.1, amended); the ring says which room, not which square
+    // metre of it.
+    const room = map.rooms.find((entry) => (
+      spec.x >= entry.min.x && spec.x <= entry.max.x
+      && spec.z >= entry.min.z && spec.z <= entry.max.z
+      && spec.y >= entry.floorY - 0.5 && spec.y < entry.ceilingY - 0.5
+    )) || null;
+
     map.sites.push({
       id: spec.id,
       name: spec.name,
       position: new THREE.Vector3(spec.x, spec.y, spec.z),
       radius: CONFIG.round.siteRadius,
+      room,
       ring,
     });
   }
@@ -716,6 +728,13 @@ function validateMap(map) {
   expect(map.shadeSpawns.length, M.shadeSpawnCount, 'shade spawns');
   expect(map.wardenSpawns.length, M.wardenSpawnCount, 'warden spawns');
   expect(map.sites.length, M.plantSiteCount, 'plant sites');
+
+  // A site with no room cannot be planted at all now that the room IS the
+  // plant zone, and a silent null here would read in play as "the interact key
+  // does nothing at site B".
+  for (const site of map.sites) {
+    if (!site.room) problems.push(`site "${site.id}" is not inside any room`);
+  }
   expect(map.rooms.length, M.roomCount, 'rooms');
 
   for (const light of map.lights) {

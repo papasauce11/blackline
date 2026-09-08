@@ -199,8 +199,18 @@ export function register(debugTools) {
         const sign = mid(to, axis) >= mid(from, axis) ? 1 : -1;
         const inset = CONFIG.shade.radius + 0.06;
 
+        // Stand back far enough that the approach is actually walked. This was
+        // a flat 0.55m, which is INSIDE the probe's own reach — the body was
+        // spawned already touching the ledge, so the check never exercised
+        // walking up to one. On the two gantry-to-deck hops it was worse than
+        // that: the deck lip overhangs its gantry by 0.6m, so 0.55m back put
+        // the body under the overhang, crouched, with concrete directly
+        // overhead, and the hop only ever succeeded because the probe used to
+        // cast its rays from inside that concrete. From a real standoff both
+        // hops climb; the overhang is noted for the area rebuild.
+        const standoff = CONFIG.shade.radius + CONFIG.shade.vaultReach + 0.3;
         const along = Math.min(
-          Math.max((sign > 0 ? from.max[axis] : from.min[axis]) - sign * 0.55, from.min[axis] + inset),
+          Math.max((sign > 0 ? from.max[axis] : from.min[axis]) - sign * standoff, from.min[axis] + inset),
           from.max[axis] - inset
         );
         const lo = Math.max(from.min[cross], to.min[cross]);

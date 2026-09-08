@@ -77,59 +77,143 @@ function standableTop(h, box) {
 }
 
 /**
- * Walk up to one face of a box and try to get on top of it, the way a player
- * would: face it, hold forward, and jump if it is above standing reach.
+ * Where a body would stand to climb this face: three positions along it, each
+ * at three distances back, furthest back first.
  *
- * @returns {{tried: boolean, climbed: boolean, from: number, rise: number}}
+ * Neither axis used to vary, and both mattered. At 0.59m out the body is
+ * already inside the probe's own reach, so the check never exercised walking up
+ * to anything - and on stacked geometry that spot is usually under the very
+ * thing it is trying to climb. `lip-bay` overhangs `gantry-bay`, so 0.59m out
+ * from its face puts the body under the deck with no standing room, which reads
+ * as "unclimbable" when what it means is "stand back". A player backs up.
+ *
+ * And sampling only the middle of a face judges a 6.6m-wide gantry by one
+ * point. `standableTop()` already learned this on the other side of the same
+ * problem: "a long ledge that passes under one obstruction is still climbable
+ * everywhere else, and judging it by a single point excludes the whole thing."
+ * The foothold you climb from can just as easily be at one end.
+ *
+ * `along` indexes the position on the face, so the caller can tell "another
+ * distance back from the same place" from "somewhere else entirely".
  */
-function attemptClimb(h, box, face) {
-  const shade = h.shade;
+function standSpots(box, face) {
+  const spots = [];
+  for (let i = 0; i < 3; i++) {
+    const t = (i + 1) / 4;
+    const at = {
+      x: face.nx !== 0 ? (face.nx > 0 ? box.max.x : box.min.x) : box.min.x + (box.max.x - box.min.x) * t,
+      z: face.nz !== 0 ? (face.nz > 0 ? box.max.z : box.min.z) : box.min.z + (box.max.z - box.min.z) * t,
+    };
+    for (const out of [S.radius + 1.15, S.radius + 0.7, S.radius + 0.25]) {
+      spots.push({ x: at.x + face.nx * out, z: at.z + face.nz * out, along: i });
+    }
+  }
+  return spots;
+}
+
+/**
+ * The body height that fits at this spot standing on a surface at `feet`, or
+ * null if none does.
+ *
+ * Crouched counts. Several of the surfaces in the stacked routes sit under the
+ * deck with only crouch headroom, and that is where the controller leaves you
+ * when you climb onto them - a check that only ever tries a standing body
+ * declares those approaches impossible and never drives the one that matters.
+ */
+function bodyHeightAt(h, stand, feet) {
+  for (const height of [S.standHeight, S.crouchHeight]) {
+    const half = { x: S.radius, y: height / 2, z: S.radius };
+    if (h.map.collision.isClear({ x: stand.x, y: feet + half.y + 0.02, z: stand.z }, half)) return height;
+  }
+  return null;
+}
+
+/**
+ * Every height a body could actually be standing on at this spot, lowest first.
+ *
+ * The census used to take one: a long ray dropped from just above the box's
+ * top. For anything sitting on the floor that is the right answer and the only
+ * answer. For anything stacked it is the wrong one - a deck lip 6m up got
+ * approached from the bay floor 6m below, which the rule already says is out of
+ * reach, while `gantry-bay` at 4m, the surface the rule actually derived it
+ * from and the one the stairless route climbs from, was never stood on at all.
+ * Three of `lip-bay`'s four faces came back with a rise of 0.00 because the ray
+ * landed on the deck the lip is part of, and the box was then recorded as
+ * unclimbable while the body was standing on it.
+ *
+ * So the approach heights come from `_supportCandidates()` - the same list
+ * `deriveClimbableSurfaces()` reads to decide the box is climbable in the first
+ * place. That is what "reach it from whatever is below" says, and a census that
+ * tests a different sentence than the rule states is not testing the rule.
+ * Each candidate is confirmed to be real ground at THIS spot before it counts;
+ * a support that stops short of the standing position is not a foothold.
+ */
+function standHeightsAt(h, box, stand) {
   const collision = h.map.collision;
-  const along = {
-    x: face.nx !== 0 ? (face.nx > 0 ? box.max.x : box.min.x) : (box.min.x + box.max.x) / 2,
-    z: face.nz !== 0 ? (face.nz > 0 ? box.max.z : box.min.z) : (box.min.z + box.max.z) / 2,
-  };
-  const stand = {
-    x: along.x + face.nx * (S.radius + 0.25),
-    z: along.z + face.nz * (S.radius + 0.25),
+  const heights = [];
+  const seen = new Set();
+  const add = (y) => {
+    const key = y.toFixed(2);
+    if (seen.has(key)) return;
+    seen.add(key);
+    heights.push(y);
   };
 
-  // What would you be standing on here?
-  const down = collision.raycast(
+  // Whatever is under the spot, however far down - the floor case.
+  const floor = collision.raycast(
     { x: stand.x, y: box.max.y + 0.6, z: stand.z }, { x: 0, y: -1, z: 0 }, 60
   );
-  if (!down) return { tried: false, climbed: false, from: 0, rise: 0 };
-  const feet = down.y;
-  const half = { x: S.radius, y: S.standHeight / 2, z: S.radius };
-  if (!collision.isClear({ x: stand.x, y: feet + half.y + 0.02, z: stand.z }, half)) {
-    return { tried: false, climbed: false, from: feet, rise: 0 };
+  if (floor) add(floor.y);
+
+  for (const y of h.map._supportCandidates(box)) {
+    // Real ground at this spot, at this height? A short ray, so a candidate
+    // that belongs to a box the standing position is beside rather than on
+    // does not count.
+    const hit = collision.raycast({ x: stand.x, y: y + 0.25, z: stand.z }, { x: 0, y: -1, z: 0 }, 0.5);
+    if (hit && Math.abs(hit.y - y) < 0.06) add(hit.y);
   }
 
-  const rise = box.max.y - feet;
-  if (rise <= 0) return { tried: false, climbed: false, from: feet, rise };
+  heights.sort((a, b) => a - b);
+  return heights;
+}
 
+/**
+ * Stand at one face of a box, on one surface below it, and try to get on top
+ * the way a player would: face it, hold forward, and jump. A ground climb IS a
+ * jump into a ledge, so the jump is pressed for every rise, not only for the
+ * ones above standing reach.
+ *
+ * @returns {boolean} whether the body ended up on top
+ */
+function attemptClimb(h, box, face, stand, feet, height) {
+  const shade = h.shade;
   shade.reset({ position: { x: stand.x, y: feet, z: stand.z }, yaw: Math.atan2(face.nx, face.nz) });
+  if (height < S.standHeight) {
+    // Under a deck. Start the way the controller would leave you there.
+    shade.height = height;
+    shade.half.y = height / 2;
+    shade.crouching = true;
+    shade.position.set(stand.x, feet + height / 2 + 0.02, stand.z);
+  }
   h.stepFrames(2);
 
-  const needsJump = rise > S.reach.standing;
   h.input.clearAll();
   h.input.heldCodes.add('KeyW');
   let climbed = false;
   for (let step = 0; step < 90 && !climbed; step++) {
-    // A player about to climb something tall jumps into it. Re-pressed
-    // periodically because a single edge can be consumed by a step that was
-    // not yet in range.
-    if (needsJump && step % 22 === 0) {
+    // Re-pressed periodically because a single edge can be consumed by a step
+    // that was not yet in range.
+    if (step % 22 === 0) {
       h.input.heldCodes.add('Space');
       h.input.pressedCodes.add('Space');
     }
     h.stepFrames(1);
     h.input.clearEdges();
-    if (needsJump) h.input.heldCodes.delete('Space');
+    h.input.heldCodes.delete('Space');
     if (shade.feetY > box.max.y - 0.12) climbed = true;
   }
   h.input.clearAll();
-  return { tried: true, climbed, from: feet, rise };
+  return climbed;
 }
 
 export function register(debugTools) {
@@ -188,28 +272,78 @@ export function register(debugTools) {
       h.setPaused(false);
 
       const climbable = h.map.collision.boxes.filter((box) => box.climbable);
-      const reached = new Set();
       const failedBoxes = new Map();
+      /** Climbable, but only once you are standing on something else first. */
+      const needsALegUp = [];
       let approaches = 0;
       let climbs = 0;
+      let reached = 0;
+      let enclosed = 0;
+      let unreachable = 0;
 
       for (const box of climbable) {
-        let anyFace = false;
-        let anySuccess = false;
+        let standable = false;
+        let inReach = false;
+        let climbedAny = false;
+        let climbedFromFloor = false;
+
         for (const face of FACES) {
-          const result = attemptClimb(h, box, face);
-          if (!result.tried) continue;
-          anyFace = true;
-          approaches++;
-          if (result.climbed) {
-            climbs++;
-            anySuccess = true;
+          if (climbedFromFloor) break;
+          // One approach per place-on-the-face per surface below it, taken from
+          // the furthest distance back that still has ground and room.
+          const tried = new Set();
+          for (const stand of standSpots(box, face)) {
+            const heights = standHeightsAt(h, box, stand);
+            for (let i = 0; i < heights.length; i++) {
+              const feet = heights[i];
+              const key = `${stand.along}:${feet.toFixed(2)}`;
+              if (tried.has(key)) continue;
+              const height = bodyHeightAt(h, stand, feet);
+              if (height === null) continue;
+              standable = true;
+              const rise = box.max.y - feet;
+              if (rise <= 0) continue;
+              const move = classifyReach(rise, FULL_REACH);
+              // Out of reach from down there is not a failure, it is the rule
+              // agreeing with itself. It only counts as an approach if the rule
+              // says a body standing here could make it.
+              if (move === null || move === 'step') continue;
+              tried.add(key);
+              inReach = true;
+
+              approaches++;
+              if (!attemptClimb(h, box, face, stand, feet, height)) continue;
+              climbs++;
+              climbedAny = true;
+              // heights[0] is the lowest thing under this spot: the floor.
+              if (i === 0) {
+                climbedFromFloor = true;
+                break;
+              }
+            }
+            if (climbedFromFloor) break;
           }
         }
+
         // A box nothing can stand next to is not a failure — it is enclosed.
-        if (!anyFace) continue;
-        if (anySuccess) reached.add(box);
-        else {
+        if (!standable) {
+          enclosed++;
+          continue;
+        }
+        // Flagged climbable, but no surface a body can stand on is within
+        // reach of it. That is the rule disagreeing with the geometry, and it
+        // is a failure of the same kind as a climb that does not happen.
+        if (!inReach) {
+          unreachable++;
+          const area = areaOf(h, box);
+          if (!failedBoxes.has(area)) failedBoxes.set(area, []);
+          failedBoxes.get(area).push(`${box.tag || 'box'} (nothing in reach of it)`);
+          continue;
+        }
+        if (climbedAny) {
+          reached++;
+          if (!climbedFromFloor) needsALegUp.push(box.tag || 'box');
+        } else {
           const area = areaOf(h, box);
           if (!failedBoxes.has(area)) failedBoxes.set(area, []);
           failedBoxes.get(area).push(box.tag || 'box');
@@ -233,14 +367,26 @@ export function register(debugTools) {
       }
 
       const worst = byArea.length ? byArea[0][0] : 'none';
+
+      // Reported, not failed. A surface you have to climb something else to get
+      // to is the whole point of a stacked route — it is only worth knowing how
+      // much of the map is behind one, because that is the part a player cannot
+      // reach by walking up to it.
+      const legUp = needsALegUp.length
+        ? `; ${needsALegUp.length} need a leg up first (${needsALegUp.slice(0, 5).join(', ')}`
+          + `${needsALegUp.length > 5 ? ', ...' : ''})`
+        : '; every one of them is reachable straight off the floor';
+
       return {
         pass: failedCount === 0,
         detail: failedCount === 0
-          ? `${climbable.length} climbable surfaces, ${approaches} approaches, ${climbs} successful climbs; `
-            + `the controller got onto ${reached.size} of ${reached.size} reachable surfaces`
-          : `${failedCount} of ${climbable.length} climbable surfaces cannot be climbed. Worst area: `
+          ? `${climbable.length} climbable surfaces, ${approaches} approaches from every surface the rule `
+            + `derives them from, ${climbs} climbs; the controller got onto all ${reached} reachable `
+            + `surfaces (${enclosed} enclosed)${legUp}`
+          : `${failedCount} of ${climbable.length} climbable surfaces cannot be climbed`
+            + `${unreachable ? ` (${unreachable} with nothing in reach of them)` : ''}. Worst area: `
             + `"${worst}" with ${byArea[0][1].length}. By area: `
-            + byArea.map(([area, list]) => `${area} ${list.length}`).join(', '),
+            + byArea.map(([area, list]) => `${area} ${list.length}`).join(', ') + legUp,
       };
     },
   });

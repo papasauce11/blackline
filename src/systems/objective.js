@@ -41,6 +41,12 @@ export function createRoundState(number) {
     elapsed: 0,
     charge: CHARGE.CARRIED,
     site: null,
+    /**
+     * Where the charge actually is, once planted. The plant is free within the
+     * room, so the site id says which room and this says which spot - the
+     * Warden has to walk to the charge, not to the middle of the floor.
+     */
+    chargeAt: null,
     plantProgress: 0,
     plantNoiseTimer: 0,
     defuseProgress: 0,
@@ -191,6 +197,7 @@ export class Objective {
     if (round.plantProgress < R.plantHoldTime) return;
     round.charge = CHARGE.PLANTED;
     round.site = site.id;
+    round.chargeAt = { x: shade.position.x, y: shade.feetY, z: shade.position.z };
     round.plantProgress = 0;
     round.detonationTimer = R.detonationTime;
 
@@ -200,19 +207,36 @@ export class Objective {
       round.timeRemaining += R.plantExtension;
     }
     // The Warden stops patrolling and goes to the charge (Section 11 DEFEND).
-    if (this.ai) this.ai.setDefendTarget(site.position);
-    this.emitter.emit('objective:planted', { site: site.id, at: site.position });
+    if (this.ai) this.ai.setDefendTarget(round.chargeAt);
+    this.emitter.emit('objective:planted', { site: site.id, at: round.chargeAt });
   }
 
-  /** The site the actor is standing in, or null. */
-  siteNear(position) {
+  /**
+   * The site whose room this actor is standing in, or null.
+   *
+   * The plant is allowed anywhere in the room (Section 10.1, amended). It used
+   * to need the body inside 2m of the site centre, which made the ring a
+   * target rather than a label: three circles on the whole map, and a Warden
+   * who only ever had to watch three square metres of floor. A room is the
+   * unit the objective is actually about.
+   *
+   * The vertical bound does the work the old `dy < 2.5` did, and does it from
+   * the room's own floor and ceiling: site C is on the upper deck directly
+   * above the Loading Bay, and standing under a floor is not standing in the
+   * room above it.
+   *
+   * @param {{x:number,y:number,z:number}} position actor centre
+   * @param {number} [standHeight] body height, to get from centre to feet
+   */
+  siteNear(position, standHeight = CONFIG.shade.standHeight) {
+    const feet = position.y - standHeight / 2;
     for (const site of this.map.sites) {
-      const dx = site.position.x - position.x;
-      const dz = site.position.z - position.z;
-      // Vertical check too: site C is on the upper deck, directly above the
-      // Loading Bay. Without it you could plant C from the floor below.
-      const dy = Math.abs(site.position.y - (position.y - CONFIG.shade.standHeight / 2));
-      if (dx * dx + dz * dz <= R.siteRadius * R.siteRadius && dy < 2.5) return site;
+      const room = site.room;
+      if (!room) continue;
+      if (position.x < room.min.x || position.x > room.max.x) continue;
+      if (position.z < room.min.z || position.z > room.max.z) continue;
+      if (feet < room.floorY - 0.5 || feet >= room.ceilingY - 0.5) continue;
+      return site;
     }
     return null;
   }
@@ -230,26 +254,31 @@ export class Objective {
       return;
     }
 
-    const site = this.map.sites.find((entry) => entry.id === round.site);
+    // Everything below is about where the charge IS, not where the site is.
+    // Those were the same point while a plant had to happen in the circle.
+    const at = round.chargeAt;
 
     // Section 14: "a single 1200Hz blip, interval shortening as the detonation
     // timer runs down". The interval is the clock made audible, so it belongs
     // with the clock; audio only sounds it.
     round.beepTimer -= dt;
-    if (round.beepTimer <= 0 && site) {
+    if (round.beepTimer <= 0 && at) {
       const remaining = round.detonationTimer / R.detonationTime;
       const beep = CONFIG.audio.plantBeep;
       round.beepTimer = beep.intervalEnd + (beep.intervalStart - beep.intervalEnd) * remaining;
-      this.emitter.emit('objective:beep', { at: site.position, remaining });
+      this.emitter.emit('objective:beep', { at, remaining });
     }
-    if (!site || !warden || warden.health <= 0) {
+    if (!at || !warden || warden.health <= 0) {
       this._decayDefuse(dt);
       return;
     }
 
-    const dx = site.position.x - warden.position.x;
-    const dz = site.position.z - warden.position.z;
-    const dy = Math.abs(site.position.y - (warden.position.y - CONFIG.warden.standHeight / 2));
+    // The defuse still happens at the charge, within arm's length of it. That
+    // radius was never a marking - it is how close you have to be to kneel
+    // down and pull the thing apart - so it stays exactly as it was.
+    const dx = at.x - warden.position.x;
+    const dz = at.z - warden.position.z;
+    const dy = Math.abs(at.y - (warden.position.y - CONFIG.warden.standHeight / 2));
     const atSite = dx * dx + dz * dz <= R.siteRadius * R.siteRadius && dy < 2.5;
 
     // Section 11 DEFEND: defuse if the Shade is not visible. A Warden that can

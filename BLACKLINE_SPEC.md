@@ -299,9 +299,9 @@ All gadget effects are managed by a single central registry in `gadgets.js`. Eac
 ### 10.1 Round
 
 - Base timer: 240s
-- The Shade carries a charge from spawn. Plant takes a 4s hold at any of the three sites
+- The Shade carries a charge from spawn. Plant takes a 4s hold **anywhere in a site's room** (amended - see 20) - not only inside the ring, which labels the room rather than marking a spot
 - Once planted, the charge detonates after 45s. Detonation = Shade wins the round
-- The Warden can defuse with an 8s hold. Defuse = Warden wins the round
+- Once planted, the charge sits **where it was planted**. The Warden can defuse with an 8s hold, standing at the charge itself
 - Defusing can be interrupted and the progress is retained for 5s, then decays
 
 ### 10.2 Shade lives and reinsert
@@ -564,3 +564,43 @@ The `Y` suite is the deliverable for the AUTO checks in Section 16. It drives th
 Online multiplayer. Human-controlled Warden in competitive play. Vision modes (night vision, motion tracker). Live camera feeds. Multiple maps. Progression, unlocks, or loadout customisation. Gamepad support. Skeletal animation. Voice lines. Wall-running. Prone.
 
 Do not implement any of the above. If a system seems to require one of them, stop and flag it rather than building it.
+
+---
+
+## 20. Amendments
+
+Changes to the spec made after the original build, each with the reason. The
+sections above carry the amended rule; this is the record of what moved and why.
+
+### 20.1 Section 10.1 - the plant is a room, not a circle
+
+> *"able to plant the bomb anywhere in the room. not just in the circle."*
+
+The plant needed the body within 2m of a site's centre. That made the hazard
+ring a target rather than a label: three circles on a whole map, and a Warden
+who only ever had to watch three square metres of floor. The room is the unit
+the objective is about.
+
+| | Before | After |
+|---|---|---|
+| Plant zone | 2m radius of the site centre | The site's room, floor to ceiling |
+| Which room | - | Derived by containment from the site position, never declared twice |
+| Charge position | The site centre | Where the Shade was standing |
+| Defuse | 2m of the site centre | 2m of the charge - unchanged in size, it is arm's length, not a marking |
+| Site ring | Says "plant here" | Says "this room" |
+
+Site C sits on the upper deck directly above the Loading Bay, so the room's own
+floor and ceiling do the vertical separation that a hardcoded 2.5m tolerance
+used to: standing under a floor is not standing in the room above it.
+
+Consequences worth knowing. The Warden can no longer camp a circle - it has to
+search a room, and after a plant it paths to the charge's actual position. The
+ring's meaning has changed under it, and whether a room-sized marking now reads
+better than a 2m ring is an open question, not a settled one.
+
+**Agreed, not yet built:** the room is too generous on its own. The Warden stays
+grounded and the Shade climbs, so a plant on a gantry, crate stack, vent roof or
+deck lip inside the room is one no Warden can ever kneel at. The plant zone
+becomes *"anywhere in the room a Warden could stand and defuse"* - derived from
+the defuse check rather than authored a second time. Planned in six phases in
+`HANDOFF.md`; until it lands, the rule above is the rule as implemented.

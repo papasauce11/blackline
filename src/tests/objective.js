@@ -17,13 +17,48 @@ import { createIntent } from '../entities/agent.js';
 const R = CONFIG.round;
 
 export function register(debugTools) {
-  /** Put the Shade on a site and hold interact until it plants. */
+  /**
+   * Somewhere in a site's room that is NOT the ring: as far off it as the room
+   * and the furniture allow, up to `want` metres.
+   *
+   * Section 10.1 as amended lets the plant happen anywhere in the room, and
+   * every check here used to plant on the ring's centre pixel. That is the one
+   * spot where "the charge" and "the site" are the same point, so the whole
+   * file would have gone on passing with the charge tracked at the site centre
+   * and the Warden defusing thin air ten metres from the bomb.
+   */
+  const spotOffTheRing = (h, site, want) => {
+    const room = site.room;
+    const margin = CONFIG.shade.radius + 0.5;
+    const half = { x: CONFIG.shade.radius, y: CONFIG.shade.standHeight / 2, z: CONFIG.shade.radius };
+    const centre = { x: site.position.x, y: site.position.y, z: site.position.z };
+    if (!room) return centre;
+
+    const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+    for (let out = want; out >= R.siteRadius + 1; out -= 1) {
+      for (const dir of [{ x: 1, z: 0 }, { x: -1, z: 0 }, { x: 0, z: 1 }, { x: 0, z: -1 }]) {
+        const spot = {
+          x: clamp(centre.x + dir.x * out, room.min.x + margin, room.max.x - margin),
+          y: centre.y,
+          z: clamp(centre.z + dir.z * out, room.min.z + margin, room.max.z - margin),
+        };
+        const away = Math.hypot(spot.x - centre.x, spot.z - centre.z);
+        if (away < R.siteRadius + 1) continue;
+        const feet = { x: spot.x, y: spot.y + half.y + 0.05, z: spot.z };
+        if (h.map.collision.isClear(feet, half)) return spot;
+      }
+    }
+    return centre;
+  };
+
+  /** Put the Shade in a site's room, off the ring, and hold interact. */
   const plantAt = (h, siteId) => {
     const objective = h.objective;
     const dt = CONFIG.time.fixedDt;
     const site = h.map.sites.find((entry) => entry.id === siteId);
+    const spot = spotOffTheRing(h, site, R.siteRadius * 3);
     h.shade.reset(h.map.shadeSpawns[0]);
-    h.shade.position.set(site.position.x, site.position.y + CONFIG.shade.standHeight / 2 + 0.05, site.position.z);
+    h.shade.position.set(spot.x, spot.y + CONFIG.shade.standHeight / 2 + 0.05, spot.z);
     const intent = createIntent();
     intent.interact = true;
     let steps = 0;
@@ -59,9 +94,17 @@ export function register(debugTools) {
       ), h.map.shadeSpawns[0]);
       h.shade.reset(hideout);
 
+      // Measured against where the charge actually IS, which since Section 10.1
+      // was amended is wherever the Shade was standing, not the middle of the
+      // room. A Warden that walks to the ring and kneels there has not found
+      // the bomb.
+      const at = objective.round.chargeAt;
+      const offRing = Math.hypot(at.x - site.position.x, at.z - site.position.z);
+      const distanceTo = (position) => Math.hypot(position.x - at.x, position.z - at.z);
+
       // The Warden starts wherever it was; DEFEND was set by the plant.
       const startedAt = h.warden.position.clone();
-      const startDistance = startedAt.distanceTo(site.position);
+      const startDistance = distanceTo(startedAt);
       if (h.wardenAI.state !== 'defend') {
         problems.push(`the plant left the AI in ${h.wardenAI.state}, want defend`);
       }
@@ -72,11 +115,14 @@ export function register(debugTools) {
       const limit = Math.round((CONFIG.round.detonationTime - 1) / dt);
       while (objective.round.state === ROUND.ACTIVE && steps++ < limit) {
         h.stepFrames(1);
-        closest = Math.min(closest, h.warden.position.distanceTo(site.position));
+        closest = Math.min(closest, distanceTo(h.warden.position));
         if (objective.round.defuseProgress > 0) sawDefuseProgress = true;
       }
       const took = steps * dt;
 
+      if (offRing < R.siteRadius) {
+        problems.push(`the charge went down ${offRing.toFixed(1)}m from the site centre - too close to prove anything`);
+      }
       if (closest > CONFIG.round.siteRadius) {
         problems.push(`the Warden got no closer than ${closest.toFixed(1)}m to the charge (needs ${CONFIG.round.siteRadius}m)`);
       }
@@ -94,7 +140,8 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `planted at A and hid: the Warden pathed ${startDistance.toFixed(1)}m to the charge, `
+          ? `planted at A but ${offRing.toFixed(1)}m off the ring, then hid: the Warden pathed `
+            + `${startDistance.toFixed(1)}m to the charge, `
             + `held an ${CONFIG.round.defuseHoldTime}s defuse and won the round ${took.toFixed(1)}s after the plant, `
             + `with ${(CONFIG.round.detonationTime - took).toFixed(1)}s left on the detonation clock`
           : problems.join('; '),
@@ -391,12 +438,17 @@ export function register(debugTools) {
       h.warden.reset(h.map.wardenSpawns[0]);
 
       plantAt(h, 'A');
-      const site = h.map.sites.find((entry) => entry.id === 'A');
-      // Warden on the charge; the AI must not be able to see the Shade or it
-      // would be shooting instead of kneeling (Section 11 DEFEND).
+      // On the charge, which is wherever the Shade was standing in the room -
+      // not the site centre (Section 10.1, amended).
+      const at = objective.round.chargeAt;
+      const onTheCharge = () => h.warden.position.set(
+        at.x, at.y + CONFIG.warden.standHeight / 2 + 0.05, at.z
+      );
+      // The AI must not be able to see the Shade or it would be shooting
+      // instead of kneeling (Section 11 DEFEND).
       h.wardenAI.sees = false;
-      h.shade.position.set(site.position.x + 40, CONFIG.shade.standHeight / 2 + 0.05, site.position.z);
-      h.warden.position.set(site.position.x, site.position.y + CONFIG.warden.standHeight / 2 + 0.05, site.position.z);
+      h.shade.position.set(at.x + 40, CONFIG.shade.standHeight / 2 + 0.05, at.z);
+      onTheCharge();
 
       // Half a defuse, then walk away.
       for (let i = 0; i < (R.defuseHoldTime / 2) / dt; i++) {
@@ -405,7 +457,7 @@ export function register(debugTools) {
       const partial = objective.round.defuseProgress;
       if (partial <= 0) problems.push('no defuse progress at the charge');
 
-      h.warden.position.set(site.position.x + 20, CONFIG.warden.standHeight / 2 + 0.05, site.position.z);
+      h.warden.position.set(at.x + 20, CONFIG.warden.standHeight / 2 + 0.05, at.z);
       // Retained for 5s (Section 10.1).
       for (let i = 0; i < (R.defuseRetainTime - 0.5) / dt; i++) {
         objective.step(dt, { shade: h.shade, warden: h.warden, intent: null });
@@ -421,7 +473,7 @@ export function register(debugTools) {
       if (decayed >= retained) problems.push('progress did not decay after the retain window');
 
       // Now finish it.
-      h.warden.position.set(site.position.x, site.position.y + CONFIG.warden.standHeight / 2 + 0.05, site.position.z);
+      onTheCharge();
       let steps = 0;
       while (objective.round.state === ROUND.ACTIVE && steps++ < 30 / dt) {
         objective.step(dt, { shade: h.shade, warden: h.warden, intent: null });
