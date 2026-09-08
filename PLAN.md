@@ -43,8 +43,8 @@ Two mechanisms exist, and they differ in one thing that matters:
 |---|---|---|
 | Runs | on this PC, inside the desktop app, **only while the app is open** (a missed run fires on next launch) | on Anthropic's machines, unattended, from a clone of a GitHub remote |
 | Sees | this working tree, the Browser pane, everything this session had | a fresh clone; no pane; only what the runner script can prove |
-| Needs | nothing new | a GitHub remote, and the headless runner proven |
-| Verification | the same `h.renderFrame` + pixel-readback path the last fifty phases used | headless Chromium with software WebGL |
+| Needs | the headless runner (built 2026-09-08) | a GitHub remote |
+| Verification | `npm run suite`: the Chrome on this PC, headless, software WebGL, driven from the Bash tool. The pane refuses to start a server in an unattended run, so the runner is the path either way | the same runner |
 
 **Recommendation: start local.** It needs no new infrastructure and verifies
 the way the project already verifies. The cost is that Josh must leave the app
@@ -61,7 +61,7 @@ what makes it possible. (Decided: D1 in `DECISIONS.md`.)
 | P1 | **The dirty tree verified and committed** | me | everything. Phases 8–11 and the plant-room change are done but uncommitted; a routine must start from a clean, known base |
 | P2 | **`QUEUE.md` and `DECISIONS.md` written**, seeded from this plan | me | everything |
 | P3 | **The routine prompts written**, installed disabled, then one run watched by Josh before enabling | me → Josh | the routines |
-| P4 | **A headless suite runner** — `npm run suite`, Playwright + headless Chromium | me | the cloud option only, and a faster gate for the local one. Software WebGL is slow and a few checks are environment-sensitive (frame budget, audio); the runner carries a list of checks *skipped headless* with the reason |
+| P4 | **A headless suite runner** — `npm run suite` | me | **done 2026-09-08**, and it turned out to gate the local option too: the first scheduled run found the pane cannot start a server unattended. `scripts/suite-skips.json` carries the one check skipped headless (frame budget) with its reason |
 | P5 | **A GitHub remote** | Josh creates; me pushes | the cloud option only — but worth doing regardless, as the only off-machine copy of the work |
 
 ---

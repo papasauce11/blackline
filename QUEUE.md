@@ -201,3 +201,7 @@ budget checks are the ceiling.
 
 - **P1** Verify and commit redesign phases 8–11 and the plant-room change —
   `5c6d571`, 2026-09-08.
+- **P2** The headless runner — `scripts/suite.mjs`, `npm run suite`, one
+  skip (frame budget) with its reason — 2026-09-08, the commit that adds
+  `scripts/`. First scheduled run had stopped at the gate: the pane cannot
+  start a server unattended.

@@ -1,0 +1,15 @@
+{
+  "name": "blackline",
+  "version": "1.0.0",
+  "description": "Blackline - an original asymmetric stealth game. No build step; npm run suite is the headless AUTO suite.",
+  "scripts": {
+    "suite": "node scripts/suite.mjs"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "module",
+  "private": "true",
+  "devDependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}

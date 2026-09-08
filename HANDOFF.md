@@ -12,31 +12,6 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 
 ---
 
-## RUN BLOCKED — the Browser pane cannot start the dev server (2026-09-08, 17:00 run)
-
-**No job was done this run.** The GATE step could not run, so nothing was built.
-
-`preview_start` with name `blackline` fails from a scheduled task with:
-
-> Dev servers can't be started from unattended sessions (scheduled-task runs and
-> remote-dispatched trees) — nobody is present to approve the command.
-
-Three attempts, with a direct `navigate` to `http://localhost:5173/` in between
-in case a server was already up; that was denied too (`navOk: false`). So there
-is no server, and this session may not start one.
-
-**This blocks every future `blackline-build` run**, not just this one. The
-protocol verifies by driving `renderFrame` and reading pixels back in the
-Browser pane; without a server there is no page, no `window.BLACKLINE`, and no
-gate. The tree is clean and unchanged at `327c7d6`.
-
-Josh's options are written up as **D14** in `DECISIONS.md`. The shortest one to
-try: leave `npx serve -l 5173 .` running in a terminal before a run, so the
-routine only has to `navigate` to a port that is already serving rather than
-spawn anything. That is unverified — this session could not test it, because it
-could not start a server to attach to either.
-
----
 
 
 ## Where things stand
@@ -45,9 +20,9 @@ could not start a server to attach to either.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean at `327c7d6`; this run changed only HANDOFF/DECISIONS |
-| AUTO suite | **not run** — no dev server, see RUN BLOCKED above. Last known: 102 passed, 1 failed (deliberate) |
-| Next job | **unblock the gate (D14)** first. Then the first `[ ]` in `QUEUE.md` — A1 |
+| Working tree | clean |
+| AUTO suite | headless, `npm run suite`: **101 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it). In a real browser: 102 / 1 |
+| Next job | the first `[ ]` in `QUEUE.md` — A1, the Warden's reachable ground |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable |
 
@@ -213,6 +188,26 @@ worth building it as map data rather than as an objective-system private.
 
 ## Running it
 
+The suite, headless. This is what the routine runs, and what any session runs
+before and after a job:
+
+```bash
+npm run suite
+```
+
+`scripts/suite.mjs` serves the repo in-process, drives the Chrome already on
+this PC headless with software WebGL, warms 60 frames, runs the AUTO suite
+twice and prints a JSON report. Exit 0 means nothing is red outside QUEUE.md's
+Deliberately-red list and the two runs agree. `--runs 1` is a one-minute gate;
+`--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
+the match. `scripts/suite-skips.json` lists checks that cannot pass headless,
+with reasons (today: the frame-budget check; SwiftShader draws a frame in
+~400ms). They are reported, never counted. Needs `npm install` once:
+`playwright-core` only, no browser download.
+
+In a real browser, for what headless cannot prove (the frame budget on a GPU,
+how it looks, how it sounds):
+
 ```bash
 npx serve -l 5173 .
 ```
@@ -231,6 +226,10 @@ answer, not a pass.
 ---
 
 ## Environment traps — these will cost you an hour each
+
+**A scheduled run cannot use the Browser pane at all.** It refuses to start a
+dev server from an unattended session, by rule. `npm run suite` is the only
+gate a routine has; the pane is for humans.
 
 **The browser pane never composites.** `document.hidden` is always true,
 `requestAnimationFrame` never fires, screenshots time out. So:

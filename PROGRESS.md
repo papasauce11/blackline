@@ -3097,3 +3097,45 @@ Then block B, which is not finished: hang as a held option and the
 bump-plus-scuff are still to do, and neither has a check. Then block C, which
 now has an honest queue - the twelve, and the deck-lip overhang the route test
 walked into.
+
+
+## The gate, headless (2026-09-08)
+
+The routine's first scheduled run, 17:00, stopped where the plan said it would
+stop if the base were broken, except the base was fine: the Browser pane
+refuses to start a dev server from an unattended session, by rule. No pane,
+no page, no `window.BLACKLINE`, no gate. It wrote D14 and left the tree clean
+(`b340bf4`), which is the protocol working. The verification path was the
+thing that did not exist.
+
+**Built:** `scripts/suite.mjs`, `npm run suite`. An in-process static server
+for the repo; `playwright-core` driving the Chrome already on this PC,
+headless, with `--use-angle=swiftshader`; wait for the harness; warm 60
+frames; `runAutoTests()` N times (default 2); one JSON report. Exit 0 only if
+nothing is red outside QUEUE.md's Deliberately-red list (parsed from the
+bullet list there, one source of truth) and every run agrees.
+`scripts/suite-skips.json` lists checks that cannot pass headless, with a
+reason each; they are reported with their outcome, never counted.
+
+**Verified:** first run, 101 passed / 2 failed, twice, identical. The two
+failures: the census (expected) and
+`the-frame-budget-holds-everywhere-not-just-at-site-a` (415.80ms at
+`stair-hall-foot` against 8.33ms; SwiftShader). The second is the one skip.
+With the skip in place, `--runs 1` exits 0. Renderer string confirms
+software: `ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)))`.
+Every pixel-readback check passed headless, which is the thing that had to be
+true for any of this to work.
+
+**Found, open:** the second of two runs takes four times the first (238s
+against 60s) with identical results. Not a correctness problem; worth
+knowing before anyone reads the `ms` field as a benchmark. The four console
+errors per run were all `favicon.ico` 404s; the runner's server now answers
+that with 204, so `consoleErrors` is a real signal.
+
+**Changed:** both routine prompts gate on `npm run suite -- --runs 1` and
+verify on `npm run suite`, and are told not to touch the pane. The build
+task was paused while this was built and is enabled again. No Chromium
+download was needed (D15). No permission allowlist was written: the
+session's own guardrails refused to let Claude write one, which is the
+right answer, and it would not have helped, since the refusal is the tool's
+rule rather than a permission.

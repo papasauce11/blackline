@@ -125,4 +125,20 @@ one terminal window and unblocks tonight's 02:00 run if it works; queue the
 headless runner regardless, because it is the only option that does not depend
 on the desktop app's permission model staying the way it is. If Josh picks 3,
 the first job of the next working session is P4 and the queue waits behind it.
-**decided:**
+**decided:** option 3, building now (2026-09-08, the session that set the
+routine up). Options 1 and 2 cannot work: the refusal is a rule of the Browser
+pane tool itself ("Dev servers can't be started from unattended sessions"), not
+a permission that an allowlist or a standing server would satisfy; and the
+session's own guardrails will not let a permission allowlist be written by
+Claude in any case. The headless runner removes the pane from the protocol.
+The build task is paused until it exists.
+
+### D15 - Install Playwright and a headless Chromium for the runner
+`npm i -D playwright` plus `npx playwright install chromium` downloads a
+Chromium build (roughly 170 MB) from Playwright's CDN into
+`%LOCALAPPDATA%\ms-playwright`. Josh must say yes to the download.
+Alternative: point Playwright at an installed Chrome or Edge instead of
+downloading, if one is present (checked in the same session).
+**decided:** no download was needed. Chrome and Edge are both installed;
+`playwright-core` (npm, a few MB, no bundled browser) drives the installed
+Chrome with `channel: 'chrome'`. Decided by the session, 2026-09-08.
