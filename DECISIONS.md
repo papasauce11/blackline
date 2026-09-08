@@ -93,3 +93,36 @@ B5 may want to move a site or a spawn, or merge two rooms, to make a stacked
 route work. The routine will not do that on its own. If it hits the case it
 writes the specific proposal here as D13a, D13b… and picks another job.
 **decided:**
+
+### D14 — The routine cannot start a dev server, so it cannot verify anything
+The 17:00 run of 2026-09-08 could not run its GATE. `preview_start` is refused
+in an unattended session ("nobody is present to approve the command"), and a
+direct `navigate` to `http://localhost:5173/` was denied because nothing was
+serving. D1 chose "local, Josh leaves the app open"; leaving the app open turns
+out not to be enough — a scheduled task may not spawn a process.
+
+Nothing in the queue can proceed until one of these is true. Options:
+
+1. **Leave a server running.** Josh runs `npx serve -l 5173 .` in a terminal and
+   leaves it up. The routine then only navigates to an already-serving port.
+   Cheapest, but unverified — this session could not test whether `navigate`
+   to a live localhost port is allowed from an unattended run, and the refusal
+   message above suggests the restriction may be on the pane, not the spawn.
+2. **Serve as a Windows service / scheduled startup task**, outside Claude, so
+   the port is always up. Same as 1 but survives reboots and does not depend on
+   Josh remembering.
+3. **Build the headless runner (P4 in `PLAN.md`)** — `npm run suite` over
+   Playwright + headless Chromium with software WebGL, driven by the Bash tool
+   instead of the pane. This is the durable answer: it removes the pane from the
+   protocol entirely and is also the prerequisite for the cloud routine (D1's
+   alternative). Cost: one to two sessions, and a documented list of checks
+   skipped headless (frame budget, audio) with reasons. Pixel readback should
+   survive; the frame-budget checks will not.
+4. **Give up on unattended runs** and do the work in human sessions only.
+
+Recommendation: **1 now, 3 soon.** Try the standing server first because it costs
+one terminal window and unblocks tonight's 02:00 run if it works; queue the
+headless runner regardless, because it is the only option that does not depend
+on the desktop app's permission model staying the way it is. If Josh picks 3,
+the first job of the next working session is P4 and the queue waits behind it.
+**decided:**

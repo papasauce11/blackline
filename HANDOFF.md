@@ -12,15 +12,42 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 
 ---
 
+## RUN BLOCKED — the Browser pane cannot start the dev server (2026-09-08, 17:00 run)
+
+**No job was done this run.** The GATE step could not run, so nothing was built.
+
+`preview_start` with name `blackline` fails from a scheduled task with:
+
+> Dev servers can't be started from unattended sessions (scheduled-task runs and
+> remote-dispatched trees) — nobody is present to approve the command.
+
+Three attempts, with a direct `navigate` to `http://localhost:5173/` in between
+in case a server was already up; that was denied too (`navOk: false`). So there
+is no server, and this session may not start one.
+
+**This blocks every future `blackline-build` run**, not just this one. The
+protocol verifies by driving `renderFrame` and reading pixels back in the
+Browser pane; without a server there is no page, no `window.BLACKLINE`, and no
+gate. The tree is clean and unchanged at `327c7d6`.
+
+Josh's options are written up as **D14** in `DECISIONS.md`. The shortest one to
+try: leave `npx serve -l 5173 .` running in a terminal before a run, so the
+routine only has to `navigate` to a port that is already serving rather than
+spawn anything. That is unverified — this session could not test it, because it
+could not start a server to attach to either.
+
+---
+
+
 ## Where things stand
 
 | | |
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean — phases 8–11 and the plant change committed in `5c6d571` |
-| AUTO suite | **102 passed, 1 failed** — the failure is deliberate, see below |
-| Next job | the first `[ ]` in `QUEUE.md` — Block A, the plant must be defusable |
+| Working tree | clean at `327c7d6`; this run changed only HANDOFF/DECISIONS |
+| AUTO suite | **not run** — no dev server, see RUN BLOCKED above. Last known: 102 passed, 1 failed (deliberate) |
+| Next job | **unblock the gate (D14)** first. Then the first `[ ]` in `QUEUE.md` — A1 |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable |
 
