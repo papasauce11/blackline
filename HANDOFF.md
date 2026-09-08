@@ -1,8 +1,14 @@
 # Blackline — handoff
 
-**Read this first, then `BLACKLINE_SPEC.md`.** `PROGRESS.md` is the full
-append-only history (2,800 lines); read only the sections you need — the last
-entry, "THE ENDGAME REDESIGN", is the live one.
+**Read this first.** Then `QUEUE.md` (the work), `DECISIONS.md` (what waits
+on Josh, and what he has decided), `PLAN.md` (the protocol a session follows).
+`BLACKLINE_SPEC.md` is the contract; `PROGRESS.md` is the full append-only
+history (3,000 lines) — read only the last entry.
+
+**The project now runs itself.** Two scheduled tasks — `blackline-build` at
+17:00 and 02:00, `blackline-audit` weekly — do one queue job per run under the
+protocol in `PLAN.md`. A human session is welcome to do the same: take the
+first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 
 ---
 
@@ -10,10 +16,11 @@ entry, "THE ENDGAME REDESIGN", is the live one.
 
 | | |
 |---|---|
-| Branch | `phases-14-45` — **3 commits ahead of `main`, not merged** |
+| Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | **dirty** — phases 8–11 and the plant change, verified but not committed |
+| Working tree | clean — phases 8–11 and the plant change committed in `5c6d571` |
 | AUTO suite | **102 passed, 1 failed** — the failure is deliberate, see below |
+| Next job | the first `[ ]` in `QUEUE.md` — Block A, the plant must be defusable |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable |
 
@@ -60,8 +67,8 @@ by interview and is binding:
 | 47–50 | **Close** — amend the spec, re-sweep, Warden sanity, done-definition | pending |
 
 Outside that numbering, and **first** because it is a directive rather than a
-plan item: **the plant must be defusable**, six phases, laid out below.
-Josh: planned this session, to be built next.
+plan item: **the plant must be defusable** — Block A in `QUEUE.md`, reasoning
+below. Phases 12–50 are Block B there.
 
 ---
 
@@ -117,13 +124,15 @@ settled.
 
 ---
 
-## NEXT SESSION — the plant must be defusable
+## The plant must be defusable — Block A
 
 Josh, straight after the room change:
 
 > *"actually should only be plantable where the ward is able to defuse."*
 
-**Planned, not started. Nothing below is built.**
+**Planned, not started.** The jobs are A1–A6 in `QUEUE.md`; this section is
+the reasoning behind them. The two questions at the end are **decided** — D5
+and D6 in `DECISIONS.md`.
 
 ### Why the room rule alone is wrong
 
@@ -159,13 +168,14 @@ Warden cannot follow the Shade onto.
 | 5 | **The check, census-shaped.** For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
 | 6 | **Re-examine `dy < 2.5`** in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
 
-### Questions to settle first
+### Decided
 
-- **Beside, or on?** Does "able to defuse" mean the Warden can stand *at* the
-  charge, or is standing beside a 2m crate with the charge on top enough? Phase
-  6 is the same question from the other end; answering it once decides both.
-- **What does refusal look like?** The tell in phase 4 is the first piece of
-  player-facing feedback the redesign has added rather than removed.
+- **Beside, or on?** Josh: *"warden must always be able to defuse."* Read as
+  on **or** beside — legal exactly where the real defuse check would succeed
+  for a Warden on reachable ground. D5 records the interpretation and the
+  one-line override if he meant "on only".
+- **What does refusal look like?** A HUD line, **"cannot plant here"**. No
+  sound, no noise event. D6.
 
 ### Side benefit worth taking
 
@@ -261,6 +271,8 @@ sitting at. Drive `input.heldCodes` / `input.pressedCodes` — see
 ---
 
 ## Still needs a human
+
+These are D8 and the Provisional section of `DECISIONS.md`; Josh answers there.
 
 - Whether the **site ring** still reads correctly now that the plant is the
   whole room. Nobody has looked at it since the meaning changed.
