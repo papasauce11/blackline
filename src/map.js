@@ -662,6 +662,7 @@ export function buildMap({ gradientMap }) {
   map.collision.build();
   map.deriveClimbableSurfaces();
   map.deriveRoomEntries();
+  map.deriveWardenGround();
   validateMap(map);
 
   return map;

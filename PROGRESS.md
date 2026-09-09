@@ -3139,3 +3139,90 @@ download was needed (D15). No permission allowlist was written: the
 session's own guardrails refused to let Claude write one, which is the
 right answer, and it would not have helped, since the refusal is the tool's
 rule rather than a permission.
+
+
+## A1 — where the Warden can stand (2026-09-09)
+
+The first job of Block A, and the one the other five lean on. The directive is
+*"should only be plantable where the ward is able to defuse"*, and answering it
+needs a thing the codebase did not have: a statement of where a Warden can be.
+The asymmetry the whole redesign rests on — the Shade climbs, the Warden does
+not — was true only because no controller had ever implemented a climb for it.
+That is a fact about the code, not a property of the map.
+
+**Built:** `src/mapground.js`. `deriveWardenGround(collision, spawns)` floods a
+0.5m column grid over the site footprint outward from the Warden spawns and
+returns a `WardenGround`. Each column holds every floor height in it the Warden
+can walk to, lowest first, so a cell under the upper deck carries both the deck
+and the floor six metres below it. An edge between two cells exists when the
+floors are within `warden.stepHeight` of each other **and** the standing capsule
+fits in the gap between them — the two halves of what the swept solver's
+`_tryStep()` does, asked once at build instead of every frame. Called from
+`buildMap()` beside `deriveClimbableSurfaces()` and `deriveRoomEntries()`;
+reachable as `map.wardenGround`.
+
+It is map data, not an objective-system private, because three systems already
+guess at the same question: whether a waypoint is standable, whether a DEFEND
+path can complete, whether a patrol route is walkable end to end.
+
+`WardenGround` exposes `has(position, tolerance)`, `floorsAt(x, z)`,
+`cellsWithin(position, radius)` and `forEach(fn)`. `cellsWithin` is the one A2
+wants: it returns foot positions and leaves the vertical test to the caller,
+because what counts as close enough differs between a defuse reach and a patrol.
+
+A new module rather than more of `mapkit.js`, which is already past the ~600-line
+guidance and already split twice (`mapbake.js`, `maprooms.js`). `mapkit.js` gains
+a four-line delegating method, in the shape `deriveRoomEntries()` set.
+
+**Decided, provisionally (D16):** the step limit is symmetric, so the set is
+ground the Warden can walk to *and walk back from*. A one-way drop off the deck
+is not in it. The set exists to answer "could a Warden defuse here", and a
+Warden that falls somewhere it cannot leave has not defended the site — it has
+removed itself from the round. The conservative direction can only ever make
+fewer plants legal, which is the safe side of D5.
+
+**Verified:** two new AUTO checks in `src/tests/map.js`.
+
+`the-warden-can-walk-to-every-spawn-waypoint-and-site` — 25,177 standable cells
+in 18,550 columns (6,627 carrying two or more floors), and all 4 Warden spawns,
+all 20 patrol waypoints and all 3 site centres are on it. 18,550 of 20,800
+columns means the Warden can walk out onto the apron as well as round both
+floors, which is right: the shell has doors.
+
+`the-warden-never-climbs-to-reach-its-ground` — no cell sits inside any of the 5
+vent runs (the standing capsule does not fit in a crouch-only duct, and this
+asserts it against the vent volumes rather than trusting it). Of 65 climbable
+surfaces, 17 are reached, every one of them at y=6.00: the deck lips, flush with
+the deck the Warden already patrols. None was climbed onto.
+
+Suite: **103 passed, 2 failed**, twice, identical. Same two as before — the
+census (deliberately red) and the frame-budget check (skipped headless).
+`consoleErrors` 0.
+
+**Found:** the second check was wrong twice before it was right, both times by
+reading the derivation's own constants back at it.
+
+First version asked whether a climbable top had walkable ground beside it
+"within `warden.stepHeight`". A check that reads the constant the derivation
+read can only agree with it: raising the Warden's step to 2.00m left the check
+green while the fill happily walked up crate stacks. Now it asks whether the
+ground beside is *level* with the top — a fact about the geometry.
+
+Second version called a cell "beside" the surface when its centre was past the
+footprint edge. But `standableFloors()` matches the swept solver, which rests a
+body on any top face its footprint overlaps — so a cell 0.25m past a crate's
+edge is standing *on the crate*, and counted as proof the crate was walkable.
+Every climbed surface vouched for itself. "Beside" now means the body is clear
+of the surface altogether, by a full `warden.radius`.
+
+The teeth test that settles it: with `warden.stepHeight` temporarily at 2.00m,
+the check names what the Warden got onto — `vent-low-north-roof`,
+`vent-grade-west-roof`, four `office-cover` slabs, the crate stacks. At 0.35m it
+is green. Reverted.
+
+**Left:** A2 is next and wants nothing that is not here. Two things worth
+knowing: the fill reaches the apron, so `cellsWithin` near the shell will return
+cells outside the building; and `forEach`/`columns` are the only way to enumerate
+the set, which is fine at 25k cells but is not an index — if A5's census needs
+"the nearest reachable cell to an arbitrary point" it should add one rather than
+scan.

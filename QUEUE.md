@@ -29,13 +29,6 @@ The GATE step ignores these. Nothing else may be red.
 Directive, not plan. Decided: D5 (on or beside), D6 (refusal is a HUD line).
 Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 
-- [ ] **A1 (M)** Derive the Warden's reachable ground. Flood fill from the
-  Warden spawns over a 0.5m grid, each cell holding its floor height; step up
-  at most `warden.stepHeight`; standing capsule must fit; **no climbing**.
-  Built once at map build beside `deriveClimbableSurfaces()`, stored as map
-  data (other systems will want it). *done-when:* `map.wardenGround` exists;
-  a check asserts every Warden spawn, every patrol waypoint and every site
-  centre is on it, and no climbable-surface top or vent interior is.
 - [ ] **A2 (S)** `canDefuseAt(position)` — true iff some reachable cell is
   within the defuse radius and vertical tolerance of the point, reading the
   same constants the defuse itself reads, from one place. *done-when:* the
@@ -58,6 +51,12 @@ Full reasoning in `HANDOFF.md` under "the plant must be defusable".
   D5, and make it a named constant with the decision as its comment.
   *done-when:* the constant exists, is referenced from both sides, and the
   spec Section 20 records the rule.
+- [ ] **A7 (S)** Draw the Warden's reachable ground. 25,177 cells exist and
+  nobody can look at them; a wrong one is invisible until a plant is refused in
+  play for no apparent reason. An F3/F4 overlay: the set as flat quads at their
+  floor height, the current role's cell highlighted. *done-when:* a pixel check
+  reads the overlay on and off at one viewpoint and measures a difference, and
+  a check asserts it is off by default.
 
 ## Block B — the traversal redesign, phases 12–50
 
@@ -101,7 +100,8 @@ there. The census is the contract; **never weaken it**.
   no-stuck check pass; timing constants named in `config.js`.
 - [ ] **B9 (S)** Close. Amend spec Sections 5 and 6.1 via Section 20, re-sweep
   the regression set, Warden sanity (still grounded — a check asserts the
-  Warden never leaves `wardenGround`), done-definition check updated.
+  Warden never leaves `map.wardenGround`, which A1 built; drive it with the AI
+  over a soak, do not re-derive it), done-definition check updated.
   *done-when:* `donedef` passes; README climbing section matches.
 
 ## Block C — playable and testable
@@ -205,3 +205,5 @@ budget checks are the ceiling.
   skip (frame budget) with its reason — 2026-09-08, the commit that adds
   `scripts/`. First scheduled run had stopped at the gate: the pane cannot
   start a server unattended.
+- **A1** Where the Warden can stand — `src/mapground.js`,
+  `map.wardenGround`, two checks — HASH, 2026-09-09.

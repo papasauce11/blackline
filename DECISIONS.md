@@ -77,6 +77,27 @@ the rule keeps it out without an exception. Reason: Josh wants the gaps hard
 to close for the Warden; a Shade on the walkway closes them for free.
 **decided:**
 
+### D16 — Does a one-way drop count as ground the Warden can reach?
+A1 floods the Warden's reachable ground from its spawns. Stepping *up* is capped
+at `warden.stepHeight` by the directive; stepping *down* was not specified, and
+the two readings differ. Unlimited drops would add everywhere the Warden can
+fall to — under a deck edge, into a pit, onto a crate below a gantry — and so
+make a plant legal there. The symmetric limit adds only ground it can walk to
+and walk back from.
+
+Taken: **symmetric.** A one-way drop is not reachable ground. Reason: the set
+exists to answer "could a Warden defuse here", and a Warden that falls somewhere
+it cannot leave has not defended the site, it has removed itself from the round.
+The AI paths over waypoints and never deliberately drops off a ledge, so a plant
+legal only by a fall would strand it in DEFEND exactly the way the room rule
+already does — the bug Block A exists to fix. It is also the conservative
+direction: it can only ever make fewer plants legal, which is the safe side of
+D5's "the Warden must always be able to defuse".
+
+To override, change the line below to "drops allowed" and A1's step test in
+`src/mapground.js` becomes one-sided (`ny - y <= step`, no floor on the drop).
+**decided:**
+
 ---
 
 ## Blocking — waiting on Josh

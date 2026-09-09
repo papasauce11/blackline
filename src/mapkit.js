@@ -28,6 +28,7 @@ import {
   collectCuts, containsPoint, bake, mergeGeometries,
 } from './mapbake.js';
 import { deriveRoomEntries } from './maprooms.js';
+import { deriveWardenGround } from './mapground.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
@@ -65,6 +66,11 @@ export class GameMap {
     this.deckVoids = [];
     /** The building shell's outer footprint, used to place the Shade outside. */
     this.shell = null;
+    /**
+     * Where the Warden can stand, derived at build. See mapground.js.
+     * @type {import('./mapground.js').WardenGround|null}
+     */
+    this.wardenGround = null;
 
     this.keyLight = null;
     this._siteTime = 0;
@@ -560,6 +566,16 @@ export class GameMap {
    */
   deriveRoomEntries() {
     deriveRoomEntries(this.collision, this.rooms);
+  }
+
+  /**
+   * Flood the Warden's reachable ground from its spawns. Map data, not an
+   * objective-system private: whether a waypoint is standable, whether a
+   * DEFEND path can complete and where a plant may legally go are all the same
+   * question, and three systems were each guessing at it. See mapground.js.
+   */
+  deriveWardenGround() {
+    this.wardenGround = deriveWardenGround(this.collision, this.wardenSpawns);
   }
 
   // -------------------------------------------------------------------------

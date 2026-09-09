@@ -298,4 +298,136 @@ export function register(debugTools) {
       };
     },
   });
+
+  debugTools.registerAutoTest({
+    id: 'the-warden-can-walk-to-every-spawn-waypoint-and-site',
+    spec: 'Section 6.2 / Block A phase 1',
+    name: "The Warden's reachable ground covers every spawn, waypoint and site",
+    run: (h) => {
+      const ground = h.map.wardenGround;
+      if (!ground) return { pass: false, detail: 'map.wardenGround was never derived' };
+      const problems = [];
+
+      const onIt = (label, position) => {
+        if (ground.has(position)) return;
+        const floors = ground.floorsAt(position.x, position.z);
+        problems.push(
+          `${label} at y=${position.y.toFixed(2)} is not on it (column holds ${floors.length ? floors.map((y) => y.toFixed(2)).join('/') : 'nothing'})`
+        );
+      };
+
+      for (let i = 0; i < h.map.wardenSpawns.length; i++) {
+        onIt(`warden spawn ${i} (${h.map.wardenSpawns[i].name})`, h.map.wardenSpawns[i].position);
+      }
+      // Every patrol waypoint, or the AI walks a route through thin air - and
+      // A*'s own checks would never notice, because the graph is authored.
+      for (const node of h.map.waypoints) {
+        if (node) onIt(`waypoint ${node.id} (${node.tag})`, node.position);
+      }
+      // Every site centre, or the round cannot be defended at all.
+      for (const site of h.map.sites) onIt(`site ${site.id} (${site.name})`, site.position);
+
+      let columns = 0;
+      let multi = 0;
+      ground.columns.forEach((floors) => {
+        columns++;
+        if (floors.length > 1) multi++;
+      });
+
+      return {
+        pass: problems.length === 0,
+        detail:
+          problems.length === 0
+            ? `${ground.count} standable cells in ${columns} columns (${multi} carrying two or more floors) on a ${ground.cell}m grid; all ${h.map.wardenSpawns.length} spawns, ${h.map.waypoints.length} waypoints and ${h.map.sites.length} site centres are on it`
+            : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'the-warden-never-climbs-to-reach-its-ground',
+    spec: 'Section 6.2 / Block A phase 1',
+    name: 'Nothing the Warden can stand on was climbed, crawled or vaulted onto',
+    run: (h) => {
+      const ground = h.map.wardenGround;
+      if (!ground) return { pass: false, detail: 'map.wardenGround was never derived' };
+      // Deliberately NOT warden.stepHeight. A check that reads the same
+      // constant the derivation read can only ever agree with it; "level with"
+      // is a fact about the geometry, so raising the step limit breaks this
+      // check instead of moving it.
+      const flush = 0.06;
+      const radius = CONFIG.warden.radius;
+      const problems = [];
+
+      // A vent is crouch-only and the Warden cannot crouch (Section 6.2), so no
+      // cell may sit on a duct floor. Checked against the vent volumes rather
+      // than trusting that the standing capsule happened not to fit.
+      let inVents = 0;
+      for (const vent of h.map.vents) {
+        const cells = ground.cellsWithin(
+          { x: (vent.min.x + vent.max.x) / 2, z: (vent.min.z + vent.max.z) / 2 },
+          Math.max(vent.max.x - vent.min.x, vent.max.z - vent.min.z)
+        );
+        for (const cell of cells) {
+          if (cell.x < vent.min.x || cell.x > vent.max.x) continue;
+          if (cell.z < vent.min.z || cell.z > vent.max.z) continue;
+          if (cell.y < vent.min.y - flush || cell.y >= vent.max.y - flush) continue;
+          inVents++;
+          if (inVents <= 3) problems.push(`a cell stands inside vent ${vent.tag} at y=${cell.y.toFixed(2)}`);
+        }
+      }
+      if (inVents > 3) problems.push(`...and ${inVents - 3} more cells inside vents`);
+
+      // A climbable surface top may be on the ground set, but only where the
+      // Warden walked onto it - the deck lips are flush with the deck it
+      // already patrols. What it may never be is an island: a top the set
+      // reaches with nothing beside it at that height is a surface something
+      // climbed, which is the one thing this derivation must not do.
+      let shared = 0;
+      const sharedAt = [];
+      const islands = [];
+      for (const ledge of h.map.ledges) {
+        const box = ledge.box;
+        const top = ledge.topY;
+        const halfDiag = Math.hypot(box.max.x - box.min.x, box.max.z - box.min.z) / 2;
+        const cells = ground.cellsWithin(
+          { x: (box.min.x + box.max.x) / 2, z: (box.min.z + box.max.z) / 2 },
+          halfDiag + radius + ground.cell * 2
+        );
+        let onTop = false;
+        let beside = false;
+        for (const cell of cells) {
+          if (Math.abs(cell.y - top) > flush) continue;
+          // "Beside" has to mean the body is clear of the surface altogether,
+          // not that the cell centre is past its edge. A footprint overlapping
+          // the top face by a finger is resting on it, exactly as the swept
+          // solver would have it - so counting that as "beside" would let
+          // every climbed surface vouch for itself.
+          const touching =
+            cell.x > box.min.x - radius && cell.x < box.max.x + radius &&
+            cell.z > box.min.z - radius && cell.z < box.max.z + radius;
+          if (touching) onTop = true;
+          else beside = true;
+        }
+        if (!onTop) continue;
+        if (beside) {
+          shared++;
+          if (sharedAt.indexOf(top.toFixed(2)) === -1) sharedAt.push(top.toFixed(2));
+        } else {
+          islands.push(`${box.tag || 'untagged'} at y=${top.toFixed(2)} (rise ${ledge.rise.toFixed(2)}m)`);
+        }
+      }
+      if (islands.length) {
+        problems.push(`climbable tops reached with nothing walkable beside them: ${islands.join(', ')}`);
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail:
+          problems.length === 0
+            ? `no cell inside any of ${h.map.vents.length} vent runs; of ${h.map.ledges.length} climbable surfaces, ${shared} are flush with ground the Warden already walks (at y=${sharedAt.sort().join(', ')}) and 0 were climbed onto`
+            : problems.join('; '),
+      };
+    },
+  });
 }

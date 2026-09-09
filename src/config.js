@@ -901,6 +901,15 @@ export const CONFIG = {
      */
     roomVerticalSample: 0.3,
 
+    /**
+     * Grid spacing for the Warden's reachable ground (`mapground.js`). Half a
+     * metre: a third of the narrowest doorway, so a corridor is always several
+     * cells across, and coarse enough that probing a column is cheap. Finer
+     * buys nothing - the body it carries is 0.84m wide, so the grid is already
+     * the more precise of the two.
+     */
+    wardenGroundCell: 0.5,
+
     /** Section 4.1: contact darkness faked with baked vertex tint. */
     vertexTintStrength: 0.45,
     vertexTintHeight: 1.2,

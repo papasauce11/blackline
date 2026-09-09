@@ -21,10 +21,10 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **101 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it). In a real browser: 102 / 1 |
-| Next job | the first `[ ]` in `QUEUE.md` — A1, the Warden's reachable ground |
+| AUTO suite | headless, `npm run suite`: **103 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it). In a real browser: 104 / 1 |
+| Next job | the first `[ ]` in `QUEUE.md` — A2, `canDefuseAt(position)` |
 | Runtime assertions | 8, zero failures |
-| Map | 214 collision boxes, 65 climbable |
+| Map | 214 collision boxes, 65 climbable, 25,177 cells of Warden ground |
 
 Phases 1–49 of the original build are done and committed. A **redesign** is now
 in progress, 11 phases in, and one directive arrived outside it (the plant, below).
@@ -61,7 +61,7 @@ by interview and is binding:
 | Phases | Block | Status |
 |---|---|---|
 | 1–7 | **Strip and measure** | ✅ done, committed |
-| 8–11 | **Reach-based traversal** — jump-extended reach, ground climbs, approach tolerance, input buffering | ✅ done, **uncommitted** |
+| 8–11 | **Reach-based traversal** — jump-extended reach, ground climbs, approach tolerance, input buffering | ✅ done, committed `5c6d571` |
 | 12–18 | **Hang as a held option, and the bump-and-scuff** | pending |
 | 19–34 | **Area rebuild, lockstep** — geometry + controller together, worst area first | pending |
 | 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | pending |
@@ -132,9 +132,9 @@ Josh, straight after the room change:
 
 > *"actually should only be plantable where the ward is able to defuse."*
 
-**Planned, not started.** The jobs are A1–A6 in `QUEUE.md`; this section is
-the reasoning behind them. The two questions at the end are **decided** — D5
-and D6 in `DECISIONS.md`.
+**Phase 1 is built** (A1, `src/mapground.js`); A2–A7 remain in `QUEUE.md`,
+and this section is the reasoning behind them. The two questions at the end are
+**decided** — D5 and D6 in `DECISIONS.md`; the one A1 raised is D16.
 
 ### Why the room rule alone is wrong
 
@@ -163,10 +163,10 @@ Warden cannot follow the Shade onto.
 
 | # | Work |
 |---|---|
-| 1 | **Derive the Warden's reachable ground.** Flood fill from the Warden spawns over a grid (0.5m is probably right), each cell holding the floor height under it. Step up at most `warden.stepHeight`, capsule must fit standing, no climbing — the Warden has no climb path and must not gain one here. Built once at map build, beside `deriveClimbableSurfaces()`. Nothing in the codebase currently *states* "the Warden stays grounded"; this would be it |
-| 2 | **`canDefuseAt(position)`** — true iff some reachable cell is inside the defuse radius and vertical tolerance of that point. Reads the same constants the defuse reads, from one place |
+| 1 | ✅ **done** — `src/mapground.js`, `map.wardenGround`. 0.5m column grid, flooded from the Warden spawns; 25,177 standable cells in 18,550 columns, 6,627 of them carrying two floors. The step limit is symmetric, so a one-way drop is not in it (D16). This is the file that *states* "the Warden stays grounded" |
+| 2 | **`canDefuseAt(position)`** — true iff some reachable cell is inside the defuse radius and vertical tolerance of that point. Reads the same constants the defuse reads, from one place. `map.wardenGround.cellsWithin(position, radius)` is the call it wants; it returns foot positions and leaves the vertical test to the caller |
 | 3 | **Gate the plant on it every step of the hold**, not at commit. Progress that never starts is the difference between "not yet" and "never"; four seconds of progress then a refusal is the worst of both |
-| 4 | **Tell the player.** Same standard the redesign set for a failed climb: never silent. An interact key that does nothing is the marking problem inverted — an invisible rule. The plant already owns a HUD line and a noise interval; a refusal wants the line plus a sound, and probably no noise event (a refused plant should not give the Shade away) |
+| 4 | **Tell the player.** Same standard the redesign set for a failed climb: never silent. An interact key that does nothing is the marking problem inverted — an invisible rule. The plant already owns a HUD line and a noise interval; a refusal wants the line and nothing else — D6 settled it: no sound, no noise event, because a refused plant should not give the Shade away |
 | 5 | **The check, census-shaped.** For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
 | 6 | **Re-examine `dy < 2.5`** in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
 
@@ -179,12 +179,15 @@ Warden cannot follow the Shade onto.
 - **What does refusal look like?** A HUD line, **"cannot plant here"**. No
   sound, no noise event. D6.
 
-### Side benefit worth taking
+### The side benefit, now available
 
-The reachable set from phase 1 is the honest answer to a question three other
-systems currently guess at: whether a waypoint is standable, whether a DEFEND
-path can complete, and whether a patrol route is walkable end to end. It is
-worth building it as map data rather than as an objective-system private.
+Phase 1 built the set as map data rather than an objective-system private, so it
+is the honest answer to a question three other systems guess at: whether a
+waypoint is standable, whether a DEFEND path can complete, whether a patrol
+route is walkable end to end. `map.wardenGround.has(position)` answers all
+three. B9's "the Warden never leaves `wardenGround`" check is now writable.
+
+Nothing draws it, which is A7: 25,177 cells and no way to look at one.
 
 ## Running it
 
@@ -293,6 +296,14 @@ A held key and its press edge arrive on the **same step**. A test that sets
 `intent.crouchPressed` without `intent.crouch` is testing a machine nobody is
 sitting at. Drive `input.heldCodes` / `input.pressedCodes` — see
 `src/tests/fuzz.js`.
+
+**And its cousin, from A1: a check that reads the constant the derivation read
+can only ever agree with it.** `the-warden-never-climbs-to-reach-its-ground`
+first asked whether a climbable top had ground beside it within
+`warden.stepHeight` — and stayed green with the step temporarily at 2.00m while
+the fill walked up crate stacks. It asks "is the ground beside it *level* with
+it" now, which is a fact about the geometry. Before believing a derived-data
+check, raise the constant it derives from and watch it go red.
 
 ---
 
