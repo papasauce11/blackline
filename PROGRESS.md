@@ -3226,3 +3226,33 @@ cells outside the building; and `forEach`/`columns` are the only way to enumerat
 the set, which is fine at 25k cells but is not an index — if A5's census needs
 "the nearest reachable cell to an arbitrary point" it should add one rather than
 scan.
+
+## D17 — a climb is a press of Space (2026-09-09)
+
+Josh: *"climbing things again without a choice. must press space to
+climb/vault etc..."*
+
+**Where it came from.** The ground path was already gated on the jump buffer
+(phase 9: "the jump took sprint's place"). The airborne path was not:
+`_stepAir()` called `_tryMantle()` on every step, and `_isApproaching()` counts
+a held forward as approaching, so stepping off any edge while holding W climbed
+the first face within 3.8m. Under the old banded rule few faces qualified; under
+the reach rule most do, which is why it came back.
+
+**Built.** One flag, `_climbArmed`. Set by the jump launch and by a press of
+Space while airborne; cleared by the coyote walk-off, a hang drop, the defensive
+no-ledge exit, and every landing. `_stepAir()` mantles only while armed. The
+ground path and step-overs are untouched.
+
+**Verified.** New check `a-climb-is-a-press-of-space-never-a-side-effect`
+drives the real input at a ground-level ledge the controller's own probe agrees
+is in reach (`stack-hall-mid`, about 2m): forward alone on the ground, nothing;
+Space, climbs; airborne 0.6m up in front of it holding forward, falls and lands;
+Space during the fall, climbs. Against the pre-change controller (stashed) the
+check is red with *"falling past stack-hall-mid while holding forward climbed
+it without Space"*, which is the bug in one line. Full suite 104 passed / 2
+failed, twice, identical; census unchanged at 12 of 65; console errors 0.
+
+**Recorded.** Spec 20.2; decision D17. B1 (hang as a held option) should read
+the same press, noted in 20.2.
+

@@ -107,6 +107,13 @@ export class Shade {
     this._slideCooldown = 0;
     this._fallStartY = 0;
     this._falling = false;
+    /**
+     * A climb is a press of Space, never a side effect of moving (D17). On the
+     * ground the jump buffer is the press. In the air this is: set by the jump
+     * that launched the body, or by a press during a fall; cleared by walking
+     * off an edge and by landing. `_stepAir()` will not mantle without it.
+     */
+    this._climbArmed = false;
     /** Feet height the body last stood at. `_reachNow()` measures against it. */
     this._launchY = 0;
     /** Populated when a traversal move is in flight. */
@@ -164,6 +171,7 @@ export class Shade {
     this._slideTimer = 0;
     this._slideCooldown = 0;
     this._falling = false;
+    this._climbArmed = false;
     this._fallStartY = this.position.y;
     this._launchY = this.feetY;
     this._move = null;
@@ -308,6 +316,9 @@ export class Shade {
       this.grounded = false;
       this._beginFall();
       this.state = SHADE_STATE.AIR;
+      // The press that launched this jump is the choice to climb whatever the
+      // arc reaches (D17). A walk-off, below, never arms.
+      this._climbArmed = true;
       this._integrate(dt, true);
       return;
     }
@@ -326,6 +337,7 @@ export class Shade {
       if (this._coyote <= 0) {
         this._beginFall();
         this.state = SHADE_STATE.AIR;
+        this._climbArmed = false;
       }
     }
   }
@@ -343,9 +355,13 @@ export class Shade {
     applyGravity(this.velocity, dt, S.gravity, S.maxFallSpeed);
     const result = this._integrate(dt, false);
 
-    // Mantle is auto-triggered when airborne near a flagged ledge (Section 6.1),
-    // but only when actually moving into it.
-    if (this._tryMantle(intent)) return;
+    // An airborne climb needs a press of Space behind it (D17): the jump that
+    // launched the body, or a press during the fall. Without one the body
+    // falls past every ledge it could have caught, which is the point - a
+    // walk-off is not a choice to climb. And it still has to be moving into
+    // the ledge.
+    if (intent.jumpPressed) this._climbArmed = true;
+    if (this._climbArmed && this._tryMantle(intent)) return;
 
     if (result.grounded) {
       this._land();
@@ -643,6 +659,7 @@ export class Shade {
       // Defensive: never leave the player frozen in a state with no ledge.
       this.state = SHADE_STATE.AIR;
       this._beginFall();
+      this._climbArmed = false;
       return;
     }
 
@@ -681,6 +698,9 @@ export class Shade {
       this.state = SHADE_STATE.AIR;
       this.velocity.set(0, 0, 0);
       this._beginFall();
+      // Letting go is not a press of Space (D17): the fall catches nothing
+      // unless the player presses again.
+      this._climbArmed = false;
     }
   }
 
@@ -818,6 +838,7 @@ export class Shade {
   _land() {
     const drop = this._fallStartY - this.position.y;
     this._falling = false;
+    this._climbArmed = false;
     this.landedFallHeight = drop > 0 ? drop : 0;
     this.velocity.y = 0;
   }

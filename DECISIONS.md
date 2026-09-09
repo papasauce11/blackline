@@ -49,6 +49,19 @@ noise event.
 **decided:** 5pm and 2am. (2026-09-08) The routine never merges to `main`;
 Josh merges with `git checkout main && git merge --ff-only phases-14-45`.
 
+### D17 — A climb is a press of Space, never a side effect of moving
+Josh, 2026-09-09: *"climbing things again without a choice. must press space
+to climb/vault etc..."* The ground path already required it; the airborne
+path did not: `_stepAir` tried a mantle on every airborne step, so walking
+off any edge while holding forward climbed whatever face was within reach.
+**decided:** the Shade climbs only after a press of Space. On the ground,
+within the jump buffer, as before. In the air, only if Space was pressed
+since it left the ground: the jump that launched it counts for the whole arc,
+and a press during a fall arms the rest of the fall. Walking or falling off
+an edge without a press never climbs. Step-overs (rises under
+`reach.stepOver`) remain automatic; they are walking, not climbing.
+Built the same day by the session Josh raised it in.
+
 ---
 
 ## Provisional — done as recommended, override any time

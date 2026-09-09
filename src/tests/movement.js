@@ -321,4 +321,117 @@ export function register(debugTools) {
       };
     },
   });
+
+  // D17: a climb is a press of Space, never a side effect of moving. Before
+  // this, _stepAir() mantled on every airborne step, so walking off any edge
+  // while holding forward climbed whatever face was in reach.
+  debugTools.registerAutoTest({
+    id: 'a-climb-is-a-press-of-space-never-a-side-effect',
+    spec: 'Section 6.1, amended (20.2)',
+    name: 'Forward into a ledge does nothing; Space climbs it, on the ground and mid-fall',
+    run: (h) => {
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
+      const shade = h.shade;
+      const ground = CONFIG.map.groundY;
+      const spot = findGroundLedge(h);
+      if (!spot) {
+        return { pass: false, detail: 'no ground-level ledge between 1.2m and 2.4m with a clear approach was found' };
+      }
+      const { box, x, z, yaw } = spot;
+      const top = box.max.y;
+      const climbStates = new Set([SHADE_STATE.VAULT, SHADE_STATE.MANTLE]);
+
+      // Stand (or hang in the air) 0.8m from the face, hold forward, and
+      // optionally press Space once on a given step. Drive the real input.
+      const drive = ({ airborne, pressAt, steps }) => {
+        shade.reset({ position: { x, y: ground, z }, yaw });
+        h.stepFrames(2);
+        if (airborne) {
+          // The walk-off case without the walk: airborne in front of the face
+          // with nothing pressed, exactly the state a step off an edge leaves.
+          shade.position.y += 0.6;
+          shade.velocity.set(0, 0, 0);
+          shade.grounded = false;
+          shade.state = SHADE_STATE.AIR;
+          shade._beginFall();
+        }
+        h.input.clearAll();
+        h.input.heldCodes.add('KeyW');
+        let sawClimb = false;
+        let onTop = false;
+        for (let i = 0; i < steps && !onTop; i++) {
+          if (pressAt !== null && i === pressAt) {
+            h.input.heldCodes.add('Space');
+            h.input.pressedCodes.add('Space');
+          }
+          h.stepFrames(1);
+          h.input.clearEdges();
+          h.input.heldCodes.delete('Space');
+          if (climbStates.has(shade.state)) sawClimb = true;
+          if (shade.feetY > top - 0.12) onTop = true;
+        }
+        h.input.clearAll();
+        return { onTop, sawClimb, feet: shade.feetY, grounded: shade.grounded };
+      };
+
+      const problems = [];
+      const groundNoPress = drive({ airborne: false, pressAt: null, steps: 120 });
+      if (groundNoPress.onTop || groundNoPress.sawClimb) {
+        problems.push(`holding forward on the ground climbed ${box.tag || 'the ledge'} without Space`);
+      }
+      const groundPress = drive({ airborne: false, pressAt: 5, steps: 90 });
+      if (!groundPress.onTop) {
+        problems.push(`Space on the ground did not climb ${box.tag || 'the ledge'} (feet ${groundPress.feet.toFixed(2)}, top ${top.toFixed(2)})`);
+      }
+      const airNoPress = drive({ airborne: true, pressAt: null, steps: 120 });
+      if (airNoPress.onTop || airNoPress.sawClimb) {
+        problems.push(`falling past ${box.tag || 'the ledge'} while holding forward climbed it without Space`);
+      } else if (!airNoPress.grounded || airNoPress.feet > ground + 0.3) {
+        problems.push(`the un-pressed fall did not end on the ground (feet ${airNoPress.feet.toFixed(2)}, grounded ${airNoPress.grounded})`);
+      }
+      const airPress = drive({ airborne: true, pressAt: 2, steps: 90 });
+      if (!airPress.onTop) {
+        problems.push(`Space during the fall did not climb ${box.tag || 'the ledge'} (feet ${airPress.feet.toFixed(2)})`);
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${box.tag || 'ledge'} (${(top - ground).toFixed(2)}m): forward alone never climbed, on the ground `
+            + 'or falling past it; one press of Space climbed it from both'
+          : problems.join('; '),
+      };
+    },
+  });
+}
+
+/**
+ * A climbable box that sits on the ground floor, between 1.2m and 2.4m tall,
+ * with a spot 0.8m off one of its faces where the Shade can stand and the
+ * controller's own probe agrees the face is in reach. The probe is the
+ * arbiter so the check cannot pick a face the game itself would not offer.
+ */
+function findGroundLedge(h) {
+  const ground = CONFIG.map.groundY;
+  const shade = h.shade;
+  for (const box of h.map.collision.boxes) {
+    if (!box.climbable || !box.solid) continue;
+    if (Math.abs(box.min.y - ground) > 0.05) continue;
+    const rise = box.max.y - ground;
+    if (rise < 1.2 || rise > 2.4) continue;
+    const cx = (box.min.x + box.max.x) / 2;
+    const cz = (box.min.z + box.max.z) / 2;
+    for (const [nx, nz] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      const x = nx === 0 ? cx : (nx < 0 ? box.min.x : box.max.x) + nx * 0.8;
+      const z = nz === 0 ? cz : (nz < 0 ? box.min.z : box.max.z) + nz * 0.8;
+      // Forward is (-sin yaw, -cos yaw); we want it pointing back at the box.
+      const yaw = Math.atan2(nx, nz);
+      shade.reset({ position: { x, y: ground, z }, yaw });
+      h.stepFrames(3);
+      if (!shade.grounded || Math.abs(shade.feetY - ground) > 0.05) continue;
+      const ledge = shade._probeLedge(S.vaultReach);
+      if (ledge && ledge.box === box) return { box, x, z, yaw };
+    }
+  }
+  return null;
 }

@@ -604,3 +604,26 @@ deck lip inside the room is one no Warden can ever kneel at. The plant zone
 becomes *"anywhere in the room a Warden could stand and defuse"* - derived from
 the defuse check rather than authored a second time. Planned in six phases in
 `HANDOFF.md`; until it lands, the rule above is the rule as implemented.
+
+### 20.2 Section 6.1 - a climb is a press of Space, never a side effect of moving
+
+> *"climbing things again without a choice. must press space to climb/vault etc..."*
+
+Section 6.1 said the mantle was "auto-triggered when airborne near a ledge".
+Once the reach rule made every standable top within 3.8m a ledge, that meant
+walking off any edge while holding forward climbed whatever was in front of you.
+The ground path had already been gated on the jump; the airborne path is now
+gated the same way.
+
+| | Before | After |
+|---|---|---|
+| On the ground | Space (buffered) + forward into a face in reach | unchanged |
+| In the air, after a jump | any face in reach, every step | unchanged - the press that launched the jump is the choice, for the whole arc |
+| In the air, after walking off an edge | any face in reach, every step | nothing, until Space is pressed; a press during the fall arms the rest of it |
+| Dropping from a hang | could catch the next ledge down | catches nothing without a fresh press |
+| Step-overs (under `reach.stepOver`) | automatic | automatic - that is walking |
+
+The controller carries one flag, `_climbArmed`, set by the jump and by a press
+in the air, cleared by a walk-off, a hang drop and a landing. Ledge hang
+(Section 6.1's held option, redesign phases 12-18) will read the same press.
+

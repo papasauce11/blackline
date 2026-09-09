@@ -207,3 +207,7 @@ budget checks are the ceiling.
   start a server unattended.
 - **A1** Where the Warden can stand — `src/mapground.js`,
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
+- **D17** A climb is a press of Space, never a side effect of moving — the
+  airborne mantle now needs the jump behind it or a press during the fall;
+  new check `a-climb-is-a-press-of-space-never-a-side-effect`; spec 20.2 —
+  2026-09-09, Josh's directive, built in his session.

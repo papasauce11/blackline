@@ -21,7 +21,7 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **103 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it). In a real browser: 104 / 1 |
+| AUTO suite | headless, `npm run suite`: **104 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
 | Next job | the first `[ ]` in `QUEUE.md` — A2, `canDefuseAt(position)` |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,177 cells of Warden ground |
@@ -45,7 +45,7 @@ by interview and is binding:
 | Decision | Answer |
 |---|---|
 | Scope | All traversal aids gone: ledge stripes, chevrons, dashes, and the lit vent interiors. **Plant-site rings stay** — a bomb site is objective information, not an affordance |
-| Climb rule | **Reach-based, athletic**: ~2.6m standing, ~3.8m with a jump |
+| Climb rule | **Reach-based, athletic**: ~2.6m standing, ~3.8m with a jump. **And only on a press of Space** — never a side effect of moving (D17, spec 20.2) |
 | Failed climb | A physical tell **plus audio**. Never silent |
 | Hang | A **held option you choose**, never a failed mantle |
 | Warden | **Stays grounded.** The asymmetry is the game |
