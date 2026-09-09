@@ -223,7 +223,7 @@ budget checks are the ceiling.
 - **A1** Where the Warden can stand — `src/mapground.js`,
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
 - **A2** `canDefuseAt()` and one shared defuse reach — `DEFUSE_REACH`,
-  `withinDefuseReach()`, one check — `PENDING`, 2026-09-09.
+  `withinDefuseReach()`, one check — `aef542a`, 2026-09-09.
 - **D17** A climb is a press of Space, never a side effect of moving — the
   airborne mantle now needs the jump behind it or a press during the fall;
   new check `a-climb-is-a-press-of-space-never-a-side-effect`; spec 20.2 —
