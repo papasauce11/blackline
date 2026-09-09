@@ -129,7 +129,7 @@ rather than as a bug.
 To override, test the cell's rectangle rather than its centre in
 `Objective.canDefuseAt()`, or drop `map.wardenGroundCell` below 0.5m — the
 fill cost rises roughly as the square.
-**decided:**
+**decided:** fine, leave it conservative. Josh, 2026-09-09.
 
 ---
 
