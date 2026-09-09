@@ -111,6 +111,26 @@ To override, change the line below to "drops allowed" and A1's step test in
 `src/mapground.js` becomes one-sided (`ny - y <= step`, no floor on the drop).
 **decided:**
 
+### D18 — `canDefuseAt()` is conservative by up to half a cell
+A2 answers "could a Warden defuse here" by asking every cell of
+`map.wardenGround` within the defuse radius. The ground is a 0.5m grid and
+`cellsWithin()` returns cell **centres**, so the answer is exact only to
+within half a diagonal — about 0.35m. It is never over-permissive: every
+cell returned is a spot the flood proved a standing body fits. It can be
+over-strict, refusing a plant the Warden could just barely have reached.
+
+Taken: **leave it conservative.** Reason: it is the same direction D16 chose
+for the same reason — the set exists to answer D5's "the Warden must always
+be able to defuse", and erring toward fewer legal plants can only ever keep
+that promise. A player meets this as a plant refused a hand's width from
+where it would have worked, at a room's edge, which reads as "not here"
+rather than as a bug.
+
+To override, test the cell's rectangle rather than its centre in
+`Objective.canDefuseAt()`, or drop `map.wardenGroundCell` below 0.5m — the
+fill cost rises roughly as the square.
+**decided:**
+
 ---
 
 ## Blocking — waiting on Josh

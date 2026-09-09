@@ -3256,3 +3256,70 @@ failed, twice, identical; census unchanged at 12 of 65; console errors 0.
 **Recorded.** Spec 20.2; decision D17. B1 (hang as a held option) should read
 the same press, noted in 20.2.
 
+
+
+## A2 — one defuse reach, asked of the map (2026-09-09)
+
+The plant rule Block A is building — *a plant is legal exactly where a Warden
+could stand and defuse it* (D5) — only works while the plant side and the
+defuse side measure the same reach. Two copies of the numbers is two rules, and
+the one a player meets is whichever drifted. So A2 is less a feature than a
+de-duplication with a predicate on top.
+
+**Built.** Three things in `systems/objective.js`:
+
+- `DEFUSE_REACH`, exported: `radius` (from `round.siteRadius`) and `dy` (the
+  literal 2.5 that used to sit inline). Deliberately not frozen — see Verified.
+- `withinDefuseReach(foot, at)`, the one place the reach is measured.
+- `Objective.canDefuseAt(at)` — asks `withinDefuseReach()` of every cell of
+  A1's `map.wardenGround` inside the radius. The defuse now asks the same
+  predicate of the Warden, through a module-scope `FOOT` scratch so the
+  per-frame path still allocates nothing.
+
+The value of `dy` was left alone on purpose: A6 owns whether 2.5m is the right
+answer to "can a Warden reach up to a charge on a crate". A2 only gave it one
+home. A6's queue line was rewritten to say so, since half of what it asked for
+now exists.
+
+**Verified.** New check `candefuseat-and-the-defuse-measure-one-reach`. It
+does the done-when — `canDefuseAt` true at all three site centres — and then
+proves the sharing the way HANDOFF.md says derived data has to be proved: by
+moving the constant and watching both sides move. Radius to 0 kills the defuse
+and every site centre; radius to 3× makes a Warden at 1.5× start defusing;
+`dy` to 0 kills both; `dy` to 2.5+2 pulls a point 3.5m up into reach. Restored
+in a `finally`, because a leaked reach would silently rewrite every check after
+it.
+
+It is a real check: reverting the defuse to its own copy of the two numbers
+turns it red with *"with the radius at 0 the defuse still ticked; with the
+radius at 6.0m the defuse still refused 3.00m; with dy at 0 the defuse still
+ticked"* — the drift the job exists to prevent, in one line.
+
+Full suite **105 passed / 2 failed, twice, identical**; flaky empty; console
+errors 0; census unchanged at 12 of 65.
+
+**Found — the gate can lie on a loaded machine.** One verify run came back with
+*eight* pixel checks flaky at once and its second run at 108s against the
+first's 62s. It did not reproduce: two full runs on stashed HEAD were clean,
+two more with A2 in were clean, and the eight ran green twice as a subset
+alongside the new check. Second runs on this PC now drift between 60s and 230s.
+So the gate's answer depends on what else is awake, which makes a green run
+worth less than it should be. Queued as **F1** with the first suspect named
+(`a-zero-size-viewport-does-not-blind-the-renderer` restoring the canvas late,
+which is the documented cascade), and the trap written up in HANDOFF.md.
+Whoever takes it: do not settle it by weakening a pixel check.
+
+**Raised.** D18, provisional: `canDefuseAt` reads cell *centres* off a 0.5m
+grid, so it is exact only to about 0.35m. Never over-permissive — every cell
+came from a flood that proved a standing body fits — but it can refuse a plant
+the Warden could just barely have reached. Left conservative, for D16's reason:
+the set exists to keep D5's promise, and fewer legal plants can only ever keep
+it. Override by testing the cell rectangle instead of its centre.
+
+**Left.** A3 is next and now has everything it needs: gate `_stepPlant` on
+`canDefuseAt(shade foot)` every step of the hold, not at commit. Worth knowing
+before starting: `_stepPlant` already zeroes `plantProgress` whenever the site
+or the interact goes away, so a refusal wants that same branch, plus D6's HUD
+line and *no* noise emit — the noise is emitted before the progress check
+today, so the refusal has to return above it or a refused plant gives the Shade
+away.

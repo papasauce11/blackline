@@ -30,6 +30,47 @@ export const ROUND = {
 };
 
 /**
+ * How close a Warden has to be to a charge to work on it. One object, because
+ * the plant rule Block A is building - *a plant is legal exactly where a
+ * Warden could stand and defuse it* (D5) - is only honest while both sides
+ * measure the same reach. Two copies of these numbers is two rules, and the
+ * one the player meets is whichever drifted.
+ *
+ * Not frozen on purpose: a check moves these and asserts both sides move with
+ * them. A derived answer that agrees with its own constant proves nothing (the
+ * A1 lesson in HANDOFF.md); the proof is that raising the constant changes the
+ * game.
+ *
+ * The horizontal reach is `round.siteRadius` - arm's length, never a marking.
+ * The vertical one was the literal `dy < 2.5` written when plant and defuse
+ * were both pinned to a site centre; whether 2.5m is the right answer to
+ * "can a Warden reach up to a charge on a crate" is A6's question, not this
+ * one. A2 only makes it a single place to ask.
+ */
+export const DEFUSE_REACH = {
+  radius: R.siteRadius,
+  dy: 2.5,
+};
+
+/**
+ * Is a Warden with its feet at `foot` close enough to a charge at `at` to
+ * kneel down and work on it? The one place the reach is measured.
+ *
+ * @param {{x:number,y:number,z:number}} foot Warden foot position
+ * @param {{x:number,y:number,z:number}} at charge position
+ */
+export function withinDefuseReach(foot, at) {
+  const dx = at.x - foot.x;
+  const dz = at.z - foot.z;
+  const dy = Math.abs(at.y - foot.y);
+  return dx * dx + dz * dz <= DEFUSE_REACH.radius * DEFUSE_REACH.radius
+    && dy < DEFUSE_REACH.dy;
+}
+
+/** Reused so the per-frame defuse test allocates nothing. */
+const FOOT = { x: 0, y: 0, z: 0 };
+
+/**
  * Every mutable thing a round owns. A defaults factory, not a reset method:
  * a new object cannot inherit a field somebody forgot to clear.
  */
@@ -241,6 +282,39 @@ export class Objective {
     return null;
   }
 
+  /**
+   * Could a Warden ever defuse a charge left here?
+   *
+   * The room says which volume the objective is about; this says which parts
+   * of that volume the Warden can answer for. The Warden stays grounded and
+   * the Shade does not, so inside a site's room there are gantries, crate
+   * tops, vent roofs and deck lips where a plant would be unloseable - and
+   * worse than unloseable, since `setDefendTarget()` would send the AI at a
+   * charge it cannot reach and strand it in DEFEND for the whole fuse.
+   *
+   * It is not a second authored zone. It asks `withinDefuseReach()` - the same
+   * predicate the defuse itself asks, of the same constants - of every cell of
+   * Warden-reachable ground near the point (A1's `map.wardenGround`). The two
+   * cannot drift, the same trick `classifyReach()` plays for the map and the
+   * traversal controller.
+   *
+   * One approximation worth knowing: the ground is a 0.5m grid and the cells
+   * come back as centres, so a `false` here can be over-strict by up to half a
+   * cell - a spot the Warden could just barely reach, refused. It is never
+   * over-permissive: every cell returned is a place the fill proved a standing
+   * body fits. That is the safe side of D5, and the same direction D16 chose.
+   *
+   * @param {{x:number,y:number,z:number}} at a foot position for the charge
+   * @returns {boolean}
+   */
+  canDefuseAt(at) {
+    const cells = this.map.wardenGround.cellsWithin(at, DEFUSE_REACH.radius);
+    for (let i = 0; i < cells.length; i++) {
+      if (withinDefuseReach(cells[i], at)) return true;
+    }
+    return false;
+  }
+
   // -------------------------------------------------------------------------
   // Detonation and defuse (Section 10.1)
   // -------------------------------------------------------------------------
@@ -275,11 +349,13 @@ export class Objective {
 
     // The defuse still happens at the charge, within arm's length of it. That
     // radius was never a marking - it is how close you have to be to kneel
-    // down and pull the thing apart - so it stays exactly as it was.
-    const dx = at.x - warden.position.x;
-    const dz = at.z - warden.position.z;
-    const dy = Math.abs(at.y - (warden.position.y - CONFIG.warden.standHeight / 2));
-    const atSite = dx * dx + dz * dz <= R.siteRadius * R.siteRadius && dy < 2.5;
+    // down and pull the thing apart - so it stays exactly as it was. It is
+    // measured by `withinDefuseReach()` now rather than here, so that
+    // `canDefuseAt()` below can ask the identical question of the map.
+    FOOT.x = warden.position.x;
+    FOOT.y = warden.position.y - CONFIG.warden.standHeight / 2;
+    FOOT.z = warden.position.z;
+    const atSite = withinDefuseReach(FOOT, at);
 
     // Section 11 DEFEND: defuse if the Shade is not visible. A Warden that can
     // see you should be shooting, not kneeling.

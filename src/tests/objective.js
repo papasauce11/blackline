@@ -11,7 +11,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { CHARGE, ROUND, createRoundState } from '../systems/objective.js';
+import { CHARGE, ROUND, createRoundState, DEFUSE_REACH } from '../systems/objective.js';
 import { createIntent } from '../entities/agent.js';
 
 const R = CONFIG.round;
@@ -615,6 +615,129 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${Object.keys(fresh).length} fields rebuilt from the factory, new object, score preserved at 2`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  // A2: canDefuseAt() is the plant rule's half of the defuse reach. It is only
+  // worth anything while it and the defuse measure the same thing, so this
+  // check proves the sharing the way HANDOFF.md says derived data has to be
+  // proved - by moving the constant and watching both sides move - rather than
+  // by reading the same number twice and agreeing with itself.
+  debugTools.registerAutoTest({
+    id: 'candefuseat-and-the-defuse-measure-one-reach',
+    spec: 'Section 10.1 amended / D5 / Block A2',
+    name: 'canDefuseAt is true at every site centre, and moves with the constants the defuse reads',
+    run: (h) => {
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
+      const objective = h.objective;
+      const dt = CONFIG.time.fixedDt;
+      const problems = [];
+
+      if (!h.map.wardenGround) return { pass: false, detail: 'map.wardenGround was never derived' };
+
+      // A real plant, so the charge sits where a body stood rather than where
+      // a test wrote it. The Warden then works on it from a measured offset.
+      objective.resetMatch();
+      objective.resetRound(1);
+      plantAt(h, 'A');
+      if (objective.round.charge !== CHARGE.PLANTED) {
+        return { pass: false, detail: 'the charge never planted at site A' };
+      }
+      const at = objective.round.chargeAt;
+
+      /** Put the Warden this far from the charge and see whether the defuse ticks. */
+      const defuseTicks = (out, up) => {
+        const round = objective.round;
+        round.defuseProgress = 0;
+        round.defuseRetain = 0;
+        h.warden.position.set(
+          at.x + out, at.y + up + CONFIG.warden.standHeight / 2, at.z
+        );
+        const intent = createIntent();
+        for (let i = 0; i < 5; i++) objective.step(dt, { shade: h.shade, warden: h.warden, intent });
+        return round.defuseProgress > 0;
+      };
+
+      const siteCentres = h.map.sites.map((site) => ({
+        id: site.id,
+        at: { x: site.position.x, y: site.position.y, z: site.position.z },
+      }));
+      const centresLegal = () => siteCentres.filter((site) => objective.canDefuseAt(site.at));
+
+      // --- The done-when: legal at every site centre --------------------
+      const legal = centresLegal();
+      if (legal.length !== siteCentres.length) {
+        const missing = siteCentres.filter((site) => !objective.canDefuseAt(site.at)).map((s) => s.id);
+        problems.push(`canDefuseAt is false at site centre ${missing.join(', ')}`);
+      }
+
+      // The near offset must defuse and the far one must not, or the
+      // perturbations below prove nothing.
+      const near = DEFUSE_REACH.radius * 0.5;
+      const far = DEFUSE_REACH.radius * 1.5;
+      if (!defuseTicks(near, 0)) problems.push(`the defuse did not tick at ${near.toFixed(2)}m, inside the radius`);
+      if (defuseTicks(far, 0)) problems.push(`the defuse ticked at ${far.toFixed(2)}m, outside the radius`);
+
+      // --- The sharing, proved by moving the constants -------------------
+      // Each is restored in `finally`: a leaked reach would silently rewrite
+      // every check that runs after this one.
+      const baseRadius = DEFUSE_REACH.radius;
+      const baseDy = DEFUSE_REACH.dy;
+      try {
+        // Shrink the radius to nothing. Both sides must go dead.
+        DEFUSE_REACH.radius = 0;
+        if (defuseTicks(near, 0)) problems.push('with the radius at 0 the defuse still ticked');
+        if (centresLegal().length) problems.push('with the radius at 0 canDefuseAt was still true at a site centre');
+
+        // Open it up. The offset that was too far must now work - which needs
+        // the value read, not merely tested for truth.
+        DEFUSE_REACH.radius = baseRadius * 3;
+        if (!defuseTicks(far, 0)) problems.push(`with the radius at ${(baseRadius * 3).toFixed(1)}m the defuse still refused ${far.toFixed(2)}m`);
+        DEFUSE_REACH.radius = baseRadius;
+
+        // Same for the vertical bound. At dy 0 nothing is close enough
+        // vertically, including a Warden standing on the charge.
+        DEFUSE_REACH.dy = 0;
+        if (defuseTicks(near, 0)) problems.push('with dy at 0 the defuse still ticked');
+        if (centresLegal().length) problems.push('with dy at 0 canDefuseAt was still true at a site centre');
+
+        // And a charge a floor above the ground the Warden can stand on is
+        // out of reach until the bound is raised past the gap.
+        DEFUSE_REACH.dy = baseDy;
+        const high = { x: at.x, y: at.y + baseDy + 1.0, z: at.z };
+        if (objective.canDefuseAt(high)) {
+          problems.push(`canDefuseAt was true ${(baseDy + 1).toFixed(1)}m above the charge, past the ${baseDy}m bound`);
+        }
+        DEFUSE_REACH.dy = baseDy + 2.0;
+        if (!objective.canDefuseAt(high)) {
+          problems.push(`raising dy to ${(baseDy + 2).toFixed(1)}m did not make the point ${(baseDy + 1).toFixed(1)}m up reachable`);
+        }
+      } finally {
+        DEFUSE_REACH.radius = baseRadius;
+        DEFUSE_REACH.dy = baseDy;
+      }
+
+      // Restored, and the horizontal reach is still the one config states.
+      if (DEFUSE_REACH.radius !== CONFIG.round.siteRadius) {
+        problems.push(`DEFUSE_REACH.radius is ${DEFUSE_REACH.radius}, not round.siteRadius (${CONFIG.round.siteRadius})`);
+      }
+      if (!defuseTicks(near, 0)) problems.push('the defuse did not come back after the constants were restored');
+      if (centresLegal().length !== siteCentres.length) {
+        problems.push('canDefuseAt did not come back after the constants were restored');
+      }
+
+      objective.resetMatch();
+      objective.resetRound(1);
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.warden.reset(h.map.wardenSpawns[0]);
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `legal at all ${siteCentres.length} site centres (${siteCentres.map((s) => s.id).join(', ')}); `
+            + `radius ${baseRadius}m and dy ${baseDy}m each move the defuse and canDefuseAt together`
           : problems.join('; '),
       };
     },

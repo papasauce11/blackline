@@ -29,11 +29,6 @@ The GATE step ignores these. Nothing else may be red.
 Directive, not plan. Decided: D5 (on or beside), D6 (refusal is a HUD line).
 Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 
-- [ ] **A2 (S)** `canDefuseAt(position)` — true iff some reachable cell is
-  within the defuse radius and vertical tolerance of the point, reading the
-  same constants the defuse itself reads, from one place. *done-when:* the
-  defuse proximity test and `canDefuseAt` share their constants by reference
-  (a check asserts it), and `canDefuseAt` is true at every site centre.
 - [ ] **A3 (S)** Gate the plant on `canDefuseAt` **every step of the hold**,
   not at commit. *done-when:* a check holds interact on a crate top inside a
   site room and asserts plant progress never starts.
@@ -47,16 +42,36 @@ Full reasoning in `HANDOFF.md` under "the plant must be defusable".
   each. Fix `spotOffTheRing()` in `tests/objective.js` to pick from the legal
   set. *done-when:* the new check passes and every existing objective check
   still passes for the right reason (read their details).
-- [ ] **A6 (S)** Re-examine `dy < 2.5` in the defuse proximity test against
-  D5, and make it a named constant with the decision as its comment.
-  *done-when:* the constant exists, is referenced from both sides, and the
-  spec Section 20 records the rule.
+- [ ] **A6 (S)** Re-examine the **value** of `DEFUSE_REACH.dy` (2.5m) against
+  D5. A2 made it a named constant referenced from both sides; what is left
+  is whether 2.5m is the right answer to "can a Warden reach up to a charge
+  on a crate", and the comment recording that decision. *done-when:* the
+  value is decided with the decision as its comment, and the spec Section 20
+  records the rule.
 - [ ] **A7 (S)** Draw the Warden's reachable ground. 25,177 cells exist and
   nobody can look at them; a wrong one is invisible until a plant is refused in
   play for no apparent reason. An F3/F4 overlay: the set as flat quads at their
   floor height, the current role's cell highlighted. *done-when:* a pixel check
   reads the overlay on and off at one viewpoint and measures a difference, and
   a check asserts it is off by default.
+
+## Block F — the gate itself
+
+Placed here, after A and before B, on purpose: the suite is the instrument
+every later block is measured with, and a gate that answers differently on a
+busy PC is a gate that will eventually wave something through. The letter is
+a name, not a rank.
+
+- [ ] **F1 (S)** The pixel checks can cascade on a loaded machine: one run
+  had eight flaky at once, unreproducible in four later full runs (see
+  "Environment traps" in `HANDOFF.md`). Either find the shared state that
+  lets one pixel check spoil the next — first suspect is
+  `a-zero-size-viewport-does-not-blind-the-renderer` restoring the canvas
+  late — or make the runner re-run a flaky check a third time and report
+  the tiebreak, so a loaded PC cannot turn a green gate red. **Do not**
+  weaken a pixel check to settle it. *done-when:* either the shared state is
+  named and fixed with a check that catches it, or the runner's tiebreak is
+  in `scripts/suite.mjs` and documented in `HANDOFF.md`.
 
 ## Block B — the traversal redesign, phases 12–50
 
@@ -207,7 +222,9 @@ budget checks are the ceiling.
   start a server unattended.
 - **A1** Where the Warden can stand — `src/mapground.js`,
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
+- **A2** `canDefuseAt()` and one shared defuse reach — `DEFUSE_REACH`,
+  `withinDefuseReach()`, one check — `PENDING`, 2026-09-09.
 - **D17** A climb is a press of Space, never a side effect of moving — the
   airborne mantle now needs the jump behind it or a press during the fall;
   new check `a-climb-is-a-press-of-space-never-a-side-effect`; spec 20.2 —
-  2026-09-09, Josh's directive, built in his session.
+  `92886ec`, 2026-09-09, Josh's directive, built in his session.

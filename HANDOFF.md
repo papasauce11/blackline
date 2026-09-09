@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **104 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` — A2, `canDefuseAt(position)` |
+| AUTO suite | headless, `npm run suite`: **105 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` — A3, gate the plant on `canDefuseAt` |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,177 cells of Warden ground |
 
@@ -132,7 +132,8 @@ Josh, straight after the room change:
 
 > *"actually should only be plantable where the ward is able to defuse."*
 
-**Phase 1 is built** (A1, `src/mapground.js`); A2–A7 remain in `QUEUE.md`,
+**Phases 1 and 2 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
+`systems/objective.js`); A3–A7 remain in `QUEUE.md`,
 and this section is the reasoning behind them. The two questions at the end are
 **decided** — D5 and D6 in `DECISIONS.md`; the one A1 raised is D16.
 
@@ -164,11 +165,11 @@ Warden cannot follow the Shade onto.
 | # | Work |
 |---|---|
 | 1 | ✅ **done** — `src/mapground.js`, `map.wardenGround`. 0.5m column grid, flooded from the Warden spawns; 25,177 standable cells in 18,550 columns, 6,627 of them carrying two floors. The step limit is symmetric, so a one-way drop is not in it (D16). This is the file that *states* "the Warden stays grounded" |
-| 2 | **`canDefuseAt(position)`** — true iff some reachable cell is inside the defuse radius and vertical tolerance of that point. Reads the same constants the defuse reads, from one place. `map.wardenGround.cellsWithin(position, radius)` is the call it wants; it returns foot positions and leaves the vertical test to the caller |
+| 2 | ✅ **done** — `Objective.canDefuseAt(at)`. The reach is one exported object, `DEFUSE_REACH` (`radius`, from `round.siteRadius`, and `dy`), and one predicate, `withinDefuseReach(foot, at)`. The defuse asks it of the Warden; `canDefuseAt` asks it of every cell of `map.wardenGround` near the point. Legal at all three site centres. Conservative by up to half a cell — D18 |
 | 3 | **Gate the plant on it every step of the hold**, not at commit. Progress that never starts is the difference between "not yet" and "never"; four seconds of progress then a refusal is the worst of both |
 | 4 | **Tell the player.** Same standard the redesign set for a failed climb: never silent. An interact key that does nothing is the marking problem inverted — an invisible rule. The plant already owns a HUD line and a noise interval; a refusal wants the line and nothing else — D6 settled it: no sound, no noise event, because a refused plant should not give the Shade away |
 | 5 | **The check, census-shaped.** For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
-| 6 | **Re-examine `dy < 2.5`** in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
+| 6 | **Re-examine `DEFUSE_REACH.dy`** (was the literal `dy < 2.5`; A2 named it and gave it one home, but did not touch the value) in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
 
 ### Decided
 
@@ -229,6 +230,18 @@ answer, not a pass.
 ---
 
 ## Environment traps — these will cost you an hour each
+
+**A loaded machine can cascade the pixel checks.** One A2 verify run came
+back with *eight* pixel checks flaky at once — rim light, lit pools, the dim
+meter, the outline, smoke/flash, the alarm fixture, the death camera and the
+0×size viewport — while run 2 took 108s against run 1's 62s. It did not
+reproduce: four later full runs (two on HEAD, two with A2) were identical,
+and the eight run clean twice as a subset alongside the new check. Second
+runs on this PC drift between 60s and 230s depending on what else is awake,
+so **a flaky pixel set is worth re-running before you believe it** — the
+same advice the audio check already carries. Queued as F1; if it recurs,
+suspect `a-zero-size-viewport-does-not-blind-the-renderer` leaving the
+canvas 0×0 for everything after it, which is the documented failure below.
 
 **A scheduled run cannot use the Browser pane at all.** It refuses to start a
 dev server from an unattended session, by rule. `npm run suite` is the only
