@@ -206,4 +206,4 @@ budget checks are the ceiling.
   `scripts/`. First scheduled run had stopped at the gate: the pane cannot
   start a server unattended.
 - **A1** Where the Warden can stand — `src/mapground.js`,
-  `map.wardenGround`, two checks — HASH, 2026-09-09.
+  `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
