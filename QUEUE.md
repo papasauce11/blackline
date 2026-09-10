@@ -262,7 +262,7 @@ budget checks are the ceiling.
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
 - **A5** The census, and what it found in the ducts - two checks over 373
   plant spots, `spotOffTheRing` on the legal set, `tests/objective.js` split
-  four ways - `COMMIT_A5`, 2026-09-10. Raised D19.
+  four ways - `fb9dc58`, 2026-09-10. Raised D19.
 - **A4** A refused plant says so and says nothing else - `round.plantRefused`,
   `PLANT_REFUSED` on the prompt panel with the hold bar gone, one check that
   reads the HUD through a real frame - `804ffbe`, 2026-09-10.
