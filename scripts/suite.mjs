@@ -9,12 +9,32 @@
 //
 //   node scripts/suite.mjs [--runs 2] [--subset <regex>] [--pre "<js>"]
 //                          [--channel chrome|msedge] [--timeout 600000]
+//                          [--cores N] [--cooldown SECONDS]
 //
 // --pre runs in the page before the suite, e.g. to reseed the rng.
+//
+// Heat. This PC renders the suite with SwiftShader, so every pixel of every
+// rendered check is drawn on the CPU, and a run is a sustained all-core load
+// on a 4-core i7-2600 whose fans are owned by OEM firmware Windows cannot
+// reach (no ACPI thermal zone, no Win32_Fan). Two levers, both defaulted on:
+//
+//   --cores N     pin the browser and its children to the first N logical
+//                 CPUs. Contiguous on purpose: on a hyperthreaded part the
+//                 logical CPUs are enumerated in sibling pairs, so the low
+//                 half of the mask leaves whole physical cores idle rather
+//                 than merely idling their second thread. 0 disables.
+//   --cooldown S  pause between runs so the heatsink catches up instead of
+//                 taking one continuous soak. Does not apply after the last.
+//
+// Neither changes what any check answers - they cost wall-clock, nothing
+// else. Windows exposes no temperature here, so the effect is not measurable
+// from this script; watch it in SpeedFan if you want the number.
 
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
@@ -27,6 +47,18 @@ const TIMEOUT = Number(args.timeout ?? 600000);
 const SUBSET = args.subset ? new RegExp(args.subset) : null;
 const PRE = args.pre ?? null;
 const QUERY = args.query ?? null; // e.g. "seed=20260908", appended to the page URL
+// Half the logical CPUs by default, never fewer than two - one core cannot
+// run a browser and a compositor without the page timing out.
+const CORES = Number(args.cores ?? Math.max(2, Math.floor(os.cpus().length / 2)));
+const COOLDOWN_MS = Number(args.cooldown ?? 45) * 1000;
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// Playwright's Browser, unlike Puppeteer's, does not hand back the OS process.
+// So the launch carries a switch Chrome does not know and therefore ignores,
+// and the browser process is the one whose command line contains it. Only the
+// root has to be found this way - the renderers are its children.
+const TOKEN = `blackline-suite-${process.pid}-${Date.now()}`;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -80,6 +112,51 @@ function skipsById() {
   return new Map(list.map(s => [s.id, s.reason]));
 }
 
+/**
+ * Pin the browser and every descendant to the first `cores` logical CPUs.
+ *
+ * Children inherit the parent's affinity mask on Windows, so setting it before
+ * the first page is created is usually enough; it is re-applied once the
+ * harness is up because Chrome spawns its renderer and GPU processes lazily
+ * and a late one would otherwise run wide.
+ *
+ * Best-effort by design: a failure here costs heat, not correctness, so it
+ * reports to stderr and the suite carries on.
+ *
+ * @returns {number|null} processes pinned, or null if unavailable
+ */
+function pinToCores(token, cores) {
+  if (process.platform !== 'win32' || !cores || cores >= os.cpus().length) return null;
+  const mask = (1 << cores) - 1;
+  const script = [
+    '$ErrorActionPreference = "SilentlyContinue"',
+    '$all = Get-CimInstance Win32_Process | Select-Object ProcessId, ParentProcessId, Name, CommandLine',
+    // Name-filtered: this very script's command line also contains the token.
+    `$root = $all | Where-Object { $_.Name -in @("chrome.exe","msedge.exe") -and $_.CommandLine -like "*${token}*" }`,
+    'if (-not $root) { Write-Output 0; exit }',
+    `$want = New-Object 'System.Collections.Generic.HashSet[int]'`,
+    'foreach ($r in $root) { [void]$want.Add([int]$r.ProcessId) }',
+    '$grew = $true',
+    'while ($grew) { $grew = $false; foreach ($p in $all) {',
+    '  if ($want.Contains([int]$p.ParentProcessId) -and -not $want.Contains([int]$p.ProcessId)) {',
+    '    [void]$want.Add([int]$p.ProcessId); $grew = $true } } }',
+    '$n = 0',
+    'foreach ($id in $want) { try {',
+    `  (Get-Process -Id $id -ErrorAction Stop).ProcessorAffinity = [IntPtr]${mask}; $n++`,
+    '} catch { } }',
+    'Write-Output $n',
+  ].join('\n');
+  try {
+    const out = execFileSync('powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', script],
+      { encoding: 'utf8', timeout: 30000, stdio: ['ignore', 'pipe', 'ignore'] });
+    const n = Number(String(out).trim());
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
 function serve() {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://x');
@@ -115,10 +192,16 @@ async function main() {
       '--ignore-gpu-blocklist',
       '--mute-audio',
       '--autoplay-policy=no-user-gesture-required',
+      `--${TOKEN}`,
     ],
   });
   let report;
+  let pinned = null;
   try {
+    // Before the first page, so the renderers inherit the mask rather than
+    // having to be caught afterwards.
+    pinned = pinToCores(TOKEN, CORES);
+
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
     page.setDefaultTimeout(TIMEOUT);
     page.on('console', m => {
@@ -142,8 +225,16 @@ async function main() {
 
     if (PRE) await page.evaluate(PRE);
 
+    // The renderer and GPU processes exist by now; catch any that were spawned
+    // after the mask was set.
+    pinned = pinToCores(TOKEN, CORES) ?? pinned;
+    if (CORES && CORES < os.cpus().length && pinned === null) {
+      process.stderr.write(`suite: could not pin to ${CORES} cores; running wide\n`);
+    }
+
     const runs = [];
     for (let i = 0; i < RUNS; i++) {
+      if (i > 0 && COOLDOWN_MS > 0) await sleep(COOLDOWN_MS);
       const t0 = Date.now();
       const r = await page.evaluate(async (subsetSource) => {
         const h = window.BLACKLINE;
@@ -169,6 +260,12 @@ async function main() {
     }
 
     report = judge(runs, renderer, consoleErrors);
+    report.throttle = {
+      cores: CORES && CORES < os.cpus().length ? CORES : os.cpus().length,
+      of: os.cpus().length,
+      pinnedProcesses: pinned,
+      cooldownMs: COOLDOWN_MS,
+    };
   } finally {
     await browser.close();
     server.close();
@@ -227,6 +324,12 @@ function summary(r) {
   if (r.unexpectedGreen.length) lines.push(`  now GREEN, remove from QUEUE.md: ${r.unexpectedGreen.join(', ')}`);
   if (r.skipped.length) lines.push(`  skipped headless: ${r.skipped.map(x => `${x.id} (${x.outcome})`).join(', ')}`);
   if (r.consoleErrors.count) lines.push(`  console errors: ${r.consoleErrors.count}`);
+  if (r.throttle) {
+    const t = r.throttle;
+    lines.push(`  throttle: ${t.cores}/${t.of} cores`
+      + `${t.pinnedProcesses ? ` (${t.pinnedProcesses} processes pinned)` : ''}`
+      + `, ${t.cooldownMs / 1000}s cooldown between runs`);
+  }
   return lines.join('\n') + '\n';
 }
 
