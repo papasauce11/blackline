@@ -237,7 +237,7 @@ budget checks are the ceiling.
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
 - **A4** A refused plant says so and says nothing else - `round.plantRefused`,
   `PLANT_REFUSED` on the prompt panel with the hold bar gone, one check that
-  reads the HUD through a real frame - `COMMIT_A4`, 2026-09-10.
+  reads the HUD through a real frame - `804ffbe`, 2026-09-10.
 - **A3** The plant refuses before it starts — `_stepPlant` gated on
   `canDefuseAt` every step, `WardenGround.someCellWithin()` so the per-step
   call allocates nothing, one check — `f21eace`, 2026-09-10.
