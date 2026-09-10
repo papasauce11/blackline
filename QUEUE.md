@@ -230,7 +230,7 @@ budget checks are the ceiling.
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
 - **A3** The plant refuses before it starts — `_stepPlant` gated on
   `canDefuseAt` every step, `WardenGround.someCellWithin()` so the per-step
-  call allocates nothing, one check — `COMMIT_A3`, 2026-09-10.
+  call allocates nothing, one check — `f21eace`, 2026-09-10.
 - **A2** `canDefuseAt()` and one shared defuse reach — `DEFUSE_REACH`,
   `withinDefuseReach()`, one check — `aef542a`, 2026-09-09.
 - **D17** A climb is a press of Space, never a side effect of moving — the
