@@ -152,7 +152,7 @@ tint the room's floor instead. Recommendation: look at it in play before
 deciding. Nothing is blocked on this yet.
 **decided:**
 
-### D19 — Should a charge inside a duct be a legal plant?
+### D20 — Should a charge inside a duct be a legal plant?
 A5 measured what D5 actually allows, and the answer surprised the plan.
 `HANDOFF.md` has said since A1 that the plant rule "excludes the climbs, the
 vents and the ledges". It excludes 3 of the 21 climbable tops inside site rooms

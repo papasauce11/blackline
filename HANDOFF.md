@@ -22,7 +22,7 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
 | AUTO suite | headless, `npm run suite`: **109 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` — A8, waypoint density vs the AI's unpathed last leg (A6 is blocked on **D19**) |
+| Next job | the first `[ ]` in `QUEUE.md` — A8, waypoint density vs the AI's unpathed last leg (A6 is blocked on **D20**) |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,177 cells of Warden ground |
 
@@ -134,7 +134,7 @@ Josh, straight after the room change:
 
 **Phases 1 to 5 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
 `systems/objective.js`; A3, the gate inside `_stepPlant()`; A4, the HUD line;
-A5, the census). A6 is **blocked on D19**; A7 and A8 remain.
+A5, the census). A6 is **blocked on D20**; A7 and A8 remain.
 
 ### What the rule actually excludes, measured
 
@@ -154,7 +154,7 @@ metres" far more than it reads "no plant up high" — the horizontal reach does
 almost all the excluding, and **none of the 8 vent interiors is refused at
 all**. The ducts run at y=2.3 against a 2.5m vertical reach, so a Warden stands
 underneath and reaches up; A5 sent the AI at a duct charge and it defused it in
-9.6s. That is D5 working as written, and whether it should is **D19**, blocking,
+9.6s. That is D5 working as written, and whether it should is **D20**, blocking,
 with the measurements. A6 is blocked on it.
 
 The two questions at the end are **decided** — D5 and D6 in `DECISIONS.md`;
@@ -192,7 +192,7 @@ Warden cannot follow the Shade onto.
 | 3 | ✅ **done** — `_stepPlant()` asks `canDefuseAt()` of the Shade's feet every step of the hold, under the site-and-interact gate and *above* the noise interval, so a refusal costs no progress and emits nothing (D6). `WardenGround.someCellWithin()` makes the per-step call allocation-free |
 | 4 | ✅ **done** — `round.plantRefused`, out through `objective.hud`, onto the prompt panel the plant already owns as `PLANT_REFUSED` (`ui/hud.js`) with the hold bar hidden. No sound, no noise event (D6). Not a latch: recomputed every step, so releasing interact clears it |
 | 5 | ✅ **done** — two checks in `tests/plantcensus.js`: the game against the rule at all 373 spots, and the rule against the map (ground exists, the waypoint graph reaches it, the AI arrives). `spotOffTheRing()` picks from the legal set. Old text: | For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
-| 6 | **blocked: D19.** Re-examine `DEFUSE_REACH.dy` (was the literal `dy < 2.5`; A2 named it and gave it one home, but did not touch the value) in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
+| 6 | **blocked: D20.** Re-examine `DEFUSE_REACH.dy` (was the literal `dy < 2.5`; A2 named it and gave it one home, but did not touch the value) in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
 
 ### Decided
 
@@ -279,6 +279,13 @@ so **a flaky pixel set is worth re-running before you believe it** — the
 same advice the audio check already carries. Queued as F1; if it recurs,
 suspect `a-zero-size-viewport-does-not-blind-the-renderer` leaving the
 canvas 0×0 for everything after it, which is the documented failure below.
+
+**Two sessions in this repo will collide on decision numbers.** A5 raised its
+question as D19 while, ten minutes earlier and unseen, another session had
+committed a different D19. Renumbered to D20 by hand; the A5 commit message
+still says D19. Before adding to `DECISIONS.md`, `git log --oneline -5` and
+re-read the file - the number you are about to use may have been taken since
+you loaded it.
 
 **The routine may be running while you are.** `blackline-build` fires at
 17:00 and 02:00 and a run can last hours. Before you commit from a human

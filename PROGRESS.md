@@ -3519,7 +3519,7 @@ started defusing it in 9.6 seconds, standing underneath and reaching up.
 
 So D5 is being kept exactly as written. Whether "the Warden must always be able
 to defuse" should mean *reaching 2.3m up into a duct* is a different question,
-and it is the one A6 was queued to ask about a number. **Raised as D19,
+and it is the one A6 was queued to ask about a number. **Raised as D20,
 blocking, with the measurements**, and A6 is marked blocked on it: A6 has
 nothing left in it that is not that question.
 
@@ -3546,6 +3546,6 @@ guidance, and it had been over since A3. Now four files, each under 600:
 checks), and `objective.js` (round flow, 575). Registered in that order in
 `tests/index.js`.
 
-**Left.** A6 is blocked on D19. A7 next: draw the Warden's reachable ground.
+**Left.** A6 is blocked on D20. A7 next: draw the Warden's reachable ground.
 It is now the only thing in Block A that nobody can look at — 25,177 cells, and
 this session proved four of them matter enough to refuse a plant.

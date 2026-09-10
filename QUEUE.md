@@ -31,7 +31,7 @@ The GATE step ignores these. Nothing else may be red.
 Directive, not plan. Decided: D5 (on or beside), D6 (refusal is a HUD line).
 Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 
-- [ ] **A6 (S)** **blocked: D19.** Re-examine the **value** of
+- [ ] **A6 (S)** **blocked: D20.** Re-examine the **value** of
   `DEFUSE_REACH.dy` (2.5m) against D5. A2 made it a named constant referenced
   from both sides; what is left is whether 2.5m is the right answer to "can a
   Warden reach up to a charge on a crate", and the comment recording that
@@ -46,8 +46,8 @@ Full reasoning in `HANDOFF.md` under "the plant must be defusable".
   inside a site room is a legal plant, because the ducts run at y=2.3 and a
   Warden on the floor beneath one is inside the vertical reach. The AI walked
   to a duct charge and defused it from below in 9.6s, so it works exactly as
-  D5 says — the question is whether it should. That is now **D19**, and it is
-  the whole of what is left in this job. *done-when:* D19 is answered, the
+  D5 says — the question is whether it should. That is now **D20**, and it is
+  the whole of what is left in this job. *done-when:* D20 is answered, the
   value carries that decision as its comment, and the spec Section 20 records
   the rule.
 - [ ] **A8 (S)** The AI freewheels up to **14.9m** on the solver alone. It
@@ -262,7 +262,8 @@ budget checks are the ceiling.
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
 - **A5** The census, and what it found in the ducts - two checks over 373
   plant spots, `spotOffTheRing` on the legal set, `tests/objective.js` split
-  four ways - `fb9dc58`, 2026-09-10. Raised D19.
+  four ways - `fb9dc58`, 2026-09-10. Raised D20 (the commit message says D19;
+  D19 had been taken by a concurrent session ten minutes earlier).
 - **A4** A refused plant says so and says nothing else - `round.plantRefused`,
   `PLANT_REFUSED` on the prompt panel with the hold bar gone, one check that
   reads the HUD through a real frame - `804ffbe`, 2026-09-10.
