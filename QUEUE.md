@@ -29,17 +29,12 @@ The GATE step ignores these. Nothing else may be red.
 Directive, not plan. Decided: D5 (on or beside), D6 (refusal is a HUD line).
 Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 
-- [ ] **A4 (S)** Tell the player: HUD line **"cannot plant here"** (D6) while
-  interact is held somewhere illegal; no noise event; no sound. The gate is
-  in place (A3) and the refusal already has a branch of its own to hang the
-  message off; the no-noise half is already asserted by A3's check, which can
-  be extended rather than rewritten. *done-when:* a check reads the HUD text
-  during a refused hold and asserts no noise event was emitted.
 - [ ] **A5 (M)** The census-shaped check: for every climbable top and vent
   interior inside a site room, try to plant, assert refusal; then sample
   legal positions and assert a Warden path exists to a cell that can defuse
   each. Fix `spotOffTheRing()` in `tests/objective.js` to pick from the legal
-  set. *done-when:* the new check passes and every existing objective check
+  set. `perchesInSiteRooms(h)` in that file is already half of the first half.
+  *done-when:* the new check passes and every existing objective check
   still passes for the right reason (read their details).
 - [ ] **A6 (S)** Re-examine the **value** of `DEFUSE_REACH.dy` (2.5m) against
   D5. A2 made it a named constant referenced from both sides; what is left
@@ -78,6 +73,18 @@ a name, not a rank.
   weaken a pixel check to settle it. *done-when:* either the shared state is
   named and fixed with a check that catches it, or the runner's tiebreak is
   in `scripts/suite.mjs` and documented in `HANDOFF.md`.
+
+- [ ] **F2 (S)** A check that drives a real frame can hide the HUD for every
+  check after it, because `hud.setVisible()` runs inside the frame from
+  `!menu.open` and `hud.update()` returns early when hidden. A4 hit it and
+  fixed it locally (hide the menu at the top, restore visibility at the
+  bottom); `hud-reads-the-meter-it-is-shown-beside` is only ever green
+  because of who runs before it. Same family as F1 and worth doing with it:
+  make the suite reset the presentation state between checks, or make
+  `hud.update()` honest about being called while hidden. **Do not** settle it
+  by making a check tolerate a hidden HUD. *done-when:* running any single
+  HUD-reading check alone, and running it after `a-refused-plant-says-so-and-
+  says-nothing-else`, give the same answer, and a check proves it.
 
 ## Block B — the traversal redesign, phases 12–50
 
@@ -228,6 +235,9 @@ budget checks are the ceiling.
   start a server unattended.
 - **A1** Where the Warden can stand — `src/mapground.js`,
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
+- **A4** A refused plant says so and says nothing else - `round.plantRefused`,
+  `PLANT_REFUSED` on the prompt panel with the hold bar gone, one check that
+  reads the HUD through a real frame - `COMMIT_A4`, 2026-09-10.
 - **A3** The plant refuses before it starts — `_stepPlant` gated on
   `canDefuseAt` every step, `WardenGround.someCellWithin()` so the per-step
   call allocates nothing, one check — `f21eace`, 2026-09-10.

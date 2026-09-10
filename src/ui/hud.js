@@ -18,6 +18,14 @@ import { CONFIG } from '../config.js';
 const H = CONFIG.hud;
 const P = CONFIG.palette;
 
+/**
+ * What a refused plant says (D6). The whole of what it produces: no sound, no
+ * noise event, no progress that starts and then stops - a line, so that an
+ * interact key doing nothing is never left to be read as a broken key. It is
+ * the marking problem inverted: an unmarked rule the player cannot see.
+ */
+export const PLANT_REFUSED = 'cannot plant here';
+
 const hex = (value) => `#${value.toString(16).padStart(6, '0')}`;
 
 const CSS = `
@@ -54,6 +62,8 @@ const CSS = `
   font-size: 13px; display: none; }
 #bl-prompt .bar { width: 180px; height: 3px; background: rgba(255,255,255,0.15); margin-top: 6px; }
 #bl-prompt .bar span { display: block; height: 100%; width: 0%; background: ${hex(P.hazardOrange)}; }
+#bl-prompt.refused .text { color: ${hex(P.hazardOrange)}; }
+#bl-prompt.refused .bar { display: none; }
 #bl-centre { left: 50%; top: 50%; transform: translate(-50%,-50%); text-align: center; display: none; }
 #bl-centre .big { font-size: 46px; letter-spacing: 0.1em; }
 #bl-feed { right: 26px; top: 70px; text-align: right; }
@@ -282,16 +292,22 @@ export class Hud {
     const score = state.score || { shade: 0, warden: 0 };
     this.el.score.textContent = `${score.shade} - ${score.warden}   r${state.roundNumber || 1}`;
 
-    // Objective prompt, with the hold bar (Section 13).
+    // Objective prompt, with the hold bar (Section 13). A refused plant (D6)
+    // borrows the same line rather than opening a second one: it is the answer
+    // to the prompt above it, and the bar goes away because there is no hold
+    // in progress to describe.
     const holding = state.plantProgress > 0 || state.defuseProgress > 0;
+    const refused = !!state.plantRefused && !state.planted;
     const inRange = state.promptInRange && !state.planted;
-    if (inRange || holding) {
+    if (inRange || holding || refused) {
       this.el.prompt.style.display = 'block';
-      this.el.promptText.textContent = state.planted ? 'defusing' : 'hold E to plant';
+      this.el.promptText.textContent = state.planted ? 'defusing'
+        : refused ? PLANT_REFUSED : 'hold E to plant';
       this.el.promptBar.style.width = `${Math.min(1, state.plantProgress || state.defuseProgress || 0) * 100}%`;
     } else {
       this.el.prompt.style.display = 'none';
     }
+    this.el.prompt.classList.toggle('refused', refused);
 
     // On death, the reinsert countdown replaces the centre (Section 13).
     if (state.awaitingReinsert) {

@@ -97,6 +97,13 @@ export function createRoundState(number) {
     chargeAt: null,
     plantProgress: 0,
     plantNoiseTimer: 0,
+    /**
+     * Is the Shade holding interact somewhere the Warden could never defuse?
+     * One step's answer, not a latch: the HUD line D6 decided is the only
+     * thing a refused plant produces, and a line that outlived the hold would
+     * be a rule the player cannot un-trigger.
+     */
+    plantRefused: false,
     defuseProgress: 0,
     defuseRetain: 0,
     detonationTimer: 0,
@@ -223,6 +230,9 @@ export class Objective {
 
   _stepPlant(dt, shade, intent) {
     const round = this.round;
+    // Recomputed from scratch every step, so releasing interact or stepping
+    // off the crate clears the line without anything having to remember to.
+    round.plantRefused = false;
     if (round.charge !== CHARGE.CARRIED) return;
 
     const site = this.siteNear(shade.position);
@@ -247,6 +257,8 @@ export class Objective {
     SPOT.y = shade.feetY;
     SPOT.z = shade.position.z;
     if (!this.canDefuseAt(SPOT)) {
+      // D6: the refusal is a HUD line and nothing else. This is the line.
+      round.plantRefused = true;
       round.plantProgress = 0;
       // D6: no noise event and no sound. Returning above the noise interval is
       // what enforces it - a refused plant must not give the Shade away.
@@ -424,6 +436,7 @@ export class Objective {
 
     round.lives--;
     round.plantProgress = 0;
+    round.plantRefused = false;
     this.emitter.emit('objective:life-lost', { remaining: round.lives });
 
     // Section 10.4: losing the third life ends the round UNLESS the charge is
@@ -556,6 +569,7 @@ export class Objective {
       charge: round.charge,
       site: round.site,
       plantProgress: round.plantProgress / R.plantHoldTime,
+      plantRefused: round.plantRefused,
       defuseProgress: round.defuseProgress / R.defuseHoldTime,
       awaitingReinsert: round.awaitingReinsert,
       reinsertIn: round.reinsertTimer,

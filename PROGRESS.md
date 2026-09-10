@@ -3395,3 +3395,68 @@ without Josh, because widening `radius` widens the *defuse* too.
 gate it hangs off is in place and already takes the refusal branch alone, so
 A4 is a message and a check that reads it; the no-noise half of A4's done-when
 is already asserted here and can be extended rather than rewritten.
+
+## A4 — a refused plant says so, and says nothing else (2026-09-10)
+
+**Why.** A3 made the plant refuse. An interact key that does nothing is the
+marking problem inverted — the redesign took the stripes off the ledges because
+a rule should be legible from the world, and then Block A added a rule with no
+tell at all. D6 decided what the tell is, and just as carefully what it is not:
+a HUD line, "cannot plant here". No sound. No noise event. A refused plant must
+not give the Shade away, which is the one way a tell could cost more than the
+silence.
+
+**Built.** `round.plantRefused`, recomputed from scratch at the top of
+`_stepPlant()` every step and set true only in the gate's own branch. Not a
+latch: releasing interact or stepping off the crate clears it without anything
+having to remember to, and `_onShadeDeath()` clears it too, because a death
+mid-hold is the one path that never runs another `_stepPlant`. It leaves the
+system through `objective.hud`, which is the only way the HUD is allowed to
+learn anything.
+
+`ui/hud.js` exports the decided string as `PLANT_REFUSED` and the refusal
+borrows the prompt panel the plant already owns rather than opening a second
+one — it is the answer to "hold E to plant", so it belongs in the same place
+the question was asked. Under a `refused` class the text goes hazard orange and
+the hold bar is hidden, because a bar sitting at zero reads as a hold that is
+not filling rather than as a refusal. That is presentation, so it is taken
+rather than asked (D4).
+
+**Verified.** New check `a-refused-plant-says-so-and-says-nothing-else`. It
+reads the HUD through a real frame — `h.input.heldCodes.add('KeyE')` and
+`h.renderFrame()`, not `hud.update()` with a state object the check wrote —
+because the whole risk in a HUD job is main.js gathering the wrong field, and a
+hand-fed HUD passes with that wire cut. It asserts the panel is shown, the text
+is exactly `PLANT_REFUSED`, the bar is gone, progress is zero and no `plant`
+noise event escaped; then that one step after release clears all three; then
+that the same hold on the floor of the same site prompts and noises normally,
+so the line is the plant rule speaking rather than the panel's only remaining
+state.
+
+Cutting one line out of main.js turns it red with *"the HUD read "hold E to
+plant" on server-rack-0, want "cannot plant here"; the hold bar was still drawn
+under a refusal"*.
+
+The perch finder A3 grew is now a helper, `perchesInSiteRooms(h)`, shared by
+both checks.
+
+Full suite ****107 passed / 2 failed, twice, identical** (runs of 175s and 382s)**; `red` and `flaky` empty; console errors 0; census
+unchanged at 12 of 65.
+
+**Found — a check that drives a real frame owns what it leaves behind.** The
+first subset run failed two checks, and only one of them was mine:
+`hud-reads-the-meter-it-is-shown-beside` went red with every readout at zero.
+`hud.update()` returns early when the HUD is hidden, and `hud.setVisible()`
+runs *inside* the frame from `!menu.open`. So the HUD had been visible for that
+check only because nothing before it had ever rendered a frame with a menu up.
+A4 rendered one, and poisoned its neighbour — the F1 cascade shape exactly, in
+a check with no pixels in it. Fixed by hiding the menu at the top the way every
+frame-driving check already does, and by putting the HUD back visible at the
+bottom, with the reason written next to it. Worth knowing for F1: the shared
+state that lets one check spoil the next is not only the canvas.
+
+**Left.** A5 next, and it is the big one in Block A: the census-shaped check
+over every climbable top *and vent interior* in a site room, the inverse
+(sample legal positions, assert a Warden can path to a cell that defuses each),
+and `spotOffTheRing()` taught to pick from the legal set. `perchesInSiteRooms()`
+in `tests/objective.js` is half of its first half already.

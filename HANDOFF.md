@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **106 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` — A4, the "cannot plant here" HUD line |
+| AUTO suite | headless, `npm run suite`: **107 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` — A5, the census-shaped plant check |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,177 cells of Warden ground |
 
@@ -132,9 +132,9 @@ Josh, straight after the room change:
 
 > *"actually should only be plantable where the ward is able to defuse."*
 
-**Phases 1 to 3 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
-`systems/objective.js`; A3, the gate inside `_stepPlant()`); A4–A7 remain in
-`QUEUE.md`, and this section is the reasoning behind them.
+**Phases 1 to 4 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
+`systems/objective.js`; A3, the gate inside `_stepPlant()`; A4, the HUD line);
+A5–A7 remain in `QUEUE.md`, and this section is the reasoning behind them.
 
 The rule is live now, which means a plant on a crate top inside a site room is
 refused in play. Worth knowing before the next job: **two of the three tops the
@@ -177,8 +177,8 @@ Warden cannot follow the Shade onto.
 | 1 | ✅ **done** — `src/mapground.js`, `map.wardenGround`. 0.5m column grid, flooded from the Warden spawns; 25,177 standable cells in 18,550 columns, 6,627 of them carrying two floors. The step limit is symmetric, so a one-way drop is not in it (D16). This is the file that *states* "the Warden stays grounded" |
 | 2 | ✅ **done** — `Objective.canDefuseAt(at)`. The reach is one exported object, `DEFUSE_REACH` (`radius`, from `round.siteRadius`, and `dy`), and one predicate, `withinDefuseReach(foot, at)`. The defuse asks it of the Warden; `canDefuseAt` asks it of every cell of `map.wardenGround` near the point. Legal at all three site centres. Conservative by up to half a cell — D18 |
 | 3 | ✅ **done** — `_stepPlant()` asks `canDefuseAt()` of the Shade's feet every step of the hold, under the site-and-interact gate and *above* the noise interval, so a refusal costs no progress and emits nothing (D6). `WardenGround.someCellWithin()` makes the per-step call allocation-free |
-| 4 | **Tell the player** — next. Same standard the redesign set for a failed climb: never silent. An interact key that does nothing is the marking problem inverted — an invisible rule. The plant already owns a HUD line and a noise interval; a refusal wants the line and nothing else — D6 settled it: no sound, no noise event, because a refused plant should not give the Shade away |
-| 5 | **The check, census-shaped.** For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
+| 4 | ✅ **done** — `round.plantRefused`, out through `objective.hud`, onto the prompt panel the plant already owns as `PLANT_REFUSED` (`ui/hud.js`) with the hold bar hidden. No sound, no noise event (D6). Not a latch: recomputed every step, so releasing interact clears it |
+| 5 | **The check, census-shaped** — next. For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
 | 6 | **Re-examine `DEFUSE_REACH.dy`** (was the literal `dy < 2.5`; A2 named it and gave it one home, but did not touch the value) in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
 
 ### Decided
@@ -279,6 +279,16 @@ draw after a load compiles shaders. A suite run straight after a reload reported
 **Noise events come from a recycled pool of 48.** Copy the fields you need; a
 retained event gets overwritten (a landing read 8m instead of 10m because a
 Warden footstep reused the slot).
+
+**A check that drives a real frame can hide the HUD for every check after
+it.** `hud.setVisible()` runs *inside* the frame, from `!menu.open`, and
+`hud.update()` returns early when hidden — so a check that renders a frame
+with a menu up leaves the next HUD-reading check silently reading zeroes.
+A4 did exactly that to `hud-reads-the-meter-it-is-shown-beside`, which turns
+out to be green only because nothing before it had ever rendered a frame.
+`h.menu.hide()` at the top (every frame-driving check already does it) and
+`hud.setVisible(true)` at the bottom. The F1 cascade shape with no pixels in
+it; queued properly as F2.
 
 **The pulsing site ring pollutes pixel samples.** It sits dead centre under a
 camera pointed at a site and swings 0.35–0.9 opacity. Sample off it.

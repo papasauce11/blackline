@@ -910,6 +910,7 @@ function renderFrame(wallDelta) {
       planted: objectiveHud.planted,
       site: objectiveHud.site,
       plantProgress: objectiveHud.plantProgress,
+      plantRefused: objectiveHud.plantRefused,
       defuseProgress: objectiveHud.defuseProgress,
       promptInRange: !!site,
       awaitingReinsert: objectiveHud.awaitingReinsert,

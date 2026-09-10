@@ -13,6 +13,7 @@
 import { CONFIG } from '../config.js';
 import { CHARGE, ROUND, createRoundState, DEFUSE_REACH } from '../systems/objective.js';
 import { createIntent } from '../entities/agent.js';
+import { PLANT_REFUSED } from '../ui/hud.js';
 
 const R = CONFIG.round;
 
@@ -49,6 +50,39 @@ export function register(debugTools) {
       }
     }
     return centre;
+  };
+
+  /**
+   * Every climbable top a standing body fits on inside a site's room, as a
+   * foot position at its centre, with whether the plant rule allows a charge
+   * there. Taken from the census's own ledge list, so a map rebuild that moves
+   * a crate moves the checks that use this with it.
+   */
+  const perchesInSiteRooms = (h) => {
+    const objective = h.objective;
+    const half = { x: CONFIG.shade.radius, y: CONFIG.shade.standHeight / 2, z: CONFIG.shade.radius };
+    const perches = [];
+    for (const ledge of h.map.ledges) {
+      const box = ledge.box;
+      const foot = {
+        x: (box.min.x + box.max.x) / 2,
+        y: box.max.y + 0.02,
+        z: (box.min.z + box.max.z) / 2,
+      };
+      const body = { x: foot.x, y: foot.y + half.y, z: foot.z };
+      if (!h.map.collision.isClear(body, half)) continue;
+      const site = objective.siteNear(body);
+      if (!site) continue;
+      perches.push({
+        tag: box.tag || 'untagged',
+        rise: ledge.rise,
+        foot,
+        body,
+        site: site.id,
+        legal: objective.canDefuseAt(foot),
+      });
+    }
+    return perches;
   };
 
   /** Put the Shade in a site's room, off the ring, and hold interact. */
@@ -766,31 +800,9 @@ export function register(debugTools) {
       const objective = h.objective;
       if (!h.map.wardenGround) return { pass: false, detail: 'map.wardenGround was never derived' };
 
-      const half = { x: CONFIG.shade.radius, y: CONFIG.shade.standHeight / 2, z: CONFIG.shade.radius };
       const holdSteps = Math.round((R.plantHoldTime + 1) / dt);
 
-      // Every climbable top a body could stand on inside a site's room.
-      const perches = [];
-      for (const ledge of h.map.ledges) {
-        const box = ledge.box;
-        const foot = {
-          x: (box.min.x + box.max.x) / 2,
-          y: box.max.y + 0.02,
-          z: (box.min.z + box.max.z) / 2,
-        };
-        const body = { x: foot.x, y: foot.y + half.y, z: foot.z };
-        if (!h.map.collision.isClear(body, half)) continue;
-        const site = objective.siteNear(body);
-        if (!site) continue;
-        perches.push({
-          tag: box.tag || 'untagged',
-          rise: ledge.rise,
-          foot,
-          body,
-          site: site.id,
-          legal: objective.canDefuseAt(foot),
-        });
-      }
+      const perches = perchesInSiteRooms(h);
       const refused = perches.filter((perch) => !perch.legal);
       if (!perches.length) {
         return { pass: false, detail: 'no climbable top stands inside a site room, so the gate is untested' };
@@ -899,6 +911,141 @@ export function register(debugTools) {
             + `Warden's reach; held interact on ${tried.length} (${tried.map((p) => p.tag).join(', ')}) `
             + 'for ' + (R.plantHoldTime + 1) + 's each with no progress and no noise, and each planted '
             + 'once the reach was opened'
+          : problems.join('; '),
+      };
+    },
+  });
+
+  // A4: a refused plant is never silent. The redesign's standard for a failed
+  // climb - a tell, never nothing - applies to an interact key that does
+  // nothing, which is the marking problem inverted: a rule the player cannot
+  // see. D6 decided what the tell is and, just as importantly, what it is not.
+  // A HUD line. No sound, no noise event, because a refused plant must not
+  // give the Shade away.
+  //
+  // Read through the real frame, not by calling `hud.update()` with a state
+  // object a check wrote: the whole risk here is main.js gathering the wrong
+  // field, and a hand-fed HUD would pass with that wire cut.
+  debugTools.registerAutoTest({
+    id: 'a-refused-plant-says-so-and-says-nothing-else',
+    spec: 'Section 13 / D6 / Block A4',
+    name: 'Holding interact somewhere illegal puts "cannot plant here" on the HUD and emits no noise',
+    run: (h) => {
+      const problems = [];
+      h.initMatch({ mode: 'competitive', role: 'shade', ai: false, objective: true });
+      // The frame hides the HUD behind a menu, and initMatch leaves one up.
+      // Every check that drives real frames does this; the difference is that
+      // this one then has to put the HUD back, or the next check to read it
+      // finds it hidden.
+      h.menu.hide();
+      h.setPaused(false);
+      h.input.clearAll();
+      const objective = h.objective;
+      const hud = h.hud;
+      if (!hud) return { pass: false, detail: 'no HUD' };
+      // One frame before anything is read: `setVisible` runs inside the frame,
+      // so `hud.visible` is stale until the loop has turned over once.
+      h.renderFrame(1 / 60);
+      if (!hud.visible) return { pass: false, detail: 'the HUD is hidden, so nothing here reads anything' };
+
+      const refused = perchesInSiteRooms(h).filter((perch) => !perch.legal);
+      if (!refused.length) {
+        return { pass: false, detail: 'no climbable top inside a site room is refused, so there is no refusal to read' };
+      }
+      const perch = refused[0];
+
+      /** Hold the interact key here for `frames` rendered frames and read the HUD. */
+      const holdAndRead = (at, frames) => {
+        objective.resetRound(1);
+        h.shade.reset(h.map.shadeSpawns[0]);
+        h.shade.position.set(at.x, at.y, at.z);
+        h.shade.velocity.set(0, 0, 0);
+        let noises = 0;
+        const off = h.emitter.on('noise', (event) => {
+          if (event.type === 'plant') noises++;
+        });
+        h.input.heldCodes.add('KeyE');
+        try {
+          for (let i = 0; i < frames; i++) h.renderFrame(1 / 60);
+        } finally {
+          h.input.heldCodes.delete('KeyE');
+          off();
+        }
+        return {
+          text: hud.el.promptText.textContent,
+          shown: hud.el.prompt.style.display === 'block',
+          barHidden: hud.el.prompt.classList.contains('refused'),
+          noises,
+          progress: objective.round.plantProgress,
+        };
+      };
+
+      // --- the done-when -------------------------------------------------
+      const held = holdAndRead(perch.body, 6);
+      if (!held.shown) {
+        problems.push(`the prompt panel was hidden while the plant was being refused on ${perch.tag}`);
+      }
+      if (held.text !== PLANT_REFUSED) {
+        problems.push(`the HUD read "${held.text}" on ${perch.tag}, want "${PLANT_REFUSED}"`);
+      }
+      if (!held.barHidden) {
+        problems.push('the hold bar was still drawn under a refusal, which reads as a hold that is not filling');
+      }
+      if (held.noises) {
+        problems.push(`${held.noises} plant noise events escaped a refused hold (D6: no noise, no sound)`);
+      }
+      if (held.progress > 0) problems.push(`plant progress reached ${held.progress.toFixed(2)}s on a refusal`);
+
+      // --- and it goes away again ----------------------------------------
+      // A line that outlives its cause is a rule the player cannot un-trigger.
+      // One step with the key released has to clear it.
+      h.stepFrames(1);
+      h.renderFrame(1 / 60);
+      if (objective.round.plantRefused) problems.push('the refusal latched after interact was released');
+      if (hud.el.promptText.textContent === PLANT_REFUSED) {
+        problems.push('the HUD still read the refusal a frame after interact was released');
+      }
+      if (hud.el.prompt.classList.contains('refused')) {
+        problems.push('the refusal styling outlived the refusal');
+      }
+
+      // --- a legal hold says the opposite --------------------------------
+      // Proves the line is the plant rule speaking and not the panel's only
+      // remaining state: same key, same panel, a spot the Warden can reach.
+      const site = h.map.sites.find((entry) => entry.id === perch.site) || h.map.sites[0];
+      const legal = spotOffTheRing(h, site, R.siteRadius * 3);
+      const onFloor = {
+        x: legal.x,
+        y: legal.y + CONFIG.shade.standHeight / 2 + 0.05,
+        z: legal.z,
+      };
+      const good = holdAndRead(onFloor, 6);
+      if (good.text === PLANT_REFUSED) {
+        problems.push(`an ordinary plant on the floor of site ${site.id} was refused too`);
+      }
+      if (!good.noises) {
+        problems.push('a legal plant hold emitted no noise, so the refusal proves nothing about the silence');
+      }
+
+      h.input.clearAll();
+      objective.resetMatch();
+      objective.resetRound(1);
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.warden.reset(h.map.wardenSpawns[0]);
+      h.menu.hide();
+      h.renderFrame(1 / 60);
+      // Left visible on purpose: `hud-reads-the-meter-it-is-shown-beside`
+      // calls `update()` directly, and `update()` returns early when the HUD
+      // is hidden. A check that drives a real frame owns what it leaves behind.
+      hud.setVisible(true);
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `holding interact on ${perch.tag} (${perch.rise.toFixed(1)}m up, room ${perch.site}) reads `
+            + `"${PLANT_REFUSED}" with the hold bar gone, no progress and 0 noise events; it clears one `
+            + `frame after release, and the same hold on the floor of site ${site.id} prompts and `
+            + `noises normally`
           : problems.join('; '),
       };
     },
