@@ -152,6 +152,50 @@ tint the room's floor instead. Recommendation: look at it in play before
 deciding. Nothing is blocked on this yet.
 **decided:**
 
+### D19 — Should a charge inside a duct be a legal plant?
+A5 measured what D5 actually allows, and the answer surprised the plan.
+`HANDOFF.md` has said since A1 that the plant rule "excludes the climbs, the
+vents and the ledges". It excludes 3 of the 21 climbable tops inside site rooms
+and **none of the 8 vent interiors**.
+
+The arithmetic: the two ducts that pass through site A's room run at y=2.3, and
+`DEFUSE_REACH.dy` is 2.5. A Warden standing on the floor underneath one is
+inside the vertical reach and within arm's length horizontally of a charge in
+it, so `canDefuseAt` says yes and the real defuse agrees. It is not theoretical:
+A5 planted inside `vent-low-north`, handed the AI the charge the way a plant
+does, and the Warden walked over and started defusing it in 9.6 seconds,
+standing underneath and reaching up into the duct.
+
+So this is D5 working exactly as written — "the Warden must always be able to
+defuse", and it can. The question is whether *reaching 2.3m up into a duct*
+is what that sentence was meant to buy, because it is also the Shade's best
+hiding place and the one spot the Warden cannot follow it into.
+
+Options:
+
+1. **Leave it.** `dy` stays 2.5, ducts stay plantable, and the duct is a
+   high-risk high-reward plant: hard for the Warden to see, easy for it to
+   defuse once found, and the Shade cannot defend it from inside without
+   being shot through the mouth.
+2. **Lower `dy` to about 2.0.** Ducts at 2.3 become illegal; a charge on a 2m
+   crate stays legal (the Warden stands beside it at dy 2.0 — which is the
+   case D5's own wording was written for, so this is the tightest value that
+   still honours it). Costs nothing else: the census's other 369 spots are
+   floors and low tops.
+3. **Exclude ducts by name.** Rejected before it is asked, but recorded so
+   nobody re-proposes it: the redesign's binding rule is that the test is
+   purely mechanical, with no tags and no exceptions. A `noVent` flag is the
+   `noClimb` flag the redesign spent seven phases deleting.
+
+Recommendation: **1, leave it**, and let a playtest say otherwise. A duct plant
+is legible — the beep comes from a hole in the wall — and it is defusable,
+which is the whole promise. Option 2 is a one-character change if it plays
+badly, and A6 is sized for it.
+
+This changes what a player can do either way, so it waits. A6 is blocked on it
+and is now nothing but this question; nothing else in the queue is.
+**decided:**
+
 ### D13 — Rooms, sites and spawns on the first map
 B5 may want to move a site or a spawn, or merge two rooms, to make a stacked
 route work. The routine will not do that on its own. If it hits the case it

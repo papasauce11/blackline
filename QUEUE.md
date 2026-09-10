@@ -31,26 +31,35 @@ The GATE step ignores these. Nothing else may be red.
 Directive, not plan. Decided: D5 (on or beside), D6 (refusal is a HUD line).
 Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 
-- [ ] **A5 (M)** The census-shaped check: for every climbable top and vent
-  interior inside a site room, try to plant, assert refusal; then sample
-  legal positions and assert a Warden path exists to a cell that can defuse
-  each. Fix `spotOffTheRing()` in `tests/objective.js` to pick from the legal
-  set. `perchesInSiteRooms(h)` in that file is already half of the first half.
-  *done-when:* the new check passes and every existing objective check
-  still passes for the right reason (read their details).
-- [ ] **A6 (S)** Re-examine the **value** of `DEFUSE_REACH.dy` (2.5m) against
-  D5. A2 made it a named constant referenced from both sides; what is left
-  is whether 2.5m is the right answer to "can a Warden reach up to a charge
-  on a crate", and the comment recording that decision. **A3 found the
+- [ ] **A6 (S)** **blocked: D19.** Re-examine the **value** of
+  `DEFUSE_REACH.dy` (2.5m) against D5. A2 made it a named constant referenced
+  from both sides; what is left is whether 2.5m is the right answer to "can a
+  Warden reach up to a charge on a crate", and the comment recording that
+  decision. **A3 found the
   horizontal reach is doing more of the excluding than the vertical one:**
   two of the three tops it proved refused are 0.7m and 1.0m up, well inside
   `dy`, and are turned away because the middle of a wide top is further than
   `radius` (2.0m) from any Warden ground. So the live rule already reads "no
   plant in the middle of anything wider than four metres". Read `radius`
-  alongside `dy`, and remember widening it widens the *defuse* too — if the
-  answer is to change it, that is a question for Josh, not a job. *done-when:*
-  the value is decided with the decision as its comment, and the spec
-  Section 20 records the rule.
+  alongside `dy`, and remember widening it widens the *defuse* too. **A5 then
+  measured what `dy` 2.5 actually buys:** every one of the 8 vent interiors
+  inside a site room is a legal plant, because the ducts run at y=2.3 and a
+  Warden on the floor beneath one is inside the vertical reach. The AI walked
+  to a duct charge and defused it from below in 9.6s, so it works exactly as
+  D5 says — the question is whether it should. That is now **D19**, and it is
+  the whole of what is left in this job. *done-when:* D19 is answered, the
+  value carries that decision as its comment, and the spec Section 20 records
+  the rule.
+- [ ] **A8 (S)** The AI freewheels up to **14.9m** on the solver alone. It
+  paths over 20 waypoints and then walks straight from its last waypoint to
+  the goal, and A5 measured how long that unpathed leg gets across every
+  legal plant spot. It works today — the AI reached all three sampled
+  charges — but it is the DEFEND stall waiting to happen on a map with
+  more furniture, and D2's yard will have more. Either add waypoints until
+  the worst leg is under ~6m, or path the last leg over `map.wardenGround`.
+  **Do not** settle it by widening the defuse reach. *done-when:* a check
+  asserts the worst last leg over all legal plant spots is under the chosen
+  bound, and the A5 sample still arrives.
 - [ ] **A7 (S)** Draw the Warden's reachable ground. 25,177 cells exist and
   nobody can look at them; a wrong one is invisible until a plant is refused in
   play for no apparent reason. An F3/F4 overlay: the set as flat quads at their
@@ -76,6 +85,16 @@ a name, not a rank.
   named and fixed with a check that catches it, or the runner's tiebreak is
   in `scripts/suite.mjs` and documented in `HANDOFF.md`.
 
+- [ ] **F3 (S)** Split `src/main.js`. It is 1,091 lines, well past the ~600 guidance,
+  and A4 touched it (one line, wiring `plantRefused` to the HUD). The
+  split-when-you-touch rule applies and was deliberately not honoured: the
+  composition root is the wrong thing to refactor for a one-line change, and
+  it is not in any job. Do it on purpose instead. Candidates that are already
+  cohesive: the HUD state-gathering block, the gadget throw/use handlers, the
+  intent readers, and the harness object at the bottom. **Do not** move
+  anything that changes the order of the fixed step. *done-when:* no file in
+  `src/` outside `config.js` is over 600 lines, the suite is identical, and
+  `determinism` and the fixed-step order checks still pass.
 - [ ] **F2 (S)** A check that drives a real frame can hide the HUD for every
   check after it, because `hud.setVisible()` runs inside the frame from
   `!menu.open` and `hud.update()` returns early when hidden. A4 hit it and
@@ -108,8 +127,12 @@ there. The census is the contract; **never weaken it**.
   fix orphans. *done-when:* census ≤ 3 failing, all three on the upper deck.
 - [ ] **B4 (M)** Upper deck: the three deck slabs reachable only from a 1.3m
   gantry, and lips that overhang their gantries by 0.6m. Reshape the deck so
-  every lip has a standable approach. *done-when:* **census green.** Remove
-  the Deliberately-red line.
+  every lip has a standable approach. A5 also found one clear floor cell of
+  site C's room — the deck at (21, 17) — with no Warden ground within the
+  defuse reach, so a plant there is refused; the rebuild should close it
+  rather than rediscover it. *done-when:* **census green**, and
+  `every-plant-spot-in-a-site-room-answers-to-the-defuse-rule` reports 0
+  refused floor spots. Remove the Deliberately-red line.
 - [ ] **B5 (L)** Area pass, worst first, by the "needs a leg up" count:
   make every stacked route intentional — a readable first step, no dead
   climbs that lead nowhere. Keep the five v2 requirements. **Do not** add or
@@ -237,6 +260,9 @@ budget checks are the ceiling.
   start a server unattended.
 - **A1** Where the Warden can stand — `src/mapground.js`,
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
+- **A5** The census, and what it found in the ducts - two checks over 373
+  plant spots, `spotOffTheRing` on the legal set, `tests/objective.js` split
+  four ways - `COMMIT_A5`, 2026-09-10. Raised D19.
 - **A4** A refused plant says so and says nothing else - `round.plantRefused`,
   `PLANT_REFUSED` on the prompt panel with the hold bar gone, one check that
   reads the HUD through a real frame - `804ffbe`, 2026-09-10.

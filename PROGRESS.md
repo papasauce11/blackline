@@ -3460,3 +3460,92 @@ over every climbable top *and vent interior* in a site room, the inverse
 (sample legal positions, assert a Warden can path to a cell that defuses each),
 and `spotOffTheRing()` taught to pick from the legal set. `perchesInSiteRooms()`
 in `tests/objective.js` is half of its first half already.
+
+## A5 — the census, and what it found in the ducts (2026-09-10)
+
+**Why.** A2 built the predicate, A3 made the game ask it, A4 made the refusal
+speak. All three were proved at spots a check picked. A5 is the one that asks
+the whole map, and — more importantly — the one that asks whether the rule
+itself is telling the truth. Everything before it tests the game against the
+rule; nothing yet had tested the rule against the map.
+
+**Built.** Two checks, and they are deliberately the two *halves* rather than
+two views of one half.
+
+`every-plant-spot-in-a-site-room-answers-to-the-defuse-rule` enumerates every
+place inside a site room a Shade could leave a charge — the room floors on a
+2m grid, the climbable tops, the vent interiors — and drives a real hold at
+each, asserting the game's answer is the rule's answer. **373 spots: 344 floor,
+21 climbable tops, 8 vent interiors.** 369 committed, each landing within 5cm
+of where the body stood (a charge that drifted to a site centre would defeat
+the whole amendment quietly); 4 refused with no progress. It carries a guard
+against its own circularity: if every spot answers the same way it fails
+outright, because a census where nothing is refused proves something about the
+map and nothing about the rule.
+
+`every-legal-plant-has-a-warden-who-can-reach-it` is the half that is not
+circular. For each of the 369 it names the cell the defuse would happen from,
+asserts that cell is ground the flood actually reached, and asserts the AI's
+waypoint graph connects a Warden spawn to it. Then, for one spot per room, it
+plants for real, hands the AI the charge the way a plant does, and watches:
+**A:vent 9.6s, B:top 4.0s, C:top 0.7s, 3 of 3 arrived and began defusing.**
+
+`spotOffTheRing()` now also requires `canDefuseAt`. It changes nothing today —
+which is the point. It is there so a room reshaped by B4 or B5 cannot quietly
+break every check in the file for a reason that has nothing to do with what
+they test.
+
+**Verified.** Full suite ****109 passed / 2 failed, twice, identical** (runs of 176s and 354s)**; `red` and `flaky` empty; console
+errors 0; census unchanged at 12 of 65.
+
+Both checks were falsified deliberately, and they fail differently, which is
+the whole design. Disable the gate and only the first goes red, naming all four
+refused spots. Make `canDefuseAt()` return true unconditionally and the first
+goes red on its own anti-circularity guard — *"all 373 plant spots are legal,
+so nothing here exercises the gate"* — while the second goes red naming the
+same four as *"legal but no cell of Warden ground is within the defuse reach"*.
+A rule that lies is invisible to the first check by construction and caught by
+the second.
+
+**Found — every duct in a site room is a legal plant, and that is not a bug.**
+Zero of the 8 vent interiors are refused. HANDOFF.md has said since A1 that the
+rule "excludes the climbs, the vents and the ledges"; it excludes 3 of 21
+climbs and none of the vents. The reason is arithmetic: `vent-low-north` and
+`vent-low-south` run at y=2.3, `DEFUSE_REACH.dy` is 2.5, so a Warden standing
+on the floor beneath a duct is inside the vertical reach and within arm's
+length horizontally of a charge in it. And it is not theoretical — the sample
+above sent the AI at a charge inside `vent-low-north` and it walked over and
+started defusing it in 9.6 seconds, standing underneath and reaching up.
+
+So D5 is being kept exactly as written. Whether "the Warden must always be able
+to defuse" should mean *reaching 2.3m up into a duct* is a different question,
+and it is the one A6 was queued to ask about a number. **Raised as D19,
+blocking, with the measurements**, and A6 is marked blocked on it: A6 has
+nothing left in it that is not that question.
+
+**Found — a straight line is not the same as a walk.** The first version of the
+second check asserted that the last, unpathed leg from the AI's final waypoint
+to the defuse cell stayed on Warden ground the whole way. It failed on five
+ordinary floor spots in room A. It was wrong, not the map: the Warden's solver
+slides along walls and the stuck-detector repaths, so a straight line crossing
+a crate is not a cell that cannot be reached. Replaced with driving the AI,
+which is the only thing that actually answers it. The leg length is now
+*reported* rather than asserted — **worst 14.9m** — because how far the AI
+freewheels on the solver alone is worth watching even though it is not a
+failure. Queued as **A8**.
+
+**Found — one floor cell of site C's room is unplantable.** The upper deck at
+(21, 17): clear floor, inside the room, and no Warden ground within reach. It
+is a correct refusal, and it is the deck B4 is already rebuilding; noted on
+B4 so the rebuild closes it rather than discovering it.
+
+**Split.** `tests/objective.js` had reached 1,382 lines, well past the ~600
+guidance, and it had been over since A3. Now four files, each under 600:
+`plantspots.js` (where a charge can go — the helpers all four use),
+`plantrule.js` (A2, A3, A4: the gate and its tell), `plantcensus.js` (A5's two
+checks), and `objective.js` (round flow, 575). Registered in that order in
+`tests/index.js`.
+
+**Left.** A6 is blocked on D19. A7 next: draw the Warden's reachable ground.
+It is now the only thing in Block A that nobody can look at — 25,177 cells, and
+this session proved four of them matter enough to refuse a plant.

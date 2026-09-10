@@ -27,6 +27,8 @@ import { register as registerCombat } from './combat.js';
 import { register as registerAudio } from './audio.js';
 import { register as registerGadgets } from './gadgets.js';
 import { register as registerObjective } from './objective.js';
+import { register as registerPlantRule } from './plantrule.js';
+import { register as registerPlantCensus } from './plantcensus.js';
 import { register as registerFreeRoam } from './freeroam.js';
 import { register as registerSettings } from './settings.js';
 import { register as registerDeathCam } from './deathcam.js';
@@ -53,6 +55,8 @@ export function registerAutoTests(debugTools) {
   registerAudio(debugTools);
   registerGadgets(debugTools);
   registerObjective(debugTools);
+  registerPlantRule(debugTools);
+  registerPlantCensus(debugTools);
   registerFreeRoam(debugTools);
   registerSettings(debugTools);
   registerDeathCam(debugTools);

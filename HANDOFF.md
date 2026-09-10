@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **107 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` — A5, the census-shaped plant check |
+| AUTO suite | headless, `npm run suite`: **109 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` — A8, waypoint density vs the AI's unpathed last leg (A6 is blocked on **D19**) |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,177 cells of Warden ground |
 
@@ -132,17 +132,30 @@ Josh, straight after the room change:
 
 > *"actually should only be plantable where the ward is able to defuse."*
 
-**Phases 1 to 4 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
-`systems/objective.js`; A3, the gate inside `_stepPlant()`; A4, the HUD line);
-A5–A7 remain in `QUEUE.md`, and this section is the reasoning behind them.
+**Phases 1 to 5 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
+`systems/objective.js`; A3, the gate inside `_stepPlant()`; A4, the HUD line;
+A5, the census). A6 is **blocked on D19**; A7 and A8 remain.
 
-The rule is live now, which means a plant on a crate top inside a site room is
-refused in play. Worth knowing before the next job: **two of the three tops the
-A3 check proves refused are only 0.7m and 1.0m up.** They fail horizontally,
-not vertically — the middle of a wide top is further than `DEFUSE_REACH.radius`
-(2.0m) from any cell of Warden ground. So the live rule already reads "no plant
-in the middle of anything wider than four metres", which nobody stated out
-loud. That is A6's problem now, and its queue line says so.
+### What the rule actually excludes, measured
+
+A5 counted it, and it is not what this section assumed. Of **373 places a
+charge can go inside a site room** — 344 floor cells on a 2m grid, 21
+climbable tops, 8 vent interiors — the rule refuses **four**:
+
+| Refused | Why |
+|---|---|
+| `server-rack-0` (room C) | the middle of a wide top, >2m from any Warden ground |
+| `hall-container` (room A), 0.7m up | same — horizontal, not vertical |
+| `gantry-hall` (room A), 1.0m up | same |
+| the deck floor at (21, 17), room C | clear floor with no reachable ground near it; B4's rebuild should close it |
+
+So the live rule reads "no plant in the middle of anything wider than four
+metres" far more than it reads "no plant up high" — the horizontal reach does
+almost all the excluding, and **none of the 8 vent interiors is refused at
+all**. The ducts run at y=2.3 against a 2.5m vertical reach, so a Warden stands
+underneath and reaches up; A5 sent the AI at a duct charge and it defused it in
+9.6s. That is D5 working as written, and whether it should is **D19**, blocking,
+with the measurements. A6 is blocked on it.
 
 The two questions at the end are **decided** — D5 and D6 in `DECISIONS.md`;
 the one A1 raised is D16.
@@ -178,8 +191,8 @@ Warden cannot follow the Shade onto.
 | 2 | ✅ **done** — `Objective.canDefuseAt(at)`. The reach is one exported object, `DEFUSE_REACH` (`radius`, from `round.siteRadius`, and `dy`), and one predicate, `withinDefuseReach(foot, at)`. The defuse asks it of the Warden; `canDefuseAt` asks it of every cell of `map.wardenGround` near the point. Legal at all three site centres. Conservative by up to half a cell — D18 |
 | 3 | ✅ **done** — `_stepPlant()` asks `canDefuseAt()` of the Shade's feet every step of the hold, under the site-and-interact gate and *above* the noise interval, so a refusal costs no progress and emits nothing (D6). `WardenGround.someCellWithin()` makes the per-step call allocation-free |
 | 4 | ✅ **done** — `round.plantRefused`, out through `objective.hud`, onto the prompt panel the plant already owns as `PLANT_REFUSED` (`ui/hud.js`) with the hold bar hidden. No sound, no noise event (D6). Not a latch: recomputed every step, so releasing interact clears it |
-| 5 | **The check, census-shaped** — next. For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
-| 6 | **Re-examine `DEFUSE_REACH.dy`** (was the literal `dy < 2.5`; A2 named it and gave it one home, but did not touch the value) in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
+| 5 | ✅ **done** — two checks in `tests/plantcensus.js`: the game against the rule at all 373 spots, and the rule against the map (ground exists, the waypoint graph reaches it, the AI arrives). `spotOffTheRing()` picks from the legal set. Old text: | For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
+| 6 | **blocked: D19.** Re-examine `DEFUSE_REACH.dy` (was the literal `dy < 2.5`; A2 named it and gave it one home, but did not touch the value) in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
 
 ### Decided
 
@@ -199,6 +212,20 @@ route is walkable end to end. `map.wardenGround.has(position)` answers all
 three. B9's "the Warden never leaves `wardenGround`" check is now writable.
 
 Nothing draws it, which is A7: 25,177 cells and no way to look at one.
+
+## Where the plant-rule checks live
+
+Block A's checks were one 1,382-line file and are now four, each under the ~600
+line guidance:
+
+| File | What |
+|---|---|
+| `tests/plantspots.js` | where a charge can go — `spotOffTheRing`, `plantAt`, `perchesInSiteRooms`, `plantableSpots`, `plantOutcomeAt`. All four files share these |
+| `tests/plantrule.js` | A2, A3, A4 — one reach, the gate every step, the refusal's HUD line |
+| `tests/plantcensus.js` | A5 — the whole map, both directions |
+| `tests/objective.js` | round flow: detonation, defuse retention, lives, reinsert, milestones, state not bleeding |
+
+---
 
 ## Running it
 
