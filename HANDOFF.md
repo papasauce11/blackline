@@ -253,6 +253,13 @@ same advice the audio check already carries. Queued as F1; if it recurs,
 suspect `a-zero-size-viewport-does-not-blind-the-renderer` leaving the
 canvas 0×0 for everything after it, which is the documented failure below.
 
+**The routine may be running while you are.** `blackline-build` fires at
+17:00 and 02:00 and a run can last hours. Before you commit from a human
+session, look at `git status`: a file you did not touch is the routine's
+in-flight work. Never `git add -A` then — add your own files by name. (A
+`zzz-probe` check was swept into a docs commit this way on 2026-09-10 and had
+to be reset out.)
+
 **A scheduled run cannot use the Browser pane at all.** It refuses to start a
 dev server from an unattended session, by rule. `npm run suite` is the only
 gate a routine has; the pane is for humans.
