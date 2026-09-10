@@ -742,4 +742,165 @@ export function register(debugTools) {
       };
     },
   });
+
+  // A3: the plant is gated on canDefuseAt EVERY step of the hold, not at the
+  // commit. The rule is D5's - a plant is legal exactly where a Warden could
+  // stand and defuse it - and this drives it the way a player meets it: stand
+  // on a crate top inside a site's room, hold the interact key, and watch
+  // nothing happen. Not `intent.interact = true`: `input.heldCodes`, through
+  // the real loop, because the bug this file keeps rediscovering is a check
+  // that drives the game differently from the hands on the keyboard.
+  //
+  // The perches come from the census's own ledge list, so a map rebuild that
+  // moves a crate moves this check with it. And the refusal is proved to be
+  // the LIVE reach rather than a hardcoded exclusion by opening `dy` up until
+  // the same perch is legal and holding again: it plants.
+  debugTools.registerAutoTest({
+    id: 'a-plant-never-starts-where-the-warden-could-not-defuse-it',
+    spec: 'Section 10.1 amended / D5 / D6 / Block A3',
+    name: 'Holding interact on a climbable top inside a site room never starts plant progress',
+    run: (h) => {
+      const problems = [];
+      const dt = CONFIG.time.fixedDt;
+      h.initMatch({ mode: 'competitive', role: 'shade', ai: false, objective: true });
+      const objective = h.objective;
+      if (!h.map.wardenGround) return { pass: false, detail: 'map.wardenGround was never derived' };
+
+      const half = { x: CONFIG.shade.radius, y: CONFIG.shade.standHeight / 2, z: CONFIG.shade.radius };
+      const holdSteps = Math.round((R.plantHoldTime + 1) / dt);
+
+      // Every climbable top a body could stand on inside a site's room.
+      const perches = [];
+      for (const ledge of h.map.ledges) {
+        const box = ledge.box;
+        const foot = {
+          x: (box.min.x + box.max.x) / 2,
+          y: box.max.y + 0.02,
+          z: (box.min.z + box.max.z) / 2,
+        };
+        const body = { x: foot.x, y: foot.y + half.y, z: foot.z };
+        if (!h.map.collision.isClear(body, half)) continue;
+        const site = objective.siteNear(body);
+        if (!site) continue;
+        perches.push({
+          tag: box.tag || 'untagged',
+          rise: ledge.rise,
+          foot,
+          body,
+          site: site.id,
+          legal: objective.canDefuseAt(foot),
+        });
+      }
+      const refused = perches.filter((perch) => !perch.legal);
+      if (!perches.length) {
+        return { pass: false, detail: 'no climbable top stands inside a site room, so the gate is untested' };
+      }
+      if (!refused.length) {
+        return {
+          pass: false,
+          detail: `all ${perches.length} climbable tops inside a site room are already legal plants, `
+            + 'so nothing here exercises the gate',
+        };
+      }
+
+      /**
+       * Put the Shade on this perch and hold the interact key. Returns what the
+       * hold produced: how far plant progress got, whether it committed, and
+       * how many plant noise events escaped (D6 says none, on a refusal).
+       */
+      const holdInteractAt = (perch, steps) => {
+        objective.resetRound(1);
+        h.shade.reset(h.map.shadeSpawns[0]);
+        h.shade.position.set(perch.body.x, perch.body.y, perch.body.z);
+        h.shade.velocity.set(0, 0, 0);
+        let noises = 0;
+        // Copy the field on arrival: the pool of 48 recycles slots.
+        const off = h.emitter.on('noise', (event) => {
+          if (event.type === 'plant') noises++;
+        });
+        let peak = 0;
+        h.input.heldCodes.add('KeyE');
+        try {
+          for (let i = 0; i < steps; i++) {
+            h.stepFrames(1);
+            peak = Math.max(peak, objective.round.plantProgress);
+            if (objective.round.charge !== CHARGE.CARRIED) break;
+          }
+        } finally {
+          h.input.heldCodes.delete('KeyE');
+          off();
+        }
+        return { peak, charge: objective.round.charge, noises, at: objective.round.chargeAt };
+      };
+
+      // --- the done-when: progress never starts on a refused perch --------
+      const tried = refused.slice(0, 3);
+      for (const perch of tried) {
+        const held = holdInteractAt(perch, holdSteps);
+        if (held.charge !== CHARGE.CARRIED) {
+          problems.push(`${perch.tag} (${perch.rise.toFixed(1)}m up, room ${perch.site}) planted anyway`);
+        } else if (held.peak > 0) {
+          problems.push(
+            `${perch.tag} refused only after ${held.peak.toFixed(2)}s of progress; `
+            + 'the gate has to run every step, not at the commit'
+          );
+        }
+        // D6: a refused plant is a HUD line and nothing else. A noise event
+        // would give the Shade away for a plant that never happened.
+        if (held.noises) {
+          problems.push(`${perch.tag} emitted ${held.noises} plant noise events while being refused`);
+        }
+      }
+
+      // --- the refusal is the live reach, not an exclusion ----------------
+      // Raise the vertical reach until the first refused perch is legal, and
+      // hold again. If the gate were reading anything but DEFUSE_REACH this
+      // would go on refusing.
+      const perch = tried[0];
+      const baseDy = DEFUSE_REACH.dy;
+      try {
+        let opened = baseDy;
+        while (opened < 40 && !objective.canDefuseAt(perch.foot)) {
+          opened += 1;
+          DEFUSE_REACH.dy = opened;
+        }
+        if (!objective.canDefuseAt(perch.foot)) {
+          problems.push(`no vertical reach under 40m makes ${perch.tag} legal, so the opening step proves nothing`);
+        } else {
+          const held = holdInteractAt(perch, holdSteps);
+          if (held.charge !== CHARGE.PLANTED) {
+            problems.push(
+              `with the reach opened to ${opened}m, ${perch.tag} was still refused - `
+              + 'the gate is not reading DEFUSE_REACH'
+            );
+          }
+        }
+      } finally {
+        DEFUSE_REACH.dy = baseDy;
+      }
+
+      // --- and the ordinary plant still works -----------------------------
+      objective.resetRound(1);
+      h.input.heldCodes.clear();
+      plantAt(h, 'A');
+      if (objective.round.charge !== CHARGE.PLANTED) {
+        problems.push('the gate refused an ordinary plant on the floor of site A');
+      }
+
+      objective.resetMatch();
+      objective.resetRound(1);
+      h.shade.reset(h.map.shadeSpawns[0]);
+      h.warden.reset(h.map.wardenSpawns[0]);
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${refused.length} of ${perches.length} climbable tops inside a site room are out of the `
+            + `Warden's reach; held interact on ${tried.length} (${tried.map((p) => p.tag).join(', ')}) `
+            + 'for ' + (R.plantHoldTime + 1) + 's each with no progress and no noise, and each planted '
+            + 'once the reach was opened'
+          : problems.join('; '),
+      };
+    },
+  });
 }

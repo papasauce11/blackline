@@ -36,6 +36,8 @@ const W = CONFIG.warden;
 const SAME_FLOOR = 0.05;
 /** Lift the capsule clear of the surface it rests on, as the solver's skin does. */
 const SKIN = 0.01;
+/** Handed to `someCellWithin`'s test, one object for every cell it visits. */
+const CELL = { x: 0, y: 0, z: 0 };
 
 /**
  * The Warden's reachable ground, as a column grid over the site footprint.
@@ -122,6 +124,49 @@ export class WardenGround {
       }
     }
     return out;
+  }
+
+  /**
+   * Does any reachable cell within `radius` horizontally of `position` satisfy
+   * `test`? The same scan as `cellsWithin()` without the array: `test` is
+   * handed one reused foot position and the caller's `context`, and the scan
+   * stops at the first yes.
+   *
+   * It exists because one caller asks this every fixed step - the plant gate
+   * (Block A3) tests the spot under the Shade for as long as interact is held,
+   * and `cellsWithin()` would allocate eighty-odd objects a step to answer a
+   * question that usually ends on the first cell.
+   *
+   * @param {{x:number,y:number,z:number}} position
+   * @param {number} radius
+   * @param {(cell:{x:number,y:number,z:number}, context:*)=>boolean} test
+   * @param {*} [context] passed through, so `test` can stay a module constant
+   */
+  someCellWithin(position, radius, test, context) {
+    const at = this.indexAt(position.x, position.z);
+    if (!at) return false;
+    const span = Math.ceil(radius / this.cell);
+    const rSq = radius * radius;
+    for (let j = at.j - span; j <= at.j + span; j++) {
+      if (j < 0 || j >= this.nz) continue;
+      const z = this.centreZ(j);
+      for (let i = at.i - span; i <= at.i + span; i++) {
+        if (i < 0 || i >= this.nx) continue;
+        const floors = this.columns.get(this.key(i, j));
+        if (!floors) continue;
+        const x = this.centreX(i);
+        const dx = x - position.x;
+        const dz = z - position.z;
+        if (dx * dx + dz * dz > rSq) continue;
+        CELL.x = x;
+        CELL.z = z;
+        for (let k = 0; k < floors.length; k++) {
+          CELL.y = floors[k];
+          if (test(CELL, context)) return true;
+        }
+      }
+    }
+    return false;
   }
 
   /** Every reachable cell, as fn(x, y, z). */

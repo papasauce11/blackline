@@ -29,13 +29,12 @@ The GATE step ignores these. Nothing else may be red.
 Directive, not plan. Decided: D5 (on or beside), D6 (refusal is a HUD line).
 Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 
-- [ ] **A3 (S)** Gate the plant on `canDefuseAt` **every step of the hold**,
-  not at commit. *done-when:* a check holds interact on a crate top inside a
-  site room and asserts plant progress never starts.
 - [ ] **A4 (S)** Tell the player: HUD line **"cannot plant here"** (D6) while
-  interact is held somewhere illegal; no noise event; no sound. *done-when:*
-  a check reads the HUD text during a refused hold and asserts no noise
-  event was emitted.
+  interact is held somewhere illegal; no noise event; no sound. The gate is
+  in place (A3) and the refusal already has a branch of its own to hang the
+  message off; the no-noise half is already asserted by A3's check, which can
+  be extended rather than rewritten. *done-when:* a check reads the HUD text
+  during a refused hold and asserts no noise event was emitted.
 - [ ] **A5 (M)** The census-shaped check: for every climbable top and vent
   interior inside a site room, try to plant, assert refusal; then sample
   legal positions and assert a Warden path exists to a cell that can defuse
@@ -45,9 +44,16 @@ Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 - [ ] **A6 (S)** Re-examine the **value** of `DEFUSE_REACH.dy` (2.5m) against
   D5. A2 made it a named constant referenced from both sides; what is left
   is whether 2.5m is the right answer to "can a Warden reach up to a charge
-  on a crate", and the comment recording that decision. *done-when:* the
-  value is decided with the decision as its comment, and the spec Section 20
-  records the rule.
+  on a crate", and the comment recording that decision. **A3 found the
+  horizontal reach is doing more of the excluding than the vertical one:**
+  two of the three tops it proved refused are 0.7m and 1.0m up, well inside
+  `dy`, and are turned away because the middle of a wide top is further than
+  `radius` (2.0m) from any Warden ground. So the live rule already reads "no
+  plant in the middle of anything wider than four metres". Read `radius`
+  alongside `dy`, and remember widening it widens the *defuse* too — if the
+  answer is to change it, that is a question for Josh, not a job. *done-when:*
+  the value is decided with the decision as its comment, and the spec
+  Section 20 records the rule.
 - [ ] **A7 (S)** Draw the Warden's reachable ground. 25,177 cells exist and
   nobody can look at them; a wrong one is invisible until a plant is refused in
   play for no apparent reason. An F3/F4 overlay: the set as flat quads at their
@@ -222,6 +228,9 @@ budget checks are the ceiling.
   start a server unattended.
 - **A1** Where the Warden can stand — `src/mapground.js`,
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
+- **A3** The plant refuses before it starts — `_stepPlant` gated on
+  `canDefuseAt` every step, `WardenGround.someCellWithin()` so the per-step
+  call allocates nothing, one check — `COMMIT_A3`, 2026-09-10.
 - **A2** `canDefuseAt()` and one shared defuse reach — `DEFUSE_REACH`,
   `withinDefuseReach()`, one check — `aef542a`, 2026-09-09.
 - **D17** A climb is a press of Space, never a side effect of moving — the

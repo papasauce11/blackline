@@ -3323,3 +3323,75 @@ or the interact goes away, so a refusal wants that same branch, plus D6's HUD
 line and *no* noise emit — the noise is emitted before the progress check
 today, so the refusal has to return above it or a refused plant gives the Shade
 away.
+
+## A3 — the plant refuses before it starts (2026-09-10)
+
+**Why.** Block A's rule is one sentence: *a plant is legal exactly where a
+Warden could stand and defuse it* (D5). A1 built the ground and A2 built the
+predicate; A3 is where the game finally asks. The queue was specific about
+*when* it asks — every step of the hold, never at the commit. Four seconds of
+progress and then a refusal is the worst answer available: it reads as "nearly"
+while it means "never", and it costs the Shade the four seconds as well.
+
+**Built.** `_stepPlant()` in `systems/objective.js` now has a second gate under
+the site-and-interact one. It fills a module-scope `SPOT` with the Shade's feet
+— the same point the commit would record, not the site centre and not the
+body's middle — and returns unless `canDefuseAt(SPOT)` says a Warden could
+kneel there. The refusal reuses the existing lost-progress branch, so partial
+progress is zeroed the way Section 10.2 already required, and it returns
+*above* the noise interval: D6 says no sound and no noise event, and a refused
+plant that pinged the Warden's ears would be worse than a silent one.
+
+Because that call is now per-step rather than per-plant, `canDefuseAt()` stopped
+allocating. `WardenGround` gained `someCellWithin(position, radius, test,
+context)` — the same scan as `cellsWithin()` without the array, handing the test
+one reused cell and stopping at the first yes. The test is a module constant
+(`REACHES`) rather than a closure, so the gate allocates nothing at all on the
+step it runs. `cellsWithin()` stays for the callers that want the list; A5's
+census will want it.
+
+**Verified.** New check
+`a-plant-never-starts-where-the-warden-could-not-defuse-it`. It takes the
+census's own ledge list, keeps every climbable top a standing body fits on
+inside a site's room, and asks which of them `canDefuseAt` refuses. Then it
+drives the game the way a player does — `h.input.heldCodes.add('KeyE')` and
+`h.stepFrames`, through the real loop, not `intent.interact = true` — for
+`plantHoldTime + 1` seconds on each of the first three, and asserts progress
+never left zero, the charge never committed, and no `plant` noise event
+escaped.
+
+Then the part that keeps it honest. Selecting the perches with `canDefuseAt`
+and asserting `canDefuseAt` refused them would be the A1 mistake: a check that
+reads the constant the derivation read can only agree with it. So it opens
+`DEFUSE_REACH.dy` a metre at a time until the same perch is legal, holds again,
+and requires that it plants — the gate is proved to be reading the live reach
+rather than carrying a private exclusion. Restored in a `finally`. Finally, an
+ordinary floor plant at site A still works, so the gate is not refusing
+everything.
+
+It is a real check. With the gate disabled it goes red with *"server-rack-0
+(1.9m up, room C) planted anyway; server-rack-0 emitted 5 plant noise events
+while being refused; hall-container (0.7m up, room A) planted anyway; ...
+gantry-hall (1.0m up, room A) planted anyway"* — both halves of the job, and
+D6's noise, in one line.
+
+Full suite **106 passed / 2 failed, twice, identical**; `red` and `flaky`
+empty; console errors 0; census unchanged at 12 of 65. Run 1 162s, run 2 349s —
+the second-run drift F1 is queued for, not a different answer anywhere.
+
+**Found — the refusals are not the ones you would guess.** Two of the three
+perches the gate turns away are barely off the floor: `hall-container` at 0.7m
+and `gantry-hall` at 1.0m, both well inside `DEFUSE_REACH.dy`. They are refused
+horizontally, not vertically — the plant is at the middle of a wide top, and
+the nearest cell of Warden ground is further than `radius` (2.0m) away. That
+is D5 working exactly as written, and it means the standing rule is already
+"you may not plant in the middle of anything wider than four metres", which
+nobody has stated out loud. It is evidence for A6, whose brief was the
+*vertical* reach: the horizontal one turns out to be doing more of the
+excluding. A6's queue line now says so. It is not a change anyone should make
+without Josh, because widening `radius` widens the *defuse* too.
+
+**Left.** A4 next: the HUD line "cannot plant here" (D6) on a refused hold. The
+gate it hangs off is in place and already takes the refusal branch alone, so
+A4 is a message and a check that reads it; the no-noise half of A4's done-when
+is already asserted here and can be extended rather than rewritten.

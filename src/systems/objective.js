@@ -69,6 +69,13 @@ export function withinDefuseReach(foot, at) {
 
 /** Reused so the per-frame defuse test allocates nothing. */
 const FOOT = { x: 0, y: 0, z: 0 };
+/** Reused so the per-step plant gate allocates nothing. */
+const SPOT = { x: 0, y: 0, z: 0 };
+/**
+ * `someCellWithin`'s test, as a module constant rather than a closure, so the
+ * gate below allocates nothing at all on the step it runs.
+ */
+const REACHES = (cell, at) => withinDefuseReach(cell, at);
 
 /**
  * Every mutable thing a round owns. A defaults factory, not a reset method:
@@ -226,6 +233,27 @@ export class Objective {
       return;
     }
 
+    // A plant is legal exactly where a Warden could stand and defuse it (D5).
+    // The room says which volume the objective is about; this says which parts
+    // of it the Warden can answer for, and it is asked EVERY step of the hold
+    // rather than once at the commit. Four seconds of progress and then a
+    // refusal is the worst of both answers - it reads as "nearly" while it
+    // means "never" - and progress that never starts is the difference a
+    // player can act on.
+    //
+    // The spot tested is the one the commit would record: the Shade's feet,
+    // not the site centre and not the body's middle.
+    SPOT.x = shade.position.x;
+    SPOT.y = shade.feetY;
+    SPOT.z = shade.position.z;
+    if (!this.canDefuseAt(SPOT)) {
+      round.plantProgress = 0;
+      // D6: no noise event and no sound. Returning above the noise interval is
+      // what enforces it - a refused plant must not give the Shade away.
+      round.plantNoiseTimer = 0;
+      return;
+    }
+
     round.plantProgress += dt;
     round.plantNoiseTimer -= dt;
     if (round.plantNoiseTimer <= 0) {
@@ -298,8 +326,11 @@ export class Objective {
    * cannot drift, the same trick `classifyReach()` plays for the map and the
    * traversal controller.
    *
+   * Asked every step of a plant hold (A3), so it scans the grid without
+   * building a list - `someCellWithin()` rather than `cellsWithin()`.
+   *
    * One approximation worth knowing: the ground is a 0.5m grid and the cells
-   * come back as centres, so a `false` here can be over-strict by up to half a
+   * are tested at their centres, so a `false` here can be over-strict by up to half a
    * cell - a spot the Warden could just barely reach, refused. It is never
    * over-permissive: every cell returned is a place the fill proved a standing
    * body fits. That is the safe side of D5, and the same direction D16 chose.
@@ -308,11 +339,7 @@ export class Objective {
    * @returns {boolean}
    */
   canDefuseAt(at) {
-    const cells = this.map.wardenGround.cellsWithin(at, DEFUSE_REACH.radius);
-    for (let i = 0; i < cells.length; i++) {
-      if (withinDefuseReach(cells[i], at)) return true;
-    }
-    return false;
+    return this.map.wardenGround.someCellWithin(at, DEFUSE_REACH.radius, REACHES, at);
   }
 
   // -------------------------------------------------------------------------

@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **105 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` — A3, gate the plant on `canDefuseAt` |
+| AUTO suite | headless, `npm run suite`: **106 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` — A4, the "cannot plant here" HUD line |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,177 cells of Warden ground |
 
@@ -132,10 +132,20 @@ Josh, straight after the room change:
 
 > *"actually should only be plantable where the ward is able to defuse."*
 
-**Phases 1 and 2 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
-`systems/objective.js`); A3–A7 remain in `QUEUE.md`,
-and this section is the reasoning behind them. The two questions at the end are
-**decided** — D5 and D6 in `DECISIONS.md`; the one A1 raised is D16.
+**Phases 1 to 3 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
+`systems/objective.js`; A3, the gate inside `_stepPlant()`); A4–A7 remain in
+`QUEUE.md`, and this section is the reasoning behind them.
+
+The rule is live now, which means a plant on a crate top inside a site room is
+refused in play. Worth knowing before the next job: **two of the three tops the
+A3 check proves refused are only 0.7m and 1.0m up.** They fail horizontally,
+not vertically — the middle of a wide top is further than `DEFUSE_REACH.radius`
+(2.0m) from any cell of Warden ground. So the live rule already reads "no plant
+in the middle of anything wider than four metres", which nobody stated out
+loud. That is A6's problem now, and its queue line says so.
+
+The two questions at the end are **decided** — D5 and D6 in `DECISIONS.md`;
+the one A1 raised is D16.
 
 ### Why the room rule alone is wrong
 
@@ -166,8 +176,8 @@ Warden cannot follow the Shade onto.
 |---|---|
 | 1 | ✅ **done** — `src/mapground.js`, `map.wardenGround`. 0.5m column grid, flooded from the Warden spawns; 25,177 standable cells in 18,550 columns, 6,627 of them carrying two floors. The step limit is symmetric, so a one-way drop is not in it (D16). This is the file that *states* "the Warden stays grounded" |
 | 2 | ✅ **done** — `Objective.canDefuseAt(at)`. The reach is one exported object, `DEFUSE_REACH` (`radius`, from `round.siteRadius`, and `dy`), and one predicate, `withinDefuseReach(foot, at)`. The defuse asks it of the Warden; `canDefuseAt` asks it of every cell of `map.wardenGround` near the point. Legal at all three site centres. Conservative by up to half a cell — D18 |
-| 3 | **Gate the plant on it every step of the hold**, not at commit. Progress that never starts is the difference between "not yet" and "never"; four seconds of progress then a refusal is the worst of both |
-| 4 | **Tell the player.** Same standard the redesign set for a failed climb: never silent. An interact key that does nothing is the marking problem inverted — an invisible rule. The plant already owns a HUD line and a noise interval; a refusal wants the line and nothing else — D6 settled it: no sound, no noise event, because a refused plant should not give the Shade away |
+| 3 | ✅ **done** — `_stepPlant()` asks `canDefuseAt()` of the Shade's feet every step of the hold, under the site-and-interact gate and *above* the noise interval, so a refusal costs no progress and emits nothing (D6). `WardenGround.someCellWithin()` makes the per-step call allocation-free |
+| 4 | **Tell the player** — next. Same standard the redesign set for a failed climb: never silent. An interact key that does nothing is the marking problem inverted — an invisible rule. The plant already owns a HUD line and a noise interval; a refusal wants the line and nothing else — D6 settled it: no sound, no noise event, because a refused plant should not give the Shade away |
 | 5 | **The check, census-shaped.** For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
 | 6 | **Re-examine `DEFUSE_REACH.dy`** (was the literal `dy < 2.5`; A2 named it and gave it one home, but did not touch the value) in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
 
@@ -310,13 +320,20 @@ A held key and its press edge arrive on the **same step**. A test that sets
 sitting at. Drive `input.heldCodes` / `input.pressedCodes` — see
 `src/tests/fuzz.js`.
 
-**And its cousin, from A1: a check that reads the constant the derivation read
+**And its cousin, from A1 and again in A3: a check that reads the constant the derivation read
 can only ever agree with it.** `the-warden-never-climbs-to-reach-its-ground`
 first asked whether a climbable top had ground beside it within
 `warden.stepHeight` — and stayed green with the step temporarily at 2.00m while
 the fill walked up crate stacks. It asks "is the ground beside it *level* with
 it" now, which is a fact about the geometry. Before believing a derived-data
 check, raise the constant it derives from and watch it go red.
+
+A3 hit the same shape: it *selects* the perches to try with `canDefuseAt` and
+then asserts `canDefuseAt` refused them, which on its own proves nothing. The
+way out was to open `DEFUSE_REACH.dy` a metre at a time until the same perch is
+legal and require that the identical hold then plants — the gate proved to be
+reading the live reach rather than carrying a private exclusion. Any Block A
+check that picks its own inputs owes the suite that second half.
 
 ---
 
