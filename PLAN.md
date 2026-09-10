@@ -68,9 +68,11 @@ what makes it possible. (Decided: D1 in `DECISIONS.md`.)
 
 ## The two routines
 
-### `blackline-build` — daily
+### `blackline-build` — twice daily
 
-One job per run. No exceptions.
+Up to three jobs per run, one at a time — each gated, verified and committed
+before the next is picked. (Was one per run; Josh, 2026-09-10: *"not running
+long enough. maybe 2-3 subphases at a time"* — D19.)
 
 ```
 1. ORIENT   read HANDOFF.md, QUEUE.md, DECISIONS.md, git log -5.
@@ -88,11 +90,14 @@ One job per run. No exceptions.
             QUEUE.md. New questions in DECISIONS.md.
 7. CLEAN    commit everything; push if a remote exists. The tree is
             clean or the session is not over.
-8. STOP.
+8. AGAIN    back to 3 while fewer than three jobs are done, at least a third
+            of the budget remains, and the next job is S or M. The VERIFY
+            just run is the next job's GATE. An L job ends the run.
+9. STOP.
 ```
 
-**Budget rule.** A job is sized to one session (`S` = a third, `M` = most, `L`
-= all of it). If the job is not done by the time most of the budget has gone:
+**Budget rule.** Sizes are fractions of one session (`S` = a third, `M` = most,
+`L` = all of it), so three `S` jobs or one `M` plus one `S` is a full run. If the job is not done by the time most of the budget has gone:
 commit as `WIP: <job>`, split the remainder into a new queue item with an exact
 "resume from" note, update HANDOFF.md, push, stop. A half-done job with a
 precise note beats a finished job that never got committed.

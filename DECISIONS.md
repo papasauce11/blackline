@@ -62,6 +62,16 @@ an edge without a press never climbs. Step-overs (rises under
 `reach.stepOver`) remain automatic; they are walking, not climbing.
 Built the same day by the session Josh raised it in.
 
+### D19 — How much a run does
+Josh, 2026-09-10: *"not running long enough. maybe 2-3 subphases at a time or
+something?"* One job per run was leaving most of each session unused,
+especially with S-sized jobs.
+**decided:** up to three jobs per run, one at a time, each gated, verified and
+committed before the next is picked; the previous verify is the next gate; an
+L job is a whole run; stop when a third of the budget is left rather than start
+a job that cannot be finished. Prompt, `PLAN.md`, `QUEUE.md` and `HANDOFF.md`
+updated the same day.
+
 ---
 
 ## Provisional — done as recommended, override any time

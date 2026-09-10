@@ -6,8 +6,8 @@ on Josh, and what he has decided), `PLAN.md` (the protocol a session follows).
 history (3,000 lines) — read only the last entry.
 
 **The project now runs itself.** Two scheduled tasks — `blackline-build` at
-17:00 and 02:00, `blackline-audit` weekly — do one queue job per run under the
-protocol in `PLAN.md`. A human session is welcome to do the same: take the
+17:00 and 02:00, `blackline-audit` weekly — do up to three queue jobs per run,
+one at a time, under the protocol in `PLAN.md`. A human session is welcome to do the same: take the
 first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 
 ---
