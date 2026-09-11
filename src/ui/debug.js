@@ -233,6 +233,7 @@ export class DebugTools {
     if (input.keyPressed(t.cycleAiState)) this._command('cycle ai state', 'test:cycle-ai-state', {});
     if (input.keyPressed(t.refillGadgets)) this._command('refill gadgets', 'test:refill-gadgets', {});
     if (input.keyPressed(t.cycleTimeScale)) this._command('cycle time scale', 'test:cycle-time-scale', {});
+    if (input.keyPressed(t.toggleWardenGround)) this._command('toggle warden ground', 'test:toggle-warden-ground', {});
     if (input.keyPressed(t.runAutoTests)) this.runAutoTests();
     if (input.keyPressed(t.runRegressionSet)) this.runRegressionSet();
   }
@@ -305,6 +306,7 @@ export class DebugTools {
       keyRow(k(t.cycleAiState), 'cycle ai state'),
       keyRow(k(t.refillGadgets), 'refill gadgets'),
       keyRow(k(t.cycleTimeScale), 'cycle time scale'),
+      keyRow(k(t.toggleWardenGround), 'toggle warden ground'),
       keyRow(k(t.runAutoTests), `run AUTO suite (${this._autoTests.length})`),
       keyRow(k(t.runRegressionSet), `run regression set (${CONFIG.debug.regressionSet.join(', ')})`),
       '<div class="bl-sep"></div>',

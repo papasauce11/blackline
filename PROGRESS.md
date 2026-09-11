@@ -3587,3 +3587,44 @@ Full suite **110 passed / 2 failed, twice, identical** (200s, 347s); exit 0;
 census unchanged at 12 of 65.
 
 **Left.** A7 and A8. Block A is otherwise closed.
+
+## A7 — the Warden's ground, drawn (2026-09-10)
+
+**Why.** 25,177 cells decide whether a plant is legal and, until now, nobody
+could look at one. A wrong cell was invisible until a plant was refused in play
+for no apparent reason — and A5 just proved four of them refuse plants on the
+first map, one of them a plain deck floor.
+
+**Built.** `src/groundview.js`: `WardenGroundView`, one merged mesh of flat
+quads, one per (column, floor) at the floor's own height, plus a marker quad
+that follows the human's actor onto the reachable floor nearest its feet and
+hides when it is somewhere the Warden could never stand. Hidden it costs no draw
+call; shown it costs four (two meshes, two passes). Toggled from the F4 panel
+with **N** (`DEBUG_KEYS.test.toggleWardenGround`), through the same
+key → command → emitter → handler chain as every other test command, and
+listed on the panel. Off by default, and `initMatch()` hides it: a debugging
+view of map data never survives into a new match. It is not a marking — the
+redesign's rule is that the world carries none — so it lives with the F3/F4
+tools and nowhere near the HUD.
+
+**Verified.** Two checks in `tests/groundview.js`.
+`the-warden-ground-overlay-is-off-by-default`: hidden after init, in the scene,
+25,177 quads in one mesh, draw calls 306 hidden / 310 shown / 306 hidden again,
+off after `initMatch`. `the-warden-ground-overlay-draws-the-set-on-the-floor`:
+F4 then N through the real key path changes **71%** of a floor-facing frame at
+site A by **+128 per channel**, a second N hides it back to 0.0% difference,
+and the marker sits under the Shade on the floor and is gone on
+`server-rack-0`.
+
+Full suite ****112 passed / 2 failed, twice, identical****; exit 0.
+
+**Found — `renderFrame` and a lens do not mix.** The first version pressed the
+keys with `h.renderFrame()`, and the frame re-parents the camera to the actor's
+rig every time (documented; it is what makes the finisher orbit visible). The
+lens was pointed at the floor no longer, every pixel differed, and the check
+read a 114-level *darkening*. The keys now go through `debugTools.pollKeys()` —
+the first thing the frame does, and the same real path — while the lens is up,
+and the marker half runs after `lens.restore()` through the real frame. Written
+into `tests/pixels.js`'s neighbourhood as a comment on the helper.
+
+**Left.** A8, the last job in Block A.

@@ -69,6 +69,12 @@ export function wireTestCommands({ harness: h, cycleTimeScale, setGodMode }) {
     });
   });
 
+  // Block A7: the set that decides whether a plant is legal, on the floor.
+  on('test:toggle-warden-ground', () => {
+    const shown = h.groundView.toggle();
+    h.debugTools.logResult(`warden ground ${shown ? 'shown' : 'hidden'} (${h.map.wardenGround.count} cells)`);
+  });
+
   on('test:cycle-ai-state', () => {
     const ai = h.wardenAI;
     const states = Object.keys(AI_STATE).map((key) => AI_STATE[key]);

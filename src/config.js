@@ -1174,6 +1174,12 @@ export const DEBUG_KEYS = {
      * suite is now large enough that people stop running it.
      */
     runRegressionSet: 'KeyU',
+    /**
+     * Block A7: draw `map.wardenGround`, the set that decides whether a plant
+     * is legal. A debugging view of map data, never a marking, so it lives
+     * here with the other test-mode keys and is inert unless F4 is open.
+     */
+    toggleWardenGround: 'KeyN',
   },
 };
 

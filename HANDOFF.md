@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **110 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` — A8, then A7; Block A closes with them |
+| AUTO suite | headless, `npm run suite`: **112 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` — A8, the last in Block A |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,177 cells of Warden ground |
 
@@ -135,7 +135,7 @@ Josh, straight after the room change:
 **Phases 1 to 6 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
 `systems/objective.js`; A3, the gate inside `_stepPlant()`; A4, the HUD line;
 A5, the census; A6, `canPlantAt()` = defusable **and not inside anything**,
-D20). A7 and A8 remain.
+D20; A7, the ground drawn — **F4 then N**). A8 remains.
 
 ### What the rule actually excludes, measured
 
@@ -215,7 +215,10 @@ waypoint is standable, whether a DEFEND path can complete, whether a patrol
 route is walkable end to end. `map.wardenGround.has(position)` answers all
 three. B9's "the Warden never leaves `wardenGround`" check is now writable.
 
-Nothing draws it, which is A7: 25,177 cells and no way to look at one.
+A7 draws it: **F4, then N** puts every cell on the floor as a teal quad at
+its own height, with an orange marker under the human's actor when it is
+standing on a reachable cell. `src/groundview.js`; off by default and off
+again on every `initMatch`.
 
 ## Where the plant-rule checks live
 
@@ -265,7 +268,7 @@ await BLACKLINE.debugTools.runRegressionSet();  // Section 16's set, 16 checks
 ```
 
 In-game: **F3** overlay · **F4** test mode · then **Y** full suite, **U**
-regression set. Run the suite **twice** — a flaky check shows as a different
+regression set, **N** the Warden's ground on the floor. Run the suite **twice** — a flaky check shows as a different
 answer, not a pass.
 
 ---
@@ -312,6 +315,14 @@ gate a routine has; the pane is for humans.
 
 **Bash heredocs fail on JS content** in this shell — `unexpected EOF`. Use the
 Write tool for new files and a `python - <<'PY'` block for edits.
+
+**`renderFrame` and a lens do not mix.** The frame re-parents the camera to
+the actor's rig every time it runs, so a lens pointed at the floor is pointed
+at the floor no longer after one `h.renderFrame()`. Press debug keys with
+`debugTools.pollKeys()` while a lens is up (the same real path; it is the first
+thing the frame does), and do anything that needs the frame after
+`lens.restore()`. A7 lost twenty minutes to a 114-level "darkening" that was
+the camera moving.
 
 **Never time `readPixels`.** It blocks on a GPU sync and copies megabytes; it
 reported a 2ms frame as 14ms. Use `lens.renderOnly()`.

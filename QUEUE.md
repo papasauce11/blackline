@@ -41,12 +41,6 @@ Full reasoning in `HANDOFF.md` under "the plant must be defusable".
   **Do not** settle it by widening the defuse reach. *done-when:* a check
   asserts the worst last leg over all legal plant spots is under the chosen
   bound, and the A5 sample still arrives.
-- [ ] **A7 (S)** Draw the Warden's reachable ground. 25,177 cells exist and
-  nobody can look at them; a wrong one is invisible until a plant is refused in
-  play for no apparent reason. An F3/F4 overlay: the set as flat quads at their
-  floor height, the current role's cell highlighted. *done-when:* a pixel check
-  reads the overlay on and off at one viewpoint and measures a difference, and
-  a check asserts it is off by default.
 
 ## Block F — the gate itself
 
@@ -75,7 +69,10 @@ a name, not a rank.
   intent readers, and the harness object at the bottom. **Do not** move
   anything that changes the order of the fixed step. *done-when:* no file in
   `src/` outside `config.js` is over 600 lines, the suite is identical, and
-  `determinism` and the fixed-step order checks still pass.
+  `determinism` and the fixed-step order checks still pass. `config.js` is
+  1,213 lines and A7 touched it (one key); it is the one file the 600 rule
+  has always exempted in spirit - it is a table - but say so in PLAN.md or
+  split it, one or the other.
 - [ ] **F2 (S)** A check that drives a real frame can hide the HUD for every
   check after it, because `hud.setVisible()` runs inside the frame from
   `!menu.open` and `hud.update()` returns early when hidden. A4 hit it and
@@ -241,6 +238,8 @@ budget checks are the ceiling.
   start a server unattended.
 - **A1** Where the Warden can stand — `src/mapground.js`,
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
+- **A7** The Warden's ground, drawn - `src/groundview.js`, F4 then N, two
+  checks - `COMMIT_A7`, 2026-09-10.
 - **A6** Nothing inside anything - D20 decided, `PLANT_HEADROOM` and
   `canPlantAt()`, spec 20.3, one check; census now 361 legal / 12 refused -
   `57033e6`, 2026-09-10.

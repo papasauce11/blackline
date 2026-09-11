@@ -15,6 +15,7 @@ import { Emitter } from './emitter.js';
 import { Freefly } from './freefly.js';
 import { Input } from './input.js';
 import { buildMap } from './map.js';
+import { createWardenGroundView } from './groundview.js';
 import { classifyReach } from './physics.js';
 import { Shade, SHADE_STATE, createIntent } from './entities/agent.js';
 import { Warden, WARDEN_STATE, createWardenIntent } from './entities/enforcer.js';
@@ -96,6 +97,7 @@ export function computeStepPlan(accumulator, wallDelta, timeScale) {
 /** @type {import('./systems/effects.js').Effects} */ let effects = null;
 /** @type {import('./systems/deathcam.js').DeathCam} */ let deathCam = null;
 /** @type {import('./ui/hud.js').Hud} */ let hud = null;
+/** @type {import('./groundview.js').WardenGroundView} */ let groundView = null;
 /** Section 17.1 test mode: the Shade ignores damage while set. */
 let godMode = false;
 /** @type {import('./ui/menu.js').Menu} */ let menu = null;
@@ -199,6 +201,8 @@ export function initMatch(options = {}) {
     difficulty: SETTINGS.difficulty,
     ...options,
   };
+  // A debugging view of map data never survives into a new match (A7).
+  if (groundView) groundView.setVisible(false);
 
   const seed = rng.reseed(
     opts.seed !== undefined ? opts.seed : deriveSeed(typeof location !== 'undefined' ? location.search : '')
@@ -332,6 +336,10 @@ function bootstrap() {
 
   map = buildMap({ gradientMap });
   scene.add(map.root);
+  // Block A7: the Warden's reachable ground, drawable from the F4 panel.
+  // Hidden by default; `test:toggle-warden-ground` shows it.
+  groundView = createWardenGroundView(map.wardenGround);
+  scene.add(groundView.root);
 
   debugState.collisionBoxes = map.collision.boxCount;
   debugState.mapLedges = map.ledges.length;
@@ -882,6 +890,10 @@ function renderFrame(wallDelta) {
     }
   }
 
+  // The Warden-ground overlay's marker follows the human's actor. Nothing
+  // while hidden, which is always outside the F4 panel.
+  if (groundView.visible) groundView.update(owner === 'warden' ? warden : shade);
+
   // Audio and the HUD run on the wall clock, not the fixed step: they present
   // the simulation rather than being part of it.
   audio.step(wallDelta, { detectionAccumulator: wardenAI.accumulator });
@@ -1001,6 +1013,9 @@ const harness = {
   },
   get hud() {
     return hud;
+  },
+  get groundView() {
+    return groundView;
   },
   get menu() {
     return menu;
