@@ -482,6 +482,29 @@ function bootstrap() {
 
   window.addEventListener('resize', onResize);
 
+  // The GPU can be taken away underneath a running game. Chrome kills a
+  // starved GPU process (its watchdog, or a machine under load) and hands
+  // every WebGL context back a little later; three.js already prevents the
+  // default so the restore happens, and rebuilds its state when it does. What
+  // it does not do is tell anyone. While the context is lost every draw is a
+  // no-op and every readPixels returns black, so a check measuring pixels in
+  // that window fails for a reason that has nothing to do with the game. F1
+  // found eight pixel checks red at once, unreproducible, on a loaded PC:
+  // the drawing buffer reads 0x0 against a 1280x720 canvas, which is what a
+  // lost context reports. Counted here so the suite can tell a lost
+  // instrument from a wrong answer, and re-run only what the loss touched.
+  debugState.contextLosses = 0;
+  debugState.contextLost = false;
+  canvas.addEventListener('webglcontextlost', () => {
+    debugState.contextLosses++;
+    debugState.contextLost = true;
+    emitter.emit('view:contextlost', { count: debugState.contextLosses });
+  });
+  canvas.addEventListener('webglcontextrestored', () => {
+    debugState.contextLost = false;
+    emitter.emit('view:contextrestored', { count: debugState.contextLosses });
+  });
+
   debugTools = new DebugTools({ input, emitter, debugState, harness });
   registerAssertions(debugTools, harness);
   registerAutoTests(debugTools);

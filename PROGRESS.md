@@ -3775,3 +3775,70 @@ above the lip (`hangDrop` 1.35 against a 1.85m body), so the grab could not fit
 and the controller went over. Right answer; the check now asks for a face with
 room to hang. Whether the hanging body should sit lower is noted in B8.
 
+## F1 — the cascade was a lost GPU (2026-09-11)
+
+The gate's one recorded lie: an A2 verify run with *eight* pixel checks flaky
+at once — rim light, lit pools, the dim meter, the outline, smoke/flash, the
+alarm fixture, the death camera and the 0×size viewport — unreproducible in
+four later full runs. The suspect on file was the viewport check restoring
+the canvas late.
+
+**Found.** It was not the viewport check; it was the WebGL context. Staging a
+loss with `WEBGL_lose_context` under the ten checks nearest the incident fails
+*exactly* the eight named and nothing else, each in the words the incident
+would have used ("the Shade covered only 0 pixels", "the hall renders at 0.0
+and the vault at 0.0", "the drawing buffer collapsed to 0x0") — and reports a
+0×0 drawing buffer against a 1280×720 canvas, which is the very observation
+the pane incident was diagnosed from. The mechanism: on a loaded PC Chrome's
+watchdog kills a starved SwiftShader GPU process and hands every context
+back a moment later; in the window every draw is a no-op and every
+`readPixels` reads black. three.js prevents the default so the restore
+happens, rebuilds its state when it does, and tells nobody — it logs via
+`console.log`, which the runner does not collect. So the suite saw eight
+wrong answers, no error, and a clean re-run.
+
+**Built.** `main.js` listens for `webglcontextlost` / `webglcontextrestored`
+on the canvas, counts into `debugState.contextLosses` (an F3 row), and emits
+`view:contextlost` / `view:contextrestored`. The suite runner moved out of
+`ui/debug.js` (601 lines after the change) into `ui/autosuite.js`; `DebugTools`
+composes it and forwards, so `h.debugTools.runAutoTests()` and `_autoTests`
+are unchanged. `AutoSuite.runChecks()` tags any check whose run overlapped a
+lost context (`contextLost`), waits for the `webglcontextrestored` event —
+bounded by `CONFIG.debug.contextRestoreFrames` animation frames, no
+`setTimeout` — and re-runs those checks once, the second answer standing
+(`rerun`). Once only: a check that loses the context every time has a defect
+of its own. `runAutoTests()` returns `contextLosses`; `scripts/suite.mjs`
+carries `contextLosses` and `rerun` per run into the JSON and prints `GL
+CONTEXT LOST Nx during run N; re-ran after restore: ...` in the summary, so a
+green run that needed the tiebreak is never silent. A check registered with
+`losesContext: true` stages a loss on purpose; its loss is counted as
+`staged`, not as the machine's, and it is not re-run for it.
+
+**Verified.** New check `a-lost-gl-context-is-caught-and-the-check-re-run`
+stages a real loss through the real runner: an inline probe loses the context
+on its first run, asks for it back one task later (a `MessageChannel` hop —
+Chrome only honours a restore requested after the lost event has finished
+dispatching, and an `await` on the event resumes inside it), renders and
+reads back. The probe must read black, be tagged, be re-run after the
+restore, and read a lit frame the second time; the counter must go up by one;
+the emitter must see lost then restored; the context must be usable after.
+With the tagging and re-run removed by `--pre` it is red in its own words
+("the probe ran 1 time, not twice; the probe was not tagged contextLost; ...
+the context is still lost afterwards") and the runner's summary shows the
+loss as the machine's. Full suite **115 passed / 2 failed, twice, identical**,
+flaky empty, zero console errors, zero context losses, zero re-runs. The two
+runs took 293s and 365s against the gate's 180s — the machine was busy — and
+nothing wavered.
+
+**Also found, queued.** The rAF loop runs the real game *under* the suite in
+headless Chrome: `document.hidden` is false there, 9 frames drew in 3 idle
+seconds, 7 frames ran inside the audio check (the only one that yields), and
+the 45s cooldown between runs is ~135 frames of the AI hunting an idle Shade.
+Every check that starts from `initMatch` is immune; anything else inherits a
+state that depends on the wall clock. Queued as F4. And F2 confirmed on HEAD
+before this change: `hud-reads-the-meter-it-is-shown-beside` is red when run
+straight after `the-rim-light-is-really-on-screen`, green in the full order.
+
+**Left.** The suspect on file was wrong and HANDOFF's trap is rewritten.
+`ui/debug.js` is 416 lines, `ui/autosuite.js` 242. `main.js` gained 23 lines
+and is 1,129 — F3's job.

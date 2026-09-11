@@ -5,7 +5,7 @@
  *   - F3 overlay, data driven from a shared debugState object
  *   - F4 test mode, its key bindings and its command log (Section 17.1)
  *   - Runtime assertions
- *   - The AUTO test registry and runner behind the "Y" key
+ *   - The AUTO test registry and runner behind the "Y" key (ui/autosuite.js)
  *
  * Layering (Section 3.1): ui/ may import from systems, entities and config.
  * This module imports config only, and never Three.js: the shadow-light count
@@ -18,7 +18,8 @@
  * phases, so a partial build reports honestly instead of showing dead rows.
  */
 
-import { CONFIG, DEBUG, DEBUG_KEYS, rng } from '../config.js';
+import { CONFIG, DEBUG, DEBUG_KEYS } from '../config.js';
+import { AutoSuite } from './autosuite.js';
 
 // ---------------------------------------------------------------------------
 // Overlay field spec. Order here is the order on screen. A row is drawn only
@@ -37,6 +38,7 @@ const FIELDS = [
   { key: 'timeScale', label: 'time scale', fmt: num(2) },
   { key: 'drawCalls', label: 'draw calls', fmt: num(0) },
   { key: 'triangles', label: 'triangles', fmt: num(0) },
+  { key: 'contextLosses', label: 'gl context lost', fmt: num(0) },
   { key: 'sep1', label: null },
   { key: 'seed', label: 'match seed', fmt: (v) => String(v) },
   { key: 'rngCalls', label: 'rng calls', fmt: num(0) },
@@ -129,9 +131,7 @@ export class DebugTools {
     this.assertionFailures = 0;
     this._assertionStepCounter = 0;
 
-    /** Registered AUTO checks, in registration order. */
-    this._autoTests = [];
-    this._autoRunning = false;
+    this.suite = new AutoSuite({ debugState, harness, log: (line) => this._log(line) });
 
     this._buildDom();
   }
@@ -369,122 +369,34 @@ export class DebugTools {
   }
 
   // -------------------------------------------------------------------------
-  // AUTO test suite (Section 16, Section 17.1 "Y")
+  // AUTO test suite (Section 16, Section 17.1 "Y") - lives in ui/autosuite.js
   // -------------------------------------------------------------------------
 
-  /**
-   * @param {object} test
-   * @param {string} test.id short slug
-   * @param {string} test.name human description
-   * @param {string} test.spec which Section 16 check this covers
-   * @param {(harness: object) => Promise<{pass: boolean, detail: string}>} test.run
-   */
+  /** Registered AUTO checks, in registration order. */
+  get _autoTests() {
+    return this.suite.tests;
+  }
+
+  /** @see AutoSuite#registerAutoTest */
   registerAutoTest(test) {
-    this._autoTests.push(test);
+    this.suite.registerAutoTest(test);
   }
 
-  /**
-   * Which Section 16 checks a registered test covers, read out of its `spec`
-   * string ("Section 6.1 / check 1", "checks 23, 24, 25").
-   *
-   * Parsed rather than declared in a second field, because a second field is
-   * one more thing to forget to update — and every check already states which
-   * spec check it is for, in the line it prints.
-   *
-   * @returns {number[]}
-   */
+  /** @see AutoSuite#checksCovered */
   checksCovered(test) {
-    const found = new Set();
-    const spec = String(test.spec || '');
-    const groups = spec.match(/checks?\s*[\d,\s]+(?:and\s*\d+)?/gi) || [];
-    for (const group of groups) {
-      for (const digits of group.match(/\d+/g) || []) found.add(Number(digits));
-    }
-    return [...found];
+    return this.suite.checksCovered(test);
   }
 
-  /**
-   * Section 16: "Regression set after any patch: 1, 3, 9, 13, 17, 20, 22, 23,
-   * 27." Runs only the checks covering those, and says which of them no AUTO
-   * check covers — a regression run that silently skips half the set is worse
-   * than not having one.
-   */
+  /** @see AutoSuite#runRegressionSet */
   runRegressionSet() {
-    const wanted = new Set(CONFIG.debug.regressionSet);
-    const covered = new Set();
-    const subset = this._autoTests.filter((test) => {
-      const hits = this.checksCovered(test).filter((number) => wanted.has(number));
-      for (const hit of hits) covered.add(hit);
-      return hits.length > 0;
-    });
-    const uncovered = [...wanted].filter((number) => !covered.has(number));
-    if (uncovered.length) {
-      console.log(
-        `%c[regression] no AUTO check covers Section 16 check${uncovered.length > 1 ? 's' : ''} `
-        + `${uncovered.join(', ')} — run ${uncovered.length > 1 ? 'those' : 'that'} by hand `,
-        'background:#f5c451;color:#08090b'
-      );
-    }
-    return this.runAutoTests({ subset, label: `REGRESSION SET (${[...wanted].join(', ')})` });
+    return this.suite.runRegressionSet();
   }
 
-  /**
-   * Run registered AUTO checks and print a pass/fail line each.
-   * @param {object} [options]
-   * @param {object[]} [options.subset] run only these, defaults to all
-   * @param {string} [options.label] banner text
-   */
-  async runAutoTests(options = {}) {
-    if (this._autoRunning) {
-      console.warn('[AUTO] suite already running');
-      return null;
-    }
-    const tests = options.subset || this._autoTests;
-    const label = options.label || 'AUTO SUITE';
-    this._autoRunning = true;
-    this._log(`running ${label.toLowerCase()} (${tests.length})`);
-
-    const results = [];
-    console.log(
-      `%c BLACKLINE ${label}  seed=${rng.seed}  checks=${tests.length} `,
-      'background:#2fd6c3;color:#08090b;font-weight:bold'
-    );
-
-    for (const test of tests) {
-      let result;
-      const started = performance.now();
-      try {
-        result = await test.run(this.harness);
-        if (!result || typeof result.pass !== 'boolean') {
-          result = { pass: false, detail: 'test returned no verdict' };
-        }
-      } catch (error) {
-        result = { pass: false, detail: `threw: ${error && error.message}` };
-      }
-      const ms = performance.now() - started;
-      results.push({ id: test.id, spec: test.spec, ...result });
-      const tag = result.pass ? 'PASS' : 'FAIL';
-      const colour = result.pass ? 'color:#4ade80' : 'color:#f87171;font-weight:bold';
-      console.log(
-        `%c[${tag}]%c ${test.id.padEnd(26)} ${String(test.spec).padEnd(22)} ${result.detail}  (${ms.toFixed(1)}ms)`,
-        colour,
-        'color:inherit'
-      );
-    }
-
-    const passed = results.filter((r) => r.pass).length;
-    const failed = results.length - passed;
-    console.log(
-      `%c ${passed} passed, ${failed} failed `,
-      failed === 0
-        ? 'background:#4ade80;color:#08090b;font-weight:bold'
-        : 'background:#f87171;color:#08090b;font-weight:bold'
-    );
-    this._log(`${label}: ${passed} passed, ${failed} failed`);
-
-    this._autoRunning = false;
-    return { passed, failed, results };
+  /** @see AutoSuite#runAutoTests */
+  runAutoTests(options = {}) {
+    return this.suite.runAutoTests(options);
   }
+
 }
 
 // ---------------------------------------------------------------------------

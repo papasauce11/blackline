@@ -1100,6 +1100,12 @@ export const CONFIG = {
     floorTolerance: 0.5,
     /** Frames the AUTO suite advances per stepFrames() unit of work. */
     autoTestMaxFrames: 2400,
+    /**
+     * Animation frames the suite waits for a lost WebGL context to be handed
+     * back before giving up on re-running the checks it spoiled. Chrome
+     * restores in well under a second once its GPU process is up again.
+     */
+    contextRestoreFrames: 600,
     /** Number of PRNG values compared in the determinism check. */
     prngCompareCount: 2000,
     /**

@@ -229,6 +229,104 @@ export function register(debugTools) {
   });
 
   debugTools.registerAutoTest({
+    id: 'a-lost-gl-context-is-caught-and-the-check-re-run',
+    spec: 'Section 15',
+    name: 'A check that ran under a lost WebGL context is tagged, and re-run once the context is back',
+    // The loss below is staged on purpose. Declared, so the suite counts it
+    // as this check's own rather than as the machine taking the GPU away.
+    losesContext: true,
+    run: async (h) => {
+      const problems = [];
+      const gl = h.renderer.getContext();
+      const canvas = h.renderer.domElement;
+      const ext = gl.getExtension('WEBGL_lose_context');
+      if (!ext) return { pass: false, detail: 'WEBGL_lose_context is unavailable, so a loss cannot be staged' };
+      if (gl.isContextLost()) return { pass: false, detail: 'the context is already lost' };
+
+      // F1: eight pixel checks went red at once on a loaded PC and never
+      // reproduced. A lost WebGL context - Chrome killing a starved GPU
+      // process and handing the context back a moment later - fails exactly
+      // that set: every draw is a no-op and every readPixels reads black, the
+      // drawing buffer reports 0x0 against a 1280x720 canvas. Staged here with
+      // WEBGL_lose_context, which is the same event Chrome sends, and driven
+      // through the real runner: the probe must be tagged, the context must
+      // come back, and the probe's second answer must stand.
+      const lossesBefore = h.debugState.contextLosses;
+      const seen = [];
+      const offLost = h.emitter.on('view:contextlost', () => seen.push('lost'));
+      const offBack = h.emitter.on('view:contextrestored', () => seen.push('restored'));
+
+      // What every pixel check does: render, read back. A live frame is never
+      // all zero - the clear colour alone is 0x0a0d10 - and a lost one always is.
+      const frame = new Uint8Array(canvas.width * canvas.height * 4);
+      const readsLit = () => {
+        h.renderFrame(1 / 60);
+        gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, frame);
+        return frame.some((v) => v > 0);
+      };
+
+      let runs = 0;
+      const probe = {
+        id: 'probe-under-a-lost-context',
+        spec: 'F1',
+        run: async () => {
+          runs++;
+          if (runs === 1) {
+            // Lose it, wait for the event, and ask for it back - Chrome does
+            // the same restore on its own once the GPU process is up again.
+            // The ask has to land in a later task: Chrome only allows a
+            // restore once the lost event has finished dispatching, and an
+            // await on the event resumes as a microtask, still inside it.
+            // A MessageChannel hop is a task without being a timer.
+            const lostEvent = new Promise((resolve) => canvas.addEventListener('webglcontextlost', resolve, { once: true }));
+            ext.loseContext();
+            await lostEvent;
+            await new Promise((resolve) => {
+              const channel = new MessageChannel();
+              channel.port1.onmessage = () => resolve();
+              channel.port2.postMessage(0);
+            });
+            ext.restoreContext();
+          }
+          const lit = readsLit();
+          return { pass: lit, detail: lit ? `read back a lit frame on run ${runs}` : `read back black on run ${runs}` };
+        },
+      };
+
+      let outcome;
+      try {
+        outcome = await h.debugTools.suite.runChecks([probe]);
+      } finally {
+        offLost();
+        offBack();
+      }
+      const result = outcome.results[0];
+
+      if (runs !== 2) problems.push(`the probe ran ${runs} time${runs === 1 ? '' : 's'}, not twice`);
+      if (!result.contextLost) problems.push('the probe was not tagged contextLost');
+      if (!result.rerun) problems.push('the probe was not marked as re-run');
+      if (!result.pass) problems.push(`the re-run did not stand: "${result.detail}"`);
+      if (h.debugState.contextLosses !== lossesBefore + 1) {
+        problems.push(`debugState.contextLosses went ${lossesBefore} -> ${h.debugState.contextLosses}, expected +1`);
+      }
+      if (seen.join(',') !== 'lost,restored') problems.push(`the emitter saw [${seen.join(', ')}], expected lost then restored`);
+      if (gl.isContextLost() || h.debugState.contextLost) problems.push('the context is still lost afterwards');
+      if (!readsLit()) problems.push('the frame after the restore reads black');
+      if (gl.getError() !== 0) problems.push('GL error after the restore');
+
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `the probe read black under the staged loss, was tagged and re-run after the restore, and read a lit `
+            + `frame the second time; the loss was counted once and both events reached the emitter`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
     id: 'the-state-machines-survive-each-other',
     spec: 'Section 15',
     name: 'Pause, death, finisher, reinsert and match end driven into one another',

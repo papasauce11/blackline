@@ -7,6 +7,13 @@
 // and every run agrees. Checks listed in scripts/suite-skips.json are
 // reported but never counted, either way.
 //
+// One tiebreak, and it is the page's, not this script's: a check that ran
+// while the WebGL context was lost (Chrome kills a starved GPU process on a
+// loaded machine and restores the context a moment later; every draw in the
+// window is a no-op and every readPixels reads black) is re-run once the
+// context is back, by the suite runner in src/ui/autosuite.js. The report
+// carries `contextLosses` and `rerun` per run so that is never invisible.
+//
 //   node scripts/suite.mjs [--runs 2] [--subset <regex>] [--pre "<js>"]
 //                          [--channel chrome|msedge] [--timeout 600000]
 //                          [--cores N] [--cooldown SECONDS]
@@ -250,6 +257,12 @@ async function main() {
         return {
           passed: res.passed,
           failed: res.failed,
+          // Times the machine took the WebGL context away mid-run (a check
+          // that stages a loss on purpose is not counted). Each check that ran
+          // in that window was re-run once the context came back; those are
+          // listed so a green run that needed the tiebreak is never silent.
+          contextLosses: res.contextLosses,
+          rerun: res.results.filter(x => x.rerun).map(x => x.id),
           results: res.results.map(x => ({
             id: x.id, pass: !!x.pass, detail: String(x.detail ?? '').slice(0, 400),
           })),
@@ -304,7 +317,7 @@ function judge(runs, renderer, consoleErrors) {
   return {
     ok,
     renderer,
-    runs: runs.map(r => ({ passed: r.passed, failed: r.failed, ms: r.ms })),
+    runs: runs.map(r => ({ passed: r.passed, failed: r.failed, ms: r.ms, contextLosses: r.contextLosses, rerun: r.rerun })),
     red,
     flaky,
     expectedRed,
@@ -317,7 +330,12 @@ function judge(runs, renderer, consoleErrors) {
 function summary(r) {
   const lines = [];
   lines.push(`suite: ${r.ok ? 'OK' : 'FAIL'}  renderer: ${r.renderer}`);
-  for (const [i, run] of r.runs.entries()) lines.push(`  run ${i + 1}: ${run.passed} passed, ${run.failed} failed, ${run.ms}ms`);
+  for (const [i, run] of r.runs.entries()) {
+    lines.push(`  run ${i + 1}: ${run.passed} passed, ${run.failed} failed, ${run.ms}ms`);
+    if (run.contextLosses) {
+      lines.push(`    GL CONTEXT LOST ${run.contextLosses}x during run ${i + 1}; re-ran after restore: ${run.rerun.join(', ') || 'nothing'}`);
+    }
+  }
   if (r.red.length) lines.push(`  RED (unexpected): ${r.red.map(x => x.id).join(', ')}`);
   if (r.flaky.length) lines.push(`  FLAKY: ${r.flaky.map(x => x.id).join(', ')}`);
   if (r.expectedRed.length) lines.push(`  expected red: ${r.expectedRed.map(x => x.id).join(', ')}`);

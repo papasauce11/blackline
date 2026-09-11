@@ -39,17 +39,6 @@ every later block is measured with, and a gate that answers differently on a
 busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank.
 
-- [ ] **F1 (S)** The pixel checks can cascade on a loaded machine: one run
-  had eight flaky at once, unreproducible in four later full runs (see
-  "Environment traps" in `HANDOFF.md`). Either find the shared state that
-  lets one pixel check spoil the next — first suspect is
-  `a-zero-size-viewport-does-not-blind-the-renderer` restoring the canvas
-  late — or make the runner re-run a flaky check a third time and report
-  the tiebreak, so a loaded PC cannot turn a green gate red. **Do not**
-  weaken a pixel check to settle it. *done-when:* either the shared state is
-  named and fixed with a check that catches it, or the runner's tiebreak is
-  in `scripts/suite.mjs` and documented in `HANDOFF.md`.
-
 - [ ] **F2 (S)** A check that drives a real frame can hide the HUD for every
   check after it, because `hud.setVisible()` runs inside the frame from
   `!menu.open` and `hud.update()` returns early when hidden. A4 hit it and
@@ -80,6 +69,19 @@ a name, not a rank.
   machine and the navigation (`_pathTo`, `_followRoute`, `_face`, the stuck
   handling), and mapkit.js has already shed two files and can shed the
   waypoint graph.
+
+- [ ] **F4 (S)** The rAF loop runs the real game under the suite in headless
+  Chrome (F1 measured it: `document.hidden` is false, 7 real frames ran
+  inside the audio check, the 45s cooldown between runs is ~135 frames of the
+  AI hunting an idle Shade). A check that does not start from `initMatch`
+  inherits a state that depends on the wall clock. Stop the loop for the
+  duration of `runAutoTests` (`stop()`/`start()` are in `main.js`; the harness
+  would need to expose them, or the suite can ask through the emitter) and
+  make `h.nextFrame()` still resolve while it is stopped. **Do not** fix it
+  by adding `initMatch` to every check. *done-when:* `clock.frame` is the
+  same before and after a full suite run minus what checks drove themselves,
+  and a check proves it.
+
 ## Block B — the traversal redesign, phases 12–50
 
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
@@ -226,6 +228,11 @@ budget checks are the ceiling.
 
 ## Done
 
+- **F1** The cascade was a lost WebGL context, not the viewport check:
+  counted in `main.js`, tagged and re-run once after restore by the suite
+  runner, now `ui/autosuite.js` (split from `ui/debug.js`); `contextLosses`
+  and `rerun` in the runner's report; check
+  `a-lost-gl-context-is-caught-and-the-check-re-run` - 2026-09-11.
 - **B1** Hang as a held option, as Josh specified it (D21, D22): tap Space
   grabs and hangs, hold Space climbs over; a `GRAB` move starts every climb of
   a ledge ≥ 1.4 Shade-heights above where it started, lower ledges go straight

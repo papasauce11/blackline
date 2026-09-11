@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **114 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` — F1; **Block A is closed** |
+| AUTO suite | headless, `npm run suite`: **115 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` is F2 (F1 done this run); **Block A is closed** |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,299 edge-bearing cells of Warden ground, one connected component |
 
@@ -245,6 +245,13 @@ line guidance:
 | `tests/plantcensus.js` | A5 — the whole map, both directions |
 | `tests/objective.js` | round flow: detonation, defuse retention, lives, reinsert, milestones, state not bleeding |
 
+## Where the suite runner lives
+
+`ui/autosuite.js` (`AutoSuite`): the registry, `runAutoTests`, the regression
+set, and the lost-context tiebreak. `ui/debug.js` composes it and forwards, so
+checks still reach it as `h.debugTools.runAutoTests()` / `_autoTests`; a
+check that must drive the runner directly uses `h.debugTools.suite.runChecks()`.
+
 ---
 
 ## Running it
@@ -259,7 +266,11 @@ npm run suite
 `scripts/suite.mjs` serves the repo in-process, drives the Chrome already on
 this PC headless with software WebGL, warms 60 frames, runs the AUTO suite
 twice and prints a JSON report. Exit 0 means nothing is red outside QUEUE.md's
-Deliberately-red list and the two runs agree. `--runs 1` is a one-minute gate;
+Deliberately-red list and the two runs agree. Each run in the report carries
+`contextLosses` and `rerun`, the checks re-run after the GPU was taken away
+and given back (F1); the summary prints them as `GL CONTEXT LOST`. Zero is
+the normal reading; a non-zero one is the machine, not the game, unless the
+same check is in the list every run. `--runs 1` is a one-minute gate;
 `--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
 the match. `scripts/suite-skips.json` lists checks that cannot pass headless,
 with reasons (today: the frame-budget check; SwiftShader draws a frame in
@@ -288,17 +299,21 @@ answer, not a pass.
 
 ## Environment traps — these will cost you an hour each
 
-**A loaded machine can cascade the pixel checks.** One A2 verify run came
-back with *eight* pixel checks flaky at once — rim light, lit pools, the dim
-meter, the outline, smoke/flash, the alarm fixture, the death camera and the
-0×size viewport — while run 2 took 108s against run 1's 62s. It did not
-reproduce: four later full runs (two on HEAD, two with A2) were identical,
-and the eight run clean twice as a subset alongside the new check. Second
-runs on this PC drift between 60s and 230s depending on what else is awake,
-so **a flaky pixel set is worth re-running before you believe it** — the
-same advice the audio check already carries. Queued as F1; if it recurs,
-suspect `a-zero-size-viewport-does-not-blind-the-renderer` leaving the
-canvas 0×0 for everything after it, which is the documented failure below.
+**A loaded machine can take the GPU away mid-suite.** One A2 verify run
+came back with *eight* pixel checks flaky at once (rim light, lit pools,
+the dim meter, the outline, smoke/flash, the alarm fixture, the death camera
+and the 0x0 viewport) and never reproduced. F1 found it: a **lost WebGL
+context**. Chrome kills a starved SwiftShader GPU process and hands the
+context back a moment later; in the window every draw is a no-op, every
+`readPixels` reads black, and the drawing buffer reports 0x0 against a
+1280x720 canvas. Staging a loss fails exactly those eight and nothing else.
+Since F1 the suite counts losses (`debugState.contextLosses`, an F3 row),
+tags every check that ran in the window, waits for the restore and re-runs
+them once (`ui/autosuite.js`); the runner prints `GL CONTEXT LOST Nx` and
+lists the re-runs, so read that line before believing any red pixel check.
+If you ever see a 0x0 drawing buffer with the canvas still sized, it is
+this, not a resize. A check that needs to lose the context on purpose
+registers with `losesContext: true`.
 
 **Two sessions in this repo will collide on decision numbers.** A5 raised its
 question as D19 while, ten minutes earlier and unseen, another session had
