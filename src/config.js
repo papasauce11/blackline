@@ -641,6 +641,14 @@ export const CONFIG = {
     /** Defuse progress is retained for 5s, then decays. */
     defuseRetainTime: 5,
     defuseDecayRate: 0.5,
+    /**
+     * How far above or below its feet a Warden can work on a charge. With
+     * `siteRadius`, the whole defuse reach; `DEFUSE_REACH` in
+     * systems/objective.js is where it is measured, and the AI reads it here
+     * to know where to walk to. 2.5m is decided (A6, D5): a Warden beside a
+     * 2m crate reaches up to a charge on top of it.
+     */
+    defuseReachY: 2.5,
     /** Plant/defuse interaction radius around a site. */
     siteRadius: 2.0,
     /** Milestones (Section 10.3), each fires at most once per round. */
@@ -731,6 +739,14 @@ export const CONFIG = {
     stuckTime: 2,
     /** Distance at which a waypoint counts as reached. */
     waypointArriveRadius: 0.9,
+    /**
+     * How far the AI may have to walk from its last waypoint to a goal with
+     * only the solver to steer it - the one leg nothing plans (Block A8). A
+     * bound on the waypoint graph's density, measured from the ground a
+     * Warden would defuse on for every legal plant: past it, a crate between
+     * the last node and the charge is a DEFEND stall.
+     */
+    maxUnpathedLeg: 6,
     /** Turn rate, radians per second. */
     turnRate: 3.4,
 

@@ -284,4 +284,156 @@ export function register(debugTools) {
       };
     },
   });
+
+  // A8: the last leg is planned. The AI paths over the waypoint graph and used
+  // to walk straight from its last node to the goal with only the solver to
+  // steer it - A5 measured that leg at up to 14.9m across the legal plants,
+  // which worked on this map and is the DEFEND stall waiting to happen on one
+  // with more furniture. `WardenGround.route()` now plans it over A1's ground
+  // in segments no longer than `ai.maxUnpathedLeg`. This asks, for every legal
+  // plant, whether that route exists from the nearest waypoint, whether every
+  // segment is short and genuinely walkable - a standing Warden's capsule
+  // fits at every quarter-cell sample, asked of the collision world and not
+  // of the ground data that planned it - whether it ends within the defuse
+  // reach, and whether the AI's own `_pathTo` produces the same thing.
+  debugTools.registerAutoTest({
+    id: 'the-last-leg-to-every-legal-plant-is-planned-and-short',
+    spec: 'Section 11 / Block A8',
+    name: 'From its last waypoint the AI walks planned ground to every legal plant, no segment over ai.maxUnpathedLeg',
+    run: (h) => {
+      const problems = [];
+      h.initMatch({ mode: 'competitive', role: 'shade', ai: true, objective: true });
+      h.menu.hide();
+      const ground = h.map.wardenGround;
+      const bound = CONFIG.ai.maxUnpathedLeg;
+      const snap = { radius: CONFIG.round.siteRadius, dy: CONFIG.round.defuseReachY };
+      const half = { x: CONFIG.warden.radius, y: CONFIG.warden.standHeight / 2, z: CONFIG.warden.radius };
+      const step = CONFIG.warden.stepHeight;
+      if (!ground) return { pass: false, detail: 'map.wardenGround was never derived' };
+      if (!ground.edges.size) return { pass: false, detail: 'the ground has no edges, so nothing can be routed over it' };
+
+      /**
+       * Walk a segment the way the solver would, with the collision world's
+       * raycast rather than the ground data that planned it. Every
+       * quarter-cell the body rests on the highest solid top under its
+       * FOOTPRINT within a step of where it was - five rays, centre and
+       * corners, because the swept AABB rests on any top face it overlaps and
+       * steps up onto a tread corner the centre ray would miss - refuses a
+       * drop of more than a step, and needs the standing capsule to fit
+       * there. Independent of `route()`, which rests by box query.
+       */
+      const walkableByRay = (a, b) => {
+        const length = Math.hypot(b.x - a.x, b.z - a.z);
+        const n = Math.max(1, Math.ceil(length / (ground.cell / 4)));
+        const down = { x: 0, y: -1, z: 0 };
+        const feet = [[0, 0], [-half.x, -half.z], [half.x, -half.z], [-half.x, half.z], [half.x, half.z]];
+        let y = a.y;
+        for (let q = 1; q <= n; q++) {
+          const t = q / n;
+          const x = a.x + (b.x - a.x) * t;
+          const z = a.z + (b.z - a.z) * t;
+          let rest = -Infinity;
+          for (const [dx, dz] of feet) {
+            const hit = h.map.collision.raycast({ x: x + dx, y: y + step + 0.01, z: z + dz }, down, step * 2 + 0.02);
+            if (hit && hit.y > rest) rest = hit.y;
+          }
+          if (rest === -Infinity) return { ok: false, x, z, why: 'a drop of more than a step' };
+          y = rest;
+          if (!h.map.collision.isClear({ x, y: y + half.y + 0.02, z }, half)) return { ok: false, x, z, why: 'no room for a standing body' };
+        }
+        return { ok: true };
+      };
+
+      const legal = plantableSpots(h).filter((spot) => spot.legal);
+      let worst = 0;
+      let longestRoute = 0;
+      let unplanned = 0;
+      let straightBefore = 0;
+
+      for (const spot of legal) {
+        // From the waypoint the AI would path to, as the AI finds it.
+        const node = h.map.nearestWaypoint(spot.at);
+        const from = { x: node.position.x, y: node.position.y, z: node.position.z };
+        const straight = Math.hypot(spot.at.x - from.x, spot.at.z - from.z);
+        straightBefore = Math.max(straightBefore, straight);
+
+        const route = ground.route(from, spot.at, bound, snap);
+        if (!route) {
+          unplanned++;
+          if (unplanned <= 3) problems.push(`${spot.what}: no planned route from ${node.tag || node.id} (${straight.toFixed(1)}m straight)`);
+          continue;
+        }
+        longestRoute = Math.max(longestRoute, route.length);
+        // A snapped route's last hop is the walk at the crate the charge is
+        // on, ended by the solver rather than by arriving; it is not ground
+        // and is not held to the walk test. Everything before it is.
+        const last = route[route.length - 1];
+        const onGround = ground.has(last) ? route.length : route.length - 1;
+        for (let s = 1; s < route.length; s++) {
+          const a = route[s - 1];
+          const b = route[s];
+          const leg = Math.hypot(b.x - a.x, b.z - a.z);
+          worst = Math.max(worst, leg);
+          if (leg > bound + 1e-6) {
+            problems.push(`${spot.what}: segment ${s} is ${leg.toFixed(1)}m, over the ${bound}m bound`);
+            break;
+          }
+          if (s >= onGround) continue;
+          // Walkable by the physics, not by the data that planned it.
+          const walk = walkableByRay(a, b);
+          if (!walk.ok) {
+            problems.push(`${spot.what}: segment ${s} meets ${walk.why} at (${walk.x.toFixed(1)}, ${walk.z.toFixed(1)})`);
+            break;
+          }
+        }
+        // The ground it defuses from: the last point that is ground.
+        const end = route[onGround - 1];
+        if (!withinDefuseReach(end, spot.at)) {
+          problems.push(`${spot.what}: the route ends ${Math.hypot(end.x - spot.at.x, end.z - spot.at.z).toFixed(1)}m from the charge, outside the defuse reach`);
+        }
+        if (problems.length > 8) break;
+      }
+      if (unplanned > 3) problems.push(`(+${unplanned - 3} more legal plants with no planned route)`);
+      if (!problems.length && straightBefore <= bound) {
+        problems.push(`the longest straight leg is only ${straightBefore.toFixed(1)}m, inside the ${bound}m bound, so planning it proves nothing here`);
+      }
+
+      // And the AI itself builds the same kind of route: send it, read what
+      // it intends to walk, and require the tail after its last waypoint to
+      // be short segments rather than one line.
+      const sample = legal.find((spot) => spot.kind === 'top') || legal[0];
+      const ai = h.wardenAI;
+      h.warden.reset(h.map.wardenSpawns[0]);
+      ai._pathTo({ x: sample.at.x, y: sample.at.y, z: sample.at.z });
+      // Node-to-node links are the graph's, asserted walkable elsewhere; the
+      // bound is for what comes after the last node, which is the first route
+      // point that is not a waypoint.
+      const tailStart = ai._route.findIndex((p) => !h.map.waypoints.some((n) => n && Math.abs(n.position.x - p.x) < 1e-6 && Math.abs(n.position.z - p.z) < 1e-6));
+      let aiTailWorst = 0;
+      for (let s = Math.max(1, tailStart); s < ai._route.length; s++) {
+        const a = ai._route[s - 1];
+        const b = ai._route[s];
+        aiTailWorst = Math.max(aiTailWorst, Math.hypot(b.x - a.x, b.z - a.z));
+      }
+      if (aiTailWorst > bound + 1e-6) {
+        problems.push(`the AI's own route to ${sample.what} has a ${aiTailWorst.toFixed(1)}m segment after its last waypoint`);
+      }
+      if (tailStart < 0) problems.push(`the AI's route to ${sample.what} has no planned tail at all`);
+
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      h.warden.reset(h.map.wardenSpawns[0]);
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${legal.length} legal plants routed from their nearest waypoint over ${ground.edges.size} ground edges; `
+            + `longest segment ${worst.toFixed(1)}m against a ${bound}m bound (the straight leg was up to `
+            + `${straightBefore.toFixed(1)}m), longest route ${longestRoute} points, every sample clear for a `
+            + `standing Warden, every end inside the defuse reach; the AI's own route to ${sample.what} `
+            + `tails in ${(ai._route.length - Math.max(0, tailStart))} segments, longest ${aiTailWorst.toFixed(1)}m`
+          : problems.join('; '),
+      };
+    },
+  });
 }

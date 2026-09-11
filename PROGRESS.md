@@ -3628,3 +3628,75 @@ and the marker half runs after `lens.restore()` through the real frame. Written
 into `tests/pixels.js`'s neighbourhood as a comment on the helper.
 
 **Left.** A8, the last job in Block A.
+
+## A8 — the last leg, planned; and the staircase A1 could not climb (2026-09-10)
+
+**Why.** The AI paths over twenty waypoints and then walked straight from its
+last node to the goal with only the solver to steer it. A5 measured that leg at
+up to 14.9m across the legal plants. It worked on this map; on a map with more
+in it, it is a DEFEND stall. The queue offered two answers — twenty hand-placed
+waypoints, or planning the leg over the ground A1 built — and the second is the
+one that also works on the container yard.
+
+**Built.** `WardenGround` now knows how it connects, not only where it is.
+The flood records every edge it proves — a step the Warden can make with a
+standing body fitting the gap — as a bitmask per cell, both ways.
+`route(from, to, maxLeg, snap)` walks those edges breadth-first and pulls the
+result straight, keeping a point only where a standing body cannot walk the
+line: the pull asks `walkable()`, the same quarter-cell rest-and-step the flood
+uses, of the collision world, so a crate corner bends the line at a cell
+centre rather than being cut. No segment is longer than `ai.maxUnpathedLeg`
+(6m, `config.js`). `standAt()` names the ground under a point, snapping a
+charge on a crate top to the nearest cell within the defuse reach.
+
+`ai._pathTo()` uses it for the last leg, and chooses the goal waypoint by
+where the Warden will *stand* rather than where the charge is.
+`map.nearestWaypoint()` prefers a node on its own floor. `DEFUSE_REACH.dy`
+now reads `round.defuseReachY` from config so the AI can read the same number
+for its snap without importing objective.js across the layer.
+
+**Found — A1's ground was two islands.** Treads rise 0.3m every 0.4m and the
+grid is 0.5m, so two adjacent cell centres can sit two risers apart: more than
+a step, and the flood refused the edge. No edge climbed either staircase. The
+deck was ground only because two of the four Warden spawns are on it, and A1's
+check — every spawn, waypoint and site is *on* the ground — could not see it,
+because every one of them was on some island. The A1 lesson, a third time: a
+coverage check cannot see a connectivity fault. Fixed in the flood: an edge
+whose rise is more than a step and less than two is walked in quarter-cell
+sub-steps, resting on the highest tread under the body at each, and proven if
+the walk arrives. Cells went from 25,177 to 25,299 edge-bearing (the treads). The A1 check
+now also walks the edges from spawn 0 and requires every cell; with the fix
+reverted it reads *"reaches 17583 of 25177 cells; the rest is an island"*.
+
+**Found — the AI was climbing to the deck to reach a charge on the floor.**
+`nearestWaypoint` was nearest in three dimensions, so a charge 2.3m up on a
+vent lip was nearer to `stair-hall-head` (6m up, 7.8m away) than to the floor
+node beside it (9.8m). With the last leg planned honestly the Warden climbed
+the staircase and walked back down it: a 55m route, 17.9s. Before A8 the same
+choice took 9.3s, because the straight leg went off the deck edge and the
+Warden *fell* to the charge. It takes 7.0s now.
+
+**Found — a snapped route stalled DEFEND at 2.2m.** The first version ended
+the tail at the cell beside the crate; the Warden arrived, was outside
+`defendHoldRadius`, re-pathed to the same cell, arrived again. The tail ends
+at the charge itself now, as it always did: the short walk at the crate the
+solver stops it at.
+
+**Verified.** New check `the-last-leg-to-every-legal-plant-is-planned-and-short`
+in `tests/plantcensus.js`: all 361 legal plants routed from their nearest
+waypoint; longest segment **6.0m** against the 6m bound where the straight leg
+was up to 16.3m; every segment walked by an independent raycast rest-and-step
+— five rays, centre and footprint corners, because the swept AABB steps up
+onto a tread corner the centre ray misses — with a standing capsule fitting at
+every sample; every route ending inside the defuse reach; and the AI's own
+`_pathTo` producing a tail of short segments. Restoring the straight leg turns
+it red with *"a 9.6m segment after its last waypoint"*. The A5 sample still
+arrives: A:top 7.0s, B:top 4.1s, C:top 0.7s.
+
+Full suite ****113 passed / 2 failed, twice, identical****; census unchanged at 12 of 65; plant census unchanged
+at 373 / 361 / 12.
+
+**Left.** Block A is closed. Three files over the 600 guidance were touched
+with small changes and not split — `ai.js` (788), `mapkit.js`, `config.js` —
+and are listed on F3 with main.js, for the same reason: the split is its own
+job, not a side effect of a one-line change.

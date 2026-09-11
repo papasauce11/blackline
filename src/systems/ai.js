@@ -23,6 +23,14 @@ import { findPath } from './astar.js';
 import { createWardenIntent, WARDEN_STATE } from '../entities/enforcer.js';
 
 const A = CONFIG.ai;
+/**
+ * A charge on a crate top is not on the Warden's ground; the Warden works on
+ * it from the nearest cell within the defuse reach. The same two numbers the
+ * plant rule reads (`DEFUSE_REACH` in systems/objective.js reads them from
+ * config too), so where the AI walks to and where the defuse counts from
+ * cannot drift apart.
+ */
+const DEFUSE_SNAP = { radius: CONFIG.round.siteRadius, dy: CONFIG.round.defuseReachY };
 
 export const AI_STATE = {
   PATROL: 'patrol',
@@ -615,8 +623,15 @@ export class WardenAI {
     this._routeIndex = 0;
     this._arrivalTime = 0;
 
+    // The goal node is chosen for where the Warden will STAND, not where the
+    // charge is: a charge 2.3m up on a vent lip is nearer in three dimensions
+    // to a deck node than to the floor node beside it, and that choice sent
+    // the Warden up a staircase and back down it. A goal off the ground and
+    // beyond the snap keeps its own position, as before.
+    const ground = this.map.wardenGround;
+    const stand = ground ? ground.standAt(goal, DEFUSE_SNAP) : null;
     const from = this.map.nearestWaypoint(this.warden.position);
-    const to = this.map.nearestWaypoint(goal);
+    const to = this.map.nearestWaypoint(stand || goal);
     if (from && to) {
       const nodes = this._findPath(from.id, to.id);
       for (const id of nodes) {
@@ -624,7 +639,26 @@ export class WardenAI {
         this._route.push({ x: p.x, y: p.y, z: p.z });
       }
     }
-    this._route.push({ x: goal.x, y: goal.y, z: goal.z });
+
+    // The last leg, from the final waypoint to the goal, used to be a straight
+    // line with only the solver to steer it round whatever was in the way -
+    // and Block A measured it at up to 15m on the first map. It is planned
+    // now, over the ground the Warden can actually walk (A1's flood), in
+    // segments no longer than `maxUnpathedLeg`. A goal that is not on that
+    // ground - a search spot in mid-air, a charge nothing could reach - keeps
+    // the straight line, and the stuck detector behind it, as before.
+    const last = this._route.length ? this._route[this._route.length - 1] : this.warden.position;
+    const tail = ground
+      ? ground.route(
+        { x: last.x, y: last === this.warden.position ? this.warden.feetY : last.y, z: last.z },
+        goal, A.maxUnpathedLeg, DEFUSE_SNAP
+      )
+      : null;
+    if (tail) {
+      for (let i = 1; i < tail.length; i++) this._route.push(tail[i]);
+    } else {
+      this._route.push({ x: goal.x, y: goal.y, z: goal.z });
+    }
   }
 
   /**

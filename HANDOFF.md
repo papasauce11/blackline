@@ -21,10 +21,10 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **112 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` — A8, the last in Block A |
+| AUTO suite | headless, `npm run suite`: **113 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` — F1; **Block A is closed** |
 | Runtime assertions | 8, zero failures |
-| Map | 214 collision boxes, 65 climbable, 25,177 cells of Warden ground |
+| Map | 214 collision boxes, 65 climbable, 25,299 edge-bearing cells of Warden ground, one connected component |
 
 Phases 1–49 of the original build are done and committed. A **redesign** is now
 in progress, 11 phases in, and one directive arrived outside it (the plant, below).
@@ -135,7 +135,8 @@ Josh, straight after the room change:
 **Phases 1 to 6 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
 `systems/objective.js`; A3, the gate inside `_stepPlant()`; A4, the HUD line;
 A5, the census; A6, `canPlantAt()` = defusable **and not inside anything**,
-D20; A7, the ground drawn — **F4 then N**). A8 remains.
+D20; A7, the ground drawn — **F4 then N**; A8, the AI's last leg planned over
+that ground). **Block A is closed.**
 
 ### What the rule actually excludes, measured
 
@@ -206,6 +207,18 @@ Warden cannot follow the Shade onto.
   one-line override if he meant "on only".
 - **What does refusal look like?** A HUD line, **"cannot plant here"**. No
   sound, no noise event. D6.
+
+### What A8 found under A1
+
+A1's ground was **two islands**. Treads rise 0.3m every 0.4m and the grid is
+0.5m, so two cell centres can sit two risers apart and the flood refused the
+edge; nothing climbed either staircase, and the deck was ground only because
+two spawns are on it. A1's check asserted coverage — every spawn, waypoint and
+site on the ground — and every one of them was on *some* island. The flood
+now walks a too-tall edge in quarter-cell sub-steps and proves it if the body
+arrives; the check walks the edges from spawn 0 and requires every cell. The
+edges are recorded (`WardenGround.edges`) and `route()` plans over them, which
+is what the AI's last leg uses.
 
 ### The side benefit, now available
 
@@ -315,6 +328,13 @@ gate a routine has; the pane is for humans.
 
 **Bash heredocs fail on JS content** in this shell — `unexpected EOF`. Use the
 Write tool for new files and a `python - <<'PY'` block for edits.
+
+**A coverage check cannot see a connectivity fault.** Three times now: the
+A1 constant that stayed green with the step at 2m, the HUD check that was
+green only because of who ran before it, and A1's ground that was two islands
+while every spawn, waypoint and site sat happily on one of them. Before
+believing a check on a *set*, ask whether it would notice the set being cut
+in half.
 
 **`renderFrame` and a lens do not mix.** The frame re-parents the camera to
 the actor's rig every time it runs, so a lens pointed at the floor is pointed

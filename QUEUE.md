@@ -31,16 +31,6 @@ The GATE step ignores these. Nothing else may be red.
 Directive, not plan. Decided: D5 (on or beside), D6 (refusal is a HUD line).
 Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 
-- [ ] **A8 (S)** The AI freewheels up to **14.9m** on the solver alone. It
-  paths over 20 waypoints and then walks straight from its last waypoint to
-  the goal, and A5 measured how long that unpathed leg gets across every
-  legal plant spot. It works today — the AI reached all three sampled
-  charges — but it is the DEFEND stall waiting to happen on a map with
-  more furniture, and D2's yard will have more. Either add waypoints until
-  the worst leg is under ~6m, or path the last leg over `map.wardenGround`.
-  **Do not** settle it by widening the defuse reach. *done-when:* a check
-  asserts the worst last leg over all legal plant spots is under the chosen
-  bound, and the A5 sample still arrives.
 
 ## Block F — the gate itself
 
@@ -60,19 +50,6 @@ a name, not a rank.
   named and fixed with a check that catches it, or the runner's tiebreak is
   in `scripts/suite.mjs` and documented in `HANDOFF.md`.
 
-- [ ] **F3 (S)** Split `src/main.js`. It is 1,091 lines, well past the ~600 guidance,
-  and A4 touched it (one line, wiring `plantRefused` to the HUD). The
-  split-when-you-touch rule applies and was deliberately not honoured: the
-  composition root is the wrong thing to refactor for a one-line change, and
-  it is not in any job. Do it on purpose instead. Candidates that are already
-  cohesive: the HUD state-gathering block, the gadget throw/use handlers, the
-  intent readers, and the harness object at the bottom. **Do not** move
-  anything that changes the order of the fixed step. *done-when:* no file in
-  `src/` outside `config.js` is over 600 lines, the suite is identical, and
-  `determinism` and the fixed-step order checks still pass. `config.js` is
-  1,213 lines and A7 touched it (one key); it is the one file the 600 rule
-  has always exempted in spirit - it is a table - but say so in PLAN.md or
-  split it, one or the other.
 - [ ] **F2 (S)** A check that drives a real frame can hide the HUD for every
   check after it, because `hud.setVisible()` runs inside the frame from
   `!menu.open` and `hud.update()` returns early when hidden. A4 hit it and
@@ -85,6 +62,24 @@ a name, not a rank.
   HUD-reading check alone, and running it after `a-refused-plant-says-so-and-
   says-nothing-else`, give the same answer, and a check proves it.
 
+- [ ] **F3 (S)** Split `src/main.js`. It is 1,091 lines, well past the ~600 guidance,
+  and A4 touched it (one line, wiring `plantRefused` to the HUD). The
+  split-when-you-touch rule applies and was deliberately not honoured: the
+  composition root is the wrong thing to refactor for a one-line change, and
+  it is not in any job. Do it on purpose instead. Candidates that are already
+  cohesive: the HUD state-gathering block, the gadget throw/use handlers, the
+  intent readers, and the harness object at the bottom. **Do not** move
+  anything that changes the order of the fixed step. *done-when:* no file in
+  `src/` outside `config.js` is over 600 lines, the suite is identical, and
+  `determinism` and the fixed-step order checks still pass. `config.js` is
+  1,213 lines and A7 touched it (one key); it is the one file the 600 rule
+  has always exempted in spirit - it is a table - but say so in PLAN.md or
+  split it, one or the other. A8 then touched `systems/ai.js` (788) and
+  `mapkit.js` (800+) the same way - `_pathTo` and `nearestWaypoint`, a few
+  lines each - and they belong here too: ai.js splits cleanly into the state
+  machine and the navigation (`_pathTo`, `_followRoute`, `_face`, the stuck
+  handling), and mapkit.js has already shed two files and can shed the
+  waypoint graph.
 ## Block B — the traversal redesign, phases 12–50
 
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
@@ -238,6 +233,10 @@ budget checks are the ceiling.
   start a server unattended.
 - **A1** Where the Warden can stand — `src/mapground.js`,
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
+- **A8** The last leg, planned - `WardenGround.route()` over edges the
+  flood now records, `ai._pathTo` in segments under `ai.maxUnpathedLeg`,
+  `nearestWaypoint` on its own floor; found and fixed A1's ground being two
+  islands (the staircases) - `COMMIT_A8`, 2026-09-10. **Block A closed.**
 - **A7** The Warden's ground, drawn - `src/groundview.js`, F4 then N, two
   checks - `89cc07e`, 2026-09-10.
 - **A6** Nothing inside anything - D20 decided, `PLANT_HEADROOM` and

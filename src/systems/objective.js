@@ -56,7 +56,7 @@ export const ROUND = {
  */
 export const DEFUSE_REACH = {
   radius: R.siteRadius,
-  dy: 2.5,
+  dy: R.defuseReachY,
 };
 
 /**

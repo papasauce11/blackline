@@ -770,9 +770,21 @@ export class GameMap {
   }
 
   /** Nearest waypoint to a world position. */
+  /**
+   * The waypoint a body at `position` should head for: the nearest on its
+   * own floor if there is one, else the nearest anywhere. A deck node six
+   * metres up is often the nearest in three dimensions to a point on the
+   * floor beneath it, and a route that starts there starts with a staircase
+   * in the wrong direction (Block A8 found the Warden climbing to the deck to
+   * reach a charge on the hall floor). "Own floor" is generous - twice a
+   * step - so a body on a staircase still finds the node at either end.
+   */
   nearestWaypoint(position) {
     let best = null;
     let bestDistance = Infinity;
+    let bestLevel = null;
+    let bestLevelDistance = Infinity;
+    const level = CONFIG.warden.stepHeight * 2;
     for (const node of this.waypoints) {
       if (!node) continue;
       const distance = node.position.distanceToSquared(position);
@@ -780,8 +792,12 @@ export class GameMap {
         bestDistance = distance;
         best = node;
       }
+      if (Math.abs(node.position.y - position.y) <= level && distance < bestLevelDistance) {
+        bestLevelDistance = distance;
+        bestLevel = node;
+      }
     }
-    return best;
+    return bestLevel || best;
   }
 
   // -------------------------------------------------------------------------

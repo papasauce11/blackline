@@ -334,11 +334,57 @@ export function register(debugTools) {
         if (floors.length > 1) multi++;
       });
 
+      // And it is ONE ground, not islands. A1 flooded from four spawns, two of
+      // them on the deck, and shipped with the deck and the floor as two
+      // components: no edge climbed either staircase, because a 0.5m cell can
+      // hold two 0.3m risers. Coverage could not see it - every spawn,
+      // waypoint and site was on some island. Walking the edges from the first
+      // spawn has to reach every cell, or the Warden's map of where it can go
+      // has a floor it cannot get to from where it starts.
+      const first = h.map.wardenSpawns[0];
+      const route = ground.route(
+        { x: first.position.x, y: first.position.y, z: first.position.z },
+        first.position
+      );
+      if (!route) problems.push('the first Warden spawn is not on its own ground');
+      const start = ground.cellAt(first.position);
+      const seen = new Set();
+      if (start) {
+        const queue = [ground.cellId(start.i, start.j, start.k)];
+        seen.add(queue[0]);
+        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        for (let head = 0; head < queue.length; head++) {
+          const id = queue[head];
+          const mask = ground.edges.get(id) || 0;
+          const k = id % 4;
+          const key = (id - k) / 4;
+          const i = key % ground.nx;
+          const j = (key - i) / ground.nx;
+          const y = ground.columns.get(key)[k];
+          for (let n = 0; n < 4; n++) {
+            if (!(mask & (1 << n))) continue;
+            const floors = ground.columns.get(ground.key(i + dirs[n][0], j + dirs[n][1]));
+            if (!floors) continue;
+            for (let nk = 0; nk < floors.length; nk++) {
+              if (Math.abs(floors[nk] - y) > CONFIG.warden.stepHeight * 2 + 0.01) continue;
+              const nid = ground.cellId(i + dirs[n][0], j + dirs[n][1], nk);
+              if (!seen.has(nid)) {
+                seen.add(nid);
+                queue.push(nid);
+              }
+            }
+          }
+        }
+      }
+      if (seen.size !== ground.count) {
+        problems.push(`walking the edges from spawn 0 (${first.name}) reaches ${seen.size} of ${ground.count} cells; the rest is an island`);
+      }
+
       return {
         pass: problems.length === 0,
         detail:
           problems.length === 0
-            ? `${ground.count} standable cells in ${columns} columns (${multi} carrying two or more floors) on a ${ground.cell}m grid; all ${h.map.wardenSpawns.length} spawns, ${h.map.waypoints.length} waypoints and ${h.map.sites.length} site centres are on it`
+            ? `${ground.count} standable cells in ${columns} columns (${multi} carrying two or more floors) on a ${ground.cell}m grid, all reachable from spawn 0 over ${ground.edges.size} edges; all ${h.map.wardenSpawns.length} spawns, ${h.map.waypoints.length} waypoints and ${h.map.sites.length} site centres are on it`
             : problems.join('; '),
       };
     },
