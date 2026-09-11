@@ -243,7 +243,7 @@ budget checks are the ceiling.
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
 - **A6** Nothing inside anything - D20 decided, `PLANT_HEADROOM` and
   `canPlantAt()`, spec 20.3, one check; census now 361 legal / 12 refused -
-  `COMMIT_A6`, 2026-09-10.
+  `57033e6`, 2026-09-10.
 - **A5** The census, and what it found in the ducts - two checks over 373
   plant spots, `spotOffTheRing` on the legal set, `tests/objective.js` split
   four ways - `fb9dc58`, 2026-09-10. Raised D20 (the commit message says D19;
