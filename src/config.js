@@ -325,6 +325,17 @@ export const CONFIG = {
     /** Lateral shimmy speed along a grabbed ledge. */
     hangShimmySpeed: 1.15,
     /**
+     * The bump-and-scuff (B2; Section 6.1, amended: a failed climb is never
+     * silent). A press of Space that carries the hands onto a face they
+     * cannot get over - too high for the reach the body has, or a lip with
+     * no room above it - pushes the body back off the face at this speed,
+     * stops it rising, holds the hands-up pose for `scuffPoseTime` and
+     * sounds `audio.scuff`. A hang whose pull-up is blocked gives the pose
+     * and the sound without the push; letting go is the crouch key's job.
+     */
+    scuffBumpSpeed: 1.6,
+    scuffPoseTime: 0.35,
+    /**
      * The airborne auto-climb probes along the direction the Shade is FACING,
      * which is not necessarily where it is going. Without an approach test,
      * stepping backwards off a ledge while still looking at it re-grabs the
@@ -1007,6 +1018,8 @@ export const CONFIG = {
     /** Low sine pad fading in as the detection accumulator rises above 50. */
     tension: { freq: 58, threshold: 50, maxGain: 0.22, fadeTime: 0.6 },
     lifeLost: { freqStart: 320, freqEnd: 90, duration: 0.9, gain: 0.4 },
+    /** Hands slapping a face they cannot get over (B2): a dull, short thud. */
+    scuff: { lowpass: 650, duration: 0.09, gain: 0.26 },
   },
 
   // -------------------------------------------------------------------------

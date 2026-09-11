@@ -83,6 +83,15 @@ export const VISUAL = {
       parts.armR.rotation.x = swing * 0.75;
     }
 
+    // The hands-up slap (B2): both arms thrown straight up against the face,
+    // then dropped over the pose time. Overrides whatever the state posed.
+    if (this._scuffTimer > 0) {
+      this._scuffTimer = Math.max(0, this._scuffTimer - wallDt);
+      const t = this._scuffTimer / S.scuffPoseTime;
+      parts.armL.rotation.x = -3.0 * t;
+      parts.armR.rotation.x = -3.0 * t;
+    }
+
     // The knife arc overrides the right arm for its duration: a fast wind-up
     // and a slower follow-through, so the swing reads as a strike rather than
     // a twitch.

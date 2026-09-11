@@ -45,12 +45,11 @@ next gate job, if one is found, goes here.
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
 there. The census is the contract; **never weaken it**.
 
-- [ ] **B2 (S)** The bump-and-scuff. A climb attempted beyond reach gets a
-  physical tell (a short bump back, a hand-slap pose) **plus** a sound.
-  Never silent. Since D21 there is a second silent case: a hold from a hang
-  whose pull-up is blocked (a duct-mouth lip, anything with no room above it)
-  does nothing at all. Give it the same tell. *done-when:* a check asserts a rise of `reach + 0.3` yields
-  the pose and a rendered sample; `renderOffline` proves the sample.
+- [ ] **B2b (S)** The scuff as a noise the Warden hears - **blocked: D23.**
+  One `emit('noise', ...)` in `Shade._scuff()` with a radius named in
+  `config.js`; the AI's hearing already turns toward noise events.
+  *done-when:* a check scuffs within the radius and asserts the Warden's
+  `lastKnown` moves to the wall, and outside it does not.
 - [ ] **B3 (M)** `_supportCandidates()` counts a neighbour within
   `vaultReach` of the footprint as "below" when it is "beside". Fix the rule
   so a support must overlap the footprint, then rebuild any surface the
@@ -186,12 +185,21 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B2** The bump-and-scuff: a press of Space that carries the hands onto a
+  face they cannot get over - beyond reach, or a lip with no room above it -
+  pushes the body back, throws the arms up and plays a slap
+  (`shade:scuff` -> `audio.scuff`); a blocked pull-up from a hang gives the
+  arms and the slap. `Shade._faceAhead`, `_scuff()`, `scuffBumpSpeed`,
+  `scuffPoseTime`; D24 (how it looks and sounds, provisional), D23 raised
+  (does the Warden hear it). Check
+  `a-climb-beyond-reach-bumps-poses-and-sounds` (tests/scuff.js) - <hash>,
+  2026-09-11.
 - **F4** The rAF loop is stopped for the length of a suite run (`FrameLoop`
   in `loop.js`, on the harness as `h.loop`; `AutoSuite.runChecks` stops it
   and puts it back, `initMatch` no longer starts it, the headless runner
   stops it for the whole session and reports `loopFrames` per run, which
   must be 0); check `the-loop-does-not-run-the-game-under-the-suite` -
-  <hash>, 2026-09-11.
+  `7d0bd8c`, 2026-09-11.
 - **F3** Every module under the ~600 guidance, `config.js` excepted and the
   exemption written into PLAN.md: `main.js` 1,145 -> 597 across eleven
   siblings (`loop`, `timestep`, `matchstate`, `view`, `cameraowner`,

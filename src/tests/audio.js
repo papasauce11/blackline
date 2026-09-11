@@ -157,6 +157,15 @@ export function register(debugTools) {
       if (untriggered.length) {
         problems.push(`built but never triggered in play: ${untriggered.join(', ')}`);
       }
+      // The synthetic detonations above were half an event: effects heard
+      // them and spawned a smoke cloud's 100 sprites with no gadget behind
+      // them, which the drain assertion (`effects-drain-when-idle`) rightly
+      // calls a leak once its idle window has passed. Under the live loop
+      // (before F4) the leftovers were usually stepped away before anyone
+      // looked; with the loop stopped they surfaced as console errors in a
+      // run whose previous gadget was long gone. This check wanted the
+      // voices, not the cloud.
+      h.effects.reset();
 
       // Flood well past the cap: it must refuse rather than grow without bound.
       audio.reset();

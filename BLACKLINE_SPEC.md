@@ -698,3 +698,22 @@ on a ledge at least `hangMinHeightRatio` (1.4) Shade-heights - 2.59m - above
 the surface the climb started from. Below that a mantle-height ledge goes
 straight over on tap or hold alike, as it did before 20.4; a hang is for a
 ledge you had to jump for.
+
+### 20.5 Section 6.1 - a failed climb is never silent
+
+> *"Failed climb: a physical tell plus audio. Never silent."* (the redesign
+> interview, 2026-09)
+
+A press of Space that carries the hands onto a face they cannot get over -
+too tall for the reach the body has right now (2.6m standing, 3.8m with the
+jump behind it), a lip with no room above it, a face with nothing standable
+on top - is a **failed climb**, and it is felt and heard: the body is pushed
+straight back off the face at `scuffBumpSpeed` and stops rising, both arms
+are thrown up for `scuffPoseTime`, and a short slap (`audio.scuff`) plays
+where the hands hit. One tell per press. A pull-up from a hang whose
+destination is blocked gives the arms and the slap without the push; letting
+go remains the crouch key's job (20.4). A walk-off into a face with nothing
+pressed is not a climb (20.2) and gets no tell.
+
+The slap is the player's audio. Whether it is also a noise the Warden hears
+is open (D23); until decided it is not in the noise field.

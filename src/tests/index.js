@@ -19,6 +19,7 @@ import { register as registerMap } from './map.js';
 import { register as registerNavigation } from './navigation.js';
 import { register as registerShade } from './shade.js';
 import { register as registerMovement } from './movement.js';
+import { register as registerScuff } from './scuff.js';
 import { register as registerReadability } from './readability.js';
 import { register as registerWarden } from './warden.js';
 import { register as registerDetection } from './detection.js';
@@ -48,6 +49,7 @@ export function registerAutoTests(debugTools) {
   registerNavigation(debugTools);
   registerShade(debugTools);
   registerMovement(debugTools);
+  registerScuff(debugTools);
   registerReadability(debugTools);
   registerWarden(debugTools);
   registerDetection(debugTools);

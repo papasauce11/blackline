@@ -76,6 +76,7 @@ export const TRAVERSAL = {
     const distance = forward + this.half.x;
     const feet = this.feetY;
     const reach = this._reachNow();
+    this._faceAhead = null;
 
     // Sweep from the feet to the top of reach. Every sample is a face the
     // player could plausibly have their hands on.
@@ -95,9 +96,17 @@ export const TRAVERSAL = {
       // in the open air above a ceiling it cannot get through.
       if (!this.collision.isClear(origin, HAND_HALF)) break;
       const hit = this.collision.raycast(origin, direction, distance);
-      if (!hit || !hit.box.climbable) continue;
+      if (!hit) continue;
       // Only a face gives a ledge; a top or bottom hit is not something to climb.
       if (Math.abs(hit.ny) > 0.5) continue;
+      // Remember what the hands are on, whatever it is. A wall too tall for
+      // the reach, a lip under a ceiling, a face with nothing standable on
+      // top: none is a ledge, all of them are what a failed climb hit (B2).
+      // The sweep rises, so the last one written is the highest.
+      if (hit.box.solid && hit.box.max.y - feet > S.reach.stepOver) {
+        this._faceAhead = { box: hit.box, rise: hit.box.max.y - feet, reach, hitX: hit.x, hitZ: hit.z, dirX, dirZ };
+      }
+      if (!hit.box.climbable) continue;
 
       const topY = hit.box.max.y;
       const rise = topY - feet;
@@ -109,6 +118,36 @@ export const TRAVERSAL = {
     return null;
   },
 
+
+  /**
+   * The bump-and-scuff (B2; Section 6.1, amended: "a physical tell plus
+   * audio, never silent"). The hands have landed on a face they cannot get
+   * over. The body is pushed back off it and stops rising, the hands-up
+   * pose holds for `scuffPoseTime`, and `shade:scuff` goes out for the sound.
+   * From a hang there is no push - the body is already where it should be -
+   * only the pose and the sound.
+   *
+   * It is a sound the player hears, not a noise the Warden does: nothing is
+   * added to the noise field here. Whether it should be is D23.
+   *
+   * @param {{rise:number, reach:number, hitX:number, hitZ:number, dirX:number, dirZ:number, box:object}} face
+   * @param {boolean} bump push the body back off the face
+   */
+  _scuff(face, bump) {
+    if (bump) {
+      this.velocity.x = -face.dirX * S.scuffBumpSpeed;
+      this.velocity.z = -face.dirZ * S.scuffBumpSpeed;
+      if (this.velocity.y > 0) this.velocity.y = 0;
+    }
+    this._scuffTimer = S.scuffPoseTime;
+    this.scuffs++;
+    if (this.emitter) {
+      this.emitter.emit('shade:scuff', {
+        x: face.hitX, y: this.feetY + Math.min(face.rise, face.reach), z: face.hitZ,
+        rise: face.rise, reach: face.reach, tag: face.box ? face.box.tag : '', hanging: !bump,
+      });
+    }
+  },
 
   /**
    * Destination centre for standing on top of a probed ledge: past the edge by
@@ -297,7 +336,12 @@ export const TRAVERSAL = {
         return;
       }
       // Genuinely blocked: stay hanging, which is the correct "return to the
-      // previous state" behaviour.
+      // previous state" behaviour - but not a silent one (B2). The hands slap
+      // the lip on the press, and on the first step if Space was held
+      // through the grab; a held key does not hammer it every step.
+      if (intent.jumpPressed || this._hangTimer <= dt * 1.5) {
+        this._scuff({ ...ledge, rise: ledge.topY - this.feetY, reach: this._reachNow() }, false);
+      }
     }
 
     // Everything else waits for the hang to settle, so a crouch still held

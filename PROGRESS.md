@@ -4010,3 +4010,76 @@ what checks drove themselves" is measured two ways now: the check, inside;
 the runner, over the whole run. Both must read zero.
 
 **Left.** Block F is closed. B2 is next: the bump-and-scuff, an S.
+
+## B2 — the bump-and-scuff: a failed climb is never silent (2026-09-11, same run)
+
+**Built.** Two silent cases. A press of Space that carried the hands onto a
+face too tall for the reach — the site fence at 4.5m against a 3.8m jump
+reach, any shell wall — did nothing at all; the body slid down the face as
+if the key had not been pressed. And since D21, a hold from a hang whose
+pull-up was blocked did nothing either. `_probeLedge()` now remembers the
+highest solid face its hand sweep met, climbable or not, as
+`Shade._faceAhead` (any solid face taller than `reach.stepOver`; the sweep
+rises, so the last written is the highest). In `_stepAir()`, when the
+armed mantle finds nothing to get over and `_faceAhead` is set and the body
+is heading into it, `_scuff(face, true)`: velocity set straight back off
+the face at `scuffBumpSpeed` (1.6 m/s), any rise zeroed, `_scuffTimer` set
+to `scuffPoseTime` (0.35s), `shade:scuff` emitted with where the hands hit,
+the rise, the reach and the box's tag; the arm is spent, so one press is
+one tell and the next press re-arms. `_stepHang()`'s blocked branch calls
+`_scuff(ledge, false)` — pose and sound, no push — on the press edge and on
+the first hang step when Space was held through the grab, never repeating
+while the key stays down. agentvisual.js draws the pose: both arms thrown
+straight up, dropping over the timer. audio.js subscribes `shade:scuff` and
+plays `scuff`: a 90ms noise burst low-passed at 650Hz (`audio.scuff`),
+added to the Section 14 render table in soak.js. Nothing is added to the
+noise field: whether the Warden hears a failed climb is a rule, and it is
+D23, with B2b queued behind it. How it looks and sounds is D24, provisional.
+
+**Verified.** New check `a-climb-beyond-reach-bumps-poses-and-sounds`
+(tests/scuff.js; movement.js exports `driveAtLedge` and `findGroundLedge`
+for it). It finds a ground-level solid face at least `reach + 0.3` tall
+whose approach the controller's own probe reports as a face and no ledge
+(it picks `site-fence`), then drives through the input codes: a tap of
+Space heading in scuffs exactly once and climbs nothing; driving frame by
+frame, on the scuff step the velocity along the face normal is negative,
+the body is not rising, the pose timer is set and the left arm reads below
+−1.5 rad after `updateVisual`; a walk-off into the same face with nothing
+pressed scuffs zero times (D17). For the hang: it hangs from a real ledge,
+stages a lid of real collision 0.6m above the lip (room for the hanging
+body, whose top is 0.5m up; none for the crouched one a pull-up needs),
+presses Space — one scuff, still hanging, pose set, event says `hanging` —
+holds Space half a second with no further scuff, removes the lid and presses
+again, and wants the body on top: the lid was the block. Then
+`renderOffline('scuff', 0.4)`: peak in (0.001, 1.0], audible for under
+0.3s. With `_scuff()` made a no-op it is red in its own words: *"one press
+into site-fence scuffed 0 times, want exactly 1; no shade:scuff event
+reached the emitter; ...; a blocked pull-up scuffed 0 times, want 1; the
+hang scuff set no pose"*. Full suite **119 passed / 2 failed, twice, identical** (314s and 385s),
+flaky empty, zero console errors, zero context losses, `loopFrames` 0;
+the census unchanged at 12 of 65. Spec 20.5 appended.
+
+**Found, and fixed on the way.** The first verify came back with the known
+flaky, `every-sound-renders-to-samples-that-match-section-14` (*"the
+Warden's footstep peaks at 0.049 against the Shade's 0.050"*, then green).
+It was never a threshold problem: `renderOffline()` filled its noise buffer
+from `Math.random`, so every render was different samples and a comparison
+of two peaks was a comparison of two draws. The render now seeds a private
+`mulberry32` (`RENDER_NOISE_SEED`, not the game's stream) and a rendered
+sound is the same samples every time; the trap in HANDOFF is closed. Then a
+three-run subset with a 5s cooldown showed ten console errors from the
+runtime assertion `effects-drain-when-idle`: *"100 smoke sprites still
+alive 12.5s after the last gadget expired"*. `audio-voices-are-capped-and-
+released` emits a synthetic `gadget:detonate` to prove the smoke sound has
+a trigger; effects heard the same event and spawned a cloud with no gadget
+behind it, and once the assertion's idle window had passed it rightly
+called that a leak. Before F4 the live loop usually stepped the leftovers
+away before anyone looked. The check resets effects after its triggers now:
+it wanted the voices, not the cloud. Also: `CONFIG` is deep-frozen, so the
+A3 trick of moving a constant to stage a condition does not work on
+`shade.*`; staging geometry in the collision world (`addBox` / splice /
+`build()`) does, and is the honest version of "a lip with a lid on it".
+
+**Left.** B2b (the scuff as a noise event) waits on D23. B3 is next — the
+`supportCandidates()` fix, now in `mapclimb.js` — and it is the one that
+starts moving the census.

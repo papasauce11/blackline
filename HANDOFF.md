@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **118 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` is B2, the bump-and-scuff (**Blocks A and F are closed**; F1-F4 done 2026-09-11) |
+| AUTO suite | headless, `npm run suite`: **119 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` is B3, `supportCandidates()` in `mapclimb.js` (**Blocks A and F are closed**; F1-F4 and B2 done 2026-09-11; B2b waits on D23) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,299 edge-bearing cells of Warden ground, one connected component |
@@ -47,7 +47,7 @@ by interview and is binding:
 |---|---|
 | Scope | All traversal aids gone: ledge stripes, chevrons, dashes, and the lit vent interiors. **Plant-site rings stay** — a bomb site is objective information, not an affordance |
 | Climb rule | **Reach-based, athletic**: ~2.6m standing, ~3.8m with a jump. **And only on a press of Space** — never a side effect of moving (D17, spec 20.2) |
-| Failed climb | A physical tell **plus audio**. Never silent |
+| Failed climb | A physical tell **plus audio**. Never silent. Built as B2: the bump-and-scuff (below) |
 | Hang | A **held option you choose**, never a failed mantle. Built as B1 (D21, D22, spec 20.4): a climb of a ledge at least **1.4 Shade-heights (2.59m)** above where it started — one you had to jump for — begins with a grab: **tap Space and you hang, hold Space and you go over**; from a hang Space pulls up, crouch drops, A/D shimmy. Lower ledges go straight over |
 | Warden | **Stays grounded.** The asymmetry is the game |
 | The test | **Purely mechanical.** Standable top + within reach ⇒ climbable. No tags, no exceptions, no `noClimb`. The map obeys the rule |
@@ -63,7 +63,7 @@ by interview and is binding:
 |---|---|---|
 | 1–7 | **Strip and measure** | ✅ done, committed |
 | 8–11 | **Reach-based traversal** — jump-extended reach, ground climbs, approach tolerance, input buffering | ✅ done, committed `5c6d571` |
-| 12–18 | **Hang as a held option, and the bump-and-scuff** | pending |
+| 12–18 | **Hang as a held option, and the bump-and-scuff** | ✅ B1 (D21, D22) and B2 done 2026-09-10/11 |
 | 19–34 | **Area rebuild, lockstep** — geometry + controller together, worst area first | pending |
 | 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | pending |
 | 42–46 | **Feel** — camera, momentum, weight, timing, traversal fuzz | pending |
@@ -278,6 +278,25 @@ owner string; the object behind it is `cameraowner.js`.
 `main.js` is 596 and `physics.js` is 600: the next job that touches either
 splits it further rather than adding to it.
 
+## A failed climb is never silent - B2
+
+A press of Space that carries the hands onto a face they cannot get over -
+too tall for the reach the body has right now, a lip with no room above it,
+a face with nothing standable on top - used to do nothing at all. Now
+`_probeLedge()` remembers the highest solid face the hands met
+(`Shade._faceAhead`), and when the air step's mantle finds nothing to get
+over with the climb armed and the body heading in, `_scuff()` pushes the
+body straight back off the face at `scuffBumpSpeed`, stops it rising, holds
+the hands-up pose for `scuffPoseTime` (agentvisual.js) and emits
+`shade:scuff`, which audio.js plays as `scuff` - a 90ms low-passed slap.
+One tell per press: the scuff spends the arm. A blocked pull-up from a hang
+gives the pose and the sound without the push, on the press and on the
+first step if Space was held through the grab, never repeating while held.
+D24 records the look and sound as provisional; D23 asks whether the Warden
+should hear it (today: no noise event). Check: tests/scuff.js, which stages
+a lid of real collision over a hangable lip to make a blocked pull-up, since
+no lip on this map has one.
+
 ## The game does not play itself under the suite - F4
 
 Headless Chrome fires animation frames (`document.hidden` is false there),
@@ -455,11 +474,21 @@ length controls for thirty phases.
 **One console warning during the suite is expected** — the death-camera check
 deliberately fires its own wall-clock guard.
 
-**`every-sound-renders-to-samples-that-match-section-14` is flaky.** It failed
-once ("the Warden's footstep peaks at 0.045 against the Shade's 0.049") and has
-passed every run since with nothing audio-related changed. Two peaks 0.004 apart
-is a threshold sitting on the value it tests. If you see it, run again before
-believing it.
+**`every-sound-renders-to-samples-that-match-section-14` used to be flaky**
+("the Warden's footstep peaks at 0.049 against the Shade's 0.050", then
+green). The cause was the instrument, not the threshold: `renderOffline()`
+drew its noise texture from `Math.random`, so two renders were two different
+signals. Since B2 it seeds a private `mulberry32` (`RENDER_NOISE_SEED` in
+audio.js) and a rendered sound is the same samples every time. If it ever
+answers differently between two runs again, something else is random.
+
+**A check that emits half an event leaves the other half behind.** The
+audio check emits a synthetic `gadget:detonate` for the sound; effects hears
+it too and spawns a cloud with no gadget behind it, and the runtime
+assertion `effects-drain-when-idle` calls that a leak once its 10s idle
+window has passed - which, with the loop stopped under the suite (F4),
+depends only on what ran before. Pair the event with the registry effect
+(visual.js and performance.js do) or clean up after it (audio.js does now).
 
 **Bash heredocs fail on some JS content even inside `python - <<'PY'`.** One
 patch died with `unexpected EOF` for no visible reason. Write the patch script

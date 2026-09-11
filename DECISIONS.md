@@ -162,6 +162,19 @@ fill cost rises roughly as the square.
 
 ---
 
+### D24 — What a failed climb looks and sounds like
+B2. Taken: the body is pushed straight back off the face at 1.6 m/s and
+stops rising (`scuffBumpSpeed`); both arms are thrown straight up and drop
+over 0.35s (`scuffPoseTime`); the sound is a 90ms low-passed (650Hz) noise
+slap at footstep-plus level (`audio.scuff`). From a hang only the arms and the
+sound - the body is where it should be, and letting go is the crouch key's
+job. Reason: a slap of hands on concrete is dull and short, and the push-back
+is the smallest movement that reads as "the wall won" without costing the
+player their position. Alternative: a longer slide down the face with a
+scrape, which reads better but hands the Warden a longer look at a stationary
+target. Nobody has seen or heard it; Josh overrides here.
+**decided:**
+
 ## Blocking — waiting on Josh
 
 ### D8 — Does the site ring still read, now the plant is the whole room?
@@ -222,6 +235,32 @@ it lower than a standing body, which is the same headroom test A1's ground
 already applies to the Warden. Ducts fail it by their roof; crate tops, floors
 and open gantries pass. No tags, no exceptions, which keeps the redesign's
 binding rule. Built as A6.
+
+### D23 — Does the Warden hear a failed climb?
+B2 built the bump-and-scuff: a press of Space that carries the hands onto a
+face they cannot get over pushes the body back, throws the arms up and plays a
+short slap. The spec's line is "a physical tell plus audio, never silent", and
+that is the player's audio. Whether the slap is also a *noise* - an event in
+the noise field the Warden can hear and turn toward, like a footstep or a
+landing - is a rule of the stealth game, so B2 did not decide it: today the
+scuff is heard by the player and by nobody else.
+
+Options:
+
+1. **Silent to the Warden.** As built. A misjudged climb costs the attempt and
+   nothing more; the tell is feedback, not a penalty.
+2. **A noise event, quiet.** Around the Shade footstep's radius. A wall is a
+   loud thing to hit and a Warden two rooms away should not hear it, but one in
+   the same room should look up. Fits Section 7.2's "movement makes noise" and
+   punishes a sloppy approach the way a landing already does.
+3. **A noise event, loud.** The landing's radius. Turns every misjudged climb
+   into a detection risk; probably too harsh while the reach has no markings
+   and the player is still learning it by trying.
+
+Recommendation: **2**. It is one `emit('noise', ...)` in `_scuff()` with a
+radius named in `config.js`, and the existing noise checks would cover it. Not
+blocking anything; a follow-up job takes it when decided.
+**decided:**
 
 ### D13 — Rooms, sites and spawns on the first map
 B5 may want to move a site or a spawn, or merge two rooms, to make a stacked

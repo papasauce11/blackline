@@ -483,7 +483,7 @@ export function register(debugTools) {
  * Space once on a given step — released the next step (a tap) or kept down
  * until the end (a hold). Drives the real input.
  */
-function driveAtLedge(h, spot, { airborne, pressAt, hold, steps }) {
+export function driveAtLedge(h, spot, { airborne, pressAt, hold, steps }) {
   const shade = h.shade;
   const { box, x, z, yaw } = spot;
   const ground = CONFIG.map.groundY;
@@ -533,7 +533,7 @@ function driveAtLedge(h, spot, { airborne, pressAt, hold, steps }) {
  * controller's own probe agrees the face is in reach. The probe is the
  * arbiter so the check cannot pick a face the game itself would not offer.
  */
-function findGroundLedge(h, minRise, maxRise, { hangable = false } = {}) {
+export function findGroundLedge(h, minRise, maxRise, { hangable = false } = {}) {
   const ground = CONFIG.map.groundY;
   const shade = h.shade;
   for (const box of h.map.collision.boxes) {

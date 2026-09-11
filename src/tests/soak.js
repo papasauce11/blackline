@@ -117,6 +117,7 @@ export function register(debugTools) {
         { sound: 'landing', seconds: 0.5, note: 'heavy impact' },
         { sound: 'lightBreak', seconds: 0.6, note: 'glass' },
         { sound: 'reload', seconds: 0.3, note: 'mechanical click' },
+        { sound: 'scuff', seconds: 0.4, note: 'B2: low-passed slap, short' },
       ];
 
       const measured = [];

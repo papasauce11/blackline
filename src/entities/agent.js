@@ -108,6 +108,16 @@ export class Shade {
     /** The ledge currently being hung from. */
     this._hangLedge = null;
     this._hangTimer = 0;
+    /**
+     * The highest solid face the last ledge probe's hands met, climbable or
+     * not, so a climb that finds nothing to get over can still tell you what
+     * stopped it (B2). Rewritten by every `_probeLedge()`.
+     */
+    this._faceAhead = null;
+    /** Counts down while the hands are slapped against a face (B2). */
+    this._scuffTimer = 0;
+    /** Failed climbs this body has had, for the checks. */
+    this.scuffs = 0;
     /** Distance travelled on the ground, for footstep cadence in Phase 5. */
     this.strideDistance = 0;
     /** Set on the step a landing happens, for Phase 5 noise. Cleared each step. */
@@ -164,6 +174,8 @@ export class Shade {
     this._move = null;
     this._hangLedge = null;
     this._hangTimer = 0;
+    this._faceAhead = null;
+    this._scuffTimer = 0;
     this.strideDistance = 0;
     this.landedFallHeight = 0;
     this._swingTimer = 0;
@@ -350,6 +362,13 @@ export class Shade {
     // the ledge.
     if (intent.jumpPressed) this._climbArmed = true;
     if (this._climbArmed && this._tryMantle(intent)) return;
+    // The press found nothing to get over. If the hands are on a face, that
+    // is a failed climb, and a failed climb is never silent (B2). One tell
+    // per press: the arm is spent by it, and the next press re-arms.
+    if (this._climbArmed && this._faceAhead && this._isApproaching(this._faceAhead, intent)) {
+      this._scuff(this._faceAhead, true);
+      this._climbArmed = false;
+    }
 
     if (result.grounded) {
       this._land();

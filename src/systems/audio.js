@@ -18,9 +18,11 @@
  *    and the count is asserted back to zero.
  */
 
-import { CONFIG } from '../config.js';
+import { CONFIG, mulberry32 } from '../config.js';
 
 const A = CONFIG.audio;
+/** Seed of the offline render's noise texture, so a rendered sound is the same samples every time. */
+const RENDER_NOISE_SEED = 0x53414d50; // "SAMP"
 
 /** Beyond this many simultaneous voices, new one-shots are dropped. */
 const VOICE_CAP = 24;
@@ -149,8 +151,14 @@ export class AudioSystem {
     const frames = Math.floor(rate);
     const buffer = offline.createBuffer(1, frames, rate);
     const data = buffer.getChannelData(0);
-    // Same one-off texture as unlock(); see the note there.
-    for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+    // The same texture every render, from a private generator that is not the
+    // game's stream (unlock() draws its live texture from Math.random; see the
+    // note there). This is an instrument: a check that compares two rendered
+    // sounds must compare the sounds, not two draws of noise. The Warden's
+    // footstep peaked at 0.049 against the Shade's 0.050 on one run and above
+    // it on the next, with nothing changed but the noise.
+    const next = mulberry32(RENDER_NOISE_SEED);
+    for (let i = 0; i < frames; i++) data[i] = next() * 2 - 1;
     this._noiseBuffer = buffer;
     this.voices = new Set();
     this.enabled = true;
@@ -218,6 +226,8 @@ export class AudioSystem {
     on('combat:knife', () => this.play('knifeSwing', this._listenerPosition()));
     on('combat:takedown', (event) => this.play('takedown', event.at));
     on('combat:reload', () => this.play('reload', this._listenerPosition()));
+    // B2: a failed climb is never silent. The controller says where the hands hit.
+    on('shade:scuff', (event) => this.play('scuff', event));
 
     // The rest of the Section 14 table. Each of these had a builder and no
     // trigger, which sounds exactly like a builder that does not exist.
@@ -477,6 +487,14 @@ AudioSystem.BUILDERS = {
   lightBreak(position) {
     return this._noiseBurst(position, {
       filterType: 'highpass', frequency: 2600, duration: 0.18, gain: 0.3,
+    });
+  },
+
+  /** B2: hands slapping a face they cannot get over. Dull, short, unmistakably a body. */
+  scuff(position) {
+    const c = A.scuff;
+    return this._noiseBurst(position, {
+      filterType: 'lowpass', frequency: c.lowpass, duration: c.duration, gain: c.gain,
     });
   },
 
