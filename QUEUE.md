@@ -192,7 +192,7 @@ budget checks are the ceiling.
   arms and the slap. `Shade._faceAhead`, `_scuff()`, `scuffBumpSpeed`,
   `scuffPoseTime`; D24 (how it looks and sounds, provisional), D23 raised
   (does the Warden hear it). Check
-  `a-climb-beyond-reach-bumps-poses-and-sounds` (tests/scuff.js) - <hash>,
+  `a-climb-beyond-reach-bumps-poses-and-sounds` (tests/scuff.js) - `0e81da5`,
   2026-09-11.
 - **F4** The rAF loop is stopped for the length of a suite run (`FrameLoop`
   in `loop.js`, on the harness as `h.loop`; `AutoSuite.runChecks` stops it
