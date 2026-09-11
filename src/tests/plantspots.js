@@ -10,7 +10,8 @@
  * them - so the places live here rather than in whichever file asked first.
  *
  * Everything here is a FOOT position, because that is what the plant records
- * (`round.chargeAt`) and what the defuse reach is measured from.
+ * (`round.chargeAt`) and what the defuse reach is measured from. `legal` is
+ * the whole rule - `canPlantAt()`, D5 and D20 together - not one clause of it.
  *
  * Layering (Section 3.1): imports config and systems, like the checks it
  * serves. It reaches the live game only through the harness handed in.
@@ -57,7 +58,7 @@ export const spotOffTheRing = (h, site, want) => {
       // to change nothing on today's map - every clear floor cell of all
       // three rooms is legal - which is the point: it is here so that a room
       // reshaped by B4 or B5 cannot quietly break the file.
-      if (!h.objective.canDefuseAt(spot)) continue;
+      if (!h.objective.canPlantAt(spot)) continue;
       return spot;
     }
   }
@@ -116,7 +117,7 @@ export const perchesInSiteRooms = (h) => {
       foot,
       body,
       site: site.id,
-      legal: objective.canDefuseAt(foot),
+      legal: objective.canPlantAt(foot),
     });
   }
   return perches;
@@ -167,7 +168,7 @@ export const plantableSpots = (h) => {
       what: `${what} (${kind}, room ${site.id})`,
       at: foot,
       body,
-      legal: objective.canDefuseAt(foot),
+      legal: objective.canPlantAt(foot),
     });
   };
 

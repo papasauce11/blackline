@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **109 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` — A8, waypoint density vs the AI's unpathed last leg (A6 is blocked on **D20**) |
+| AUTO suite | headless, `npm run suite`: **110 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` — A8, then A7; Block A closes with them |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,177 cells of Warden ground |
 
@@ -132,15 +132,17 @@ Josh, straight after the room change:
 
 > *"actually should only be plantable where the ward is able to defuse."*
 
-**Phases 1 to 5 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
+**Phases 1 to 6 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
 `systems/objective.js`; A3, the gate inside `_stepPlant()`; A4, the HUD line;
-A5, the census). A6 is **blocked on D20**; A7 and A8 remain.
+A5, the census; A6, `canPlantAt()` = defusable **and not inside anything**,
+D20). A7 and A8 remain.
 
 ### What the rule actually excludes, measured
 
-A5 counted it, and it is not what this section assumed. Of **373 places a
-charge can go inside a site room** — 344 floor cells on a 2m grid, 21
-climbable tops, 8 vent interiors — the rule refuses **four**:
+A5 counted it, and it is not what this section assumed; A6 then changed it.
+Of **373 places a charge can go inside a site room** — 344 floor cells on a
+2m grid, 21 climbable tops, 8 vent interiors — the rule refuses **twelve**:
+the 8 ducts by their lid (D20, below), and these four by the reach:
 
 | Refused | Why |
 |---|---|
@@ -149,13 +151,15 @@ climbable tops, 8 vent interiors — the rule refuses **four**:
 | `gantry-hall` (room A), 1.0m up | same |
 | the deck floor at (21, 17), room C | clear floor with no reachable ground near it; B4's rebuild should close it |
 
-So the live rule reads "no plant in the middle of anything wider than four
+So the reach reads "no plant in the middle of anything wider than four
 metres" far more than it reads "no plant up high" — the horizontal reach does
-almost all the excluding, and **none of the 8 vent interiors is refused at
-all**. The ducts run at y=2.3 against a 2.5m vertical reach, so a Warden stands
-underneath and reaches up; A5 sent the AI at a duct charge and it defused it in
-9.6s. That is D5 working as written, and whether it should is **D20**, blocking,
-with the measurements. A6 is blocked on it.
+almost all of that excluding, and the vertical one none. What it did not
+exclude was a charge inside a duct: the ducts run at y=2.3 against a 2.5m
+vertical reach, a Warden underneath reaches up, and A5 watched the AI do it in
+9.6s. Josh's answer (D20): *"can't plant inside things. only on top."* Built as
+A6: `canPlantAt()` is `canDefuseAt()` **and** `hasHeadroomAt()` — a standing
+body's worth of open air above the charge, `PLANT_HEADROOM`. A duct fails by
+its roof; a crate top passes by the air above it; nothing is named.
 
 The two questions at the end are **decided** — D5 and D6 in `DECISIONS.md`;
 the one A1 raised is D16.
@@ -192,7 +196,7 @@ Warden cannot follow the Shade onto.
 | 3 | ✅ **done** — `_stepPlant()` asks `canDefuseAt()` of the Shade's feet every step of the hold, under the site-and-interact gate and *above* the noise interval, so a refusal costs no progress and emits nothing (D6). `WardenGround.someCellWithin()` makes the per-step call allocation-free |
 | 4 | ✅ **done** — `round.plantRefused`, out through `objective.hud`, onto the prompt panel the plant already owns as `PLANT_REFUSED` (`ui/hud.js`) with the hold bar hidden. No sound, no noise event (D6). Not a latch: recomputed every step, so releasing interact clears it |
 | 5 | ✅ **done** — two checks in `tests/plantcensus.js`: the game against the rule at all 373 spots, and the rule against the map (ground exists, the waypoint graph reaches it, the AI arrives). `spotOffTheRing()` picks from the legal set. Old text: | For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
-| 6 | **blocked: D20.** Re-examine `DEFUSE_REACH.dy` (was the literal `dy < 2.5`; A2 named it and gave it one home, but did not touch the value) in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
+| 6 | ✅ **done** — D20 decided "not inside things"; `PLANT_HEADROOM` + `hasHeadroomAt()`, `canPlantAt()` the whole rule, `dy` kept at 2.5 with the reason as its comment, spec 20.3. Old text: re-examine `DEFUSE_REACH.dy` (was the literal `dy < 2.5`; A2 named it and gave it one home, but did not touch the value) in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
 
 ### Decided
 

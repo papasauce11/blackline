@@ -7,7 +7,8 @@
  * These are the checks that the game asks that question - that one reach
  * answers for both sides of it (A2), that the gate asks it every step of the
  * hold rather than at the commit (A3), and that a refusal says so and says
- * nothing else (A4, D6). The census that asks it of the whole map is in
+ * nothing else (A4, D6), and that a charge cannot be left inside anything
+ * (A6, D20). The census that asks it of the whole map is in
  * tests/plantcensus.js.
  *
  * Registered from tests/index.js. Checks reach the live game through the
@@ -15,10 +16,10 @@
  */
 
 import { CONFIG } from '../config.js';
-import { CHARGE, DEFUSE_REACH } from '../systems/objective.js';
+import { CHARGE, DEFUSE_REACH, PLANT_HEADROOM } from '../systems/objective.js';
 import { PLANT_REFUSED } from '../ui/hud.js';
 import { createIntent } from '../entities/agent.js';
-import { spotOffTheRing, plantAt, perchesInSiteRooms } from './plantspots.js';
+import { spotOffTheRing, plantAt, perchesInSiteRooms, plantableSpots, plantOutcomeAt } from './plantspots.js';
 
 const R = CONFIG.round;
 
@@ -234,10 +235,11 @@ export function register(debugTools) {
       }
 
       // --- the refusal is the live reach, not an exclusion ----------------
-      // Raise the vertical reach until the first refused perch is legal, and
-      // hold again. If the gate were reading anything but DEFUSE_REACH this
-      // would go on refusing.
-      const perch = tried[0];
+      // Raise the vertical reach until a refused perch is legal, and hold
+      // again. If the gate were reading anything but DEFUSE_REACH this would
+      // go on refusing. The perch has to be one the REACH refuses: since D20
+      // a top under a low lid is refused by headroom, and no reach opens that.
+      const perch = tried.find((p) => objective.hasHeadroomAt(p.foot)) || tried[0];
       const baseDy = DEFUSE_REACH.dy;
       try {
         let opened = baseDy;
@@ -415,6 +417,91 @@ export function register(debugTools) {
             + `"${PLANT_REFUSED}" with the hold bar gone, no progress and 0 noise events; it clears one `
             + `frame after release, and the same hold on the floor of site ${site.id} prompts and `
             + `noises normally`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  // A6 / D20: a charge cannot be inside anything. Josh, on being shown that
+  // every duct in a site room was a legal plant: "can't plant inside things.
+  // only on top." The clause is a headroom test, not a list of ducts, so this
+  // proves it the way a mechanical rule has to be proved - by the constant.
+  // Lower the headroom under a duct roof and the duct becomes plantable; put it
+  // back and it is refused again; and no amount of defuse reach opens it,
+  // because the reach is not what is refusing it.
+  debugTools.registerAutoTest({
+    id: 'a-charge-cannot-be-planted-inside-anything',
+    spec: 'Section 10.1 amended / D20 / Block A6',
+    name: 'Every duct interior in a site room refuses the plant, by its lid and not by the reach',
+    run: (h) => {
+      const problems = [];
+      h.initMatch({ mode: 'competitive', role: 'shade', ai: false, objective: true });
+      const objective = h.objective;
+
+      const ducts = plantableSpots(h).filter((spot) => spot.kind === 'vent');
+      if (!ducts.length) return { pass: false, detail: 'no duct interior lies inside a site room, so there is nothing to refuse' };
+
+      // --- every duct is refused, and the plant agrees ------------------
+      for (const duct of ducts) {
+        if (duct.legal) problems.push(`${duct.what} is a legal plant`);
+        if (objective.hasHeadroomAt(duct.at)) problems.push(`${duct.what} has standing headroom, so nothing here is a lid`);
+      }
+      const held = plantOutcomeAt(h, ducts[0]);
+      if (held.charge !== CHARGE.CARRIED) problems.push(`${ducts[0].what} planted anyway`);
+      if (held.peak > 0) problems.push(`${ducts[0].what} accrued ${held.peak.toFixed(2)}s of progress before refusing`);
+
+      // --- and it is the lid, not the reach -------------------------------
+      // The defuse reach could never open a duct, however far it is raised.
+      // Only the headroom does, and a duct that opens when the headroom drops
+      // below its own height is a duct refused for exactly the stated reason.
+      const duct = ducts.find((spot) => objective.canDefuseAt(spot.at)) || ducts[0];
+      const baseDy = DEFUSE_REACH.dy;
+      const baseHeight = PLANT_HEADROOM.height;
+      try {
+        DEFUSE_REACH.dy = 50;
+        if (objective.canPlantAt(duct.at)) problems.push(`${duct.what} became plantable with the defuse reach at 50m, so the reach was refusing it, not the lid`);
+        DEFUSE_REACH.dy = baseDy;
+
+        // Under the duct roof: whatever height the duct is, a probe shorter
+        // than the crouch will fit inside it.
+        PLANT_HEADROOM.height = CONFIG.shade.crouchHeight * 0.5;
+        const opened = objective.canDefuseAt(duct.at);
+        if (opened && !objective.canPlantAt(duct.at)) {
+          problems.push(`${duct.what} stayed refused with the headroom lowered to ${PLANT_HEADROOM.height.toFixed(2)}m, so the gate is not reading PLANT_HEADROOM`);
+        }
+        if (opened) {
+          const now = plantOutcomeAt(h, duct);
+          if (now.charge !== CHARGE.PLANTED) problems.push(`${duct.what}: with the headroom lowered the plant still never committed`);
+        }
+      } finally {
+        DEFUSE_REACH.dy = baseDy;
+        PLANT_HEADROOM.height = baseHeight;
+      }
+      if (objective.canPlantAt(duct.at)) problems.push('the duct did not go back to refused after the constants were restored');
+      if (PLANT_HEADROOM.height !== CONFIG.warden.standHeight) {
+        problems.push(`PLANT_HEADROOM.height is ${PLANT_HEADROOM.height}, not warden.standHeight (${CONFIG.warden.standHeight})`);
+      }
+
+      // --- on top is still fine -------------------------------------------
+      // The clause must not take the crate tops with it: D20 says "only on
+      // top", and a top with open air above it is exactly that.
+      const tops = plantableSpots(h).filter((spot) => spot.kind === 'top' && objective.canDefuseAt(spot.at));
+      const open = tops.filter((spot) => objective.hasHeadroomAt(spot.at));
+      if (!open.length) problems.push('no climbable top inside a site room has standing headroom, so "on top" is not being honoured');
+      for (const top of open) {
+        if (!top.legal) problems.push(`${top.what} is defusable and open above but refused`);
+      }
+
+      objective.resetMatch();
+      objective.resetRound(1);
+      h.shade.reset(h.map.shadeSpawns[0]);
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${ducts.length} duct interiors inside site rooms, all refused by their lid: unmoved by a 50m defuse `
+            + `reach, opened by dropping the headroom to ${(CONFIG.shade.crouchHeight * 0.5).toFixed(2)}m, refused `
+            + `again on restore. ${open.length} of ${tops.length} reachable tops have open air above and stay legal`
           : problems.join('; '),
       };
     },

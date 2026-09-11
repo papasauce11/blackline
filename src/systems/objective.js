@@ -42,15 +42,45 @@ export const ROUND = {
  * game.
  *
  * The horizontal reach is `round.siteRadius` - arm's length, never a marking.
- * The vertical one was the literal `dy < 2.5` written when plant and defuse
- * were both pinned to a site centre; whether 2.5m is the right answer to
- * "can a Warden reach up to a charge on a crate" is A6's question, not this
- * one. A2 only makes it a single place to ask.
+ *
+ * The vertical one, 2.5m, is decided (A6, D5, D20): a Warden standing beside a
+ * 2m crate reaches up to a charge on top of it, and that is the case D5 was
+ * written for - "on or beside". It was the literal `dy < 2.5` from when plant
+ * and defuse were both pinned to a site centre, and the census (A5) measured
+ * what it buys before it was kept: of 373 places a charge can go inside a site
+ * room, the vertical reach refuses none on its own; the horizontal one does the
+ * excluding. What 2.5m also let through was a charge inside a duct 2.3m up,
+ * defused from underneath. That is not settled here by shrinking the reach -
+ * a crate top would go with it - but by `PLANT_HEADROOM` below, which is the
+ * clause D20 actually asked for.
  */
 export const DEFUSE_REACH = {
   radius: R.siteRadius,
   dy: 2.5,
 };
+
+/**
+ * A charge cannot be *inside* anything (D20). Josh, on finding that every duct
+ * in a site room was a legal plant: "can't plant inside things. only on top."
+ *
+ * Read mechanically, never by name, because the redesign's binding rule is
+ * that the map obeys tests and carries no tags: a spot is inside something when
+ * there is a lid on it lower than a standing body. That is the same headroom
+ * `standableFloors()` demands before a cell counts as Warden ground, asked of
+ * the charge instead of the Warden. A duct fails by its roof; a crate top, a
+ * floor or an open gantry passes by the air above it.
+ *
+ * The column probed is a charge's footprint, not a body's: a charge tucked
+ * against a wall on a crate top is still on top of the crate. Not frozen, for
+ * the same reason as `DEFUSE_REACH` - a check lowers `height` under a duct
+ * roof and asserts the duct becomes plantable.
+ */
+export const PLANT_HEADROOM = {
+  radius: 0.15,
+  height: CONFIG.warden.standHeight,
+};
+/** Lift the probe off the surface the charge rests on, as the solver's skin does. */
+const HEADROOM_SKIN = 0.05;
 
 /**
  * Is a Warden with its feet at `foot` close enough to a charge at `at` to
@@ -71,6 +101,8 @@ export function withinDefuseReach(foot, at) {
 const FOOT = { x: 0, y: 0, z: 0 };
 /** Reused so the per-step plant gate allocates nothing. */
 const SPOT = { x: 0, y: 0, z: 0 };
+const HEADROOM_AT = { x: 0, y: 0, z: 0 };
+const HEADROOM_HALF = { x: 0, y: 0, z: 0 };
 /**
  * `someCellWithin`'s test, as a module constant rather than a closure, so the
  * gate below allocates nothing at all on the step it runs.
@@ -243,9 +275,10 @@ export class Objective {
       return;
     }
 
-    // A plant is legal exactly where a Warden could stand and defuse it (D5).
-    // The room says which volume the objective is about; this says which parts
-    // of it the Warden can answer for, and it is asked EVERY step of the hold
+    // A plant is legal exactly where a Warden could stand and defuse it (D5)
+    // and it is not inside anything (D20) - `canPlantAt()`. The room says
+    // which volume the objective is about; this says which parts of it the
+    // Warden can answer for, and it is asked EVERY step of the hold
     // rather than once at the commit. Four seconds of progress and then a
     // refusal is the worst of both answers - it reads as "nearly" while it
     // means "never" - and progress that never starts is the difference a
@@ -256,7 +289,7 @@ export class Objective {
     SPOT.x = shade.position.x;
     SPOT.y = shade.feetY;
     SPOT.z = shade.position.z;
-    if (!this.canDefuseAt(SPOT)) {
+    if (!this.canPlantAt(SPOT)) {
       // D6: the refusal is a HUD line and nothing else. This is the line.
       round.plantRefused = true;
       round.plantProgress = 0;
@@ -352,6 +385,35 @@ export class Objective {
    */
   canDefuseAt(at) {
     return this.map.wardenGround.someCellWithin(at, DEFUSE_REACH.radius, REACHES, at);
+  }
+
+  /**
+   * Is there a standing body's worth of open air above this spot? The D20
+   * clause: a charge with a lid on it is inside something. See
+   * `PLANT_HEADROOM` for why it is a headroom test and not a list of ducts.
+   *
+   * @param {{x:number,y:number,z:number}} at a foot position for the charge
+   */
+  hasHeadroomAt(at) {
+    HEADROOM_HALF.x = PLANT_HEADROOM.radius;
+    HEADROOM_HALF.y = PLANT_HEADROOM.height / 2;
+    HEADROOM_HALF.z = PLANT_HEADROOM.radius;
+    HEADROOM_AT.x = at.x;
+    HEADROOM_AT.y = at.y + HEADROOM_SKIN + HEADROOM_HALF.y;
+    HEADROOM_AT.z = at.z;
+    return this.map.collision.isClear(HEADROOM_AT, HEADROOM_HALF);
+  }
+
+  /**
+   * Could a charge be left here at all? The whole plant rule, and the one
+   * question the gate in `_stepPlant()` asks: a Warden could defuse it (D5)
+   * and it is not inside anything (D20). Both halves are mechanical; neither
+   * knows a duct or a crate by name.
+   *
+   * @param {{x:number,y:number,z:number}} at a foot position for the charge
+   */
+  canPlantAt(at) {
+    return this.canDefuseAt(at) && this.hasHeadroomAt(at);
   }
 
   // -------------------------------------------------------------------------

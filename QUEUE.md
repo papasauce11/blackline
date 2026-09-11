@@ -31,25 +31,6 @@ The GATE step ignores these. Nothing else may be red.
 Directive, not plan. Decided: D5 (on or beside), D6 (refusal is a HUD line).
 Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 
-- [ ] **A6 (S)** **blocked: D20.** Re-examine the **value** of
-  `DEFUSE_REACH.dy` (2.5m) against D5. A2 made it a named constant referenced
-  from both sides; what is left is whether 2.5m is the right answer to "can a
-  Warden reach up to a charge on a crate", and the comment recording that
-  decision. **A3 found the
-  horizontal reach is doing more of the excluding than the vertical one:**
-  two of the three tops it proved refused are 0.7m and 1.0m up, well inside
-  `dy`, and are turned away because the middle of a wide top is further than
-  `radius` (2.0m) from any Warden ground. So the live rule already reads "no
-  plant in the middle of anything wider than four metres". Read `radius`
-  alongside `dy`, and remember widening it widens the *defuse* too. **A5 then
-  measured what `dy` 2.5 actually buys:** every one of the 8 vent interiors
-  inside a site room is a legal plant, because the ducts run at y=2.3 and a
-  Warden on the floor beneath one is inside the vertical reach. The AI walked
-  to a duct charge and defused it from below in 9.6s, so it works exactly as
-  D5 says — the question is whether it should. That is now **D20**, and it is
-  the whole of what is left in this job. *done-when:* D20 is answered, the
-  value carries that decision as its comment, and the spec Section 20 records
-  the rule.
 - [ ] **A8 (S)** The AI freewheels up to **14.9m** on the solver alone. It
   paths over 20 waypoints and then walks straight from its last waypoint to
   the goal, and A5 measured how long that unpathed leg gets across every
@@ -260,6 +241,9 @@ budget checks are the ceiling.
   start a server unattended.
 - **A1** Where the Warden can stand — `src/mapground.js`,
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
+- **A6** Nothing inside anything - D20 decided, `PLANT_HEADROOM` and
+  `canPlantAt()`, spec 20.3, one check; census now 361 legal / 12 refused -
+  `COMMIT_A6`, 2026-09-10.
 - **A5** The census, and what it found in the ducts - two checks over 373
   plant spots, `spotOffTheRing` on the legal set, `tests/objective.js` split
   four ways - `fb9dc58`, 2026-09-10. Raised D20 (the commit message says D19;

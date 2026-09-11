@@ -194,7 +194,15 @@ badly, and A6 is sized for it.
 
 This changes what a player can do either way, so it waits. A6 is blocked on it
 and is now nothing but this question; nothing else in the queue is.
-**decided:**
+**decided:** no plant *inside* things; on top of things is fine. Josh,
+2026-09-10: *"can't plant 'inside' things. only on top."* — none of the three
+options as written. `dy` stays 2.5 (a crate top stays legal), and a fourth
+clause joins the rule: the charge needs standing headroom above it. Read
+mechanically, not by name: a spot is "inside" something when there is a lid on
+it lower than a standing body, which is the same headroom test A1's ground
+already applies to the Warden. Ducts fail it by their roof; crate tops, floors
+and open gantries pass. No tags, no exceptions, which keeps the redesign's
+binding rule. Built as A6.
 
 ### D13 — Rooms, sites and spawns on the first map
 B5 may want to move a site or a spawn, or merge two rooms, to make a stacked

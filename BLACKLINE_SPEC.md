@@ -627,3 +627,38 @@ The controller carries one flag, `_climbArmed`, set by the jump and by a press
 in the air, cleared by a walk-off, a hang drop and a landing. Ledge hang
 (Section 6.1's held option, redesign phases 12-18) will read the same press.
 
+
+### 20.3 Section 10.1 - a plant is legal where a Warden could defuse it, and never inside anything
+
+> *"actually should only be plantable where the ward is able to defuse."*
+> *"can't plant 'inside' things. only on top."*
+
+The room (20.1) was too generous on its own, as 20.1 already said. The Warden
+stays grounded and the Shade climbs, so inside a site's room there are tops and
+ducts where a plant could never be answered. The zone is now carved out of the
+room by two mechanical clauses, neither of which names a duct or a crate.
+
+| | Before | After |
+|---|---|---|
+| Plant zone | The site's room, floor to ceiling | The room, where **a Warden could stand and defuse** (D5) **and the charge is not inside anything** (D20) |
+| "Could defuse" | - | The real defuse predicate, `withinDefuseReach`, asked of every cell of the Warden's reachable ground within arm's length: 2.0m horizontally, 2.5m vertically. On *or* beside - a charge on a 2m crate is legal because a Warden beside it reaches up |
+| "Not inside" | - | A standing body's worth of open air above the charge (a 0.15m column, `warden.standHeight` tall). A duct fails by its roof; a top, a floor or an open gantry passes by the air above it |
+| The Warden's ground | - | Map data (`map.wardenGround`): a 0.5m grid flooded from the Warden spawns with a symmetric step limit, so a one-way drop is not in it (D16) |
+| When it is asked | - | Every step of the hold, never at the commit. Progress that never starts is the difference between "not yet" and "never" |
+| A refusal | - | A HUD line, "cannot plant here". No sound, no noise event (D6) - a refused plant must not give the Shade away |
+
+What it excludes, measured on the first map (A5): of 373 places a charge can go
+inside a site room - 344 floor cells on a 2m grid, 21 climbable tops, 8 duct
+interiors - the rule refuses 12. The 8 ducts, by their lid. Three tops, because
+the middle of a wide top is further than arm's length from any ground the
+Warden can stand on. One deck floor cell in site C, which the Warden's ground
+does not reach. The vertical reach on its own refuses nothing; the horizontal
+one and the lid do all the excluding.
+
+Consequences worth knowing. A charge on a crate top is a legal plant and the
+Warden defuses it from the floor beside the crate. A charge inside a duct is
+not, however low the duct - the reason is the lid, not the height, so lowering
+a duct does not make it plantable and raising a crate does not make it
+illegal until the crate itself leaves the reach. The AI is sent at the charge's
+real position, and every legal plant is one it can walk to and kneel at,
+which is what the rule was for.

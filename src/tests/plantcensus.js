@@ -79,7 +79,9 @@ export function register(debugTools) {
 
       let planted = 0;
       let held = 0;
+      let lidded = 0;
       for (const spot of spots) {
+        if (!spot.legal && !objective.hasHeadroomAt(spot.at)) lidded++;
         const outcome = plantOutcomeAt(h, spot);
         if (spot.legal && outcome.charge !== CHARGE.PLANTED) {
           problems.push(`${spot.what} is defusable but the plant never committed`);
@@ -111,9 +113,9 @@ export function register(debugTools) {
           ? `${spots.length} plant spots in ${h.map.sites.length} site rooms `
             + `(${kinds.floor} floor, ${kinds.top} climbable tops, ${kinds.vent} vent interiors); `
             + `${planted} committed where the charge landed within 5cm of the body, ${held} refused with `
-            + `no progress. By kind, out of the Warden's reach: `
+            + `no progress. Refused by kind: `
             + `${kinds.floor - legalBy.floor} floor, ${kinds.top - legalBy.top} tops, `
-            + `${kinds.vent - legalBy.vent} ducts`
+            + `${kinds.vent - legalBy.vent} ducts (${lidded} of the refusals by headroom, D20)`
           : problems.slice(0, 6).join('; ') + (problems.length > 6 ? ` (+${problems.length - 6} more)` : ''),
       };
     },

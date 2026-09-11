@@ -3549,3 +3549,41 @@ checks), and `objective.js` (round flow, 575). Registered in that order in
 **Left.** A6 is blocked on D20. A7 next: draw the Warden's reachable ground.
 It is now the only thing in Block A that nobody can look at — 25,177 cells, and
 this session proved four of them matter enough to refuse a plant.
+
+## A6 — nothing inside anything (2026-09-10)
+
+**Why.** A5 put the duct finding in front of Josh as D20 and he answered
+within the hour, and not with any of the three options offered: *"can't plant
+'inside' things. only on top."* So the vertical reach was never the question.
+A crate top is fine; a duct is not; and the difference between them is not
+height, it is whether there is a lid.
+
+**Built.** `PLANT_HEADROOM` in `systems/objective.js` — a 0.15m column,
+`warden.standHeight` tall, probed above the charge — and `hasHeadroomAt()`,
+which asks the collision world whether it is clear. `canPlantAt()` is now the
+whole rule, D5 and D20 together: `canDefuseAt(at) && hasHeadroomAt(at)`. The
+gate in `_stepPlant()` asks that instead. Mechanical, no tags: a duct fails by
+its roof, a crate top or a floor passes by the air above it, and the redesign's
+binding rule — the map obeys tests and carries no names — holds. `DEFUSE_REACH.dy`
+stays 2.5 and its comment now records why: the census measured that the
+vertical reach refuses nothing on its own, and shrinking it would have taken
+the crate tops with the ducts.
+
+Spec Section 20.3 written: the plant zone as it now is, with what it excludes
+on the first map and why.
+
+**Verified.** New check `a-charge-cannot-be-planted-inside-anything`. All 8
+duct interiors inside site rooms refused, and refused *by the lid*: a 50m
+defuse reach does not open one; dropping `PLANT_HEADROOM.height` to 0.53m does,
+and the plant then commits; restoring it refuses again. All 18 reachable tops
+have open air above and stay legal. The census re-counts to **373 spots, 361
+legal, 12 refused: 1 floor, 3 tops, 8 ducts (8 by headroom)**, and its AI
+sample now walks to A:top instead of A:vent because the vent is no longer a
+legal plant to sample. `spotOffTheRing()` and every `legal` flag in
+`tests/plantspots.js` read `canPlantAt` now, and A3's reach-opening experiment
+picks a perch the *reach* refuses, since no reach opens a lid.
+
+Full suite **110 passed / 2 failed, twice, identical** (200s, 347s); exit 0;
+census unchanged at 12 of 65.
+
+**Left.** A7 and A8. Block A is otherwise closed.
