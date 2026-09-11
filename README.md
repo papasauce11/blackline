@@ -73,7 +73,7 @@ No addons are used.
 |---|---|
 | `W` `A` `S` `D` | Move |
 | `Mouse` | Look |
-| `Space` | Jump. A jump extends how high you can climb |
+| `Space` | Jump. A jump extends how high you can climb. At a ledge: tap to grab and hang, hold to climb over |
 | `Ctrl` or `C` | Crouch / slide (from a sprint) |
 | `Shift` | Sprint |
 | `Left mouse` | Fire (Warden) |
@@ -105,8 +105,10 @@ There are no affordance markings. If a surface has a top you could stand on and
 your body can reach it, you climb it — about 2.6m from standing, about 3.8m out
 of a jump. Nothing is tagged and nothing opts out.
 
-Ledge-hang is mid-rebuild: it is becoming something you choose rather than what
-happens when a climb fails. See [HANDOFF.md](HANDOFF.md).
+Every climb at mantle height starts with a grab of the lip. **Tap Space and you
+hang there; hold Space and you carry on over.** From a hang, Space pulls up,
+crouch drops, A/D shimmy along the edge. Vault-height crates go straight over
+either way — there is nothing to hang from.
 
 ### Debug tooling
 

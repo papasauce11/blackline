@@ -85,14 +85,11 @@ a name, not a rank.
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
 there. The census is the contract; **never weaken it**.
 
-- [ ] **B1 (M)** Hang as a held option. Holding jump (or interact — pick
-  whichever the input map leaves free and record it) at a ledge you could
-  mantle instead hangs; release drops, forward pulls up. Never a failed-mantle
-  outcome. *done-when:* a check drives `input.heldCodes` through hang → drop
-  and hang → pull-up, and the fuzz cannot produce a hang without the hold.
 - [ ] **B2 (S)** The bump-and-scuff. A climb attempted beyond reach gets a
   physical tell (a short bump back, a hand-slap pose) **plus** a sound.
-  Never silent. *done-when:* a check asserts a rise of `reach + 0.3` yields
+  Never silent. Since D21 there is a second silent case: a hold from a hang
+  whose pull-up is blocked (a duct-mouth lip, anything with no room above it)
+  does nothing at all. Give it the same tell. *done-when:* a check asserts a rise of `reach + 0.3` yields
   the pose and a rendered sample; `renderOffline` proves the sample.
 - [ ] **B3 (M)** `_supportCandidates()` counts a neighbour within
   `vaultReach` of the footprint as "below" when it is "beside". Fix the rule
@@ -225,6 +222,10 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B1** Hang as a held option, as Josh specified it (D21): tap Space grabs
+  and hangs, hold Space climbs over; a `GRAB` move starts every mantle-height
+  climb; check `tap-space-grabs-the-ledge-hold-space-climbs-it`; spec 20.4 —
+  2026-09-10, built in Josh's session.
 - **P1** Verify and commit redesign phases 8–11 and the plant-room change —
   `5c6d571`, 2026-09-08.
 - **P2** The headless runner — `scripts/suite.mjs`, `npm run suite`, one

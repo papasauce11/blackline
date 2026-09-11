@@ -31,6 +31,8 @@ export const SHADE_STATE = {
   SLIDE: 'slide',
   VAULT: 'vault',
   MANTLE: 'mantle',
+  /** The short reach to a lip that every mantle-height climb starts with (D21). */
+  GRAB: 'grab',
   HANG: 'hang',
   PULLUP: 'pullup',
 };
@@ -240,6 +242,7 @@ export class Shade {
     switch (this.state) {
       case SHADE_STATE.VAULT:
       case SHADE_STATE.MANTLE:
+      case SHADE_STATE.GRAB:
       case SHADE_STATE.PULLUP:
         this._stepTraversal(dt);
         break;
@@ -590,12 +593,7 @@ export class Shade {
     if (!ledge) return false;
     if (!this._isApproaching(ledge, intent)) return false;
 
-    const vault = ledge.move === 'vault';
-    return this._climbOnto(
-      vault ? SHADE_STATE.VAULT : SHADE_STATE.MANTLE,
-      ledge,
-      vault ? S.vaultDuration : S.mantleDuration
-    );
+    return this._climbLedge(ledge);
   }
 
   /**
@@ -618,38 +616,43 @@ export class Shade {
     // available — on top of a crate there is no room to build speed — and
     // without this a 0.4m to 1.2m ledge cannot be climbed at all except by
     // running at it, which strands the player on small platforms.
-    if (ledge.move === 'vault' || ledge.move === 'mantle') {
-      const duration = ledge.move === 'vault' ? S.vaultDuration : S.mantleDuration;
-      const state = ledge.move === 'vault' ? SHADE_STATE.VAULT : SHADE_STATE.MANTLE;
-      if (this._climbOnto(state, ledge, duration)) return true;
-      // Blocked destination. The parkour safety rule forbids committing, so
-      // catch the lip instead of clipping through it.
-      return this._tryHang(ledge);
-    }
-
-    // There is no third case any more. Overreaching used to catch the ledge and
-    // leave you hanging; Section 6.1 as amended says a climb you cannot make
-    // simply does not happen, and the body checks against the surface instead.
-    // Hanging is something you choose, not something that happens to you.
-    return false;
+    return this._climbLedge(ledge);
   }
 
-  _tryHang(ledge) {
-    if (ledge.rise < S.mantleMinHeight || ledge.rise > S.hangMaxHeight) return false;
+  /**
+   * One rule for every Space-driven climb, ground or air (D21): a vault-height
+   * ledge goes straight over, because there is nothing to hang from; a
+   * mantle-height ledge is GRABBED first, and whether the body carries on over
+   * is decided by whether Space is still held when the hand lands — see
+   * `_stepHang()`. Tap: hang. Hold: climb.
+   *
+   * A grab that will not fit — a lip too low for a body to hang below it, or
+   * something under the lip — goes straight over instead, so a low mantle
+   * never becomes unclimbable because it is unhangable. If the top itself is
+   * blocked, nothing happens: the parkour safety rule forbids committing.
+   * There is no third case: a climb you cannot make simply does not happen.
+   */
+  _climbLedge(ledge) {
+    if (ledge.move === 'vault') return this._climbOnto(SHADE_STATE.VAULT, ledge, S.vaultDuration);
+    if (ledge.move !== 'mantle') return false;
+    if (this._tryGrab(ledge)) return true;
+    return this._climbOnto(SHADE_STATE.MANTLE, ledge, S.mantleDuration);
+  }
 
+  /**
+   * Reach for the lip: a short move to hanging position below the edge, which
+   * ends in HANG. Goes through `_commitMove()` like every traversal, so the
+   * hanging body is validated before anything is changed.
+   */
+  _tryGrab(ledge) {
+    if (ledge.rise > S.hangMaxHeight) return false;
     const centre = {
       x: ledge.hitX - ledge.dirX * (this.half.x + 0.04),
       y: ledge.topY - S.hangDrop + this.half.y,
       z: ledge.hitZ - ledge.dirZ * (this.half.x + 0.04),
     };
-    if (!this.collision.isClear(centre, this.half)) return false;
-
-    this.position.set(centre.x, centre.y, centre.z);
-    this.velocity.set(0, 0, 0);
-    this.state = SHADE_STATE.HANG;
-    this._falling = false;
+    if (!this._commitMove(SHADE_STATE.GRAB, centre, S.hangGrabDuration, this.height)) return false;
     this._hangLedge = ledge;
-    this._hangTimer = 0;
     return true;
   }
 
@@ -664,17 +667,11 @@ export class Shade {
     }
 
     this._hangTimer += dt;
-    if (this._hangTimer < S.hangInputGrace) return;
 
-    // Shimmy sideways along the ledge.
-    if (intent.strafe) this._shimmy(dt, intent.strafe, ledge);
-
-    // Pull up with jump, drop with crouch (Section 6.1).
-    //
-    // These read the HELD key, not a fresh press. A hang is entered mid-jump
-    // with the jump key usually still down, so an edge-triggered pull-up would
-    // wait for a keypress the player has no reason to make — they are already
-    // holding it. Same for crouch.
+    // Pull up with Space (Section 6.1, amended 20.3). Read before the settle
+    // grace, and as a HELD key: the grab that got us here was the tap window,
+    // so a key still down now is a hold, and a hold means carry on over. A
+    // press later, from a settled hang, pulls up the same way.
     if (intent.jump || intent.jumpPressed) {
       if (this._climbOnto(SHADE_STATE.PULLUP, ledge, S.hangPullUpDuration)) {
         this._hangLedge = null;
@@ -693,6 +690,14 @@ export class Shade {
       // previous state" behaviour.
     }
 
+    // Everything else waits for the hang to settle, so a crouch still held
+    // from a crouch-jump does not let go on the frame the hand lands.
+    if (this._hangTimer < S.hangInputGrace) return;
+
+    // Shimmy sideways along the ledge.
+    if (intent.strafe) this._shimmy(dt, intent.strafe, ledge);
+
+    // Drop with crouch (Section 6.1).
     if (intent.crouch || intent.crouchPressed) {
       this._hangLedge = null;
       this.state = SHADE_STATE.AIR;
@@ -752,6 +757,17 @@ export class Shade {
     if (t < 1) return;
 
     this.position.set(move.to.x, move.to.y, move.to.z);
+
+    if (this.state === SHADE_STATE.GRAB) {
+      // The hand is on the lip. Whether the body carries on over is decided in
+      // _stepHang() by whether Space is still held (D21): the grab itself was
+      // the tap window.
+      this._move = null;
+      this.state = SHADE_STATE.HANG;
+      this._hangTimer = 0;
+      return;
+    }
+
     // The destination was validated at this height, so adopt it. A climb into a
     // low space arrives crouched rather than clipping.
     this.height = move.height;
@@ -923,7 +939,7 @@ export class Shade {
     const swing = moving ? Math.sin(this._animTime) * Math.min(0.9, 0.22 + speed * 0.1) : 0;
     const idle = Math.sin(this._animTime * 0.8) * 0.04;
 
-    if (this.state === SHADE_STATE.HANG) {
+    if (this.state === SHADE_STATE.HANG || this.state === SHADE_STATE.GRAB) {
       parts.armL.rotation.x = -2.5;
       parts.armR.rotation.x = -2.5;
       parts.legL.rotation.x = 0.25;

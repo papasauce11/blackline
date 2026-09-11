@@ -3700,3 +3700,47 @@ at 373 / 361 / 12.
 with small changes and not split — `ai.js` (788), `mapkit.js`, `config.js` —
 and are listed on F3 with main.js, for the same reason: the split is its own
 job, not a side effect of a one-line change.
+
+## B1 — tap Space grabs, hold Space climbs (2026-09-10)
+
+Josh, playing: *"Looks like hanging isnt working."* It was not built: phase 3
+of the redesign removed hang-as-failed-mantle and B1 was three jobs down the
+queue. Offered three inputs; he chose a fourth: *"tapping space grabs first
+always. holding space climbs."* D21.
+
+**Built.** A `GRAB` traversal state. Every mantle-height climb — ground or air
+— now goes through `_climbLedge()`: vault height goes straight over; mantle
+height commits a grab, a 0.18s move to hanging position below the lip that
+ends in `HANG`. `_stepHang()` then reads Space *before* the settle grace and
+as a held key: still down means hold, and a hold pulls straight up, so the
+climb reads as grab-then-over in one motion (0.18 + 0.55s against the old
+0.62s mantle). Released means hang: Space later pulls up, crouch drops, A/D
+shimmy. A grab with no room below the lip falls back to the direct mantle, so
+a low ledge is never unclimbable for being unhangable. `hangGrabDuration` is
+the tap window; there is no hold timer and no delay on the climb.
+
+**Verified.** New check `tap-space-grabs-the-ledge-hold-space-climbs-it`
+drives the real keys at `stack-hall-mid` (2.0m): tap → hangs at feet
+top−1.35, stays put for a second, Space pulls up; tap → crouch drops to the
+floor; hold → over, through a grab; the same split mid-fall; and a tap at a
+vault-height crate goes straight over with no grab. Against the pre-change
+controller it is red with the old behaviour in its own words ("a tap on the
+ground went over stack-hall-mid instead of hanging"). The D17 check now holds
+Space for its climbs. Full suite 114 passed / 2 failed, twice, identical,
+zero console errors.
+
+**Found.** The census taps Space every 22 steps, so under D21 every mantle
+spent a hang beat waiting for the next tap and one face missed the 90-step
+budget; `attemptClimb()` now holds Space, which is what getting on top means.
+After that, one surface still moved from "straight off the floor" to "needs a
+leg up": `vent-low-south-roof`. Measured in real Chrome, step by step: from
+the vent's end the vent *floor* lip (2.3m) sits directly below the roof lip
+and is within standing reach, so the press grabs it — the first thing in
+reach, which is the rule. Old code tried to mantle that lip, was blocked by
+the duct's 1.15m headroom, and fell through to a plain jump that happened to
+reach the roof; that path was an accident, not a design. The roof still
+climbs from inside the duct. The twelve failures are unchanged. A blocked
+pull-up is silent today; added to B2's scope.
+
+**Recorded.** Spec 20.4; D21; README controls and climbing; HANDOFF.
+

@@ -662,3 +662,32 @@ a duct does not make it plantable and raising a crate does not make it
 illegal until the crate itself leaves the reach. The AI is sent at the charge's
 real position, and every legal plant is one it can walk to and kneel at,
 which is what the rule was for.
+
+### 20.4 Section 6.1 - tap Space grabs the ledge, hold Space climbs it
+
+> *"tapping space grabs first always. holding space climbs"*
+
+Section 6.1 made the hang the outcome of a failed mantle above 2.4m. The
+redesign removed that (a climb you cannot make does not happen) and left the
+hang to be "a held option you choose". This is the option.
+
+Every climb at mantle height - anything above vault height, from the ground or
+from the air - starts with a **grab**: a short reach to hanging position below
+the lip. What happens next is decided by the key:
+
+| | Tap Space | Hold Space |
+|---|---|---|
+| Vault-height ledge (up to `reach.vaultTop`) | goes straight over - nothing to hang from | the same |
+| Mantle-height ledge | grabs and **hangs** | grabs and **carries on over** |
+| From a settled hang | Space pulls up; crouch drops; A/D shimmy | |
+
+The grab's duration (`hangGrabDuration`, 0.18s) is the tap window: a key still
+down when the hand lands is a hold. There is no separate hold timer and no
+delay on the climb - the grab is part of the climb, and reads as one.
+
+Consequences. A grab that has no room below the lip (a ledge too low to hang
+from, something under it) goes straight over, so a low mantle is never
+unclimbable for being unhangable. A hang lasts as long as nothing is pressed;
+letting go is a crouch, and the fall catches nothing without a fresh press
+(20.2). The climb rule itself - standable top within reach - is untouched;
+this only changes what one press asks for.

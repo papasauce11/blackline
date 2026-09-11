@@ -181,7 +181,7 @@ function standHeightsAt(h, box, stand) {
  * Stand at one face of a box, on one surface below it, and try to get on top
  * the way a player would: face it, hold forward, and jump. A ground climb IS a
  * jump into a ledge, so the jump is pressed for every rise, not only for the
- * ones above standing reach.
+ * ones above standing reach — and held, because since D21 a tap only grabs.
  *
  * @returns {boolean} whether the body ended up on top
  */
@@ -199,17 +199,16 @@ function attemptClimb(h, box, face, stand, feet, height) {
 
   h.input.clearAll();
   h.input.heldCodes.add('KeyW');
+  // Space is HELD throughout: since D21 a tap grabs the lip and hangs, and it
+  // is the hold that carries the body on over. Getting on top is a hold.
+  h.input.heldCodes.add('Space');
   let climbed = false;
   for (let step = 0; step < 90 && !climbed; step++) {
-    // Re-pressed periodically because a single edge can be consumed by a step
-    // that was not yet in range.
-    if (step % 22 === 0) {
-      h.input.heldCodes.add('Space');
-      h.input.pressedCodes.add('Space');
-    }
+    // The jump itself is edge-triggered, so the press is repeated periodically:
+    // a single edge can be consumed by a step that was not yet in range.
+    if (step % 22 === 0) h.input.pressedCodes.add('Space');
     h.stepFrames(1);
     h.input.clearEdges();
-    h.input.heldCodes.delete('Space');
     if (shade.feetY > box.max.y - 0.12) climbed = true;
   }
   h.input.clearAll();

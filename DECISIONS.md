@@ -72,6 +72,17 @@ L job is a whole run; stop when a third of the budget is left rather than start
 a job that cannot be finished. Prompt, `PLAN.md`, `QUEUE.md` and `HANDOFF.md`
 updated the same day.
 
+### D21 — How you ask for a hang
+Josh, 2026-09-10, playing: *"Looks like hanging isnt working."* It was not
+built: the redesign removed hang-as-failed-mantle and B1 (hang as a held
+option) had not been reached. Three inputs were offered — hold Space to hang,
+crouch+Space to hang, or grab-first-always.
+**decided:** *"tapping space grabs first always. holding space climbs."* Every
+mantle-height climb starts with a grab; a tap leaves you hanging, a hold
+carries on over. From a hang, Space pulls up, crouch drops, A/D shimmy.
+Vault-height ledges go straight over on either. Built the same evening as B1;
+spec 20.4.
+
 ---
 
 ## Provisional — done as recommended, override any time

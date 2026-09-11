@@ -214,6 +214,7 @@ export function register(debugTools) {
         if (
           h.shade.state === SHADE_STATE.MANTLE ||
           h.shade.state === SHADE_STATE.VAULT ||
+          h.shade.state === SHADE_STATE.GRAB ||
           h.shade.state === SHADE_STATE.HANG
         ) {
           reClimbed = true;
@@ -229,8 +230,8 @@ export function register(debugTools) {
 
       // The forward approach must still work, or the fix has broken climbing.
       // Airborne, feet at 0.5, a 3.0m top is a 2.5m rise — inside the 3.8m a
-      // jump reaches, so this is now a climb rather than the hang it used to
-      // produce. Hanging is something you choose, not a failed mantle.
+      // jump reaches, so this is a climb, and since D21 a climb at mantle
+      // height starts with a grab. Hanging is something you choose.
       h.shade.reset(h.map.shadeSpawns[0]);
       h.shade.position.set(container.max.x + 0.75, 0.5 + CONFIG.shade.standHeight / 2, midZ);
       h.shade.velocity.set(0, 0, 0);
@@ -238,7 +239,7 @@ export function register(debugTools) {
       h.shade.state = SHADE_STATE.AIR;
       const stillGrabs = h.shade._tryMantle(APPROACHING)
         && (h.shade.state === SHADE_STATE.MANTLE || h.shade.state === SHADE_STATE.VAULT
-          || h.shade.state === SHADE_STATE.HANG);
+          || h.shade.state === SHADE_STATE.GRAB || h.shade.state === SHADE_STATE.HANG);
 
       h.shade.reset(h.map.shadeSpawns[0]);
 

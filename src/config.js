@@ -273,7 +273,7 @@ export const CONFIG = {
     vaultDuration: 0.42,
     vaultExitSpeed: 4.2,
 
-    /** Mantle: ledges 1.2m to 2.4m, auto-triggered when airborne near a ledge. */
+    /** Mantle: the climb over a ledge above vault height. Starts with a grab; see hangGrabDuration. */
     mantleMinHeight: 1.2,
     mantleMaxHeight: 2.4,
     mantleReach: 0.95,
@@ -294,18 +294,24 @@ export const CONFIG = {
     slideMinEntrySpeed: 5.2,
     slideCooldown: 0.5,
 
-    /** Ledge hang: failed mantle above 2.4m. */
+    /**
+     * Ledge hang (Section 6.1, amended 20.3). Every mantle-height climb starts
+     * with a GRAB: a short reach to hanging position below the lip. Tap Space
+     * and you stay there; hold it and the body carries on over. The grab's
+     * duration is therefore the tap window — a key still down when it ends is
+     * a hold. Longer than a human tap (about 0.1s), shorter than reads as a
+     * pause.
+     */
+    hangGrabDuration: 0.18,
     hangMaxHeight: 4.2,
     hangReach: 0.85,
     /** Body offset below the grabbed edge while hanging. */
     hangDrop: 1.35,
     hangPullUpDuration: 0.55,
     /**
-     * A hang is almost always entered mid-jump with the jump key still held, so
-     * the pull-up cannot require a fresh keypress — there would never be one.
-     * Hang inputs read the HELD key, and this grace period keeps a held jump
-     * from pulling up on the same frame the ledge is grabbed, so the grab still
-     * reads as a distinct beat. Release the key within the grace to stay hanging.
+     * A settled hang ignores everything but Space for this long, so a crouch
+     * still held from a crouch-jump does not let go on the frame the hand
+     * lands.
      */
     hangInputGrace: 0.18,
     /** Lateral shimmy speed along a grabbed ledge. */

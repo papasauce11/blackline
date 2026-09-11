@@ -324,81 +324,141 @@ export function register(debugTools) {
 
   // D17: a climb is a press of Space, never a side effect of moving. Before
   // this, _stepAir() mantled on every airborne step, so walking off any edge
-  // while holding forward climbed whatever face was in reach.
+  // while holding forward climbed whatever face was in reach. D21 then split
+  // the press — a tap grabs the lip and hangs, a hold carries on over — so the
+  // climbs here HOLD Space, and the tap/hold split has its own check below.
   debugTools.registerAutoTest({
     id: 'a-climb-is-a-press-of-space-never-a-side-effect',
     spec: 'Section 6.1, amended (20.2)',
-    name: 'Forward into a ledge does nothing; Space climbs it, on the ground and mid-fall',
+    name: 'Forward into a ledge does nothing; Space held climbs it, on the ground and mid-fall',
+    run: (h) => {
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
+      const spot = findGroundLedge(h, 1.2, 2.4);
+      if (!spot) {
+        return { pass: false, detail: 'no ground-level ledge between 1.2m and 2.4m with a clear approach was found' };
+      }
+      const { box } = spot;
+      const top = box.max.y;
+      const ground = CONFIG.map.groundY;
+      const tag = box.tag || 'the ledge';
+
+      const problems = [];
+      const groundNoPress = driveAtLedge(h, spot, { airborne: false, pressAt: null, hold: false, steps: 120 });
+      if (groundNoPress.onTop || groundNoPress.sawClimb) {
+        problems.push(`holding forward on the ground climbed ${tag} without Space`);
+      }
+      const groundHold = driveAtLedge(h, spot, { airborne: false, pressAt: 5, hold: true, steps: 90 });
+      if (!groundHold.onTop) {
+        problems.push(`Space held on the ground did not climb ${tag} (feet ${groundHold.feet.toFixed(2)}, top ${top.toFixed(2)})`);
+      }
+      const airNoPress = driveAtLedge(h, spot, { airborne: true, pressAt: null, hold: false, steps: 120 });
+      if (airNoPress.onTop || airNoPress.sawClimb) {
+        problems.push(`falling past ${tag} while holding forward climbed it without Space`);
+      } else if (!airNoPress.grounded || airNoPress.feet > ground + 0.3) {
+        problems.push(`the un-pressed fall did not end on the ground (feet ${airNoPress.feet.toFixed(2)}, grounded ${airNoPress.grounded})`);
+      }
+      const airHold = driveAtLedge(h, spot, { airborne: true, pressAt: 2, hold: true, steps: 90 });
+      if (!airHold.onTop) {
+        problems.push(`Space held during the fall did not climb ${tag} (feet ${airHold.feet.toFixed(2)})`);
+      }
+
+      h.input.clearAll();
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${tag} (${(top - ground).toFixed(2)}m): forward alone never climbed, on the ground `
+            + 'or falling past it; Space held climbed it from both'
+          : problems.join('; '),
+      };
+    },
+  });
+
+  // D21: "tapping space grabs first always. holding space climbs." The grab is
+  // the tap window: a key still down when the hand lands is a hold.
+  debugTools.registerAutoTest({
+    id: 'tap-space-grabs-the-ledge-hold-space-climbs-it',
+    spec: 'Section 6.1, amended (20.3)',
+    name: 'A tap of Space hangs from a mantle-height ledge, a hold goes over; a hang pulls up on Space and drops on crouch',
     run: (h) => {
       h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
       const shade = h.shade;
       const ground = CONFIG.map.groundY;
-      const spot = findGroundLedge(h);
-      if (!spot) {
-        return { pass: false, detail: 'no ground-level ledge between 1.2m and 2.4m with a clear approach was found' };
-      }
-      const { box, x, z, yaw } = spot;
+      const spot = findGroundLedge(h, 1.2, 2.4);
+      if (!spot) return { pass: false, detail: 'no ground-level mantle-height ledge with a clear approach was found' };
+      const { box } = spot;
       const top = box.max.y;
-      const climbStates = new Set([SHADE_STATE.VAULT, SHADE_STATE.MANTLE]);
-
-      // Stand (or hang in the air) 0.8m from the face, hold forward, and
-      // optionally press Space once on a given step. Drive the real input.
-      const drive = ({ airborne, pressAt, steps }) => {
-        shade.reset({ position: { x, y: ground, z }, yaw });
-        h.stepFrames(2);
-        if (airborne) {
-          // The walk-off case without the walk: airborne in front of the face
-          // with nothing pressed, exactly the state a step off an edge leaves.
-          shade.position.y += 0.6;
-          shade.velocity.set(0, 0, 0);
-          shade.grounded = false;
-          shade.state = SHADE_STATE.AIR;
-          shade._beginFall();
-        }
-        h.input.clearAll();
-        h.input.heldCodes.add('KeyW');
-        let sawClimb = false;
-        let onTop = false;
-        for (let i = 0; i < steps && !onTop; i++) {
-          if (pressAt !== null && i === pressAt) {
-            h.input.heldCodes.add('Space');
-            h.input.pressedCodes.add('Space');
-          }
-          h.stepFrames(1);
-          h.input.clearEdges();
-          h.input.heldCodes.delete('Space');
-          if (climbStates.has(shade.state)) sawClimb = true;
-          if (shade.feetY > top - 0.12) onTop = true;
-        }
-        h.input.clearAll();
-        return { onTop, sawClimb, feet: shade.feetY, grounded: shade.grounded };
-      };
-
+      const tag = box.tag || 'the ledge';
+      const hangFeet = top - S.hangDrop;
       const problems = [];
-      const groundNoPress = drive({ airborne: false, pressAt: null, steps: 120 });
-      if (groundNoPress.onTop || groundNoPress.sawClimb) {
-        problems.push(`holding forward on the ground climbed ${box.tag || 'the ledge'} without Space`);
-      }
-      const groundPress = drive({ airborne: false, pressAt: 5, steps: 90 });
-      if (!groundPress.onTop) {
-        problems.push(`Space on the ground did not climb ${box.tag || 'the ledge'} (feet ${groundPress.feet.toFixed(2)}, top ${top.toFixed(2)})`);
-      }
-      const airNoPress = drive({ airborne: true, pressAt: null, steps: 120 });
-      if (airNoPress.onTop || airNoPress.sawClimb) {
-        problems.push(`falling past ${box.tag || 'the ledge'} while holding forward climbed it without Space`);
-      } else if (!airNoPress.grounded || airNoPress.feet > ground + 0.3) {
-        problems.push(`the un-pressed fall did not end on the ground (feet ${airNoPress.feet.toFixed(2)}, grounded ${airNoPress.grounded})`);
-      }
-      const airPress = drive({ airborne: true, pressAt: 2, steps: 90 });
-      if (!airPress.onTop) {
-        problems.push(`Space during the fall did not climb ${box.tag || 'the ledge'} (feet ${airPress.feet.toFixed(2)})`);
+
+      // A tap on the ground: the hand lands, the body stays below the lip...
+      const tap = driveAtLedge(h, spot, { airborne: false, pressAt: 5, hold: false, steps: 90 });
+      if (tap.onTop) problems.push(`a tap on the ground went over ${tag} instead of hanging`);
+      if (!tap.sawGrab) problems.push(`a tap on the ground never grabbed ${tag} (states ${tap.states})`);
+      if (shade.state !== SHADE_STATE.HANG) problems.push(`after the tap the state is ${shade.state}, not hang`);
+      if (Math.abs(shade.feetY - hangFeet) > 0.2) problems.push(`hanging feet at ${shade.feetY.toFixed(2)}, want ${hangFeet.toFixed(2)}`);
+
+      // ...and a settled hang stays put with nothing pressed.
+      h.input.clearAll();
+      h.stepFrames(60);
+      if (shade.state !== SHADE_STATE.HANG) problems.push(`a hang with nothing pressed became ${shade.state} within a second`);
+
+      // From the hang, a press of Space pulls up.
+      h.input.heldCodes.add('Space');
+      h.input.pressedCodes.add('Space');
+      h.stepFrames(1);
+      h.input.clearEdges();
+      h.input.heldCodes.delete('Space');
+      h.stepFrames(60);
+      if (shade.feetY < top - 0.12) problems.push(`Space from the hang did not pull up onto ${tag} (feet ${shade.feetY.toFixed(2)}, state ${shade.state})`);
+
+      // Tap again, then crouch: drops to the floor, nothing climbed.
+      const tap2 = driveAtLedge(h, spot, { airborne: false, pressAt: 5, hold: false, steps: 90 });
+      if (tap2.onTop || shade.state !== SHADE_STATE.HANG) problems.push(`the second tap did not end hanging (state ${shade.state})`);
+      h.input.clearAll();
+      h.stepFrames(15); // past the settle grace
+      h.input.heldCodes.add('ControlLeft');
+      h.input.pressedCodes.add('ControlLeft');
+      h.stepFrames(1);
+      h.input.clearEdges();
+      h.input.heldCodes.delete('ControlLeft');
+      h.stepFrames(90);
+      if (!shade.grounded || shade.feetY > ground + 0.3 || shade.state === SHADE_STATE.HANG) {
+        problems.push(`crouch from the hang did not drop to the floor (feet ${shade.feetY.toFixed(2)}, state ${shade.state})`);
       }
 
+      // A hold on the ground: over, and through a grab on the way.
+      const hold = driveAtLedge(h, spot, { airborne: false, pressAt: 5, hold: true, steps: 90 });
+      if (!hold.onTop) problems.push(`a hold on the ground did not go over ${tag} (feet ${hold.feet.toFixed(2)})`);
+      if (!hold.sawGrab) problems.push(`a hold went over ${tag} without grabbing first (states ${hold.states})`);
+
+      // Mid-air, the same split.
+      const airTap = driveAtLedge(h, spot, { airborne: true, pressAt: 2, hold: false, steps: 90 });
+      if (airTap.onTop || shade.state !== SHADE_STATE.HANG) problems.push(`a tap mid-fall did not end hanging from ${tag} (state ${shade.state})`);
+      const airHold = driveAtLedge(h, spot, { airborne: true, pressAt: 2, hold: true, steps: 90 });
+      if (!airHold.onTop) problems.push(`a hold mid-fall did not go over ${tag} (feet ${airHold.feet.toFixed(2)})`);
+
+      // A vault-height crate has nothing to hang from: a tap goes straight over.
+      const low = findGroundLedge(h, 0.5, S.reach.vaultTop);
+      let lowTag = 'a low crate';
+      let lowRise = 0;
+      if (!low) {
+        problems.push('no ground-level vault-height crate with a clear approach was found');
+      } else {
+        lowTag = low.box.tag || lowTag;
+        lowRise = low.box.max.y - ground;
+        const lowTap = driveAtLedge(h, low, { airborne: false, pressAt: 5, hold: false, steps: 90 });
+        if (!lowTap.onTop) problems.push(`a tap at ${lowTag} (${lowRise.toFixed(2)}m) did not vault it (feet ${lowTap.feet.toFixed(2)})`);
+        if (lowTap.sawGrab) problems.push(`a tap at ${lowTag} grabbed instead of vaulting`);
+      }
+
+      h.input.clearAll();
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${box.tag || 'ledge'} (${(top - ground).toFixed(2)}m): forward alone never climbed, on the ground `
-            + 'or falling past it; one press of Space climbed it from both'
+          ? `${tag} (${(top - ground).toFixed(2)}m): a tap hangs at feet ${hangFeet.toFixed(2)}, a hold goes over `
+            + `through a grab, Space pulls up, crouch drops, the same mid-fall; ${lowTag} `
+            + `(${lowRise.toFixed(2)}m) vaults on a tap with no grab`
           : problems.join('; '),
       };
     },
@@ -406,19 +466,68 @@ export function register(debugTools) {
 }
 
 /**
- * A climbable box that sits on the ground floor, between 1.2m and 2.4m tall,
+ * Stand (or hang in the air) 0.8m from a ledge face, hold forward, and press
+ * Space once on a given step — released the next step (a tap) or kept down
+ * until the end (a hold). Drives the real input.
+ */
+function driveAtLedge(h, spot, { airborne, pressAt, hold, steps }) {
+  const shade = h.shade;
+  const { box, x, z, yaw } = spot;
+  const ground = CONFIG.map.groundY;
+  const top = box.max.y;
+  const climbStates = new Set([
+    SHADE_STATE.VAULT, SHADE_STATE.MANTLE, SHADE_STATE.GRAB, SHADE_STATE.HANG, SHADE_STATE.PULLUP,
+  ]);
+  shade.reset({ position: { x, y: ground, z }, yaw });
+  h.stepFrames(2);
+  if (airborne) {
+    // The walk-off case without the walk: airborne in front of the face
+    // with nothing pressed, exactly the state a step off an edge leaves.
+    shade.position.y += 0.6;
+    shade.velocity.set(0, 0, 0);
+    shade.grounded = false;
+    shade.state = SHADE_STATE.AIR;
+    shade._beginFall();
+  }
+  h.input.clearAll();
+  h.input.heldCodes.add('KeyW');
+  const states = new Set();
+  let sawClimb = false;
+  let sawGrab = false;
+  let onTop = false;
+  for (let i = 0; i < steps && !onTop; i++) {
+    if (pressAt !== null && i === pressAt) {
+      h.input.heldCodes.add('Space');
+      h.input.pressedCodes.add('Space');
+    }
+    h.stepFrames(1);
+    h.input.clearEdges();
+    if (!hold) h.input.heldCodes.delete('Space');
+    states.add(shade.state);
+    if (climbStates.has(shade.state)) sawClimb = true;
+    if (shade.state === SHADE_STATE.GRAB) sawGrab = true;
+    if (shade.feetY > top - 0.12 && shade.state !== SHADE_STATE.GRAB && shade.state !== SHADE_STATE.HANG) onTop = true;
+  }
+  h.input.clearAll();
+  return {
+    onTop, sawGrab, sawClimb, feet: shade.feetY, grounded: shade.grounded, states: [...states].join(','),
+  };
+}
+
+/**
+ * A climbable box that sits on the ground floor, between minRise and maxRise tall,
  * with a spot 0.8m off one of its faces where the Shade can stand and the
  * controller's own probe agrees the face is in reach. The probe is the
  * arbiter so the check cannot pick a face the game itself would not offer.
  */
-function findGroundLedge(h) {
+function findGroundLedge(h, minRise, maxRise) {
   const ground = CONFIG.map.groundY;
   const shade = h.shade;
   for (const box of h.map.collision.boxes) {
     if (!box.climbable || !box.solid) continue;
     if (Math.abs(box.min.y - ground) > 0.05) continue;
     const rise = box.max.y - ground;
-    if (rise < 1.2 || rise > 2.4) continue;
+    if (rise < minRise || rise > maxRise) continue;
     const cx = (box.min.x + box.max.x) / 2;
     const cz = (box.min.z + box.max.z) / 2;
     for (const [nx, nz] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
