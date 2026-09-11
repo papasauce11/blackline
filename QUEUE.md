@@ -37,20 +37,8 @@ Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 Placed here, after A and before B, on purpose: the suite is the instrument
 every later block is measured with, and a gate that answers differently on a
 busy PC is a gate that will eventually wave something through. The letter is
-a name, not a rank.
-
-- [ ] **F4 (S)** The rAF loop runs the real game under the suite in headless
-  Chrome (F1 measured it: `document.hidden` is false, 7 real frames ran
-  inside the audio check, the 45s cooldown between runs is ~135 frames of the
-  AI hunting an idle Shade). A check that does not start from `initMatch`
-  inherits a state that depends on the wall clock. Stop the loop for the
-  duration of `runAutoTests` (the scheduler is `FrameLoop` in `loop.js`,
-  `start()`/`stop()`, held by `main.js` as `loop`; the harness would need to
-  expose it, or the suite can ask through the emitter) and
-  make `h.nextFrame()` still resolve while it is stopped. **Do not** fix it
-  by adding `initMatch` to every check. *done-when:* `clock.frame` is the
-  same before and after a full suite run minus what checks drove themselves,
-  and a check proves it.
+a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done; the
+next gate job, if one is found, goes here.
 
 ## Block B — the traversal redesign, phases 12–50
 
@@ -198,6 +186,12 @@ budget checks are the ceiling.
 
 ## Done
 
+- **F4** The rAF loop is stopped for the length of a suite run (`FrameLoop`
+  in `loop.js`, on the harness as `h.loop`; `AutoSuite.runChecks` stops it
+  and puts it back, `initMatch` no longer starts it, the headless runner
+  stops it for the whole session and reports `loopFrames` per run, which
+  must be 0); check `the-loop-does-not-run-the-game-under-the-suite` -
+  <hash>, 2026-09-11.
 - **F3** Every module under the ~600 guidance, `config.js` excepted and the
   exemption written into PLAN.md: `main.js` 1,145 -> 597 across eleven
   siblings (`loop`, `timestep`, `matchstate`, `view`, `cameraowner`,
@@ -207,7 +201,7 @@ budget checks are the ceiling.
   `mapgen`/`mapclimb`; `map.js` -> `mapdata`/`mapvalidate`; `physics.js` ->
   `collisionbox`; `systems/objective.js` -> `plantrule`; `systems/gadgets.js`
   -> `gadgeteffects`. Check `no-source-file-outside-config-is-over-600-lines`
-  - <hash>, 2026-09-11.
+  - `3a4dbe8`, 2026-09-11.
 - **F1** The cascade was a lost WebGL context, not the viewport check:
   counted in `main.js`, tagged and re-run once after restore by the suite
   runner, now `ui/autosuite.js` (split from `ui/debug.js`); `contextLosses`

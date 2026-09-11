@@ -12,13 +12,15 @@ import { CONFIG } from './config.js';
 /**
  * @param {Record<string, () => any>} live one getter per engine object, so
  *   tests always see the current instance rather than the one at boot
- * @param {object} loop the composition root's own functions, not copies:
+ * @param {object} root the composition root's own functions, not copies:
  *   `fixedStep`, `renderFrame`, `setPaused`, plus everything exposed as-is
+ *   - including `loop`, the rAF scheduler, so the suite can stop it (F4)
  */
-export function createHarness(live, loop) {
-  const { fixedStep, renderFrame, setPaused, ...exposed } = loop;
+export function createHarness(live, root) {
+  const { fixedStep, renderFrame, setPaused, debugState, ...exposed } = root;
   const harness = {
     ...exposed,
+    debugState,
     setPaused,
 
     /**
@@ -47,7 +49,14 @@ export function createHarness(live, loop) {
       live.hud().setVisible(true);
     },
 
-    /** Await one real animation frame, for tests that need the renderer to run. */
+    /**
+     * Await the browser's next animation frame. Resolves whether or not the
+     * game loop is running - it is the browser's tick, not the loop's - and
+     * draws nothing itself: a check that needs a frame drawn calls
+     * `renderFrame()`. Where frames never fire (a hidden document) it never
+     * resolves, which is why a check awaiting it looks at `document.hidden`
+     * first.
+     */
     nextFrame() {
       return new Promise((resolve) => requestAnimationFrame(() => resolve()));
     },
@@ -62,6 +71,9 @@ export function createHarness(live, loop) {
      */
     renderFrame(wallDelta) {
       const delta = Number.isFinite(wallDelta) ? wallDelta : 1 / CONFIG.performance.targetFps;
+      // Counted, so a frame a check drove on purpose can be told from one
+      // the loop ran underneath it (F4): `clock.frame` minus this is the loop.
+      debugState.harnessFrames = (debugState.harnessFrames || 0) + 1;
       renderFrame(delta);
       return delta;
     },

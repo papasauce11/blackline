@@ -224,6 +224,10 @@ async function main() {
 
     await page.goto(`http://127.0.0.1:${port}/${QUERY ? '?' + QUERY : ''}`, { waitUntil: 'load' });
     await page.waitForFunction(() => !!window.BLACKLINE, null, { timeout: 60000 });
+    // The live loop plays the game between runs and under any check that
+    // yields (F4 measured ~135 frames of the AI hunting an idle Shade in one
+    // cooldown). Every frame this runner wants, it drives itself.
+    await page.evaluate(() => window.BLACKLINE.loop.stop());
 
     const renderer = await page.evaluate(() => {
       const c = document.createElement('canvas');
@@ -249,6 +253,7 @@ async function main() {
       const r = await page.evaluate(async (subsetSource) => {
         const h = window.BLACKLINE;
         for (let k = 0; k < 60; k++) h.renderFrame(1 / 60);
+        const loopFramesBefore = h.loop.frames;
         // runAutoTests takes `subset` as an array of registered checks.
         const opts = {};
         if (subsetSource) {
@@ -266,6 +271,10 @@ async function main() {
           // listed so a green run that needed the tiebreak is never silent.
           contextLosses: res.contextLosses,
           rerun: res.results.filter(x => x.rerun).map(x => x.id),
+          // Frames the rAF loop drove while the suite ran. Zero is the only
+          // right answer (F4); a check that drives frames does so through
+          // h.renderFrame, which this does not count.
+          loopFrames: h.loop.frames - loopFramesBefore,
           results: res.results.map(x => ({
             id: x.id, pass: !!x.pass, detail: String(x.detail ?? '').slice(0, 400),
           })),
@@ -316,11 +325,15 @@ function judge(runs, renderer, consoleErrors) {
       unexpectedGreen.push(id);
     }
   }
-  const ok = red.length === 0 && flaky.length === 0;
+  const loopRan = runs.some(r => r.loopFrames > 0);
+  const ok = red.length === 0 && flaky.length === 0 && !loopRan;
   return {
     ok,
     renderer,
-    runs: runs.map(r => ({ passed: r.passed, failed: r.failed, ms: r.ms, contextLosses: r.contextLosses, rerun: r.rerun })),
+    runs: runs.map(r => ({
+      passed: r.passed, failed: r.failed, ms: r.ms, contextLosses: r.contextLosses, rerun: r.rerun,
+      loopFrames: r.loopFrames,
+    })),
     red,
     flaky,
     expectedRed,
@@ -337,6 +350,9 @@ function summary(r) {
     lines.push(`  run ${i + 1}: ${run.passed} passed, ${run.failed} failed, ${run.ms}ms`);
     if (run.contextLosses) {
       lines.push(`    GL CONTEXT LOST ${run.contextLosses}x during run ${i + 1}; re-ran after restore: ${run.rerun.join(', ') || 'nothing'}`);
+    }
+    if (run.loopFrames) {
+      lines.push(`    LOOP RAN ${run.loopFrames} frame(s) under run ${i + 1}: the game played itself underneath the checks (F4)`);
     }
   }
   if (r.red.length) lines.push(`  RED (unexpected): ${r.red.map(x => x.id).join(', ')}`);

@@ -109,6 +109,8 @@ const clock = { wall: 0, sim: 0, frame: 0, timeScale: 1 };
 /** Esc. The loop still renders while set, but runs no simulation steps. */
 let paused = false;
 let accumulator = 0;
+/** The rAF scheduler. Started once at boot, never by `initMatch`: the suite
+ *  stops it while it runs (F4), and every check calls `initMatch`. */
 const loop = new FrameLoop(renderFrame);
 
 /** @type {object|null} current match state */
@@ -171,11 +173,6 @@ export function initMatch(options = {}) {
   if (cameraOwner) cameraOwner.forget();
 
   emitter.emit('match:init', match);
-
-  if (!loop.running) {
-    accumulator = 0;
-    loop.start();
-  }
   return match;
 }
 
@@ -560,6 +557,7 @@ const harness = createHarness({
   renderFrame,
   setPaused,
   togglePause,
+  loop,
   setCameraOwner: (owner) => cameraOwner.set(owner),
   createCamera,
   emitter,
@@ -579,6 +577,7 @@ const harness = createHarness({
 bootstrap();
 
 initMatch(bootMatchOptions(location.search));
+loop.start();
 
 if (DEBUG) {
   // Console handle so a seed can be reproduced by hand (Section 16, check 28).

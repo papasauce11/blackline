@@ -11,6 +11,7 @@
  */
 
 import { CONFIG, rng } from '../config.js';
+import { FrameLoop } from '../loop.js';
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
@@ -131,6 +132,80 @@ export function register(debugTools) {
       return {
         pass: okFull && okQuarter && okHitStop,
         detail: `1s of wall clock -> ${full} steps at 1x, ${quarter} at 0.25x, ${hitStop} at ${CONFIG.finisher.hitStopTimeScale}x`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'the-loop-does-not-run-the-game-under-the-suite',
+    spec: 'Section 17.1 (F4)',
+    name: 'The rAF loop is stopped for the length of a suite run and put back after',
+    run: async (h) => {
+      // Everything below waits on real animation frames. Where none fire - a
+      // hidden document - nothing can be measured, and saying so beats hanging.
+      if (document.hidden) {
+        return { pass: false, detail: 'document.hidden: no animation frames fire here, so this cannot be measured; run headless or in a visible tab' };
+      }
+      const problems = [];
+      const loop = h.loop;
+      const suite = h.debugTools.suite;
+
+      // This check runs inside the suite, so the loop must already be off.
+      const wasRunning = loop.running;
+      if (wasRunning) problems.push('the loop was running while a check ran inside the suite');
+
+      // The instrument is real: a loop of the same class, given its own
+      // callback, drives it on the browser's frames. This is what proves the
+      // zero below is the loop being stopped and not frames never firing.
+      let ticks = 0;
+      const probe = new FrameLoop(() => ticks++);
+      probe.start();
+      await h.nextFrame();
+      await h.nextFrame();
+      probe.stop();
+      if (ticks < 1) problems.push(`a running FrameLoop drove ${ticks} frames across two animation frames`);
+
+      // Under runChecks - the same path the suite takes - the game's loop
+      // stays stopped and the frame counter stands still across the same
+      // two animation frames, then the loop comes back as it was found.
+      // Started and stopped synchronously around the call, so nothing is
+      // drawn by it: the frames the loop has ever driven must not change.
+      const drivenBefore = loop.frames;
+      let inside = null;
+      loop.start();
+      await suite.runChecks([{
+        id: 'f4-probe',
+        spec: 'F4',
+        run: async () => {
+          const running = loop.running;
+          const frame = h.clock.frame;
+          await h.nextFrame();
+          await h.nextFrame();
+          inside = { running, frames: h.clock.frame - frame };
+          return { pass: true, detail: 'probe' };
+        },
+      }]);
+      const restarted = loop.running;
+      loop.stop();
+      if (!inside) problems.push('the probe never ran');
+      else {
+        if (inside.running) problems.push('the loop was still running inside runChecks');
+        if (inside.frames !== 0) problems.push(`clock.frame advanced ${inside.frames} under runChecks with no check driving it`);
+      }
+      if (!restarted) problems.push('runChecks did not restart the loop it had stopped');
+      if (loop.frames !== drivenBefore) problems.push(`the loop drove ${loop.frames - drivenBefore} frame(s) around the probe`);
+
+      // Every check calls initMatch. It must not put the loop back.
+      h.initMatch({ seed: h.match.seed });
+      if (loop.running) problems.push('initMatch restarted the loop');
+
+      if (wasRunning) loop.start();
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `a probe loop drove ${ticks} frame(s) in two animation frames; under runChecks the game's loop was `
+            + `stopped, clock.frame moved 0, and the loop was running again after; initMatch left it stopped`
+          : problems.join('; '),
       };
     },
   });

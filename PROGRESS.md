@@ -3968,3 +3968,45 @@ HANDOFF's traps now.
 **Left.** `main.js` at 597 and `physics.js` at 600 have no headroom; the
 next job that touches either splits rather than adds. F4 is next and is
 easier for this: the loop is an object.
+
+## F4 — the game does not play itself under the suite (2026-09-11, same run)
+
+**Built.** The rAF scheduler F3 had just made an object, `FrameLoop`, is on
+the harness as `h.loop`. `AutoSuite.runChecks()` — the one path every check
+takes, the F1 tiebreak's direct callers included — stops it if it was
+running and puts it back in a `finally`, so a throwing check cannot leave
+the game frozen. `initMatch` no longer starts the loop: every check calls
+`initMatch`, and a start there would have put the live game straight back
+under the suite; boot starts it once, after the first `initMatch`. The
+headless runner stops the loop the moment the harness appears — the 45s
+cooldown between runs was ~135 frames of the AI hunting an idle Shade, and
+that is outside `runAutoTests` — and reports `loopFrames` per run from
+`FrameLoop.frames`; any non-zero fails the run and prints `LOOP RAN N
+frame(s)`. `h.nextFrame()` is unchanged in mechanism and now says what it
+is: the browser's next animation frame, resolving whether or not the game
+loop runs, drawing nothing. `h.renderFrame()` counts itself in
+`debugState.harnessFrames`, so a frame a check drove is distinguishable
+from one the loop ran. Nothing was fixed by adding `initMatch` to a check.
+
+**Verified.** New check `the-loop-does-not-run-the-game-under-the-suite`
+(tests/engine.js). It bails with a reason where `document.hidden` (no
+frames fire there — the browser pane), then: asserts the loop is off while
+it, a check, runs; proves the instrument with a second `FrameLoop` of its
+own that ticks on two awaited animation frames; starts the game's loop and
+calls the real `suite.runChecks()` with a probe that awaits two frames
+inside and reads `loop.running` and `clock.frame` — wants stopped and 0 —
+then wants the loop running again after and stops it, all synchronously
+around the call so `loop.frames` must not have moved; then `initMatch` and
+wants the loop still stopped. With the suite's stop disabled it is red in
+its own words: *"the loop was still running inside runChecks; clock.frame
+advanced 2 under runChecks with no check driving it; the loop drove 2
+frame(s) around the probe"*. The runner's `loopFrames` read 0 on every
+run. Full suite **118 passed / 2 failed, twice, identical** (305s and 367s),
+flaky empty, zero console errors, zero context losses, `loopFrames` 0 on
+both runs; the census unchanged at 12 of 65.
+
+**Found.** The done-when's "clock.frame is the same before and after minus
+what checks drove themselves" is measured two ways now: the check, inside;
+the runner, over the whole run. Both must read zero.
+
+**Left.** Block F is closed. B2 is next: the bump-and-scuff, an S.

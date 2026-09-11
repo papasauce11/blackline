@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **117 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` is F4, stopping the rAF loop under the suite (F1, F2, F3 done 2026-09-11); **Block A is closed** |
+| AUTO suite | headless, `npm run suite`: **118 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` is B2, the bump-and-scuff (**Blocks A and F are closed**; F1-F4 done 2026-09-11) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,299 edge-bearing cells of Warden ground, one connected component |
@@ -275,8 +275,24 @@ the `G` command toggles it in `testcommands.js` and `wiring.js` reads it —
 rather than a `let` in `main.js`. And `harness.cameraOwner` still returns the
 owner string; the object behind it is `cameraowner.js`.
 
-`main.js` is 597 and `physics.js` is 600: the next job that touches either
+`main.js` is 596 and `physics.js` is 600: the next job that touches either
 splits it further rather than adding to it.
+
+## The game does not play itself under the suite - F4
+
+Headless Chrome fires animation frames (`document.hidden` is false there),
+so until F4 the live rAF loop ran the real game between every `await` in a
+check and through the 45s cooldown between runs - ~135 frames of the AI
+hunting an idle Shade that the next check inherited. Now: `FrameLoop`
+(`loop.js`) is on the harness as `h.loop`; `AutoSuite.runChecks()` stops it
+for the length of the run and puts it back as found; `initMatch` does not
+start it (boot does, once); the runner stops it as soon as the harness
+appears and reports `loopFrames` per run, and any non-zero fails the run
+(`LOOP RAN N frame(s)` in the summary). `h.nextFrame()` is the browser's
+tick, not the loop's, and still resolves while the loop is stopped; it
+draws nothing - a check that needs a frame drawn calls `h.renderFrame()`,
+which counts itself in `debugState.harnessFrames`. In a real tab F4-then-Y
+stops the game while the suite runs and it resumes after.
 
 ## Where the suite runner lives
 
@@ -404,6 +420,10 @@ draw after a load compiles shaders. A suite run straight after a reload reported
 **Noise events come from a recycled pool of 48.** Copy the fields you need; a
 retained event gets overwritten (a landing read 8m instead of 10m because a
 Warden footstep reused the slot).
+
+**A check that awaits `h.nextFrame()` hangs where frames never fire.** The
+browser pane is such a place. F4's check reads `document.hidden` first and
+fails with a reason instead; do the same in any check that awaits a frame.
 
 **A check used to inherit the last check's menu, pause and HUD.**
 `hud.setVisible()` runs *inside* the frame, from `!menu.open`, and

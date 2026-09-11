@@ -153,6 +153,23 @@ export class AutoSuite {
    * @returns {Promise<{results: object[], staged: number}>}
    */
   async runChecks(tests) {
+    // The game must not play itself underneath the checks (F4). In a tab
+    // whose animation frames fire - headless Chrome included - the live loop
+    // was running the AI against an idle Shade between every `await`, so a
+    // check that did not start from `initMatch` inherited a state that
+    // depended on the wall clock. Stopped here, for the length of the run,
+    // and put back as it was found; `initMatch` no longer restarts it.
+    const loop = this.harness.loop;
+    const loopWasRunning = !!(loop && loop.running);
+    if (loopWasRunning) loop.stop();
+    try {
+      return await this._runChecks(tests);
+    } finally {
+      if (loopWasRunning) loop.start();
+    }
+  }
+
+  async _runChecks(tests) {
     const gl = this.harness.renderer && this.harness.renderer.getContext();
     const lost = () => !!(gl && gl.isContextLost()) || !!this.state.contextLost;
     const results = [];
