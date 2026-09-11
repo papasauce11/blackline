@@ -23,13 +23,17 @@ import { AI_STATE } from './systems/ai.js';
 /**
  * @param {object} options
  * @param {object} options.harness live game objects, by getter
- * @param {() => void} options.cycleTimeScale
- * @param {(value: boolean) => void} options.setGodMode
  */
-export function wireTestCommands({ harness: h, cycleTimeScale, setGodMode }) {
+export function wireTestCommands({ harness: h }) {
   const on = (event, handler) => h.emitter.on(event, handler);
 
-  on('test:cycle-time-scale', cycleTimeScale);
+  let timeScaleIndex = 0;
+  on('test:cycle-time-scale', () => {
+    const cycle = CONFIG.time.timeScaleCycle;
+    timeScaleIndex = (timeScaleIndex + 1) % cycle.length;
+    h.setTimeScale(cycle[timeScaleIndex]);
+    h.debugTools.logResult(`time scale ${h.clock.timeScale}x`);
+  });
 
   on('test:teleport-site', ({ site }) => {
     const target = h.map.sites[site];
@@ -51,7 +55,12 @@ export function wireTestCommands({ harness: h, cycleTimeScale, setGodMode }) {
     });
   });
 
-  on('test:god-mode', () => setGodMode());
+  // Section 17.1: the Shade ignores damage while set. Lives in the shared
+  // debug bag so the F3 overlay and the damage listener (wiring.js) read the
+  // same value.
+  on('test:god-mode', () => {
+    h.debugState.godMode = !h.debugState.godMode;
+  });
 
   on('test:kill-shade', () => {
     if (h.shade.health <= 0) return;

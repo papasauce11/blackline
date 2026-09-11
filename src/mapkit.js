@@ -18,17 +18,18 @@
  * staircases, walls with openings, floor plates with voids, vent runs — is a
  * generator that emits `addSolid()` calls, so a hole is subtracted from real
  * geometry rather than faked by leaving a gap in hand-typed coordinates.
+ * The generators themselves are `mapgen.js`, installed on this class at the
+ * bottom; the climbable-surface derivation is `mapclimb.js` (F3).
  */
 
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
-import { CollisionWorld, classifyReach } from './physics.js';
-import {
-  CUT_EPSILON, SWEEP_STEP, createMaterialCache, applyContactTint,
-  collectCuts, containsPoint, bake, mergeGeometries,
-} from './mapbake.js';
+import { CollisionWorld } from './physics.js';
+import { createMaterialCache, applyContactTint, mergeGeometries } from './mapbake.js';
+import { GENERATORS } from './mapgen.js';
 import { deriveRoomEntries } from './maprooms.js';
 import { deriveWardenGround } from './mapground.js';
+import { deriveClimbableSurfaces, supportHeightBelow, supportCandidates } from './mapclimb.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
@@ -183,361 +184,6 @@ export class GameMap {
   }
 
   // -------------------------------------------------------------------------
-  // Wall with openings
-  // -------------------------------------------------------------------------
-
-  /**
-   * A wall plane with rectangular openings subtracted from it.
-   *
-   * Phase 3 lost a day to vent runs that had been typed to end inside a wall
-   * that was typed separately. The fix generalises here: an opening is declared
-   * once, and the wall is emitted as the spans that survive around it. A
-   * doorway cannot be half a metre out of line with the thing meant to go
-   * through it, because only one of them is authored.
-   *
-   * @param {object} spec
-   * @param {'x'|'z'} spec.axis the wall's normal
-   * @param {number} spec.at near face along the normal
-   * @param {number} spec.thickness
-   * @param {number} spec.from along-wall start
-   * @param {number} spec.to along-wall end
-   * @param {number} spec.y0 base
-   * @param {number} spec.y1 top
-   * @param {{from:number, to:number, y0:number, y1:number}[]} [spec.openings]
-   */
-  addWall(spec) {
-    const openings = (spec.openings || []).filter(
-      (hole) => hole.to > spec.from && hole.from < spec.to && hole.y1 > spec.y0 && hole.y0 < spec.y1
-    );
-    const cuts = collectCuts(spec.from, spec.to, openings, 'from', 'to');
-    const built = [];
-
-    for (let i = 0; i < cuts.length - 1; i++) {
-      const a = cuts[i];
-      const b = cuts[i + 1];
-      if (b - a <= CUT_EPSILON) continue;
-      const mid = (a + b) / 2;
-
-      // Cuts land on opening edges, so an opening either spans this slice
-      // completely or misses it. Stack the vertical gaps it leaves.
-      const bands = openings
-        .filter((hole) => mid > hole.from && mid < hole.to)
-        .map((hole) => ({ y0: Math.max(hole.y0, spec.y0), y1: Math.min(hole.y1, spec.y1) }))
-        .sort((p, q) => p.y0 - q.y0);
-
-      let y = spec.y0;
-      for (const band of bands) {
-        if (band.y0 > y + CUT_EPSILON) built.push(this._wallSpan(spec, a, b, y, band.y0, built.length));
-        y = Math.max(y, band.y1);
-      }
-      if (spec.y1 > y + CUT_EPSILON) built.push(this._wallSpan(spec, a, b, y, spec.y1, built.length));
-    }
-    return built;
-  }
-
-  _wallSpan(spec, a, b, y0, y1, index) {
-    const near = spec.at;
-    const far = spec.at + spec.thickness;
-    const min = spec.axis === 'x' ? [near, y0, a] : [a, y0, near];
-    const max = spec.axis === 'x' ? [far, y1, b] : [b, y1, far];
-    return this.addSolid({
-      min,
-      max,
-      color: spec.color !== undefined ? spec.color : P.concrete,
-      tag: `${spec.tag}-${index}`,
-      castShadow: spec.castShadow,
-    });
-  }
-
-  // -------------------------------------------------------------------------
-  // Floor plate with voids
-  // -------------------------------------------------------------------------
-
-  /**
-   * A continuous horizontal slab with rectangular voids cut out of it.
-   *
-   * This is how the v2 upper deck becomes one surface rather than a set of
-   * fragments stitched together by walkways — the fragment approach is what
-   * produced a 0.4m doorway the Warden could not fit through in Phase 4. The
-   * plate is laid whole and holes are subtracted, so the only way to sever the
-   * deck is to declare a void that severs it, which the connectivity check
-   * catches.
-   *
-   * A 6m deck edge is out of reach on its own, so nothing has to say so.
-   * @param {object} spec
-   * @param {number[]} spec.min [x, z]
-   * @param {number[]} spec.max [x, z]
-   * @param {number} spec.top surface height
-   * @param {number} spec.thickness
-   * @param {{x0:number,x1:number,z0:number,z1:number}[]} [spec.voids]
-   * @param {{x0:number,x1:number,z0:number,z1:number,tag:string}[]} [spec.lips]
-   */
-  addFloorPlate(spec) {
-    const [x0, z0] = spec.min;
-    const [x1, z1] = spec.max;
-    const holes = spec.voids || [];
-    const lips = spec.lips || [];
-    const all = holes.concat(lips);
-    const cutsX = collectCuts(x0, x1, all, 'x0', 'x1');
-    const cutsZ = collectCuts(z0, z1, all, 'z0', 'z1');
-    const lipDepth = spec.lipDepth !== undefined ? spec.lipDepth : M.deckLipDepth;
-    const built = [];
-    let plain = 0;
-
-    for (let j = 0; j < cutsZ.length - 1; j++) {
-      const za = cutsZ[j];
-      const zb = cutsZ[j + 1];
-      if (zb - za <= CUT_EPSILON) continue;
-      const cz = (za + zb) / 2;
-      let runFrom = null;
-
-      const flush = (runTo) => {
-        if (runFrom === null) return;
-        built.push(
-          this.addSolid({
-            min: [runFrom, spec.top - spec.thickness, za],
-            max: [runTo, spec.top, zb],
-            color: spec.color,
-            tag: `${spec.tag}-${plain++}`,
-            // Deliberately NOT castShadow:false. A plate is the roof or the
-            // upper deck — the largest occluders on the map — and switching
-            // them out of the shadow pass let the one directional key light
-            // the whole interior as if the building had no lid. Measured: the
-            // Server Vault floor rendered brighter than the Turbine Hall's.
-            // addSolid() decides from the footprint, which keeps the trim and
-            // the stair treads out without excusing the roof.
-          })
-        );
-        runFrom = null;
-      };
-
-      for (let i = 0; i < cutsX.length - 1; i++) {
-        const xa = cutsX[i];
-        const xb = cutsX[i + 1];
-        if (xb - xa <= CUT_EPSILON) continue;
-        const cx = (xa + xb) / 2;
-
-        // Lips are subtracted here and emitted whole below. Letting them tile
-        // like the rest would split one against a cut line belonging to some
-        // unrelated void, and the offcut is narrower than an actor — so the
-        // route arriving there would silently stop being climbable.
-        if (all.some((rect) => containsPoint(rect, cx, cz))) {
-          flush(xa);
-          continue;
-        }
-        if (runFrom === null) runFrom = xa;
-      }
-      flush(cutsX[cutsX.length - 1]);
-    }
-
-    for (const lip of lips) {
-      built.push(
-        this.addSolid({
-          min: [lip.x0, spec.top - lipDepth, lip.z0],
-          max: [lip.x1, spec.top, lip.z1],
-          color: spec.lipColor !== undefined ? spec.lipColor : spec.color,
-          tag: lip.tag,
-          castShadow: false,
-        })
-      );
-    }
-
-    for (const hole of holes) this.deckVoids.push({ ...hole, top: spec.top });
-    return built;
-  }
-
-  // -------------------------------------------------------------------------
-  // Staircase
-  // -------------------------------------------------------------------------
-
-  /**
-   * A walkable staircase, generated as a run of solid steps, together with the
-   * stairwell opening the deck above it needs.
-   *
-   * Each step is a full block from the floor up to its own tread rather than a
-   * floating slab, so there is no gap underneath and the swept solver only ever
-   * sees one clean face per step. Treads are shallower than an actor diameter,
-   * so `deriveClimbableSurfaces()` skips them and they carry no affordance
-   * stripes — a staircase is walked, not vaulted.
-   *
-   * `stairwell` is computed, not authored: it starts at the first step whose
-   * tread plus standing headroom would break through the deck, and runs to the
-   * top of the flight. Move the flight or change the deck height and the hole
-   * follows, which is the only reason the Warden cannot walk into the underside
-   * of its own destination.
-   *
-   * @param {object} spec
-   * @param {'x'|'z'} spec.axis direction the stairs ascend
-   * @param {number} spec.start along-axis coordinate of the first step
-   * @param {number} spec.crossMin across-axis minimum (the stair's width)
-   * @param {number} spec.crossMax across-axis maximum
-   * @param {number} spec.baseY floor the stairs rise from
-   * @param {number} spec.deckY surface the flight arrives on
-   */
-  addStaircase(spec) {
-    const steps = M.stairSteps;
-    const rise = M.stairRise;
-    const run = M.stairRun;
-    const built = [];
-
-    for (let i = 0; i < steps; i++) {
-      const from = spec.start + i * run;
-      const to = from + run;
-      const top = spec.baseY + (i + 1) * rise;
-      const min = spec.axis === 'x' ? [from, spec.baseY, spec.crossMin] : [spec.crossMin, spec.baseY, from];
-      const max = spec.axis === 'x' ? [to, top, spec.crossMax] : [spec.crossMax, top, to];
-      built.push(
-        this.addSolid({
-          min,
-          max,
-          color: P.concrete,
-          tag: `${spec.tag}-step-${i}`,
-          castShadow: false,
-        })
-      );
-    }
-
-    const underside = spec.deckY - M.floorThickness;
-    let breaks = steps;
-    for (let i = 0; i < steps; i++) {
-      if (spec.baseY + (i + 1) * rise + M.stairHeadroom > underside) {
-        breaks = i;
-        break;
-      }
-    }
-    // The hole has to open BEFORE the step that breaks headroom, not at it. An
-    // actor is still centred over the previous tread when the solver lifts it
-    // by a full step height to test the next one, and its body reaches a radius
-    // further back again — so it needs all three of those cleared or the
-    // step-up is refused and the flight dead-ends two treads from the top.
-    const margin = CONFIG.warden.radius + run + CONFIG.warden.stepHeight;
-    const wellFrom = spec.start + breaks * run - margin;
-    const wellTo = spec.start + steps * run;
-    const across = CONFIG.warden.radius;
-    const stairwell =
-      spec.axis === 'x'
-        ? { x0: wellFrom, x1: wellTo, z0: spec.crossMin - across, z1: spec.crossMax + across }
-        : { x0: spec.crossMin - across, x1: spec.crossMax + across, z0: wellFrom, z1: wellTo };
-
-    const record = {
-      tag: spec.tag,
-      axis: spec.axis,
-      bottom: spec.start,
-      top: spec.start + steps * run,
-      topY: spec.baseY + steps * rise,
-      crossMin: spec.crossMin,
-      crossMax: spec.crossMax,
-      baseY: spec.baseY,
-      stairwell,
-      steps: built,
-    };
-    this.staircases.push(record);
-    return record;
-  }
-
-  // -------------------------------------------------------------------------
-  // Vent run
-  // -------------------------------------------------------------------------
-
-  /**
-   * A crouch-only tube (Section 5). Returns the run record, whose bounds the
-   * caller feeds straight back into `addWall()` as an opening so a run can
-   * never end up buried inside a wall.
-   *
-   * `roof` is optional because a run threaded under the upper deck is already
-   * crouch-only — the deck is its roof. Adding a redundant one is not merely
-   * wasteful: a roof slab is wide enough to count as a standing surface, so it
-   * becomes the support the marking pass measures the next ledge against, and
-   * the stripe ends up in the wrong band. The two-tier v2 chain needs the
-   * measurement taken from the vent floor, so the upper run has no roof.
-   *
-   * @param {object} spec
-   * @param {'x'|'z'} spec.axis
-   * @param {number} spec.from along-axis start
-   * @param {number} spec.to along-axis end
-   * @param {number} spec.cross centre on the other horizontal axis
-   * @param {number} spec.floorY interior floor height
-   * `lipAt` thickens the floor at a mouth into a block deep enough for the
-   * Shade's forward ledge probe to find. The probe samples six fixed heights
-   * above the feet, and a 0.2m floor slab is thin enough to fall between two of
-   * them — so in v1 a vent lip classified as a mantle, was marked as one, and
-   * could not actually be climbed. The block is the same surface at the same
-   * height; it is simply tall enough to be seen.
-   *
-   * @param {boolean} [spec.floor] emit a floor slab (false at grade)
-   * @param {boolean} [spec.roof] emit a roof slab
-   * @param {'from'|'to'|'both'} [spec.lipAt] which mouths are climbed into
-   */
-  addVentRun(spec) {
-    const w = M.ventWidth;
-    const h = M.ventHeight;
-    const halfW = w / 2;
-    const y0 = spec.floorY;
-    const y1 = spec.floorY + h;
-    const alongX = spec.axis === 'x';
-    const c0 = spec.cross - halfW;
-    const c1 = spec.cross + halfW;
-    const wallT = 0.12;
-
-    const span = (a0, a1, cMin, cMax, vy0, vy1, tag, flags) =>
-      this.addSolid({
-        min: alongX ? [a0, vy0, cMin] : [cMin, vy0, a0],
-        max: alongX ? [a1, vy1, cMax] : [cMax, vy1, a1],
-        color: P.concreteDark,
-        castShadow: false,
-        tag,
-        ...flags,
-      });
-
-    if (spec.floor !== false) {
-      span(spec.from, spec.to, c0, c1, y0 - M.ventFloorDepth, y0, `${spec.tag}-floor`, {});
-    }
-    if (spec.lipAt === 'from' || spec.lipAt === 'both') {
-      span(spec.from, spec.from + M.ventLipLength, c0, c1, y0 - M.ventLipDepth, y0, `${spec.tag}-lip-from`, {});
-    }
-    if (spec.lipAt === 'to' || spec.lipAt === 'both') {
-      span(spec.to - M.ventLipLength, spec.to, c0, c1, y0 - M.ventLipDepth, y0, `${spec.tag}-lip-to`, {});
-    }
-    span(spec.from, spec.to, c0 - wallT, c0, y0, y1, `${spec.tag}-wall-a`, {});
-    span(spec.from, spec.to, c1, c1 + wallT, y0, y1, `${spec.tag}-wall-b`, {});
-    if (spec.roof !== false) {
-      const insetFrom = spec.roofInsetFrom !== undefined ? spec.roofInsetFrom : M.ventMouthLength;
-      const insetTo = spec.roofInsetTo !== undefined ? spec.roofInsetTo : M.ventMouthLength;
-      span(spec.from + insetFrom, spec.to - insetTo, c0, c1, y1, y1 + wallT, `${spec.tag}-roof`, { vent: true });
-    }
-
-    // Section 5, amended: the self-illuminated interior panel is gone with the
-    // rest of the affordance markings. A duct says it is passable by being
-    // visibly a duct - metal, rimmed, person-sized - not by glowing.
-
-    const record = {
-      tag: spec.tag,
-      axis: spec.axis,
-      min: new THREE.Vector3(alongX ? spec.from : c0, y0, alongX ? c0 : spec.from),
-      max: new THREE.Vector3(alongX ? spec.to : c1, y1, alongX ? c1 : spec.to),
-      grade: spec.floorY <= M.groundY + CUT_EPSILON,
-      /** Underside of the duct, so a wall opening clears the floor slab too. */
-      underside: spec.floor === false ? y0 : y0 - M.ventFloorDepth,
-    };
-    this.vents.push(record);
-    return record;
-  }
-
-  /**
-   * The opening a vent run needs where it crosses a wall, in the
-   * (along-wall, vertical) space `addWall()` expects.
-   */
-  ventOpening(run, margin = 0.14) {
-    const alongX = run.axis === 'x';
-    return {
-      from: (alongX ? run.min.z : run.min.x) - margin,
-      to: (alongX ? run.max.z : run.max.x) + margin,
-      y0: run.underside - margin,
-      y1: run.max.y + margin,
-    };
-  }
-
-  // -------------------------------------------------------------------------
   // Rooms (Section 5 readability: no room is a single-door trap)
   // -------------------------------------------------------------------------
 
@@ -579,115 +225,26 @@ export class GameMap {
   }
 
   // -------------------------------------------------------------------------
-  // Affordance markings (Section 5) - ONE pass, driven by the collision flags
+  // Climbable surfaces (Section 5, amended) - ONE pass, from the geometry alone
   // -------------------------------------------------------------------------
 
   /**
    * Decide which surfaces are climbable, from the geometry and the body alone.
-   *
-   * Section 5, amended: there are no markings, so this is the whole contract.
-   * The rule is mechanical and has NO exceptions — no `noClimb`, no tags, no
-   * per-box judgement:
-   *
-   *   a surface is climbable when you could stand on top of it
-   *   and the body could reach it from whatever is below.
-   *
-   * "Stand on top of it" means a top face at least an actor-diameter across in
-   * both axes with crouch headroom above. "Reach it" means the rise from the
-   * surface below is inside `CONFIG.shade.reach` at full stretch — standing
-   * reach plus what a jump adds.
-   *
-   * `noClimb` used to opt surfaces out: the office floor to keep the drop shaft
-   * one-way, and the whole upper deck except four declared lips. Both are now
-   * enforced by the vertical layout instead. The deck is 6m and full reach is
-   * 3.8m, so it is unreachable on its own merits and nothing has to say so —
-   * which means a future change to a floor height cannot silently turn a
-   * one-way route into a two-way one without the census noticing.
+   * The rule is mechanical and has no exceptions; it lives in mapclimb.js.
    */
   deriveClimbableSurfaces() {
-    const minSupport = CONFIG.shade.radius * 2;
-    const headroom = CONFIG.shade.crouchHeight;
-    const probeHalf = { x: minSupport * 0.5, y: headroom * 0.5, z: minSupport * 0.5 };
-    const fullReach = CONFIG.shade.reach.standing + CONFIG.shade.reach.jumpBonus;
-
-    this.ledges.length = 0;
-
-    for (const box of this.collision.boxes) {
-      if (!box.solid) continue;
-      if (box.max.x - box.min.x < minSupport) continue;
-      if (box.max.z - box.min.z < minSupport) continue;
-
-      const standY = this._supportHeightBelow(box);
-      const rise = box.max.y - standY;
-      const move = classifyReach(rise, fullReach);
-      // `step` is not a climb: the swept solver carries you over it.
-      if (move === null || move === 'step') continue;
-
-      // Somewhere to actually stand once you are up. Sampled along the surface
-      // rather than at its centre alone: a long ledge that passes under one
-      // obstruction is still climbable everywhere else, and judging it by a
-      // single point excludes the whole thing.
-      const y = box.max.y + headroom * 0.5 + 0.05;
-      let standable = false;
-      for (let i = 1; i <= 3 && !standable; i++) {
-        const t = i / 4;
-        const point = {
-          x: box.min.x + (box.max.x - box.min.x) * t,
-          y,
-          z: box.min.z + (box.max.z - box.min.z) * t,
-        };
-        // Keep the sample inside the footprint so an edge point does not
-        // wrongly report clear air beside the box.
-        point.x = Math.min(Math.max(point.x, box.min.x + probeHalf.x), box.max.x - probeHalf.x);
-        point.z = Math.min(Math.max(point.z, box.min.z + probeHalf.z), box.max.z - probeHalf.z);
-        if (this.collision.isClear(point, probeHalf)) standable = true;
-      }
-      if (!standable) continue;
-
-      box.climbable = true;
-      box.reachMove = move;
-      this.ledges.push({ box, move, topY: box.max.y, standY, rise });
-    }
+    deriveClimbableSurfaces(this.collision, this.ledges);
   }
 
-
-  /**
-   * Height of the surface an actor would be standing on to climb this box:
-   * the tallest solid top face directly beneath it that is below its own top.
-   * Falls back to the ground plane.
-   *
-   * A candidate must be wide enough to actually stand on. Without this, a thin
-   * wall or parapet passing under a ledge is treated as a foothold and collapses
-   * the ledge's rise to almost nothing, so it classifies into no band and goes
-   * unmarked — which is exactly the drift Section 5 forbids.
-   */
+  /** Height of the surface an actor would stand on to climb this box. */
   _supportHeightBelow(box) {
-    const candidates = this._supportCandidates(box);
-    return candidates[candidates.length - 1];
+    return supportHeightBelow(this.collision, box);
   }
 
-  /**
-   * Every height an actor could be standing on to climb this box, lowest
-   * first. Always includes the ground plane.
-   */
+  /** Every height an actor could be standing on to climb this box, lowest first. */
   _supportCandidates(box) {
-    const heights = [M.groundY];
-    const minSupport = CONFIG.shade.radius * 2;
-    for (const other of this.collision.boxes) {
-      if (other === box || !other.solid) continue;
-      if (other.max.y >= box.max.y) continue;
-      if (other.max.x - other.min.x < minSupport) continue;
-      if (other.max.z - other.min.z < minSupport) continue;
-      // Overlapping footprint, allowing a small reach margin either side.
-      const margin = CONFIG.shade.vaultReach;
-      if (other.max.x < box.min.x - margin || other.min.x > box.max.x + margin) continue;
-      if (other.max.z < box.min.z - margin || other.min.z > box.max.z + margin) continue;
-      heights.push(other.max.y);
-    }
-    heights.sort((a, b) => a - b);
-    return heights;
+    return supportCandidates(this.collision, box);
   }
-
 
   // -------------------------------------------------------------------------
   // Lights
@@ -814,6 +371,8 @@ export class GameMap {
     for (const site of this.sites) site.ring.material.opacity = opacity;
   }
 }
+
+Object.assign(GameMap.prototype, GENERATORS);
 
 /** Yaw that makes an actor at (x, z) look at (tx, tz). */
 export function facing(x, z, tx, tz) {

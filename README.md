@@ -218,3 +218,8 @@ main.js    may import from anything (it is the composition root)
 
 No module imports `main.js`. Cross-system messages go through a small event
 emitter created in `main.js` and passed down — never through sibling imports.
+The composition root's own pieces beside it — `view.js`, `loop.js`,
+`timestep.js`, `matchstate.js`, `cameraowner.js`, `intents.js`, `loadout.js`,
+`wiring.js`, `hudstate.js`, `debugfields.js`, `harness.js` — import config
+only and are imported by `main.js` alone. Any module past ~600 lines is split
+(`config.js`, a table, excepted); a check in the AUTO suite holds the line.

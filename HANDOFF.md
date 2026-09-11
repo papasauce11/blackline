@@ -21,8 +21,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **116 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` is F3, the `main.js` split (F1 and F2 done 2026-09-11); **Block A is closed** |
+| AUTO suite | headless, `npm run suite`: **117 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` is F4, stopping the rAF loop under the suite (F1, F2, F3 done 2026-09-11); **Block A is closed** |
+| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,299 edge-bearing cells of Warden ground, one connected component |
 
@@ -245,6 +246,38 @@ line guidance:
 | `tests/plantcensus.js` | A5 — the whole map, both directions |
 | `tests/objective.js` | round flow: detonation, defuse retention, lives, reinsert, milestones, state not bleeding |
 
+## Where the code went — F3's split
+
+Eight modules were past the ~600 guidance; every one is under it now and a
+check keeps it so. Nothing moved changes an order or a name a check reaches:
+
+| Was | Now |
+|---|---|
+| `main.js` (1,145) | `main.js` (597): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`, the rAF scheduler), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js` (whose rig the camera is on, mouse look, ADS FOV), `intents.js` (input → intent), `loadout.js` (the gadget slots), `wiring.js` (the emitter listeners between systems), `hudstate.js` (what the HUD is told), `debugfields.js` (what the F3 overlay is told), `harness.js` (`createHarness(live, loop)` — one getter per live object) |
+| `entities/agent.js` (1,051) | `agent.js` (527): state machine, ground, air, slide. `agenttraversal.js`: every climb. `agentvisual.js`: how it is drawn. `agentstate.js`: `SHADE_STATE` |
+| `systems/ai.js` (788) | `ai.js` (498): the state machine. `aiperception.js`, `ainav.js` (route, steering, stuck). `aistate.js`: `AI_STATE`, `angleDelta`, `DEFUSE_SNAP` |
+| `mapkit.js` (821) | `mapkit.js` (380): `GameMap`, `addSolid`, decals, rooms, lights, waypoints. `mapgen.js`: walls with openings, floor plates, staircases, vent runs. `mapclimb.js`: `deriveClimbableSurfaces`, `supportCandidates` — **B3's fix lands here** |
+| `map.js` (810) | `map.js` (537): the geometry. `mapdata.js`: sites, spawns, lights, waypoints. `mapvalidate.js` |
+| `physics.js` (735) | `physics.js` (600): `CollisionWorld`, gravity, `classifyReach`. `collisionbox.js`: the box and the ray-slab test |
+| `systems/objective.js` (646) | `objective.js` (536). `plantrule.js`: `DEFUSE_REACH`, `PLANT_HEADROOM`, `withinDefuseReach`, `canDefuseAt(map, at)`, `hasHeadroomAt`, `canPlantAt` — re-exported and wrapped as methods, so every existing import and call still works |
+| `systems/gadgets.js` (633) | `gadgets.js` (506). `gadgeteffects.js`: `EffectRegistry`, `Projectile` |
+
+The class splits (`agent`, `ai`, `mapkit`) are **prototype mixins**: the
+sibling file exports an object of methods and the class file ends with
+`Object.assign(X.prototype, ...)`. `this` is the same object, every private
+field keeps its name, and `shade._probeLedge`, `ai._pathTo`,
+`map._supportCandidates` still exist for the checks that call them. A method
+that needs a module constant imports it from the shared `*state.js`, never
+from the class file — that would be a cycle.
+
+Two things changed shape on purpose. God mode is `debugState.godMode` now —
+the `G` command toggles it in `testcommands.js` and `wiring.js` reads it —
+rather than a `let` in `main.js`. And `harness.cameraOwner` still returns the
+owner string; the object behind it is `cameraowner.js`.
+
+`main.js` is 597 and `physics.js` is 600: the next job that touches either
+splits it further rather than adding to it.
+
 ## Where the suite runner lives
 
 `ui/autosuite.js` (`AutoSuite`): the registry, `runAutoTests`, the regression
@@ -411,6 +444,27 @@ believing it.
 **Bash heredocs fail on some JS content even inside `python - <<'PY'`.** One
 patch died with `unexpected EOF` for no visible reason. Write the patch script
 to the scratchpad with the Write tool and run `python <path>` instead.
+
+**The working copy is CRLF, the repo is LF** (`core.autocrlf=true`). A
+Python patch that reads in text mode and writes with `newline="
+"` is fine
+— git normalises on commit — but a byte-exact match against `
+` content
+fails silently, and `wc -l` on a file ending `}
+
+` is one more than
+the last `}`. F3 lost two script runs to each.
+
+**A boot failure used to be a silent 60s timeout.** The runner now prints
+the page's first errors under `suite: crashed:` (`  page: pageerror: P is
+not defined`). If it says nothing, the harness never loaded for a reason the
+page did not report — look at index.html's import map first.
+
+**A moved method can reference a module constant that did not move.** Both
+F3 boot failures were this (`P`, `THREE` used in `mapgen.js` without an
+import); `node --check` cannot see it and only the code path that runs at
+boot reports it. After moving code between modules, grep the new file for
+every bare identifier the old module declared at top level.
 
 ---
 

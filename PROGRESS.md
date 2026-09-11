@@ -3885,3 +3885,86 @@ identical**, flaky empty, zero console errors, zero context losses.
 frame, check `hud.visible`) is now redundant but harmless and stays: it
 documents the mechanism at the place it was met. F3 is next: `main.js` is
 1,145 lines.
+
+## F3 — the composition root, and everything else past 600, split (2026-09-11, 17:00 run)
+
+**Built.** Eight modules were over the ~600 guidance; none is now, and a
+check holds the line. The done-when said "no file in `src/` outside
+`config.js`", so it was all eight, not the four the job named.
+
+`main.js`, 1,145 → 597. What stays is what has to: the singletons,
+`initMatch`, pause, bootstrap in its construction order, `fixedStep` and
+`renderFrame` with the spec's step order untouched. Eleven siblings took the
+cohesive blocks: `loop.js` (`FrameLoop`, the rAF scheduler — F4 will want
+its `start()`/`stop()`), `timestep.js` (`computeStepPlan`), `matchstate.js`
+(`resolveMatchOptions`, `createMatchState`, `bootMatchOptions`, the
+`COMPETITIVE`/`FREEROAM` presets the menu now uses too), `view.js` (renderer,
+scene, the one camera and its refuse-a-second guard, toon ramp, resize, the
+F1 lost-context watch), `cameraowner.js` (`set`/`forget`/`look`/`applyAdsFov`
+— whose rig the camera is on and where the mouse goes, which was three
+separate blocks of `renderFrame` about one thing), `intents.js` (pure
+readers: `readShadeIntent(input, intent)`), `loadout.js` (the gadget slots),
+`wiring.js` (the emitter listeners between systems), `hudstate.js` (the bag
+`hud.update()` takes), `debugfields.js` (the F3 overlay's keys), and
+`harness.js` (`createHarness(live, loop)`: `main.js` passes one getter per
+live object and the loop functions themselves, so `h.shade` is still live
+and `h.renderFrame` is still the real frame). Dead code went with it: the
+`APPROACHING`/`S_WALK` constants and four unused imports had survived from a
+test file that moved out long ago. God mode became `debugState.godMode`,
+toggled in `testcommands.js` and read by `wiring.js`, rather than a `let` in
+the root; `cycleTimeScale` moved to `testcommands.js` with it, built from the
+harness. `wireTestCommands({ harness })` takes nothing else now.
+
+The class-shaped files split as **prototype mixins**: the sibling exports an
+object of methods, the class file ends `Object.assign(X.prototype, ...)`.
+Same `this`, same field names, so `shade._probeLedge`, `ai._pathTo`,
+`ai._route`, `map._supportCandidates` — all called by checks — still exist.
+Constants both halves need moved to a shared `*state.js` (`SHADE_STATE`,
+`AI_STATE`, `angleDelta`, `DEFUSE_SNAP`) so neither imports the class file.
+`entities/agent.js` 1,051 → 527 + `agenttraversal.js` (every climb, 399) +
+`agentvisual.js` (165). `systems/ai.js` 788 → 498 + `aiperception.js` +
+`ainav.js` (route, steering, `_checkStuck`). `mapkit.js` 821 → 380 +
+`mapgen.js` (walls with openings, floor plates, staircases, vent runs — the
+`addSolid()` emitters) + `mapclimb.js` (`deriveClimbableSurfaces(collision,
+ledges)`, `supportCandidates` — plain functions like `maprooms.js`, wrapped
+by `GameMap` so `map._supportCandidates(box)` survives; **B3's fix lands
+there**). `map.js` 810 → 537 + `mapdata.js` (`placeSites`/`placeSpawns`/
+`placeLights`/`placeWaypoints`, called after the rooms because a site finds
+its room by containment) + `mapvalidate.js` (and an empty `for` loop left
+over from the markings, deleted). `physics.js` 735 → 600 + `collisionbox.js`
+(`CollisionBox`, `raySlab`, `EPSILON`; re-exported). `systems/objective.js`
+646 → 536 + `plantrule.js` (`DEFUSE_REACH`, `PLANT_HEADROOM`,
+`withinDefuseReach`, `canDefuseAt(map, at)`, `hasHeadroomAt`, `canPlantAt`;
+re-exported, and wrapped as the same three methods, so every check's import
+and every `objective.canPlantAt()` is unchanged). `systems/gadgets.js` 633 →
+506 + `gadgeteffects.js` (`EffectRegistry`, `Projectile`).
+
+`config.js` (1,249) is exempt and PLAN.md now says so: it is a table, read
+by key. `README.md`'s architecture block names the root's siblings.
+
+**Verified.** New check `no-source-file-outside-config-is-over-600-lines`
+(tests/donedef.js) lists every module the game actually loaded from the same
+Resource Timing entries the network check reads — no guessed import graph —
+fetches each and counts lines; `config.js` is exempt by name and must be
+present. With the guidance lowered to 500 it is red in its own words
+(*"over 500 lines: src/physics.js (600), src/main.js (597),
+src/mapground.js (577), ..."*), so it sees the whole tree, tests included.
+Full suite **117 passed / 2 failed, twice, identical** (332s and 390s), flaky
+empty, zero console errors, zero context losses, zero re-runs; the census
+reads the same *12 of 65, upper deck 5, loading-bay 3, turbine-hall 2,
+server-vault 2, 20 need a leg up* it read before the split, which is the
+"suite is identical" the done-when asked for.
+
+**Found.** Two boot failures, both a moved method using a module constant
+that did not move (`P`, then `THREE`, in `mapgen.js`); `node --check` is
+blind to it. The runner reported each as a bare 60s `waitForFunction`
+timeout, so it now prints the page's first errors under `suite: crashed:`
+(`scripts/suite.mjs`, `bootErrors`) — a tool change, not a check change.
+And the working copy is CRLF under `core.autocrlf=true` while the repo is
+LF: a byte-exact Python match against `\r\n` content fails silently, and a
+file ending `}\r\n\r\n` has one more line than its last brace. Both are in
+HANDOFF's traps now.
+
+**Left.** `main.js` at 597 and `physics.js` at 600 have no headroom; the
+next job that touches either splits rather than adds. F4 is next and is
+easier for this: the loop is an object.

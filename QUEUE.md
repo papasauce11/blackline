@@ -39,35 +39,14 @@ every later block is measured with, and a gate that answers differently on a
 busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank.
 
-- [ ] **F3 (M)** Split `src/main.js`. (Was S; resized 2026-09-11 - it names
-  four files, and the composition root is the one where a wrong cut shows
-  up as a changed step order, so it wants a whole run's attention.) It is 1,145 lines, well past the ~600 guidance,
-  and A4 touched it (one line, wiring `plantRefused` to the HUD); F1 and F2
-  added the context-loss listeners and `resetPresentation()`, 40 lines. The
-  split-when-you-touch rule applies and was deliberately not honoured: the
-  composition root is the wrong thing to refactor for a one-line change, and
-  it is not in any job. Do it on purpose instead. Candidates that are already
-  cohesive: the HUD state-gathering block, the gadget throw/use handlers, the
-  intent readers, and the harness object at the bottom. **Do not** move
-  anything that changes the order of the fixed step. *done-when:* no file in
-  `src/` outside `config.js` is over 600 lines, the suite is identical, and
-  `determinism` and the fixed-step order checks still pass. `config.js` is
-  1,213 lines and A7 touched it (one key); it is the one file the 600 rule
-  has always exempted in spirit - it is a table - but say so in PLAN.md or
-  split it, one or the other. A8 then touched `systems/ai.js` (788) and
-  `mapkit.js` (800+) the same way - `_pathTo` and `nearestWaypoint`, a few
-  lines each - and they belong here too: ai.js splits cleanly into the state
-  machine and the navigation (`_pathTo`, `_followRoute`, `_face`, the stuck
-  handling), and mapkit.js has already shed two files and can shed the
-  waypoint graph.
-
 - [ ] **F4 (S)** The rAF loop runs the real game under the suite in headless
   Chrome (F1 measured it: `document.hidden` is false, 7 real frames ran
   inside the audio check, the 45s cooldown between runs is ~135 frames of the
   AI hunting an idle Shade). A check that does not start from `initMatch`
   inherits a state that depends on the wall clock. Stop the loop for the
-  duration of `runAutoTests` (`stop()`/`start()` are in `main.js`; the harness
-  would need to expose them, or the suite can ask through the emitter) and
+  duration of `runAutoTests` (the scheduler is `FrameLoop` in `loop.js`,
+  `start()`/`stop()`, held by `main.js` as `loop`; the harness would need to
+  expose it, or the suite can ask through the emitter) and
   make `h.nextFrame()` still resolve while it is stopped. **Do not** fix it
   by adding `initMatch` to every check. *done-when:* `clock.frame` is the
   same before and after a full suite run minus what checks drove themselves,
@@ -219,6 +198,16 @@ budget checks are the ceiling.
 
 ## Done
 
+- **F3** Every module under the ~600 guidance, `config.js` excepted and the
+  exemption written into PLAN.md: `main.js` 1,145 -> 597 across eleven
+  siblings (`loop`, `timestep`, `matchstate`, `view`, `cameraowner`,
+  `intents`, `loadout`, `wiring`, `hudstate`, `debugfields`, `harness`);
+  `entities/agent.js` -> `agenttraversal`/`agentvisual`/`agentstate`;
+  `systems/ai.js` -> `aiperception`/`ainav`/`aistate`; `mapkit.js` ->
+  `mapgen`/`mapclimb`; `map.js` -> `mapdata`/`mapvalidate`; `physics.js` ->
+  `collisionbox`; `systems/objective.js` -> `plantrule`; `systems/gadgets.js`
+  -> `gadgeteffects`. Check `no-source-file-outside-config-is-over-600-lines`
+  - <hash>, 2026-09-11.
 - **F1** The cascade was a lost WebGL context, not the viewport check:
   counted in `main.js`, tagged and re-run once after restore by the suite
   runner, now `ui/autosuite.js` (split from `ui/debug.js`); `contextLosses`

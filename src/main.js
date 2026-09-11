@@ -7,20 +7,43 @@
  * Layering (Section 3.1): main.js may import from anything. Nothing may import
  * main.js. Cross-system messages go through the emitter created here and passed
  * down, never through sibling imports.
+ *
+ * What is here is what has to be: the singletons, `initMatch`, the loop and
+ * the fixed step in its spec order. The pieces that were only cohesive
+ * blocks of it live beside it (F3): `loop.js` (the rAF scheduler),
+ * `timestep.js` (the step planner), `matchstate.js` (what a match is),
+ * `view.js` (renderer, camera, toon ramp, resize, lost context),
+ * `cameraowner.js` (whose rig the camera is on, and mouse look),
+ * `intents.js` (input to intent), `loadout.js` (the gadget slots),
+ * `wiring.js` (the emitter listeners between systems), `hudstate.js` (what
+ * the HUD is told), `debugfields.js` (what the F3 overlay is told) and
+ * `harness.js` (what the AUTO suite is handed).
  */
 
 import * as THREE from 'three';
-import { CONFIG, DEBUG, SETTINGS, rng, deriveSeed } from './config.js';
+import { CONFIG, DEBUG, rng, deriveSeed } from './config.js';
 import { Emitter } from './emitter.js';
 import { Freefly } from './freefly.js';
 import { Input } from './input.js';
 import { buildMap } from './map.js';
 import { createWardenGroundView } from './groundview.js';
-import { classifyReach } from './physics.js';
-import { Shade, SHADE_STATE, createIntent } from './entities/agent.js';
-import { Warden, WARDEN_STATE, createWardenIntent } from './entities/enforcer.js';
+import { FrameLoop } from './loop.js';
+import { computeStepPlan } from './timestep.js';
+import { resolveMatchOptions, createMatchState, bootMatchOptions, COMPETITIVE, FREEROAM } from './matchstate.js';
+import {
+  createRenderer, createScene, createCamera, createToonGradient, resizeView, watchContextLoss,
+} from './view.js';
+import { createCameraOwnership } from './cameraowner.js';
+import { readShadeIntent, idleShadeIntent, readWardenIntent } from './intents.js';
+import { useShadeGadget, useWardenGadget } from './loadout.js';
+import { wireMatchEvents } from './wiring.js';
+import { gatherHudState } from './hudstate.js';
+import { recordStepFields, recordFrameFields } from './debugfields.js';
+import { createHarness } from './harness.js';
+import { Shade, createIntent } from './entities/agent.js';
+import { Warden, createWardenIntent } from './entities/enforcer.js';
 import { createDetection } from './systems/detection.js';
-import { createWardenAI, AI_STATE } from './systems/ai.js';
+import { createWardenAI } from './systems/ai.js';
 import { createCombat } from './systems/combat.js';
 import { createAudio } from './systems/audio.js';
 import { createGadgets } from './systems/gadgets.js';
@@ -36,45 +59,6 @@ import { registerAssertions } from './tests/assertions.js';
 import { wireTestCommands } from './testcommands.js';
 
 // ---------------------------------------------------------------------------
-// Fixed timestep (Section 15: never integrate with a raw frame delta)
-// ---------------------------------------------------------------------------
-
-/**
- * Pure step planner. Extracted so the AUTO suite tests the real scheduling
- * maths rather than a copy of it.
- *
- * Time scale multiplies the accumulator FEED, never the step size. dt handed to
- * the simulation is always exactly CONFIG.time.fixedDt, whatever the time scale
- * or the frame rate.
- *
- * @returns {{steps: number, accumulator: number, dt: number, dropped: boolean}}
- */
-export function computeStepPlan(accumulator, wallDelta, timeScale) {
-  const dt = CONFIG.time.fixedDt;
-  const delta = Number.isFinite(wallDelta) ? Math.max(wallDelta, 0) : 0;
-  const scale = Number.isFinite(timeScale) && timeScale > 0 ? timeScale : 0;
-
-  // Clamp before scaling: a tab-switch or a breakpoint must not be able to
-  // inject a hundred steps into one frame.
-  const clamped = Math.min(delta, CONFIG.time.maxFrameDelta);
-  let acc = accumulator + clamped * scale;
-
-  let steps = Math.floor(acc / dt);
-  let dropped = false;
-  if (steps > CONFIG.time.maxStepsPerFrame) {
-    steps = CONFIG.time.maxStepsPerFrame;
-    // Drain rather than carry: carrying a backlog is how a hitch turns into a
-    // permanent spiral of death.
-    acc = 0;
-    dropped = true;
-  } else {
-    acc -= steps * dt;
-  }
-
-  return { steps, accumulator: acc, dt, dropped };
-}
-
-// ---------------------------------------------------------------------------
 // Engine singletons
 // ---------------------------------------------------------------------------
 
@@ -85,7 +69,6 @@ export function computeStepPlan(accumulator, wallDelta, timeScale) {
 /** @type {DebugTools} */ let debugTools = null;
 /** @type {Freefly} */ let freefly = null;
 /** @type {import('./map.js').GameMap} */ let map = null;
-/** @type {THREE.DataTexture} */ let gradientMap = null;
 /** @type {Shade} */ let shade = null;
 /** @type {Warden} */ let warden = null;
 /** @type {import('./systems/detection.js').Detection} */ let detection = null;
@@ -98,8 +81,6 @@ export function computeStepPlan(accumulator, wallDelta, timeScale) {
 /** @type {import('./systems/deathcam.js').DeathCam} */ let deathCam = null;
 /** @type {import('./ui/hud.js').Hud} */ let hud = null;
 /** @type {import('./groundview.js').WardenGroundView} */ let groundView = null;
-/** Section 17.1 test mode: the Shade ignores damage while set. */
-let godMode = false;
 /** @type {import('./ui/menu.js').Menu} */ let menu = null;
 /** @type {import('./ui/scoreboard.js').Scoreboard} */ let scoreboard = null;
 const shadeIntent = createIntent();
@@ -111,7 +92,7 @@ const wardenIntent = createWardenIntent();
  */
 const wardenIdleIntent = createWardenIntent();
 
-/** 'freefly' | 'shade' | 'warden'. The one camera is reparented, never rebuilt. */
+/** @type {ReturnType<typeof createCameraOwnership>} whose rig the one camera is on */
 let cameraOwner = null;
 
 const emitter = new Emitter();
@@ -125,60 +106,17 @@ const debugState = {};
  */
 const clock = { wall: 0, sim: 0, frame: 0, timeScale: 1 };
 
-let timeScaleIndex = 0;
 /** Esc. The loop still renders while set, but runs no simulation steps. */
 let paused = false;
 let accumulator = 0;
-let lastFrameTime = 0;
-let frameHandle = 0;
-let running = false;
-
-/** Guard for the risk-register rule: exactly one camera object, ever. */
-let camerasCreated = 0;
-
-// Spec speeds, hoisted so the AUTO checks read against the config rather than
-// against literals typed twice.
-/** An intent that counts as heading into a ledge, for tests that call the
- *  traversal helpers directly rather than driving them through step(). */
-const APPROACHING = (() => {
-  const intent = createIntent();
-  intent.forward = 1;
-  return intent;
-})();
-
-const S_WALK = CONFIG.shade.walkSpeed;
-const S_SPRINT = CONFIG.shade.sprintSpeed;
-const S_CROUCH = CONFIG.shade.crouchSpeed;
+const loop = new FrameLoop(renderFrame);
 
 /** @type {object|null} current match state */
 let match = null;
 
 // ---------------------------------------------------------------------------
-// Match state
+// Match
 // ---------------------------------------------------------------------------
-
-/**
- * Defaults factory for match-level mutable state (Section 15). Every field is
- * rebuilt here so nothing can carry between matches by accident. Round-level
- * state gets its own factory in systems/objective.js.
- */
-function createMatchState(options, seed) {
-  const length = CONFIG.match.lengths[options.matchLength] ? options.matchLength : CONFIG.match.defaultLength;
-  return {
-    mode: options.mode,
-    role: options.role,
-    aiEnabled: options.ai,
-    objectiveEnabled: options.objective,
-    difficulty: options.difficulty,
-    seed,
-    matchLength: length,
-    winsNeeded: CONFIG.match.lengths[length],
-    roundNumber: 1,
-    score: { shade: 0, warden: 0 },
-    rounds: [],
-    over: false,
-  };
-}
 
 /**
  * Single entry point for both modes (Section 12, Section 15). Free-roam is a
@@ -192,15 +130,7 @@ function createMatchState(options, seed) {
  * @param {number} [options.seed] explicit seed, for reproducing a bug
  */
 export function initMatch(options = {}) {
-  const opts = {
-    mode: 'competitive',
-    role: CONFIG.match.humanRole,
-    ai: true,
-    objective: true,
-    matchLength: SETTINGS.matchLength,
-    difficulty: SETTINGS.difficulty,
-    ...options,
-  };
+  const opts = resolveMatchOptions(options);
   // A debugging view of map data never survives into a new match (A7).
   if (groundView) groundView.setVisible(false);
 
@@ -238,11 +168,14 @@ export function initMatch(options = {}) {
   // A new match must never start behind a stale intermission.
   if (scoreboard) scoreboard.hide();
   if (audio) audio.reset();
-  cameraOwner = null;
+  if (cameraOwner) cameraOwner.forget();
 
   emitter.emit('match:init', match);
 
-  if (!running) start();
+  if (!loop.running) {
+    accumulator = 0;
+    loop.start();
+  }
   return match;
 }
 
@@ -291,13 +224,6 @@ function togglePause() {
   setPaused(true);
 }
 
-function cycleTimeScale() {
-  const cycle = CONFIG.time.timeScaleCycle;
-  timeScaleIndex = (timeScaleIndex + 1) % cycle.length;
-  setTimeScale(cycle[timeScaleIndex]);
-  if (debugTools) debugTools.logResult(`time scale ${clock.timeScale}x`);
-}
-
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
@@ -306,33 +232,15 @@ function bootstrap() {
   const canvas = document.getElementById('bl-canvas');
   if (!canvas) throw new Error('bootstrap: #bl-canvas not found');
 
-  renderer = new THREE.WebGLRenderer({
-    canvas,
-    antialias: CONFIG.render.antialias,
-    powerPreference: 'high-performance',
-    stencil: false,
-  });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.render.maxPixelRatio));
-  renderer.setSize(window.innerWidth, window.innerHeight, false);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  // Filmic tone mapping flattens toon banding and desaturates the palette.
-  // Section 4 asks for saturated, high contrast, so it stays off.
-  renderer.toneMapping = THREE.NoToneMapping;
-  renderer.toneMappingExposure = CONFIG.render.toneMappingExposure;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(CONFIG.render.clearColor);
-  scene.fog = new THREE.FogExp2(CONFIG.render.fogColor, CONFIG.render.fogDensity);
-
+  renderer = createRenderer(canvas);
+  scene = createScene();
   camera = createCamera();
   scene.add(camera);
 
   // Section 4: 4-step gradient map generated in code via DataTexture. Created
   // here in the composition root and passed down, because both map.js and
   // entities/ need it and neither may import the other (Section 3.1).
-  gradientMap = createToonGradient(CONFIG.render.toonSteps);
+  const gradientMap = createToonGradient(CONFIG.render.toonSteps);
 
   map = buildMap({ gradientMap });
   scene.add(map.root);
@@ -355,6 +263,12 @@ function bootstrap() {
   scene.add(warden.groundBlob);
   scene.add(warden.cameraRig);
   warden.reset(map.wardenSpawns[0]);
+
+  // The one camera's owner, now both rigs exist. Combat's finisher and the
+  // death camera are handed `set` so they take the camera the same way the
+  // frame does, rather than reaching for it.
+  cameraOwner = createCameraOwnership({ camera, scene, shade, warden, emitter });
+  const setCameraOwner = (owner) => cameraOwner.set(owner);
 
   // Section 7: light sampling, the visibility meter, the Section 4.2 feedback
   // and the noise field. Built after both actors, because it seeds the meter
@@ -406,8 +320,8 @@ function bootstrap() {
   menu = createMenu({
     onFirstGesture: () => audio.unlock(),
     onVolume: (value) => audio.setMasterVolume(value),
-    onPlay: () => initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true }),
-    onFreeRoam: () => initMatch({ mode: 'freeroam', role: 'warden', ai: false, objective: false }),
+    onPlay: () => initMatch(COMPETITIVE),
+    onFreeRoam: () => initMatch(FREEROAM),
     onResume: () => setPaused(false),
     onQuit: () => {
       setPaused(false);
@@ -415,55 +329,12 @@ function bootstrap() {
     },
   });
 
-  // Frag blasts are damage from outside combat; combat still owns applying it.
-  emitter.on('gadget:damage', (event) => {
-    if (godMode) return;
-    if (event.target === 'shade') combat.applyDamage(shade, event.amount, 'shade', event.source);
-  });
-  emitter.on('objective:life-lost', (event) => {
-    hud.push(`life lost - ${event.remaining} left`);
-    audio.play('lifeLost');
-  });
-  emitter.on('deathcam:guard', (event) => {
-    // Loud on purpose. This firing means the countdown stopped advancing, which
-    // is a bug somewhere upstream; the guard is the safety net, not the design.
-    console.warn(`[deathcam] wall-clock guard fired after ${event.after.toFixed(2)}s — forced the reinsert`);
-  });
-  emitter.on('objective:planted', (event) => hud.push(`charge armed at ${event.site}`));
-  // Section 9.2: the siren, the HUD ping, and the Shade marked for 2s. The
-  // marking itself lives on gadgets; this is the ping.
-  emitter.on('gadget:alarm', () => hud.push('ALARM - shade detected'));
-  emitter.on('gadget:alarm-destroyed', (event) => hud.push(`alarm camera destroyed (${event.by})`));
-  emitter.on('combat:takedown', () => hud.push('takedown'));
-  emitter.on('combat:knife-hit', (event) => hud.push(`knife hit - warden ${Math.round(event.remaining)}`));
-  // Section 15's ragdoll-lite. A body that stays is also the only feedback
-  // that a takedown actually landed on something.
-  // Section 10.2: the Shade's death takes a life, ragdolls the body and hands
-  // the camera to a free-look view of the killer for the countdown.
-  emitter.on('combat:death', (event) => {
-    if (event.target !== 'shade') return;
-    deathCam.begin(shade, warden);
-  });
-  emitter.on('objective:round-end', () => deathCam.restore());
-  emitter.on('combat:death', (event) => {
-    if (event.target !== 'warden') return;
-    warden.ragdolled = true;
-    const dx = warden.position.x - shade.position.x;
-    const dz = warden.position.z - shade.position.z;
-    const length = Math.hypot(dx, dz) || 1;
-    warden.mesh.position.set(warden.position.x, warden.feetY, warden.position.z);
-    effects.ragdoll(warden.mesh, { x: dx / length, z: dz / length });
-    hud.push('warden down');
-  });
-  emitter.on('objective:round-end', () => {
-    scoreboard.show({ rounds: objective.rounds, score: objective.score, matchOver: objective.matchOver });
-  });
-  emitter.on('ai:throw', (event) => {
-    const from = { x: warden.position.x, y: warden.eyeY, z: warden.position.z };
-    const dx = event.at.x - from.x;
-    const dz = event.at.z - from.z;
-    const length = Math.hypot(dx, dz) || 1;
-    gadgets.throwGadget(event.type, from, { x: dx / length, y: 0.2, z: dz / length }, 'warden');
+  wireMatchEvents({
+    emitter, hud, audio, combat, shade, warden, deathCam, effects, scoreboard, objective, gadgets,
+    // Section 17.1 test mode: the Shade ignores damage while set. The `G`
+    // command (testcommands.js) toggles it in the shared bag; the F3 overlay
+    // shows it from the same place, so there is one value.
+    isGodMode: () => !!debugState.godMode,
   });
 
   input = new Input(canvas);
@@ -480,119 +351,25 @@ function bootstrap() {
     audio.unlock();
   });
 
-  window.addEventListener('resize', onResize);
-
-  // The GPU can be taken away underneath a running game. Chrome kills a
-  // starved GPU process (its watchdog, or a machine under load) and hands
-  // every WebGL context back a little later; three.js already prevents the
-  // default so the restore happens, and rebuilds its state when it does. What
-  // it does not do is tell anyone. While the context is lost every draw is a
-  // no-op and every readPixels returns black, so a check measuring pixels in
-  // that window fails for a reason that has nothing to do with the game. F1
-  // found eight pixel checks red at once, unreproducible, on a loaded PC:
-  // the drawing buffer reads 0x0 against a 1280x720 canvas, which is what a
-  // lost context reports. Counted here so the suite can tell a lost
-  // instrument from a wrong answer, and re-run only what the loss touched.
-  debugState.contextLosses = 0;
-  debugState.contextLost = false;
-  canvas.addEventListener('webglcontextlost', () => {
-    debugState.contextLosses++;
-    debugState.contextLost = true;
-    emitter.emit('view:contextlost', { count: debugState.contextLosses });
+  window.addEventListener('resize', () => {
+    const size = resizeView(renderer, camera);
+    if (size) emitter.emit('view:resize', size);
   });
-  canvas.addEventListener('webglcontextrestored', () => {
-    debugState.contextLost = false;
-    emitter.emit('view:contextrestored', { count: debugState.contextLosses });
-  });
+  watchContextLoss(canvas, debugState, emitter);
 
   debugTools = new DebugTools({ input, emitter, debugState, harness });
   registerAssertions(debugTools, harness);
   registerAutoTests(debugTools);
-  wireTestCommands({
-    harness,
-    cycleTimeScale,
-    setGodMode: () => {
-      godMode = !godMode;
-      debugState.godMode = godMode;
-    },
-  });
+  wireTestCommands({ harness });
 
   setTimeScale(1);
   debugState.stepsPerFrame = 0;
 }
 
-/**
- * Section 4: a 4-step toon ramp. The shader samples the red channel
- * (`texture2D(gradientMap, coord).r`), so a single-channel RedFormat texture
- * with nearest filtering gives hard bands.
- */
-function createToonGradient(steps) {
-  const data = new Uint8Array(steps);
-  for (let i = 0; i < steps; i++) {
-    data[i] = Math.round((i / (steps - 1)) * 255);
-  }
-  const texture = new THREE.DataTexture(data, steps, 1, THREE.RedFormat);
-  texture.minFilter = THREE.NearestFilter;
-  texture.magFilter = THREE.NearestFilter;
-  texture.generateMipmaps = false;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-/**
- * Risk register: "One camera object. Reparent and adjust FOV only. Never
- * instantiate a second camera." This is the only place a camera is made, and it
- * refuses to make a second one.
- */
-function createCamera() {
-  if (camerasCreated > 0) {
-    throw new Error('createCamera: a second camera was requested. Reparent the existing one instead.');
-  }
-  camerasCreated++;
-  const cam = new THREE.PerspectiveCamera(
-    CONFIG.render.fov,
-    window.innerWidth / window.innerHeight,
-    CONFIG.render.near,
-    CONFIG.render.far
-  );
-  cam.name = 'bl-camera';
-  return cam;
-}
-
-function onResize() {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-  // A viewport can report zero transiently — a minimised window, a tab being
-  // moved between displays, devtools resizing the emulated frame. Taking it at
-  // face value latches a 0x0 drawing buffer and an infinite aspect, and the
-  // game then renders nothing until some later resize happens to rescue it.
-  // Found when an emulated resize left the canvas 0x0 while CSS still said
-  // 1280x720 and every pixel read back black.
-  if (!(width > 0) || !(height > 0)) return;
-  camera.aspect = width / height;
-  camera.updateProjectionMatrix();
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.render.maxPixelRatio));
-  renderer.setSize(width, height, false);
-  emitter.emit('view:resize', { width, height });
-}
-
 // ---------------------------------------------------------------------------
-// Loop
+// Loop. The rAF scheduling is loop.js; what a step and a frame do is here,
+// in the order the spec fixes.
 // ---------------------------------------------------------------------------
-
-function start() {
-  if (running) return;
-  running = true;
-  lastFrameTime = 0;
-  accumulator = 0;
-  frameHandle = requestAnimationFrame(frame);
-}
-
-function stop() {
-  running = false;
-  if (frameHandle) cancelAnimationFrame(frameHandle);
-  frameHandle = 0;
-}
 
 /**
  * One fixed simulation step. dt is always CONFIG.time.fixedDt.
@@ -610,16 +387,16 @@ function fixedStep(dt) {
   if (freefly.enabled) {
     freefly.step(dt);
     warden.step(dt, wardenIdleIntent);
-    shade.step(dt, shadeIdleIntent());
+    shade.step(dt, idleShadeIntent(shadeIntent));
   } else if (match.role === 'warden') {
     // Free-roam (Section 12): the human drives the Warden through the very same
     // controller the AI drives in competitive.
-    activeWardenIntent = readWardenIntent();
+    activeWardenIntent = readWardenIntent(input, wardenIntent);
     warden.step(dt, activeWardenIntent);
   } else {
     // A dead Shade takes no input: it is a ragdoll waiting on a countdown, and
     // driving the capsule around would leave the body and the collider apart.
-    shade.step(dt, shade.health > 0 ? readShadeIntent() : shadeIdleIntent());
+    shade.step(dt, shade.health > 0 ? readShadeIntent(input, shadeIntent) : idleShadeIntent(shadeIntent));
     activeWardenIntent = match.aiEnabled ? wardenAI.step(dt, { shade }) : wardenIdleIntent;
     warden.step(dt, activeWardenIntent);
   }
@@ -637,11 +414,11 @@ function fixedStep(dt) {
   });
   gadgets.step(dt, { shade, warden });
   if (match.role === 'shade' && !freefly.enabled && shadeIntent.gadget) {
-    useGadget(shadeIntent.gadget);
+    useShadeGadget(shadeIntent.gadget, { shade, warden, gadgets, hud });
     shadeIntent.gadget = 0;
   }
   if (match.role === 'warden' && !freefly.enabled && activeWardenIntent.gadget) {
-    useWardenGadget(activeWardenIntent.gadget);
+    useWardenGadget(activeWardenIntent.gadget, { warden, gadgets, hud });
     activeWardenIntent.gadget = 0;
   }
   // Section 9.2: the slow is applied to the controller, never to the physics.
@@ -654,181 +431,16 @@ function fixedStep(dt) {
   }
   effects.step(dt);
 
-  if (DEBUG) {
-    // Keys and types the overlay's field table actually consumes (Section 17:
-    // "visibility meter raw and smoothed", "active noise events"). Anything
-    // else here is silently dropped, so it must match.
-    debugState.visibilityRaw = detection.raw;
-    debugState.visibilitySmoothed = detection.smoothed;
-    debugState.activeNoise = detection.noise.activeCount;
-    debugState.aiState = wardenAI.state;
-    debugState.aiDetection = wardenAI.accumulator;
-    debugState.aiStuckCounter = wardenAI.stuckCount;
-    debugState.aiStuckTimer = wardenAI.stuckTimer;
-    debugState.activeEffects = effects.activeCount + gadgets.effects.count;
-    debugState.pooledSprites = effects.pooledSprites;
-    debugState.roundState = `${objective.round.charge} ${Math.ceil(objective.hud.timeRemaining)}s`;
-  }
+  if (DEBUG) recordStepFields(debugState, { detection, wardenAI, effects, gadgets, objective });
 
   emitter.emit('sim:step', dt);
   if (DEBUG) debugTools.step();
-}
-
-/**
- * Translate raw input into the controller's intent object. Reusing one object
- * keeps the fixed step allocation-free. Edge flags are true only on the first
- * step of a frame, because input.clearEdges() runs after each step.
- */
-/**
- * Section 9.1's Shade loadout, on slots 1-3. Everything is thrown or aimed
- * along the camera's facing, from the Shade's eye, so what you are looking at
- * is what you are throwing at.
- */
-function useGadget(slot) {
-  const eye = {
-    x: shade.position.x,
-    y: shade.feetY + shade.height * CONFIG.shade.eyeHeightRatio,
-    z: shade.position.z,
-  };
-  const cosPitch = Math.cos(shade.pitch);
-  const direction = {
-    x: -Math.sin(shade.yaw) * cosPitch,
-    y: Math.sin(shade.pitch),
-    z: -Math.cos(shade.yaw) * cosPitch,
-  };
-
-  if (slot === 3) {
-    const hit = gadgets.fireTaser(shade, warden, direction);
-    hud.push(hit === 'warden' ? 'taser - warden stunned'
-      : hit === 'light' ? 'taser - light destroyed'
-        : gadgets.taserCharge > 0 ? 'taser - nothing in range' : 'taser recharging');
-    return;
-  }
-
-  const type = slot === 1 ? 'smoke' : 'flashbang';
-  const thrown = gadgets.throwGadget(type, eye, direction, 'shade');
-  hud.push(thrown ? `${type} thrown - ${gadgets.loadout[type]} left` : `no ${type} left`);
-}
-
-/**
- * Section 9.2's Warden loadout, driven by the free-roam human. The AI reaches
- * the same two throws through `ai:throw`, so there is one implementation and
- * free-roam remains a configuration (Section 12).
- */
-function useWardenGadget(slot) {
-  const eye = { x: warden.position.x, y: warden.eyeY, z: warden.position.z };
-  const cosPitch = Math.cos(warden.pitch);
-  const direction = {
-    x: -Math.sin(warden.yaw) * cosPitch,
-    y: Math.sin(warden.pitch),
-    z: -Math.cos(warden.yaw) * cosPitch,
-  };
-
-  // Section 9.2: the alarm camera is "placed on a wall", so it goes where the
-  // Warden is looking, on the surface, facing back out along that surface's
-  // normal. No wall in reach means no placement — it is not a floating turret.
-  if (slot === 3) {
-    // The same call the AI makes (Section 9.2). One implementation, so a
-    // camera the AI hangs is one a player could have hung.
-    const placed = gadgets.placeAlarmOnWall(eye, direction);
-    hud.push(placed ? 'alarm camera placed'
-      : gadgets.alarm ? 'alarm camera already placed'
-        : gadgets.loadout.alarmCamera > 0 ? 'no wall in range' : 'no alarm camera left');
-    return;
-  }
-
-  const type = slot === 1 ? 'stunGrenade' : slot === 2 ? 'frag' : null;
-  if (!type) return;
-  const thrown = gadgets.throwGadget(type, eye, direction, 'warden');
-  hud.push(thrown ? `${type} thrown - ${gadgets.loadout[type]} left` : `no ${type} left`);
-}
-
-function readShadeIntent() {
-  shadeIntent.forward = input.axis('back', 'forward');
-  shadeIntent.strafe = input.axis('left', 'right');
-  shadeIntent.jump = input.down('jump');
-  shadeIntent.jumpPressed = input.pressed('jump');
-  shadeIntent.crouch = input.down('crouch');
-  shadeIntent.crouchPressed = input.pressed('crouch');
-  shadeIntent.sprint = input.down('sprint');
-  shadeIntent.melee = input.pressed('melee');
-  shadeIntent.interact = input.down('interact');
-  shadeIntent.gadget = input.pressed('gadget1') ? 1
-    : input.pressed('gadget2') ? 2
-      : input.pressed('gadget3') ? 3 : 0;
-  return shadeIntent;
-}
-
-/** Neutral Shade intent, for when the human is driving something else. */
-function shadeIdleIntent() {
-  shadeIntent.forward = 0;
-  shadeIntent.strafe = 0;
-  shadeIntent.jump = false;
-  shadeIntent.jumpPressed = false;
-  shadeIntent.crouch = false;
-  shadeIntent.crouchPressed = false;
-  shadeIntent.sprint = false;
-  return shadeIntent;
-}
-
-/** Section 12: free-roam feeds the same controller the AI will feed. */
-function readWardenIntent() {
-  wardenIntent.forward = input.axis('back', 'forward');
-  wardenIntent.strafe = input.axis('left', 'right');
-  wardenIntent.sprint = input.down('sprint');
-  wardenIntent.ads = input.down('ads');
-  wardenIntent.fire = input.down('fire');
-  wardenIntent.reload = input.pressed('reload');
-  wardenIntent.gadget = input.pressed('gadget1') ? 1
-    : input.pressed('gadget2') ? 2
-      : input.pressed('gadget3') ? 3 : 0;
-  return wardenIntent;
-}
-
-/**
- * Move the one camera between rigs.
- *
- * Risk register (Section 15): "Camera state leaks between roles or after the
- * finisher — one camera object. Reparent and adjust FOV only. Never instantiate
- * a second camera."
- *
- * Every swap resets the full local transform and the FOV, so nothing a previous
- * owner did can survive the handover. The Warden's ADS narrows the FOV
- * (Section 6.2); without the reset here, swapping away mid-aim would leave the
- * Shade permanently zoomed.
- *
- * @param {'freefly'|'shade'|'warden'} owner
- */
-function setCameraOwner(owner) {
-  if (cameraOwner === owner) return;
-
-  const parent =
-    owner === 'warden' ? warden.cameraRig : owner === 'shade' ? shade.cameraRig : scene;
-
-  parent.add(camera);
-  camera.position.set(0, 0, 0);
-  camera.rotation.set(0, 0, 0);
-  camera.scale.set(1, 1, 1);
-  camera.fov = CONFIG.render.fov;
-  camera.updateProjectionMatrix();
-
-  warden.setFirstPerson(owner === 'warden');
-  cameraOwner = owner;
-  emitter.emit('camera:owner', owner);
 }
 
 /** Who the human is currently driving. */
 function humanOwner() {
   if (freefly.enabled) return 'freefly';
   return match && match.role === 'warden' ? 'warden' : 'shade';
-}
-
-function frame(now) {
-  frameHandle = requestAnimationFrame(frame);
-
-  const wallDelta = lastFrameTime === 0 ? 0 : (now - lastFrameTime) / 1000;
-  lastFrameTime = now;
-  renderFrame(wallDelta);
 }
 
 /**
@@ -849,8 +461,6 @@ function renderFrame(wallDelta) {
   debugTools.pollKeys();
   if (input.pressed('pause')) togglePause();
 
-  // Mouse delta is a displacement, not a rate, so look is applied once per
-  // frame rather than once per fixed step.
   const owner = humanOwner();
   // Section 8.3: the finisher owns the camera while it runs. Reasserting
   // ownership every frame here is what stopped the 40 degree orbit from ever
@@ -861,25 +471,8 @@ function renderFrame(wallDelta) {
   // seen, and the death cam would lose it the same way.
   const dead = deathCam && deathCam.active;
   const cinematic = (combat && combat.inFinisher) || dead;
-  if (!cinematic) setCameraOwner(owner);
-  if (dead) {
-    // Free-look while dead (Section 10.2). It orbits the killer and moves
-    // nothing in the world.
-    if (input.locked) {
-      const delta = input.lookDelta();
-      deathCam.look(delta.yaw, delta.pitch);
-    }
-  } else if (cinematic) {
-    // No steering during the finisher either; it is not the player's camera.
-  } else if (owner === 'freefly') {
-    freefly.look();
-  } else if (input.locked) {
-    // ADS uses a reduced sensitivity so the narrower FOV still tracks 1:1.
-    const scale = owner === 'warden' && warden.ads ? CONFIG.settings.adsSensitivityMultiplier : 1;
-    const delta = input.lookDelta(scale);
-    if (owner === 'warden') warden.look(delta.yaw, delta.pitch);
-    else shade.look(delta.yaw, delta.pitch);
-  }
+  if (!cinematic) cameraOwner.set(owner);
+  cameraOwner.look({ human: owner, dead, cinematic, input, deathCam, freefly });
   emitter.emit('frame:begin', { wallDelta, input });
 
   // Paused feeds the planner nothing rather than skipping it: the accumulator
@@ -904,14 +497,8 @@ function renderFrame(wallDelta) {
   if (dead) deathCam.step(wallDelta, shade);
 
   // Section 6.2: ADS narrows the FOV. Only the Warden touches it, and only
-  // while it owns the camera; setCameraOwner() restores it on every handover.
-  if (owner === 'warden' && !cinematic) {
-    const fov = warden.desiredFov();
-    if (Math.abs(camera.fov - fov) > 0.01) {
-      camera.fov = fov;
-      camera.updateProjectionMatrix();
-    }
-  }
+  // while it owns the camera; the handover restores it.
+  if (owner === 'warden' && !cinematic) cameraOwner.applyAdsFov();
 
   // The Warden-ground overlay's marker follows the human's actor. Nothing
   // while hidden, which is always outside the F4 panel.
@@ -924,141 +511,57 @@ function renderFrame(wallDelta) {
   // The HUD is not drawn behind a menu or an intermission.
   hud.setVisible(!menu.open && !scoreboard.open);
   if (hud.visible) {
-    const objectiveHud = objective.hud;
-    const site = objective.siteNear(shade.position);
-    hud.update(wallDelta, {
-      role: match.role,
-      freeroam: match.mode === 'freeroam',
-      unlimitedGadgets: gadgets.unlimited,
-      alarmPlaced: !!gadgets.alarm,
-      shadeMarked: gadgets.shadeMarked,
-      visibility: detection.smoothed,
-      health: match.role === 'warden' ? warden.health : shade.health,
-      lives: objectiveHud.lives,
-      loadout: gadgets.loadout,
-      taserCharge: gadgets.taserCharge,
-      taserRecharge: gadgets.taserRecharge,
-      magazine: combat.weapon.magazine,
-      reloading: combat.weapon.reloading,
-      spread: combat.weapon.spread,
-      timeRemaining: objectiveHud.timeRemaining,
-      planted: objectiveHud.planted,
-      site: objectiveHud.site,
-      plantProgress: objectiveHud.plantProgress,
-      plantRefused: objectiveHud.plantRefused,
-      defuseProgress: objectiveHud.defuseProgress,
-      promptInRange: !!site,
-      awaitingReinsert: objectiveHud.awaitingReinsert,
-      reinsertIn: objectiveHud.reinsertIn,
-      score: objectiveHud.score,
-      roundNumber: objectiveHud.roundNumber,
-      blind: gadgets.playerBlindFraction(),
-    });
+    hud.update(wallDelta, gatherHudState({ match, shade, warden, gadgets, detection, combat, objective }));
   }
 
   emitter.emit('frame:render', { alpha, wallDelta });
 
   const cpuStart = performance.now();
   renderer.render(scene, camera);
-  debugState.cpuMs = performance.now() - cpuStart;
-  debugState.drawCalls = renderer.info.render.calls;
-  debugState.triangles = renderer.info.render.triangles;
-  debugState.rngCalls = rng.calls;
-  debugState.shadeState = shade.state + (shade.crouching ? ' (crouch)' : '');
-  debugState.shadePos = shade.position;
-  debugState.shadeVel = shade.velocity;
-  debugState.shadeLives = shade.lives;
-  debugState.shadeGrounded = shade.grounded ? 'yes' : 'no';
-  debugState.cameraOwner = `${cameraOwner} (fov ${camera.fov.toFixed(1)})`;
-  debugState.wardenState = warden.state + (warden.ads ? ' (ads)' : '');
-  debugState.wardenPos = warden.position;
-  debugState.wardenHealth = warden.health;
+  recordFrameFields(debugState, {
+    renderer, cpuMs: performance.now() - cpuStart, rng, shade, warden, camera, cameraOwner: cameraOwner.owner,
+  });
 
   debugTools.update(wallDelta, wallDelta * 1000);
   input.endFrame();
 }
 
 // ---------------------------------------------------------------------------
-// Harness handed to the AUTO suite. Getters so tests always see live objects.
+// Harness handed to the AUTO suite (harness.js). One getter per live object.
 // ---------------------------------------------------------------------------
 
-const harness = {
-  get scene() {
-    return scene;
-  },
-  get camera() {
-    return camera;
-  },
-  get renderer() {
-    return renderer;
-  },
-  get input() {
-    return input;
-  },
-  get debugTools() {
-    return debugTools;
-  },
-  get match() {
-    return match;
-  },
-  get map() {
-    return map;
-  },
-  get shade() {
-    return shade;
-  },
-  get warden() {
-    return warden;
-  },
-  get detection() {
-    return detection;
-  },
-  get wardenAI() {
-    return wardenAI;
-  },
-  get combat() {
-    return combat;
-  },
-  get audio() {
-    return audio;
-  },
-  get gadgets() {
-    return gadgets;
-  },
-  get objective() {
-    return objective;
-  },
-  get effects() {
-    return effects;
-  },
-  get deathCam() {
-    return deathCam;
-  },
-  get hud() {
-    return hud;
-  },
-  get groundView() {
-    return groundView;
-  },
-  get menu() {
-    return menu;
-  },
-  get scoreboard() {
-    return scoreboard;
-  },
-  get paused() {
-    return paused;
-  },
+const harness = createHarness({
+  scene: () => scene,
+  camera: () => camera,
+  renderer: () => renderer,
+  input: () => input,
+  debugTools: () => debugTools,
+  match: () => match,
+  map: () => map,
+  shade: () => shade,
+  warden: () => warden,
+  detection: () => detection,
+  wardenAI: () => wardenAI,
+  combat: () => combat,
+  audio: () => audio,
+  gadgets: () => gadgets,
+  objective: () => objective,
+  effects: () => effects,
+  deathCam: () => deathCam,
+  hud: () => hud,
+  groundView: () => groundView,
+  menu: () => menu,
+  scoreboard: () => scoreboard,
+  paused: () => paused,
+  cameraOwner: () => cameraOwner.owner,
+  freefly: () => freefly,
+}, {
+  fixedStep,
+  renderFrame,
   setPaused,
   togglePause,
-  get cameraOwner() {
-    return cameraOwner;
-  },
-  setCameraOwner,
+  setCameraOwner: (owner) => cameraOwner.set(owner),
   createCamera,
-  get freefly() {
-    return freefly;
-  },
   emitter,
   debugState,
   clock,
@@ -1067,52 +570,7 @@ const harness = {
   computeStepPlan,
   setTimeScale,
   initMatch,
-
-  /**
-   * Advance the simulation synchronously, without rendering. This is how the
-   * AUTO suite drives scripted state transitions (Section 17.1).
-   */
-  stepFrames(count) {
-    const n = Math.min(Math.max(0, Math.floor(count)), CONFIG.debug.autoTestMaxFrames);
-    for (let i = 0; i < n; i++) fixedStep(CONFIG.time.fixedDt);
-    return n;
-  },
-
-  /**
-   * Put the presentation layer where a check expects to find it: no menu, no
-   * intermission, nothing paused, the HUD shown. The suite runner calls this
-   * before every check (F2). The frame derives `hud.visible` from the menu
-   * and `hud.update()` draws nothing while hidden, so a check that rendered
-   * a frame behind a menu used to leave the next HUD-reading check reading a
-   * stale DOM; and at boot the menu is up, so the first such check in any
-   * subset read a HUD nothing had ever shown.
-   */
-  resetPresentation() {
-    menu.hide();
-    scoreboard.hide();
-    setPaused(false);
-    hud.setVisible(true);
-  },
-
-  /** Await one real animation frame, for tests that need the renderer to run. */
-  nextFrame() {
-    return new Promise((resolve) => requestAnimationFrame(() => resolve()));
-  },
-
-  /**
-   * Run one complete frame synchronously — the same function requestAnimationFrame
-   * calls, not a copy of it. This is what lets the check-29 benchmark measure
-   * the real cost of a frame in a tab the compositor is not driving.
-   *
-   * @param {number} [wallDelta] seconds to pretend elapsed; defaults to one
-   *   frame at the target rate, so the fixed-step count is representative.
-   */
-  renderFrame(wallDelta) {
-    const delta = Number.isFinite(wallDelta) ? wallDelta : 1 / CONFIG.performance.targetFps;
-    renderFrame(delta);
-    return delta;
-  },
-};
+});
 
 // ---------------------------------------------------------------------------
 // Go
@@ -1120,15 +578,7 @@ const harness = {
 
 bootstrap();
 
-// Section 12: free-roam is a configuration of initMatch, never a second code
-// path. Until the menu lands in Phase 10, ?mode=freeroam selects it so the
-// Warden controller can be driven by hand.
-const bootFreeRoam = DEBUG && /(?:^|[?&])mode=freeroam(?:&|$)/.test(location.search);
-initMatch(
-  bootFreeRoam
-    ? { mode: 'freeroam', role: 'warden', ai: false, objective: false }
-    : { mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true }
-);
+initMatch(bootMatchOptions(location.search));
 
 if (DEBUG) {
   // Console handle so a seed can be reproduced by hand (Section 16, check 28).
@@ -1142,4 +592,6 @@ if (DEBUG) {
 
 // Nothing may import main.js (Section 3.1), so the only exports are the ones
 // the AUTO suite reaches through the harness. `stop` is kept for teardown.
-export { stop };
+export function stop() {
+  loop.stop();
+}

@@ -12,6 +12,10 @@
  *   - "No external asset requests in the network tab beyond the Three.js CDN"
  *   - "Zero console errors and zero warnings during a full match"
  *
+ * and, since F3, Section 3.1's line guidance: a module that has grown past
+ * ~600 lines is the kind of drift a weekly audit notices and a nightly build
+ * does not.
+ *
  * A stray font, a favicon, an analytics beacon or a deprecation warning added
  * three phases from now would not fail any other check in the suite.
  *
@@ -22,6 +26,15 @@ import { CONFIG } from '../config.js';
 
 /** The one host Section 2 allows: the pinned Three.js CDN. */
 const ALLOWED_HOST = 'cdn.jsdelivr.net';
+
+/**
+ * Section 3.1: "anything past ~600 lines gets split". F3 brought every module
+ * under it and this is what keeps them there. The one exemption is written
+ * down in PLAN.md: config.js is a table, and a table is read by key, not by
+ * scrolling.
+ */
+const SOURCE_LINE_GUIDANCE = 600;
+const EXEMPT_TABLE = 'src/config.js';
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
@@ -73,6 +86,47 @@ export function register(debugTools) {
           ? `${entries.length} requests: ${local} same-origin, ${three.length} from ${ALLOWED_HOST} `
             + `(three@${[...versions][0]} module and core, both pinned), 0 anything else`
           : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'no-source-file-outside-config-is-over-600-lines',
+    spec: 'Section 3.1 (split past ~600 lines)',
+    name: 'Every module the game loaded is under the split guidance, config.js excepted',
+    run: async () => {
+      // The modules that actually ran, from the same Resource Timing list the
+      // network check reads: nothing here guesses the import graph. Each is
+      // fetched again from the origin (cached) and its lines counted.
+      const origin = location.origin;
+      const modules = new Set();
+      for (const entry of performance.getEntriesByType('resource')) {
+        const url = entry.name.split('?')[0];
+        if (!url.startsWith(origin) || !url.endsWith('.js') || url.indexOf('/src/') === -1) continue;
+        modules.add(url.slice(url.indexOf('/src/') + 1));
+      }
+      if (modules.size < 40) {
+        return { pass: false, detail: `Resource Timing lists ${modules.size} modules under src/; expected the whole game` };
+      }
+
+      const sizes = [];
+      for (const path of modules) {
+        const text = await (await fetch(`${origin}/${path}`)).text();
+        // A trailing newline is the end of the last line, not an extra one.
+        sizes.push({ path, lines: text.replace(/\r?\n$/, '').split(/\r?\n/).length });
+      }
+      sizes.sort((a, b) => b.lines - a.lines);
+
+      const over = sizes.filter((f) => f.lines > SOURCE_LINE_GUIDANCE && f.path !== EXEMPT_TABLE);
+      const largest = sizes.find((f) => f.path !== EXEMPT_TABLE);
+      const table = sizes.find((f) => f.path === EXEMPT_TABLE);
+      return {
+        pass: over.length === 0 && !!table,
+        detail: over.length === 0
+          ? `${sizes.length} modules loaded; the largest outside ${EXEMPT_TABLE} is ${largest.path} at `
+            + `${largest.lines} lines (guidance ${SOURCE_LINE_GUIDANCE}); ${EXEMPT_TABLE} is ${table ? table.lines : '?'} `
+            + 'and is the table PLAN.md exempts'
+          : `over ${SOURCE_LINE_GUIDANCE} lines: ${over.map((f) => `${f.path} (${f.lines})`).join(', ')}`,
       };
     },
   });

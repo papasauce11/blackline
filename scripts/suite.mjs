@@ -187,9 +187,12 @@ function serve() {
   });
 }
 
+/** What the page said before a crash, so a module that failed to load names itself. */
+const bootErrors = [];
+
 async function main() {
   const { server, port } = await serve();
-  const consoleErrors = [];
+  const consoleErrors = bootErrors;
   const browser = await chromium.launch({
     channel: CHANNEL,
     headless: true,
@@ -353,5 +356,6 @@ function summary(r) {
 
 main().catch(err => {
   process.stderr.write(`suite: crashed: ${err && err.stack || err}\n`);
+  for (const line of bootErrors.slice(0, 5)) process.stderr.write(`  page: ${line}\n`);
   process.exit(2);
 });

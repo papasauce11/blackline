@@ -15,45 +15,21 @@
  * way to guarantee that is for the AI to have no privileged route into the
  * controller. If the AI can do something the player cannot, it is because the
  * intent has a field for it.
+ *
+ * Three files (F3): this one is the state machine; `aiperception.js` is the
+ * senses; `ainav.js` is the route, the steering and the stuck detector. They
+ * are methods of the one class, installed on its prototype at the bottom.
  */
 
-import { CONFIG, SETTINGS } from '../config.js';
-import { rng } from '../config.js';
-import { findPath } from './astar.js';
+import { CONFIG, SETTINGS, rng } from '../config.js';
 import { createWardenIntent, WARDEN_STATE } from '../entities/enforcer.js';
+import { A, AI_STATE, angleDelta } from './aistate.js';
+import { PERCEPTION } from './aiperception.js';
+import { NAVIGATION } from './ainav.js';
 
-const A = CONFIG.ai;
-/**
- * A charge on a crate top is not on the Warden's ground; the Warden works on
- * it from the nearest cell within the defuse reach. The same two numbers the
- * plant rule reads (`DEFUSE_REACH` in systems/objective.js reads them from
- * config too), so where the AI walks to and where the defuse counts from
- * cannot drift apart.
- */
-const DEFUSE_SNAP = { radius: CONFIG.round.siteRadius, dy: CONFIG.round.defuseReachY };
-
-export const AI_STATE = {
-  PATROL: 'patrol',
-  SUSPICIOUS: 'suspicious',
-  INVESTIGATE: 'investigate',
-  ENGAGE: 'engage',
-  SEARCH: 'search',
-  DEFEND: 'defend',
-  STUNNED: 'stunned',
-};
-
-/** States in which a stuck actor means something has gone wrong. */
-const MOVING_STATES = [AI_STATE.PATROL, AI_STATE.INVESTIGATE, AI_STATE.ENGAGE, AI_STATE.SEARCH, AI_STATE.DEFEND];
+export { AI_STATE } from './aistate.js';
 
 const TAU = Math.PI * 2;
-
-/** Shortest signed angle from `from` to `to`. */
-function angleDelta(from, to) {
-  let delta = (to - from) % TAU;
-  if (delta > Math.PI) delta -= TAU;
-  if (delta < -Math.PI) delta += TAU;
-  return delta;
-}
 
 export class WardenAI {
   /**
@@ -242,108 +218,8 @@ export class WardenAI {
     return intent;
   }
 
-  // -------------------------------------------------------------------------
-  // Perception (Section 11)
-  // -------------------------------------------------------------------------
-
-  _perceive(dt, shade) {
-    const warden = this.warden;
-    const previouslySaw = this.sees;
-    this.sees = false;
-
-    if (shade && shade.health > 0) {
-      const eye = this._scratch;
-      eye.x = warden.position.x;
-      eye.y = warden.eyeY;
-      eye.z = warden.position.z;
-
-      const torso = {
-        x: shade.position.x,
-        y: shade.feetY + shade.height * CONFIG.detection.torsoHeightRatio,
-        z: shade.position.z,
-      };
-      const dx = torso.x - eye.x;
-      const dy = torso.y - eye.y;
-      const dz = torso.z - eye.z;
-      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-      if (distance <= A.viewRange) {
-        // 90 degree cone about the facing direction, measured flat: pitch
-        // should not let the Warden lose someone by looking at the floor.
-        // Forward is (-sin yaw, -cos yaw), so the bearing of a point in that
-        // same form is atan2(-dx, -dz) and the facing bearing is yaw itself.
-        const toTarget = Math.atan2(-dx, -dz);
-        const off = Math.abs(angleDelta(warden.yaw, toTarget));
-        if (off <= (A.fovDegrees * Math.PI) / 360) {
-          // Section 9.1: smoke blocks the line entirely, and a flashbang it
-          // actually saw disables perception outright for the duration.
-          const blinded = this.gadgets && this.gadgets.aiBlinded();
-          const smoked = this.gadgets && this.gadgets.blocksSight(eye, torso);
-          if (!blinded && !smoked && this.map.collision.lineOfSight(eye, torso)) this.sees = true;
-        }
-      }
-
-      if (this.sees) {
-        // Reaction delay (Section 11 difficulty): a Warden that has just laid
-        // eyes on the Shade does not begin accumulating instantly.
-        if (!previouslySaw) this._reactionTimer = this.difficulty.reactionDelay;
-        this._reactionTimer -= dt;
-
-        this.lastKnown = { x: torso.x, y: shade.feetY, z: torso.z };
-        this._lostTimer = 0;
-
-        if (this._reactionTimer <= 0) {
-          const visibility = this.detection ? this.detection.smoothed : CONFIG.detection.meterMax;
-          const movement = A.movementMultiplier[shade.movementBand] || 1;
-          const fill =
-            this.difficulty.fillRate *
-            (visibility / CONFIG.detection.meterMax) *
-            (1 - distance / A.viewRange) *
-            movement;
-          this.accumulator += fill * dt;
-        }
-      }
-    }
-
-    if (!this.sees) {
-      this.accumulator -= A.drainRate * dt;
-      this._lostTimer += dt;
-    }
-    this.accumulator = Math.max(0, Math.min(A.accumulatorMax, this.accumulator));
-
-    // Hearing is a distance test against live noise events (Section 7.2). The
-    // Warden ignores its own footsteps, or it would investigate itself.
-    if (this.detection && this.state !== AI_STATE.ENGAGE && this.state !== AI_STATE.DEFEND) {
-      const heard = this.detection.noise.heard(warden.position);
-      if (heard && heard.source !== 'warden') {
-        this.lastKnown = { x: heard.x, y: heard.y, z: heard.z };
-        if (this.state === AI_STATE.PATROL) this._enter(AI_STATE.SUSPICIOUS);
-      }
-    }
-
-    // Section 9.2: the alarm camera marks the Shade "on the Warden's HUD for
-    // 2s". In competitive the Warden is this, and it has no HUD — so the mark
-    // arrives as knowledge instead. A camera trip is a confirmed sighting by a
-    // device, not a noise, so it goes straight to INVESTIGATE rather than
-    // through SUSPICIOUS: there is nothing to turn around and wonder about.
-    if (this.gadgets && this.gadgets.shadeMarked && this.gadgets.shadeMarkedAt && !this.sees) {
-      const marked = this.gadgets.shadeMarkedAt;
-      this.lastKnown = { x: marked.x, y: marked.y, z: marked.z };
-      if (this.state === AI_STATE.PATROL || this.state === AI_STATE.SUSPICIOUS) {
-        this._enterInvestigate();
-      }
-    }
-
-    // Section 11 thresholds. Engage wins over everything short of a stun.
-    if (this.accumulator >= A.engageThreshold && this.state !== AI_STATE.ENGAGE) {
-      this._enter(AI_STATE.ENGAGE);
-    } else if (
-      this.accumulator > A.suspicionThreshold &&
-      (this.state === AI_STATE.PATROL || this.state === AI_STATE.SUSPICIOUS)
-    ) {
-      this._enterInvestigate();
-    }
-  }
+  // Perception is aiperception.js and navigation ainav.js; both are installed
+  // on the prototype below, so `this` is the same AI throughout.
 
   // -------------------------------------------------------------------------
   // States
@@ -613,175 +489,9 @@ export class WardenAI {
   // -------------------------------------------------------------------------
   // Navigation — A* over the waypoint graph (Section 11: no pathfinding library)
   // -------------------------------------------------------------------------
-
-  /**
-   * Build a route to a world position: graph nodes from here to the node
-   * nearest the goal, then the goal itself.
-   */
-  _pathTo(goal) {
-    this._route.length = 0;
-    this._routeIndex = 0;
-    this._arrivalTime = 0;
-
-    // The goal node is chosen for where the Warden will STAND, not where the
-    // charge is: a charge 2.3m up on a vent lip is nearer in three dimensions
-    // to a deck node than to the floor node beside it, and that choice sent
-    // the Warden up a staircase and back down it. A goal off the ground and
-    // beyond the snap keeps its own position, as before.
-    const ground = this.map.wardenGround;
-    const stand = ground ? ground.standAt(goal, DEFUSE_SNAP) : null;
-    const from = this.map.nearestWaypoint(this.warden.position);
-    const to = this.map.nearestWaypoint(stand || goal);
-    if (from && to) {
-      const nodes = this._findPath(from.id, to.id);
-      for (const id of nodes) {
-        const p = this.map.waypoints[id].position;
-        this._route.push({ x: p.x, y: p.y, z: p.z });
-      }
-    }
-
-    // The last leg, from the final waypoint to the goal, used to be a straight
-    // line with only the solver to steer it round whatever was in the way -
-    // and Block A measured it at up to 15m on the first map. It is planned
-    // now, over the ground the Warden can actually walk (A1's flood), in
-    // segments no longer than `maxUnpathedLeg`. A goal that is not on that
-    // ground - a search spot in mid-air, a charge nothing could reach - keeps
-    // the straight line, and the stuck detector behind it, as before.
-    const last = this._route.length ? this._route[this._route.length - 1] : this.warden.position;
-    const tail = ground
-      ? ground.route(
-        { x: last.x, y: last === this.warden.position ? this.warden.feetY : last.y, z: last.z },
-        goal, A.maxUnpathedLeg, DEFUSE_SNAP
-      )
-      : null;
-    if (tail) {
-      for (let i = 1; i < tail.length; i++) this._route.push(tail[i]);
-    } else {
-      this._route.push({ x: goal.x, y: goal.y, z: goal.z });
-    }
-  }
-
-  /**
-   * A* over the waypoint graph. The search itself is in systems/astar.js —
-   * pure, and the one piece of navigation with no knowledge of a Warden.
-   */
-  _findPath(startId, goalId) {
-    return findPath(this.map.waypoints, startId, goalId);
-  }
-
-  /**
-   * Steer along the current route.
-   * @returns {boolean} true once the final point is reached
-   */
-  _followRoute(dt, sprint) {
-    if (this._routeIndex >= this._route.length) {
-      if (!this._arrivalTime) this._arrivalTime = this._stateTimer;
-      return true;
-    }
-    const target = this._route[this._routeIndex];
-    const flat = Math.hypot(target.x - this.warden.position.x, target.z - this.warden.position.z);
-    if (flat <= A.waypointArriveRadius) {
-      this._routeIndex++;
-      return this._routeIndex >= this._route.length ? this._followRoute(dt, sprint) : false;
-    }
-
-    const off = this._face(target, dt);
-    // Walk once roughly aligned, so the Warden turns on the spot rather than
-    // orbiting its target.
-    if (Math.abs(off) < Math.PI / 3) {
-      this.intent.forward = 1;
-      this.intent.sprint = sprint;
-    }
-    return false;
-  }
-
-  /**
-   * Turn toward a point at the spec'd turn rate.
-   * @returns {number} the remaining angle after turning
-   */
-  _face(target, dt, aim) {
-    const dx = target.x - this.warden.position.x;
-    const dz = target.z - this.warden.position.z;
-    if (Math.abs(dx) < 1e-6 && Math.abs(dz) < 1e-6) return 0;
-
-    const desired = Math.atan2(-dx, -dz);
-    let delta = angleDelta(this.warden.yaw, desired);
-    const maxTurn = A.turnRate * dt;
-    const applied = Math.max(-maxTurn, Math.min(maxTurn, delta));
-
-    let pitchDelta = 0;
-    if (aim) {
-      // Aim error cone (Section 11 difficulty): the Warden does not track
-      // perfectly, and the error is drawn from the seeded stream.
-      const eyeDy = (target.y !== undefined ? target.y : this.warden.eyeY) - this.warden.eyeY;
-      const desiredPitch = Math.atan2(eyeDy, Math.hypot(dx, dz)) + this._aimOffset;
-      pitchDelta = Math.max(-maxTurn, Math.min(maxTurn, desiredPitch - this.warden.pitch));
-    }
-    this.warden.look(applied, pitchDelta);
-    return delta - applied;
-  }
-
-  /** Sweep left and right on the spot (PATROL pause, INVESTIGATE, SEARCH). */
-  _scan(dt) {
-    this._scanPhase += A.patrolScanSpeed * dt;
-    const half = (A.patrolScanDegrees * Math.PI) / 360;
-    // Rate of change of half*sin(phase), so the sweep is a turn, not a snap.
-    this.warden.look(half * Math.cos(this._scanPhase) * A.patrolScanSpeed * dt, 0);
-  }
-
-  _nearestWaypoints(position, count) {
-    return this.map.waypoints
-      .slice()
-      .sort((a, b) => a.position.distanceToSquared(position) - b.position.distanceToSquared(position))
-      .slice(0, count);
-  }
-
-  _distanceTo(point) {
-    return Math.hypot(point.x - this.warden.position.x, point.z - this.warden.position.z);
-  }
-
-  _positionOf(actor) {
-    return actor ? { x: actor.position.x, y: actor.feetY, z: actor.position.z } : null;
-  }
-
-  // -------------------------------------------------------------------------
-  // Stuck handling (Section 11)
-  // -------------------------------------------------------------------------
-
-  /**
-   * "If the AI's position changes less than 0.3m over 2s while in a moving
-   * state, force a re-path from the nearest waypoint."
-   *
-   * Deliberately not gated on whether the AI *wants* to move: a Warden wedged
-   * on a corner still believes it is walking, which is the whole failure.
-   */
-  _checkStuck(dt) {
-    if (MOVING_STATES.indexOf(this.state) === -1 || this._pauseTimer > 0) {
-      this.stuckTimer = 0;
-      this._stuckAnchor.x = this.warden.position.x;
-      this._stuckAnchor.z = this.warden.position.z;
-      return;
-    }
-
-    this.stuckTimer += dt;
-    if (this.stuckTimer < A.stuckTime) return;
-
-    const moved = Math.hypot(
-      this.warden.position.x - this._stuckAnchor.x,
-      this.warden.position.z - this._stuckAnchor.z
-    );
-    this.stuckTimer = 0;
-    this._stuckAnchor.x = this.warden.position.x;
-    this._stuckAnchor.z = this.warden.position.z;
-    if (moved >= A.stuckDistance) return;
-
-    this.stuckCount++;
-    if (this.emitter) this.emitter.emit('ai:stuck', { at: { ...this._stuckAnchor }, count: this.stuckCount });
-
-    const goal = this._route.length ? this._route[this._route.length - 1] : null;
-    if (goal) this._pathTo(goal);
-  }
 }
+
+Object.assign(WardenAI.prototype, PERCEPTION, NAVIGATION);
 
 export function createWardenAI(options) {
   return new WardenAI(options);

@@ -107,7 +107,10 @@ precise note beats a finished job that never got committed.
 - Never edit `BLACKLINE_SPEC.md` except to add to Section 20 (the changelog).
 - Never add a feature that is not in `QUEUE.md`.
 - Never merge to `main`. Everything lands on the working branch; Josh merges.
-- Files over ~600 lines get split when touched, not ignored.
+- Files over ~600 lines get split when touched, not ignored. The one
+  exemption is `src/config.js`: it is a table, read by key, and splitting a
+  table only hides which key lives where. Everything else is held to the
+  line by the check `no-source-file-outside-config-is-over-600-lines` (F3).
 
 ### `blackline-audit` — weekly
 
