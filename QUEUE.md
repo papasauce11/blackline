@@ -239,7 +239,7 @@ budget checks are the ceiling.
 - **A1** Where the Warden can stand — `src/mapground.js`,
   `map.wardenGround`, two checks — `edf7362`, 2026-09-09.
 - **A7** The Warden's ground, drawn - `src/groundview.js`, F4 then N, two
-  checks - `COMMIT_A7`, 2026-09-10.
+  checks - `89cc07e`, 2026-09-10.
 - **A6** Nothing inside anything - D20 decided, `PLANT_HEADROOM` and
   `canPlantAt()`, spec 20.3, one check; census now 361 legal / 12 refused -
   `57033e6`, 2026-09-10.
