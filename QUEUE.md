@@ -229,7 +229,7 @@ budget checks are the ceiling.
   (`harness.resetPresentation()`: menu, intermission, pause, HUD shown),
   `hud.update()` returns whether it drew and `hud-reads-the-meter` asks;
   check `a-hud-check-answers-the-same-alone-and-after-a-frame-behind-a-menu`
-  - 2026-09-11.
+  - `707368c`, 2026-09-11.
 - **B1** Hang as a held option, as Josh specified it (D21, D22): tap Space
   grabs and hangs, hold Space climbs over; a `GRAB` move starts every climb of
   a ledge ≥ 1.4 Shade-heights above where it started, lower ledges go straight
