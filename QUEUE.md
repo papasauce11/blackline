@@ -39,7 +39,9 @@ every later block is measured with, and a gate that answers differently on a
 busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank.
 
-- [ ] **F3 (S)** Split `src/main.js`. It is 1,145 lines, well past the ~600 guidance,
+- [ ] **F3 (M)** Split `src/main.js`. (Was S; resized 2026-09-11 - it names
+  four files, and the composition root is the one where a wrong cut shows
+  up as a changed step order, so it wants a whole run's attention.) It is 1,145 lines, well past the ~600 guidance,
   and A4 touched it (one line, wiring `plantRefused` to the HUD); F1 and F2
   added the context-loss listeners and `resetPresentation()`, 40 lines. The
   split-when-you-touch rule applies and was deliberately not honoured: the
