@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **115 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` is F2 (F1 done this run); **Block A is closed** |
+| AUTO suite | headless, `npm run suite`: **116 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
+| Next job | the first `[ ]` in `QUEUE.md` is F3, the `main.js` split (F1 and F2 done 2026-09-11); **Block A is closed** |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 65 climbable, 25,299 edge-bearing cells of Warden ground, one connected component |
 
@@ -248,9 +248,10 @@ line guidance:
 ## Where the suite runner lives
 
 `ui/autosuite.js` (`AutoSuite`): the registry, `runAutoTests`, the regression
-set, and the lost-context tiebreak. `ui/debug.js` composes it and forwards, so
-checks still reach it as `h.debugTools.runAutoTests()` / `_autoTests`; a
-check that must drive the runner directly uses `h.debugTools.suite.runChecks()`.
+set, the lost-context tiebreak (F1) and the presentation reset before every
+check (F2). `ui/debug.js` composes it and forwards, so checks still reach it
+as `h.debugTools.runAutoTests()` / `_autoTests`; a check that must drive the
+runner directly uses `h.debugTools.suite.runChecks()`.
 
 ---
 
@@ -371,15 +372,19 @@ draw after a load compiles shaders. A suite run straight after a reload reported
 retained event gets overwritten (a landing read 8m instead of 10m because a
 Warden footstep reused the slot).
 
-**A check that drives a real frame can hide the HUD for every check after
-it.** `hud.setVisible()` runs *inside* the frame, from `!menu.open`, and
-`hud.update()` returns early when hidden — so a check that renders a frame
-with a menu up leaves the next HUD-reading check silently reading zeroes.
-A4 did exactly that to `hud-reads-the-meter-it-is-shown-beside`, which turns
-out to be green only because nothing before it had ever rendered a frame.
-`h.menu.hide()` at the top (every frame-driving check already does it) and
-`hud.setVisible(true)` at the bottom. The F1 cascade shape with no pixels in
-it; queued properly as F2.
+**A check used to inherit the last check's menu, pause and HUD.**
+`hud.setVisible()` runs *inside* the frame, from `!menu.open`, and
+`hud.update()` draws nothing while hidden - so a check that rendered a frame
+behind a menu left every HUD-reading check after it reading a stale DOM, and
+at boot the menu is up, so the first HUD read in any subset was of a HUD
+nothing had drawn. `hud-reads-the-meter-it-is-shown-beside` was green in the
+full suite only because of who ran before it and red straight after
+`the-rim-light-is-really-on-screen`. Since F2 the runner calls
+`h.resetPresentation()` before every check (menu hidden, intermission
+hidden, unpaused, HUD shown), `hud.update()` returns whether it drew, and the
+HUD check asks. A check may still leave whatever it likes behind; the next
+one no longer cares. Presentation only - match state is still the check's
+own business, and `initMatch` at the top remains the way to start clean.
 
 **The pulsing site ring pollutes pixel samples.** It sits dead centre under a
 camera pointed at a site and swings 0.35–0.9 opacity. Sample off it.

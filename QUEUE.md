@@ -39,20 +39,9 @@ every later block is measured with, and a gate that answers differently on a
 busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank.
 
-- [ ] **F2 (S)** A check that drives a real frame can hide the HUD for every
-  check after it, because `hud.setVisible()` runs inside the frame from
-  `!menu.open` and `hud.update()` returns early when hidden. A4 hit it and
-  fixed it locally (hide the menu at the top, restore visibility at the
-  bottom); `hud-reads-the-meter-it-is-shown-beside` is only ever green
-  because of who runs before it. Same family as F1 and worth doing with it:
-  make the suite reset the presentation state between checks, or make
-  `hud.update()` honest about being called while hidden. **Do not** settle it
-  by making a check tolerate a hidden HUD. *done-when:* running any single
-  HUD-reading check alone, and running it after `a-refused-plant-says-so-and-
-  says-nothing-else`, give the same answer, and a check proves it.
-
-- [ ] **F3 (S)** Split `src/main.js`. It is 1,091 lines, well past the ~600 guidance,
-  and A4 touched it (one line, wiring `plantRefused` to the HUD). The
+- [ ] **F3 (S)** Split `src/main.js`. It is 1,145 lines, well past the ~600 guidance,
+  and A4 touched it (one line, wiring `plantRefused` to the HUD); F1 and F2
+  added the context-loss listeners and `resetPresentation()`, 40 lines. The
   split-when-you-touch rule applies and was deliberately not honoured: the
   composition root is the wrong thing to refactor for a one-line change, and
   it is not in any job. Do it on purpose instead. Candidates that are already
@@ -232,7 +221,13 @@ budget checks are the ceiling.
   counted in `main.js`, tagged and re-run once after restore by the suite
   runner, now `ui/autosuite.js` (split from `ui/debug.js`); `contextLosses`
   and `rerun` in the runner's report; check
-  `a-lost-gl-context-is-caught-and-the-check-re-run` - 2026-09-11.
+  `a-lost-gl-context-is-caught-and-the-check-re-run` - `eb0ed88`,
+  2026-09-11.
+- **F2** The suite resets the presentation before every check
+  (`harness.resetPresentation()`: menu, intermission, pause, HUD shown),
+  `hud.update()` returns whether it drew and `hud-reads-the-meter` asks;
+  check `a-hud-check-answers-the-same-alone-and-after-a-frame-behind-a-menu`
+  - 2026-09-11.
 - **B1** Hang as a held option, as Josh specified it (D21, D22): tap Space
   grabs and hangs, hold Space climbs over; a `GRAB` move starts every climb of
   a ledge ≥ 1.4 Shade-heights above where it started, lower ledges go straight

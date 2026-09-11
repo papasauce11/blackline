@@ -1078,6 +1078,22 @@ const harness = {
     return n;
   },
 
+  /**
+   * Put the presentation layer where a check expects to find it: no menu, no
+   * intermission, nothing paused, the HUD shown. The suite runner calls this
+   * before every check (F2). The frame derives `hud.visible` from the menu
+   * and `hud.update()` draws nothing while hidden, so a check that rendered
+   * a frame behind a menu used to leave the next HUD-reading check reading a
+   * stale DOM; and at boot the menu is up, so the first such check in any
+   * subset read a HUD nothing had ever shown.
+   */
+  resetPresentation() {
+    menu.hide();
+    scoreboard.hide();
+    setPaused(false);
+    hud.setVisible(true);
+  },
+
   /** Await one real animation frame, for tests that need the renderer to run. */
   nextFrame() {
     return new Promise((resolve) => requestAnimationFrame(() => resolve()));

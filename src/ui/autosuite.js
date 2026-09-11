@@ -193,10 +193,15 @@ export class AutoSuite {
     return { results, staged };
   }
 
-  /** One check, caught, timed, with the verdict shape enforced. */
+  /**
+   * One check, caught, timed, with the verdict shape enforced. Every check
+   * starts from the same presentation state (no menu, HUD shown - F2), so
+   * its answer does not depend on who ran before it.
+   */
   async _runOne(test) {
     let result;
     const started = performance.now();
+    if (typeof this.harness.resetPresentation === 'function') this.harness.resetPresentation();
     try {
       result = await test.run(this.harness);
       if (!result || typeof result.pass !== 'boolean') {

@@ -3842,3 +3842,46 @@ straight after `the-rim-light-is-really-on-screen`, green in the full order.
 **Left.** The suspect on file was wrong and HANDOFF's trap is rewritten.
 `ui/debug.js` is 416 lines, `ui/autosuite.js` 242. `main.js` gained 23 lines
 and is 1,129 — F3's job.
+
+## F2 — every check starts from the same screen (2026-09-11, same run)
+
+**Found.** The trap as recorded was half the story. `hud.setVisible()` runs
+inside the frame from `!menu.open` and `hud.update()` returns early when
+hidden, so a check that rendered a frame behind a menu hid the HUD for every
+check after it — that part was known. The other half: at boot the menu is
+up, and the headless runner's 60 warm frames (and, F4, the live rAF loop)
+derive `hud.visible = false` from it. So the *first* HUD read in any subset
+was of a DOM nothing had ever drawn. On the commit before this,
+`hud-reads-the-meter-it-is-shown-beside` was red straight after
+`the-rim-light-is-really-on-screen` — which opens no menu; it just renders
+through the lens instead of the frame, so nothing had ever shown the HUD —
+and green in the full order only because `pause-stops-the-world` had hidden
+the menu and driven a frame first.
+
+**Built.** `harness.resetPresentation()` in `main.js`: menu hidden,
+intermission hidden, unpaused, HUD shown — the presentation layer and
+nothing else; match state stays each check's business. `AutoSuite._runOne()`
+calls it before every check, re-runs included, so an answer cannot depend on
+who ran before. `hud.update()` now returns whether it drew, and the HUD
+check asks on the first read and says "the HUD is hidden, so nothing here
+reads anything" rather than reporting the stale numbers as a wrong meter.
+
+**Verified.** New check
+`a-hud-check-answers-the-same-alone-and-after-a-frame-behind-a-menu` drives
+the real HUD check through the real runner three times — from the clean
+state, after a frame rendered behind the pause menu (asserting first that
+the frame did hide the HUD, so the trap is still real), and from the boot
+state (main menu up, paused) — and wants one answer, and the menu closed and
+the game unpaused when the last run ends. With the runner's reset removed by
+`--pre` it is red in its own words: *"after a frame behind a menu: the HUD
+is hidden, so nothing here reads anything; from the boot state: ...; the
+menu was still open when the last run ended; the game was still paused"*.
+The done-when's own pair — `hud-reads` alone, and after
+`a-refused-plant-says-so-and-says-nothing-else` — plus rim-light directly
+before it, run green as a subset. Full suite **116 passed / 2 failed, twice,
+identical**, flaky empty, zero console errors, zero context losses.
+
+**Left.** A4's local fix in the plant-refused check (hide the menu, render a
+frame, check `hud.visible`) is now redundant but harmless and stays: it
+documents the mechanism at the place it was met. F3 is next: `main.js` is
+1,145 lines.

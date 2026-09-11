@@ -185,9 +185,12 @@ export class Hud {
   /**
    * @param {number} dt wall delta
    * @param {object} state everything the HUD shows, gathered by main.js
+   * @returns {boolean} whether anything was drawn. Hidden, the HUD draws
+   *   nothing and says so; a caller that reads the DOM afterwards is reading
+   *   whatever the last visible frame left there (F2).
    */
   update(dt, state) {
-    if (!this.visible) return;
+    if (!this.visible) return false;
 
     for (let i = this.feed.length - 1; i >= 0; i--) {
       this.feed[i].life -= dt;
@@ -205,6 +208,7 @@ export class Hud {
     else this._updateShade(state);
 
     this._updateCommon(state);
+    return true;
   }
 
   _updateShade(state) {

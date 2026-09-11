@@ -350,7 +350,11 @@ export function register(debugTools) {
 
       const read = () => parseFloat(hud.el.visFill.style.height) || 0;
       for (const value of [0, 25, 60, 100]) {
-        hud.update(0, { role: 'shade', visibility: value, lives: 3, health: 100, score: { shade: 0, warden: 0 } });
+        // F2: a hidden HUD draws nothing and the reads below would be of a
+        // stale DOM. Say so, rather than reporting the stale numbers.
+        if (!hud.update(0, { role: 'shade', visibility: value, lives: 3, health: 100, score: { shade: 0, warden: 0 } })) {
+          return { pass: false, detail: 'the HUD is hidden, so nothing here reads anything' };
+        }
         // Section 4.2: the bar reads the meter, it does not compute its own.
         if (Math.abs(read() - value) > 0.51) problems.push(`meter ${value} drew ${read()}%`);
       }
@@ -383,6 +387,69 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `bar tracked 0/25/60/100 exactly, pips dimmed 0/1/3, reinsert countdown replaced the centre, crosshair gap ${tight}px -> ${wide}px with spread`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'a-hud-check-answers-the-same-alone-and-after-a-frame-behind-a-menu',
+    spec: 'Section 13 / F2',
+    name: 'The suite resets the presentation before every check, so a HUD read never depends on who ran before it',
+    run: async (h) => {
+      const problems = [];
+      const hudCheck = h.debugTools._autoTests.find((t) => t.id === 'hud-reads-the-meter-it-is-shown-beside');
+      if (!hudCheck) return { pass: false, detail: 'hud-reads-the-meter-it-is-shown-beside is not registered' };
+      const suite = h.debugTools.suite;
+      const menu = h.menu;
+
+      // F2: `hud.setVisible()` runs inside the frame from `!menu.open`, and
+      // `hud.update()` draws nothing while hidden. So a check that rendered a
+      // frame behind a menu left the HUD hidden for every check after it, and
+      // at boot the menu is up, so the first HUD read in any subset was of a
+      // DOM nothing had drawn. `hud-reads-the-meter` was green in the full
+      // suite only because of who ran before it, and red straight after
+      // `the-rim-light-is-really-on-screen`, measured on the commit before
+      // this. The runner now resets the presentation before every check;
+      // this drives the real HUD check through the real runner from the
+      // clean state and from the two dirty ones, and wants one answer.
+      const run = async () => (await suite.runChecks([hudCheck])).results[0];
+
+      h.resetPresentation();
+      const alone = await run();
+      if (!alone.pass) problems.push(`alone: "${alone.detail}"`);
+
+      // After the worst predecessor: a frame rendered behind a menu. Stage it
+      // and prove it still bites at the frame level before asking the runner.
+      menu.show('pause');
+      h.renderFrame(1 / 60);
+      if (h.hud.visible) problems.push('a frame behind the menu left the HUD visible; the trap this guards is gone and the check wants revisiting');
+      const afterMenu = await run();
+      if (!afterMenu.pass) problems.push(`after a frame behind a menu: "${afterMenu.detail}"`);
+
+      // And from the boot state: the main menu up, paused, never played.
+      menu.show('main');
+      h.setPaused(true);
+      h.renderFrame(1 / 60);
+      const atBoot = await run();
+      if (!atBoot.pass) problems.push(`from the boot state: "${atBoot.detail}"`);
+
+      for (const [name, r] of [['after a frame behind a menu', afterMenu], ['from the boot state', atBoot]]) {
+        if (r.pass === alone.pass && r.detail !== alone.detail) {
+          problems.push(`${name} the HUD check said "${r.detail}" against "${alone.detail}" alone`);
+        }
+      }
+      if (menu.open) problems.push('the menu was still open when the last run ended');
+      if (h.paused) problems.push('the game was still paused when the last run ended');
+
+      h.resetPresentation();
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `hud-reads-the-meter answered identically alone, after a frame behind a menu (which had hidden the HUD), `
+            + `and from the boot state: "${alone.detail.slice(0, 60)}..."`
           : problems.join('; '),
       };
     },
