@@ -236,7 +236,7 @@ budget checks are the ceiling.
 - **A8** The last leg, planned - `WardenGround.route()` over edges the
   flood now records, `ai._pathTo` in segments under `ai.maxUnpathedLeg`,
   `nearestWaypoint` on its own floor; found and fixed A1's ground being two
-  islands (the staircases) - `COMMIT_A8`, 2026-09-10. **Block A closed.**
+  islands (the staircases) - `c1ecf00`, 2026-09-10. **Block A closed.**
 - **A7** The Warden's ground, drawn - `src/groundview.js`, F4 then N, two
   checks - `89cc07e`, 2026-09-10.
 - **A6** Nothing inside anything - D20 decided, `PLANT_HEADROOM` and
