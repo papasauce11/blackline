@@ -626,16 +626,23 @@ export class Shade {
    * is decided by whether Space is still held when the hand lands — see
    * `_stepHang()`. Tap: hang. Hold: climb.
    *
-   * A grab that will not fit — a lip too low for a body to hang below it, or
-   * something under the lip — goes straight over instead, so a low mantle
-   * never becomes unclimbable because it is unhangable. If the top itself is
-   * blocked, nothing happens: the parkour safety rule forbids committing.
-   * There is no third case: a climb you cannot make simply does not happen.
+   * Only a ledge worth hanging from is grabbed (D22): at least
+   * `hangMinHeightRatio` Shade-heights above the surface the climb started on
+   * — measured from `_launchY`, not from wherever the body is in its jump, so
+   * the same ledge answers the same way from the ground and from the apex.
+   * Anything lower goes straight over on tap or hold alike; a hang is for a
+   * ledge you had to jump for.
+   *
+   * A grab that will not fit — something under the lip — goes straight over
+   * too, so a mantle never becomes unclimbable because it is unhangable. If
+   * the top itself is blocked, nothing happens: the parkour safety rule forbids
+   * committing. There is no third case: a climb you cannot make does not happen.
    */
   _climbLedge(ledge) {
     if (ledge.move === 'vault') return this._climbOnto(SHADE_STATE.VAULT, ledge, S.vaultDuration);
     if (ledge.move !== 'mantle') return false;
-    if (this._tryGrab(ledge)) return true;
+    const fromLaunch = ledge.topY - this._launchY;
+    if (fromLaunch >= S.standHeight * S.hangMinHeightRatio && this._tryGrab(ledge)) return true;
     return this._climbOnto(SHADE_STATE.MANTLE, ledge, S.mantleDuration);
   }
 

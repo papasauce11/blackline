@@ -47,7 +47,7 @@ by interview and is binding:
 | Scope | All traversal aids gone: ledge stripes, chevrons, dashes, and the lit vent interiors. **Plant-site rings stay** — a bomb site is objective information, not an affordance |
 | Climb rule | **Reach-based, athletic**: ~2.6m standing, ~3.8m with a jump. **And only on a press of Space** — never a side effect of moving (D17, spec 20.2) |
 | Failed climb | A physical tell **plus audio**. Never silent |
-| Hang | A **held option you choose**, never a failed mantle. Built as B1 (D21, spec 20.4): every mantle-height climb starts with a grab — **tap Space and you hang, hold Space and you go over**; from a hang Space pulls up, crouch drops, A/D shimmy |
+| Hang | A **held option you choose**, never a failed mantle. Built as B1 (D21, D22, spec 20.4): a climb of a ledge at least **1.4 Shade-heights (2.59m)** above where it started — one you had to jump for — begins with a grab: **tap Space and you hang, hold Space and you go over**; from a hang Space pulls up, crouch drops, A/D shimmy. Lower ledges go straight over |
 | Warden | **Stays grounded.** The asymmetry is the game |
 | The test | **Purely mechanical.** Standable top + within reach ⇒ climbable. No tags, no exceptions, no `noClimb`. The map obeys the rule |
 | Map freedom | Keep the five v2 requirements (Shade starts outside, level 2 is one connected deck, stairless routes up, every room 2+ entries, raised ceilings). Reshape everything else freely |
@@ -80,7 +80,7 @@ below. Phases 12–50 are Block B there.
 FAIL  every-climbable-surface-can-actually-be-climbed
       12 of 65 climbable surfaces cannot be climbed (9 with nothing in reach
       of them). By area: upper deck 5, loading-bay 3, turbine-hall 2,
-      server-vault 2; 21 need a leg up first
+      server-vault 2; 20 need a leg up first
 ```
 
 **Do not "fix" this by weakening it.** It stays red until the geometry closes
@@ -98,7 +98,7 @@ a 2.0m rise; you get onto the deck by its lip, which does climb. Also waiting
 for the rebuild: the deck lips overhang their gantries by 0.6m, so there is no
 spot on the gantry within 0.8m of the lip where a body can stand up.
 
-"21 need a leg up first" is reported, not failed — Josh's call. A surface you
+"20 need a leg up first" is reported, not failed — Josh's call. A surface you
 climb something else to reach is the point of a stacked route.
 
 Its sibling `the-climb-rule-has-no-exceptions` passes and must keep passing: it

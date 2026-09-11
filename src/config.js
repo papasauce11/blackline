@@ -303,6 +303,14 @@ export const CONFIG = {
      * pause.
      */
     hangGrabDuration: 0.18,
+    /**
+     * Josh: "shouldn't be able to hang on anything shorter than 1.4x the height
+     * of the shade from the vault position." A ledge lower than this many
+     * Shade-heights above the surface the climb started on is not grabbed; it
+     * goes straight over. 1.4 × 1.85 = 2.59m, so a hang is for a ledge you had
+     * to jump for.
+     */
+    hangMinHeightRatio: 1.4,
     hangMaxHeight: 4.2,
     hangReach: 0.85,
     /** Body offset below the grabbed edge while hanging. */

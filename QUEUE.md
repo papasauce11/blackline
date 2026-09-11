@@ -119,7 +119,11 @@ there. The census is the contract; **never weaken it**.
   from the route's foot; draw-call and frame-budget checks unchanged.
 - [ ] **B8 (M)** Feel. Mantle camera dip, momentum carried into a vault,
   landing weight by fall height, input buffer window tuned; traversal fuzz
-  over 10k steps with no stuck state. *done-when:* the fuzz check and a
+  over 10k steps with no stuck state. Also the hanging body: `hangDrop` 1.35
+  puts the capsule top 0.5m *above* the lip, so a lip with anything less than
+  that over it (hall-container's south face, under `gantry-hall`) cannot be
+  hung from and goes over instead — decide whether a hanging body should sit
+  lower, arms extended, and if so what the pose looks like. *done-when:* the fuzz check and a
   no-stuck check pass; timing constants named in `config.js`.
 - [ ] **B9 (S)** Close. Amend spec Sections 5 and 6.1 via Section 20, re-sweep
   the regression set, Warden sanity (still grounded — a check asserts the
@@ -222,9 +226,10 @@ budget checks are the ceiling.
 
 ## Done
 
-- **B1** Hang as a held option, as Josh specified it (D21): tap Space grabs
-  and hangs, hold Space climbs over; a `GRAB` move starts every mantle-height
-  climb; check `tap-space-grabs-the-ledge-hold-space-climbs-it`; spec 20.4 —
+- **B1** Hang as a held option, as Josh specified it (D21, D22): tap Space
+  grabs and hangs, hold Space climbs over; a `GRAB` move starts every climb of
+  a ledge ≥ 1.4 Shade-heights above where it started, lower ledges go straight
+  over; check `tap-space-grabs-the-ledge-hold-space-climbs-it`; spec 20.4 —
   2026-09-10, built in Josh's session.
 - **P1** Verify and commit redesign phases 8–11 and the plant-room change —
   `5c6d571`, 2026-09-08.

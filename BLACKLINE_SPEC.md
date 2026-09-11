@@ -691,3 +691,10 @@ unclimbable for being unhangable. A hang lasts as long as nothing is pressed;
 letting go is a crouch, and the fall catches nothing without a fresh press
 (20.2). The climb rule itself - standable top within reach - is untouched;
 this only changes what one press asks for.
+
+Amended the same night: *"shouldnt be able to hang on anything shorter than
+1.4x the height of the shade from the vault position."* A grab is only offered
+on a ledge at least `hangMinHeightRatio` (1.4) Shade-heights - 2.59m - above
+the surface the climb started from. Below that a mantle-height ledge goes
+straight over on tap or hold alike, as it did before 20.4; a hang is for a
+ledge you had to jump for.

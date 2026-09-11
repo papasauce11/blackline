@@ -105,10 +105,11 @@ There are no affordance markings. If a surface has a top you could stand on and
 your body can reach it, you climb it — about 2.6m from standing, about 3.8m out
 of a jump. Nothing is tagged and nothing opts out.
 
-Every climb at mantle height starts with a grab of the lip. **Tap Space and you
-hang there; hold Space and you carry on over.** From a hang, Space pulls up,
-crouch drops, A/D shimmy along the edge. Vault-height crates go straight over
-either way — there is nothing to hang from.
+A climb of a ledge at least 1.4× your height (about 2.6m — one you have to
+jump for) starts with a grab of the lip. **Tap Space and you hang there; hold
+Space and you carry on over.** From a hang, Space pulls up, crouch drops, A/D
+shimmy along the edge. Anything lower goes straight over either way — there is
+nothing worth hanging from.
 
 ### Debug tooling
 

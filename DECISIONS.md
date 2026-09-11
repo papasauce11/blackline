@@ -83,6 +83,14 @@ carries on over. From a hang, Space pulls up, crouch drops, A/D shimmy.
 Vault-height ledges go straight over on either. Built the same evening as B1;
 spec 20.4.
 
+### D22 — How high a ledge has to be before you can hang from it
+Josh, minutes after trying D21: *"shouldnt be able to hang on anything shorter
+than 1.4x the height of the shade from the vault position."* With D21 alone a
+2m crate offered a hang with your feet half a metre off the floor.
+**decided:** no grab below 1.4 Shade-heights (2.59m) measured from the surface
+the climb started on; those ledges go straight over. A hang is for a ledge you
+had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
+
 ---
 
 ## Provisional — done as recommended, override any time

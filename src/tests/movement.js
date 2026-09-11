@@ -383,8 +383,14 @@ export function register(debugTools) {
       h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
       const shade = h.shade;
       const ground = CONFIG.map.groundY;
-      const spot = findGroundLedge(h, 1.2, 2.4);
-      if (!spot) return { pass: false, detail: 'no ground-level mantle-height ledge with a clear approach was found' };
+      // A hang is for a ledge at least 1.4 Shade-heights up (D22): one you
+      // have to jump for. Everything below goes over on a tap, checked last.
+      const hangMin = S.standHeight * S.hangMinHeightRatio;
+      const fullReach = S.reach.standing + S.reach.jumpBonus;
+      const spot = findGroundLedge(h, hangMin, fullReach, { hangable: true });
+      if (!spot) {
+        return { pass: false, detail: `no ground-level ledge between ${hangMin.toFixed(2)}m (1.4 heights) and ${fullReach}m with a clear approach and room to hang was found` };
+      }
       const { box } = spot;
       const top = box.max.y;
       const tag = box.tag || 'the ledge';
@@ -438,27 +444,34 @@ export function register(debugTools) {
       const airHold = driveAtLedge(h, spot, { airborne: true, pressAt: 2, hold: true, steps: 90 });
       if (!airHold.onTop) problems.push(`a hold mid-fall did not go over ${tag} (feet ${airHold.feet.toFixed(2)})`);
 
-      // A vault-height crate has nothing to hang from: a tap goes straight over.
-      const low = findGroundLedge(h, 0.5, S.reach.vaultTop);
-      let lowTag = 'a low crate';
-      let lowRise = 0;
-      if (!low) {
-        problems.push('no ground-level vault-height crate with a clear approach was found');
-      } else {
-        lowTag = low.box.tag || lowTag;
-        lowRise = low.box.max.y - ground;
-        const lowTap = driveAtLedge(h, low, { airborne: false, pressAt: 5, hold: false, steps: 90 });
-        if (!lowTap.onTop) problems.push(`a tap at ${lowTag} (${lowRise.toFixed(2)}m) did not vault it (feet ${lowTap.feet.toFixed(2)})`);
-        if (lowTap.sawGrab) problems.push(`a tap at ${lowTag} grabbed instead of vaulting`);
+      // Below the hang line there is nothing worth hanging from: a tap goes
+      // straight over, at vault height and at mantle height alike.
+      const lower = [
+        { name: 'vault-height', min: 0.5, max: S.reach.vaultTop },
+        { name: 'mantle-height below the hang line', min: S.reach.vaultTop + 0.05, max: hangMin - 0.05 },
+      ];
+      const lowerNotes = [];
+      for (const tier of lower) {
+        const found = findGroundLedge(h, tier.min, tier.max);
+        if (!found) {
+          problems.push(`no ground-level ${tier.name} ledge with a clear approach was found`);
+          continue;
+        }
+        const fTag = found.box.tag || 'a ledge';
+        const fRise = found.box.max.y - ground;
+        const r = driveAtLedge(h, found, { airborne: false, pressAt: 5, hold: false, steps: 90 });
+        if (!r.onTop) problems.push(`a tap at ${fTag} (${fRise.toFixed(2)}m, ${tier.name}) did not go over it (feet ${r.feet.toFixed(2)}, state ${shade.state})`);
+        if (r.sawGrab) problems.push(`a tap at ${fTag} (${fRise.toFixed(2)}m, ${tier.name}) grabbed — below ${hangMin.toFixed(2)}m nothing should`);
+        lowerNotes.push(`${fTag} (${fRise.toFixed(2)}m) goes over on a tap with no grab`);
       }
 
       h.input.clearAll();
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${tag} (${(top - ground).toFixed(2)}m): a tap hangs at feet ${hangFeet.toFixed(2)}, a hold goes over `
-            + `through a grab, Space pulls up, crouch drops, the same mid-fall; ${lowTag} `
-            + `(${lowRise.toFixed(2)}m) vaults on a tap with no grab`
+          ? `${tag} (${(top - ground).toFixed(2)}m, above the ${hangMin.toFixed(2)}m hang line): a tap hangs at feet `
+            + `${hangFeet.toFixed(2)}, a hold goes over through a grab, Space pulls up, crouch drops, the same `
+            + `mid-fall; ${lowerNotes.join('; ')}`
           : problems.join('; '),
       };
     },
@@ -520,7 +533,7 @@ function driveAtLedge(h, spot, { airborne, pressAt, hold, steps }) {
  * controller's own probe agrees the face is in reach. The probe is the
  * arbiter so the check cannot pick a face the game itself would not offer.
  */
-function findGroundLedge(h, minRise, maxRise) {
+function findGroundLedge(h, minRise, maxRise, { hangable = false } = {}) {
   const ground = CONFIG.map.groundY;
   const shade = h.shade;
   for (const box of h.map.collision.boxes) {
@@ -538,8 +551,24 @@ function findGroundLedge(h, minRise, maxRise) {
       shade.reset({ position: { x, y: ground, z }, yaw });
       h.stepFrames(3);
       if (!shade.grounded || Math.abs(shade.feetY - ground) > 0.05) continue;
+      // Probe with the jump's reach: a ledge above standing reach is still this
+      // spot's ledge, the press just has to leave the ground first.
+      shade.grounded = false;
       const ledge = shade._probeLedge(S.vaultReach);
-      if (ledge && ledge.box === box) return { box, x, z, yaw };
+      shade.grounded = true;
+      if (!ledge || ledge.box !== box) continue;
+      if (hangable) {
+        // A ledge you can actually hang from: the hanging body has to fit
+        // below the lip. Same centre `_tryGrab()` commits to; a face with a
+        // gantry over it (hall-container's south side) is a climb, not a hang.
+        const centre = {
+          x: ledge.hitX - ledge.dirX * (shade.half.x + 0.04),
+          y: ledge.topY - S.hangDrop + shade.half.y,
+          z: ledge.hitZ - ledge.dirZ * (shade.half.x + 0.04),
+        };
+        if (!h.map.collision.isClear(centre, shade.half)) continue;
+      }
+      return { box, x, z, yaw };
     }
   }
   return null;

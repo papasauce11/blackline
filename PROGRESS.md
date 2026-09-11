@@ -3744,3 +3744,34 @@ pull-up is silent today; added to B2's scope.
 
 **Recorded.** Spec 20.4; D21; README controls and climbing; HANDOFF.
 
+## D22 — no hang below 1.4 Shade-heights (2026-09-10, same evening)
+
+Josh, minutes after trying D21: *"shouldnt be able to hang on anything shorter
+than 1.4x the height of the shade from the vault position."* With D21 alone a
+2m crate offered a hang with your feet half a metre off the floor.
+
+**Built.** `hangMinHeightRatio: 1.4` (2.59m at a 1.85m Shade). `_climbLedge()`
+grabs only when `ledge.topY - _launchY` clears it — the surface the climb
+started on, not wherever the body is in its jump, so the same ledge answers the
+same way from the ground and from the apex. Below the line a mantle-height
+ledge goes straight over on tap or hold, as it did before 20.4. Since standing
+reach is 2.6m, a hang is in practice a ledge you had to jump for.
+
+**Verified.** `tap-space-grabs-the-ledge-hold-space-climbs-it` now has three
+tiers: above the line (`hall-container`, 3.0m) tap hangs at feet 1.65, hold
+goes over through a grab, Space pulls up, crouch drops, the same mid-fall;
+below it (`stack-hall-mid`, 2.3m) and at vault height (`stack-hall-low`, 1.0m)
+a tap goes over with no grab. Red on the D21-only controller for exactly the
+new rule ("a tap at stack-hall-mid (2.30m) grabbed — below 2.59m nothing
+should"); the same three checks pass in real Chrome through the pane. Full suite 114 passed / 2 failed, twice, identical, zero console
+errors; the census unchanged at 12 of 65.
+
+**Found.** The D22 line gives the vent-roof floor path back: the vent-floor
+lip (2.3m) is below it, so the press mantles, is blocked by the duct, and the
+jump falls through to the roof as before — "needs a leg up" is 20 again. And
+the check's first pick of a hang ledge was hall-container's *south* face, where
+`gantry-hall` (3.3–4.0m) sits over the lip; the hanging capsule tops out 0.5m
+above the lip (`hangDrop` 1.35 against a 1.85m body), so the grab could not fit
+and the controller went over. Right answer; the check now asks for a face with
+room to hang. Whether the hanging body should sit lower is noted in B8.
+
