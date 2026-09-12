@@ -92,7 +92,6 @@ export class GameMap {
    * @param {number[]} spec.min [x, y, z]
    * @param {number[]} spec.max [x, y, z]
    * @param {number} [spec.color]
-   * @param {boolean} [spec.climbable] force the top face to be a usable ledge
    * @param {boolean} [spec.vent] crouch-only silent volume
    * @param {boolean} [spec.solid]
    * @param {boolean} [spec.blocksSight]
@@ -144,7 +143,6 @@ export class GameMap {
       { x: x1, y: y1, z: z1 },
       {
         solid: spec.solid !== false,
-        climbable: spec.climbable === true,
         vent: spec.vent === true,
         blocksSight: spec.blocksSight !== false,
         tag: spec.tag,

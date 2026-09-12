@@ -17,10 +17,20 @@
  *     and never a Warden ground cell. The rule is right to refuse those;
  *     the map is wrong to have them.
  *
+ * And one the rule now holds itself (B4b): a face is only climbable where
+ * the body can land. The rule used to ask for standing room at the box's
+ * quarter points and for a foothold at the approach - two places, twenty
+ * metres apart on a deck slab - and B4 met a slab that derived as climbable
+ * from a gantry while the only landing was a wall face. The controller
+ * refused it at `_commitMove()`; the rule did not. Now each approach carries
+ * its landing, and the third check here puts a lid over one and watches the
+ * rule and the controller refuse together.
+ *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
 import { CONFIG } from '../config.js';
+import { landingSpot } from '../mapclimb.js';
 import { plantableSpots } from './plantspots.js';
 
 const S = CONFIG.shade;
@@ -116,6 +126,88 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${lips.length} lips, each climbed standing from a spot the rule names: ${climbed.join('; ')}`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'a-face-with-nowhere-to-land-is-not-climbable',
+    spec: 'Section 5, amended (B4b)',
+    name: 'A lid over the landing of a climbable face: the controller refuses the climb, the re-derived rule agrees, and both come back when the lid goes',
+    run: (h) => {
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
+      h.menu.hide();
+      h.setPaused(false);
+      const collision = h.map.collision;
+      const problems = [];
+
+      // A climbable box whose approaches all face the same way, so one lid
+      // covers every landing. The bay lip is the one B4 built for this; any
+      // other will do if it ever moves.
+      const oneFace = (box) => {
+        const named = h.map._supportApproaches(box);
+        return named.length > 0 && named.every((a) => a.nx === named[0].nx && a.nz === named[0].nz) ? named : null;
+      };
+      let box = collision.boxes.find((b) => b.tag === 'lip-bay' && b.climbable && oneFace(b));
+      if (!box) box = collision.boxes.find((b) => b.climbable && b.tag && b.tag.startsWith('lip-') && oneFace(b));
+      if (!box) box = collision.boxes.find((b) => b.climbable && oneFace(b));
+      if (!box) return { pass: false, detail: 'no climbable box has all its approaches on one face; nothing to lid' };
+      const before = oneFace(box);
+      const face = { nx: before[0].nx, nz: before[0].nz };
+      const approach = before.slice().sort((a, b) => b.y - a.y)[0];
+      const top = box.max.y;
+
+      // The lid: over the strip of the top the landing occupies, the whole
+      // length of the face, low enough to catch a crouched capsule and high
+      // enough to leave the hands their sweep up the face.
+      const depth = S.radius + 0.3 + S.radius + 0.1;
+      const land = landingSpot(box, face, approach.x, approach.z);
+      const lidMin = { x: box.min.x, y: top + 0.3, z: box.min.z };
+      const lidMax = { x: box.max.x, y: top + 0.6, z: box.max.z };
+      if (face.nx !== 0) {
+        lidMin.x = Math.min(land.x - depth, face.nx > 0 ? box.max.x : box.min.x);
+        lidMax.x = Math.max(land.x + depth, face.nx > 0 ? box.max.x : box.min.x);
+      } else {
+        lidMin.z = Math.min(land.z - depth, face.nz > 0 ? box.max.z : box.min.z);
+        lidMax.z = Math.max(land.z + depth, face.nz > 0 ? box.max.z : box.min.z);
+      }
+      const lid = collision.addBox(lidMin, lidMax, { tag: 'b4b-staged-lid', blocksSight: false });
+      collision.build();
+      try {
+        // The controller first, with the box still flagged climbable from the
+        // boot derivation: the probe finds the ledge and `_commitMove()` has
+        // to refuse the landing on its own.
+        const under = climbStanding(h, box, approach);
+        if (under.climbed) problems.push(`with a lid over the landing the controller still got onto ${box.tag}`);
+
+        // Then the rule, re-derived over the lidded world.
+        h.map.deriveClimbableSurfaces();
+        const named = h.map._supportApproaches(box);
+        if (named.length) problems.push(`${box.tag} still has ${named.length} approaches with its landing under a lid`);
+        if (box.climbable) problems.push(`${box.tag} still derives as climbable with its landing under a lid`);
+      } finally {
+        collision.boxes.splice(collision.boxes.indexOf(lid), 1);
+        collision.build();
+        h.map.deriveClimbableSurfaces();
+      }
+
+      // And with the lid gone, both answers return - so the lid was the reason.
+      const after = h.map._supportApproaches(box);
+      if (!box.climbable) problems.push(`${box.tag} did not derive as climbable again once the lid was gone`);
+      if (after.length !== before.length) {
+        problems.push(`${box.tag} had ${before.length} approaches, and ${after.length} once the lid was gone`);
+      }
+      const back = climbStanding(h, box, approach);
+      if (!back.climbed) problems.push(`with the lid gone the controller did not climb ${box.tag} from the same spot`);
+
+      h.shade.reset(h.map.shadeSpawns[0]);
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${box.tag}: a lid over the landing of its ${face.nx ? (face.nx > 0 ? 'east' : 'west') : (face.nz > 0 ? 'south' : 'north')} `
+            + `face and the controller refused the climb, the rule dropped all ${before.length} approaches and the surface; `
+            + 'lid gone, both back'
           : problems.join('; '),
       };
     },

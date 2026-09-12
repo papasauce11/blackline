@@ -394,7 +394,6 @@ export function buildMap({ gradientMap }) {
     min: [-14.6, G, -15.0],
     max: [-11.6, G + 3.0, -12.0],
     color: P.hazardOrange,
-    climbable: true,
     outline: true,
     tag: 'hall-container',
   });

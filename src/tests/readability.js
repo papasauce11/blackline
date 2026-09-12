@@ -4,8 +4,8 @@
  * The expectation census. With the affordance markings gone this is the whole
  * contract, and it has no exceptions.
  *
- *   A surface is climbable when you could stand on top of it and the body
- *   could reach it from whatever is below. If it is climbable, the controller
+ *   A surface is climbable when the body could reach it from whatever is
+ *   below and fit on top where it lands. If it is climbable, the controller
  *   must actually climb it.
  *
  * There is no tagging, no `noClimb`, and no per-box judgement anywhere in the
@@ -27,6 +27,7 @@
 
 import { CONFIG } from '../config.js';
 import { classifyReach } from '../physics.js';
+import { landingSpot } from '../mapclimb.js';
 
 const S = CONFIG.shade;
 /** The furthest forward the controller ever reaches for a ledge. */
@@ -55,25 +56,25 @@ function areaOf(h, box) {
   return box.max.y > CONFIG.map.catwalkY - 0.5 ? 'upper deck' : 'interior';
 }
 
-/** Is this box's top face something a body could stand on? */
-function standableTop(h, box) {
+/** Is this box's top face wide enough to be stood on at all? */
+function wideTop(box) {
   const minSupport = S.radius * 2;
   if (!box.solid) return false;
   if (box.max.x - box.min.x < minSupport) return false;
   if (box.max.z - box.min.z < minSupport) return false;
-  const headroom = S.crouchHeight;
-  const half = { x: minSupport * 0.5, y: headroom * 0.5, z: minSupport * 0.5 };
-  const y = box.max.y + headroom * 0.5 + 0.05;
-  for (let i = 1; i <= 3; i++) {
-    const t = i / 4;
-    const point = {
-      x: Math.min(Math.max(box.min.x + (box.max.x - box.min.x) * t, box.min.x + half.x), box.max.x - half.x),
-      y,
-      z: Math.min(Math.max(box.min.z + (box.max.z - box.min.z) * t, box.min.z + half.z), box.max.z - half.z),
-    };
-    if (h.map.collision.isClear(point, half)) return true;
-  }
-  return false;
+  return true;
+}
+
+/**
+ * Does a crouched body fit where this approach lands (B4b)? The same capsule
+ * `_commitMove()` validates, at the spot `landingSpot()` names. This used to
+ * be asked of the box's quarter points instead - "standable somewhere" - and
+ * on a 38m deck slab somewhere can be twenty metres from the face.
+ */
+function landingFits(h, box, approach) {
+  const spot = landingSpot(box, { nx: approach.nx, nz: approach.nz }, approach.x, approach.z);
+  const half = { x: S.radius, y: S.crouchHeight / 2, z: S.radius };
+  return h.map.collision.isClear({ x: spot.x, y: box.max.y + half.y + S.mantleClearance, z: spot.z }, half);
 }
 
 /**
@@ -83,12 +84,13 @@ function standableTop(h, box) {
  * Neither axis used to vary, and both mattered. At 0.59m out the body is
  * already inside the probe's own reach, so the check never exercised walking up
  * to anything - and on stacked geometry that spot is usually under the very
- * thing it is trying to climb. `lip-bay` overhangs `gantry-bay`, so 0.59m out
- * from its face puts the body under the deck with no standing room, which reads
- * as "unclimbable" when what it means is "stand back". A player backs up.
+ * thing it is trying to climb. `lip-bay` overhung `gantry-bay` until B4, so
+ * 0.59m out from its face put the body under the deck with no standing room,
+ * which read as "unclimbable" when what it meant was "stand back". A player
+ * backs up.
  *
  * And sampling only the middle of a face judges a 6.6m-wide gantry by one
- * point. `standableTop()` already learned this on the other side of the same
+ * point. The rule's landing test learned this on the other side of the same
  * problem: "a long ledge that passes under one obstruction is still climbable
  * everywhere else, and judging it by a single point excludes the whole thing."
  * The foothold you climb from can just as easily be at one end.
@@ -237,9 +239,9 @@ export function register(debugTools) {
         const standY = h.map._supportHeightBelow(box);
         const reachable = h.map._supportApproaches(box).some((approach) => {
           const move = classifyReach(approach.rise, FULL_REACH);
-          return move !== null && move !== 'step';
+          return move !== null && move !== 'step' && landingFits(h, box, approach);
         });
-        const shouldClimb = box.solid && standableTop(h, box) && reachable;
+        const shouldClimb = wideTop(box) && reachable;
         if (box.climbable) climbable++;
         if (!!box.climbable !== shouldClimb) {
           wrong.push(`${box.tag || 'box'} climbable=${!!box.climbable} rule=${shouldClimb} (rise ${(box.max.y - standY).toFixed(2)})`);

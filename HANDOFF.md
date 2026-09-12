@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **122 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
-| Next job | the first `[ ]` in `QUEUE.md` is B4b (the rule's standing room, tested at the landing); B2b waits on D23 (**Blocks A and F are closed**) |
+| AUTO suite | headless, `npm run suite`: **123 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
+| Next job | the first `[ ]` in `QUEUE.md` is B5 (L: the area pass, a whole run); B2b waits on D23 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 58 climbable (56 after B3; B4's open bay gantry adds the two deck slabs beside its void), Warden ground one connected component, with a column of cells down each vault rack aisle since B4 |
@@ -117,12 +117,19 @@ spots; `_supportCandidates(box)` is still the heights.
 "22 need a leg up first" is reported, not failed — Josh's call. A surface
 you climb something else to reach is the point of a stacked route.
 
-One hole in the rule is known and queued as B4b: "somewhere to stand once
-you are up" is sampled at the box's quarter points and "somewhere to climb
-from" at the approach, which on a 38m deck slab can be 20m apart. B4 met it
-— a void flush against `office-wall-s` made `deck-14` derive from the
-gantry with no landing — and closed it with geometry (the bay route sits
-1.2m south of the wall). The rule should test the landing.
+Since B4b an approach also carries its **landing**: `landingSpot()` is
+where `Shade._ledgeDestination` puts the body (a radius and 0.3m past the
+face), and `landingFits()` asks whether the crouched capsule is clear there
+— the capsule `_commitMove()` validates. A spot the body cannot land from
+is not an approach, and the old "standable somewhere on the top" test at
+the box's quarter points is gone: on a 38m deck slab it could be 20m from
+the face. (B4 met exactly that — a void flush against `office-wall-s` made
+`deck-14` derive from the gantry with a wall for a landing — and closed it
+with geometry before B4b closed it in the rule.) The derivation resets
+`climbable` on every box before deciding; nothing declared on a box
+survives it, and `addSolid()` no longer takes a `climbable` option. The
+rule's sentence: *a surface is climbable when the body could reach its
+face from somewhere it can stand, and fit on top where it lands.*
 
 ---
 

@@ -50,19 +50,6 @@ there. The census is the contract; **never weaken it**.
   `config.js`; the AI's hearing already turns toward noise events.
   *done-when:* a check scuffs within the radius and asserts the Warden's
   `lastKnown` moves to the wall, and outside it does not.
-- [ ] **B4b (S)** The rule's standing room is at the landing. `deriveClimbableSurfaces()`
-  asks "somewhere to stand once you are up" at the box's quarter points and
-  "somewhere to climb from" at the approach - two somewheres, 20m apart on a
-  deck slab. B4 found it: with the bay void flush against `office-wall-s`,
-  `deck-14` derived as climbable from the gantry (standable far away) and the
-  controller would not mantle into the wall; geometry closed it, the rule did
-  not. Make the standing test per approach - crouch headroom for the body a
-  radius past the face from where the approach stands - so ledge and landing
-  agree, and drop an approach whose landing does not fit. *done-when:*
-  `the-climb-rule-has-no-exceptions` recomputes with the landing test and
-  the census stays green with the same 58 (or reports which surface stopped
-  deriving and why, in PROGRESS.md); a check stages a lid over a landing and
-  asserts the surface stops deriving.
 - [ ] **B5 (L)** Area pass, worst first, by the "needs a leg up" count:
   make every stacked route intentional — a readable first step, no dead
   climbs that lead nowhere. Keep the five v2 requirements. **Do not** add or
@@ -186,6 +173,14 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B4b** The landing is part of the approach: `landingSpot()` /
+  `landingFits()` in `mapclimb.js` mirror `Shade._ledgeDestination` and
+  `_commitMove`, `supportApproaches()` drops a spot the body cannot land
+  from, the quarter-point "standable somewhere" test is gone from the
+  derivation and the check, the derivation resets `climbable` on every box
+  (so the last declared `climbable: true`, on `hall-container`, is gone with
+  the option). Census identical, 58/226/191/22. Check
+  `a-face-with-nowhere-to-land-is-not-climbable` - (this commit), 2026-09-12.
 - **B4** Upper deck: the vault's rack aisles widened to 1.5m (`RACK_AISLE`)
   so a Warden ground cell runs down each and every clear floor spot in every
   site room is a legal plant (0 refused at 0.1m; was 150 across both aisles,

@@ -29,6 +29,13 @@ const FACES = [
 const PROBE_STEP = 0.12;
 const HAND_HALF = { x: 0.05, y: 0.05, z: 0.05 };
 
+/**
+ * Where the body lands once it is over a face, as the controller puts it
+ * (`Shade._ledgeDestination`): a radius and 0.3m past the point on the face
+ * the hands met. Kept identical for the same reason as the sweep.
+ */
+const LANDING_FORWARD = S.radius + 0.3;
+
 
 /**
  * Decide which surfaces are climbable, from the geometry and the body alone.
@@ -41,10 +48,15 @@ const HAND_HALF = { x: 0.05, y: 0.05, z: 0.05 };
  *   and the body could reach it from whatever is below.
  *
  * "Stand on top of it" means a top face at least an actor-diameter across in
- * both axes with crouch headroom above. "Reach it" means the rise from the
- * surface below is inside `CONFIG.shade.reach` at full stretch — standing
- * reach plus what a jump adds — from a place a body can actually stand and
- * get its hands on the face: `supportApproaches()`.
+ * both axes, with crouch headroom where the climb puts the body - at the
+ * landing of the approach, not anywhere along the top. It used to be
+ * sampled at the box's quarter points, and on a 38m deck slab those can be
+ * twenty metres from the face being climbed: B4 met a slab that derived as
+ * climbable from a gantry while the only landing was a wall (B4b). "Reach
+ * it" means the rise from the surface below is inside `CONFIG.shade.reach`
+ * at full stretch — standing reach plus what a jump adds — from a place a
+ * body can actually stand and get its hands on the face:
+ * `supportApproaches()`, each entry of which has been checked for both.
  *
  * `noClimb` used to opt surfaces out: the office floor to keep the drop shaft
  * one-way, and the whole upper deck except four declared lips. Both are now
@@ -55,20 +67,24 @@ const HAND_HALF = { x: 0.05, y: 0.05, z: 0.05 };
  */
 export function deriveClimbableSurfaces(collision, ledges) {
   const minSupport = S.radius * 2;
-  const headroom = S.crouchHeight;
-  const probeHalf = { x: minSupport * 0.5, y: headroom * 0.5, z: minSupport * 0.5 };
   const fullReach = S.reach.standing + S.reach.jumpBonus;
 
   ledges.length = 0;
 
   for (const box of collision.boxes) {
+    // The derivation is the only thing that decides this, and it decides it
+    // afresh: nothing declared on the box survives, and a re-derivation after
+    // the world changes (a check stages a lid) forgets what it said before.
+    box.climbable = false;
+    box.reachMove = undefined;
     if (!box.solid) continue;
     if (box.max.x - box.min.x < minSupport) continue;
     if (box.max.z - box.min.z < minSupport) continue;
 
     // The easiest climb on offer: the tallest surface a body can stand on and
-    // reach this top from. `step` is not a climb: the swept solver carries you
-    // over it, and `supportApproaches` never names one.
+    // reach this top from, with room to land. `step` is not a climb: the
+    // swept solver carries you over it, and `supportApproaches` never names
+    // one.
     let best = null;
     for (const approach of supportApproaches(collision, box)) {
       const move = classifyReach(approach.rise, fullReach);
@@ -76,27 +92,6 @@ export function deriveClimbableSurfaces(collision, ledges) {
       if (!best || approach.y > best.approach.y) best = { approach, move };
     }
     if (!best) continue;
-
-    // Somewhere to actually stand once you are up. Sampled along the surface
-    // rather than at its centre alone: a long ledge that passes under one
-    // obstruction is still climbable everywhere else, and judging it by a
-    // single point excludes the whole thing.
-    const y = box.max.y + headroom * 0.5 + 0.05;
-    let standable = false;
-    for (let i = 1; i <= 3 && !standable; i++) {
-      const t = i / 4;
-      const point = {
-        x: box.min.x + (box.max.x - box.min.x) * t,
-        y,
-        z: box.min.z + (box.max.z - box.min.z) * t,
-      };
-      // Keep the sample inside the footprint so an edge point does not
-      // wrongly report clear air beside the box.
-      point.x = Math.min(Math.max(point.x, box.min.x + probeHalf.x), box.max.x - probeHalf.x);
-      point.z = Math.min(Math.max(point.z, box.min.z + probeHalf.z), box.max.z - probeHalf.z);
-      if (collision.isClear(point, probeHalf)) standable = true;
-    }
-    if (!standable) continue;
 
     box.climbable = true;
     box.reachMove = best.move;
@@ -150,8 +145,15 @@ export function supportCandidates(collision, box) {
  * That is one rule for the map and the controller: a face the sweep cannot
  * reach is not climbable, and nothing has to say so.
  *
- * Sampled at three points along the approach, like the standing test on the
- * top, so a support that passes under one obstruction still counts elsewhere.
+ * And the landing fits (B4b): from that spot, the controller puts the body a
+ * radius and 0.3m past the face, crouched at least, and if that capsule is
+ * inside something the climb is refused at `_commitMove()`. A face under a
+ * ceiling, or one whose top is a strip narrower than a body against a wall,
+ * has hands on it and nowhere to go, so it is not an approach.
+ *
+ * Sampled at three points along the approach, so a support that passes
+ * under one obstruction, or a face whose top is blocked at one end, still
+ * counts elsewhere.
  *
  * @returns {{box: object, y: number, rise: number, x: number, z: number,
  *            nx: number, nz: number}[]}
@@ -179,6 +181,7 @@ export function supportApproaches(collision, box) {
         const x = alongX ? rect.x0 + (rect.x1 - rect.x0) * t : (rect.x0 + rect.x1) / 2;
         const z = alongX ? (rect.z0 + rect.z1) / 2 : rect.z0 + (rect.z1 - rect.z0) * t;
         if (!handsReachFace(collision, box, face, x, z, other.max.y)) continue;
+        if (!landingFits(collision, box, face, x, z)) continue;
         out.push({ box: other, y: other.max.y, rise, x, z, nx: face.nx, nz: face.nz });
         break;
       }
@@ -215,6 +218,27 @@ function approachRect(box, other, face) {
   const z1 = Math.min(other.max.z - r, fz1);
   if (x1 < x0 - 1e-6 || z1 < z0 - 1e-6) return null;
   return { x0, x1, z0, z1 };
+}
+
+/**
+ * Where a body standing at (x, z) in front of `face` of `box` ends up once
+ * it is over: the controller's destination, a radius and 0.3m past the point
+ * on the face straight ahead of it. Exported so a check can stand there.
+ */
+export function landingSpot(box, face, x, z) {
+  const hitX = face.nx > 0 ? box.max.x : face.nx < 0 ? box.min.x : x;
+  const hitZ = face.nz > 0 ? box.max.z : face.nz < 0 ? box.min.z : z;
+  return { x: hitX - face.nx * LANDING_FORWARD, z: hitZ - face.nz * LANDING_FORWARD };
+}
+
+/**
+ * Does a body fit at the landing, crouched at least? The capsule the
+ * controller validates in `_commitMove()`, at the height it puts it.
+ */
+export function landingFits(collision, box, face, x, z) {
+  const spot = landingSpot(box, face, x, z);
+  const half = { x: S.radius, y: S.crouchHeight / 2, z: S.radius };
+  return collision.isClear({ x: spot.x, y: box.max.y + half.y + S.mantleClearance, z: spot.z }, half);
 }
 
 /**

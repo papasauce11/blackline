@@ -27,7 +27,8 @@ export class CollisionBox {
    * @param {{x:number,y:number,z:number}} max
    * @param {object} [flags]
    * @param {boolean} [flags.solid] blocks movement (default true)
-   * @param {boolean} [flags.climbable] top face is a usable ledge
+   * @param {boolean} [flags.climbable] top face is a usable ledge - set by
+   *   `deriveClimbableSurfaces()`, never declared; the map has no say
    * @param {boolean} [flags.vent] crouch-only, silent volume
    * @param {boolean} [flags.blocksSight] blocks rays for light and perception
    * @param {string}  [flags.tag] human label, used by the debug overlay

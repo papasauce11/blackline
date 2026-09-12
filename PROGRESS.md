@@ -4226,3 +4226,52 @@ three cells of its grid) and its tops 22 (was 21).
 then B5, whose "needs a leg up" count starts at 22, not 20 — the two new
 slabs are the stacked route's own landing, climbed from the gantry that is
 the route.
+
+## B4b — the rule's standing room is at the landing (2026-09-12, same run)
+
+**Built.** `deriveClimbableSurfaces()` asked two questions in two places:
+"somewhere to climb from" of the approach, and "somewhere to stand once you
+are up" of the box's quarter points. On a 38m deck slab the quarter points
+can be twenty metres from the face being climbed, and B4 met the case: the
+bay void flush against `office-wall-s` made `deck-14` derive as climbable
+from the gantry — its top is standable near the corridor — while the only
+landing the gantry offered was the wall's face. The controller refused at
+`_commitMove()`; the rule did not; the census went red. Now the landing is
+part of the approach. `landingSpot(box, face, x, z)` in `mapclimb.js` is
+`Shade._ledgeDestination` for the rule: a radius and 0.3m past the point on
+the face straight ahead of where the body stands; `landingFits()` asks
+whether the crouched capsule is clear there, `mantleClearance` above the
+top, which is the capsule `_commitMove()` validates. `supportApproaches()`
+drops a spot whose landing does not fit, so every entry it returns has a
+foothold, a hand-hold and a landing; the quarter-point loop is gone from
+the derivation and `standableTop()` from the check, which recomputes the
+landing itself through the exported `landingSpot`. The derivation also
+resets `box.climbable` and `reachMove` on every box before deciding, so a
+re-derivation over a changed world forgets what it said — and so a
+`climbable: true` declared on a box cannot survive it. `hall-container`
+had carried one since the phase-3 hang test; it is gone from `map.js`,
+`addSolid()` no longer accepts the option, and the derivation is the only
+thing that has ever decided it since. The rule's sentence is now: *a
+surface is climbable when the body could reach its face from somewhere it
+can stand, and fit on top where it lands.*
+
+**Verified.** `a-face-with-nowhere-to-land-is-not-climbable`
+(`tests/deck.js`): a lid of real collision 0.3–0.6m over the landing strip
+of `lip-bay`'s west face; with the box still flagged climbable from boot,
+the controller from the rule's own spot — W held, Space held — does not get
+on top (its own gate refuses the capsule); re-derived, the rule names no
+approach and the lip does not derive; lid gone, the approach count is what
+it was and the same press climbs. Without the `landingFits` line the check
+reads *"lip-bay still has 1 approaches with its landing under a lid;
+lip-bay still derives as climbable"*. The census is identical to B4's: **58
+climbable, 226 approaches, 191 climbs, all reached, 22 need a leg up** —
+the same 58 tags — so on this map the landing test changes nothing except
+what it would have refused. `the-climb-rule-has-no-exceptions`: *"214
+boxes, 58 climbable, 0 disagreements"*. Full suite **123 passed / 1 failed (the headless-skipped frame budget), twice, identical (312s and 373s), flaky empty, zero console errors, zero context losses, `loopFrames` 0**.
+
+**Found.** Nothing new. The staged lid is itself a wide solid 0.6m above
+the deck and derives as a vault while it is there; the check re-derives
+after removing it, and `h.map.ledges` is rebuilt each time, so nothing is
+left behind for `perchesInSiteRooms` to find.
+
+**Left.** B2b waits on D23. B5 is next and is an L: its own run.
