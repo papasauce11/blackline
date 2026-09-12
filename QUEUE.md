@@ -180,7 +180,7 @@ budget checks are the ceiling.
   derivation and the check, the derivation resets `climbable` on every box
   (so the last declared `climbable: true`, on `hall-container`, is gone with
   the option). Census identical, 58/226/191/22. Check
-  `a-face-with-nowhere-to-land-is-not-climbable` - (this commit), 2026-09-12.
+  `a-face-with-nowhere-to-land-is-not-climbable` - `34b0510`, 2026-09-12.
 - **B4** Upper deck: the vault's rack aisles widened to 1.5m (`RACK_AISLE`)
   so a Warden ground cell runs down each and every clear floor spot in every
   site room is a legal plant (0 refused at 0.1m; was 150 across both aisles,
