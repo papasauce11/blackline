@@ -50,20 +50,19 @@ there. The census is the contract; **never weaken it**.
   `config.js`; the AI's hearing already turns toward noise events.
   *done-when:* a check scuffs within the radius and asserts the Warden's
   `lastKnown` moves to the wall, and outside it does not.
-- [ ] **B4 (M)** Upper deck. Re-scoped after B3 closed the census: the
-  three deck slabs it named are not climbable (their only exposed faces sit
-  above the gantry's 1.3m of headroom; the deck is entered by its lips, and
-  every lip climbs). What is left: (1) A5 found one clear floor cell of
-  site C's room — the deck at (21, 17) — with no Warden ground within the
-  defuse reach, so a plant there is refused; close it with geometry rather
-  than rediscover it. (2) The lips overhang their gantries by 0.6m, so the
-  only approach is crouched under the deck; the census makes it, a player
-  may not find it — reshape so each lip has a standing approach, or record
-  why not. *done-when:*
-  `every-plant-spot-in-a-site-room-answers-to-the-defuse-rule` reports 0
-  refused floor spots; the census stays green; for each `lip-*` at least
-  one approach the rule names has standing headroom (extend
-  `the-climb-rule-has-no-exceptions` or add a check).
+- [ ] **B4b (S)** The rule's standing room is at the landing. `deriveClimbableSurfaces()`
+  asks "somewhere to stand once you are up" at the box's quarter points and
+  "somewhere to climb from" at the approach - two somewheres, 20m apart on a
+  deck slab. B4 found it: with the bay void flush against `office-wall-s`,
+  `deck-14` derived as climbable from the gantry (standable far away) and the
+  controller would not mantle into the wall; geometry closed it, the rule did
+  not. Make the standing test per approach - crouch headroom for the body a
+  radius past the face from where the approach stands - so ledge and landing
+  agree, and drop an approach whose landing does not fit. *done-when:*
+  `the-climb-rule-has-no-exceptions` recomputes with the landing test and
+  the census stays green with the same 58 (or reports which surface stopped
+  deriving and why, in PROGRESS.md); a check stages a lid over a landing and
+  asserts the surface stops deriving.
 - [ ] **B5 (L)** Area pass, worst first, by the "needs a leg up" count:
   make every stacked route intentional — a readable first step, no dead
   climbs that lead nowhere. Keep the five v2 requirements. **Do not** add or
@@ -187,6 +186,15 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B4** Upper deck: the vault's rack aisles widened to 1.5m (`RACK_AISLE`)
+  so a Warden ground cell runs down each and every clear floor spot in every
+  site room is a legal plant (0 refused at 0.1m; was 150 across both aisles,
+  one on the census grid); the bay void, gantry and lip re-laid so the gantry
+  stands in the open and `lip-bay` is climbed standing from a spot the rule
+  names, the whole route 1.2m south of `office-wall-s` so the deck beside the
+  void has a landing. Census 58 climbable / 226 approaches / 191 climbs / 22
+  need a leg up. Two checks in `tests/deck.js`; A3's opening step re-picks
+  its perch. B4b raised - (this commit), 2026-09-12.
 - **B3** A support is somewhere you can stand and get your hands on the
   face: `supportApproaches()` in `mapclimb.js` replaces the footprint test
   with the controller's own hand sweep from a spot in front of each face;

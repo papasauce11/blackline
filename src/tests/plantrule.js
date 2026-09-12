@@ -239,17 +239,35 @@ export function register(debugTools) {
       // again. If the gate were reading anything but DEFUSE_REACH this would
       // go on refusing. The perch has to be one the REACH refuses: since D20
       // a top under a low lid is refused by headroom, and no reach opens that.
-      const perch = tried.find((p) => objective.hasHeadroomAt(p.foot)) || tried[0];
+      // And it has to be one the VERTICAL reach can open: a top refused for
+      // being more than arm's length from any ground on any floor (the middle
+      // of `hall-container`, 1.5m from every face) stays refused at 40m. The
+      // perch that used to be picked, `server-rack-0`, opened only because the
+      // corridor floor six metres under the vault came into reach at dy 8;
+      // B4 put Warden ground in the rack aisles and it is simply legal now.
       const baseDy = DEFUSE_REACH.dy;
-      try {
-        let opened = baseDy;
-        while (opened < 40 && !objective.canDefuseAt(perch.foot)) {
-          opened += 1;
-          DEFUSE_REACH.dy = opened;
+      const opensUnder = (foot, limit) => {
+        let dy = baseDy;
+        try {
+          while (dy < limit && !objective.canDefuseAt(foot)) {
+            dy += 1;
+            DEFUSE_REACH.dy = dy;
+          }
+          return objective.canDefuseAt(foot) ? dy : null;
+        } finally {
+          DEFUSE_REACH.dy = baseDy;
         }
-        if (!objective.canDefuseAt(perch.foot)) {
-          problems.push(`no vertical reach under 40m makes ${perch.tag} legal, so the opening step proves nothing`);
+      };
+      const perch = refused.find((p) => objective.hasHeadroomAt(p.foot) && opensUnder(p.foot, 40) !== null);
+      try {
+        const opened = perch ? opensUnder(perch.foot, 40) : null;
+        if (opened === null) {
+          problems.push(
+            `no vertical reach under 40m makes any of the ${refused.length} refused tops legal `
+            + `(${refused.map((p) => p.tag).join(', ')}), so the opening step proves nothing`
+          );
         } else {
+          DEFUSE_REACH.dy = opened;
           const held = holdInteractAt(perch, holdSteps);
           if (held.charge !== CHARGE.PLANTED) {
             problems.push(
@@ -280,8 +298,8 @@ export function register(debugTools) {
         detail: problems.length === 0
           ? `${refused.length} of ${perches.length} climbable tops inside a site room are out of the `
             + `Warden's reach; held interact on ${tried.length} (${tried.map((p) => p.tag).join(', ')}) `
-            + 'for ' + (R.plantHoldTime + 1) + 's each with no progress and no noise, and each planted '
-            + 'once the reach was opened'
+            + 'for ' + (R.plantHoldTime + 1) + `s each with no progress and no noise; ${perch.tag} planted `
+            + 'once the vertical reach was opened'
           : problems.join('; '),
       };
     },

@@ -67,6 +67,9 @@ const BAY_SOUTH = 2.0;
 
 // Upper-deck rooms.
 const VAULT = { x0: 10.0, x1: 26.0, z0: 6.0, z1: 19.0 };
+/** A server rack's width, and the aisle between two of them (see the racks). */
+const RACK_W = 1.1;
+const RACK_AISLE = 1.5;
 const OFFICE = { x0: 10.0, x1: 26.0, z0: -20.0, z1: -6.0, divider: 18.0 };
 
 // The void that keeps the Turbine Hall open to the roof, inset from the hall
@@ -251,13 +254,21 @@ export function buildMap({ gradientMap }) {
   // Turbine Hall a full-height space. Neither carries a lip.
   const dropShaft = { x0: 21.6, x1: 25.4, z0: -18.2, z1: -14.8 };
   // Two-way: each of these has a climbing route arriving at the lip beside it.
-  const bayVoid = { x0: 19.6, x1: 22.6, z0: -5.6, z1: -2.6 };
+  // The bay void is the width of its gantry plus a body: the gantry stands in
+  // the open under it (B4, below) and the lip is the void's far edge. Its
+  // north edge stops 1.2m short of the office wall, whose face is at
+  // z=-5.6: a void flush with the wall leaves the deck between them zero
+  // metres wide, and the rule still counts that slab climbable from the
+  // gantry - its top is standable somewhere along its 38m - while the
+  // controller, rightly, will not mantle into a wall. Ledge and landing have
+  // to agree, and here the geometry makes them.
+  const bayVoid = { x0: 17.4, x1: 21.4, z0: -4.4, z1: -1.4 };
   const vaultHatch = { x0: 13.0, x1: 15.0, z0: 9.2, z1: 11.2 };
 
   const deckLips = [
     { x0: -8.6, x1: -7.4, z0: -12.0, z1: -9.0, tag: 'lip-hall-east' },
     { x0: -16.5, x1: -13.2, z0: 5.6, z1: 6.8, tag: 'lip-hall-south' },
-    { x0: 18.4, x1: 19.6, z0: -5.6, z1: -2.6, tag: 'lip-bay' },
+    { x0: 21.4, x1: 22.6, z0: -4.4, z1: -1.4, tag: 'lip-bay' },
     { x0: 15.0, x1: 16.2, z0: 9.2, z1: 11.2, tag: 'lip-vault' },
   ];
 
@@ -304,11 +315,18 @@ export function buildMap({ gradientMap }) {
     from: VAULT.x0 - WALL, to: VAULT.x1 + WALL, y0: DECK, y1: CEIL,
   });
 
+  // Two pairs of racks. The aisle inside each pair is a Warden's width and
+  // then some (B4): the Shade is 0.68m across and the Warden 0.84m on a 0.5m
+  // ground grid, so an aisle between the two - they were 0.7m and 1.1m - is a
+  // slot the Shade can stand in that no Warden ground cell ever reaches, and
+  // the plant rule refuses every spot deeper in it than the defuse reach. A5
+  // counted one such floor cell; a fine scan found 150. Cover on both sides
+  // of an aisle the Warden can walk is what the racks were for.
   for (let i = 0; i < 4; i++) {
-    const x = 10.6 + (i < 2 ? i * 1.8 : 8.8 + (i - 2) * 2.2);
+    const x = 10.6 + (i < 2 ? i * (RACK_W + RACK_AISLE) : 8.8 + (i - 2) * (RACK_W + RACK_AISLE));
     map.addSolid({
       min: [x, DECK, 14.5],
-      max: [x + 1.1, DECK + 1.9, 18.5],
+      max: [x + RACK_W, DECK + 1.9, 18.5],
       color: P.wardenGunmetal,
       outline: true,
       tag: `server-rack-${i}`,
@@ -388,9 +406,18 @@ export function buildMap({ gradientMap }) {
 
   // 3. Loading Bay. The same shape as the hall route, arriving beside the bay
   //    void: 1.0 vault, 1.3 mantle, 1.7 mantle, 2.0 mantle.
-  crate(map, 'stack-bay-low', [13.0, -5.6], [15.2, -3.4], G, 1.0);
-  crate(map, 'stack-bay-mid', [15.2, -5.4], [17.2, -3.6], G, 2.3);
-  gantry(map, 'gantry-bay', [17.4, -5.6], [19.6, -2.6], GANTRY);
+  //
+  // The gantry stands inside the void, open to the roof, and the lip is the
+  // void's east edge 0.8m past its end. It used to sit wholly under the deck
+  // with the lip over its east end, which left one way onto the lip: crouched
+  // under 1.65m of slab, hands up into the underside. The census made that
+  // climb because it stands wherever the rule says a body fits; a player
+  // walks up to a ledge standing, and here could not (B4). The hall gantry
+  // has no such problem - its lip overhangs only its last 0.6m and the rest
+  // is in the hall's full-height void - so it is left as it was.
+  crate(map, 'stack-bay-low', [13.0, -4.4], [15.2, -2.2], G, 1.0);
+  crate(map, 'stack-bay-mid', [15.2, -4.2], [17.2, -2.4], G, 2.3);
+  gantry(map, 'gantry-bay', [17.4, -4.4], [20.6, -1.4], GANTRY);
 
   // 4. Corridor to the Server Vault, silently. Crates to the upper vent, crawl
   //    it, then up through the hatch in the vault floor: 1.0 vault, 1.3 mantle,

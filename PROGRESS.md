@@ -4151,3 +4151,78 @@ face plane; same top height, same climb, harmless. B4 re-scoped in
 QUEUE.md; the Deliberately-red list is empty for the first time.
 
 **Left.** B2b still waits on D23. B4 as re-scoped, then B5.
+
+## B4 — the upper deck: an aisle the Warden can walk, a lip you walk up to (2026-09-12, 17:00 run)
+
+**Built.** Two pieces of geometry in `map.js`, no rule touched. (1) The
+server racks in site C's vault stood in two pairs 0.7m and 1.1m apart. The
+Shade is 0.68m across and the Warden 0.84m on a 0.5m ground grid, so each
+aisle was a slot the Shade could stand in that no `wardenGround` cell ever
+reached, and `canPlantAt()` refused every spot deeper in it than the 2.0m
+defuse reach — correctly. A5 counted one such floor cell on its 2m grid,
+the deck at (21, 17); the same rule asked every 0.1m refused 150, in both
+aisles. Both aisles are `RACK_AISLE` = 1.5m now (racks at x 10.6, 13.2,
+19.4, 22.0), each carries a column of ground cells at x 12.25 and 21.25,
+and every clear floor spot in all three site rooms — 132,870 of them at
+0.1m — is legal. `server-rack-0`'s top is legal too as a side effect (the
+aisle is 1.1m from its centre), so the refused tops are `hall-container`
+and `gantry-hall` only. (2) `gantry-bay` sat wholly under the deck, 1.65m
+of slab over its west 1.0m and the 1.3m of lip over the rest, so the only
+approach the rule named for `lip-bay` was crouched at (17.9, −4.1) with the
+hands up into the underside — the census made it, a player would not. The
+bay void is now the gantry's width plus a body (x 17.4..21.4), the gantry
+stands inside it open to the roof (17.4..20.6), and the lip is the void's
+east edge (21.4..22.6); the rule names a standing approach at (20.1, −2.9).
+The void, gantry, lip and both stacks moved 1.2m south (z −4.4..−1.4)
+because `office-wall-s`'s face is at z=−5.6 and a void flush with it left
+the deck between them zero metres wide — see Found. The other four lips
+already had a standing approach: the queue's "the lips overhang their
+gantries, so the only approach is crouched" was true of the bay alone;
+`gantry-hall`'s lip overhangs only its last 0.6m and the rest is in the
+hall's full-height void.
+
+**Verified.** Two checks in the new `tests/deck.js`.
+`every-deck-lip-is-climbed-from-a-standing-approach`: for every `lip-*`,
+some approach `_supportApproaches()` names fits a standing body, and from
+that spot the controller — W held, Space held, pressed every 22 steps — gets
+on top without ever crouching; *"5 lips, each climbed standing from a spot
+the rule names: lip-hall-east from gantry-hall (2.0m); lip-hall-south from
+gantry-hall-south (1.7m); lip-bay from gantry-bay (2.0m); lip-vault from
+vent-up-vault-floor (1.7m); lip-roof from fire-escape-4 (1.4m)"*.
+`no-clear-floor-in-a-site-room-refuses-the-plant`: the census's own floor
+spots have zero refusals (B4's done-when as written), and every 0.1m spot
+in every site room where the standing capsule fits is `canPlantAt` — 113ms
+for 132,870 spots. Both were run against the pre-B4 map first and failed
+with the diagnoses above (*"lip-bay: none of its 1 approaches has standing
+headroom [gantry-bay (17.9, -4.1)]"*; *"150 of 132870 clear floor spots are
+refused"*). The census: **58 climbable, 226 approaches, 191 climbs, all 58
+reached, 22 need a leg up** (was 56/208/173/20 — `deck-14` and `deck-16`,
+the slabs north and west of the void, now derive from the gantry and the
+controller climbs them). Full suite **122 passed / 1 failed (the headless-skipped frame budget), twice, identical (292s and 369s), flaky empty, zero console errors, zero context losses, `loopFrames` 0**.
+
+**Found.** Two things, one of them a real hole in the rule. First, the
+opening step of `a-plant-never-starts-where-the-warden-could-not-defuse-it`
+(A3) raises `DEFUSE_REACH.dy` until a refused perch is legal and requires
+the identical hold then to plant. It picked `server-rack-0`, which opened
+only because the corridor floor six metres under the vault came within 2.0m
+horizontally at dy 8 — an accident of the map. With the rack legal it
+picked `hall-container`, refused for being 1.5m from every face, which no
+vertical reach opens, and the check went red saying so. It now picks the
+first refused perch with headroom that some dy under 40m opens
+(`gantry-hall`, at dy 5, over the hall floor), and fails naming every
+refused perch if none does. Not weakened: the same proof, on an input that
+can carry it. Second, and queued: the rule's "somewhere to stand once you
+are up" is sampled at the box's quarter points, and its "somewhere to climb
+from" at the approach — two somewheres on a 38m deck slab. With the void
+flush against the office wall, `deck-14` derived as climbable from the
+gantry (its top is standable 20m away) and the controller, rightly, would
+not mantle into a wall face; the census went red on it. Geometry fixed it
+here, but the rule should ask for standing room at the landing, where the
+approach puts the body, not anywhere on the box — filed as B4b. Also
+noted: the census's floor count is 347 (was 344; the stacks moved off
+three cells of its grid) and its tops 22 (was 21).
+
+**Left.** B4b (the landing test) queued under B; B2b still waits on D23;
+then B5, whose "needs a leg up" count starts at 22, not 20 — the two new
+slabs are the stacked route's own landing, climbed from the gantry that is
+the route.

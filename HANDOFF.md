@@ -21,11 +21,11 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **120 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
-| Next job | the first `[ ]` in `QUEUE.md` is B4 (re-scoped: the (21, 17) plant cell and the lips' crouched-only approaches); B2b waits on D23 (**Blocks A and F are closed**) |
+| AUTO suite | headless, `npm run suite`: **122 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
+| Next job | the first `[ ]` in `QUEUE.md` is B4b (the rule's standing room, tested at the landing); B2b waits on D23 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
-| Map | 214 collision boxes, 56 climbable (was 65: B3 dropped nine that were never climbable from where the rule said), 25,299 edge-bearing cells of Warden ground, one connected component |
+| Map | 214 collision boxes, 58 climbable (56 after B3; B4's open bay gantry adds the two deck slabs beside its void), Warden ground one connected component, with a column of cells down each vault rack aisle since B4 |
 
 Phases 1–49 of the original build are done and committed. A **redesign** is now
 in progress, 11 phases in, and one directive arrived outside it (the plant, below).
@@ -79,9 +79,9 @@ below. Phases 12–50 are Block B there.
 
 ```
 PASS  every-climbable-surface-can-actually-be-climbed
-      56 climbable surfaces, 208 approaches from every surface the rule
-      derives them from, 173 climbs; the controller got onto all 56
-      reachable surfaces (0 enclosed); 20 need a leg up first
+      58 climbable surfaces, 226 approaches from every surface the rule
+      derives them from, 191 climbs; the controller got onto all 58
+      reachable surfaces (0 enclosed); 22 need a leg up first
 ```
 
 It went green with B3 (2026-09-12), and it must stay green: it approaches
@@ -114,8 +114,15 @@ from the same approaches and passes; it is what makes the rule the single
 source of truth. `GameMap._supportApproaches(box)` is how a check reads the
 spots; `_supportCandidates(box)` is still the heights.
 
-"20 need a leg up first" is reported, not failed — Josh's call. A surface
+"22 need a leg up first" is reported, not failed — Josh's call. A surface
 you climb something else to reach is the point of a stacked route.
+
+One hole in the rule is known and queued as B4b: "somewhere to stand once
+you are up" is sampled at the box's quarter points and "somewhere to climb
+from" at the approach, which on a 38m deck slab can be 20m apart. B4 met it
+— a void flush against `office-wall-s` made `deck-14` derive from the
+gantry with no landing — and closed it with geometry (the bay route sits
+1.2m south of the wall). The rule should test the landing.
 
 ---
 
@@ -153,17 +160,22 @@ that ground). **Block A is closed.**
 
 ### What the rule actually excludes, measured
 
-A5 counted it, and it is not what this section assumed; A6 then changed it.
-Of **373 places a charge can go inside a site room** — 344 floor cells on a
-2m grid, 21 climbable tops, 8 vent interiors — the rule refuses **twelve**:
-the 8 ducts by their lid (D20, below), and these four by the reach:
+A5 counted it, and it is not what this section assumed; A6 then changed it,
+and B4 changed the map. Of **377 places a charge can go inside a site
+room** — 347 floor cells on a 2m grid, 22 climbable tops, 8 vent interiors
+— the rule refuses **ten**: the 8 ducts by their lid (D20, below), and these
+two by the reach:
 
 | Refused | Why |
 |---|---|
-| `server-rack-0` (room C) | the middle of a wide top, >2m from any Warden ground |
-| `hall-container` (room A), 0.7m up | same — horizontal, not vertical |
+| `hall-container` (room A), 0.7m up | the middle of a wide top, >2m from any Warden ground — horizontal, not vertical |
 | `gantry-hall` (room A), 1.0m up | same |
-| the deck floor at (21, 17), room C | clear floor with no reachable ground near it; B4's rebuild should close it |
+
+Two more were refused until B4: `server-rack-0`'s top, and the deck floor at
+(21, 17) — and behind that one cell, 150 spots at 0.1m in the two rack
+aisles, which took the 0.68m Shade and never a 0.84m Warden ground cell.
+The aisles are 1.5m now and `no-clear-floor-in-a-site-room-refuses-the-plant`
+(`tests/deck.js`) scans every site-room floor at 0.1m for the next one.
 
 So the reach reads "no plant in the middle of anything wider than four
 metres" far more than it reads "no plant up high" — the horizontal reach does
