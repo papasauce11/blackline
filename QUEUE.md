@@ -194,7 +194,7 @@ budget checks are the ceiling.
   names, the whole route 1.2m south of `office-wall-s` so the deck beside the
   void has a landing. Census 58 climbable / 226 approaches / 191 climbs / 22
   need a leg up. Two checks in `tests/deck.js`; A3's opening step re-picks
-  its perch. B4b raised - (this commit), 2026-09-12.
+  its perch. B4b raised - `7bec4fc`, 2026-09-12.
 - **B3** A support is somewhere you can stand and get your hands on the
   face: `supportApproaches()` in `mapclimb.js` replaces the footprint test
   with the controller's own hand sweep from a spot in front of each face;
