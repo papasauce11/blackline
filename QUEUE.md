@@ -21,8 +21,8 @@ rewritten, tree clean.
 
 The GATE step ignores these. Nothing else may be red.
 
-- `every-climbable-surface-can-actually-be-climbed` — 12 of 65, geometry.
-  Closed by B3–B4. **Remove this line the run it goes green.**
+(none — the census went green with B3 on 2026-09-12. A job that makes a
+check deliberately red adds one backticked id per bullet here.)
 
 ---
 
@@ -50,18 +50,20 @@ there. The census is the contract; **never weaken it**.
   `config.js`; the AI's hearing already turns toward noise events.
   *done-when:* a check scuffs within the radius and asserts the Warden's
   `lastKnown` moves to the wall, and outside it does not.
-- [ ] **B3 (M)** `_supportCandidates()` counts a neighbour within
-  `vaultReach` of the footprint as "below" when it is "beside". Fix the rule
-  so a support must overlap the footprint, then rebuild any surface the
-  fix orphans. *done-when:* census ≤ 3 failing, all three on the upper deck.
-- [ ] **B4 (M)** Upper deck: the three deck slabs reachable only from a 1.3m
-  gantry, and lips that overhang their gantries by 0.6m. Reshape the deck so
-  every lip has a standable approach. A5 also found one clear floor cell of
+- [ ] **B4 (M)** Upper deck. Re-scoped after B3 closed the census: the
+  three deck slabs it named are not climbable (their only exposed faces sit
+  above the gantry's 1.3m of headroom; the deck is entered by its lips, and
+  every lip climbs). What is left: (1) A5 found one clear floor cell of
   site C's room — the deck at (21, 17) — with no Warden ground within the
-  defuse reach, so a plant there is refused; the rebuild should close it
-  rather than rediscover it. *done-when:* **census green**, and
+  defuse reach, so a plant there is refused; close it with geometry rather
+  than rediscover it. (2) The lips overhang their gantries by 0.6m, so the
+  only approach is crouched under the deck; the census makes it, a player
+  may not find it — reshape so each lip has a standing approach, or record
+  why not. *done-when:*
   `every-plant-spot-in-a-site-room-answers-to-the-defuse-rule` reports 0
-  refused floor spots. Remove the Deliberately-red line.
+  refused floor spots; the census stays green; for each `lip-*` at least
+  one approach the rule names has standing headroom (extend
+  `the-climb-rule-has-no-exceptions` or add a check).
 - [ ] **B5 (L)** Area pass, worst first, by the "needs a leg up" count:
   make every stacked route intentional — a readable first step, no dead
   climbs that lead nowhere. Keep the five v2 requirements. **Do not** add or
@@ -185,6 +187,15 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B3** A support is somewhere you can stand and get your hands on the
+  face: `supportApproaches()` in `mapclimb.js` replaces the footprint test
+  with the controller's own hand sweep from a spot in front of each face;
+  `deriveClimbableSurfaces` takes the tallest approach in reach; the census
+  stands at the rule's spots too and `the-climb-rule-has-no-exceptions`
+  recomputes from them. **Census green**: 56 climbable, 208 approaches, 173
+  climbs, 20 need a leg up; nine surfaces (six deck slabs, three roof slabs)
+  stop deriving, each for a reason the geometry gives. Deliberately-red list
+  emptied; B4 re-scoped - `<hash>`, 2026-09-12.
 - **B2** The bump-and-scuff: a press of Space that carries the hands onto a
   face they cannot get over - beyond reach, or a lip with no room above it -
   pushes the body back, throws the arms up and plays a slap

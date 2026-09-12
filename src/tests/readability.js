@@ -147,6 +147,9 @@ function bodyHeightAt(h, stand, feet) {
  * tests a different sentence than the rule states is not testing the rule.
  * Each candidate is confirmed to be real ground at THIS spot before it counts;
  * a support that stops short of the standing position is not a foothold.
+ * Since B3 the rule names the spot as well as the height
+ * (`_supportApproaches()`), and the census stands there too - see the face
+ * loop in the check.
  */
 function standHeightsAt(h, box, stand) {
   const collision = h.map.collision;
@@ -228,9 +231,15 @@ export function register(debugTools) {
 
       for (const box of h.map.collision.boxes) {
         checked++;
+        // "From whatever is below" is every place the rule says a body can
+        // stand and get its hands on the face (B3); any one of them in reach
+        // is enough. The tallest is the rise the map reports.
         const standY = h.map._supportHeightBelow(box);
-        const move = classifyReach(box.max.y - standY, FULL_REACH);
-        const shouldClimb = box.solid && standableTop(h, box) && move !== null && move !== 'step';
+        const reachable = h.map._supportApproaches(box).some((approach) => {
+          const move = classifyReach(approach.rise, FULL_REACH);
+          return move !== null && move !== 'step';
+        });
+        const shouldClimb = box.solid && standableTop(h, box) && reachable;
         if (box.climbable) climbable++;
         if (!!box.climbable !== shouldClimb) {
           wrong.push(`${box.tag || 'box'} climbable=${!!box.climbable} rule=${shouldClimb} (rise ${(box.max.y - standY).toFixed(2)})`);
@@ -285,13 +294,25 @@ export function register(debugTools) {
         let inReach = false;
         let climbedAny = false;
         let climbedFromFloor = false;
+        const named = h.map._supportApproaches(box);
 
         for (const face of FACES) {
           if (climbedFromFloor) break;
           // One approach per place-on-the-face per surface below it, taken from
           // the furthest distance back that still has ground and room.
           const tried = new Set();
-          for (const stand of standSpots(box, face)) {
+          // Three places along the face - and every place the rule itself
+          // names on it (B3). A 38m deck edge sampled at its quarter points
+          // never stood on the 2m landing at one end that the rule derived
+          // the surface from, and reported "nothing in reach" of a face the
+          // rule had a spot for. Now the census stands exactly where the
+          // rule says you can, so the two cannot disagree about where.
+          const spots = standSpots(box, face);
+          for (const approach of named) {
+            if (approach.nx !== face.nx || approach.nz !== face.nz) continue;
+            spots.push({ x: approach.x, z: approach.z, along: `rule:${approach.box.tag || 'box'}` });
+          }
+          for (const stand of spots) {
             const heights = standHeightsAt(h, box, stand);
             for (let i = 0; i < heights.length; i++) {
               const feet = heights[i];

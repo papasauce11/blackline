@@ -21,11 +21,11 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **119 passed, 2 failed** — the census (deliberate) and the frame-budget check (skipped headless, see Running it) |
-| Next job | the first `[ ]` in `QUEUE.md` is B3, `supportCandidates()` in `mapclimb.js` (**Blocks A and F are closed**; F1-F4 and B2 done 2026-09-11; B2b waits on D23) |
+| AUTO suite | headless, `npm run suite`: **120 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
+| Next job | the first `[ ]` in `QUEUE.md` is B4 (re-scoped: the (21, 17) plant cell and the lips' crouched-only approaches); B2b waits on D23 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
-| Map | 214 collision boxes, 65 climbable, 25,299 edge-bearing cells of Warden ground, one connected component |
+| Map | 214 collision boxes, 56 climbable (was 65: B3 dropped nine that were never climbable from where the rule said), 25,299 edge-bearing cells of Warden ground, one connected component |
 
 Phases 1–49 of the original build are done and committed. A **redesign** is now
 in progress, 11 phases in, and one directive arrived outside it (the plant, below).
@@ -75,35 +75,47 @@ below. Phases 12–50 are Block B there.
 
 ---
 
-## The one red check IS the work queue
+## The census is green, and what the climb rule now says
 
 ```
-FAIL  every-climbable-surface-can-actually-be-climbed
-      12 of 65 climbable surfaces cannot be climbed (9 with nothing in reach
-      of them). By area: upper deck 5, loading-bay 3, turbine-hall 2,
-      server-vault 2; 20 need a leg up first
+PASS  every-climbable-surface-can-actually-be-climbed
+      56 climbable surfaces, 208 approaches from every surface the rule
+      derives them from, 173 climbs; the controller got onto all 56
+      reachable surfaces (0 enclosed); 20 need a leg up first
 ```
 
-**Do not "fix" this by weakening it.** It stays red until the geometry closes
-it. It approaches every climbable face from every surface the rule derives it
-from — three distances back, three positions along the face, standing or
-crouched — and drives the real controller. Named failures are logged to the F4
-panel (`debugTools._testLog`).
+It went green with B3 (2026-09-12), and it must stay green: it approaches
+every climbable face from every place the rule says a body can stand —
+three positions along the face at three distances back, **and every spot
+the rule itself names** — standing or crouched, and drives the real
+controller. Named failures are logged to the F4 panel
+(`debugTools._testLog`). **Do not "fix" a future red by weakening it.**
 
-**All twelve are now geometry, not controller.** Nine are
-`_supportCandidates()` counting a neighbour within `vaultReach` of the footprint
-as "below" when it is really "beside" — the rule naming a support you cannot
-stand on. Three (`deck-1`, `deck-16`, `deck-21`) are deck slabs reachable only
-from a gantry with 1.3m of headroom, where a crouched body genuinely cannot make
-a 2.0m rise; you get onto the deck by its lip, which does climb. Also waiting
-for the rebuild: the deck lips overhang their gantries by 0.6m, so there is no
-spot on the gantry within 0.8m of the lip where a body can stand up.
+The rule, in `src/mapclimb.js`, is now the controller's sentence and not a
+footprint test. `supportApproaches(collision, box)`: for every wide solid
+lower than the box's top by at least `stepOver`, and every face of the box,
+the rectangle where a body's centre can be (footprint fully on the support,
+a body radius clear of the box, no further out than the probe reaches),
+sampled at its quarter points; at each, the body fits and the controller's
+own hand sweep — `PROBE_STEP` 0.12 up from the feet, stop where the hand is
+not in open air, keep sweeping past anything that is not this box — meets
+this box's face. A face above the ceiling over the only place you can
+stand is not climbable, and nothing has to say so. The old test ("any wide
+surface within `vaultReach` of the footprint is below") named a gantry
+touching a deck slab at one corner, a duct roof diagonally beside a
+container, and server racks three metres under the roof; the census stood
+where the rule said and found nothing in reach. Nine surfaces stopped
+deriving — six deck slabs (entered by their lips, which all still climb),
+`roof-1` (a corner), `roof-4` and `roof-5` (the ceiling) — and every
+designed route kept its move.
 
-"20 need a leg up first" is reported, not failed — Josh's call. A surface you
-climb something else to reach is the point of a stacked route.
+Its sibling `the-climb-rule-has-no-exceptions` recomputes "should climb"
+from the same approaches and passes; it is what makes the rule the single
+source of truth. `GameMap._supportApproaches(box)` is how a check reads the
+spots; `_supportCandidates(box)` is still the heights.
 
-Its sibling `the-climb-rule-has-no-exceptions` passes and must keep passing: it
-is what makes the rule the single source of truth.
+"20 need a leg up first" is reported, not failed — Josh's call. A surface
+you climb something else to reach is the point of a stacked route.
 
 ---
 
@@ -256,7 +268,7 @@ check keeps it so. Nothing moved changes an order or a name a check reaches:
 | `main.js` (1,145) | `main.js` (597): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`, the rAF scheduler), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js` (whose rig the camera is on, mouse look, ADS FOV), `intents.js` (input → intent), `loadout.js` (the gadget slots), `wiring.js` (the emitter listeners between systems), `hudstate.js` (what the HUD is told), `debugfields.js` (what the F3 overlay is told), `harness.js` (`createHarness(live, loop)` — one getter per live object) |
 | `entities/agent.js` (1,051) | `agent.js` (527): state machine, ground, air, slide. `agenttraversal.js`: every climb. `agentvisual.js`: how it is drawn. `agentstate.js`: `SHADE_STATE` |
 | `systems/ai.js` (788) | `ai.js` (498): the state machine. `aiperception.js`, `ainav.js` (route, steering, stuck). `aistate.js`: `AI_STATE`, `angleDelta`, `DEFUSE_SNAP` |
-| `mapkit.js` (821) | `mapkit.js` (380): `GameMap`, `addSolid`, decals, rooms, lights, waypoints. `mapgen.js`: walls with openings, floor plates, staircases, vent runs. `mapclimb.js`: `deriveClimbableSurfaces`, `supportCandidates` — **B3's fix lands here** |
+| `mapkit.js` (821) | `mapkit.js` (380): `GameMap`, `addSolid`, decals, rooms, lights, waypoints. `mapgen.js`: walls with openings, floor plates, staircases, vent runs. `mapclimb.js`: `deriveClimbableSurfaces`, `supportApproaches` (B3), `supportCandidates` |
 | `map.js` (810) | `map.js` (537): the geometry. `mapdata.js`: sites, spawns, lights, waypoints. `mapvalidate.js` |
 | `physics.js` (735) | `physics.js` (600): `CollisionWorld`, gravity, `classifyReach`. `collisionbox.js`: the box and the ray-slab test |
 | `systems/objective.js` (646) | `objective.js` (536). `plantrule.js`: `DEFUSE_REACH`, `PLANT_HEADROOM`, `withinDefuseReach`, `canDefuseAt(map, at)`, `hasHeadroomAt`, `canPlantAt` — re-exported and wrapped as methods, so every existing import and call still works |

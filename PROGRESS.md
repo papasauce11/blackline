@@ -4083,3 +4083,71 @@ A3 trick of moving a constant to stage a condition does not work on
 **Left.** B2b (the scuff as a noise event) waits on D23. B3 is next — the
 `supportCandidates()` fix, now in `mapclimb.js` — and it is the one that
 starts moving the census.
+
+## B3 — a support is somewhere you can stand and reach the face (2026-09-12, 02:00 run)
+
+**Built.** `supportCandidates()` in `mapclimb.js` decided "what is below"
+a surface by footprint: any wide solid whose footprint came within
+`vaultReach` of the box's, and was lower, was a support. That named nine
+supports a body could not climb from — `gantry-hall` for `deck-10`, touching
+it at one corner under a 5.3m lip; `hall-container` for the duct roof beside
+it diagonally; the server racks for `roof-4` and `roof-5`, the roof slabs
+three metres of ceiling above them; `fire-escape-4` for `roof-1`, which it
+touches only at a corner — and the census, which stood exactly where the
+rule said, reported "nothing in reach" of surfaces the rule called
+climbable. The job as queued said "overlap the footprint"; a strict overlap
+would have orphaned `gantry-hall` (climbed from the container that touches
+it) and `gantry-bay` (from a stack 0.2m away) and needed the map reshaped
+around a rule that is still not what the body does. What the body does is
+in `_probeLedge()`: stand in front of a face, sweep the hands up from the
+feet, stop at a ceiling, climb the face they meet. So that is the rule now.
+`supportApproaches(collision, box)`: for every wide solid lower than the
+box's top by at least `stepOver`, and every face of the box, the rectangle
+where a body's centre can be — footprint fully on the support, a body
+radius clear of the box, no further out than the probe reaches — sampled at
+its quarter points; at each, the body fits (crouched at least) and the
+controller's own hand sweep (`PROBE_STEP` 0.12, hand-half 0.05, ray of
+`vaultReach + radius`, stop where the hand is not in open air, keep sweeping
+past anything that is not this box) meets this box's face. One entry per
+(support, face) with the spot it succeeded at. `deriveClimbableSurfaces()`
+takes the tallest approach in reach; `supportCandidates()` is the heights,
+still with the ground plane, so every caller reads as before;
+`supportHeightBelow()` is the tallest, ground if none. `GameMap` exposes
+`_supportApproaches()`. The derivation costs 60ms at boot for 214 boxes.
+
+**Verified.** The census stands at the rule's spots as well as its own
+(`rule:<tag>` in its tried-set) — the 38m deck edges it sampled at quarter
+points never stood on the 2m landings the rule derived them from — and
+`the-climb-rule-has-no-exceptions` recomputes "should climb" from the same
+approaches, so a box the rule names with nothing in reach is a disagreement
+again. Result: **the census is green** — *"56 climbable surfaces, 208
+approaches from every surface the rule derives them from, 173 climbs; the
+controller got onto all 56 reachable surfaces (0 enclosed); 20 need a leg
+up first"*. Nine surfaces stopped deriving as climbable, each for a reason
+the geometry gives: `deck-1` (the shell wall between it and the fire
+escape), `deck-10/12/14/16/20` (deck slabs whose only exposed faces sit
+above the 1.3m of headroom on the gantry under a lip — you enter the deck
+by its lip, and every lip still derives and still climbs), `roof-1` (a
+corner), `roof-4`, `roof-5` (the ceiling). `roof-0` stays, honestly: a 3.4m
+jump from the third fire-escape landing, and the controller makes it. Every
+designed route keeps its move: the stacks vault then mantle, the gantries
+vault from the container and mantle from the stack, the fire escape
+alternates 2.0 and 1.7. A dense re-derivation (every 0.25m along each
+approach, three depths, scratch only) agrees on all 56 verdicts, so the
+three samples are not hiding a surface on this map. Full suite **120
+passed / 1 failed (the headless-skipped frame budget), twice, identical**
+(329s and 389s), flaky empty, zero console errors, zero context losses,
+`loopFrames` 0; `unexpectedGreen` empty because the Deliberately-red line
+came out in the same commit. `mapLedges` on the F3 overlay reads 56.
+
+**Found.** The queue expected B3 to leave three deck slabs red for B4.
+They are not red; they are not climbable, and were never climbable from
+where the old rule said. What B4 has left is the plant cell at (21, 17) and
+the ergonomics of the overhanging lips — a crouched approach the census
+makes and a player may not find — which is legibility, not the census.
+Two coplanar faces tie in `raycast()` (whichever the grid lists first), so
+`vent-up-vault-floor` derives as climbable through the lip that shares its
+face plane; same top height, same climb, harmless. B4 re-scoped in
+QUEUE.md; the Deliberately-red list is empty for the first time.
+
+**Left.** B2b still waits on D23. B4 as re-scoped, then B5.

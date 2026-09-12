@@ -29,7 +29,7 @@ import { createMaterialCache, applyContactTint, mergeGeometries } from './mapbak
 import { GENERATORS } from './mapgen.js';
 import { deriveRoomEntries } from './maprooms.js';
 import { deriveWardenGround } from './mapground.js';
-import { deriveClimbableSurfaces, supportHeightBelow, supportCandidates } from './mapclimb.js';
+import { deriveClimbableSurfaces, supportHeightBelow, supportCandidates, supportApproaches } from './mapclimb.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
@@ -244,6 +244,11 @@ export class GameMap {
   /** Every height an actor could be standing on to climb this box, lowest first. */
   _supportCandidates(box) {
     return supportCandidates(this.collision, box);
+  }
+
+  /** Every place a body could stand to climb this box: surface, spot and face. */
+  _supportApproaches(box) {
+    return supportApproaches(this.collision, box);
   }
 
   // -------------------------------------------------------------------------
