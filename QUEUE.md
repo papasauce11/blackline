@@ -195,7 +195,7 @@ budget checks are the ceiling.
   recomputes from them. **Census green**: 56 climbable, 208 approaches, 173
   climbs, 20 need a leg up; nine surfaces (six deck slabs, three roof slabs)
   stop deriving, each for a reason the geometry gives. Deliberately-red list
-  emptied; B4 re-scoped - `<hash>`, 2026-09-12.
+  emptied; B4 re-scoped - `ce75dce`, 2026-09-12.
 - **B2** The bump-and-scuff: a press of Space that carries the hands onto a
   face they cannot get over - beyond reach, or a lip with no room above it -
   pushes the body back, throws the arms up and plays a slap
