@@ -195,7 +195,7 @@ budget checks are the ceiling.
   (tests/routes.js). The done-when's "≤ 10" was written against the
   artifact and is not reachable without deleting route steps; replaced by
   "every stacked climb is on a declared route", which is what it was for -
-  2026-09-13, scheduled run.
+  `542436b`, 2026-09-13, scheduled run.
 - **B2b** The scuff as a noise the Warden hears (D23: quiet, a footstep's
   worth): `Shade.scuffedAt` on the step, Detection emits `scuff` at the hands
   with `noise.radii.shadeScuff`; spec 20.5 amended; check
