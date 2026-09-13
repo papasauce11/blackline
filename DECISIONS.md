@@ -175,6 +175,24 @@ scrape, which reads better but hands the Warden a longer look at a stationary
 target. Nobody has seen or heard it; Josh overrides here.
 **decided:**
 
+### D26 — What the ducts are made of
+B6. Taken: every piece of a vent run - floor, lips, walls, roof - is one
+material, galvanised sheet, `palette.ductMetal` 0xc6d0d6: light and cool,
+against concrete 0x6b7076 and the dark concrete 0x3d4247 of every floor.
+The interior is the same sheet as the outside; it reads lighter than the
+wall it goes through from every approach (the check's readings: 0.27 to
+0.81 Michelson, the thinnest at the north duct's west mouth, which opens
+onto the orange crate stack rather than onto concrete). Reason: Josh's
+interview answer was "metal against concrete", and galvanised is the metal
+a duct is actually made of; a lighter surface also makes the mouth read as
+a tube with an inside rather than as a dark hole. Alternatives: a darker
+gunmetal duct (the gantries' colour) - it would sit at 0.02 to 0.23 against
+the dark floors, which is what the check measured for the concrete ducts
+and is why it went red; or a rib or flange at each mouth, which is baked
+decoration and can come with B7 if the flat sheet does not read. Nobody has
+looked at it; Josh overrides here.
+**decided:**
+
 ## Blocking — waiting on Josh
 
 ### D8 — Does the site ring still read, now the plant is the whole room?

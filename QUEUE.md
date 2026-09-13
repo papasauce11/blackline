@@ -55,10 +55,24 @@ there. The census is the contract; **never weaken it**.
   `every-stacked-climb-is-a-step-of-a-declared-route` green with those
   routes removed, the census's "need a leg up" at the number D25 predicts,
   `the-warden-never-climbs-to-reach-its-ground` and the AI soak unchanged.
-- [ ] **B6 (M)** Legibility — material language. Metal where you pass, concrete
-  where you don't; vents read by contrast (decided). *done-when:* a pixel
-  check measures luminance contrast ≥ 0.25 between every vent interior and
-  its surround from a camera at the approach.
+- [ ] **B5c (S)** A mantle never passes through a solid. Found by B6's
+  approach survey: the ground under the north duct at (-11.11, 0, -16),
+  facing west, W + Space, mantles onto `vent-low-north-lip-from` by its +x
+  face — exposed *under* the duct floor slab from 1.4 to 2.1m — and the body
+  rises straight through `vent-low-north-floor` (y 2.1–2.3) to land in the
+  mouth (traced: feet 2.29 at x -12.85, inside the slab). The rule names the
+  same approach (`handsReachFace` sweeps past the slab because it is "not
+  this box"), and the same at `vent-low-south-lip-from` (+x face) and both
+  `-lip-to` faces (-x, from x -2.89): four approaches whose landing is legal
+  and whose path is not. Section 6.1's safety rule says the destination is
+  validated; the path should be too, in the rule and in `_commitMove` with
+  the same sentence — a face whose top edge is under another solid at the
+  hands is not a ledge. Then `hall-vent-north`'s first stage: its only
+  ground approach is this one (the west mouth opens onto `stack-hall-mid`,
+  level, a walk-in), so the route is redeclared to start at the crate stack.
+  *done-when:* a check sweeps the crouched capsule along every mantle the
+  rule names and finds nothing solid; the per-approach count drops by
+  exactly those four; census, routes and the AI soak unchanged.
 - [ ] **B7 (M)** Legibility — edge profiles and route lighting. Climbable
   lips get a bevel or a lit edge; the main stairless route up in each area is
   lit a step brighter than its surround. The routes are `map.routes` since
@@ -174,6 +188,17 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B6** Legibility — material language. `palette.ductMetal` (galvanised
+  sheet, 0xc6d0d6) on every piece of every vent run, where the ducts were the
+  floor's own dark concrete; the palette comment states the language
+  (concrete is what you do not pass through, metal is what you pass through
+  or climb). The vent record carries its `boxes` and `mouths`. Check
+  `every-vent-mouth-reads-by-contrast-from-its-approach`
+  (tests/legibility.js): from the spot the rule names for a lip or level
+  floor out from a walk-in, the duct and what is seen through the opening
+  each ≥ 0.25 Michelson against the surround, nine mouths, 0.27–0.81 (was
+  0.01–0.23 at eight of nine with concrete ducts). Spec 20.7, D26
+  (provisional). Found B5c - 2026-09-13, scheduled run.
 - **B5** The area pass, measured honestly. The census's "needs a leg up"
   was an artifact (it counted the office desks and missed two fire-escape
   flights); it now means "no climb from ground a walking body reaches"

@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **127 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
-| Next job | the first unblocked `[ ]` in `QUEUE.md` is B6 (M: material language); B5b (rails) waits on D25. B5 done 2026-09-13 (**Blocks A and F are closed**) |
+| AUTO suite | headless, `npm run suite`: **128 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
+| Next job | the first unblocked `[ ]` in `QUEUE.md` is B5c (S: a mantle never passes through a solid, found by B6); then B7 (route lighting). B5b (rails) waits on D25. B6 done 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 58 climbable (56 after B3; B4's open bay gantry adds the two deck slabs beside its void), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes** (`map.routes`, B5), 21 surfaces that need a leg up, every one a stage or landing of a route |
@@ -52,7 +52,7 @@ by interview and is binding:
 | Warden | **Stays grounded.** The asymmetry is the game |
 | The test | **Purely mechanical.** Standable top + within reach ⇒ climbable. No tags, no exceptions, no `noClimb`. The map obeys the rule |
 | Map freedom | Keep the five v2 requirements (Shade starts outside, level 2 is one connected deck, stairless routes up, every room 2+ entries, raised ceilings). Reshape everything else freely |
-| Vents | Read as passable by **material contrast** — metal against concrete |
+| Vents | Read as passable by **material contrast** — metal against concrete. Built as B6 (D26, spec 20.7): `palette.ductMetal` on every piece of a run, and `every-vent-mouth-reads-by-contrast-from-its-approach` measures it from the pixels |
 | Spec | **Amend** Sections 5 and 6.1 with a changelog (phase 47). The changelog exists now — Section 20 — but it holds only the 10.1 plant amendment; 5 and 6.1 are still unamended |
 
 ---
@@ -65,7 +65,7 @@ by interview and is binding:
 | 8–11 | **Reach-based traversal** — jump-extended reach, ground climbs, approach tolerance, input buffering | ✅ done, committed `5c6d571` |
 | 12–18 | **Hang as a held option, and the bump-and-scuff** | ✅ B1 (D21, D22) and B2 done 2026-09-10/11 |
 | 19–34 | **Area rebuild, lockstep** — geometry + controller together, worst area first | ✅ B5 done 2026-09-13: measured honestly, nothing to rebuild; two rule/controller bugs fixed, routes declared, D25 raised |
-| 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | pending |
+| 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | B6 done 2026-09-13: the ducts are galvanised sheet and a pixel check holds the contrast at every mouth; B7 pending |
 | 42–46 | **Feel** — camera, momentum, weight, timing, traversal fuzz | pending |
 | 47–50 | **Close** — amend the spec, re-sweep, Warden sanity, done-definition | pending |
 
@@ -175,6 +175,43 @@ with geometry before B4b closed it in the rule.) The derivation resets
 survives it, and `addSolid()` no longer takes a `climbable` option. The
 rule's sentence: *a surface is climbable when the body could reach its
 face from somewhere it can stand, and fit on top where it lands.*
+
+## The material language, and what the pixels say - B6
+
+Concrete is what you do not pass through: walls, floors, the deck, the
+ground. Metal is what you pass through or climb: the ducts in galvanised
+sheet (`palette.ductMetal`, 0xc6d0d6 - D26, provisional), gantries, deck
+lips and the fire escape in gunmetal. The palette comment in `config.js`
+says so, and `addVentRun()` paints every piece of a run - floor, lips,
+walls, roof - the one metal; before B6 a duct was the floor's own dark
+concrete, and a duct on the floor was the floor.
+
+`every-vent-mouth-reads-by-contrast-from-its-approach`
+(`tests/legibility.js`) is the instrument: for each of the nine mouths
+(`vent.mouths` - a lip is climbed into, a grade run is walked into at both
+ends) it stands where a body arrives - for a lip, the lowest spot the climb
+rule names on that face; for a walk-in, level floor straight out, as far
+back as there is floor - renders, hides the run (`vent.boxes`) and renders
+again, and reads three regions from the difference: what is seen *through*
+the projected opening (the interior), everything the run draws (the body),
+and a band 0.6 openings wide around it (the surround). Both the interior
+and the body must be at least **0.25 Michelson** against the surround.
+Today: 0.27 to 0.81; the thinnest is the north duct's west mouth, walked
+into from the top of `stack-hall-mid` with orange crates as its surround.
+With concrete ducts, eight of nine read 0.01 to 0.23 - that is the check
+proving it measures the material. It costs ~30s a run on SwiftShader.
+
+**B7 lights the routes.** Two things to know: `map.routes` is what to
+light, stage by stage, and this check reads the lit result - the crate-top
+mouth has 0.02 of margin, so light the north duct's route and re-read.
+
+**B5c is next, and it is a bug B6 found rather than built.** The rule
+names a climb onto `vent-low-north-lip-from` from the ground *under* the
+duct, by the lip's +x face exposed beneath the floor slab (1.4-2.1m), and
+the controller makes it: W + Space at (-11.11, 0, -16) facing west
+mantles the body up through `vent-low-north-floor` into the mouth. Four
+such approaches (both low ducts, both lips). The landing is validated
+(B4b), the path is not. `QUEUE.md` has the repro and the shape of the fix.
 
 ---
 
@@ -628,12 +665,15 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8, D25 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25, D26 and the Provisional section of `DECISIONS.md`; Josh answers there.
 
 - **D25**: whether the deck's void edges should carry a rail except at the
   lips, so the duct roofs stop being routes up and a lit lip (B7) means
   *the* way. Recommendation is to accept what the rule found; nothing is
   blocked on it.
+- **D26**: what the ducts look like - galvanised sheet, one colour, no
+  rim. Provisional; the pixels say it contrasts, not that it reads as a
+  duct.
 
 - Whether the **site ring** still reads correctly now that the plant is the
   whole room. Nobody has looked at it since the meaning changed.

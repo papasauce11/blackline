@@ -181,6 +181,12 @@ export const CONFIG = {
 
   // -------------------------------------------------------------------------
   // Palette (Section 4). Faction teal / hazard orange / concrete grey.
+  //
+  // The material language (B6, Section 5 amended): concrete is structure you
+  // do not pass through - walls, floors, the deck, the ground. Metal is what
+  // you pass through or climb - ducts in galvanised sheet, gantries, lips and
+  // the fire escape in gunmetal. A duct says it is passable by being visibly
+  // not the wall it goes through; nothing is painted on it to say so.
   // -------------------------------------------------------------------------
   palette: {
     shadeTeal: 0x2fd6c3,
@@ -189,6 +195,8 @@ export const CONFIG = {
     wardenGunmetal: 0x4a5158,
     concrete: 0x6b7076,
     concreteDark: 0x3d4247,
+    /** Galvanised sheet: the ducts. Light and cool against every concrete. */
+    ductMetal: 0xc6d0d6,
     hazardOrange: 0xf28c1a,
     hazardStripe: 0x1c1f22,
     signageTeal: 0x2fd6c3,

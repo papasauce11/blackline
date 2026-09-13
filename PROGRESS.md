@@ -4424,3 +4424,97 @@ knowing for B6/B7: `map.routes` is the list of what to light, and the census
 stops at the first floor climb per box (as designed), so its "approaches"
 count moves with what succeeds first — the per-approach check's 151 is the
 stable number.
+
+## B6 — legibility: the material language (2026-09-13, scheduled run)
+
+The job said: metal where you pass, concrete where you don't; vents read
+by contrast, which the interview decided. Done-when: a pixel check measures
+luminance contrast ≥ 0.25 between every vent interior and its surround from
+a camera at the approach.
+
+**Found, before building anything.** The ducts were `P.concreteDark` — the
+same colour as the ground plane, the deck, and the fence. A duct through a
+`P.concrete` wall was a slightly darker patch of the wall; a duct sitting
+on the floor was the floor. The comment in `addVentRun()` already said what
+it should be ("a duct says it is passable by being visibly a duct - metal,
+rimmed, person-sized") and nothing had built it.
+
+**Built.** Small, on purpose: the vocabulary and one use of it.
+
+1. *The palette states the language.* `palette.ductMetal` (0xc6d0d6,
+   galvanised sheet) joins the table, and the comment above the palette
+   says what the colours mean now: concrete is structure you do not pass
+   through — walls, floors, the deck, the ground; metal is what you pass
+   through or climb — ducts in galvanised sheet, gantries, deck lips and
+   the fire escape in the gunmetal they already were. The gantries and lips
+   were already metal; the ducts were the one thing you pass through that
+   was painted as a thing you do not.
+
+2. *Every piece of a vent run is that metal.* Floor, lips, walls, roof, in
+   `addVentRun()` — one material, so the interior is the same sheet as the
+   outside and the mouth reads as a tube with an inside. The run record
+   now carries `boxes` (every collision box it built, so a check can hide
+   it) and `mouths` (which ends a body arrives at: a lip is climbed into, a
+   run at grade is walked into at both ends; the upper vent's far end,
+   which opens upward through the vault hatch, is not a mouth).
+
+3. *The check, `every-vent-mouth-reads-by-contrast-from-its-approach`*
+   (`tests/legibility.js`, a new file — B7's checks go there too). For each
+   mouth it stands where a body arrives: for a lip, the lowest spot the
+   climb rule itself names on the mouth's face (`_supportApproaches`), so
+   the camera is where the census stands; for a walk-in, level floor
+   straight out along the run, as far back as there is floor — 3m on the
+   hall floor, 2.5m at the west grade mouth (the fence is at 3), 1m at the
+   north duct's west mouth, which opens onto the top of `stack-hall-mid`
+   and is walked into from the crate. Eye height, looking at the opening's
+   centre. Then: render, hide the run's boxes, render again; the difference
+   is the duct's pixels. The opening's four corners are projected through
+   the camera into a quad; duct pixels inside it are the **interior** (what
+   is seen through the mouth), all duct pixels are the **body**, and every
+   other pixel in a band 0.6 openings wide around the quad is the
+   **surround** — the wall it goes through, the floor under it, nothing
+   further. Michelson contrast, |a−b|/(a+b) of the mean lumas, for interior
+   and body against the surround, each ≥ 0.25. Michelson rather than a luma
+   difference because a duct in the dark vault and one in the lit hall are
+   the same material and should read the same; the vault mouth reads 31
+   against 3 and a difference would have called that invisible.
+
+**Verified.**
+- With the metal, nine mouths: north duct west 0.27 / 0.28 (117 and 118
+  against 67 — the crate-top approach, where the surround is the orange
+  stack, not concrete), north east 0.55, south west 0.48, south east
+  0.52 / 0.41, vault 0.81, grade-west 0.63 / 0.53, grade-south 0.53 / 0.47.
+- With the ducts put back to `concreteDark`: eight of nine mouths red, the
+  readings 0.01 to 0.23 (*"vent-low-north (to): the interior reads 22.7
+  against a surround of 24.6, contrast 0.04"*). The one that passes is the
+  crate-top mouth, where a dark duct against orange paint contrasts the
+  other way. So the check measures the material and not the lighting.
+- The check takes ~30s on SwiftShader (19 full-frame grabs); the full run
+  grows by about that.
+- Full suite **128 passed / 1 failed (the headless-skipped frame budget), twice,
+  identical (326s and 402s), flaky empty, zero console errors, zero context
+  losses, `loopFrames` 0**.
+
+**Found, and queued as B5c.** Surveying the approaches to the lips, the
+rule names a climb onto `vent-low-north-lip-from` from the ground *under
+the duct*, by the lip's +x face, which is exposed beneath the floor slab
+from 1.4 to 2.1m. Traced with the real controller (W + Space from
+(-11.11, 0, -16) facing west): state `mantle` from the ground, feet 2.29 at
+x −12.85 — inside `vent-low-north-floor` (y 2.1–2.3) — landing in the
+mouth at 2.43. The body passes through the duct floor. The same four
+approaches exist at the south duct's lip-from and both lips-to. The
+landing capsule is clear (that is what B4b validates) and the path is not;
+Section 6.1's safety rule speaks of the destination only, and `handsReachFace`
+sweeps past the slab because it is "not this box". Fixing it changes no
+rule of the game — nobody meant a duct floor to be climbed through from
+underneath — but it touches the rule, the controller and the
+`hall-vent-north` route declaration (its only ground approach is this
+one; the honest first stage is the crate stack), so it is its own job, S.
+
+**Not built.** No rim or flange at the mouths (baked decoration; D26 lists
+it as the alternative if the flat sheet does not read), no change to
+gantries, lips or the fire escape (already gunmetal), no lighting — that is
+B7, and B7 should know the thinnest reading is the crate-top mouth at 0.27,
+with orange paint as its surround.
+
+**Left.** D26 for Josh (how the metal looks). B5c is next; B7 after it.

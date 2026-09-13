@@ -747,3 +747,29 @@ every stage climbs from the stage below by the rule, the first from ground a
 walking body reaches within a standing reach, and every stacked climb the
 rule allows is on some route. A stacked climb no route explains is a
 decision (D25), not an accident.
+
+### 20.7 Sections 4 and 5 - vents read by material, not by a marking
+
+> *"Vents: read as passable by material contrast - metal against concrete."*
+> (the redesign interview, 2026-09)
+
+Section 5's marking table gave a vent entrance a dim self-illuminated
+interior panel; Section 5 amended took every affordance marking away and
+left the duct the same concrete as the floor it sits on. B6 (2026-09-13)
+gives the environment a **material language**: concrete is structure you do
+not pass through - walls, floors, the deck, the ground; metal is what you
+pass through or climb - the ducts in galvanised sheet (`palette.ductMetal`),
+gantries, deck lips and the fire escape in gunmetal. A duct says it is
+passable by being visibly not the wall it goes through. Nothing is painted
+on it, nothing glows, and the collision flags do not know the colour.
+
+Held by `every-vent-mouth-reads-by-contrast-from-its-approach`
+(tests/legibility.js): from where a body arrives at each mouth - the spot
+the climb rule names for a lip, or level floor straight out from a walk-in
+- the duct and what is seen through its opening each read at Michelson
+contrast >= 0.25 against the concrete around the opening, measured from the
+rendered pixels. Michelson because a duct in the dark vault and one in the
+lit hall are the same material and should read the same; a difference in
+luma would call the dark one invisible. Whether metal-against-concrete
+*reads as a duct* to a person is not a pixel question and stays with Josh
+(D26).

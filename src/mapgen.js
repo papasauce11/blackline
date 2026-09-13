@@ -317,15 +317,22 @@ export const GENERATORS = {
     const c1 = spec.cross + halfW;
     const wallT = 0.12;
 
-    const span = (a0, a1, cMin, cMax, vy0, vy1, tag, flags) =>
-      this.addSolid({
+    // Every piece of the run is one material, and that material is not the
+    // wall's: the duct is galvanised sheet, the shell and floors are concrete.
+    // Section 5, amended: a duct reads as passable by that contrast alone.
+    const boxes = [];
+    const span = (a0, a1, cMin, cMax, vy0, vy1, tag, flags) => {
+      const box = this.addSolid({
         min: alongX ? [a0, vy0, cMin] : [cMin, vy0, a0],
         max: alongX ? [a1, vy1, cMax] : [cMax, vy1, a1],
-        color: P.concreteDark,
+        color: P.ductMetal,
         castShadow: false,
         tag,
         ...flags,
       });
+      boxes.push(box);
+      return box;
+    };
 
     if (spec.floor !== false) {
       span(spec.from, spec.to, c0, c1, y0 - M.ventFloorDepth, y0, `${spec.tag}-floor`, {});
@@ -346,16 +353,31 @@ export const GENERATORS = {
 
     // Section 5, amended: the self-illuminated interior panel is gone with the
     // rest of the affordance markings. A duct says it is passable by being
-    // visibly a duct - metal, rimmed, person-sized - not by glowing.
+    // visibly a duct - metal, person-sized - not by glowing. The legibility
+    // check (tests/legibility.js) stands at each mouth's approach and
+    // measures that the metal reads against the concrete around it.
+
+    // Which ends are mouths a body arrives at: a lip is climbed into, and a
+    // run at grade is walked into at both ends. A run with neither at an end
+    // (the upper vent's far end, which opens upward through the vault hatch)
+    // has no approach there to measure from.
+    const grade = spec.floorY <= M.groundY + CUT_EPSILON;
+    const mouths = [];
+    if (grade || spec.lipAt === 'from' || spec.lipAt === 'both') mouths.push('from');
+    if (grade || spec.lipAt === 'to' || spec.lipAt === 'both') mouths.push('to');
 
     const record = {
       tag: spec.tag,
       axis: spec.axis,
       min: new THREE.Vector3(alongX ? spec.from : c0, y0, alongX ? c0 : spec.from),
       max: new THREE.Vector3(alongX ? spec.to : c1, y1, alongX ? c1 : spec.to),
-      grade: spec.floorY <= M.groundY + CUT_EPSILON,
+      grade,
       /** Underside of the duct, so a wall opening clears the floor slab too. */
       underside: spec.floor === false ? y0 : y0 - M.ventFloorDepth,
+      /** Every collision box the run is built from, so a check can hide it. */
+      boxes,
+      /** @type {('from'|'to')[]} the ends a body arrives at */
+      mouths,
     };
     this.vents.push(record);
     return record;

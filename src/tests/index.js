@@ -23,6 +23,7 @@ import { register as registerScuff } from './scuff.js';
 import { register as registerReadability } from './readability.js';
 import { register as registerDeck } from './deck.js';
 import { register as registerRoutes } from './routes.js';
+import { register as registerLegibility } from './legibility.js';
 import { register as registerWarden } from './warden.js';
 import { register as registerDetection } from './detection.js';
 import { register as registerAI } from './ai.js';
@@ -55,6 +56,7 @@ export function registerAutoTests(debugTools) {
   registerReadability(debugTools);
   registerDeck(debugTools);
   registerRoutes(debugTools);
+  registerLegibility(debugTools);
   registerWarden(debugTools);
   registerDetection(debugTools);
   registerAI(debugTools);
