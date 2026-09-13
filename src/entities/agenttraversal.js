@@ -127,8 +127,10 @@ export const TRAVERSAL = {
    * From a hang there is no push - the body is already where it should be -
    * only the pose and the sound.
    *
-   * It is a sound the player hears, not a noise the Warden does: nothing is
-   * added to the noise field here. Whether it should be is D23.
+   * It is also a noise the Warden can hear (D23: quiet, a footstep's worth).
+   * Like the landing, the controller only records that it happened and where
+   * - `scuffedAt`, read by Detection in the same fixed step - because the
+   * noise field is Detection's, and an entity does not reach up into it.
    *
    * @param {{rise:number, reach:number, hitX:number, hitZ:number, dirX:number, dirZ:number, box:object}} face
    * @param {boolean} bump push the body back off the face
@@ -141,9 +143,11 @@ export const TRAVERSAL = {
     }
     this._scuffTimer = S.scuffPoseTime;
     this.scuffs++;
+    const handsY = this.feetY + Math.min(face.rise, face.reach);
+    this.scuffedAt = { x: face.hitX, y: handsY, z: face.hitZ };
     if (this.emitter) {
       this.emitter.emit('shade:scuff', {
-        x: face.hitX, y: this.feetY + Math.min(face.rise, face.reach), z: face.hitZ,
+        x: face.hitX, y: handsY, z: face.hitZ,
         rise: face.rise, reach: face.reach, tag: face.box ? face.box.tag : '', hanging: !bump,
       });
     }

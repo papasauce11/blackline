@@ -45,11 +45,6 @@ next gate job, if one is found, goes here.
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
 there. The census is the contract; **never weaken it**.
 
-- [ ] **B2b (S)** The scuff as a noise the Warden hears - **blocked: D23.**
-  One `emit('noise', ...)` in `Shade._scuff()` with a radius named in
-  `config.js`; the AI's hearing already turns toward noise events.
-  *done-when:* a check scuffs within the radius and asserts the Warden's
-  `lastKnown` moves to the wall, and outside it does not.
 - [ ] **B5 (L)** Area pass, worst first, by the "needs a leg up" count:
   make every stacked route intentional — a readable first step, no dead
   climbs that lead nowhere. Keep the five v2 requirements. **Do not** add or
@@ -173,6 +168,11 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B2b** The scuff as a noise the Warden hears (D23: quiet, a footstep's
+  worth): `Shade.scuffedAt` on the step, Detection emits `scuff` at the hands
+  with `noise.radii.shadeScuff`; spec 20.5 amended; check
+  `a-scuff-is-a-noise-the-warden-in-the-room-hears` - 2026-09-12, Josh's
+  session.
 - **B4b** The landing is part of the approach: `landingSpot()` /
   `landingFits()` in `mapclimb.js` mirror `Shade._ledgeDestination` and
   `_commitMove`, `supportApproaches()` drops a spot the body cannot land

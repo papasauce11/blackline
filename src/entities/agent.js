@@ -122,6 +122,8 @@ export class Shade {
     this.strideDistance = 0;
     /** Set on the step a landing happens, for Phase 5 noise. Cleared each step. */
     this.landedFallHeight = 0;
+    /** Where the hands hit on the step a scuff happens, for the noise (D23). Cleared each step. */
+    this.scuffedAt = null;
 
     this.cameraRig = new THREE.Object3D();
     this.cameraRig.name = 'shade-camera-rig';
@@ -178,6 +180,7 @@ export class Shade {
     this._scuffTimer = 0;
     this.strideDistance = 0;
     this.landedFallHeight = 0;
+    this.scuffedAt = null;
     this._swingTimer = 0;
     this._smoothPosition.copy(this.position);
     this._cameraDistance = S.camera.back;
@@ -229,6 +232,7 @@ export class Shade {
    */
   step(dt, intent) {
     this.landedFallHeight = 0;
+    this.scuffedAt = null;
     if (this._slideCooldown > 0) this._slideCooldown -= dt;
     // The height the jump bonus is measured against. While the feet are on
     // something this is simply where they are; the moment the body leaves, it

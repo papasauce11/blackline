@@ -21,8 +21,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **123 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
-| Next job | the first `[ ]` in `QUEUE.md` is B5 (L: the area pass, a whole run); B2b waits on D23 (**Blocks A and F are closed**) |
+| AUTO suite | headless, `npm run suite`: **124 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
+| Next job | the first `[ ]` in `QUEUE.md` is B5 (L: the area pass, a whole run); B2b done 2026-09-12 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 58 climbable (56 after B3; B4's open bay gantry adds the two deck slabs beside its void), Warden ground one connected component, with a column of cells down each vault rack aisle since B4 |
@@ -323,10 +323,14 @@ the hands-up pose for `scuffPoseTime` (agentvisual.js) and emits
 One tell per press: the scuff spends the arm. A blocked pull-up from a hang
 gives the pose and the sound without the push, on the press and on the
 first step if Space was held through the grab, never repeating while held.
-D24 records the look and sound as provisional; D23 asks whether the Warden
-should hear it (today: no noise event). Check: tests/scuff.js, which stages
-a lid of real collision over a hangable lip to make a blocked pull-up, since
-no lip on this map has one.
+D24 records the look and sound as provisional. D23 (decided 2026-09-12,
+built as B2b) makes it a noise the Warden hears: the controller records
+`scuffedAt` on the step, Detection emits a `scuff` event of
+`noise.radii.shadeScuff` there in the same fixed step, the way the landing
+works. Checks: tests/scuff.js, which stages a lid of real collision over a
+hangable lip to make a blocked pull-up, since no lip on this map has one;
+and `a-scuff-is-a-noise-the-warden-in-the-room-hears`, which stands a Warden
+along the wall inside and outside the radius, facing away.
 
 ## The game does not play itself under the suite - F4
 

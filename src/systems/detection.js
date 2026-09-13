@@ -387,6 +387,16 @@ export class Detection {
       );
     }
 
+    // A failed climb's slap (D23; B2b). Where the hands hit, which is up the
+    // wall rather than at the feet, so on the floor it carries a little less
+    // far than a footstep of the same radius.
+    if (shade.scuffedAt) {
+      this.noise.emit(
+        shade.scuffedAt.x, shade.scuffedAt.y, shade.scuffedAt.z,
+        silent ? N.radii.shadeVent : N.radii.shadeScuff, 'scuff', 'shade'
+      );
+    }
+
     // Slide, on entry only, not once per step for its whole 0.8s.
     if (shade.state === 'slide' && this._lastShadeState !== 'slide') {
       this.noise.emit(

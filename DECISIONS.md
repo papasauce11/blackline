@@ -260,7 +260,8 @@ Options:
 Recommendation: **2**. It is one `emit('noise', ...)` in `_scuff()` with a
 radius named in `config.js`, and the existing noise checks would cover it. Not
 blocking anything; a follow-up job takes it when decided.
-**decided:**
+**decided:** option 2, a quiet noise event around the Shade footstep's
+radius. Josh, 2026-09-12, in session. Built as B2b.
 
 ### D13 — Rooms, sites and spawns on the first map
 B5 may want to move a site or a spawn, or merge two rooms, to make a stacked

@@ -15,6 +15,7 @@
 
 import { CONFIG } from '../config.js';
 import { SHADE_STATE } from '../entities/agent.js';
+import { AI_STATE } from '../systems/ai.js';
 import { driveAtLedge, findGroundLedge } from './movement.js';
 
 const S = CONFIG.shade;
@@ -168,6 +169,124 @@ export function register(debugTools) {
       }
 
       return { pass: false, detail: problems.join('; ') };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'a-scuff-is-a-noise-the-warden-in-the-room-hears',
+    spec: 'Section 7.2; D23 (B2b)',
+    name: 'A failed climb puts a footstep-sized noise on the wall: a Warden within it turns to the wall, one beyond it does not',
+    run: (h) => {
+      const problems = [];
+      const R = CONFIG.noise.radii;
+      const fullReach = S.reach.standing + S.reach.jumpBonus;
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: false });
+      const shade = h.shade;
+      const warden = h.warden;
+      const ai = h.wardenAI;
+      const noise = h.detection.noise;
+
+      const wall = findTallFace(h, fullReach + 0.3);
+      if (!wall) return { pass: false, detail: `no ground-level face at least ${(fullReach + 0.3).toFixed(1)}m tall with a clear approach was found` };
+      const tag = wall.box.tag || 'the wall';
+
+      // Stand the Warden `distance` along the wall from where the hands will
+      // land, on the floor, facing away from the Shade so nothing here is a
+      // sighting. The scuff sits at the hands, up the wall, so the floor
+      // distance that counts is the radius less that height.
+      const handsY = CONFIG.map.groundY + Math.min(wall.box.max.y - CONFIG.map.groundY, fullReach);
+      const hitX = wall.x - Math.sin(wall.yaw) * 0.8;
+      const hitZ = wall.z - Math.cos(wall.yaw) * 0.8;
+      const alongX = Math.cos(wall.yaw);
+      const alongZ = -Math.sin(wall.yaw);
+      const place = (distance) => {
+        ai.reset();
+        noise.clear();
+        warden.reset(h.map.wardenSpawns[0]);
+        warden.position.set(hitX + alongX * distance, CONFIG.warden.standHeight / 2 + 0.05, hitZ + alongZ * distance);
+        warden.yaw = Math.atan2(-alongX, -alongZ);
+        warden.velocity.set(0, 0, 0);
+      };
+
+      /** Drive the press and read, on the scuff step, what the Warden heard and knew. */
+      const scuffAndRead = () => {
+        const { x, z, yaw } = wall;
+        shade.reset({ position: { x, y: CONFIG.map.groundY, z }, yaw });
+        h.stepFrames(2);
+        h.input.clearAll();
+        h.input.heldCodes.add('KeyW');
+        const start = shade.scuffs;
+        let read = null;
+        for (let i = 0; i < 40 && !read; i++) {
+          if (i === 5) {
+            h.input.heldCodes.add('Space');
+            h.input.pressedCodes.add('Space');
+          }
+          h.stepFrames(1);
+          h.input.clearEdges();
+          h.input.heldCodes.delete('Space');
+          if (shade.scuffs > start) {
+            // The field has the event on the scuff step itself; the AI steps
+            // before Detection in the fixed step, so it hears it on the next.
+            const heard = noise.heard(warden.position);
+            const at = shade.scuffedAt ? { ...shade.scuffedAt } : null;
+            h.stepFrames(1);
+            read = {
+              at,
+              heard: heard ? { type: heard.type, source: heard.source, radius: heard.radius } : null,
+              lastKnown: ai.lastKnown ? { ...ai.lastKnown } : null,
+              state: ai.state,
+              sees: ai.sees,
+            };
+          }
+        }
+        h.input.clearAll();
+        return read;
+      };
+
+      const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+      try {
+        // Within: a couple of metres along the wall.
+        place(2.0);
+        const near = scuffAndRead();
+        if (!near) problems.push(`the press into ${tag} never scuffed`);
+        else {
+          if (!near.at) problems.push('the scuff step did not record scuffedAt');
+          else if (Math.abs(near.at.y - handsY) > 0.6) problems.push(`the scuff sits at y=${near.at.y.toFixed(2)}, want the hands at about ${handsY.toFixed(2)}`);
+          if (near.sees) problems.push('the Warden could see the Shade, so this read nothing about hearing');
+          if (!near.heard) problems.push(`a Warden 2.0m along the wall heard nothing on the scuff step`);
+          else {
+            if (near.heard.type !== 'scuff') problems.push(`the Warden heard a ${near.heard.type}, not the scuff`);
+            if (near.heard.radius !== R.shadeScuff) problems.push(`the scuff carried ${near.heard.radius}m, config says ${R.shadeScuff}`);
+          }
+          if (!near.lastKnown) problems.push('the Warden within earshot has no lastKnown after the scuff');
+          else if (near.at && dist(near.lastKnown, near.at) > 0.3) {
+            problems.push(`the Warden's lastKnown is ${dist(near.lastKnown, near.at).toFixed(2)}m from the hands on the wall`);
+          }
+          if (near.state !== AI_STATE.SUSPICIOUS) problems.push(`the Warden within earshot is ${near.state}, not suspicious`);
+        }
+
+        // Beyond: twice the radius along the wall.
+        place(R.shadeScuff * 2 + 1);
+        const far = scuffAndRead();
+        if (!far) problems.push(`the second press into ${tag} never scuffed`);
+        else {
+          if (far.heard && far.heard.type === 'scuff') problems.push(`a Warden ${(R.shadeScuff * 2 + 1).toFixed(0)}m away heard the scuff (${far.heard.radius}m)`);
+          if (far.lastKnown && far.at && dist(far.lastKnown, far.at) < 1.0) problems.push('a Warden beyond earshot still turned to the wall');
+        }
+      } finally {
+        h.input.clearAll();
+        h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+        h.menu.hide();
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `a scuff on ${tag} is a ${R.shadeScuff}m noise at the hands: a Warden 2.0m along the wall, facing away, heard it on the `
+            + `scuff step, took it as last-known and went suspicious; one ${(R.shadeScuff * 2 + 1).toFixed(0)}m away heard nothing`
+          : problems.join('; '),
+      };
     },
   });
 }

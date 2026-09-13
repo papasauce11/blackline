@@ -715,5 +715,9 @@ destination is blocked gives the arms and the slap without the push; letting
 go remains the crouch key's job (20.4). A walk-off into a face with nothing
 pressed is not a climb (20.2) and gets no tell.
 
-The slap is the player's audio. Whether it is also a noise the Warden hears
-is open (D23); until decided it is not in the noise field.
+The slap is the player's audio, and (D23, 2026-09-12) also a **noise** in
+Section 7.2's sense: a footstep's worth, `noise.radii.shadeScuff`, placed
+where the hands hit - up the wall, not at the feet, so on the floor it
+carries a little less far than a footstep of the same radius. A Warden in
+the room looks up; one two rooms away hears nothing. Inside a duct it is as
+silent as everything else there.

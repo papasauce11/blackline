@@ -4275,3 +4275,43 @@ after removing it, and `h.map.ledges` is rebuilt each time, so nothing is
 left behind for `perchesInSiteRooms` to find.
 
 **Left.** B2b waits on D23. B5 is next and is an L: its own run.
+
+## B2b — the scuff is a noise the Warden hears (2026-09-12, Josh's session)
+
+Josh answered D23 in one line: the quiet option. A failed climb's slap on
+the wall goes into the noise field at a footstep's radius, so a Warden in
+the room looks up and one two rooms away hears nothing.
+
+**Built.** Not as the queue item literally said - "one `emit('noise')` in
+`_scuff()`" - because the noise field is Detection's and an entity does not
+reach up into a system (Section 3.1). Instead the landing's pattern: the
+controller records `Shade.scuffedAt` (where the hands hit, at the hands'
+height) on the scuff step and clears it at the top of the next; Detection's
+`_emitShadeNoise()` reads it in the same fixed step and emits a `scuff`
+event of `noise.radii.shadeScuff` (4m, beside `shadeLanding`) there, or the
+vent radius inside a duct like everything else. Audio already plays the slap
+from `shade:scuff` and ignores the `scuff` noise type, so nothing sounds
+twice. The AI's hearing needed nothing: it is a distance test against live
+events, and the event is where the hands hit, up the wall - so on the floor
+the effective radius is a little under the nominal 4m. Spec 20.5's open
+paragraph closed.
+
+**Verified.** New check `a-scuff-is-a-noise-the-warden-in-the-room-hears`:
+the AI on, the Warden stood 2.0m along the wall from the hands, on the floor,
+facing away so nothing is a sighting; the press drives the real keys; on the
+scuff step the field reports a `scuff` of the configured radius at the
+Warden's position, and one step later - the AI steps before Detection in the
+fixed step, so it hears on the next - `lastKnown` is within 0.3m of the hands
+and the state is SUSPICIOUS. Then the Warden 9m along the wall hears nothing
+and does not turn. With Detection's emission stubbed out it is red in its own
+words ("a Warden 2.0m along the wall heard nothing on the scuff step; ...
+patrol, not suspicious"). Full suite **124 passed / 1 failed, twice,
+identical**, flaky empty, zero console errors.
+
+**Found.** The approach walk emits no footstep before the press - a reset
+rewinds the odometer and the body moves under half a metre in five steps -
+which is what lets the check attribute what the Warden heard to the scuff
+and nothing else. Worth knowing for any future hearing check: a Warden
+within 4m of the Shade's feet hears the *walk* first.
+
+**Left.** B5 is next, an L: the area pass.

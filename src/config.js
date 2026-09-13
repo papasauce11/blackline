@@ -480,6 +480,11 @@ export const CONFIG = {
       shadeWalk: 4,
       shadeSprint: 12,
       shadeLanding: 10,
+      /**
+       * A failed climb's slap on the wall (D23): a footstep's worth, so the
+       * Warden in the room looks up and the one two rooms away hears nothing.
+       */
+      shadeScuff: 4,
       shadeSlide: 6,
       shadeVent: 0,
       wardenWalk: 8,
