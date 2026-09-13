@@ -171,8 +171,8 @@ budget checks are the ceiling.
 - **B2b** The scuff as a noise the Warden hears (D23: quiet, a footstep's
   worth): `Shade.scuffedAt` on the step, Detection emits `scuff` at the hands
   with `noise.radii.shadeScuff`; spec 20.5 amended; check
-  `a-scuff-is-a-noise-the-warden-in-the-room-hears` - 2026-09-12, Josh's
-  session.
+  `a-scuff-is-a-noise-the-warden-in-the-room-hears` - `ae8725e`,
+  2026-09-12, Josh's session.
 - **B4b** The landing is part of the approach: `landingSpot()` /
   `landingFits()` in `mapclimb.js` mirror `Shade._ledgeDestination` and
   `_commitMove`, `supportApproaches()` drops a spot the body cannot land
