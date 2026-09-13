@@ -71,7 +71,7 @@ function wideTop(box) {
  * be asked of the box's quarter points instead - "standable somewhere" - and
  * on a 38m deck slab somewhere can be twenty metres from the face.
  */
-function landingFits(h, box, approach) {
+export function landingFits(h, box, approach) {
   const spot = landingSpot(box, { nx: approach.nx, nz: approach.nz }, approach.x, approach.z);
   const half = { x: S.radius, y: S.crouchHeight / 2, z: S.radius };
   return h.map.collision.isClear({ x: spot.x, y: box.max.y + half.y + S.mantleClearance, z: spot.z }, half);
@@ -128,6 +128,40 @@ function bodyHeightAt(h, stand, feet) {
     if (h.map.collision.isClear({ x: stand.x, y: feet + half.y + 0.02, z: stand.z }, half)) return height;
   }
   return null;
+}
+
+/**
+ * Is the surface at `feet` under this spot somewhere a body WALKS to - a
+ * floor, the deck, a stair tread, the apron - rather than something it had
+ * to climb first? `map.wardenGround` is exactly that set: every cell a
+ * walking body reaches from a spawn (A1), and nothing a crate top, a gantry
+ * or a duct floor could ever be in.
+ *
+ * "From the floor" used to mean `heights[0]`, the lowest thing a short ray
+ * found under the spot, and that was an artifact twice over: under anything
+ * on the deck it found the ground floor six metres down, so a desk you walk
+ * up to and vault was "a leg up"; and over a crate the ray started inside the
+ * crate and found nothing, so a fire-escape flight whose one stand spot lay
+ * above the base crate was "from the floor". B5 measured the map with this
+ * and the honest count is what QUEUE.md's threshold now reads against.
+ *
+ * A neighbourhood, not a point. The ground was flooded for the Warden's
+ * body, 0.84m across on a 0.5m grid, and the Shade is 0.68m: the mouth of a
+ * grade duct is a 1.0m slot the Shade walks into from the floor and no
+ * Warden cell ever lands in. So a spot counts as walkable when walkable
+ * ground at its height is within `WALKABLE_NEAR` of it - floors are
+ * continuous, and nothing a body climbs onto has ground at its own level
+ * that close (a crate top is a metre above the floor cells around it; a
+ * fire-escape landing flush with the deck is ground, and should be).
+ */
+const WALKABLE_NEAR = 1.0;
+export function onWalkableGround(h, stand, feet) {
+  const ground = h.map.wardenGround;
+  if (!ground) return false;
+  const step = CONFIG.warden.stepHeight;
+  const at = { x: stand.x, y: feet, z: stand.z };
+  if (ground.has(at, step)) return true;
+  return ground.cellsWithin(at, WALKABLE_NEAR).some((cell) => Math.abs(cell.y - feet) <= step);
 }
 
 /**
@@ -337,8 +371,7 @@ export function register(debugTools) {
               if (!attemptClimb(h, box, face, stand, feet, height)) continue;
               climbs++;
               climbedAny = true;
-              // heights[0] is the lowest thing under this spot: the floor.
-              if (i === 0) {
+              if (onWalkableGround(h, stand, feet)) {
                 climbedFromFloor = true;
                 break;
               }
@@ -393,7 +426,11 @@ export function register(debugTools) {
       // Reported, not failed. A surface you have to climb something else to get
       // to is the whole point of a stacked route — it is only worth knowing how
       // much of the map is behind one, because that is the part a player cannot
-      // reach by walking up to it.
+      // reach by walking up to it. The full list is B5's work queue, so it goes
+      // to the F4 log in full the way the failure list does.
+      if (needsALegUp.length) {
+        debugTools.logResult(`census: ${needsALegUp.length} need a leg up: ${needsALegUp.join(', ')}`);
+      }
       const legUp = needsALegUp.length
         ? `; ${needsALegUp.length} need a leg up first (${needsALegUp.slice(0, 5).join(', ')}`
           + `${needsALegUp.length > 5 ? ', ...' : ''})`
@@ -409,6 +446,68 @@ export function register(debugTools) {
             + `${unreachable ? ` (${unreachable} with nothing in reach of them)` : ''}. Worst area: `
             + `"${worst}" with ${byArea[0][1].length}. By area: `
             + byArea.map(([area, list]) => `${area} ${list.length}`).join(', ') + legUp,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'every-approach-the-rule-names-is-a-climb-the-controller-makes',
+    spec: 'Section 5, amended',
+    name: 'Stand exactly where the rule says you can, and the climb it promises happens',
+    run: (h) => {
+      // The census above needs ONE climb per box, and that let two
+      // disagreements hide for four phases (B5): the rule said the duct roofs
+      // were a jump from the hall floor, and the controller scuffed there -
+      // its sweep stopped at the duct floor's side, a climbable box whose
+      // climb could not commit, and never looked higher; and the rule named
+      // a jump from a duct mouth onto the deck edge 1.41m away, further than
+      // the air probe reaches, with the duct's wall in the hands' way. Both
+      // boxes climbed from somewhere else, so the census was green. This
+      // check takes the rule at its word, sentence by sentence: every
+      // approach it names within reach, from the spot it names, on the
+      // surface it names, with the keys a player holds.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      h.setPaused(false);
+
+      const failed = [];
+      let named = 0;
+      let climbs = 0;
+      for (const box of h.map.collision.boxes) {
+        if (!box.climbable) continue;
+        for (const approach of h.map._supportApproaches(box)) {
+          const move = classifyReach(approach.rise, FULL_REACH);
+          if (move === null || move === 'step') continue;
+          if (!landingFits(h, box, approach)) continue;
+          named++;
+          const stand = { x: approach.x, z: approach.z };
+          const height = bodyHeightAt(h, stand, approach.y);
+          const face = { nx: approach.nx, nz: approach.nz };
+          const scuffsBefore = h.shade.scuffs;
+          if (height !== null && attemptClimb(h, box, face, stand, approach.y, height)) {
+            climbs++;
+            continue;
+          }
+          const side = approach.nx > 0 ? '+x' : approach.nx < 0 ? '-x' : approach.nz > 0 ? '+z' : '-z';
+          failed.push(`${box.tag || 'box'} from ${approach.box.tag || 'box'} (${side} face, rise `
+            + `${approach.rise.toFixed(2)} at ${approach.x.toFixed(2)},${approach.z.toFixed(2)}): `
+            + `${height === null ? 'no body fits at the spot' : h.shade.scuffs > scuffsBefore ? 'scuffed' : 'did not get on top'}`);
+        }
+      }
+
+      h.input.clearAll();
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+
+      if (failed.length) {
+        debugTools.logResult(`rule: ${failed.length} named approaches the controller does not make`);
+        for (const line of failed) debugTools.logResult(`  ${line}`);
+      }
+      return {
+        pass: failed.length === 0,
+        detail: failed.length === 0
+          ? `${named} approaches named by the rule within reach, ${climbs} climbed, every one from its own spot`
+          : `${failed.length} of ${named} approaches the rule names do not climb: ${failed.slice(0, 3).join('; ')}`,
       };
     },
   });

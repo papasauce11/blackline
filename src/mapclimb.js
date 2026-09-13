@@ -36,6 +36,20 @@ const HAND_HALF = { x: 0.05, y: 0.05, z: 0.05 };
  */
 const LANDING_FORWARD = S.radius + 0.3;
 
+/**
+ * How far in front of the body the hands reach for a face of this rise, as
+ * the controller probes it (B5). A rise within standing reach is climbed
+ * from the ground, where `_tryClimbFromGround` probes `vaultReach` ahead; a
+ * taller one needs the jump and is caught in the air, where `_tryMantle`
+ * probes `mantleReach` - 0.15m less. The rule used the longer distance for
+ * every rise and so named a jump from the mouth of a duct onto the deck edge
+ * 1.41m away, with the duct's own wall 0.3m in front of the hands; the
+ * controller, probing 1.29m in the air, met the wall and scuffed.
+ */
+function handReach(rise) {
+  return rise > S.reach.standing ? S.mantleReach : S.vaultReach;
+}
+
 
 /**
  * Decide which surfaces are climbable, from the geometry and the body alone.
@@ -173,14 +187,15 @@ export function supportApproaches(collision, box) {
     if (other.max.x < box.min.x - margin || other.min.x > box.max.x + margin) continue;
     if (other.max.z < box.min.z - margin || other.min.z > box.max.z + margin) continue;
 
+    const depth = handReach(rise);
     for (const face of FACES) {
-      const rect = approachRect(box, other, face);
+      const rect = approachRect(box, other, face, depth);
       if (!rect) continue;
       const alongX = face.nx === 0;
       for (const t of [0.5, 0.25, 0.75]) {
         const x = alongX ? rect.x0 + (rect.x1 - rect.x0) * t : (rect.x0 + rect.x1) / 2;
         const z = alongX ? (rect.z0 + rect.z1) / 2 : rect.z0 + (rect.z1 - rect.z0) * t;
-        if (!handsReachFace(collision, box, face, x, z, other.max.y)) continue;
+        if (!handsReachFace(collision, box, face, x, z, other.max.y, depth)) continue;
         if (!landingFits(collision, box, face, x, z)) continue;
         out.push({ box: other, y: other.max.y, rise, x, z, nx: face.nx, nz: face.nz });
         break;
@@ -193,12 +208,11 @@ export function supportApproaches(collision, box) {
 /**
  * Where a body's centre can be while standing on `other` in front of `face`
  * of `box`: on the support with the whole footprint over it, clear of the box
- * by a body radius, and no further out than the controller's probe reaches.
- * Null when there is no such place.
+ * by a body radius, and no further out than the controller's probe reaches
+ * (`depth`, from `handReach`). Null when there is no such place.
  */
-function approachRect(box, other, face) {
+function approachRect(box, other, face, depth) {
   const r = S.radius;
-  const depth = S.vaultReach;
   let fx0;
   let fx1;
   let fz0;
@@ -250,12 +264,12 @@ export function landingFits(collision, box, face, x, z) {
  * sweeping, as the controller does: a low wall in front of a tall box hides
  * the box's foot, not its lip.
  */
-function handsReachFace(collision, box, face, x, z, feet) {
+function handsReachFace(collision, box, face, x, z, feet, depth) {
   const half = { x: S.radius, y: S.crouchHeight / 2, z: S.radius };
   if (!collision.isClear({ x, y: feet + half.y + 0.02, z }, half)) return false;
 
   const direction = { x: -face.nx, y: 0, z: -face.nz };
-  const distance = S.vaultReach + S.radius;
+  const distance = depth + S.radius;
   const reach = S.reach.standing + S.reach.jumpBonus;
   for (let probe = PROBE_STEP; probe <= reach + PROBE_STEP; probe += PROBE_STEP) {
     const origin = { x, y: feet + probe, z };

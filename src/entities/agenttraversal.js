@@ -68,8 +68,18 @@ export const TRAVERSAL = {
    * with it. Uses `classifyReach()` — the same function
    * `deriveClimbableSurfaces()` calls, so the controller and the map cannot
    * hold different opinions about what a body can get up.
+   *
+   * `past` is the boxes a climb has already been refused on from here (B5).
+   * The sweep goes on up past them the way it goes past a wall: the map's
+   * own sweep (`handsReachFace` in mapclimb.js) keeps going past anything
+   * that is not the face it is asking about, and a controller that stopped at
+   * the first climbable box could not see the ledge above it. It did exactly
+   * that beside a duct: the hands met the duct floor's side (climbable, by
+   * its mouth), the mantle into the duct would not fit, and the roof 1.3m
+   * higher - which the rule says is a jump from the floor - was never
+   * probed. The player got a scuff on a climb the map promised.
    */
-  _probeLedge(forward) {
+  _probeLedge(forward, past = null) {
     const dirX = -Math.sin(this.yaw);
     const dirZ = -Math.cos(this.yaw);
     const direction = { x: dirX, y: 0, z: dirZ };
@@ -107,6 +117,7 @@ export const TRAVERSAL = {
         this._faceAhead = { box: hit.box, rise: hit.box.max.y - feet, reach, hitX: hit.x, hitZ: hit.z, dirX, dirZ };
       }
       if (!hit.box.climbable) continue;
+      if (past && past.has(hit.box)) continue;
 
       const topY = hit.box.max.y;
       const rise = topY - feet;
@@ -235,11 +246,27 @@ export const TRAVERSAL = {
    */
   _tryClimbFromGround(intent) {
     if (!intent || intent.forward <= 0) return false;
-    const ledge = this._probeLedge(S.vaultReach);
-    if (!ledge) return false;
-    if (!this._isApproaching(ledge, intent)) return false;
+    return this._climbAhead(S.vaultReach, intent);
+  },
 
-    return this._climbLedge(ledge);
+  /**
+   * Climb the first ledge ahead that the body can actually commit to, lowest
+   * first (B5). A ledge the sweep finds but the climb refuses - a duct floor
+   * met from the side, a lip whose landing is under something - is swept
+   * past, and the next face up gets its turn; the map's rule does the same,
+   * so the two agree on which face the hands end up on. Nothing is changed
+   * by a refused climb (`_commitMove` only commits when it can), so trying
+   * the next one costs nothing. Bounded: every refusal adds a box to `past`.
+   */
+  _climbAhead(forward, intent) {
+    const past = new Set();
+    for (;;) {
+      const ledge = this._probeLedge(forward, past);
+      if (!ledge) return false;
+      if (!this._isApproaching(ledge, intent)) return false;
+      if (this._climbLedge(ledge)) return true;
+      past.add(ledge.box);
+    }
   },
 
   /**
@@ -254,15 +281,11 @@ export const TRAVERSAL = {
   },
 
   _tryMantle(intent) {
-    const ledge = this._probeLedge(S.mantleReach);
-    if (!ledge) return false;
-    if (!this._isApproaching(ledge, intent)) return false;
-
     // Vault-band ledges climb from the air too. A sprint is not always
     // available — on top of a crate there is no room to build speed — and
     // without this a 0.4m to 1.2m ledge cannot be climbed at all except by
     // running at it, which strands the player on small platforms.
-    return this._climbLedge(ledge);
+    return this._climbAhead(S.mantleReach, intent);
   },
 
   /**

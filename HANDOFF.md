@@ -21,11 +21,11 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **124 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
-| Next job | the first `[ ]` in `QUEUE.md` is B5 (L: the area pass, a whole run); B2b done 2026-09-12 (**Blocks A and F are closed**) |
+| AUTO suite | headless, `npm run suite`: **127 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
+| Next job | the first unblocked `[ ]` in `QUEUE.md` is B6 (M: material language); B5b (rails) waits on D25. B5 done 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
-| Map | 214 collision boxes, 58 climbable (56 after B3; B4's open bay gantry adds the two deck slabs beside its void), Warden ground one connected component, with a column of cells down each vault rack aisle since B4 |
+| Map | 214 collision boxes, 58 climbable (56 after B3; B4's open bay gantry adds the two deck slabs beside its void), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes** (`map.routes`, B5), 21 surfaces that need a leg up, every one a stage or landing of a route |
 
 Phases 1–49 of the original build are done and committed. A **redesign** is now
 in progress, 11 phases in, and one directive arrived outside it (the plant, below).
@@ -64,7 +64,7 @@ by interview and is binding:
 | 1–7 | **Strip and measure** | ✅ done, committed |
 | 8–11 | **Reach-based traversal** — jump-extended reach, ground climbs, approach tolerance, input buffering | ✅ done, committed `5c6d571` |
 | 12–18 | **Hang as a held option, and the bump-and-scuff** | ✅ B1 (D21, D22) and B2 done 2026-09-10/11 |
-| 19–34 | **Area rebuild, lockstep** — geometry + controller together, worst area first | pending |
+| 19–34 | **Area rebuild, lockstep** — geometry + controller together, worst area first | ✅ B5 done 2026-09-13: measured honestly, nothing to rebuild; two rule/controller bugs fixed, routes declared, D25 raised |
 | 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | pending |
 | 42–46 | **Feel** — camera, momentum, weight, timing, traversal fuzz | pending |
 | 47–50 | **Close** — amend the spec, re-sweep, Warden sanity, done-definition | pending |
@@ -83,6 +83,11 @@ PASS  every-climbable-surface-can-actually-be-climbed
       derives them from, 191 climbs; the controller got onto all 58
       reachable surfaces (0 enclosed); 22 need a leg up first
 ```
+
+(Those were B4's numbers. Since B5 the census counts "from the floor"
+honestly and stops trying a box once it climbs from the floor, so its
+approach and climb counts move with what succeeds first; the stable number
+is the per-approach check's **151 of 151**, below.)
 
 It went green with B3 (2026-09-12), and it must stay green: it approaches
 every climbable face from every place the rule says a body can stand —
@@ -114,8 +119,48 @@ from the same approaches and passes; it is what makes the rule the single
 source of truth. `GameMap._supportApproaches(box)` is how a check reads the
 spots; `_supportCandidates(box)` is still the heights.
 
-"22 need a leg up first" is reported, not failed — Josh's call. A surface
-you climb something else to reach is the point of a stacked route.
+"21 need a leg up first" is reported, not failed — Josh's call. A surface
+you climb something else to reach is the point of a stacked route. Since B5
+"from the floor" means *from ground a walking body reaches* — a stand spot
+within a metre of a `map.wardenGround` cell at its height — and not, as it
+did, "from the lowest thing a short ray found under the spot", which
+counted the office desks and missed two fire-escape flights. The 21 are the
+deck slabs and lips every route lands on, the intermediate stages only
+reachable from the stage below, and the roof strip and its lip; the full
+list is in the F4 log after the census runs.
+
+## The routes are declared, and the rule's every sentence is proven — B5
+
+Three checks hold the stacked routes now (`tests/routes.js`, and one in
+`tests/readability.js`):
+
+- `every-approach-the-rule-names-is-a-climb-the-controller-makes` stands
+  at every spot the rule names, on the support it names, holds W and Space,
+  and requires the climb: **151 of 151**. The census needs one climb per box
+  and that hid two disagreements for four phases — the duct roofs are a
+  3.57m jump from the hall floor by the rule, and the controller scuffed
+  there because its sweep stopped at the duct *floor's* side (climbable by
+  its mouth, unclimbable from here) and never looked higher; and the rule
+  reached 1.44m ahead for every rise where the air probe reaches 1.29m.
+  `_climbAhead()` now sweeps past a refused climb; `handReach(rise)` in
+  mapclimb.js picks the controller's distance. Spec 20.6.
+- `every-stacked-climb-is-a-step-of-a-declared-route`: `map.routes`
+  (mapdata.js `placeRoutes`) is eight chains of stages — the five designed
+  routes, the two the duct roofs make (lip, roof, void edge), the fire
+  escape split at its deck landing — each first stage a standing climb from
+  walkable ground, each later stage climbable by the rule from the stage
+  below, each landing where it says; and every climbable surface with no
+  walkable approach is on one of them. Not a tag: nothing in the rule or the
+  controller reads it. `stairlessRouteMin` (5) is asserted at build.
+- `every-climbable-top-has-an-exit-that-is-not-the-way-you-came`: onward
+  climb, a surface at its level to walk onto, or a second clear edge to
+  drop from. No dead climbs today; a staged crate walled on three sides is
+  one.
+
+What B5 did **not** do is move geometry: measured honestly the map had no
+dead climb and no accident the rule does not read as a route. Whether the
+void edges should refuse anywhere but at a lip — which would make the lips
+mean what B7 assumes they mean — is **D25**, and B5b is queued behind it.
 
 Since B4b an approach also carries its **landing**: `landingSpot()` is
 where `Shade._ledgeDestination` puts the body (a radius and 0.3m past the
@@ -583,7 +628,12 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25 and the Provisional section of `DECISIONS.md`; Josh answers there.
+
+- **D25**: whether the deck's void edges should carry a rail except at the
+  lips, so the duct roofs stop being routes up and a lit lip (B7) means
+  *the* way. Recommendation is to accept what the rule found; nothing is
+  blocked on it.
 
 - Whether the **site ring** still reads correctly now that the plant is the
   whole room. Nobody has looked at it since the meaning changed.

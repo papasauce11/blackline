@@ -721,3 +721,29 @@ where the hands hit - up the wall, not at the feet, so on the floor it
 carries a little less far than a footstep of the same radius. A Warden in
 the room looks up; one two rooms away hears nothing. Inside a duct it is as
 silent as everything else there.
+
+### 20.6 Sections 5 and 6.1 - the hands sweep past a climb that cannot commit, and the routes are declared
+
+Two things B5 (2026-09-13) settled while measuring the stacked routes.
+
+The ledge probe is a sweep from the feet to the top of reach, and it now
+goes on past a climbable face whose climb refuses to commit - a duct
+floor's side, met from the hall floor, whose landing is inside the duct -
+the way it already went past a wall, and the way the map's own derivation
+(`handsReachFace`) always has. So 20.5's "a lip with no room above it" is a
+failed climb only when nothing higher is in reach; when the duct's roof is,
+the roof is what the press climbs. And the hands reach `vaultReach` ahead
+for a rise within standing reach and `mantleReach` for one that needs the
+jump, in the derivation exactly as in the controller, so a face the rule
+names is a face the controller gets over from the spot the rule names -
+held by `every-approach-the-rule-names-is-a-climb-the-controller-makes`.
+
+The stairless routes up (v2 requirement 4) are **declared** as data,
+`map.routes`, each a chain of stages ending at a height. This is not a
+marking and not a tag: nothing in the climb rule or the controller reads
+it, and declaring a route cannot make a surface climbable or stop one being
+so. It is the map stating what it means, so a check can hold it to that -
+every stage climbs from the stage below by the rule, the first from ground a
+walking body reaches within a standing reach, and every stacked climb the
+rule allows is on some route. A stacked climb no route explains is a
+decision (D25), not an accident.

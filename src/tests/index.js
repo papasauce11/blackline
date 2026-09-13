@@ -22,6 +22,7 @@ import { register as registerMovement } from './movement.js';
 import { register as registerScuff } from './scuff.js';
 import { register as registerReadability } from './readability.js';
 import { register as registerDeck } from './deck.js';
+import { register as registerRoutes } from './routes.js';
 import { register as registerWarden } from './warden.js';
 import { register as registerDetection } from './detection.js';
 import { register as registerAI } from './ai.js';
@@ -53,6 +54,7 @@ export function registerAutoTests(debugTools) {
   registerScuff(debugTools);
   registerReadability(debugTools);
   registerDeck(debugTools);
+  registerRoutes(debugTools);
   registerWarden(debugTools);
   registerDetection(debugTools);
   registerAI(debugTools);

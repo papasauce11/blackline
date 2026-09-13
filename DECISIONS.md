@@ -317,3 +317,51 @@ downloading, if one is present (checked in the same session).
 **decided:** no download was needed. Chrome and Edge are both installed;
 `playwright-core` (npm, a few MB, no bundled browser) drives the installed
 Chrome with `channel: 'chrome'`. Decided by the session, 2026-09-08.
+
+### D25 — Should the deck's void edges refuse a climb anywhere but at a lip?
+B5 measured the map's stacked routes honestly (the old "needs a leg up"
+count was an artifact of where a ray happened to land; it counted the office
+desks and missed two fire-escape flights) and found that the reach rule has
+drawn two routes up that nobody designed. The two low ducts run at 2.3m from
+the Turbine Hall into the corridor, and where they cross the hall void's
+edge their roofs (3.57m, a vault from the duct's lip or a jump from the
+floor) sit 2.43m under the deck edge — a standing mantle. So: floor → lip →
+roof → deck, silently, at the void's east edge (`deck-7` from the north duct,
+`deck-19` and `deck-21` from the south one). The Loading Bay's open gantry
+(B4) lands on three slabs beside `lip-bay` the same way, and the vault hatch
+on all four of its edges.
+
+The lips were built as "the deck edge is climbable only here", and the rule
+no longer reads them: they are geometry that hangs 0.7m instead of 0.35m, and
+the plan's B7 ("climbable lips get a bevel or a lit edge") assumes they still
+mean *the* way up. Today they mean *a* way up.
+
+B5 declared what is there (`map.routes` in mapdata.js: the five designed
+routes and the two duct-roof ones, eight with the fire escape split at its
+deck landing) and a check holds the map to it. Nothing is blocked on this.
+Options:
+
+1. **Accept.** The duct roofs are routes; a player on a roof 2.4m under a
+   mezzanine edge would expect to get over it, and does. Lips stay as the
+   drawn entries; B7 lights the declared routes rather than the lips. The
+   map has 7 stairless ways up instead of 5. (As built.)
+2. **Rail the void edges except at the lips.** A 1.0m rail, thin enough not
+   to be a surface and set so the mantle's landing capsule meets it, along
+   the hall void, the bay void and three sides of the vault hatch. The
+   controller then scuffs on those edges (the B2 tell), the rule stops
+   deriving the slabs (B4b's landing test), the lips become the only way
+   onto the deck from below, and B7's lit lip means what it says. Costs:
+   cover along the deck edges that was not there (a crouched Shade behind a
+   rail is hidden from the floor), the Warden's ground and patrol width along
+   the edges, and the duct-roof routes become perches. The honest stacked
+   count drops from 21 to about 14.
+3. **Rail only where a duct passes under** — the hall void's east and south
+   edges near the two ducts. Half of 2, without the hatch or the bay.
+
+Recommendation: **1**. It is what the reach rule says, and the redesign's
+whole point was that the map obeys the rule rather than the other way
+round; a rail is the fence's trick, and the fence is there to close the
+site, not to edit a route. If the lips should mean "only here", 2 is a
+one-session job (B5b) and the declared routes tell it exactly which slabs to
+stop.
+**decided:**

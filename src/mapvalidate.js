@@ -18,6 +18,9 @@ export function validateMap(map) {
   const expect = (actual, wanted, what) => {
     if (actual !== wanted) problems.push(`expected ${wanted} ${what}, built ${actual}`);
   };
+  const expectAtLeast = (actual, wanted, what) => {
+    if (actual < wanted) problems.push(`expected at least ${wanted} ${what}, built ${actual}`);
+  };
   expect(map.lights.length, M.destructibleLightCount, 'destructible lights');
   expect(map.waypoints.length, M.waypointCount, 'waypoints');
   expect(map.shadeSpawns.length, M.shadeSpawnCount, 'shade spawns');
@@ -89,6 +92,18 @@ export function validateMap(map) {
     if (box.climbable && classifyReach(box.max.y - map._supportHeightBelow(box),
       CONFIG.shade.reach.standing + CONFIG.shade.reach.jumpBonus) === null) {
       problems.push(`lip "${box.tag}" is not in a traversal band`);
+    }
+  }
+
+  // v2 requirement 4, the other half: the routes are declared (B5), every
+  // stage names a box that exists, and there are at least as many as the
+  // requirement asks. Whether each one climbs is tests/routes.js's question.
+  expectAtLeast(map.routes.length, M.stairlessRouteMin, 'stairless routes');
+  for (const route of map.routes) {
+    for (const stage of route.stages) {
+      for (const box of stage) {
+        if (typeof box === 'string') problems.push(`route "${route.id}" names a box that does not exist: ${box}`);
+      }
     }
   }
 

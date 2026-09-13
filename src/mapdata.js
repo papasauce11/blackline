@@ -18,6 +18,8 @@ const M = CONFIG.map;
 const P = CONFIG.palette;
 const G = M.groundY;
 const DECK = M.catwalkY;
+/** Top of the roof slab, as map.js has it. */
+const ROOF = M.ceilingY + M.wallThickness;
 
 /**
  * Plant sites (Section 5). Each site's room is derived by containment, so the
@@ -164,6 +166,80 @@ export function placeLights(map) {
   fill.castShadow = false;
   map.root.add(fill);
   map.root.add(fill.target);
+}
+
+/**
+ * The stairless routes up (v2 requirement 4), as data (B5).
+ *
+ * The climb rule has no exceptions and reads nothing declared, so nothing
+ * here can make a surface climbable or stop it being so. What this is for is
+ * the opposite: holding the map to what it MEANS. A route is a chain of
+ * stages - one or more boxes at a level, every one of which the rule names
+ * as climbable from some box of the stage below, the first from ground a
+ * walking body reaches and within standing reach, so the first step never
+ * needs a jump to be discovered - ending on the surface it lands at. The
+ * check in tests/routes.js walks every chain through the rule's own
+ * approaches, and asks the other direction too: every climb the census
+ * reports as needing a leg up is a stage or a landing of some route here.
+ * A stacked climb that no route explains is either a new route to declare
+ * or geometry to fix; either way it is a decision, not an accident.
+ *
+ * Seven, not the five map.js was designed with. The two duct roofs are the
+ * reach rule's own discovery: 3.57m up with a jump or a vault from the lip,
+ * and the deck edge 2.43m above where they cross into the hall's void. They
+ * read as routes - lip, roof, edge - so they are declared as routes, and
+ * whether the void edges should refuse anywhere but a lip is D25.
+ */
+export function placeRoutes(map) {
+  const routeSpecs = [
+    {
+      id: 'hall-west', name: 'Turbine Hall, west: crates, container, gantry, lip',
+      stages: [['stack-hall-low'], ['stack-hall-mid'], ['hall-container'], ['gantry-hall']], landing: DECK,
+    },
+    {
+      id: 'hall-south', name: 'Turbine Hall, south: the low vent onto the maintenance platform',
+      stages: [['vent-low-south-lip-from'], ['gantry-hall-south']], landing: DECK,
+    },
+    {
+      id: 'hall-vent-north', name: 'Turbine Hall: the north duct, lip to roof to the void edge',
+      stages: [['vent-low-north-lip-from'], ['vent-low-north-roof']], landing: DECK,
+    },
+    {
+      id: 'hall-vent-south', name: 'Turbine Hall: the south duct, lip to roof to the void edge',
+      stages: [['vent-low-south-lip-from'], ['vent-low-south-roof']], landing: DECK,
+    },
+    {
+      id: 'bay', name: 'Loading Bay: crates to the gantry in the open void',
+      stages: [['stack-bay-low'], ['stack-bay-mid'], ['gantry-bay']], landing: DECK,
+    },
+    {
+      id: 'vault-hatch', name: 'Corridor: crates into the upper vent, up through the vault hatch',
+      stages: [['stack-vault-low'], ['stack-vault-mid'], ['vent-up-vault-lip-from', 'vent-up-vault-floor']],
+      landing: DECK,
+    },
+    {
+      id: 'fire-escape', name: 'Exterior: the fire escape to the deck landing',
+      stages: [['fire-escape-base'], ['fire-escape-0'], ['fire-escape-1']], landing: DECK,
+    },
+    {
+      // The deck landing is walkable ground - the flood reaches it through
+      // the shell - so the last two flights are a route of their own, first
+      // step from the landing.
+      id: 'fire-escape-roof', name: 'Exterior: the last two flights to the roof',
+      stages: [['fire-escape-3'], ['fire-escape-4']], landing: ROOF,
+    },
+  ];
+  const byTag = new Map();
+  for (const box of map.collision.boxes) if (box.tag) byTag.set(box.tag, box);
+  for (const spec of routeSpecs) {
+    map.routes.push({
+      id: spec.id,
+      name: spec.name,
+      // Unresolved tags stay as strings; validateMap() names them.
+      stages: spec.stages.map((stage) => stage.map((tag) => byTag.get(tag) || tag)),
+      landing: spec.landing,
+    });
+  }
 }
 
 /**

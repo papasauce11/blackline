@@ -4315,3 +4315,112 @@ and nothing else. Worth knowing for any future hearing check: a Warden
 within 4m of the Shade's feet hears the *walk* first.
 
 **Left.** B5 is next, an L: the area pass.
+
+## B5 — the area pass, measured honestly (2026-09-13, scheduled run)
+
+The job said: worst area first by the census's "needs a leg up" count, make
+every stacked route intentional, no dead climbs, and get the count to 10 or
+under. The first thing the pass did was read the count, and the count was
+not measuring what anyone thought.
+
+**Found, before building anything.** The census called a climb "from the
+floor" when it succeeded from `heights[0]` — the lowest surface a 0.5m ray
+found under the stand spot. Under anything on the deck that ray finds the
+ground floor six metres down, so the four server racks and three of the
+four office desks — a 1.9m mantle and a 0.95m vault you walk up to — were
+"a leg up". And over a crate the ray starts inside the crate and finds
+nothing, so `fire-escape-2` and `-4`, whose one stand spot lies above the
+base crate, were "from the floor" while `-3` beside them was not, and
+`gantry-hall` (climbable only from the container) and `gantry-bay` (only
+from the crate stack) were "from the floor" for the same reason. Of the 22
+reported, 7 were walk-up climbs and 5 real leg-ups were missing. The done-
+when's "≤ 10" was written against that number.
+
+**Built.** Four things, none of them geometry.
+
+1. *"From the floor" means from ground a walking body reaches.* The census
+   asks `map.wardenGround` (A1's flood from the spawns: floors, the deck,
+   stair treads, the apron, the fire-escape landing flush with the deck),
+   with a metre's tolerance because the ground was flooded for a 0.84m
+   Warden and the 0.68m Shade walks into a duct mouth no Warden cell lands
+   in (`onWalkableGround`, readability.js). The full leg-up list goes to the
+   F4 log the way the failure list does, since it is the work queue. The
+   honest count is **21**: the deck slabs and lips every route lands on (11),
+   the intermediate stages that are only reachable from the stage below
+   (`gantry-hall`, `gantry-hall-south`, `gantry-bay`, `vent-up-vault-lip-from`
+   and `-floor`, `fire-escape-1`, `-2`, `-4`) and the roof strip and its lip.
+
+2. *The controller sweeps past a climb it cannot commit.* Measured honestly
+   the two duct roofs showed as leg-ups, and the rule says they are a 3.57m
+   jump from the hall floor. Traced: standing beside a duct, `_probeLedge`'s
+   hand sweep meets the duct *floor's* side face first — a climbable box, by
+   its mouth — `_climbLedge` tries to mantle into the duct, the crouched
+   capsule plus `mantleClearance` (1.17m) does not fit the 1.15m interior,
+   and the press ends in a scuff with the roof never probed. The rule's own
+   sweep (`handsReachFace`) keeps going past anything that is not the face
+   it is asking about; now the controller does too: `_climbAhead()` in
+   agenttraversal.js sweeps again past every box a climb was refused on
+   (`_probeLedge(forward, past)`), lowest first, until one commits or nothing
+   is left. Bounded, and a refused climb changes nothing, so the retry is
+   free. Both ground and air paths go through it.
+
+3. *The rule reaches as far as the controller does.* `approachRect` and
+   `handsReachFace` used `vaultReach` (1.44m with the radius) for every
+   rise; a rise that needs the jump is caught in the air by `_tryMantle`,
+   which probes `mantleReach` (1.29m). `handReach(rise)` in mapclimb.js
+   picks the one the controller will use. It mattered once: the rule named
+   a 3.7m jump from the mouth of the south duct's lip onto `deck-21` from a
+   spot 1.41m out, standing between the duct's walls with `wall-b` 0.3m in
+   front of the hands; the controller met the wall and scuffed.
+
+4. *The routes are data.* `map.routes` (mapdata.js `placeRoutes`, eight
+   routes: the five designed, the two the duct roofs make, and the fire
+   escape split at its deck landing because that landing is walkable
+   ground), each a chain of stages ending at a height; `stairlessRouteMin`
+   (5) and every tag asserted at build; spec 20.6 says why this is not a
+   tag. The map's five stairless routes were a comment in map.js listing
+   rises. They are now something a check can walk.
+
+**Verified.** Three new checks, `tests/routes.js` and one in readability.js:
+- `every-approach-the-rule-names-is-a-climb-the-controller-makes`: every
+  approach the rule names within reach, from the rule's own spot on the
+  rule's own support, with W and Space held — **151 of 151**. Before 2 and
+  3 it read *"5 of 151 approaches the rule names do not climb:
+  vent-low-north-roof from ground-plane (+z face, rise 3.57 …): scuffed …
+  deck-21 from vent-low-south-lip-from (-z face, rise 3.70 …): scuffed"*.
+  This is the check the census could not be: the census needs one climb per
+  box and both roofs climbed from the vent floor.
+- `every-stacked-climb-is-a-step-of-a-declared-route`: each route's first
+  stage is a standing climb (≤ 2.6m) from walkable ground, every later stage
+  is climbable by the rule from a box of the stage below, it lands where it
+  says, and every climbable surface with no walkable approach — 22 by the
+  rule, the census's 21 plus `deck-26`, which the controller also climbs from
+  the corridor stairs' treads though the rule does not name a tread as a
+  support — is a stage or a landing of some route. With `hall-vent-north`
+  removed it reads *"1 stacked climbs no route explains: deck-7"*.
+- `every-climbable-top-has-an-exit-that-is-not-the-way-you-came`: an onward
+  climb by the rule (28 tops), a wide surface at its level to walk onto (12:
+  the lips, the vent lips, the roof strip), or a face to drop from that is
+  not the only way up (18; no fall damage, so any clear edge). A staged
+  crate with 2.5m walls on three sides reads *"1 dead climbs: neg-crate (1
+  clear face, 1 way up)"*; `server-rack-0` correctly cannot leave by the
+  face 0.2m from the vault wall.
+The five rule checks together run in 1.9s. Full suite **127 passed / 1 failed (the headless-skipped frame budget), twice, identical (317s and 392s), flaky empty, zero console errors, zero context losses, `loopFrames` 0**.
+
+**Not built, and why.** No geometry moved. Measured honestly the map has no
+dead climb and no stacked climb the rule does not read as a route; what it
+has is two routes nobody drew — the duct roofs to the void edge — and a
+lip mechanism the rule no longer reads. Whether the void edges should
+refuse anywhere but a lip is a question about what the player can do, so it
+is D25, with the rail design and its costs written out and B5b queued
+behind it. The "≤ 10" target is not reachable under any honest measure
+without deleting steps of designed routes (a five-flight fire escape is
+four leg-ups by itself); the census's number now means what the sentence
+says, and the job's contract is the route check, which is what the number
+was for.
+
+**Left.** D25 for Josh; B5b if he takes the rails. B6 is next. Worth
+knowing for B6/B7: `map.routes` is the list of what to light, and the census
+stops at the first floor climb per box (as designed), so its "approaches"
+count moves with what succeeds first — the per-approach check's 151 is the
+stable number.

@@ -63,6 +63,14 @@ export class GameMap {
     this.staircases = [];
     /** @type {object[]} */
     this.rooms = [];
+    /**
+     * The stairless routes up, declared (v2 requirement 4; B5). Each is a
+     * list of stages - boxes at one level, every one climbable from the
+     * stage below by the rule - and the height it lands at. Data, not a
+     * tag: nothing in the rule or the controller reads it. The checks do.
+     * @type {{id:string, name:string, stages:object[][], landing:number}[]}
+     */
+    this.routes = [];
     /** Rectangles the upper deck is missing, for the connectivity check. */
     this.deckVoids = [];
     /** The building shell's outer footprint, used to place the Shade outside. */

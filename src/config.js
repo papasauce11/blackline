@@ -930,6 +930,13 @@ export const CONFIG = {
      */
     roomCount: 5,
     roomMinEntries: 2,
+    /**
+     * v2 requirement 4: ways up that are not the Warden's staircases,
+     * declared as `map.routes` (B5) and asserted at build. A minimum, not a
+     * count: the reach rule finds routes the designer did not draw, and a
+     * found route is declared, not deleted (D25).
+     */
+    stairlessRouteMin: 5,
     /** Spacing used when walking a room boundary looking for openings. */
     roomEntrySample: 0.3,
     /**

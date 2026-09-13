@@ -45,19 +45,25 @@ next gate job, if one is found, goes here.
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
 there. The census is the contract; **never weaken it**.
 
-- [ ] **B5 (L)** Area pass, worst first, by the "needs a leg up" count:
-  make every stacked route intentional — a readable first step, no dead
-  climbs that lead nowhere. Keep the five v2 requirements. **Do not** add or
-  remove rooms, move a site, or change a spawn (that is D13; write the
-  proposal there). *done-when:* "needs a leg up" ≤ 10 and every climbable top
-  has at least one exit that is not the way you came.
+- [ ] **B5b (M)** Rail the deck's void edges except at the lips — **blocked:
+  D25.** Only if Josh picks option 2 or 3 there. A 1.0m rail, thinner than
+  a body, set so the mantle's landing capsule meets it, along the hall void,
+  the bay void and three sides of the vault hatch (option 2) or the hall
+  void's duct crossings only (option 3); the duct-roof routes and the extra
+  hatch/bay slabs come out of `map.routes`; the Warden's ground, waypoints
+  and the deck patrol re-checked. *done-when:*
+  `every-stacked-climb-is-a-step-of-a-declared-route` green with those
+  routes removed, the census's "need a leg up" at the number D25 predicts,
+  `the-warden-never-climbs-to-reach-its-ground` and the AI soak unchanged.
 - [ ] **B6 (M)** Legibility — material language. Metal where you pass, concrete
   where you don't; vents read by contrast (decided). *done-when:* a pixel
   check measures luminance contrast ≥ 0.25 between every vent interior and
   its surround from a camera at the approach.
 - [ ] **B7 (M)** Legibility — edge profiles and route lighting. Climbable
   lips get a bevel or a lit edge; the main stairless route up in each area is
-  lit a step brighter than its surround. *done-when:* pixel check per area
+  lit a step brighter than its surround. The routes are `map.routes` since
+  B5 — light those, stage by stage, not the lips by name; a lip is only *the*
+  way onto the deck if D25 says so. *done-when:* pixel check per area
   from the route's foot; draw-call and frame-budget checks unchanged.
 - [ ] **B8 (M)** Feel. Mantle camera dip, momentum carried into a vault,
   landing weight by fall height, input buffer window tuned; traversal fuzz
@@ -168,6 +174,28 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B5** The area pass, measured honestly. The census's "needs a leg up"
+  was an artifact (it counted the office desks and missed two fire-escape
+  flights); it now means "no climb from ground a walking body reaches"
+  (`map.wardenGround`), and the honest count is **21**, every one a stage or
+  a landing of a declared route. Two rule/controller disagreements the
+  one-climb-per-box census could not see, both fixed: the controller's
+  sweep stopped at a climbable face whose climb could not commit (a duct
+  floor's side) and never reached the roof the rule promised from the hall
+  floor — `_climbAhead()` sweeps past it; and the rule reached
+  `vaultReach` for every rise where the air probe reaches `mantleReach` —
+  `handReach()` in mapclimb.js. `map.routes` declared (mapdata.js, eight
+  routes, `stairlessRouteMin` 5 asserted at build); spec 20.6; D25 raised
+  (rail the void edges, or accept the duct-roof routes). No geometry
+  changed: measured honestly, the map had no dead climb and no accidental
+  route the rule does not read as a route. Three checks:
+  `every-approach-the-rule-names-is-a-climb-the-controller-makes` (151 of
+  151), `every-stacked-climb-is-a-step-of-a-declared-route`,
+  `every-climbable-top-has-an-exit-that-is-not-the-way-you-came`
+  (tests/routes.js). The done-when's "≤ 10" was written against the
+  artifact and is not reachable without deleting route steps; replaced by
+  "every stacked climb is on a declared route", which is what it was for -
+  2026-09-13, scheduled run.
 - **B2b** The scuff as a noise the Warden hears (D23: quiet, a footstep's
   worth): `Shade.scuffedAt` on the step, Detection emits `scuff` at the hands
   with `noise.radii.shadeScuff`; spec 20.5 amended; check

@@ -33,7 +33,7 @@
 
 import { CONFIG } from './config.js';
 import { GameMap } from './mapkit.js';
-import { placeSites, placeSpawns, placeLights, placeWaypoints } from './mapdata.js';
+import { placeSites, placeSpawns, placeLights, placeWaypoints, placeRoutes } from './mapdata.js';
 import { validateMap } from './mapvalidate.js';
 
 const M = CONFIG.map;
@@ -504,6 +504,7 @@ export function buildMap({ gradientMap }) {
   placeSpawns(map);
   placeLights(map);
   placeWaypoints(map);
+  placeRoutes(map);
 
   // -------------------------------------------------------------------------
   // Finish
