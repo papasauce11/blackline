@@ -4786,3 +4786,82 @@ margin's ground all round and takes the rim only where there is no other
 way. Noted here rather than queued.
 
 **Left.** D27 raised, B5d queued behind it; B7 is next.
+
+## B7 — legibility: the routes are lit (2026-09-14, same run)
+
+The second job of the 02:00 run, after B5c. The plan's phases 35-41 asked
+for "edge profiles and route lighting"; B5 turned the routes into data
+(`map.routes`) so there is something to light that is not a list of names.
+
+**The question first.** What "lit a step brighter" may mean. A lamp in the
+scene is a thing Section 7.1's detection model reads and Section 5 counts
+(twelve, destructible), so lighting a route with a lamp would make every
+route a riskier place to stand - a rule, and Josh's. Paint is not: emissive
+is seen and not counted. So the light is paint, provisionally (D28), and
+the one number to turn is `map.routeLighting.emissive`.
+
+**Built.**
+
+1. *`src/maproutelight.js`, `lightRoutes(map)`*, run from map.js after
+   `deriveClimbableSurfaces()` (it reads the rule's approaches) and before
+   validation. Two devices, both derived, nothing named:
+   - Every stage box of every route: `lightSides()` reorders the box's
+     index so its four sides are one group and its caps another, and the
+     mesh takes two materials - the material cache's new `lit` variant of
+     its own colour (mapbake.js: the colour as emissive at 0.12) on the
+     sides, the plain one on the caps. The outline mesh shares the geometry
+     with one material and ignores the groups. 20 boxes; 20 more draw
+     calls.
+   - The landing edges: for every climbable surface at a route's landing
+     height, every face the rule names an approach onto from a box of the
+     route's last stage, a strip along that face over the spots it names
+     and `edgeReach` (1.0m) either side, clipped to the face; a thin box
+     (0.06 x 0.05) standing a centimetre proud of the face just under the
+     top, all of them merged into one `MeshBasicMaterial` mesh in the
+     lamps' warm white. 15 strips: the four deck lips, the fire escape's
+     deck and roof landings, and the slabs the reach rule found itself -
+     `deck-7`, `deck-19`, `deck-21` from the duct roofs, three round the bay
+     gantry, three round the vault hatch. That is D25 drawn: today a lip is
+     *a* way up and the strips say so.
+2. *`every-route-reads-lit-from-its-foot`* (tests/legibility.js). For each
+   route: the foot is the lowest spot the rule names for a climb onto the
+   first stage that is on ground a walking body reaches; eye there, look at
+   the stage, render, hide the stage and render, the difference is the
+   stage; then paint the stage with its plain material in the same frame
+   and render again - the same pixels unlit, which is the instrument
+   reading the light and not the crate's own orange. Requires a step of at
+   least 10 luma over unlit and 0.25 Michelson against the band round it.
+   Then from the last stage, where the rule says a body stands to go over,
+   each strip's pixels (shown minus hidden) against a band round them,
+   at least 0.5. And the strips cost exactly one draw call. With
+   `emissive` at 0 every route is red at "a step of 0.0 < 10".
+
+**Verified.**
+
+- Readings, from the foot: stack-hall-low 65 lit / 48 unlit against 35
+  (0.30); vent-low-south-lip-from 116 / 89 against 28 (0.61); stack-bay-low
+  51 / 25 against 18 (0.46); stack-vault-low 43 / 19 against 11 (0.59);
+  fire-escape-base 51 / 31 against 13 (0.61); fire-escape-3 35 / 19 against
+  13 (0.46). Steps 16 to 27. Strips 222 to 230 against 2 to 38, 0.72 to
+  0.98.
+- The first cut lit the whole box, tops included, at 0.22 and then 0.12,
+  and put B6's `every-vent-mouth-reads-by-contrast-from-its-approach` red
+  where HANDOFF said it would: the north duct's west mouth is read against
+  the top of `stack-hall-mid`, a lit stage, and the surround went from 68
+  to 76 against the duct's 118 - 0.21, then 0.23 at 0.08. The margin was
+  0.02 and the top of a crate is not what tells you it is a route from
+  below; the sides carry the light now, the top is as it was, and the mouth
+  reads 0.27 as before. The check was not touched.
+- Subset (performance, visual, detection, climb, routes, census, the
+  600-line guard): 29 passed, the frame budget skipped. Full suite
+  **130 passed, 1 failed** both runs (391s, 456s), the frame budget
+  skipped headless, 0 red, 0 flaky, 0 console errors, 0 context losses.
+
+**Not built.** A bevel on the lips: the strip is the edge profile, and a
+chamfer reads only in a raking light this rig does not have. Whether the
+strips should be dimmer, or the emissive lower, is D28's; the numbers are
+there to turn.
+
+**Left.** B8 (feel) is next. D25 now has a picture to decide against: the
+strips on `deck-7`, `deck-19`, `deck-21` and round the hatch and the bay are
+the reach rule's routes, lit.

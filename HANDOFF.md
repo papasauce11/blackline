@@ -29,8 +29,8 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
 | Working tree | clean after B5c (2026-09-14) |
-| AUTO suite | headless, `npm run suite`: **129 passed, 1 failed** (2026-09-14), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **B7** (M: edge profiles and route lighting). B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B5c done 2026-09-14, B6 2026-09-13 (**Blocks A and F are closed**) |
+| AUTO suite | headless, `npm run suite`: **130 passed, 1 failed** (2026-09-14, after B7), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **B8** (M: feel - mantle camera, momentum, landing weight, the hanging body, traversal fuzz). B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B7 and B5c done 2026-09-14, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **146 of 146** approaches the rule names climb |
@@ -73,7 +73,7 @@ by interview and is binding:
 | 8–11 | **Reach-based traversal** — jump-extended reach, ground climbs, approach tolerance, input buffering | ✅ done, committed `5c6d571` |
 | 12–18 | **Hang as a held option, and the bump-and-scuff** | ✅ B1 (D21, D22) and B2 done 2026-09-10/11 |
 | 19–34 | **Area rebuild, lockstep** — geometry + controller together, worst area first | ✅ B5 done 2026-09-13: measured honestly, nothing to rebuild; two rule/controller bugs fixed, routes declared, D25 raised |
-| 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | B6 done 2026-09-13: the ducts are galvanised sheet and a pixel check holds the contrast at every mouth; B7 pending |
+| 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | ✅ B6 (2026-09-13) and B7 (2026-09-14): the ducts are galvanised sheet, the routes are lit and their landing edges carry a strip, both held from the pixels |
 | 42–46 | **Feel** — camera, momentum, weight, timing, traversal fuzz | pending |
 | 47–50 | **Close** — amend the spec, re-sweep, Warden sanity, done-definition | pending |
 
@@ -210,9 +210,26 @@ into from the top of `stack-hall-mid` with orange crates as its surround.
 With concrete ducts, eight of nine read 0.01 to 0.23 - that is the check
 proving it measures the material. It costs ~30s a run on SwiftShader.
 
-**B7 lights the routes.** Two things to know: `map.routes` is what to
-light, stage by stage, and this check reads the lit result - the crate-top
-mouth has 0.02 of margin, so light the north duct's route and re-read.
+## The routes are lit - B7
+
+`src/maproutelight.js`, after the climb rule and before validation. Every
+stage box of every declared route has its four sides painted with its own
+colour as emissive (`map.routeLighting.emissive`, 0.12; the material
+cache's `lit` variant; two material groups per box, so 20 more draw calls)
+- the sides, not the top, because the top is what you see standing on it
+and what B6's mouth check reads the north duct's west mouth against (the
+first cut lit the tops and put that check red at 0.21). And the edge each
+route goes over at the top - where the rule names an approach onto the
+landing from the last stage, a body's reach either side of the spots -
+carries a warm-white unlit strip, 15 of them in one mesh, one draw call.
+Paint, not lamps: the detection model reads point lights and there are
+still twelve. `every-route-reads-lit-from-its-foot` stands at each route's
+foot, reads the first stage against the same stage painted unlit in the
+same frame (a step of at least 10 luma; 16-27 today) and against its
+surround (0.25 Michelson; 0.30-0.61), then reads each strip from the last
+stage (0.5; 0.72-0.98). D28 is the look; the strips on `deck-7`, `deck-19`,
+`deck-21`, the bay slabs and the hatch are D25's routes drawn, and go if
+Josh picks option 2 there. Spec 20.9.
 
 **B5c closes the bug B6 found.** The rule named a climb onto
 `vent-low-north-lip-from` from the ground *under* the duct, by the lip's
@@ -709,7 +726,7 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8, D25, D26, D27 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25, D26, D27, D28 and the Provisional section of `DECISIONS.md`; Josh answers there.
 
 - **D25**: whether the deck's void edges should carry a rail except at the
   lips, so the duct roofs stop being routes up and a lit lip (B7) means
@@ -723,6 +740,9 @@ These are D8, D25, D26, D27 and the Provisional section of `DECISIONS.md`; Josh 
   the deck above it. Recommendation is a clear-line reach (B5d, one
   predicate); it removes the duct roofs under the deck from the legal
   plants, so it is Josh's.
+- **D28**: how the routes are lit - emissive sides on every stage, a
+  warm-white strip on every landing edge. Provisional; the pixels say it
+  is a step brighter, not that it reads as a route.
 
 - Whether the **site ring** still reads correctly now that the plant is the
   whole room. Nobody has looked at it since the meaning changed.

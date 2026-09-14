@@ -35,6 +35,7 @@ import { CONFIG } from './config.js';
 import { GameMap } from './mapkit.js';
 import { placeSites, placeSpawns, placeLights, placeWaypoints, placeRoutes } from './mapdata.js';
 import { validateMap } from './mapvalidate.js';
+import { lightRoutes } from './maproutelight.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
@@ -512,6 +513,9 @@ export function buildMap({ gradientMap }) {
 
   map.collision.build();
   map.deriveClimbableSurfaces();
+  // After the rule, because the routes are lit where the rule says a body
+  // arrives (B7), and before validation, which counts what was lit.
+  lightRoutes(map);
   map.deriveRoomEntries();
   map.deriveWardenGround();
   validateMap(map);

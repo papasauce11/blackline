@@ -69,12 +69,6 @@ there. The census is the contract; **never weaken it**.
   and asserts it does; the room-A sample of
   `every-legal-plant-has-a-warden-who-can-reach-it` is no longer defused
   through the deck; suite twice with identical answers.
-- [ ] **B7 (M)** Legibility — edge profiles and route lighting. Climbable
-  lips get a bevel or a lit edge; the main stairless route up in each area is
-  lit a step brighter than its surround. The routes are `map.routes` since
-  B5 — light those, stage by stage, not the lips by name; a lip is only *the*
-  way onto the deck if D25 says so. *done-when:* pixel check per area
-  from the route's foot; draw-call and frame-budget checks unchanged.
 - [ ] **B8 (M)** Feel. Mantle camera dip, momentum carried into a vault,
   landing weight by fall height, input buffer window tuned; traversal fuzz
   over 10k steps with no stuck state. Also the hanging body: `hangDrop` 1.35
@@ -184,6 +178,23 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B7** Legibility — route lighting. `src/maproutelight.js`, `lightRoutes()`
+  after the climb rule: every stage of every declared route (`map.routes`)
+  has its four sides painted with its own colour as emissive
+  (`map.routeLighting.emissive` 0.12, the material cache's `lit` variant,
+  two material groups per box), and the edge each route goes over at the
+  top - the part of the landing's face the rule names a climb onto from the
+  last stage, `edgeReach` either side of the spots - carries a warm-white
+  unlit strip, 15 of them in one mesh. Paint, not lamps: nothing the
+  detection model reads. Check `every-route-reads-lit-from-its-foot`
+  (tests/legibility.js): from each route's foot the first stage reads ≥ 10
+  luma over the same stage painted unlit (16-27 measured) and ≥ 0.25
+  Michelson against its surround (0.30-0.61); from the last stage each
+  strip reads ≥ 0.5 (0.72-0.98); the strips are one draw call. Spec 20.9,
+  D28 (provisional). The first cut lit the tops too and put B6's mouth
+  check red at the north duct's west mouth (surround 76 against 118); the
+  sides only, and it reads 0.27 as before. No bevel: the strip is the edge
+  profile. `B7_HASH`, 2026-09-14, scheduled run.
 - **B5c** A mantle never passes through a solid. `handsOverTop()` in the
   new `src/climbprobe.js` - the hand sweep's constants and the one sentence
   the rule (`mapclimb.js`) and the controller (`agenttraversal.js`) share:
@@ -203,7 +214,7 @@ budget checks are the ceiling.
   routes at the hall void and the vault hatch. `src/groundprobe.js` split
   from mapground.js (628 -> 539) for the 600-line guard. Raised D27 (the Warden now
   defuses that roof plant from the deck above it, through the slab) and
-  B5d behind it. WIP `069bc08`, then `B5C_HASH`, 2026-09-13/14, scheduled
+  B5d behind it. WIP `069bc08`, then `6d13f68`, 2026-09-13/14, scheduled
   runs.
 - **B6** Legibility — material language. `palette.ductMetal` (galvanised
   sheet, 0xc6d0d6) on every piece of every vent run, where the ducts were the

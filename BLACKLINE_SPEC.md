@@ -796,3 +796,27 @@ the crates, then the roof from the mouth. Held by
 `a-mantle-never-passes-through-a-solid` (tests/routes.js), which asks the
 geometry - nothing over the spot and under the landing - and then drives the
 controller from under each low duct's floor without asking the rule.
+
+### 20.9 Section 5 - the routes are lit
+
+> *"endgame there should be no markings"* (the redesign interview, 2026-09)
+
+Section 5 amended took the affordance markings away and asked the map to
+read by material and light instead. B6 gave it the material; B7
+(2026-09-14) gives it the light. Every stage of every declared stairless
+route (`map.routes`, 20.6) is drawn a step brighter than it would be unlit
+- its own colour as emissive on its four sides, `map.routeLighting` - and
+the edge each route goes over at the top, where the climb rule names an
+approach onto the landing from the last stage, carries a thin unlit strip
+in the lamps' warm white. Both are derived: a surface is lit because it is
+a stage, an edge because the rule says a body arrives there, and a lip is
+lit only where a route lands on it (D25). It is paint and not a lamp: the
+count of lights stays twelve and the detection model (Section 7.1) does not
+see it, so a lit route is no riskier to stand on. Held by
+`every-route-reads-lit-from-its-foot` (tests/legibility.js): from the
+lowest spot the rule names on walkable ground for each route's first stage,
+that stage reads at least 10 of luma brighter than the same stage painted
+unlit in the same frame and at least 0.25 Michelson against its surround;
+from the last stage, the strip on each landing edge reads at least 0.5
+against what is round it; and every strip on the map is one draw call. How
+it looks is D28.

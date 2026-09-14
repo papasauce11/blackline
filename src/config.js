@@ -858,6 +858,26 @@ export const CONFIG = {
     ventUpperY: 4.3,
     /** Intermediate mantle tier between the crate stacks and the deck. */
     gantryY: 4.0,
+    /**
+     * Route lighting (B7, D28). Every stage of every declared route
+     * (`map.routes`) is drawn a step brighter than the same surface would be
+     * unlit - its own colour as emissive, so it holds in shadow and in the
+     * dark vault alike - and the edge each route goes over at the top, the
+     * part of the landing's face the rule names a climb onto from the last
+     * stage, carries a thin unlit strip in the lamps' warm white. Paint,
+     * not lamps: nothing here is a light the detection model reads
+     * (Section 7.1), so a lit route is no riskier to stand on. The check
+     * `every-route-reads-lit-from-its-foot` (tests/legibility.js) measures
+     * both from the pixels. `edgeReach` is how far past the support's own
+     * span the strip runs, a body radius either side, so a landing edge is
+     * lit where you arrive at it and not along a 38m slab.
+     */
+    routeLighting: {
+      emissive: 0.12,
+      edgeThickness: 0.06,
+      edgeHeight: 0.05,
+      edgeReach: 1.0,
+    },
     groundFloorHeight: 6.0,
     upperFloorHeight: 5.0,
     wallThickness: 0.4,

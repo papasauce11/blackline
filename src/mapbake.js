@@ -29,15 +29,27 @@ export const SWEEP_STEP = 0.15;
  * Toon materials are shared by colour so the whole shell draws from a handful
  * of programs. Per-box contact darkness rides on a vertex-colour attribute
  * (Section 4.1) rather than on a per-box material.
+ *
+ * A `lit` variant of each colour (B7) is the same material with its own
+ * colour as emissive at `map.routeLighting.emissive`: a step brighter than
+ * the same surface unlit, from every angle and in every light, without a
+ * light in the scene - the detection model reads point lights (Section 7.1)
+ * and this is paint, not a lamp. One more material per lit colour, cached
+ * the same way.
  */
 export function createMaterialCache(gradientMap) {
   const cache = new Map();
   return {
-    toon(color) {
-      let material = cache.get(color);
+    toon(color, lit = false) {
+      const key = lit ? `${color}:lit` : color;
+      let material = cache.get(key);
       if (!material) {
         material = new THREE.MeshToonMaterial({ color, gradientMap, vertexColors: true });
-        cache.set(color, material);
+        if (lit) {
+          material.emissive.set(color);
+          material.emissiveIntensity = M.routeLighting.emissive;
+        }
+        cache.set(key, material);
       }
       return material;
     },

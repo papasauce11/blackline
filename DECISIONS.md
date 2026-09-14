@@ -193,6 +193,34 @@ decoration and can come with B7 if the flat sheet does not read. Nobody has
 looked at it; Josh overrides here.
 **decided:**
 
+### D28 — How a route is lit
+B7. Taken: **paint, not lamps.** Every stage of every declared route
+(`map.routes` - the crates, the container, the gantries, the low vent lip,
+the upper vent's floor, the fire escape's flights) has its four sides drawn
+with its own colour as emissive at `map.routeLighting.emissive` (0.12): a
+step brighter than the identical surface beside it that is not a route, in
+every light and in shadow. Not its top - a body standing on it sees the top,
+and the north duct's mouth is read against the crate top it opens onto (B6)
+and stopped reading at the first attempt. And the edge each route goes over
+at the top - the part of the landing's face the rule names a climb onto from
+the last stage, a body's reach either side of the spots it names - carries a
+thin strip in the lamps' warm white, unlit, one mesh for the map. Fifteen
+strips today: the four deck lips, the fire escape's deck and roof landings,
+and the slabs the reach rule found as landings itself - `deck-7`, `deck-19`,
+`deck-21` from the duct roofs, three round the bay gantry, three round the
+vault hatch. That last list is D25's: with option 2 there those strips go
+with the routes. Reason for paint over lamps: a light in the scene is a
+thing the detection model reads (Section 7.1) and Section 5 fixes the
+count at twelve, so lighting a route with a lamp would make the route a
+riskier place to stand, which is a rule and not a look; emissive is seen
+and not counted. Reason for the sides: it is what you see from the foot,
+and what the check measures. Alternatives: real lamps, at a rule's cost;
+a bevel on the lips instead of a strip, which reads only in a raking light;
+a lower emissive (0.08 reads as 11 to 20 of luma against 16 to 27 at 0.12).
+Nobody has looked at it; Josh overrides here, and the one number to turn is
+`emissive`.
+**decided:**
+
 ## Blocking — waiting on Josh
 
 ### D8 — Does the site ring still read, now the plant is the whole room?

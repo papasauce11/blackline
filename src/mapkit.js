@@ -71,6 +71,8 @@ export class GameMap {
      * @type {{id:string, name:string, stages:object[][], landing:number}[]}
      */
     this.routes = [];
+    /** What B7 lit: `{ stages, edges, mesh }`, filled by lightRoutes() (maproutelight.js). */
+    this.routeLighting = null;
     /** Rectangles the upper deck is missing, for the connectivity check. */
     this.deckVoids = [];
     /** The building shell's outer footprint, used to place the Shade outside. */
