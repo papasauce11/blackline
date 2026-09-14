@@ -5,6 +5,14 @@ on Josh, and what he has decided), `PLAN.md` (the protocol a session follows).
 `BLACKLINE_SPEC.md` is the contract; `PROGRESS.md` is the full append-only
 history (3,000 lines) — read only the last entry.
 
+## Last audit
+
+2026-09-13. **Working tree broken by a reboot at 18:19** — `src/systems/plantrule.js` and `src/systems/objective.js` are zero-filled, the suite cannot boot; B5c is done but uncommitted; restore the two files from HEAD `2e12d0e`, VERIFY twice, commit B5c. HEAD itself: 128 passed, 1 failed (frame budget, skipped), 0 red, 0 flaky, 0 console errors — matches this file.
+Week: 47 commits, 23 jobs done (A1–A8, F1–F4, B1–B6 and the P's), 8 queued, 0 WIP at HEAD. Blocked on Josh: D8 and D13 (5 days, nothing waits on them), D25 (under a day, blocks B5b).
+Checks: none deleted, no threshold loosened, one skip (frame budget, documented). The census's `shouldClimb` was redefined this week (B3/B5) — a contract change, argued in PROGRESS, not a number.
+Drift: config.js 1,282 lines (exempt), 0 TODO/FIXME, 1 Math.random (audio noise), 1 setTimeout (a performance check). Fresh seed 20260913: fuzz and the AI stuck checks green.
+Full report: PROGRESS.md, "Audit — 2026-09-13".
+
 **The project now runs itself.** Two scheduled tasks — `blackline-build` at
 17:00 and 02:00, `blackline-audit` weekly — do up to three queue jobs per run,
 one at a time, under the protocol in `PLAN.md`. A human session is welcome to do the same: take the

@@ -4518,3 +4518,73 @@ B7, and B7 should know the thinnest reading is the crate-top mouth at 0.27,
 with orange paint as its surround.
 
 **Left.** D26 for Josh (how the metal looks). B5c is next; B7 after it.
+
+## Audit — 2026-09-13
+
+**BROKEN BASE — the working tree, not HEAD.** The PC rebooted at 18:19:43
+today, in the middle of the 17:00 build run. `src/systems/plantrule.js` and
+`src/systems/objective.js` are zero-filled on disk (10,389 and 19,600 NUL
+bytes, both written 18:19:18, 25 seconds before boot), and `npm run suite` in
+the tree crashes at boot: `pageerror: Invalid or unexpected token`, the
+harness never appears. B5c is finished but **uncommitted** (11 modified files,
+`src/climbprobe.js` untracked; QUEUE.md, HANDOFF.md, PROGRESS.md and the spec
+already record it as done). A further edit was in flight when the machine went
+down: `src/tests/plantcensus.js` now passes `h.map.collision` to
+`withinDefuseReach`, and the matching half in `plantrule.js` is gone with the
+zeroing. HEAD `2e12d0e` (B6) is intact and green (below). The 02:00 run will
+GATE on this tree and stop. The way back is `git checkout HEAD --
+src/systems/plantrule.js src/systems/objective.js`, then VERIFY the B5c tree
+twice before it is committed as B5c. The audit fixed nothing and committed
+only its own two hunks.
+
+**Landed.** Week 2026-09-06 → 09-13; oldest commit `5c6d571` (2026-09-08).
+47 commits. 23 entries under Done in QUEUE.md, all of them this week (the
+queue itself dates from 09-08): P1, P2, A1–A8, F1–F4, B1, B2, B2b, B3, B4,
+B4b, B5, B6, and the D17 commit. Queued during the week: F1–F4, B2b, B4b,
+B5b, B5c (8). At HEAD: 23 `[ ]` open, 0 `[~]` WIP. Blocks A and F closed; B
+is at B5c (done in the tree, uncommitted) then B7.
+
+**Blocked on Josh** (`decided:` empty): D8 site ring, 5 days (added
+2026-09-08; nothing blocked on it). D13 map-change placeholder, 5 days
+(nothing blocked on it). D25 deck void edges, under 1 day (added 2026-09-13
+02:59; blocks B5b only; the recommendation, option 1, is what is built).
+Decided but still filed under the Blocking heading: D14, D15, D20, D23.
+
+**Suite health.** HEAD `2e12d0e`, run in a scratch worktree of the commit
+(the project tree cannot boot, above): 128 passed, 1 failed, red [], flaky
+[], expectedRed [], skipped 1 (the frame-budget check, outcome fail),
+consoleErrors 0, contextLosses 0, 377s. Matches HANDOFF.md (128/1) and the
+empty Deliberately-red list: **pass**. Checks registered: 129. Diff
+`5c6d571..HEAD -- src/tests scripts/suite-skips.json`: +3,458 / −91 across
+21 files. Looked for looser thresholds, removed assertions, deleted checks,
+new skips:
+- `scripts/suite-skips.json` is new this week, one entry:
+  `the-frame-budget-holds-everywhere-not-just-at-site-a`, "SwiftShader draws
+  a frame in ~400ms". Reported, never counted. The only skip.
+- No check deleted; no numeric threshold loosened. The 91 removed lines are
+  `tests/objective.js`'s `spotOffTheRing`/`plantAt` helpers moved to
+  `tests/plantspots.js`, and comments.
+- Two acceptances widened, both following D21's new grab state:
+  `tests/shade.js` fuzz, `+ h.shade.state === SHADE_STATE.GRAB ||` beside
+  MANTLE/VAULT/HANG, twice.
+- **The census's definition moved** (`tests/readability.js`, B3/B4b/B5):
+  `- const shouldClimb = box.solid && standableTop(h, box) && move !== null && move !== 'step';`
+  `+ const shouldClimb = wideTop(box) && reachable;` where `reachable` is any
+  support approach with a real move whose landing fits. This is the change
+  that turned the census green on 09-12. It is a redefinition of the
+  contract, argued in B3's and B5's PROGRESS entries, not a loosened number;
+  flagged because the census is the thing QUEUE.md says never to weaken.
+
+**Drift.** Over 600 lines: `src/config.js` 1,282 (exempt). TODO/FIXME: 0.
+`Math.random`: 1 real use, `systems/audio.js:97`, the documented noise
+buffer. `setTimeout`: 1 real use, `tests/performance.js:82`, documented as
+deliberate and inside a check, not the game.
+
+**Fresh seeds.** `--query "seed=20260913" --subset "fuzz|soak"` on HEAD: one
+check matched, `shade-invariants-under-fuzz`, passed. Widened to
+`fuzz|soak|getting-stuck|never-climbs`: 3 passed, 0 failed. Nothing to queue.
+
+**Recommendation.** Before 02:00: restore the two zeroed files from HEAD, run
+the suite twice on the B5c tree, commit B5c. Then one line under D25 so B5b
+either happens or leaves the top of Block B. And read B5's PROGRESS entry
+once: the census's sentence changed this week, and it is the contract.
