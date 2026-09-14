@@ -194,7 +194,7 @@ budget checks are the ceiling.
   D28 (provisional). The first cut lit the tops too and put B6's mouth
   check red at the north duct's west mouth (surround 76 against 118); the
   sides only, and it reads 0.27 as before. No bevel: the strip is the edge
-  profile. `B7_HASH`, 2026-09-14, scheduled run.
+  profile. `d063701`, 2026-09-14, scheduled run.
 - **B5c** A mantle never passes through a solid. `handsOverTop()` in the
   new `src/climbprobe.js` - the hand sweep's constants and the one sentence
   the rule (`mapclimb.js`) and the controller (`agenttraversal.js`) share:
