@@ -7,7 +7,7 @@ history (3,000 lines) — read only the last entry.
 
 ## Last audit
 
-2026-09-13. **Working tree broken by a reboot at 18:19** — `src/systems/plantrule.js` and `src/systems/objective.js` are zero-filled, the suite cannot boot; B5c is done but uncommitted; restore the two files from HEAD `2e12d0e`, VERIFY twice, commit B5c. HEAD itself: 128 passed, 1 failed (frame budget, skipped), 0 red, 0 flaky, 0 console errors — matches this file.
+2026-09-13. **Working tree broken by a reboot at 18:19** — `src/systems/plantrule.js` and `src/systems/objective.js` are zero-filled, the suite cannot boot; B5c is done but uncommitted; the two files were restored from HEAD `2e12d0e` that evening and the B5c tree verified: one census check red both runs, so it is committed as `WIP: B5c` and B5c is `[~]` again. HEAD itself: 128 passed, 1 failed (frame budget, skipped), 0 red, 0 flaky, 0 console errors — matches this file.
 Week: 47 commits, 23 jobs done (A1–A8, F1–F4, B1–B6 and the P's), 8 queued, 0 WIP at HEAD. Blocked on Josh: D8 and D13 (5 days, nothing waits on them), D25 (under a day, blocks B5b).
 Checks: none deleted, no threshold loosened, one skip (frame budget, documented). The census's `shouldClimb` was redefined this week (B3/B5) — a contract change, argued in PROGRESS, not a number.
 Drift: config.js 1,282 lines (exempt), 0 TODO/FIXME, 1 Math.random (audio noise), 1 setTimeout (a performance check). Fresh seed 20260913: fuzz and the AI stuck checks green.
@@ -28,12 +28,12 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean |
-| AUTO suite | headless, `npm run suite`: **128 passed, 1 failed** — the frame-budget check (skipped headless, see Running it). **The census is green** since B3 (2026-09-12); the Deliberately-red list in `QUEUE.md` is empty |
-| Next job | the first unblocked `[ ]` in `QUEUE.md` is B5c (S: a mantle never passes through a solid, found by B6); then B7 (route lighting). B5b (rails) waits on D25. B6 done 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after `WIP: B5c` (2026-09-13); the WIP is the tree, see Next job |
+| AUTO suite | headless, `npm run suite`: **128 passed, 2 failed** on the B5c WIP tree, both runs - the frame-budget check (skipped headless, see Running it) and **one red**, `every-legal-plant-has-a-warden-who-can-reach-it` (the north duct's roof plant, the Warden stops 0.5m short). HEAD before the WIP, `2e12d0e`, was 128/1 and green. The Deliberately-red list in `QUEUE.md` is empty; the red is the WIP's to close |
+| Next job | **B5c, `[~]` in `QUEUE.md`** - resume from the note there (the census red, and the half-lost `withinDefuseReach` change). Then B7 (M: edge profiles and route lighting). B5b (rails) waits on D25. B6 done 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
-| Map | 214 collision boxes, 58 climbable (56 after B3; B4's open bay gantry adds the two deck slabs beside its void), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes** (`map.routes`, B5), 21 surfaces that need a leg up, every one a stage or landing of a route |
+| Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **146 of 146** approaches the rule names climb |
 
 Phases 1–49 of the original build are done and committed. A **redesign** is now
 in progress, 11 phases in, and one directive arrived outside it (the plant, below).
@@ -182,7 +182,8 @@ with geometry before B4b closed it in the rule.) The derivation resets
 `climbable` on every box before deciding; nothing declared on a box
 survives it, and `addSolid()` no longer takes a `climbable` option. The
 rule's sentence: *a surface is climbable when the body could reach its
-face from somewhere it can stand, and fit on top where it lands.*
+face from somewhere it can stand, get its hands over the top in open air
+(B5c), and fit on top where it lands.*
 
 ## The material language, and what the pixels say - B6
 
@@ -213,13 +214,23 @@ proving it measures the material. It costs ~30s a run on SwiftShader.
 light, stage by stage, and this check reads the lit result - the crate-top
 mouth has 0.02 of margin, so light the north duct's route and re-read.
 
-**B5c is next, and it is a bug B6 found rather than built.** The rule
-names a climb onto `vent-low-north-lip-from` from the ground *under* the
-duct, by the lip's +x face exposed beneath the floor slab (1.4-2.1m), and
-the controller makes it: W + Space at (-11.11, 0, -16) facing west
-mantles the body up through `vent-low-north-floor` into the mouth. Four
-such approaches (both low ducts, both lips). The landing is validated
-(B4b), the path is not. `QUEUE.md` has the repro and the shape of the fix.
+**B5c closes the bug B6 found - built, committed as WIP, one census check still red (see Where things stand).** The rule named a climb onto
+`vent-low-north-lip-from` from the ground *under* the duct, by the lip's
++x face exposed beneath the floor slab (1.4-2.1m), and the controller made
+it: W + Space at (-11.11, 0, -16) facing west mantled the body up through
+`vent-low-north-floor` into the mouth - five approaches, all under a duct
+floor. Now `handsOverTop()` in `src/climbprobe.js` - the hand sweep's
+constants and the one sentence the rule (`mapclimb.js`) and the controller
+(`agenttraversal.js`) share, since neither may import the other - asks
+that the column above the body be open air up to the top of the face the
+hands met; a face whose top edge is under a solid is a wall under a
+ceiling, and the press scuffs. `a-mantle-never-passes-through-a-solid`
+(tests/routes.js) asks the geometry (nothing over the spot and under the
+landing) and then drives the controller from under each low duct's floor
+without asking the rule. Spec 20.8. The rule's sentence is now: *a surface
+is climbable when the body could reach its face from somewhere it can
+stand, get its hands over the top in open air, and fit on top where it
+lands.*
 
 ---
 

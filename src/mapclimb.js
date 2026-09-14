@@ -9,6 +9,7 @@
 
 import { CONFIG } from './config.js';
 import { classifyReach } from './physics.js';
+import { PROBE_STEP, HAND_HALF, handsOverTop } from './climbprobe.js';
 
 const M = CONFIG.map;
 const S = CONFIG.shade;
@@ -21,13 +22,10 @@ const FACES = [
   { nx: 0, nz: -1 },
 ];
 
-/**
- * The hand sweep, as the controller does it (`Shade._probeLedge`): a sample
- * every `PROBE_STEP` up from the feet, each one a horizontal ray at the face.
- * Kept identical on purpose - the rule must not see a ledge the hands cannot.
- */
-const PROBE_STEP = 0.12;
-const HAND_HALF = { x: 0.05, y: 0.05, z: 0.05 };
+// The hand sweep, as the controller does it (`Shade._probeLedge`): a sample
+// every `PROBE_STEP` up from the feet, each one a horizontal ray at the face.
+// The constants and the over-the-top test are shared through climbprobe.js
+// so the rule cannot see a ledge the hands cannot.
 
 /**
  * Where the body lands once it is over a face, as the controller puts it
@@ -263,6 +261,15 @@ export function landingFits(collision, box, face, x, z) {
  * ceiling it cannot get through. A ray that meets something else first keeps
  * sweeping, as the controller does: a low wall in front of a tall box hides
  * the box's foot, not its lip.
+ *
+ * And once the face is met, the hands go on up it to its top edge (B5c):
+ * the column above the body has to be open air all the way to the top of
+ * the box, or the face is a wall under a ceiling, not a ledge. A duct lip
+ * met from underneath the duct's floor slab is exactly that - its face is
+ * exposed from 1.4 to 2.1m beneath the slab, the landing on top is a legal
+ * crouch inside the mouth, and the body between them would rise straight
+ * through the floor. `handsOverTop` (climbprobe.js) is the same test the
+ * controller makes in `_probeLedge()` before it commits.
  */
 function handsReachFace(collision, box, face, x, z, feet, depth) {
   const half = { x: S.radius, y: S.crouchHeight / 2, z: S.radius };
@@ -278,7 +285,7 @@ function handsReachFace(collision, box, face, x, z, feet, depth) {
     if (!hit) continue;
     // Only a face gives a ledge; a top or bottom hit is not something to climb.
     if (Math.abs(hit.ny) > 0.5) continue;
-    if (hit.box === box) return true;
+    if (hit.box === box) return handsOverTop(collision, x, z, feet + probe, box.max.y);
   }
   return false;
 }

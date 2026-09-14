@@ -773,3 +773,26 @@ lit hall are the same material and should read the same; a difference in
 luma would call the dark one invisible. Whether metal-against-concrete
 *reads as a duct* to a person is not a pixel question and stays with Josh
 (D26).
+
+### 20.8 Section 6.1 - the hands go over the top, or it is not a ledge
+
+> *"every vault, mantle, slide, and pull-up must validate the destination
+> capsule is clear of geometry before committing"* (Section 6.1)
+
+The destination was validated; the way there was not, and B6's approach
+survey found where that mattered (B5c, 2026-09-13): the two low ducts' lips
+were climbable from the hall floor *underneath* the duct, by the face each
+lip exposes beneath the floor slab, and the mantle carried the body straight
+up through the floor into the mouth. The rule and the controller now say the
+same extra sentence: once the hands meet a face, the column above the body
+must be open air up to the top of that face (`handsOverTop`, climbprobe.js,
+which both import). A face whose top edge is under another solid is a wall
+under a ceiling, not a ledge; the hands stop there, everything higher is
+behind the same ceiling, and the press is a scuff (20.5). Five approaches
+went, all of them under a duct floor; the north duct's west lip, which opens
+level onto the hall's crate stack and had no other approach, is no longer
+climbable at all - it is walked into - and `hall-vent-north` is declared as
+the crates, then the roof from the mouth. Held by
+`a-mantle-never-passes-through-a-solid` (tests/routes.js), which asks the
+geometry - nothing over the spot and under the landing - and then drives the
+controller from under each low duct's floor without asking the rule.

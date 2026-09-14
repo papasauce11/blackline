@@ -122,6 +122,17 @@ function walkOffOnto(h, box) {
   return null;
 }
 
+/** The highest solid top under (x, z) below `ceiling`: the ground there. */
+function groundUnder(h, x, z, ceiling) {
+  let best = null;
+  for (const box of h.map.collision.boxes) {
+    if (!box.solid || box.max.y >= ceiling) continue;
+    if (x < box.min.x || x > box.max.x || z < box.min.z || z > box.max.z) continue;
+    if (best === null || box.max.y > best) best = box.max.y;
+  }
+  return best;
+}
+
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'every-stacked-climb-is-a-step-of-a-declared-route',
@@ -226,6 +237,112 @@ export function register(debugTools) {
           ? `${onward + walked + dropped} climbable tops: ${onward} lead to another climb, ${walked} onto `
             + `a surface at their level, ${dropped} have a second edge to drop from`
           : `${dead.length} dead climbs: ${dead.join('; ')}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'a-mantle-never-passes-through-a-solid',
+    spec: 'Section 6.1 (parkour safety rule) / B5c',
+    name: 'From where a climb starts to where it lands, the body is in open air - by the rule and by the controller',
+    run: (h) => {
+      // B6's approach survey found the rule naming a climb onto a duct lip
+      // from the ground UNDER the duct: the lip's face is exposed beneath the
+      // floor slab, the landing inside the mouth is a legal crouch, and the
+      // mantle carried the body straight up through the floor. The safety
+      // rule validates where a move ends; this asks about the way there.
+      const problems = [];
+
+      // By the rule: no approach it names starts under a solid it lands
+      // over. A mantle is a diagonal from the spot to the landing, and every
+      // one goes over the corner of the box it climbs - so "passes through"
+      // cannot mean "touches": at a duct mouth the floor slab is coincident
+      // with the lip's top and the body brushes both. What it means is a
+      // solid that is over the spot - its footprint contains it, its
+      // underside is above the feet - and under the landing. The body would
+      // have to go through it to get from one to the other. A fact about the
+      // geometry, asked without the rule's own sweep.
+      let approaches = 0;
+      for (const box of h.map.collision.boxes) {
+        if (!box.climbable) continue;
+        for (const approach of usableApproaches(h, box)) {
+          approaches++;
+          for (const other of h.map.collision.boxes) {
+            if (other === box || !other.solid) continue;
+            if (approach.x < other.min.x || approach.x > other.max.x) continue;
+            if (approach.z < other.min.z || approach.z > other.max.z) continue;
+            if (other.min.y <= approach.y + 0.01) continue;
+            if (other.max.y > box.max.y + 0.01) continue;
+            problems.push(`${box.tag} from ${approach.box.tag} at ${approach.x.toFixed(2)},${approach.z.toFixed(2)}: `
+              + `${other.tag} is over the spot (${other.min.y.toFixed(2)}-${other.max.y.toFixed(2)}m) and under the `
+              + `${box.max.y.toFixed(2)}m landing`);
+          }
+        }
+      }
+
+      // By the controller, without asking the rule: stand on the ground
+      // under each low duct's floor slab, a hand's reach short of its lip,
+      // face the lip and hold W and Space - the spot the rule used to name.
+      // The body must not rise into the slab, and the press must not be
+      // silent (20.5): the hands are on a face they cannot get over.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      h.setPaused(false);
+      const shade = h.shade;
+      let tried = 0;
+      for (const vent of h.map.vents) {
+        const floor = vent.boxes.find((box) => box.tag === `${vent.tag}-floor`);
+        if (!floor) continue;
+        const alongX = vent.axis === 'x';
+        for (const lip of vent.boxes.filter((box) => /-lip-(from|to)$/.test(box.tag))) {
+          const from = lip.tag.endsWith('-lip-from');
+          const inward = from ? 1 : -1;
+          const innerFace = alongX ? (from ? lip.max.x : lip.min.x) : (from ? lip.max.z : lip.min.z);
+          const along = innerFace + inward * (S.radius + 0.55);
+          const cross = alongX ? (vent.min.z + vent.max.z) / 2 : (vent.min.x + vent.max.x) / 2;
+          const x = alongX ? along : cross;
+          const z = alongX ? cross : along;
+          const feet = groundUnder(h, x, z, floor.min.y);
+          // A lip beyond full reach from the ground under it (the upper vent,
+          // 4.3m) is not a climb anyone can attempt; a press there is a jump.
+          if (feet === null || lip.max.y - feet > FULL_REACH) continue;
+          tried++;
+          // Facing the lip: back toward the mouth, against `inward`.
+          const dirX = alongX ? -inward : 0;
+          const dirZ = alongX ? 0 : -inward;
+          shade.reset({ position: { x, y: feet, z }, yaw: Math.atan2(-dirX, -dirZ) });
+          h.stepFrames(2);
+          const scuffs = shade.scuffs;
+          h.input.clearAll();
+          h.input.heldCodes.add('KeyW');
+          h.input.heldCodes.add('Space');
+          let highest = shade.feetY;
+          for (let step = 0; step < 90; step++) {
+            if (step % 22 === 0) h.input.pressedCodes.add('Space');
+            h.stepFrames(1);
+            h.input.clearEdges();
+            highest = Math.max(highest, shade.feetY);
+          }
+          h.input.clearAll();
+          if (highest > floor.min.y - 0.05) {
+            problems.push(`${lip.tag} from under the duct at ${x.toFixed(2)},${z.toFixed(2)}: the body rose to `
+              + `${highest.toFixed(2)}m, into a floor slab whose underside is ${floor.min.y.toFixed(2)}m`);
+          } else if (shade.scuffs === scuffs) {
+            problems.push(`${lip.tag} from under the duct: the press was silent - no climb and no scuff`);
+          }
+        }
+      }
+      if (tried < 4) problems.push(`only ${tried} under-the-floor spots driven; the two low ducts have four lips`);
+
+      h.input.clearAll();
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${approaches} approaches by the rule, none starting under a solid it lands over; ${tried} presses `
+            + 'from under a duct floor, every one a scuff with the body still under the slab'
+          : problems.join('; '),
       };
     },
   });

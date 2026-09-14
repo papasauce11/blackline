@@ -201,8 +201,13 @@ export function placeRoutes(map) {
       stages: [['vent-low-south-lip-from'], ['gantry-hall-south']], landing: DECK,
     },
     {
-      id: 'hall-vent-north', name: 'Turbine Hall: the north duct, lip to roof to the void edge',
-      stages: [['vent-low-north-lip-from'], ['vent-low-north-roof']], landing: DECK,
+      // The north duct's west mouth opens onto the top of the crate stack,
+      // level with its floor: walked into, not climbed. Its lip used to be
+      // "climbable" from the hall floor underneath the duct, through the
+      // floor slab (B5c); honestly, the route up here is the crates, then
+      // the roof from the mouth.
+      id: 'hall-vent-north', name: 'Turbine Hall: the crates into the mouth of the north duct, its roof, the void edge',
+      stages: [['stack-hall-low'], ['stack-hall-mid'], ['vent-low-north-roof']], landing: DECK,
     },
     {
       id: 'hall-vent-south', name: 'Turbine Hall: the south duct, lip to roof to the void edge',

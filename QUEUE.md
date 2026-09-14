@@ -55,24 +55,33 @@ there. The census is the contract; **never weaken it**.
   `every-stacked-climb-is-a-step-of-a-declared-route` green with those
   routes removed, the census's "need a leg up" at the number D25 predicts,
   `the-warden-never-climbs-to-reach-its-ground` and the AI soak unchanged.
-- [ ] **B5c (S)** A mantle never passes through a solid. Found by B6's
-  approach survey: the ground under the north duct at (-11.11, 0, -16),
-  facing west, W + Space, mantles onto `vent-low-north-lip-from` by its +x
-  face — exposed *under* the duct floor slab from 1.4 to 2.1m — and the body
-  rises straight through `vent-low-north-floor` (y 2.1–2.3) to land in the
-  mouth (traced: feet 2.29 at x -12.85, inside the slab). The rule names the
-  same approach (`handsReachFace` sweeps past the slab because it is "not
-  this box"), and the same at `vent-low-south-lip-from` (+x face) and both
-  `-lip-to` faces (-x, from x -2.89): four approaches whose landing is legal
-  and whose path is not. Section 6.1's safety rule says the destination is
-  validated; the path should be too, in the rule and in `_commitMove` with
-  the same sentence — a face whose top edge is under another solid at the
-  hands is not a ledge. Then `hall-vent-north`'s first stage: its only
-  ground approach is this one (the west mouth opens onto `stack-hall-mid`,
-  level, a walk-in), so the route is redeclared to start at the crate stack.
-  *done-when:* a check sweeps the crouched capsule along every mantle the
-  rule names and finds nothing solid; the per-approach count drops by
-  exactly those four; census, routes and the AI soak unchanged.
+- [~] **B5c (S)** A mantle never passes through a solid. **WIP, found
+  uncommitted after the PC rebooted at 18:19 on 2026-09-13 mid-run.** Built:
+  `handsOverTop()` in the new `src/climbprobe.js` (the hand sweep's constants,
+  shared by the rule in `mapclimb.js` and the controller in
+  `agenttraversal.js`): once the hands meet a face the column above the body
+  must be open air to the top of that face, or the press is a scuff. Five
+  approaches went, all under a duct floor (151 -> 146); `vent-low-north-lip-from`
+  is no longer climbable (58 -> 57); `hall-vent-north` redeclared as the crates
+  then the roof from the mouth (8 routes, 22 stages); check
+  `a-mantle-never-passes-through-a-solid` in tests/routes.js; spec 20.8.
+  PROGRESS.md and HANDOFF.md were written as if done. **Not done: the suite is
+  red**, both runs, `every-legal-plant-has-a-warden-who-can-reach-it`
+  (tests/plantcensus.js): *"vent-low-north-roof (top, room A): the Warden
+  never started defusing in 30s from its nearest spawn - it got to 0.5m and
+  stayed in defend"*. The run was fixing this when the machine went down:
+  tests/plantcensus.js passes `h.map.collision` as a third argument to
+  `withinDefuseReach()` (two call sites), and the matching change in
+  `src/systems/plantrule.js` was lost when the file was zeroed. *Resume from:*
+  decide why the Warden stops 0.5m short of the north duct's roof plant now the
+  lip is walk-in - the defuse reach against the duct's geometry, or the route
+  A8 plans onto the roof - and either finish the `withinDefuseReach(foot, at,
+  collision)` change in plantrule.js or revert the two plantcensus.js lines;
+  the original done-when's capsule sweep was tried and is the wrong
+  instrument (every mantle brushes the corner of the box it climbs).
+  *done-when:* the census check above green, `a-mantle-never-passes-through-a-solid`
+  green, 146 of 146 approaches climbed, routes and the AI soak unchanged, suite
+  twice with identical answers.
 - [ ] **B7 (M)** Legibility — edge profiles and route lighting. Climbable
   lips get a bevel or a lit edge; the main stairless route up in each area is
   lit a step brighter than its surround. The routes are `map.routes` since
@@ -198,7 +207,7 @@ budget checks are the ceiling.
   floor out from a walk-in, the duct and what is seen through the opening
   each ≥ 0.25 Michelson against the surround, nine mouths, 0.27–0.81 (was
   0.01–0.23 at eight of nine with concrete ducts). Spec 20.7, D26
-  (provisional). Found B5c - 2026-09-13, scheduled run.
+  (provisional). Found B5c - `2e12d0e`, 2026-09-13, scheduled run.
 - **B5** The area pass, measured honestly. The census's "needs a leg up"
   was an artifact (it counted the office desks and missed two fire-escape
   flights); it now means "no climb from ground a walking body reaches"

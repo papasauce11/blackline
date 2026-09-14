@@ -165,7 +165,7 @@ export function register(debugTools) {
         let stand = null;
         let bestDistance = Infinity;
         for (const cell of cells) {
-          if (!withinDefuseReach(cell, spot.at)) continue;
+          if (!withinDefuseReach(cell, spot.at, h.map.collision)) continue;
           const distance = Math.hypot(cell.x - spot.at.x, cell.z - spot.at.z);
           if (distance < bestDistance) {
             bestDistance = distance;
@@ -388,7 +388,7 @@ export function register(debugTools) {
         }
         // The ground it defuses from: the last point that is ground.
         const end = route[onGround - 1];
-        if (!withinDefuseReach(end, spot.at)) {
+        if (!withinDefuseReach(end, spot.at, h.map.collision)) {
           problems.push(`${spot.what}: the route ends ${Math.hypot(end.x - spot.at.x, end.z - spot.at.z).toFixed(1)}m from the charge, outside the defuse reach`);
         }
         if (problems.length > 8) break;

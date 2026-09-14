@@ -19,22 +19,17 @@
 
 import { CONFIG } from '../config.js';
 import { classifyReach } from '../physics.js';
+import { PROBE_STEP, HAND_HALF, handsOverTop } from '../climbprobe.js';
 import { SHADE_STATE } from './agentstate.js';
 
 const S = CONFIG.shade;
 
-/**
- * Spacing of the ledge probe's sample heights.
- *
- * This used to be six fixed heights (0.25 / 0.6 / 1.0 / 1.45 / 1.9 / 2.35) and
- * a 0.2m-thick floor slab sitting between the last two was invisible to it —
- * the v2 vent lips classified, marked, and could never actually be climbed. A
- * fixed ladder of samples has gaps by construction; a sweep does not.
- */
-const PROBE_STEP = 0.12;
-
-/** Roughly a hand, for testing whether a probe sample is in open air. */
-const HAND_HALF = { x: 0.05, y: 0.05, z: 0.05 };
+// The ledge probe's sample spacing and hand size come from climbprobe.js,
+// shared with the map's climb rule. The spacing used to be six fixed heights
+// (0.25 / 0.6 / 1.0 / 1.45 / 1.9 / 2.35) and a 0.2m-thick floor slab sitting
+// between the last two was invisible to it — the v2 vent lips classified,
+// marked, and could never actually be climbed. A fixed ladder of samples has
+// gaps by construction; a sweep does not.
 
 export const TRAVERSAL = {
   /**
@@ -123,6 +118,13 @@ export const TRAVERSAL = {
       const rise = topY - feet;
       const move = classifyReach(rise, reach);
       if (move === null || move === 'step') continue;
+      // The hands go on up the face to its top edge, and the column above
+      // the body has to be open air all the way (B5c). A duct lip met from
+      // under the duct's floor slab has a legal landing inside the mouth and
+      // a floor between here and there; the mantle would carry the body
+      // through it. Same sentence as the map's `handsOverTop`, and the same
+      // break as the sample above: a hand under a ceiling stops.
+      if (!handsOverTop(this.collision, origin.x, origin.z, origin.y, topY)) break;
 
       return { box: hit.box, topY, rise, move, reach, hitX: hit.x, hitZ: hit.z, dirX, dirZ };
     }

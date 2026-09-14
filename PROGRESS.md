@@ -4519,6 +4519,90 @@ with orange paint as its surround.
 
 **Left.** D26 for Josh (how the metal looks). B5c is next; B7 after it.
 
+## B5c — a mantle never passes through a solid (2026-09-13, same run)
+
+The job B6 wrote for itself: the rule and the controller both mantle onto
+a duct lip from the ground *under* the duct, through its floor slab.
+
+**Traced first.** W + Space at (-11.11, 0, -16) facing west, the real
+controller: state `mantle` on the first step, straight from the ground (a
+2.3m rise is inside standing reach), feet 2.29 at x -12.85 - inside
+`vent-low-north-floor`, y 2.1 to 2.3 - and the body lands crouched in the
+mouth at 2.43 and walks on out of it. The lip's +x face is exposed beneath
+the slab from 1.4 to 2.1m; the hands meet it, the landing capsule inside
+the mouth is clear (B4b's test, honestly passed), and nothing asks about
+the 0.2m of concrete in between. The same at the south duct's west lip and
+both ducts' east lips, and - which B6's survey did not list - at
+`stack-hall-mid` from under the north duct, whose top is level with the
+duct floor and whose landing is inside the mouth too. Five approaches.
+
+**Built.** One sentence, said in both places.
+
+1. *`src/climbprobe.js`.* The hand sweep's constants (`PROBE_STEP`,
+   `HAND_HALF`) were declared twice, once in `mapclimb.js` and once in
+   `entities/agenttraversal.js`, each with a comment saying they were kept
+   identical on purpose; the map and an entity may not import each other
+   (Section 3.1). They now have one home at the physics layer, importing
+   nothing, alongside the new `handsOverTop(collision, x, z, fromY, topY)`:
+   from a hand on a face at `fromY`, is the column above the body open air
+   up to just over the top of that face. A hand that meets a ceiling on the
+   way up never gets over the edge, whatever the landing looks like.
+
+2. *The rule.* `handsReachFace()` returns `handsOverTop(...)` where it
+   returned `true`. Everything higher is behind the same ceiling, so the
+   answer is final.
+
+3. *The controller.* `_probeLedge()` asks the same before it returns a
+   ledge, and `break`s on `false` the way it already breaks when a sample
+   is not in open air - the sweep stops where the hand does. `_faceAhead`
+   was recorded at the hit, so the press is a scuff on the duct floor (20.5).
+
+4. *The route.* `vent-low-north-lip-from` had exactly one approach, this
+   one: its west mouth opens level onto the top of `stack-hall-mid` (a
+   walk-in, not a climb) and the crates cover its other faces. It is not
+   climbable now, and `hall-vent-north` is declared honestly: `stack-hall-low`,
+   `stack-hall-mid`, then `vent-low-north-roof` from the mouth (a 1.27m
+   vault the rule names from the crate top). Eight routes, 22 stages.
+
+**Verified.**
+- `a-mantle-never-passes-through-a-solid` (tests/routes.js), two halves.
+  By the geometry: for every approach the rule names, no solid other than
+  the box is over the spot (footprint contains it, underside above the
+  feet) and under the landing (top at or below the box's top). By the
+  controller, without asking the rule: from under each low duct's floor, a
+  hand's reach short of each lip, facing it, W + Space for 90 steps - the
+  body never rises within 5cm of the slab's underside, and the press
+  scuffs. With `handsOverTop` stubbed to `true` both halves go red: five
+  *"... is over the spot (2.10-2.30m) and under the 2.30m landing"* and
+  four *"the body rose to 2.80m, into a floor slab whose underside is
+  2.10m"* (the south lip-from reads 4.44: from inside the duct it went on
+  up the roof). With the fix, 146 approaches and 4 presses, green.
+- The done-when asked for a crouched-capsule sweep along every mantle's
+  path, and that was tried first, twice. A vertical column at the spot
+  flagged the fire escape (the flight above overhangs the one you stand
+  on), `hall-container` from under `gantry-hall` and `stack-bay-mid` from
+  under `gantry-bay` - bodies that brush an overhang on a diagonal they
+  never actually take vertically. The controller's real path (`_stepTraversal`:
+  eased line plus a 0.18 arc) flagged every duct mouth instead, because the
+  floor slab is coincident with the lip's top and going over the lip's
+  corner is going over the slab's. Neither says "through". "Starts under
+  it and lands over it" does, and it is a fact about the geometry that
+  does not read the rule's sweep, which is the shape HANDOFF asks for.
+- Census: 214 boxes, **57 climbable** (was 58 - the north duct's west
+  lip), 123 approaches / 105 climbs from the floor, all 57 reached, **21
+  need a leg up**, the same 21; `the-climb-rule-has-no-exceptions` 0
+  disagreements; **146 of 146** approaches climbed (was 151); 8 routes, 22
+  stages, 22 stacked climbs every one on a route; 57 tops all with an exit.
+- Full suite **SUITE_NUMBERS**.
+
+**Not built.** Nothing else moved. The gantry and fire-escape brushes the
+column sweep found are real but small - a standing body's head passing an
+overhang's corner for a few frames of a move that ends validated - and they
+are B8's (feel: the mantle's path and pose), not a rule.
+
+**Left.** B7 is next (route lighting; `map.routes` has 22 stages to light).
+Nothing for Josh from this one.
+
 ## Audit — 2026-09-13
 
 **BROKEN BASE — the working tree, not HEAD.** The PC rebooted at 18:19:43
@@ -4588,3 +4672,18 @@ check matched, `shade-invariants-under-fuzz`, passed. Widened to
 the suite twice on the B5c tree, commit B5c. Then one line under D25 so B5b
 either happens or leaves the top of Block B. And read B5's PROGRESS entry
 once: the census's sentence changed this week, and it is the contract.
+
+## B5c — committed as WIP after the reboot (2026-09-13, evening, Josh's session)
+
+The entry above was written before the 17:00 run's VERIFY finished. The PC
+rebooted at 18:19:43 with the run mid-fix; `src/systems/plantrule.js` and
+`src/systems/objective.js` came back zero-filled and were restored from
+`2e12d0e`. The B5c tree then ran the suite twice: **128 passed, 2 failed**
+both times, no flake. Besides the skipped frame budget, one red:
+`every-legal-plant-has-a-warden-who-can-reach-it` -
+*"vent-low-north-roof (top, room A): the Warden never started defusing in
+30s from its nearest spawn - it got to 0.5m and stayed in defend"*. The run
+had started on it: `tests/plantcensus.js` now passes `h.map.collision` into
+`withinDefuseReach()`, and the other half of that change was in the zeroed
+`plantrule.js` and is lost. Committed as `WIP: B5c`; the `[~]` item in
+`QUEUE.md` carries the resume note. Nothing else touched.
