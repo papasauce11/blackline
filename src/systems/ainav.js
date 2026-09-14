@@ -29,9 +29,18 @@ export const NAVIGATION = {
     // to a deck node than to the floor node beside it, and that choice sent
     // the Warden up a staircase and back down it. A goal off the ground and
     // beyond the snap keeps its own position, as before.
+    // Both ends as FEET. `nearestWaypoint` prefers a node on the body's own
+    // floor, "own" being within two steps of the height it is given - and
+    // the Warden's position is its centre, a metre above its feet, so from
+    // the deck no deck node was ever on its floor and the nearest node
+    // anywhere won: a corridor node six metres below, three metres over.
+    // The follower then walked the deck above a ground route and off its
+    // edge at the last leg (B9 watched it fall six metres onto site A). The
+    // goal was already a foot position.
     const ground = this.map.wardenGround;
     const stand = ground ? ground.standAt(goal, DEFUSE_SNAP) : null;
-    const from = this.map.nearestWaypoint(this.warden.position);
+    const feet = { x: this.warden.position.x, y: this.warden.feetY, z: this.warden.position.z };
+    const from = this.map.nearestWaypoint(feet);
     const to = this.map.nearestWaypoint(stand || goal);
     if (from && to) {
       const nodes = this._findPath(from.id, to.id);

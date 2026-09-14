@@ -27,6 +27,7 @@ import { register as registerDeck } from './deck.js';
 import { register as registerRoutes } from './routes.js';
 import { register as registerLegibility } from './legibility.js';
 import { register as registerWarden } from './warden.js';
+import { register as registerWardenGround } from './wardenground.js';
 import { register as registerDetection } from './detection.js';
 import { register as registerAI } from './ai.js';
 import { register as registerCombat } from './combat.js';
@@ -63,6 +64,7 @@ export function registerAutoTests(debugTools) {
   registerRoutes(debugTools);
   registerLegibility(debugTools);
   registerWarden(debugTools);
+  registerWardenGround(debugTools);
   registerDetection(debugTools);
   registerAI(debugTools);
   registerCombat(debugTools);

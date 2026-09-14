@@ -65,15 +65,18 @@ export class AutoSuite {
    * Section 16: "Regression set after any patch: 1, 3, 9, 13, 17, 20, 22, 23,
    * 27." Runs only the checks covering those, and says which of them no AUTO
    * check covers — a regression run that silently skips half the set is worse
-   * than not having one.
+   * than not having one. Since 20.11 the redesign's contract rides with it,
+   * by id (`regressionChecks`): Section 16's numbers were written for marked
+   * bands, and the census and the routes are what a climb is now.
    */
   runRegressionSet() {
     const wanted = new Set(CONFIG.debug.regressionSet);
+    const byId = new Set(CONFIG.debug.regressionChecks);
     const covered = new Set();
     const subset = this.tests.filter((test) => {
       const hits = this.checksCovered(test).filter((number) => wanted.has(number));
       for (const hit of hits) covered.add(hit);
-      return hits.length > 0;
+      return hits.length > 0 || byId.has(test.id);
     });
     const uncovered = [...wanted].filter((number) => !covered.has(number));
     if (uncovered.length) {

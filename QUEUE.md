@@ -82,11 +82,6 @@ there. The census is the contract; **never weaken it**.
   side face from the ground beside the mouth, requiring a scuff and the body
   never above the lip. *done-when:* the check lists the nine faces B8
   removed as refused by geometry and by the controller; suite twice.
-- [ ] **B9 (S)** Close. Amend spec Sections 5 and 6.1 via Section 20, re-sweep
-  the regression set, Warden sanity (still grounded — a check asserts the
-  Warden never leaves `map.wardenGround`, which A1 built; drive it with the AI
-  over a soak, do not re-derive it), done-definition check updated.
-  *done-when:* `donedef` passes; README climbing section matches.
 
 ## Block C — playable and testable
 
@@ -183,6 +178,21 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B9** Close. Spec 20.11: Sections 5 (the markings withdrawn for material
+  and light, the traversal line round the eight declared routes), 6.1 (the
+  band rows withdrawn for one reach rule, the press, the hang, the tell,
+  the feel, the Warden's ground), 16 (checks 6 and 26 rewritten, the
+  regression set widened) and 18 amended by reference to 20.2-20.10.
+  `CONFIG.debug.regressionChecks` names the redesign's nine checks by id
+  and `runRegressionSet()` runs them with the numbered set (20 -> 29 of
+  139); `the-regression-set-resolves-to-real-checks` requires every id to
+  exist. `the-warden-never-leaves-its-ground` (tests/wardenground.js):
+  4,200 steps of AI-driven patrol, hunt and a defended plant, the feet on
+  `map.wardenGround` every step (airborne only within a metre over it - a
+  stair walked down). It found the AI planning from its centre, which from
+  the deck picked a corridor node six metres below and walked the body off
+  the deck edge onto site A; `_pathTo()` plans from the feet now. README
+  climbing and `U` sections rewritten. 2026-09-14, scheduled run.
 - **B8** Feel. Momentum carries into a vault (`vaultDurationAtSprint` 0.28,
   `vaultCarry` 0.85: a sprint leaves a crate at 5.5 m/s, a walk at 4.2 as
   before); a landing has weight (`shade.landing`: nothing under 1.2m, all of
@@ -203,8 +213,8 @@ budget checks are the ceiling.
   edges. `agentslide.js` split from agent.js (601 -> 546); the runner takes
   `--details FILE`. Seven checks: tests/feel.js (four), tests/hang.js,
   tests/traversalfuzz.js (the 10k-step fuzz at every spot the rule names,
-  and the recovery check). Spec 20.10, D29 (provisional). 2026-09-14,
-  scheduled run.
+  and the recovery check). Spec 20.10, D29 (provisional). `fb68243`,
+  2026-09-14, scheduled run.
 - **B7** Legibility — route lighting. `src/maproutelight.js`, `lightRoutes()`
   after the climb rule: every stage of every declared route (`map.routes`)
   has its four sides painted with its own colour as emissive

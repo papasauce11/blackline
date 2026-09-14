@@ -1222,6 +1222,24 @@ export const CONFIG = {
      * 23, 27." Verbatim, so the runner is the spec rather than a paraphrase.
      */
     regressionSet: [1, 3, 9, 13, 17, 20, 22, 23, 27],
+    /**
+     * The redesign's contract, by check id, run with the set above (spec
+     * 20.11, B9). Section 16's numbers were written for marked bands; these
+     * are what a climb is now - the census, the rule with no exceptions,
+     * the declared routes, a mantle through nothing, the tap and the hold,
+     * the tell, the Warden on its ground, and the traversal fuzz.
+     */
+    regressionChecks: [
+      'every-climbable-surface-can-actually-be-climbed',
+      'the-climb-rule-has-no-exceptions',
+      'every-approach-the-rule-names-is-a-climb-the-controller-makes',
+      'every-stacked-climb-is-a-step-of-a-declared-route',
+      'a-mantle-never-passes-through-a-solid',
+      'tap-space-grabs-the-ledge-hold-space-climbs-it',
+      'a-climb-beyond-reach-bumps-poses-and-sounds',
+      'the-warden-never-leaves-its-ground',
+      'traversal-fuzz-ten-thousand-steps-never-sticks',
+    ],
     /** How many Section 16 checks there are, for coverage reporting. */
     specCheckCount: 29,
     /**

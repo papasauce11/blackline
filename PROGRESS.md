@@ -5019,3 +5019,81 @@ is seven steps and nobody has felt it long or short.
 **Left.** B9 (close) is next. D29 has the numbers to turn. The nine climbs
 the sweep removed were through solids; if one of them was a route somebody
 meant, the map is where it is fixed, not the sweep.
+
+## B9 — close: the redesign amended into the spec, and the Warden watched on its ground (2026-09-14, same run)
+
+The second job of the 17:00 run, after B8. B9 was the plan's phases 47-50
+in one S job: amend Sections 5 and 6.1 via Section 20, re-sweep the
+regression set, a Warden sanity check driven by the AI and not re-derived,
+the done-definition check updated, the README to match.
+
+**Built.**
+
+1. *Spec 20.11.* What Sections 5, 6.1, 16 and 18 now read as, in one
+   entry, pointing at the pieces (20.2, 20.4-20.10): the markings table
+   withdrawn in full and replaced by material and light; the traversal
+   line rewritten round the eight declared routes; the three band rows of
+   6.1 withdrawn for one reach rule, the press, the hang as a held option,
+   the tell, the feel and the Warden's ground; check 6 and check 26 of
+   Section 16 rewritten for what they now test and which AUTO checks hold
+   them; the regression set widened; the definition of done made to
+   include the rule. Nothing above Section 20 was edited.
+2. *The regression set re-swept.* Section 16's numbers were written for
+   marked bands; `CONFIG.debug.regressionChecks` names the redesign's
+   contract by id - the census, the rule with no exceptions, every
+   approach climbed, the routes, a mantle through nothing, the tap and the
+   hold, the tell, the Warden on its ground, the traversal fuzz - and
+   `runRegressionSet()` runs them with the numbered set: 20 checks by
+   number, 29 with the ids, of 139. `the-regression-set-resolves-to-real-
+   checks` requires every id to be a registered check and the union to
+   still be a proper subset, so a renamed census cannot quietly leave the
+   set. `U` in the README says so.
+3. *`the-warden-never-leaves-its-ground`* (tests/wardenground.js). A1's
+   ground is data; this does not re-derive it. It plays: 20s of patrol,
+   20s of the Shade dropped five metres from the Warden and sprinting in
+   circles (SUSPICIOUS, INVESTIGATE, SEARCH - the phase must have moved the
+   AI, or it says so), then a plant at site A off the ring and 30s of the
+   AI walking its last leg and defusing (DEFEND). 4,200 steps through the
+   real fixed step, and on every one the Warden's feet are on
+   `map.wardenGround`: standing, a floor of its column or of a cell within
+   one cell's reach, within a step; airborne, the same no more than a
+   metre below the feet - walking *down* a stair at 3 m/s the Warden
+   clears a 0.4m tread before it has fallen 0.3m and lands two down, so a
+   descent is a series of short falls over ground a little under the feet
+   (136 of the 4,200 steps), and a deck edge is six metres of nothing.
+4. *What it found, first cut.* The Warden **walked off the deck**. Left on
+   the deck by the hunt, handed the plant, it planned a route that began
+   at `corridor-n` - a ground node six metres below it and three metres
+   over - walked the deck above that ground route, and at the last leg
+   stepped off the edge into the hall void and fell six metres onto site A
+   (where, being unhurt, it began defusing). `_pathTo()` asked
+   `nearestWaypoint()` for the node nearest the Warden's *centre*, and the
+   "own floor" preference A8 wrote there is two steps (0.7m) of height,
+   which a centre a metre above its feet never satisfies; so the nearest
+   node anywhere won, and from the deck that is the corridor. The goal
+   end was already a foot position. `_pathTo()` now asks from the feet.
+   Reverting that one line puts the check red at "defend, step 549: the
+   Warden's feet are off its ground at (-9.32, 5.87, -3.92)".
+5. *README.* The climbing section rewritten to what the game does now:
+   material and light instead of markings, the press, vault and mantle,
+   the tell, the hang at full stretch, the buffer, the landing, the Warden
+   grounded, and where the numbers are.
+
+**Verified.**
+
+- Subset: the new check, every `ai-*` check, both plant-route checks, the
+  regression-set check, the live-match and whole-match soaks and the
+  state-machine collisions: 13 of 13 after the fix (the AI's route to the
+  room-A sample still tails in 2 segments; the 366 legal plants still
+  routed).
+- Full suite, `npm run suite`: **138 passed, 1 failed** both runs (392s,
+  449s), the frame budget skipped headless, 0 red, 0 flaky, 0 console
+  errors, 0 context losses, 0 loop frames; the Warden check's detail
+  identical between the runs.
+
+**Not built.** Section 16's HUMAN checks stay HUMAN; 20.11 says which
+AUTO checks hold the rewritten 6 and 26 and leaves "does it read" to Josh.
+
+**Left.** Block B is closed but for B5b (D25), B5d (D27) and B8b. Block C
+(playable and testable) is next: C1, the playtest build with the debug
+gate off by default.

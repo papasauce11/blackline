@@ -885,3 +885,72 @@ fuzz: `traversal-fuzz-ten-thousand-steps-never-sticks` and
 spot the rule names, no move outliving its duration, no hang from nothing,
 no endless fall, no body at rest in a solid, and after every burst the body
 back on the ground within three seconds. How any of it feels is D29.
+
+### 20.11 Sections 5, 6.1, 16 and 18 - the traversal redesign, closed
+
+> *"endgame there should be no markings. should be able to do on a ledge
+> what you would expect to be able to."* (Josh, after phase 49)
+
+The redesign ran from 2026-09-08 to 2026-09-14 as phases 1-50 and this is
+the amendment it was for; the entries before it (20.2, 20.4-20.10) are the
+pieces, and this is what Sections 5 and 6.1 now read as. B9.
+
+**Section 5, "Affordance markings"** is withdrawn in full. There are no
+stripes, chevrons, dashes or lit vent panels, and the row that said *a
+ledge is marked because it is flagged* is replaced by its own principle
+one level down: **a ledge is climbable because a body could climb it**, and
+nothing is flagged at all. What makes traversal readable instead:
+
+- *Material* (20.7): concrete is what you do not pass through, metal is
+  what you pass through or climb. Every duct is galvanised sheet against
+  the concrete it runs through; gantries, deck lips and the fire escape are
+  gunmetal. Measured from the pixels at every duct mouth.
+- *Light* (20.9): every stage of every declared stairless route is a step
+  brighter than the same surface unlit, and the edge a route goes over at
+  the top carries a thin warm-white strip. Paint, not lamps; the twelve
+  lights and the detection model are untouched.
+- The plant-site ring stays: it is objective information, not an
+  affordance. The destructible-light fixture's cracked-glass state stays:
+  it is a state, not a marking.
+
+**Section 5, "Traversal"** reads: 3 vent runs, crouch-only and silent, read
+by material; **eight declared stairless routes** (`map.routes`, 20.6) - the
+five designed and the three the reach rule found (the two duct roofs onto
+the deck, the fire escape split at its landing), every one a chain of
+stages the rule climbs in order, every stacked climb on the map on one of
+them (D25 is whether the found ones stay); 1 drop-down shaft, one-way.
+
+**Section 6.1's Vault, Mantle and Ledge hang rows** are withdrawn and the
+climb is one rule with no bands:
+
+| Property | Value |
+|---|---|
+| Reach | A surface is climbable when the body could reach its face from somewhere it can stand, get its hands over the top in open air (20.8), rise to the landing through nothing (20.10), and fit on top where it lands. Standing that is 2.6m; a jump adds 1.2m, measured from where the feet left the ground, so the ceiling is 3.8m for the whole arc (`shade.reach`). A rise under 0.32m is a step and is walked |
+| The press | Only a press of Space climbs (20.2). On the ground, buffered; in the air, the jump that launched the body or a press during the fall. Walking off an edge climbs nothing. The buffer runs in every state (20.10) |
+| Vault / mantle | Under `reach.vaultTop` (1.15m, chest height) the body plants a hand and goes over, keeping the speed it brought; above it the body pulls itself up. The map derives which is which from the rise; no surface is authored either way |
+| Ledge hang | A held option (20.4): a climb of a ledge at least 1.4 Shade-heights (2.59m) above where it started begins with a grab. Tap Space and you hang, at full stretch (20.10); hold and you go over. Space pulls up, crouch drops, A/D shimmy. Lower ledges go straight over |
+| Failed climb | Never silent (20.5): the body is pushed back, the arms go up, the hands slap - a noise a Warden in the room hears |
+| Feel | 20.10: momentum into a vault, a landing that costs by the fall, a camera that takes the weight of a climb |
+| The Warden | Stays grounded. `map.wardenGround` (A1) is every cell a walking Warden reaches from its spawns by its own step, symmetric (D16); the plant rule reads it (20.3), the AI plans its last leg over it, and `the-warden-never-leaves-its-ground` watches the AI patrol, hunt, defend and defuse and requires its feet on that ground every step. Finishing that check found the AI planning from its centre rather than its feet, which from the deck chose a corridor node six metres below and walked the body off the deck edge; fixed in `_pathTo()` |
+
+The parkour safety rule stands, and is now two halves: the destination is
+validated before a move commits, and the way there is swept (20.10).
+
+**Section 16.** Check 6 ("Fail a mantle above 2.4m. Ledge hang triggers")
+reads: *tap Space at a ledge you had to jump for. You hang; hold and you go
+over; Space pulls up and crouch drops* - AUTO, `tap-space-grabs-the-ledge-
+hold-space-climbs-it`. Check 26 ("every ledge is visibly marked") reads:
+*every climbable surface climbs by the rule and reads by material and
+light* - AUTO for the rule (the census, `every-climbable-surface-can-
+actually-be-climbed`, and `the-climb-rule-has-no-exceptions`) and for the
+contrast (20.7, 20.9), HUMAN for whether it reads. The regression set
+after any patch is the numbered list **and** the redesign's contract by
+check id, `CONFIG.debug.regressionChecks`: the census, the rule with no
+exceptions, every approach climbed, the routes, a mantle through nothing,
+the tap and the hold, the tell, the Warden on its ground, and the
+traversal fuzz. `runRegressionSet()` runs both; `the-regression-set-
+resolves-to-real-checks` requires every id to exist.
+
+**Section 18.** "All 29 test script checks pass" reads them as amended
+here, and adds: *the census is green and the regression set's named checks
+are all present* - the definition of done includes the rule.

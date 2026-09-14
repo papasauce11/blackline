@@ -103,13 +103,31 @@ Click the canvas to capture the mouse. Bindings are rebindable at runtime via
 
 There are no affordance markings. If a surface has a top you could stand on and
 your body can reach it, you climb it — about 2.6m from standing, about 3.8m out
-of a jump. Nothing is tagged and nothing opts out.
+of a jump. Nothing is tagged and nothing opts out. What reads instead: ducts
+are metal against the concrete they run through, and the stairless routes up
+are a step brighter than the surfaces beside them, with a pale strip on the
+edge each one goes over at the top.
+
+A climb is always a press of Space — walking or falling off an edge climbs
+nothing. Below chest height you vault, keeping the speed you brought; above it
+you pull yourself up. A press that finds nothing to get over is never silent:
+you bump back off the face, your hands go up, and the slap is a noise a Warden
+in the room hears.
 
 A climb of a ledge at least 1.4× your height (about 2.6m — one you have to
-jump for) starts with a grab of the lip. **Tap Space and you hang there; hold
-Space and you carry on over.** From a hang, Space pulls up, crouch drops, A/D
-shimmy along the edge. Anything lower goes straight over either way — there is
-nothing worth hanging from.
+jump for) starts with a grab of the lip. **Tap Space and you hang there, at full
+stretch under the lip; hold Space and you carry on over.** From a hang, Space
+pulls up, crouch drops, A/D shimmy along the edge. Anything lower goes straight
+over either way — there is nothing worth hanging from. A pull-up with no room
+above the lip slaps and leaves you hanging; crouch is the way down.
+
+A press of Space just before you land, or just before a climb ends, still
+counts: you jump off the landing or the ledge top. A fall over about a metre
+costs something to land — the further, the more — and a big one puts you at
+half speed for a moment. The Warden climbs nothing; every place it can stand
+was walked to from its spawn, and a bomb is only legal where it could kneel.
+All of the numbers are `shade.reach`, `shade.landing`, `shade.camera` and the
+`vault*`/`hang*` keys in `src/config.js`; the reasons are D29 in `DECISIONS.md`.
 
 ### Debug tooling
 
@@ -132,10 +150,10 @@ Test-mode keys are **inert unless the F4 panel is open**, which is what keeps
 | `L` | Refill all gadgets |
 | `T` | Cycle time scale: 1x → 0.25x → 4x |
 | `Y` | Run the full AUTO suite, printing pass/fail per check to the console |
-| `U` | Run **only** Section 16's regression set (checks 1, 3, 9, 13, 17, 20, 22, 23, 27) |
+| `U` | Run **only** the regression set: Section 16's checks 1, 3, 9, 13, 17, 20, 22, 23, 27, plus the redesign's own checks by id (`CONFIG.debug.regressionChecks`: the census, the routes, the tap and the hold, the Warden on its ground, the traversal fuzz) |
 
 `U` is the one to run after a change. It resolves the spec's named regression
-set to the AUTO checks that cover those numbers and says
+set to the AUTO checks that cover those numbers, adds the named ones, and says
 out loud if any of them has no cover rather than quietly skipping it.
 
 A test-mode command whose subsystem has not been built yet reports

@@ -171,13 +171,25 @@ export function register(debugTools) {
         problems.push(`checks claim Section 16 number(s) ${outOfRange.join(', ')}, which do not exist`);
       }
 
+      // And the redesign's contract, named by id (20.11): every id is a
+      // registered check, so a renamed census cannot quietly leave the set.
+      const ids = new Set(dt._autoTests.map((test) => test.id));
+      const byId = CONFIG.debug.regressionChecks;
+      const unknown = byId.filter((id) => !ids.has(id));
+      if (unknown.length) problems.push(`the regression set names check id(s) that do not exist: ${unknown.join(', ')}`);
+      const withIds = dt._autoTests.filter((test) =>
+        byId.indexOf(test.id) !== -1 || dt.checksCovered(test).some((number) => wanted.indexOf(number) !== -1)
+      );
+      if (withIds.length >= dt._autoTests.length) problems.push('with the redesign checks the regression set is the entire suite');
+
       const claimed = [...coverage.keys()].sort((a, b) => a - b);
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `the suite claims ${claimed.length} of Section 16's ${CONFIG.debug.specCheckCount} checks `
             + `(${claimed.join(', ')}); the regression set ${wanted.join(', ')} resolves to `
-            + `${subset.length} of ${dt._autoTests.length} checks, all of them present`
+            + `${subset.length} of ${dt._autoTests.length} checks, all of them present, and with the `
+            + `${byId.length} redesign checks by id to ${withIds.length}`
           : problems.join('; '),
       };
     },

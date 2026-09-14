@@ -28,15 +28,17 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after B8 (2026-09-14) |
-| AUTO suite | headless, `npm run suite`: **137 passed, 1 failed** (2026-09-14, after B8), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **B9** (S: close - amend spec Sections 5 and 6.1 via Section 20, re-sweep the regression set, the Warden never leaves its ground, done-definition). Then B8b (S), then Block C. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 done 2026-09-14 (**phases 42-46 closed**), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after B9 (2026-09-14) |
+| AUTO suite | headless, `npm run suite`: **138 passed, 1 failed** (2026-09-14, after B9), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **B8b** (S: the B5c check asks the gantry case of the geometry), then **Block C** - C1, the playtest build with the debug gate off by default. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
 
-Phases 1–49 of the original build are done and committed. A **redesign** is now
-in progress, 11 phases in, and one directive arrived outside it (the plant, below).
+Phases 1–49 of the original build are done and committed. The **redesign**
+(phases 1-50 of the plan below) is closed as of B9, 2026-09-14, but for two
+jobs that wait on Josh (B5b on D25, B5d on D27) and one small follow-up
+(B8b). One directive arrived outside it (the plant, below). **Block C is next.**
 
 ---
 
@@ -61,7 +63,7 @@ by interview and is binding:
 | The test | **Purely mechanical.** Standable top + within reach ⇒ climbable. No tags, no exceptions, no `noClimb`. The map obeys the rule |
 | Map freedom | Keep the five v2 requirements (Shade starts outside, level 2 is one connected deck, stairless routes up, every room 2+ entries, raised ceilings). Reshape everything else freely |
 | Vents | Read as passable by **material contrast** — metal against concrete. Built as B6 (D26, spec 20.7): `palette.ductMetal` on every piece of a run, and `every-vent-mouth-reads-by-contrast-from-its-approach` measures it from the pixels |
-| Spec | **Amend** Sections 5 and 6.1 with a changelog (phase 47). The changelog exists now — Section 20 — but it holds only the 10.1 plant amendment; 5 and 6.1 are still unamended |
+| Spec | **Amended** — Section 20.11 (B9, 2026-09-14) is what Sections 5, 6.1, 16 and 18 now read as, pointing at 20.2-20.10 for the pieces. Nothing above Section 20 is ever edited |
 
 ---
 
@@ -75,7 +77,7 @@ by interview and is binding:
 | 19–34 | **Area rebuild, lockstep** — geometry + controller together, worst area first | ✅ B5 done 2026-09-13: measured honestly, nothing to rebuild; two rule/controller bugs fixed, routes declared, D25 raised |
 | 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | ✅ B6 (2026-09-13) and B7 (2026-09-14): the ducts are galvanised sheet, the routes are lit and their landing edges carry a strip, both held from the pixels |
 | 42–46 | **Feel** — camera, momentum, weight, timing, traversal fuzz | ✅ B8 (2026-09-14): momentum into a vault, landing weight, the camera dip, the buffer in every state, the hanging body, the 10k-step traversal fuzz; and the way up is swept (spec 20.10, D29) |
-| 47–50 | **Close** — amend the spec, re-sweep, Warden sanity, done-definition | pending |
+| 47–50 | **Close** — amend the spec, re-sweep, Warden sanity, done-definition | ✅ B9 (2026-09-14): spec 20.11 amends Sections 5, 6.1, 16 and 18 by reference; the regression set carries the redesign's checks by id; `the-warden-never-leaves-its-ground` watches the AI on its ground and found it planning from its centre - it walked off the deck - fixed in `_pathTo()` |
 
 Outside that numbering, and **first** because it is a directive rather than a
 plan item: **the plant must be defusable** — Block A in `QUEUE.md`, reasoning
@@ -450,7 +452,14 @@ Phase 1 built the set as map data rather than an objective-system private, so it
 is the honest answer to a question three other systems guess at: whether a
 waypoint is standable, whether a DEFEND path can complete, whether a patrol
 route is walkable end to end. `map.wardenGround.has(position)` answers all
-three. B9's "the Warden never leaves `wardenGround`" check is now writable.
+three. B9 wrote the check: `the-warden-never-leaves-its-ground`
+(tests/wardenground.js) plays 70s of AI patrol, hunt and a defended plant
+and requires the feet on the ground every step (airborne, within a metre
+over it - a stair walked down at 3 m/s is a series of short falls). Its
+first run caught the AI planning from its *centre*: `nearestWaypoint()`'s
+"own floor" is two steps of height, a centre is a metre up, so from the
+deck a corridor node six metres below won and the body walked off the
+deck edge. `_pathTo()` plans from the feet now.
 
 A7 draws it: **F4, then N** puts every cell on the floor as a teal quad at
 its own height, with an orange marker under the human's actor when it is
