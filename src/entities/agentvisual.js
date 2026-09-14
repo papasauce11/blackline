@@ -16,6 +16,12 @@ const S = CONFIG.shade;
 /** The knife lives in combat config; the arc that draws it reads the same
  *  number `swing()` in agent.js arms the timer with. */
 const KNIFE_SWING_TIME = CONFIG.combat.knife.swingAnimTime;
+/**
+ * The hanging body is at full stretch (B8): arms straight up, gloves on the
+ * lip, which is where `hangDrop` puts them. Pi is straight up on this rig;
+ * a shade short of it keeps the elbows in front of the head.
+ */
+const HANG_ARM_ANGLE = -3.05;
 
 export const VISUAL = {
   /**
@@ -37,9 +43,13 @@ export const VISUAL = {
     this.mesh.position.set(this._smoothPosition.x, feet, this._smoothPosition.z);
     this.mesh.rotation.y = this.yaw;
 
+    this._settleDip(wallDt);
+
     // Squash the body group to match the current capsule height so a crouching
-    // or sliding Shade actually looks low.
-    this.mesh.scale.y = this.height / S.standHeight;
+    // or sliding Shade actually looks low - and, while the camera is dipped,
+    // by the weight of the landing or the climb that dipped it (B8).
+    const squash = S.landing.squash * Math.max(0, Math.min(1, -this._dip / S.camera.landDip));
+    this.mesh.scale.y = (this.height / S.standHeight) * (1 - squash);
 
     this._animate(wallDt);
     this._updateGroundBlob(feet);
@@ -62,10 +72,10 @@ export const VISUAL = {
     const idle = Math.sin(this._animTime * 0.8) * 0.04;
 
     if (this.state === SHADE_STATE.HANG || this.state === SHADE_STATE.GRAB) {
-      parts.armL.rotation.x = -2.5;
-      parts.armR.rotation.x = -2.5;
-      parts.legL.rotation.x = 0.25;
-      parts.legR.rotation.x = -0.15;
+      parts.armL.rotation.x = HANG_ARM_ANGLE;
+      parts.armR.rotation.x = HANG_ARM_ANGLE;
+      parts.legL.rotation.x = 0.12;
+      parts.legR.rotation.x = -0.06;
     } else if (this.state === SHADE_STATE.AIR) {
       parts.armL.rotation.x = -0.8;
       parts.armR.rotation.x = -0.5;
@@ -113,6 +123,32 @@ export const VISUAL = {
     parts.head.rotation.x = this.pitch * 0.25;
   },
 
+  /**
+   * The dip (B8): a critically damped spring on the camera pivot's height.
+   * The step leaves a kick in `_dipKick` - metres, negative is down - and it
+   * lands here as a velocity impulse sized so the spring bottoms out at
+   * exactly that depth `dipRecovery` seconds later (x(t) = -d·e·(t/τ)·e^(-t/τ)
+   * has its minimum -d at t = τ), then eases back to rest with no overshoot.
+   * Wall time, like the smoothing: it is presentation, and the simulation
+   * never reads it.
+   */
+  _settleDip(wallDt) {
+    const tau = S.camera.dipRecovery;
+    if (this._dipKick !== 0) {
+      this._dipVel += (this._dipKick * Math.E) / tau;
+      this._dipKick = 0;
+    }
+    if (!(wallDt > 0)) return;
+    const k = 1 / (tau * tau);
+    const c = 2 / tau;
+    this._dipVel += (-k * this._dip - c * this._dipVel) * wallDt;
+    this._dip += this._dipVel * wallDt;
+    if (Math.abs(this._dip) < 1e-4 && Math.abs(this._dipVel) < 1e-3) {
+      this._dip = 0;
+      this._dipVel = 0;
+    }
+  },
+
   /** Section 4.1: grounding sold with a flat dark circle scaled by height. */
   _updateGroundBlob(feet) {
     const below = this.collision.raycast(
@@ -139,7 +175,8 @@ export const VISUAL = {
    */
   _updateCamera() {
     const cam = S.camera;
-    const pivotY = this._smoothPosition.y - this.half.y + cam.up;
+    // `_dip` is the weight of the last landing or climb, easing out (B8).
+    const pivotY = this._smoothPosition.y - this.half.y + cam.up + this._dip;
     const pivot = { x: this._smoothPosition.x, y: pivotY, z: this._smoothPosition.z };
 
     const cosPitch = Math.cos(this.pitch);

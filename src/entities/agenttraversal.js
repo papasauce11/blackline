@@ -19,7 +19,7 @@
 
 import { CONFIG } from '../config.js';
 import { classifyReach } from '../physics.js';
-import { PROBE_STEP, HAND_HALF, handsOverTop } from '../climbprobe.js';
+import { PROBE_STEP, HAND_HALF, handsOverTop, riseIsClear, movePath } from '../climbprobe.js';
 import { SHADE_STATE } from './agentstate.js';
 
 const S = CONFIG.shade;
@@ -156,6 +156,9 @@ export const TRAVERSAL = {
     }
     this._scuffTimer = S.scuffPoseTime;
     this.scuffs++;
+    // One tell per press: the scuff spends the press, buffer and all, or the
+    // body would jump again off the landing it is being pushed back to.
+    this._jumpBuffer = 0;
     const handsY = this.feetY + Math.min(face.rise, face.reach);
     this.scuffedAt = { x: face.hitX, y: handsY, z: face.hitZ };
     if (this.emitter) {
@@ -197,10 +200,19 @@ export const TRAVERSAL = {
       timer: 0,
       duration,
       height,
+      // What the body brought to the move (B8). A vault gives it back on
+      // the way out; nothing else does - a mantle is a pull, not a run.
+      entrySpeed: this.speed,
     };
     this.state = state;
     this.velocity.set(0, 0, 0);
     this._falling = false;
+    // The press that started this is spent on it (B8): a buffered jump does
+    // not also fire at the top. And the camera takes the weight of a climb
+    // - not of a grab, which is a reach and not yet a rise; the pull-up
+    // that follows it gets the dip.
+    this._jumpBuffer = 0;
+    if (state !== SHADE_STATE.GRAB) this._dipKick -= S.camera.climbDip;
     return true;
   },
 
@@ -216,6 +228,13 @@ export const TRAVERSAL = {
     const heights = [S.standHeight, S.crouchHeight];
     for (let i = 0; i < heights.length; i++) {
       const destination = this._ledgeDestination(ledge, heights[i]);
+      // The way up has to be clear too (B8): the capsule swept along the
+      // move's own path against anything higher than the top - the same
+      // sentence as the rule's `riseFits`. Not asked of a grab, which is a
+      // reach and not a rise: a lip under a low gantry can be hung from,
+      // and its pull-up is what refuses, and scuffs.
+      const half = { x: S.radius, y: heights[i] / 2, z: S.radius };
+      if (!riseIsClear(this.collision, this.position, destination, half, ledge.topY)) continue;
       if (this._commitMove(state, destination, duration, heights[i])) return true;
     }
     return false;
@@ -310,11 +329,22 @@ export const TRAVERSAL = {
    * committing. There is no third case: a climb you cannot make does not happen.
    */
   _climbLedge(ledge) {
-    if (ledge.move === 'vault') return this._climbOnto(SHADE_STATE.VAULT, ledge, S.vaultDuration);
+    if (ledge.move === 'vault') return this._climbOnto(SHADE_STATE.VAULT, ledge, this._vaultDuration());
     if (ledge.move !== 'mantle') return false;
     const fromLaunch = ledge.topY - this._launchY;
     if (fromLaunch >= S.standHeight * S.hangMinHeightRatio && this._tryGrab(ledge)) return true;
     return this._climbOnto(SHADE_STATE.MANTLE, ledge, S.mantleDuration);
+  },
+
+  /**
+   * Momentum carries into a vault (B8): the faster the body arrives, the
+   * sooner it is over. `vaultDuration` at a walk and below, sliding to
+   * `vaultDurationAtSprint` at a sprint. The speed itself comes back on the
+   * exit - see `_stepTraversal`.
+   */
+  _vaultDuration() {
+    const pace = Math.max(0, Math.min(1, (this.speed - S.walkSpeed) / (S.sprintSpeed - S.walkSpeed)));
+    return S.vaultDuration + (S.vaultDurationAtSprint - S.vaultDuration) * pace;
   },
 
   /**
@@ -424,18 +454,19 @@ export const TRAVERSAL = {
     ledge.hitZ += latZ * distance;
   },
 
-  _stepTraversal(dt) {
+  _stepTraversal(dt, intent) {
     const move = this._move;
     move.timer += dt;
+    // A press of Space in the last `jumpBuffer` of a climb is a jump off
+    // its top (B8), the same way one in the last of a fall is a jump off the
+    // landing. Not during a grab: there Space is read as held or not by the
+    // hang it ends in (D21), and a press is a hold.
+    if (intent && intent.jumpPressed && this.state !== SHADE_STATE.GRAB) this._jumpBuffer = S.jumpBuffer;
     const t = Math.min(1, move.timer / move.duration);
     // Ease out, with a small vertical arc so a vault reads as going over
-    // something rather than through it.
-    const eased = t * t * (3 - 2 * t);
-    const arc = Math.sin(t * Math.PI) * 0.18;
-
-    this.position.x = move.from.x + (move.to.x - move.from.x) * eased;
-    this.position.y = move.from.y + (move.to.y - move.from.y) * eased + arc;
-    this.position.z = move.from.z + (move.to.z - move.from.z) * eased;
+    // something rather than through it - `movePath`, which is also the path
+    // `_climbOnto()` swept before committing.
+    movePath(move.from, move.to, t, this.position);
 
     if (t < 1) return;
 
@@ -458,10 +489,13 @@ export const TRAVERSAL = {
     this.crouching = move.height < S.standHeight;
     this._move = null;
 
-    // Leave with a little momentum so a vault keeps flow (Section 6.1).
+    // Leave with momentum so a vault keeps flow (Section 6.1): what the body
+    // brought, less `vaultCarry`, and never under `vaultExitSpeed` (B8). A
+    // sprint over a crate is still a sprint on the far side.
     if (this.state === SHADE_STATE.VAULT) {
-      this.velocity.x = -Math.sin(this.yaw) * S.vaultExitSpeed;
-      this.velocity.z = -Math.cos(this.yaw) * S.vaultExitSpeed;
+      const carried = Math.min(S.sprintSpeed, Math.max(S.vaultExitSpeed, move.entrySpeed * S.vaultCarry));
+      this.velocity.x = -Math.sin(this.yaw) * carried;
+      this.velocity.z = -Math.cos(this.yaw) * carried;
     }
 
     this.state = SHADE_STATE.GROUND;

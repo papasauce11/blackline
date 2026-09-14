@@ -69,14 +69,19 @@ there. The census is the contract; **never weaken it**.
   and asserts it does; the room-A sample of
   `every-legal-plant-has-a-warden-who-can-reach-it` is no longer defused
   through the deck; suite twice with identical answers.
-- [ ] **B8 (M)** Feel. Mantle camera dip, momentum carried into a vault,
-  landing weight by fall height, input buffer window tuned; traversal fuzz
-  over 10k steps with no stuck state. Also the hanging body: `hangDrop` 1.35
-  puts the capsule top 0.5m *above* the lip, so a lip with anything less than
-  that over it (hall-container's south face, under `gantry-hall`) cannot be
-  hung from and goes over instead — decide whether a hanging body should sit
-  lower, arms extended, and if so what the pose looks like. *done-when:* the fuzz check and a
-  no-stuck check pass; timing constants named in `config.js`.
+- [ ] **B8b (S)** The B5c check asks the gantry case of the geometry.
+  `a-mantle-never-passes-through-a-solid` (tests/routes.js) asks, without
+  the rule's own sweep, whether a solid sits over the spot and under the
+  landing; B8's sweep (`riseIsClear`) also refuses a solid *above* the
+  landing that the move's path still passes through (the duct walls on the
+  lips' edges, the gantry over hall-container), and today only tests/hang.js
+  drives one such face. Add a geometric clause: for every approach the rule
+  names, sample the crouched capsule along `movePath` from the spot to the
+  landing against every solid whose top is above the landing's, written
+  without calling `riseIsClear`; and drive the controller at each duct lip's
+  side face from the ground beside the mouth, requiring a scuff and the body
+  never above the lip. *done-when:* the check lists the nine faces B8
+  removed as refused by geometry and by the controller; suite twice.
 - [ ] **B9 (S)** Close. Amend spec Sections 5 and 6.1 via Section 20, re-sweep
   the regression set, Warden sanity (still grounded — a check asserts the
   Warden never leaves `map.wardenGround`, which A1 built; drive it with the AI
@@ -178,6 +183,28 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B8** Feel. Momentum carries into a vault (`vaultDurationAtSprint` 0.28,
+  `vaultCarry` 0.85: a sprint leaves a crate at 5.5 m/s, a walk at 4.2 as
+  before); a landing has weight (`shade.landing`: nothing under 1.2m, all of
+  it from 4m, half the speed cut and held for 0.4s, the camera and the body
+  showing it); the camera dips on a vault, mantle or pull-up and not on a
+  grab (`camera.climbDip` 0.22, `landDip` 0.3, `dipRecovery` 0.26, a
+  critically damped spring in agentvisual.js); the jump buffer runs in
+  every state (a press in the last 0.12s of a fall or a climb fires on the
+  landing or the top; spent by a climb or a scuff); the hanging body is at
+  full stretch (`hangDrop` 2.05, arms straight up, gloves on the lip, the
+  capsule's top under it; `hangPullUpDuration` 0.65), so hall-container's
+  south face under gantry-hall hangs and its pull-up scuffs. And the rule
+  that found: **the way up is swept** - `riseIsClear` / `movePath` in
+  climbprobe.js, said by `riseFits` (mapclimb.js) and `_climbOnto`
+  (agenttraversal.js): the capsule along the move's own path against every
+  solid above the landing; nine approaches went (146 -> 139), one under the
+  gantry and eight through the duct walls that stand on every lip's side
+  edges. `agentslide.js` split from agent.js (601 -> 546); the runner takes
+  `--details FILE`. Seven checks: tests/feel.js (four), tests/hang.js,
+  tests/traversalfuzz.js (the 10k-step fuzz at every spot the rule names,
+  and the recovery check). Spec 20.10, D29 (provisional). 2026-09-14,
+  scheduled run.
 - **B7** Legibility — route lighting. `src/maproutelight.js`, `lightRoutes()`
   after the climb rule: every stage of every declared route (`map.routes`)
   has its four sides painted with its own colour as emissive

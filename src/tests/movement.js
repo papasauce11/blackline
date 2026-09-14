@@ -18,6 +18,7 @@
 
 import { CONFIG } from '../config.js';
 import { SHADE_STATE, createIntent } from '../entities/agent.js';
+import { riseIsClear } from '../climbprobe.js';
 
 const S = CONFIG.shade;
 const N = CONFIG.noise;
@@ -558,15 +559,21 @@ export function findGroundLedge(h, minRise, maxRise, { hangable = false } = {}) 
       shade.grounded = true;
       if (!ledge || ledge.box !== box) continue;
       if (hangable) {
-        // A ledge you can actually hang from: the hanging body has to fit
-        // below the lip. Same centre `_tryGrab()` commits to; a face with a
-        // gantry over it (hall-container's south side) is a climb, not a hang.
+        // A ledge you can actually hang from AND pull up onto: the hanging
+        // body has to fit below the lip - the same centre `_tryGrab()`
+        // commits to - and the way up from there has to be clear, by the
+        // controller's own sweep (B8). A face with a gantry 0.3m over it
+        // (hall-container's south side) hangs but never pulls up, and the
+        // checks that pull up want a lip they can.
         const centre = {
           x: ledge.hitX - ledge.dirX * (shade.half.x + 0.04),
           y: ledge.topY - S.hangDrop + shade.half.y,
           z: ledge.hitZ - ledge.dirZ * (shade.half.x + 0.04),
         };
         if (!h.map.collision.isClear(centre, shade.half)) continue;
+        const crouched = { x: S.radius, y: S.crouchHeight / 2, z: S.radius };
+        const landing = shade._ledgeDestination(ledge, S.crouchHeight);
+        if (!riseIsClear(h.map.collision, centre, landing, crouched, ledge.topY)) continue;
       }
       return { box, x, z, yaw };
     }

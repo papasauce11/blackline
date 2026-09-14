@@ -9,7 +9,7 @@
 
 import { CONFIG } from './config.js';
 import { classifyReach } from './physics.js';
-import { PROBE_STEP, HAND_HALF, handsOverTop } from './climbprobe.js';
+import { PROBE_STEP, HAND_HALF, handsOverTop, riseIsClear } from './climbprobe.js';
 
 const M = CONFIG.map;
 const S = CONFIG.shade;
@@ -195,6 +195,7 @@ export function supportApproaches(collision, box) {
         const z = alongX ? (rect.z0 + rect.z1) / 2 : rect.z0 + (rect.z1 - rect.z0) * t;
         if (!handsReachFace(collision, box, face, x, z, other.max.y, depth)) continue;
         if (!landingFits(collision, box, face, x, z)) continue;
+        if (!riseFits(collision, box, face, x, z, other.max.y)) continue;
         out.push({ box: other, y: other.max.y, rise, x, z, nx: face.nx, nz: face.nz });
         break;
       }
@@ -251,6 +252,20 @@ export function landingFits(collision, box, face, x, z) {
   const spot = landingSpot(box, face, x, z);
   const half = { x: S.radius, y: S.crouchHeight / 2, z: S.radius };
   return collision.isClear({ x: spot.x, y: box.max.y + half.y + S.mantleClearance, z: spot.z }, half);
+}
+
+/**
+ * Is the way up clear (B8)? The crouched capsule swept along the climb's
+ * own path from the spot to the landing, against anything higher than the
+ * top it climbs to. `riseIsClear` (climbprobe.js) is the one sentence the
+ * controller's `_climbOnto()` says too.
+ */
+export function riseFits(collision, box, face, x, z, feet) {
+  const half = { x: S.radius, y: S.crouchHeight / 2, z: S.radius };
+  const spot = landingSpot(box, face, x, z);
+  const from = { x, y: feet + half.y, z };
+  const to = { x: spot.x, y: box.max.y + half.y + S.mantleClearance, z: spot.z };
+  return riseIsClear(collision, from, to, half, box.max.y);
 }
 
 /**

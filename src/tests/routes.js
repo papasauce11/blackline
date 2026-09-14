@@ -261,7 +261,9 @@ export function register(debugTools) {
       // solid that is over the spot - its footprint contains it, its
       // underside is above the feet - and under the landing. The body would
       // have to go through it to get from one to the other. A fact about the
-      // geometry, asked without the rule's own sweep.
+      // geometry, asked without the rule's own sweep. (A solid ABOVE the
+      // landing that the path still goes through - a gantry 0.3m over a lip
+      // - is B8's, swept in `riseIsClear` and driven in tests/hang.js.)
       let approaches = 0;
       for (const box of h.map.collision.boxes) {
         if (!box.climbable) continue;

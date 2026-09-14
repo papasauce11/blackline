@@ -221,6 +221,57 @@ Nobody has looked at it; Josh overrides here, and the one number to turn is
 `emissive`.
 **decided:**
 
+### D29 — How a climb and a landing feel
+B8. Taken, every number in `config.js` under `shade`:
+
+- **A vault keeps what you brought.** `vaultDurationAtSprint` 0.28s (from
+  `vaultDuration` 0.42 at a walk, sliding with the entry speed) and
+  `vaultCarry` 0.85 of the entry speed on the exit, floored at
+  `vaultExitSpeed` 4.2. A sprint at 6.5 leaves a crate at 5.5; a walk leaves
+  it at 4.2 as it always did. Reason: a vault is a run interrupted, and a
+  sprint that came out of every crate at 4.2 read as a stop. Alternatives: a
+  fixed duration and no carry (as it was); carry 1.0 (a sprint costs nothing
+  at all, which makes the crate free).
+- **A landing costs by the fall.** `landing`: nothing under `softFall` 1.2m
+  (a hop off a crate), everything from `hardFall` 4.0m, ramped between;
+  `speedLoss` 0.5 of the horizontal speed cut on the landing step and the
+  ground speed held there for `recovery` 0.4s; the camera dips `landDip`
+  0.3m and the body squashes `squash` 0.12 of its height. A 5m drop at a
+  sprint lands at 3.25 m/s and is sprinting again 0.4s later. Reason: a
+  fall from the deck that lands at full sprint reads as no fall at all, and
+  the Warden already hears it (7.2); half a second of legs is the smallest
+  cost that reads as weight. **This one changes what a player can do** by a
+  hair - a Shade dropping off the deck to break contact is 0.4s slower for
+  it - and it is in the queue's own words ("landing weight by fall height"),
+  so it is taken and flagged: `speedLoss` at 0 is a landing that is only
+  seen. Alternatives: a longer recovery with a smaller cut (reads as
+  stumbling); no cost, camera and squash only.
+- **The camera dips** `climbDip` 0.22m on a vault, mantle or pull-up and
+  `landDip` on a hard landing, a critically damped spring bottoming out
+  `dipRecovery` 0.26s after the kick, level again in about a second, never
+  overshooting. Not on a grab. Reason: a camera that rises with the body at
+  the instant of the pull reads as the body being lifted; the dip is the
+  body doing the lifting. Alternative: a lag on the follow instead of a dip
+  (cheaper to read, but it also lags every jump).
+- **The hanging body sits at full stretch.** `hangDrop` 2.05m (was 1.35),
+  arms straight up (`HANG_ARM_ANGLE` in agentvisual.js), the gloves on the
+  lip, the capsule's top 0.2m under it; `hangPullUpDuration` 0.65 (was
+  0.55) for the longer pull. Reason: the rig's hands are 2.08m above its feet
+  with the arms raised, so this is where a body hanging by its hands is; and
+  at 1.35 the capsule stood half a metre proud of the lip, which made a lip
+  under a low gantry unhangable for a reason no player could see. The one
+  such lip (hall-container's south face) now hangs and its pull-up scuffs.
+  Alternative: keep the body high and the arms bent (a chin-up), which
+  reads as stronger and hides the gantry case again.
+- **The buffer window** stays `jumpBuffer` 0.12s; what changed is that it
+  is honoured in the air and through a climb, not only on the ground.
+
+Nobody has felt any of it; Josh overrides here, and every number is one
+line. The rule B8 found - the way up is swept, 20.10 - is not provisional:
+it removes nine climbs that went through a duct wall or a gantry, which the
+parkour safety rule already forbade.
+**decided:**
+
 ## Blocking — waiting on Josh
 
 ### D8 — Does the site ring still read, now the plant is the whole room?

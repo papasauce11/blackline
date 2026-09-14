@@ -16,9 +16,12 @@
 //
 //   node scripts/suite.mjs [--runs 2] [--subset <regex>] [--pre "<js>"]
 //                          [--channel chrome|msedge] [--timeout 600000]
-//                          [--cores N] [--cooldown SECONDS]
+//                          [--cores N] [--cooldown SECONDS] [--details FILE]
 //
 // --pre runs in the page before the suite, e.g. to reseed the rng.
+// --details writes every check's id, outcome and detail line, per run, to
+// FILE as JSON - the readings a PROGRESS.md entry quotes (B8). The report on
+// stdout carries only what is red, flaky or skipped.
 //
 // Heat. This PC renders the suite with SwiftShader, so every pixel of every
 // rendered check is drawn on the CPU, and a run is a sustained all-core load
@@ -54,6 +57,7 @@ const TIMEOUT = Number(args.timeout ?? 600000);
 const SUBSET = args.subset ? new RegExp(args.subset) : null;
 const PRE = args.pre ?? null;
 const QUERY = args.query ?? null; // e.g. "seed=20260908", appended to the page URL
+const DETAILS = args.details ?? null;
 // Half the logical CPUs by default, never fewer than two - one core cannot
 // run a browser and a compositor without the page timing out.
 const CORES = Number(args.cores ?? Math.max(2, Math.floor(os.cpus().length / 2)));
@@ -206,6 +210,7 @@ async function main() {
     ],
   });
   let report;
+  const runs = [];
   let pinned = null;
   try {
     // Before the first page, so the renderers inherit the mask rather than
@@ -246,7 +251,6 @@ async function main() {
       process.stderr.write(`suite: could not pin to ${CORES} cores; running wide\n`);
     }
 
-    const runs = [];
     for (let i = 0; i < RUNS; i++) {
       if (i > 0 && COOLDOWN_MS > 0) await sleep(COOLDOWN_MS);
       const t0 = Date.now();
@@ -296,6 +300,9 @@ async function main() {
     server.close();
   }
 
+  if (DETAILS) {
+    fs.writeFileSync(DETAILS, JSON.stringify(runs.map(r => r.results), null, 2) + '\n');
+  }
   process.stdout.write(JSON.stringify(report, null, 2) + '\n');
   process.stderr.write(summary(report));
   process.exit(report.ok ? 0 : 1);

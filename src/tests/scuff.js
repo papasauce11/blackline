@@ -81,9 +81,9 @@ export function register(debugTools) {
 
         // -- From a hang, a blocked pull-up. No lip on this map has a lid over
         // it yet, so one is staged: a slab of real collision 0.6m above the
-        // lip - room for the hanging body, whose top sits 0.5m above it, none
-        // for the crouched one a pull-up needs - and taken away afterwards to
-        // prove the lid was the block.
+        // lip - clear of the hanging body, whose top sits under the lip since
+        // B8, no room for the crouched one a pull-up needs - and taken away
+        // afterwards to prove the lid was the block.
         const hangMin = S.standHeight * S.hangMinHeightRatio;
         const spot = findGroundLedge(h, hangMin, fullReach, { hangable: true });
         if (!spot) {
@@ -343,7 +343,7 @@ function driveUntilScuff(h, spot) {
  * that face - and no ledge - ahead. The probe is the arbiter, as in
  * `findGroundLedge()`.
  */
-function findTallFace(h, minRise) {
+export function findTallFace(h, minRise) {
   const ground = CONFIG.map.groundY;
   const shade = h.shade;
   for (const box of h.map.collision.boxes) {

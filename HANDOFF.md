@@ -28,12 +28,12 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after B5c (2026-09-14) |
-| AUTO suite | headless, `npm run suite`: **130 passed, 1 failed** (2026-09-14, after B7), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **B8** (M: feel - mantle camera, momentum, landing weight, the hanging body, traversal fuzz). B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B7 and B5c done 2026-09-14, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after B8 (2026-09-14) |
+| AUTO suite | headless, `npm run suite`: **137 passed, 1 failed** (2026-09-14, after B8), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **B9** (S: close - amend spec Sections 5 and 6.1 via Section 20, re-sweep the regression set, the Warden never leaves its ground, done-definition). Then B8b (S), then Block C. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 done 2026-09-14 (**phases 42-46 closed**), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
-| Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **146 of 146** approaches the rule names climb |
+| Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
 
 Phases 1–49 of the original build are done and committed. A **redesign** is now
 in progress, 11 phases in, and one directive arrived outside it (the plant, below).
@@ -56,7 +56,7 @@ by interview and is binding:
 | Scope | All traversal aids gone: ledge stripes, chevrons, dashes, and the lit vent interiors. **Plant-site rings stay** — a bomb site is objective information, not an affordance |
 | Climb rule | **Reach-based, athletic**: ~2.6m standing, ~3.8m with a jump. **And only on a press of Space** — never a side effect of moving (D17, spec 20.2) |
 | Failed climb | A physical tell **plus audio**. Never silent. Built as B2: the bump-and-scuff (below) |
-| Hang | A **held option you choose**, never a failed mantle. Built as B1 (D21, D22, spec 20.4): a climb of a ledge at least **1.4 Shade-heights (2.59m)** above where it started — one you had to jump for — begins with a grab: **tap Space and you hang, hold Space and you go over**; from a hang Space pulls up, crouch drops, A/D shimmy. Lower ledges go straight over |
+| Hang | A **held option you choose**, never a failed mantle. Built as B1 (D21, D22, spec 20.4): a climb of a ledge at least **1.4 Shade-heights (2.59m)** above where it started — one you had to jump for — begins with a grab: **tap Space and you hang, hold Space and you go over**; from a hang Space pulls up, crouch drops, A/D shimmy. Lower ledges go straight over. Since B8 the hanging body is at **full stretch** - arms up, gloves on the lip, the capsule's top under it (`hangDrop` 2.05) - so a lip under a low gantry hangs and its pull-up scuffs |
 | Warden | **Stays grounded.** The asymmetry is the game |
 | The test | **Purely mechanical.** Standable top + within reach ⇒ climbable. No tags, no exceptions, no `noClimb`. The map obeys the rule |
 | Map freedom | Keep the five v2 requirements (Shade starts outside, level 2 is one connected deck, stairless routes up, every room 2+ entries, raised ceilings). Reshape everything else freely |
@@ -74,7 +74,7 @@ by interview and is binding:
 | 12–18 | **Hang as a held option, and the bump-and-scuff** | ✅ B1 (D21, D22) and B2 done 2026-09-10/11 |
 | 19–34 | **Area rebuild, lockstep** — geometry + controller together, worst area first | ✅ B5 done 2026-09-13: measured honestly, nothing to rebuild; two rule/controller bugs fixed, routes declared, D25 raised |
 | 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | ✅ B6 (2026-09-13) and B7 (2026-09-14): the ducts are galvanised sheet, the routes are lit and their landing edges carry a strip, both held from the pixels |
-| 42–46 | **Feel** — camera, momentum, weight, timing, traversal fuzz | pending |
+| 42–46 | **Feel** — camera, momentum, weight, timing, traversal fuzz | ✅ B8 (2026-09-14): momentum into a vault, landing weight, the camera dip, the buffer in every state, the hanging body, the 10k-step traversal fuzz; and the way up is swept (spec 20.10, D29) |
 | 47–50 | **Close** — amend the spec, re-sweep, Warden sanity, done-definition | pending |
 
 Outside that numbering, and **first** because it is a directive rather than a
@@ -209,6 +209,56 @@ Today: 0.27 to 0.81; the thinnest is the north duct's west mouth, walked
 into from the top of `stack-hall-mid` with orange crates as its surround.
 With concrete ducts, eight of nine read 0.01 to 0.23 - that is the check
 proving it measures the material. It costs ~30s a run on SwiftShader.
+
+## The way up is swept, and the feel - B8
+
+B8 (2026-09-14) built the plan's phases 42-46 - every one a number in
+`config.js` under `shade`, recorded as D29 with the line to turn:
+
+- **Momentum into a vault**: `vaultDurationAtSprint` 0.28 (from
+  `vaultDuration` 0.42 at a walk), `vaultCarry` 0.85 of the entry speed on
+  the exit, floored at `vaultExitSpeed`. A sprint leaves a crate at 5.5, a
+  walk at 4.2 as before.
+- **Landing weight**: `shade.landing` - nothing under `softFall` 1.2m, all
+  of it from `hardFall` 4m; `speedLoss` 0.5 cut on the landing step and the
+  ground speed held there for `recovery` 0.4s; the camera dips
+  `camera.landDip` and the body squashes `landing.squash`. The one item
+  that changes what a player can do by a hair (0.4s off a deck drop);
+  `speedLoss` 0 is a landing that is only seen.
+- **The camera dip**: `_dipKick` written by the step, `_settleDip()` in
+  agentvisual.js a critically damped spring (`camera.climbDip` 0.22,
+  `landDip` 0.3, `dipRecovery` 0.26). Not on a grab.
+- **The buffer in every state**: `jumpBuffer` counts down in `step()`, is
+  set by a press on the ground, in the air and through a vault or mantle
+  (not a grab), and is spent by the climb or the scuff it becomes.
+- **The hanging body at full stretch**: `hangDrop` 2.05, `HANG_ARM_ANGLE`,
+  `hangPullUpDuration` 0.65.
+
+**And the rule it found: the way up is swept.** The hang under `gantry-hall`
+worked and the pull-up went *through the gantry* - the landing is beyond
+the gantry's edge and valid, `handsOverTop` clears the column to the top of
+the face, and the body is taller than a hand. `riseIsClear()` in
+climbprobe.js sweeps the capsule along the move's own path (`movePath`,
+shared with `_stepTraversal` so the sweep and the drawing agree) against
+every solid whose top is above the landing's; `riseFits` (mapclimb.js) and
+`_climbOnto` (agenttraversal.js) both say it, the grab does not. Nine
+approaches went: the gantry one, and every low duct lip's two side faces
+from the ground beside the mouth, where `addVentRun()` stands a wall on the
+lip's edge and the mantle went through it. 146 -> 139; the same 22 stacked
+climbs; every top still climbed. The rule's sentence is now: *a surface is
+climbable when the body could reach its face from somewhere it can stand,
+get its hands over the top in open air, rise to the landing through
+nothing, and fit on top where it lands.* Spec 20.10. B8b (queued) gives the
+B5c check a geometric clause for it.
+
+Seven checks: tests/feel.js (four), tests/hang.js, and tests/traversalfuzz.js
+- `traversal-fuzz-ten-thousand-steps-never-sticks` starts every episode at
+a spot the rule names and drives twelve behaviours through real keys for
+10,000 steps with "stuck" defined (a move past 41 steps, a hang with no
+ledge, 3s airborne, at rest in a solid, below the floor, not finite), and
+`after-any-traversal-the-body-can-be-put-back-on-the-ground` asks, after one
+episode per approach, that nothing pressed (crouch from a hang) grounds the
+body within 3s. `agentslide.js` split from agent.js for the 600-line guard.
 
 ## The routes are lit - B7
 
@@ -427,7 +477,7 @@ check keeps it so. Nothing moved changes an order or a name a check reaches:
 | Was | Now |
 |---|---|
 | `main.js` (1,145) | `main.js` (597): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`, the rAF scheduler), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js` (whose rig the camera is on, mouse look, ADS FOV), `intents.js` (input → intent), `loadout.js` (the gadget slots), `wiring.js` (the emitter listeners between systems), `hudstate.js` (what the HUD is told), `debugfields.js` (what the F3 overlay is told), `harness.js` (`createHarness(live, loop)` — one getter per live object) |
-| `entities/agent.js` (1,051) | `agent.js` (527): state machine, ground, air, slide. `agenttraversal.js`: every climb. `agentvisual.js`: how it is drawn. `agentstate.js`: `SHADE_STATE` |
+| `entities/agent.js` (1,051) | `agent.js` (546): state machine, ground, air, the landing. `agentslide.js` (B8): the slide. `agenttraversal.js`: every climb. `agentvisual.js`: how it is drawn, and the camera's dip. `agentstate.js`: `SHADE_STATE` |
 | `systems/ai.js` (788) | `ai.js` (498): the state machine. `aiperception.js`, `ainav.js` (route, steering, stuck). `aistate.js`: `AI_STATE`, `angleDelta`, `DEFUSE_SNAP` |
 | `mapkit.js` (821) | `mapkit.js` (380): `GameMap`, `addSolid`, decals, rooms, lights, waypoints. `mapgen.js`: walls with openings, floor plates, staircases, vent runs. `mapclimb.js`: `deriveClimbableSurfaces`, `supportApproaches` (B3), `supportCandidates` |
 | `map.js` (810) | `map.js` (537): the geometry. `mapdata.js`: sites, spawns, lights, waypoints. `mapvalidate.js` |
@@ -519,7 +569,10 @@ and given back (F1); the summary prints them as `GL CONTEXT LOST`. Zero is
 the normal reading; a non-zero one is the machine, not the game, unless the
 same check is in the list every run. `--runs 1` is a one-minute gate;
 `--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
-the match. `scripts/suite-skips.json` lists checks that cannot pass headless,
+the match; `--details <file>` (B8) writes every check's id, outcome and
+detail line per run - the readings a PROGRESS entry quotes, which the
+stdout report never carried for a green check.
+`scripts/suite-skips.json` lists checks that cannot pass headless,
 with reasons (today: the frame-budget check; SwiftShader draws a frame in
 ~400ms). They are reported, never counted. Needs `npm install` once:
 `playwright-core` only, no browser download.

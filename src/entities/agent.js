@@ -14,10 +14,10 @@
  * destination capsule is clear BEFORE committing. `_commitMove()` is the only
  * path into a traversal state and it refuses to start a move it cannot finish.
  *
- * Three files (F3): this one is the state machine, the ground, the air and the
- * slide; `agenttraversal.js` is every climb (vault, mantle, grab, hang,
- * pull-up); `agentvisual.js` is how it is drawn. They are methods of the one
- * class, installed on its prototype at the bottom.
+ * Four files (F3): this one is the state machine, the ground and the air;
+ * `agentslide.js` is the slide; `agenttraversal.js` is every climb (vault,
+ * mantle, grab, hang, pull-up); `agentvisual.js` is how it is drawn. They are
+ * methods of the one class, installed on its prototype at the bottom.
  */
 
 import * as THREE from 'three';
@@ -25,6 +25,7 @@ import { CONFIG } from '../config.js';
 import { applyGravity } from '../physics.js';
 import { buildShadeMesh, buildGroundBlob } from './agentmesh.js';
 import { SHADE_STATE } from './agentstate.js';
+import { SLIDE } from './agentslide.js';
 import { TRAVERSAL } from './agenttraversal.js';
 import { VISUAL } from './agentvisual.js';
 
@@ -116,6 +117,23 @@ export class Shade {
     this._faceAhead = null;
     /** Counts down while the hands are slapped against a face (B2). */
     this._scuffTimer = 0;
+    /**
+     * Landing weight (B8). How hard the last landing was, 0..1 on
+     * `landing`'s ramp, and how long the legs are still taking it: while
+     * `_landRecovery` runs the ground speed is held down by the weight.
+     */
+    this._landWeight = 0;
+    this._landRecovery = 0;
+    /**
+     * The camera dip (B8). The step writes a kick in metres - a hard landing,
+     * a climb committing - and the visual runs it through a spring on the
+     * pivot's height (`_settleDip`); the simulation never reads the spring.
+     * Same shape as `_scuffTimer`: the step says what happened, the frame
+     * shows it.
+     */
+    this._dipKick = 0;
+    this._dip = 0;
+    this._dipVel = 0;
     /** Failed climbs this body has had, for the checks. */
     this.scuffs = 0;
     /** Distance travelled on the ground, for footstep cadence in Phase 5. */
@@ -178,6 +196,11 @@ export class Shade {
     this._hangTimer = 0;
     this._faceAhead = null;
     this._scuffTimer = 0;
+    this._landWeight = 0;
+    this._landRecovery = 0;
+    this._dipKick = 0;
+    this._dip = 0;
+    this._dipVel = 0;
     this.strideDistance = 0;
     this.landedFallHeight = 0;
     this.scuffedAt = null;
@@ -234,6 +257,14 @@ export class Shade {
     this.landedFallHeight = 0;
     this.scuffedAt = null;
     if (this._slideCooldown > 0) this._slideCooldown -= dt;
+    // The jump buffer runs in every state, not only on the ground (B8): a
+    // press of Space in the last `jumpBuffer` of a fall fires on the landing,
+    // and one in the last of a vault or a mantle fires on the exit, which is
+    // what the constant's own comment always promised. It is set where a
+    // press is read - the ground, the air, a traversal - and spent by the
+    // jump, the climb, or the scuff that answers it.
+    if (this._jumpBuffer > 0) this._jumpBuffer -= dt;
+    if (this._landRecovery > 0) this._landRecovery -= dt;
     // The height the jump bonus is measured against. While the feet are on
     // something this is simply where they are; the moment the body leaves, it
     // freezes at the surface it left from — whether that was a jump, a step off
@@ -245,7 +276,7 @@ export class Shade {
       case SHADE_STATE.MANTLE:
       case SHADE_STATE.GRAB:
       case SHADE_STATE.PULLUP:
-        this._stepTraversal(dt);
+        this._stepTraversal(dt, intent);
         break;
       case SHADE_STATE.HANG:
         this._stepHang(dt, intent);
@@ -295,14 +326,16 @@ export class Shade {
 
     const wish = this._wishDirection(intent);
     const sprinting = intent.sprint && !this.crouching && wish.magnitude > 0;
-    const targetSpeed = (this.crouching ? S.crouchSpeed : sprinting ? S.sprintSpeed : S.walkSpeed)
+    let targetSpeed = (this.crouching ? S.crouchSpeed : sprinting ? S.sprintSpeed : S.walkSpeed)
       * this.speedMultiplier;
+    // The legs are still taking a hard landing (B8): the speed is held down
+    // by the weight of it until `_landRecovery` runs out.
+    if (this._landRecovery > 0) targetSpeed *= 1 - S.landing.speedLoss * this._landWeight;
 
     this._accelerate(wish, targetSpeed, S.groundAccel, dt);
     this._applyFriction(S.groundFriction, dt, wish.magnitude > 0);
 
     if (intent.jumpPressed) this._jumpBuffer = S.jumpBuffer;
-    if (this._jumpBuffer > 0) this._jumpBuffer -= dt;
 
     // A jump into a ledge is a climb, not a jump (Section 6.1, amended). It is
     // tested before the jump itself so the two can never both fire, and it
@@ -363,8 +396,12 @@ export class Shade {
     // launched the body, or a press during the fall. Without one the body
     // falls past every ledge it could have caught, which is the point - a
     // walk-off is not a choice to climb. And it still has to be moving into
-    // the ledge.
-    if (intent.jumpPressed) this._climbArmed = true;
+    // the ledge. The same press is buffered, so if the fall ends within the
+    // window before the arc finds anything, it is a jump off the landing.
+    if (intent.jumpPressed) {
+      this._climbArmed = true;
+      this._jumpBuffer = S.jumpBuffer;
+    }
     if (this._climbArmed && this._tryMantle(intent)) return;
     // The press found nothing to get over. If the hands are on a face, that
     // is a failed climb, and a failed climb is never silent (B2). One tell
@@ -381,65 +418,9 @@ export class Shade {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Slide
-  // -------------------------------------------------------------------------
-
-  /** @returns {boolean} true if the slide was entered */
-  _enterSlide() {
-    // The lowered capsule must fit. Shrinking always fits, but validate anyway
-    // so the rule holds if the slide height is ever retuned upward.
-    if (!this._resize(S.slideHeight)) return false;
-
-    this.state = SHADE_STATE.SLIDE;
-    this._slideTimer = 0;
-    this.crouching = true;
-
-    const speed = this.speed;
-    if (speed > 0.001) {
-      const scale = S.slideSpeed / speed;
-      this.velocity.x *= scale;
-      this.velocity.z *= scale;
-    } else {
-      this.velocity.x = -Math.sin(this.yaw) * S.slideSpeed;
-      this.velocity.z = -Math.cos(this.yaw) * S.slideSpeed;
-    }
-    return true;
-  }
-
-  _stepSlide(dt, intent) {
-    this._slideTimer += dt;
-
-    // 8.0 m/s initial, decaying over 0.8s (Section 6.1).
-    const t = Math.min(1, this._slideTimer / S.slideDuration);
-    const target = S.slideSpeed * (1 - t) + S.crouchSpeed * t;
-    const speed = this.speed;
-    if (speed > 0.001) {
-      const scale = target / speed;
-      this.velocity.x *= scale;
-      this.velocity.z *= scale;
-    }
-
-    applyGravity(this.velocity, dt, S.gravity, S.maxFallSpeed);
-    const result = this._integrate(dt, this.grounded);
-    this.strideDistance += target * dt;
-
-    const expired = this._slideTimer >= S.slideDuration;
-    const released = !intent.crouch;
-
-    if (expired || released || !result.grounded) {
-      // Only stand up if there is headroom; otherwise stay low (in a vent this
-      // is the normal case) and continue as a crouch.
-      const stood = released && this._resize(S.standHeight);
-      this.crouching = !stood;
-      this._slideCooldown = S.slideCooldown;
-      this.state = result.grounded ? SHADE_STATE.GROUND : SHADE_STATE.AIR;
-      if (!result.grounded) this._beginFall();
-    }
-  }
-
-  // Vault, mantle, grab, hang and pull-up are agenttraversal.js; the visual
-  // is agentvisual.js. Both are installed on the prototype below.
+  // The slide is agentslide.js; vault, mantle, grab, hang and pull-up are
+  // agenttraversal.js; the visual is agentvisual.js. All three are installed
+  // on the prototype below.
 
   // -------------------------------------------------------------------------
   // Shared movement helpers
@@ -511,6 +492,21 @@ export class Shade {
     this._climbArmed = false;
     this.landedFallHeight = drop > 0 ? drop : 0;
     this.velocity.y = 0;
+
+    // Landing weight (B8). Nothing below `softFall`, everything from
+    // `hardFall`, a ramp between: the horizontal speed is cut by that much of
+    // `speedLoss` here, the ground speed is held there for `recovery`
+    // (`_stepGround`), and the camera and the body get the same weight to
+    // show - `_dipKick` for the pivot, `_landWeight` for the squash.
+    const L = S.landing;
+    const weight = Math.max(0, Math.min(1, (this.landedFallHeight - L.softFall) / (L.hardFall - L.softFall)));
+    if (weight <= 0) return;
+    const keep = 1 - L.speedLoss * weight;
+    this.velocity.x *= keep;
+    this.velocity.z *= keep;
+    this._landWeight = weight;
+    this._landRecovery = L.recovery * weight;
+    this._dipKick -= S.camera.landDip * weight;
   }
 
   /**
@@ -547,4 +543,4 @@ export class Shade {
   }
 }
 
-Object.assign(Shade.prototype, TRAVERSAL, VISUAL);
+Object.assign(Shade.prototype, SLIDE, TRAVERSAL, VISUAL);

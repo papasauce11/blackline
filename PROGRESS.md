@@ -4865,3 +4865,157 @@ there to turn.
 **Left.** B8 (feel) is next. D25 now has a picture to decide against: the
 strips on `deck-7`, `deck-19`, `deck-21` and round the hatch and the bay are
 the reach rule's routes, lit.
+
+## B8 — feel: momentum, weight, the buffer, the hanging body, and the way up (2026-09-14, scheduled run)
+
+The 17:00 run. The gate: 130 passed, 1 failed (the frame budget, skipped),
+0 red, 0 flaky, 0 console errors. B5b and B5d wait on D25 and D27, so B8,
+the plan's phases 42-46 in one M job.
+
+**What "feel" is allowed to be.** Every item in the job is a number in
+`config.js`, and none of them is a new thing a player can do - except one,
+by a hair, flagged below. The rest is presentation and timing, provisional
+by D4, and recorded as D29 with the one line to turn for each.
+
+**Built.**
+
+1. *Momentum carries into a vault.* `_commitMove()` remembers the speed the
+   body brought (`move.entrySpeed`); a vault's duration slides from
+   `vaultDuration` (0.42) at a walk to `vaultDurationAtSprint` (0.28) at a
+   sprint (`_vaultDuration()`), and on the exit the body leaves with
+   `vaultCarry` (0.85) of what it brought, floored at `vaultExitSpeed` 4.2
+   and capped at a sprint. A walk over `stack-hall-low` is 26 steps and 4.20
+   out, as it was; a sprint is 17 steps and 5.52 out.
+2. *A landing has weight.* `_land()` puts the fall on `shade.landing`'s ramp
+   - nothing under `softFall` 1.2m, all of it from `hardFall` 4.0m - and
+   cuts the horizontal speed by that much of `speedLoss` (0.5), holds the
+   ground speed there for `recovery` (0.4s, scaled) in `_stepGround()`, and
+   hands the same weight to the visual: the camera pivot dips
+   `camera.landDip` (0.3m) and the body squashes `landing.squash` (0.12).
+   At a sprint: a 1.0m hop keeps 1.04 of its speed, 2.6m keeps 0.77, 5.0m
+   keeps 0.51; 0.15s after the hard one the sprint is 3.25 m/s and 0.7s
+   after it is 6.5 again. **This is the hair:** a Shade dropping off the
+   deck to break contact is 0.4s slower for it. It is the queue's own words
+   ("landing weight by fall height"), so it is built, and `speedLoss` at 0
+   is a landing that is only seen (D29).
+3. *The camera dips on a climb.* `_dipKick` is written by the step (a
+   vault, mantle or pull-up committing: `camera.climbDip` 0.22; a hard
+   landing: `landDip` by the weight) and `_settleDip()` in agentvisual.js
+   runs it through a critically damped spring on the pivot's height -
+   the kick lands as a velocity impulse sized so the spring bottoms out at
+   exactly the depth `dipRecovery` (0.26s) later, then eases home with no
+   overshoot. Same shape as `_scuffTimer`: the step says what happened, the
+   frame shows it, the simulation never reads it. A grab does not dip - a
+   hang is a reach, not a rise - and the pull-up after it does. Measured
+   from the rig, not pixels: over `stack-hall-mid` the pivot dips 0.194m
+   (Euler at 60Hz undershoots the analytic 0.22 by 12%) and is level within
+   two seconds; the grab at `hall-container` moves it 0.000.
+4. *The jump buffer runs in every state.* `jumpBuffer`'s own comment said
+   "buffered this long before landing still fires" and it never had: the
+   buffer was set and read only in `_stepGround()`, so a press in the air
+   was lost on the landing and a press in the last of a vault was lost at
+   the top. Now the countdown is in `step()`, `_stepAir()` and
+   `_stepTraversal()` set it on a press (not during a grab, where Space is
+   read as held by the hang it ends in), `_commitMove()` spends it (the
+   press became the climb) and `_scuff()` spends it (the press became the
+   tell - or the body would jump again off the landing it is pushed back
+   to). A press 0.06s before a landing jumps off it; 0.32s before does not;
+   the same at the end of a vault; a press spent on a scuff at `site-fence`
+   does not jump.
+5. *The hanging body is at full stretch.* `hangDrop` 2.05 (was 1.35): on
+   this rig the hands are 2.08m above the feet with the arms raised, so
+   this is where a body hanging by its hands is - the capsule's top 0.2m
+   under the lip where it stood 0.5m proud. Arms straight up
+   (`HANG_ARM_ANGLE` -3.05 in agentvisual.js), the gloves drawn within
+   0.15m of the lip, `hangPullUpDuration` 0.65 for the longer pull. And the
+   lip the job named - `hall-container`'s south face, 0.30m under
+   `gantry-hall` - hangs now: a jump-tap from under the gantry grabs, Space
+   scuffs once and stays hanging, crouch drops to the floor.
+6. *The way up is swept - the rule B8 found.* The first cut of 5 put the
+   hang under the gantry and then watched the pull-up **go through the
+   gantry**: `_climbOnto()` validates the crouched capsule at the landing,
+   which is beyond the gantry's edge, and `handsOverTop` (B5c) clears the
+   column to the top of the face, which is under the gantry's underside;
+   the body, taller than a hand, travelled the diagonal between them
+   through 0.7m of gantry. So had the mantle from the air, before B8 - the
+   queue's "goes over instead" was through. `riseIsClear()` in
+   climbprobe.js sweeps the capsule along the move's own path (`movePath`,
+   the ease-out and the arc `_stepTraversal` draws, now shared so the sweep
+   and the drawing cannot disagree) against every solid whose top is above
+   the landing's - the things the body could be going up *through*, and
+   not the box it climbs over the corner of, nor a duct floor coincident
+   with a lip's top. The rule says it (`riseFits`, mapclimb.js, after
+   `landingFits`) and the controller says it (`_climbOnto`, per height).
+   Not the grab: a hang is a reach, which is what makes the gantry case a
+   hang and not a scuff. What went, by a dump of the rule's approaches
+   before and after: **nine**, `hall-container` from the ground under the
+   gantry, and every low duct lip's two *side* faces from the ground beside
+   the mouth (`vent-low-north-lip-to`, `vent-low-south-lip-from`,
+   `vent-low-south-lip-to`, both sides each, and `vent-up-vault-lip-from`'s
+   two, out of reach anyway) - `addVentRun()` stands a wall on each lip's
+   long edges from the lip's top up, and the mantle onto the lip from
+   beside it went through the wall. 146 -> 139 approaches within reach;
+   22 stacked climbs by the rule, the same 22; the census's 57 tops all
+   still climbed. Spec 20.10.
+7. *The checks.* tests/feel.js: `a-vault-carries-the-speed-you-brought-to-it`
+   (a walk and a sprint from a 4m runway the finder proves clear, pressed
+   when the face is in the probe's distance),
+   `a-landing-is-heavier-the-further-you-fell` (three falls at a sprint,
+   the ratio on the landing step, the hold and the recovery, the dip and
+   the squash from the rig and the mesh, and a hop that dips nothing),
+   `the-camera-dips-on-a-climb-and-comes-back` (a held mantle, a tapped
+   grab, the pull-up, standing still),
+   `a-jump-pressed-just-before-landing-still-fires` (inside and outside the
+   window, in a fall and in a vault, and spent by a scuff). tests/hang.js:
+   `a-hang-is-at-full-stretch-under-the-lip`. tests/traversalfuzz.js:
+   `traversal-fuzz-ten-thousand-steps-never-sticks` - every episode starts
+   at a spot the rule names (`map._supportApproaches`, 139 of them), facing
+   the face with a little yaw jitter, and drives one of twelve behaviours
+   through real key codes (hold-climb, tap-hang-drop, tap-hang-pull, two
+   shimmies, sprint-jump, jump-back, crouch-off, spin-jump, crouch-jump,
+   slide-in, mash) for 60 to 150 steps; "stuck" is defined: a traversal
+   state past 41 steps, a hang with no ledge, three seconds airborne, at
+   rest inside a solid, below the floor, not finite. 10,000 steps, 95
+   episodes, 2,726 steps mid-move, 73 hanging, 77 episodes reached the top,
+   states [air grab ground hang mantle slide vault], nothing stuck. And
+   `after-any-traversal-the-body-can-be-put-back-on-the-ground`: 139
+   episodes, one per approach, every behaviour in turn, and after each one
+   nothing pressed (crouch from a hang) has the body grounded within 3s -
+   139 of 139. CONFIG is frozen, so the A1 lesson is met by comparing two
+   inputs that differ only in what the number acts on (a walk and a
+   sprint, a hop and a fall).
+8. *Housekeeping.* `agentslide.js` split from agent.js (601 -> 546; the
+   600-line guard would have gone red). `findGroundLedge({hangable})` also
+   requires the pull-up to clear, or the hang checks pick the gantry face
+   and wait for a pull-up that cannot come. `findTallFace` exported from
+   tests/scuff.js. The runner takes `--details FILE` and writes every
+   check's id, outcome and detail per run - the readings above; the stdout
+   report only ever carried what was red.
+
+**Verified.**
+
+- Subset while iterating: the two frozen-CONFIG halves of the feel checks
+  threw and were replaced by the two-input comparisons; the hang check's
+  first cut pressed Space with the edge never cleared (30 scuffs, and a
+  drop that re-grabbed every 0.3s - the check's stale press, not the
+  game); the first rise clause (the crouched capsule over the *spot* at the
+  landing height) refused `fire-escape-1` from `fire-escape-0`, because
+  `fire-escape-2` is 3.0m over the spot and a body risen in place would
+  meet it - but the body does not rise in place, it goes up the diagonal,
+  and the path sweep clears the flight and refuses the gantry.
+- Full suite, `npm run suite`: **137 passed, 1 failed** both runs (408s,
+  443s), the frame budget skipped headless, 0 red, 0 flaky, 0 console
+  errors, 0 context losses, 0 loop frames; every B8 check's detail line
+  identical between the two runs (`--details`). Census 57 of 57; the rule's
+  139 of 139 approaches climbed; `a-mantle-never-passes-through-a-solid`
+  139 approaches, 4 duct presses all scuffs; the input fuzz reached
+  [air ground slide] as before.
+
+**Not built.** A geometric clause in the B5c check for the gantry case (B8b,
+queued). Anything the hanging body does that the rig cannot show - a
+one-handed hang, a swing. The buffer's window itself is not retuned: 0.12s
+is seven steps and nobody has felt it long or short.
+
+**Left.** B9 (close) is next. D29 has the numbers to turn. The nine climbs
+the sweep removed were through solids; if one of them was a route somebody
+meant, the map is where it is fixed, not the sweep.

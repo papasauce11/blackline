@@ -278,7 +278,16 @@ export const CONFIG = {
     vaultMinHeight: 0.4,
     vaultMaxHeight: 1.2,
     vaultReach: 1.1,
+    /**
+     * Momentum carries into a vault (B8). The duration slides from
+     * `vaultDuration` at a walk (and below) to `vaultDurationAtSprint` at
+     * `sprintSpeed`, and the body leaves with `vaultCarry` of the speed it
+     * arrived with - never less than `vaultExitSpeed`, never more than a
+     * sprint. A vault taken at a walk is exactly what it was.
+     */
     vaultDuration: 0.42,
+    vaultDurationAtSprint: 0.28,
+    vaultCarry: 0.85,
     vaultExitSpeed: 4.2,
 
     /** Mantle: the climb over a ledge above vault height. Starts with a grab; see hangGrabDuration. */
@@ -321,9 +330,18 @@ export const CONFIG = {
     hangMinHeightRatio: 1.4,
     hangMaxHeight: 4.2,
     hangReach: 0.85,
-    /** Body offset below the grabbed edge while hanging. */
-    hangDrop: 1.35,
-    hangPullUpDuration: 0.55,
+    /**
+     * Feet below the grabbed edge while hanging. The hanging body sits at
+     * full stretch, arms straight up and the gloves on the lip (B8): on this
+     * rig the hands are 2.08m above the feet with the arms raised, so the
+     * capsule's top is 0.2m UNDER the lip and a lip with a gantry 0.3m over
+     * it (hall-container's south face) can be hung from - the pull-up is
+     * what the gantry blocks, and it scuffs. At 1.35 the capsule stood 0.5m
+     * proud of the lip, and that face went over instead, or nowhere.
+     */
+    hangDrop: 2.05,
+    /** The pull is a body-length now, so it takes a little longer. */
+    hangPullUpDuration: 0.65,
     /**
      * A settled hang ignores everything but Space for this long, so a crouch
      * still held from a crouch-jump does not let go on the frame the hand
@@ -354,6 +372,23 @@ export const CONFIG = {
 
     /** Fall above this distance emits the landing noise (Section 7.2). */
     landingNoiseFallHeight: 2.0,
+    /**
+     * Landing weight (B8). A fall costs something to land. Below `softFall`
+     * nothing - a hop off a crate - and from `hardFall` up the whole cost,
+     * ramped between. The cost is `speedLoss` of the horizontal speed cut on
+     * the landing step and the ground speed held to that fraction for
+     * `recovery` seconds (both scaled by the ramp) while the legs take it;
+     * the camera dips `camera.landDip` and the body squashes `squash` of
+     * its height, scaled the same way. `speedLoss` at 0 is a landing that
+     * is only seen.
+     */
+    landing: {
+      softFall: 1.2,
+      hardFall: 4.0,
+      speedLoss: 0.5,
+      recovery: 0.4,
+      squash: 0.12,
+    },
     /** Cadence of footstep noise/audio events, in metres travelled. */
     footstepStride: 2.1,
     crouchFootstepStride: 1.6,
@@ -372,6 +407,17 @@ export const CONFIG = {
       pullOutSmoothing: 0.18,
       pullInSmoothing: 0.0,
       followSmoothing: 0.08,
+      /**
+       * The dip (B8): a critically damped spring on the pivot's height,
+       * kicked down `climbDip` metres when a vault, mantle or pull-up
+       * commits and `landDip` (scaled by `landing`'s ramp) when the body
+       * lands hard; it bottoms out `dipRecovery` seconds after the kick and
+       * is back to rest in about four times that. The camera's weight; the
+       * body's is `landing`.
+       */
+      climbDip: 0.22,
+      landDip: 0.3,
+      dipRecovery: 0.26,
       pitchMin: -1.15,
       pitchMax: 1.05,
     },

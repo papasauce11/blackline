@@ -820,3 +820,68 @@ unlit in the same frame and at least 0.25 Michelson against its surround;
 from the last stage, the strip on each landing edge reads at least 0.5
 against what is round it; and every strip on the map is one draw call. How
 it looks is D28.
+
+### 20.10 Section 6.1 - feel: momentum, weight, the buffer, the hanging body, and the way up
+
+> *"Feel - camera, momentum, weight, timing, traversal fuzz"* (the 50-phase
+> plan, phases 42-46; built as B8, 2026-09-14)
+
+Section 6.1's table gives speeds and heights and nothing about how a move
+feels; the redesign left phases 42-46 for that. Five things, every one a
+number in `config.js` under `shade`, none a new thing a player can do:
+
+- **Momentum carries into a vault.** A vault is over sooner the faster the
+  body arrives (`vaultDuration` at a walk sliding to `vaultDurationAtSprint`
+  at a sprint) and the body leaves with `vaultCarry` of the speed it
+  brought, never under `vaultExitSpeed`, never over a sprint. A vault at a
+  walk is exactly what it was. A mantle is a pull, not a run, and carries
+  nothing.
+- **A landing has weight.** Below `landing.softFall` (1.2m) it costs nothing;
+  from `landing.hardFall` (4m) up the whole cost; ramped between. The cost
+  is `speedLoss` of the horizontal speed on the landing step and the ground
+  speed held there for `recovery` while the legs take it; the camera dips
+  `camera.landDip` and the body squashes `landing.squash`, scaled the same
+  way. The landing noise (7.2) is unchanged.
+- **The camera takes the weight of a climb.** A vault, mantle or pull-up
+  committing dips the pivot `camera.climbDip`; a critically damped spring
+  (`camera.dipRecovery`) brings it back with no overshoot. A grab does not
+  dip: a hang is a reach, not a rise.
+- **The jump buffer runs in every state.** `jumpBuffer` (0.12s) was only ever
+  honoured on the ground. Now a press of Space in the last of a fall jumps
+  off the landing, and one in the last of a vault or a mantle jumps off its
+  top; a press spent on a climb, or on a scuff (20.5), is spent. A hold of
+  Space through a climb is not a press and jumps nothing. Not during a grab,
+  where Space is read as held or not by the hang it ends in (20.4).
+- **The hanging body is at full stretch.** `hangDrop` is 2.05m: the feet that
+  far under the lip, the arms straight up, the gloves drawn on the lip, and
+  the capsule's top 0.2m *under* it (it stood 0.5m proud). So a lip with a
+  gantry 0.3m over it - hall-container's south face - can be hung from, and
+  its pull-up is what the gantry refuses, with the tell of 20.5; crouch
+  drops. The pull-up takes `hangPullUpDuration` (0.65s), a body-length now.
+
+And one thing the hanging body found, which is a rule and is recorded as
+one: **the way up is swept.** 20.8 clears the column above the hands to the
+top of the face and the parkour safety rule validates where a move ends;
+between them the body travels the move's own path (`movePath`, an ease-out
+with a small arc) and it is taller than a hand. `riseIsClear`
+(climbprobe.js) sweeps the capsule along that path against every solid
+whose top is above the landing's - the things the body could be going up
+*through* - and the rule (`riseFits`, mapclimb.js) and the controller
+(`_climbOnto`) both say it. Nine approaches went: hall-container's south
+face from under the gantry, and every duct lip's two *side* faces from the
+ground beside the mouth, where the duct's wall stands on the lip's edge and
+the mantle went through it (146 -> 139 approaches, 22 stacked climbs by the
+rule, none new). A grab is not swept - a hang is a reach - which is what
+makes the gantry case a hang and not a scuff.
+
+Held by `a-vault-carries-the-speed-you-brought-to-it`,
+`a-landing-is-heavier-the-further-you-fell`,
+`the-camera-dips-on-a-climb-and-comes-back`,
+`a-jump-pressed-just-before-landing-still-fires` (tests/feel.js),
+`a-hang-is-at-full-stretch-under-the-lip` (tests/hang.js), and the traversal
+fuzz: `traversal-fuzz-ten-thousand-steps-never-sticks` and
+`after-any-traversal-the-body-can-be-put-back-on-the-ground`
+(tests/traversalfuzz.js) - ten thousand steps of real key input at every
+spot the rule names, no move outliving its duration, no hang from nothing,
+no endless fall, no body at rest in a solid, and after every burst the body
+back on the ground within three seconds. How any of it feels is D29.

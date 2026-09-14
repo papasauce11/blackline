@@ -20,6 +20,8 @@ import { register as registerNavigation } from './navigation.js';
 import { register as registerShade } from './shade.js';
 import { register as registerMovement } from './movement.js';
 import { register as registerScuff } from './scuff.js';
+import { register as registerFeel } from './feel.js';
+import { register as registerHang } from './hang.js';
 import { register as registerReadability } from './readability.js';
 import { register as registerDeck } from './deck.js';
 import { register as registerRoutes } from './routes.js';
@@ -43,6 +45,7 @@ import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
 import { register as registerFuzz } from './fuzz.js';
+import { register as registerTraversalFuzz } from './traversalfuzz.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -53,6 +56,8 @@ export function registerAutoTests(debugTools) {
   registerShade(debugTools);
   registerMovement(debugTools);
   registerScuff(debugTools);
+  registerFeel(debugTools);
+  registerHang(debugTools);
   registerReadability(debugTools);
   registerDeck(debugTools);
   registerRoutes(debugTools);
@@ -75,6 +80,7 @@ export function registerAutoTests(debugTools) {
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);
+  registerTraversalFuzz(debugTools);
   // Last: it is the heaviest check and it leaves the world in a known state.
   registerPerformance(debugTools);
 }
