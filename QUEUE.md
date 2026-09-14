@@ -192,7 +192,7 @@ budget checks are the ceiling.
   stair walked down). It found the AI planning from its centre, which from
   the deck picked a corridor node six metres below and walked the body off
   the deck edge onto site A; `_pathTo()` plans from the feet now. README
-  climbing and `U` sections rewritten. 2026-09-14, scheduled run.
+  climbing and `U` sections rewritten. `f4c2f8d`, 2026-09-14, scheduled run.
 - **B8** Feel. Momentum carries into a vault (`vaultDurationAtSprint` 0.28,
   `vaultCarry` 0.85: a sprint leaves a crate at 5.5 m/s, a walk at 4.2 as
   before); a landing has weight (`shade.landing`: nothing under 1.2m, all of
