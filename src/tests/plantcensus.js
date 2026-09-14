@@ -165,7 +165,7 @@ export function register(debugTools) {
         let stand = null;
         let bestDistance = Infinity;
         for (const cell of cells) {
-          if (!withinDefuseReach(cell, spot.at, h.map.collision)) continue;
+          if (!withinDefuseReach(cell, spot.at)) continue;
           const distance = Math.hypot(cell.x - spot.at.x, cell.z - spot.at.z);
           if (distance < bestDistance) {
             bestDistance = distance;
@@ -309,6 +309,7 @@ export function register(debugTools) {
       const snap = { radius: CONFIG.round.siteRadius, dy: CONFIG.round.defuseReachY };
       const half = { x: CONFIG.warden.radius, y: CONFIG.warden.standHeight / 2, z: CONFIG.warden.radius };
       const step = CONFIG.warden.stepHeight;
+      const margin = CONFIG.ai.routeEdgeMargin;
       if (!ground) return { pass: false, detail: 'map.wardenGround was never derived' };
       if (!ground.edges.size) return { pass: false, detail: 'the ground has no edges, so nothing can be routed over it' };
 
@@ -321,12 +322,25 @@ export function register(debugTools) {
        * steps up onto a tread corner the centre ray would miss - refuses a
        * drop of more than a step, and needs the standing capsule to fit
        * there. Independent of `route()`, which rests by box query.
+       *
+       * And the body does not walk the line (B5c): the follower cuts every
+       * bend from `waypointArriveRadius` away, so along a pulled segment -
+       * one the planner drew across cells rather than a flood-proven step
+       * between two neighbours - `ai.routeEdgeMargin` to either side of it
+       * there has to be a top face within a step of the line's own height. A
+       * wall there is a slide; nothing there is the hall void the Warden
+       * walked off. A ray straight down at each strayed point, from a step
+       * above the line, as far as a step below it. A cell step is held to
+       * the flood's own test: both centres standable and the gap clear.
        */
       const walkableByRay = (a, b) => {
         const length = Math.hypot(b.x - a.x, b.z - a.z);
         const n = Math.max(1, Math.ceil(length / (ground.cell / 4)));
         const down = { x: 0, y: -1, z: 0 };
         const feet = [[0, 0], [-half.x, -half.z], [half.x, -half.z], [-half.x, half.z], [half.x, half.z]];
+        const pulled = length > ground.cell + 1e-3;
+        const sideX = pulled ? -(b.z - a.z) / length * margin : 0;
+        const sideZ = pulled ? (b.x - a.x) / length * margin : 0;
         let y = a.y;
         for (let q = 1; q <= n; q++) {
           const t = q / n;
@@ -340,6 +354,13 @@ export function register(debugTools) {
           if (rest === -Infinity) return { ok: false, x, z, why: 'a drop of more than a step' };
           y = rest;
           if (!h.map.collision.isClear({ x, y: y + half.y + 0.02, z }, half)) return { ok: false, x, z, why: 'no room for a standing body' };
+          if (!pulled) continue;
+          for (const side of [1, -1]) {
+            const sx = x + side * sideX;
+            const sz = z + side * sideZ;
+            const hit = h.map.collision.raycast({ x: sx, y: y + step + 0.01, z: sz }, down, step * 2 + 0.02);
+            if (!hit) return { ok: false, x: sx, z: sz, why: `a drop of more than a step ${margin}m beside the line` };
+          }
         }
         return { ok: true };
       };
@@ -357,7 +378,7 @@ export function register(debugTools) {
         const straight = Math.hypot(spot.at.x - from.x, spot.at.z - from.z);
         straightBefore = Math.max(straightBefore, straight);
 
-        const route = ground.route(from, spot.at, bound, snap);
+        const route = ground.route(from, spot.at, bound, snap, margin);
         if (!route) {
           unplanned++;
           if (unplanned <= 3) problems.push(`${spot.what}: no planned route from ${node.tag || node.id} (${straight.toFixed(1)}m straight)`);
@@ -388,7 +409,7 @@ export function register(debugTools) {
         }
         // The ground it defuses from: the last point that is ground.
         const end = route[onGround - 1];
-        if (!withinDefuseReach(end, spot.at, h.map.collision)) {
+        if (!withinDefuseReach(end, spot.at)) {
           problems.push(`${spot.what}: the route ends ${Math.hypot(end.x - spot.at.x, end.z - spot.at.z).toFixed(1)}m from the charge, outside the defuse reach`);
         }
         if (problems.length > 8) break;

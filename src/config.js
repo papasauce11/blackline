@@ -785,6 +785,16 @@ export const CONFIG = {
      * the last node and the charge is a DEFEND stall.
      */
     maxUnpathedLeg: 6,
+    /**
+     * How far off a planned line the Warden actually walks, and so how much
+     * ground a pulled segment of `WardenGround.route()` keeps to either side
+     * of itself (B5c). The follower advances to the next point from
+     * `waypointArriveRadius` away and turns at `turnRate`, so a bend is cut
+     * on the inside by about a third of a metre at a walk (a 0.9m turning
+     * circle) and by more at a sprint. A line that grazed the hall void's
+     * corner by a footprint's sliver had the Warden off the deck.
+     */
+    routeEdgeMargin: 0.6,
     /** Turn rate, radians per second. */
     turnRate: 3.4,
 

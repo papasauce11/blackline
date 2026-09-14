@@ -55,33 +55,20 @@ there. The census is the contract; **never weaken it**.
   `every-stacked-climb-is-a-step-of-a-declared-route` green with those
   routes removed, the census's "need a leg up" at the number D25 predicts,
   `the-warden-never-climbs-to-reach-its-ground` and the AI soak unchanged.
-- [~] **B5c (S)** A mantle never passes through a solid. **WIP, found
-  uncommitted after the PC rebooted at 18:19 on 2026-09-13 mid-run.** Built:
-  `handsOverTop()` in the new `src/climbprobe.js` (the hand sweep's constants,
-  shared by the rule in `mapclimb.js` and the controller in
-  `agenttraversal.js`): once the hands meet a face the column above the body
-  must be open air to the top of that face, or the press is a scuff. Five
-  approaches went, all under a duct floor (151 -> 146); `vent-low-north-lip-from`
-  is no longer climbable (58 -> 57); `hall-vent-north` redeclared as the crates
-  then the roof from the mouth (8 routes, 22 stages); check
-  `a-mantle-never-passes-through-a-solid` in tests/routes.js; spec 20.8.
-  PROGRESS.md and HANDOFF.md were written as if done. **Not done: the suite is
-  red**, both runs, `every-legal-plant-has-a-warden-who-can-reach-it`
-  (tests/plantcensus.js): *"vent-low-north-roof (top, room A): the Warden
-  never started defusing in 30s from its nearest spawn - it got to 0.5m and
-  stayed in defend"*. The run was fixing this when the machine went down:
-  tests/plantcensus.js passes `h.map.collision` as a third argument to
-  `withinDefuseReach()` (two call sites), and the matching change in
-  `src/systems/plantrule.js` was lost when the file was zeroed. *Resume from:*
-  decide why the Warden stops 0.5m short of the north duct's roof plant now the
-  lip is walk-in - the defuse reach against the duct's geometry, or the route
-  A8 plans onto the roof - and either finish the `withinDefuseReach(foot, at,
-  collision)` change in plantrule.js or revert the two plantcensus.js lines;
-  the original done-when's capsule sweep was tried and is the wrong
-  instrument (every mantle brushes the corner of the box it climbs).
-  *done-when:* the census check above green, `a-mantle-never-passes-through-a-solid`
-  green, 146 of 146 approaches climbed, routes and the AI soak unchanged, suite
-  twice with identical answers.
+- [ ] **B5d (S)** The defuse reach is a clear line — **blocked: D27.**
+  Only if Josh picks option 2 there. `withinDefuseReach(foot, at, collision)`
+  in `systems/plantrule.js`: within the two distances *and* the charge in
+  open air from some point of the segment from the Warden's feet to its
+  raised hands (`DEFUSE_REACH.dy` up), asked of `map.collision`; the defuse
+  in `objective.js` and `canDefuseAt()` both pass the world, so the plant
+  rule moves with it. *done-when:* the census
+  (`every-plant-spot-in-a-site-room-answers-to-the-defuse-rule`, tests/plantcensus.js)
+  reports the duct roofs under the deck refused and says what else moved;
+  a new check plants on `vent-low-north-roof`, stands a Warden on the deck
+  over it and asserts no defuse starts, then stands one beside a crate top
+  and asserts it does; the room-A sample of
+  `every-legal-plant-has-a-warden-who-can-reach-it` is no longer defused
+  through the deck; suite twice with identical answers.
 - [ ] **B7 (M)** Legibility — edge profiles and route lighting. Climbable
   lips get a bevel or a lit edge; the main stairless route up in each area is
   lit a step brighter than its surround. The routes are `map.routes` since
@@ -197,6 +184,27 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B5c** A mantle never passes through a solid. `handsOverTop()` in the
+  new `src/climbprobe.js` - the hand sweep's constants and the one sentence
+  the rule (`mapclimb.js`) and the controller (`agenttraversal.js`) share:
+  once the hands meet a face, the column above the body must be open air to
+  the top of that face, or the press is a scuff. Five approaches went, all
+  from under a duct floor (151 -> 146); `vent-low-north-lip-from` is no
+  longer climbable (58 -> 57); `hall-vent-north` redeclared (8 routes, 22
+  stages); check `a-mantle-never-passes-through-a-solid` (tests/routes.js);
+  spec 20.8. The census red it left was a pathing bug the new room-A sample
+  exposed: `WardenGround.route()` pulled a line across the hall void's
+  corner with six millimetres of deck under the footprint, and the follower,
+  cutting the bend from `waypointArriveRadius` away, walked off the deck.
+  `ai.routeEdgeMargin` (0.6): a pulled segment keeps ground under the two
+  lines that far to either side of it (`groundUnder()`, support only, a
+  wall beside is a slide); `the-last-leg-to-every-legal-plant-is-planned-and-short`
+  asks the same of every pulled segment by ray and went red on the old
+  routes at the hall void and the vault hatch. `src/groundprobe.js` split
+  from mapground.js (628 -> 539) for the 600-line guard. Raised D27 (the Warden now
+  defuses that roof plant from the deck above it, through the slab) and
+  B5d behind it. WIP `069bc08`, then `B5C_HASH`, 2026-09-13/14, scheduled
+  runs.
 - **B6** Legibility — material language. `palette.ductMetal` (galvanised
   sheet, 0xc6d0d6) on every piece of every vent run, where the ducts were the
   floor's own dark concrete; the palette comment states the language

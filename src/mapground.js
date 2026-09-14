@@ -31,20 +31,18 @@
  * spawns are on it; from the hall floor no route climbed either staircase,
  * which A8 found the moment it tried to plan one.
  *
- * Layering (Section 3.1): imports config and mapbake only, like maprooms.js.
- * It needs nothing from GameMap but the collision world and the spawn list.
+ * Layering (Section 3.1): imports config, mapbake and groundprobe.js (the
+ * column probes the flood and the planner share, split out in B5c). It
+ * needs nothing from GameMap but the collision world and the spawn list.
  */
 
 import { CONFIG } from './config.js';
 import { CUT_EPSILON } from './mapbake.js';
+import { SKIN, WALK_SUBSTEPS, walkable, groundUnder, standableFloors } from './groundprobe.js';
 
 const M = CONFIG.map;
 const W = CONFIG.warden;
 
-/** Two top faces closer than this are the same floor, not two of them. */
-const SAME_FLOOR = 0.05;
-/** Lift the capsule clear of the surface it rests on, as the solver's skin does. */
-const SKIN = 0.01;
 /** Handed to `someCellWithin`'s test, one object for every cell it visits. */
 const CELL = { x: 0, y: 0, z: 0 };
 /** The four walkable directions, in bit order for `edges`. */
@@ -159,15 +157,29 @@ export class WardenGround {
    * is corrected rather than compounded. A wall or a crate corner refuses
    * the pull, and the line bends round it at a cell centre instead.
    *
+   * And the line is not where the body walks (B5c). The follower turns
+   * toward the next point from `ai.waypointArriveRadius` away, at a turning
+   * radius of walk speed over turn rate, so every bend is cut on the inside
+   * by a third of a metre and more at a sprint; the solver, for its part,
+   * stands a body on any sliver of top face its footprint overlaps. A
+   * pulled line that grazed the hall void's corner passed `walkable()` by
+   * six millimetres of deck and the Warden, cutting the bend before it,
+   * walked off the edge and stood under a charge it could no longer reach.
+   * So with a `margin`, a segment also has to have ground under the two
+   * lines that far to either side of it - support only, not headroom: a
+   * wall beside the line is a slide, a void beside it is a fall.
+   *
    * @param {{x:number,y:number,z:number}} from foot position
    * @param {{x:number,y:number,z:number}} to foot position
    * @param {number} [maxLeg] longest straight segment to hand back
    * @param {{radius:number, dy:number}} [snap] if `to` is not itself on the
    *   ground - a charge on a crate top - walk to the nearest cell within this
    *   reach of it instead, which is where the Warden would work on it from
+   * @param {number} [margin] how far off a pulled line the body may stray
+   *   and still have ground under it (`ai.routeEdgeMargin` for the AI)
    * @returns {{x:number,y:number,z:number}[]|null}
    */
-  route(from, to, maxLeg = Infinity, snap = null) {
+  route(from, to, maxLeg = Infinity, snap = null, margin = 0) {
     const start = this.cellAt(from);
     const end = this.standAt(to, snap);
     const goal = end ? this.cellAt(end) : null;
@@ -231,7 +243,7 @@ export class WardenGround {
     // the centre is at most a third of a metre from the goal, inside every
     // arrival radius that reads it.
     cells[0] = { x: from.x, y: start.y, z: from.z };
-    const pulled = this._pullStraight(cells, maxLeg);
+    const pulled = this._pullStraight(cells, maxLeg, margin);
     // A snapped goal still finishes at the thing itself. The AI decides it
     // has arrived by its distance to the charge, not to the cell beside it,
     // so the last leg is the short walk at the crate the solver stops it at,
@@ -241,7 +253,7 @@ export class WardenGround {
   }
 
   /** String-pull a cell path: keep a point only where the line has to bend. */
-  _pullStraight(cells, maxLeg) {
+  _pullStraight(cells, maxLeg, margin) {
     const out = [cells[0]];
     let at = 0;
     while (at < cells.length - 1) {
@@ -250,7 +262,7 @@ export class WardenGround {
         // Length first: it is a subtraction, and it rules out most probes
         // before the sampled walk along the segment has to run.
         if (Math.hypot(cells[probe].x - cells[at].x, cells[probe].z - cells[at].z) <= maxLeg
-          && this._segmentOnGround(cells[at], cells[probe])) {
+          && this._segmentOnGround(cells[at], cells[probe], margin)) {
           far = probe;
           break;
         }
@@ -261,12 +273,31 @@ export class WardenGround {
     return out;
   }
 
-  /** Can a standing body walk this line, resting on whatever is under it? */
-  _segmentOnGround(a, b) {
+  /**
+   * Can a standing body walk this line, resting on whatever is under it -
+   * and, `margin` metres to either side of it, is there still something to
+   * rest on? See `route()` for why the second question is asked.
+   */
+  _segmentOnGround(a, b, margin = 0) {
     if (!this.collision) return false;
     const length = Math.hypot(b.x - a.x, b.z - a.z);
     const substeps = Math.max(1, Math.ceil(length / (this.cell / WALK_SUBSTEPS)));
-    return walkable(this.collision, a.x, a.z, a.y, b.x, b.z, b.y, this.half, this.step, substeps);
+    if (!walkable(this.collision, a.x, a.z, a.y, b.x, b.z, b.y, this.half, this.step, substeps)) return false;
+    if (!(margin > 0) || length < 1e-6) return true;
+    // The two lines beside it. A body there has strayed, not stepped, so it
+    // is held to the line's own height and not to a tread's: the ground it
+    // finds has to be within a step of where the line is at that point.
+    const nx = -(b.z - a.z) / length * margin;
+    const nz = (b.x - a.x) / length * margin;
+    for (let s = 0; s <= substeps; s++) {
+      const t = s / substeps;
+      const x = a.x + (b.x - a.x) * t;
+      const z = a.z + (b.z - a.z) * t;
+      const y = a.y + (b.y - a.y) * t;
+      if (!groundUnder(this.collision, x + nx, z + nz, y, this.step)) return false;
+      if (!groundUnder(this.collision, x - nx, z - nz, y, this.step)) return false;
+    }
+    return true;
   }
 
   key(i, j) {
@@ -505,73 +536,4 @@ export function deriveWardenGround(collision, spawns) {
   }
 
   return ground;
-}
-
-/** Sub-steps per cell for `walkable()`: a tread every 0.4m needs at least three. */
-const WALK_SUBSTEPS = 4;
-/** Arriving within this of the far cell's floor counts as standing on it. */
-const ARRIVE = 0.06;
-
-/**
- * Can a standing body walk from one cell centre to the next when the floors
- * under them are more than a step apart? Only a staircase should say yes: the
- * body moves a quarter-cell at a time and at each point rests on the highest
- * standable top under it that is within a step of where it was, up or down
- * (D16). A wall between the two - a floor that jumps a full flight in one
- * cell - has no such tread to rest on halfway and fails.
- */
-function walkable(collision, ax, az, ay, bx, bz, by, half, step, substeps = WALK_SUBSTEPS) {
-  let y = ay;
-  for (let s = 1; s <= substeps; s++) {
-    const t = s / substeps;
-    const x = ax + (bx - ax) * t;
-    const z = az + (bz - az) * t;
-    const tops = standableFloors(collision, x, z, half);
-    let rest = null;
-    for (let k = tops.length - 1; k >= 0; k--) {
-      if (Math.abs(tops[k] - y) <= step) {
-        rest = tops[k];
-        break;
-      }
-    }
-    if (rest === null) return false;
-    y = rest;
-  }
-  return Math.abs(y - by) <= ARRIVE;
-}
-
-/**
- * Every height in this column a standing Warden could be supported at, lowest
- * first: a solid top face under the body's footprint with room above it for the
- * standing capsule.
- *
- * The footprint test matches the solver rather than being stricter than it -
- * the swept AABB rests on any top face it overlaps, so half a body over a deck
- * edge is standing, and pretending otherwise would shrink every walkable
- * surface by a radius all round.
- */
-function standableFloors(collision, x, z, half) {
-  const tops = [];
-  const candidates = collision.query(
-    { x: x - half.x, y: 0, z: z - half.z },
-    { x: x + half.x, y: 0, z: z + half.z }
-  );
-  // Copied out as numbers before the first isClear(): `query` hands back a
-  // buffer it reuses, and isClear() queries.
-  for (let i = 0; i < candidates.length; i++) {
-    const box = candidates[i];
-    if (!box.solid) continue;
-    if (box.max.x <= x - half.x || box.min.x >= x + half.x) continue;
-    if (box.max.z <= z - half.z || box.min.z >= z + half.z) continue;
-    tops.push(box.max.y);
-  }
-  tops.sort((a, b) => a - b);
-
-  const floors = [];
-  for (let i = 0; i < tops.length; i++) {
-    if (floors.length && tops[i] - floors[floors.length - 1] <= SAME_FLOOR) continue;
-    if (!collision.isClear({ x, y: tops[i] + half.y + SKIN, z }, half)) continue;
-    floors.push(tops[i]);
-  }
-  return floors;
 }

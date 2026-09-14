@@ -383,3 +383,50 @@ site, not to edit a route. If the lips should mean "only here", 2 is a
 one-session job (B5b) and the declared routes tell it exactly which slabs to
 stop.
 **decided:**
+
+### D27 — Can a Warden defuse through a floor?
+B5c's census red was a pathing bug (the planner pulled a line across the
+hall void's corner and the Warden walked off it - fixed, below), but what
+the Warden was walking *to* is the question. The sample plant in room A is
+now the north duct's roof at (-7, 3.59, -16): 3.57m up, under the deck,
+which is at 6.0. No Warden on the hall floor reaches it - `DEFUSE_REACH.dy`
+is 2.5 - so `canDefuseAt()` calls it legal because a Warden standing on the
+deck **directly above it** is 2.41m away vertically and within arm's length
+horizontally. The AI does exactly that: walks up the stairs, stands on the
+deck over the charge and defuses it in 11.8s, through 0.3m of concrete
+slab. The real defuse in `objective.js` agrees, because `withinDefuseReach()`
+is two distances and knows nothing about what is between them.
+
+That is D5 as written - "legal exactly where the real defuse check would
+succeed" - and it is not what "the Warden must always be able to defuse"
+means to anyone watching. It also cuts the other way: the same reach lets a
+Warden on the floor defuse a charge on a 2m crate top it cannot see over,
+which D5 wanted, and one on the far side of a thin wall, which nobody did.
+
+Options:
+
+1. **Leave it.** Two distances. A plant on a duct roof under the deck is
+   defused from the deck; the Shade learns that the deck above counts.
+   Costs nothing; reads as a bug the first time it happens in play.
+2. **A clear line.** `withinDefuseReach(foot, at, collision)`: the charge
+   must be in open air from some point of the Warden's body - the segment
+   from its feet to its raised hands (`dy` up) - as well as within the two
+   distances. Reaching up onto a crate top passes (the hands clear the
+   crate's edge); reaching down through a slab, or through a wall, fails.
+   Same predicate on both sides, so `canPlantAt()` moves with it: the north
+   and south duct roofs stop being legal plants where they run under the
+   deck (a Warden on the floor is 3.57m below them), and nothing else on
+   today's census is expected to change - the check will say. The 17:00
+   run of 2026-09-13 had started building this when the PC rebooted; the
+   census's two call sites carried the third argument and were reverted by
+   B5c.
+3. **Lower `dy`.** Rejected before it is asked, for D20's reason: a 2.5m
+   reach is what makes a crate top legal, and 2.41 is not a number to
+   legislate by.
+
+Recommendation: **2**. It is the reading of D5 the game has been claiming
+all along, the change is one predicate, and the census proves what it
+buys before it is kept. This changes where the Shade may plant and where
+the Warden may defuse, so it waits for a line here; B5d in `QUEUE.md` is
+sized for it and blocked on this.
+**decided:**

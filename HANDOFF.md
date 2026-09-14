@@ -28,9 +28,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after `WIP: B5c` (2026-09-13); the WIP is the tree, see Next job |
-| AUTO suite | headless, `npm run suite`: **128 passed, 2 failed** on the B5c WIP tree, both runs - the frame-budget check (skipped headless, see Running it) and **one red**, `every-legal-plant-has-a-warden-who-can-reach-it` (the north duct's roof plant, the Warden stops 0.5m short). HEAD before the WIP, `2e12d0e`, was 128/1 and green. The Deliberately-red list in `QUEUE.md` is empty; the red is the WIP's to close |
-| Next job | **B5c, `[~]` in `QUEUE.md`** - resume from the note there (the census red, and the half-lost `withinDefuseReach` change). Then B7 (M: edge profiles and route lighting). B5b (rails) waits on D25. B6 done 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after B5c (2026-09-14) |
+| AUTO suite | headless, `npm run suite`: **129 passed, 1 failed** (2026-09-14), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **B7** (M: edge profiles and route lighting). B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B5c done 2026-09-14, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **146 of 146** approaches the rule names climb |
@@ -214,7 +214,7 @@ proving it measures the material. It costs ~30s a run on SwiftShader.
 light, stage by stage, and this check reads the lit result - the crate-top
 mouth has 0.02 of margin, so light the north duct's route and re-read.
 
-**B5c closes the bug B6 found - built, committed as WIP, one census check still red (see Where things stand).** The rule named a climb onto
+**B5c closes the bug B6 found.** The rule named a climb onto
 `vent-low-north-lip-from` from the ground *under* the duct, by the lip's
 +x face exposed beneath the floor slab (1.4-2.1m), and the controller made
 it: W + Space at (-11.11, 0, -16) facing west mantled the body up through
@@ -231,6 +231,30 @@ without asking the rule. Spec 20.8. The rule's sentence is now: *a surface
 is climbable when the body could reach its face from somewhere it can
 stand, get its hands over the top in open air, and fit on top where it
 lands.*
+
+**And what finishing it found: the Warden walks off a pulled line.** B5c
+changed which top the plant census sends the Warden to in room A (the
+north duct's *roof*, 3.59m up, once its lip stopped being climbable), and
+the Warden fell off the deck on the way: `WardenGround.route()` pulled a
+straight segment across the hall void's corner because `walkable()` rests
+a body on any top face its footprint overlaps and this line had six
+millimetres of deck under it, and the follower cuts every bend from
+`ai.waypointArriveRadius` (0.9m) away on the inside. Now a pulled segment
+keeps ground under the two lines `ai.routeEdgeMargin` (0.6m) to either
+side of it (`groundUnder()` in mapground.js: support only - a wall beside
+the line is a slide, a void is a fall), the AI passes the margin from
+`_pathTo()`, and `the-last-leg-to-every-legal-plant-is-planned-and-short`
+asks the same of every pulled segment by ray; on the old routes it is red
+at the hall void *and* at three lines grazing the vault hatch. Cell steps
+are not held to the margin - they are flood-proven edges - so a rim cell
+(a centre up to 0.15m over an edge) is still somewhere the follower will
+aim; nothing has walked off one yet.
+
+**What the Warden then did is D27.** It stood on the deck directly above
+the roof plant - 2.41m up, inside `DEFUSE_REACH.dy` - and defused it
+through the slab in 11.8s, which is D5 as written and not as meant. The
+fix (the reach needs a clear line from the Warden's body to the charge)
+changes where the Shade may plant, so it waits: D27, and B5d behind it.
 
 ---
 
@@ -392,6 +416,7 @@ check keeps it so. Nothing moved changes an order or a name a check reaches:
 | `map.js` (810) | `map.js` (537): the geometry. `mapdata.js`: sites, spawns, lights, waypoints. `mapvalidate.js` |
 | `physics.js` (735) | `physics.js` (600): `CollisionWorld`, gravity, `classifyReach`. `collisionbox.js`: the box and the ray-slab test |
 | `systems/objective.js` (646) | `objective.js` (536). `plantrule.js`: `DEFUSE_REACH`, `PLANT_HEADROOM`, `withinDefuseReach`, `canDefuseAt(map, at)`, `hasHeadroomAt`, `canPlantAt` — re-exported and wrapped as methods, so every existing import and call still works |
+| `mapground.js` (628, after B5c) | `mapground.js` (539): `WardenGround`, `route()`, `deriveWardenGround`. `groundprobe.js`: the column probes the flood and the planner share — `standableFloors`, `walkable`, `groundUnder` |
 | `systems/gadgets.js` (633) | `gadgets.js` (506). `gadgeteffects.js`: `EffectRegistry`, `Projectile` |
 
 The class splits (`agent`, `ai`, `mapkit`) are **prototype mixins**: the
@@ -684,7 +709,7 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8, D25, D26 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25, D26, D27 and the Provisional section of `DECISIONS.md`; Josh answers there.
 
 - **D25**: whether the deck's void edges should carry a rail except at the
   lips, so the duct roofs stop being routes up and a lit lip (B7) means
@@ -693,6 +718,11 @@ These are D8, D25, D26 and the Provisional section of `DECISIONS.md`; Josh answe
 - **D26**: what the ducts look like - galvanised sheet, one colour, no
   rim. Provisional; the pixels say it contrasts, not that it reads as a
   duct.
+- **D27**: whether a Warden may defuse through a floor. Today it may - the
+  reach is two distances - and the census's room-A sample is defused from
+  the deck above it. Recommendation is a clear-line reach (B5d, one
+  predicate); it removes the duct roofs under the deck from the legal
+  plants, so it is Josh's.
 
 - Whether the **site ring** still reads correctly now that the plant is the
   whole room. Nobody has looked at it since the meaning changed.

@@ -4593,7 +4593,7 @@ duct floor and whose landing is inside the mouth too. Five approaches.
   need a leg up**, the same 21; `the-climb-rule-has-no-exceptions` 0
   disagreements; **146 of 146** approaches climbed (was 151); 8 routes, 22
   stages, 22 stacked climbs every one on a route; 57 tops all with an exit.
-- Full suite **SUITE_NUMBERS**.
+- Full suite: red on the census's room-A sample both runs after the reboot; finished under "B5c - resumed" below.
 
 **Not built.** Nothing else moved. The gantry and fire-escape brushes the
 column sweep found are real but small - a standing body's head passing an
@@ -4687,3 +4687,102 @@ had started on it: `tests/plantcensus.js` now passes `h.map.collision` into
 `withinDefuseReach()`, and the other half of that change was in the zeroed
 `plantrule.js` and is lost. Committed as `WIP: B5c`; the `[~]` item in
 `QUEUE.md` carries the resume note. Nothing else touched.
+
+## B5c — resumed: the census red was the route, not the rule (2026-09-14, scheduled run)
+
+The 02:00 run. The gate came back exactly as the WIP note said it would -
+128 passed, 2 failed, the frame budget skipped and
+`every-legal-plant-has-a-warden-who-can-reach-it` red on
+*"vent-low-north-roof (top, room A): the Warden never started defusing in
+30s ... it got to 0.5m and stayed in defend"* - so this is the mid-job
+state ORIENT describes and not a broken base, and the job was finished
+rather than the run stopped.
+
+**Traced first.** A throwaway check (not kept) planted the roof spot the
+way the census does and printed the AI's route and its position every two
+seconds. Two things, one of them the bug:
+
+- The sample changed because B5c changed the ledge list. The census sends
+  the Warden to the least obvious legal spot per room, tops before floors,
+  first in ledge order; in room A that was `vent-low-north-lip-from` (2.3m
+  up, defused from the hall floor) and is now, with the lip no longer
+  climbable, `vent-low-north-roof` at (-7, 3.59, -16). Nothing on the hall
+  floor is within 2.5m of it vertically. It is legal because the **deck**
+  is 2.41m above it and a Warden standing on the deck directly over the
+  charge is within `DEFUSE_REACH` by both distances - through 0.3m of slab.
+  That is D27 (below), not this job.
+- The Warden went for the deck, as `standAt()` told it to, and its route
+  was `(-11.3, 6, -21.3) -> (-7.3, 6, -18.3)`: one pulled segment from the
+  last deck waypoint, cutting across the corner of the hall void at
+  (-8.6, -20). `route()`'s pull asks `walkable()` of the line, and
+  `walkable()` rests the body on any top face its footprint overlaps - the
+  solver's own policy, argued in `standableFloors()`. The line passes
+  0.414m inside the void at its deepest; the Warden's radius is 0.42. Six
+  millimetres of deck, and the pull said yes. The follower then advances
+  to the next point from `waypointArriveRadius` (0.9m) away and turns at
+  3.4 rad/s - a 0.9m circle at walk speed - so it cut that bend by a third
+  of a metre on the inside, which is where the void was. At t=10 it was at
+  (-10.28, 6.98, -20.22), 0.2m off the line; at t=12 it was on the hall
+  floor, 3.6m under a charge it could no longer reach, in DEFEND for the
+  rest of the fuse. Exactly the stall Block A exists to prevent, from a
+  leg Block A8 planned.
+
+**Built.**
+
+1. *`ai.routeEdgeMargin`* (config.js, 0.6, beside the arrival radius it
+   answers to): how far off a planned line the Warden actually walks.
+2. *`WardenGround.route(from, to, maxLeg, snap, margin)`* (mapground.js):
+   a pulled segment must also have ground under the two lines `margin` to
+   either side of it, sampled every quarter cell - `groundUnder()`, a top
+   face within a step of the line's own height, support only, no
+   footprint and no headroom. A wall beside the line is a slide and passes;
+   a void beside it is a fall and refuses the pull, so the line bends at a
+   cell centre instead. The seam test is inclusive (a point on the joint
+   between two deck slabs is over both): the first cut sampled a seam
+   exactly and refused a straight run down the middle of the deck for no
+   reason, three cell steps long. The AI passes its margin from
+   `_pathTo()`; the flood and the cell steps are untouched.
+3. *`the-last-leg-to-every-legal-plant-is-planned-and-short`*
+   (tests/plantcensus.js) asks the same of every pulled segment by ray -
+   from a step above the line to a step below, at each strayed point -
+   independently of the planner's box query. A cell step is held to what
+   it always was (both centres standable, the gap clear): it is a
+   flood-proven edge, not a line the planner drew.
+4. The two `withinDefuseReach(cell, spot.at, h.map.collision)` call sites
+   the reboot left in the census are back to two arguments. The third was
+   the start of D27's option 2 and it waits for D27.
+5. *`src/groundprobe.js`.* The first full verify was green everywhere but
+   the 600-line guard: mapground.js had reached 628. The three column
+   probes the flood and the planner share - `standableFloors()`,
+   `walkable()`, and the new `groundUnder()` - and their constants are
+   their own module now (112 lines; mapground.js 539). Nothing renamed;
+   `deriveWardenGround` and `WardenGround` stay where mapkit.js imports
+   them.
+
+**Verified.**
+
+- With `_pullStraight()` handed a margin of 0 (the old behaviour, restored
+  after): the census sample red as before, and the last-leg check red on
+  *five* routes - the roof's, and three floor spots in room C whose lines
+  grazed the vault hatch the same way (`(14.0, 9.2)`, `(14.9, 11.1)`,
+  `(14.9, 9.8)`), which nobody had walked yet. With the margin: the route
+  bends at (-7.3, 6, -20.8), the Warden stays on the deck and defuse
+  progress starts at 11.8s.
+- Census unchanged from the WIP: 57 climbable, 146 of 146 approaches, 8
+  routes, 22 stages; `a-mantle-never-passes-through-a-solid` green.
+- Full suite, before the split: 128 passed, 2 failed both runs, the
+  census green, the only red the 600-line guard on mapground.js (628).
+  After it: **129 passed, 1 failed** both runs (334s, 404s) - the frame
+  budget skipped headless - 0 red, 0 flaky, 0 console errors, 0 context
+  losses, 0 loop frames.
+
+**Not built.** The margin is only asked of pulled segments. A route that
+cannot pull - along the 1.2m deck strip beside the bay void, say - falls
+back to cell steps, and a rim cell (one whose centre is up to 0.15m over
+an edge, standable by footprint overlap) is still a cell the follower aims
+at. Nothing walked off one in the soak or the patrol check; if one does,
+the fix is a two-pass search in `route()` that prefers cells with the
+margin's ground all round and takes the rim only where there is no other
+way. Noted here rather than queued.
+
+**Left.** D27 raised, B5d queued behind it; B7 is next.

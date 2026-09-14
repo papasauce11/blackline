@@ -52,7 +52,7 @@ export const NAVIGATION = {
     const tail = ground
       ? ground.route(
         { x: last.x, y: last === this.warden.position ? this.warden.feetY : last.y, z: last.z },
-        goal, A.maxUnpathedLeg, DEFUSE_SNAP
+        goal, A.maxUnpathedLeg, DEFUSE_SNAP, A.routeEdgeMargin
       )
       : null;
     if (tail) {
