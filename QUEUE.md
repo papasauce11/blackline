@@ -176,7 +176,7 @@ budget checks are the ceiling.
   nothing drawn at full health; the knife through F, the mark centred and
   bounded, a miss draws none; the arc right/left/behind/ahead from
   `applyDamage` with a source at the camera's own axes, no source no arc,
-  gone on its clock. Spec 20.14, D31 (provisional), README. HASH_C3,
+  gone on its clock. Spec 20.14, D31 (provisional), README. `3510bf4`,
   2026-09-15, scheduled run.
 - **C2** Round-start briefing and controls card. `ui/briefing.js`: a DOM
   card raised by `panels.js` on the player's routes into a round (Play,
