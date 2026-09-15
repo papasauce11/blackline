@@ -28,9 +28,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after C2 (2026-09-15) |
-| AUTO suite | headless, `npm run suite`: **141 passed, 1 failed** (2026-09-15, after C2), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **C3** (M: hit and damage feedback), then C4-C6. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C2, C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after C3 (2026-09-15) |
+| AUTO suite | headless, `npm run suite`: **144 passed, 1 failed** (2026-09-15, after C3), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **C4** (M: round and match end screens), then C5, C6. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C3, C2, C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -39,7 +39,8 @@ Phases 1–49 of the original build are done and committed. The **redesign**
 (phases 1-50 of the plan below) is closed as of B9, 2026-09-14, but for two
 jobs that wait on Josh (B5b on D25, B5d on D27). One directive arrived
 outside it (the plant, below). **Block C is under way**: C1, the playtest
-build, and C2, the round-start briefing, landed 2026-09-15 (below).
+build, C2, the round-start briefing, and C3, hit and damage feedback,
+landed 2026-09-15 (below).
 
 ---
 
@@ -96,6 +97,39 @@ intermission passes `objective.round.number + 1`, and `match.roundNumber`
 follows. Checks: `a-round-opens-on-a-briefing-that-any-key-dismisses` and
 `the-briefing-follows-the-round-and-the-setting-skips-it`
 (tests/briefing.js), both driving the real buttons and the real key path.
+
+## Hit and damage feedback, in the frame - C3
+
+`systems/feedback.js` is one full-screen quad with a `ShaderMaterial`
+whose vertex shader passes clip coordinates straight through (no camera,
+no FOV, no aspect; `frustumCulled` off), drawn last (`renderOrder` 1000,
+no depth) over the scene. It is drawn by the **renderer**, not the DOM, so
+`gl.readPixels` sees it and the checks prove it; the HUD's flash overlay
+is DOM and no pixel check can see it. Three layers in one fragment shader,
+`over`-composited: the vignette (elliptical, `feedback.vignetteInner` to
+`vignetteOuter`, `vignetteMax` opacity times health lost), the direction
+arc (a ring at `indicatorRadius` in aspect-corrected half-heights, an arc
+`indicatorArc` either side of the bearing), the hit marker (four diagonal
+strokes, `hitMarkerInner` to `hitMarkerOuter`). It listens: `combat:damage`
+for the human's actor with an `at` sets the arc (the rifle now passes its
+muzzle as `from`; a frag's `gadget:damage` carries the blast `at` and
+wiring passes it to `combat.applyDamage(actor, amount, who, kind, from)`);
+`combat:knife-hit` and `gadget:taser` mark for the Shade, `combat:impact`
+on the Shade marks for a human Warden; `frame:render` runs the clocks and
+writes the uniforms (the arc's bearing is `atan2(x, -z)` of the source in
+camera space, recomputed every frame); `match:init` resets. `mesh.visible`
+is false whenever every layer is zero, so the idle cost is nothing, and
+`warm(renderer, scene)` compiles the program at boot because the soak
+counts programs before and after a match. **A check that reads pixels
+between two `renderer.render` calls with no step between them sees only
+the feedback change** - that is how tests/feedback.js isolates each layer
+(`feedback.update(0)` settles the uniforms without a frame; forcing
+`hitTimer`/`indicatorTimer` to 0 is the "without" frame). The vignette is
+measured at site A: a red over the dark apron reddens black, which is not
+darker, and the queue's `brightnessDelta` wants a darkening. D31.
+
+`boot.js` holds `bootWorld()`, the old `bootstrap()` body: main.js
+destructures its return into the singletons. main.js is 470.
 
 ---
 
@@ -549,7 +583,7 @@ check keeps it so. Nothing moved changes an order or a name a check reaches:
 
 | Was | Now |
 |---|---|
-| `main.js` (1,145) | `main.js` (597): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`, the rAF scheduler), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js` (whose rig the camera is on, mouse look, ADS FOV), `intents.js` (input → intent), `loadout.js` (the gadget slots), `wiring.js` (the emitter listeners between systems), `hudstate.js` (what the HUD is told), `debugfields.js` (what the F3 overlay is told), `harness.js` (`createHarness(live, loop)` — one getter per live object), `panels.js` (C1, C2: the HUD, the scoreboard, the menu and the briefing, and what their buttons do) |
+| `main.js` (1,145) | `main.js` (597): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`, the rAF scheduler), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js` (whose rig the camera is on, mouse look, ADS FOV), `intents.js` (input → intent), `loadout.js` (the gadget slots), `wiring.js` (the emitter listeners between systems), `hudstate.js` (what the HUD is told), `debugfields.js` (what the F3 overlay is told), `harness.js` (`createHarness(live, loop)` — one getter per live object), `panels.js` (C1, C2: the HUD, the scoreboard, the menu and the briefing, and what their buttons do), `boot.js` (C3: `bootWorld()`, building the world) |
 | `entities/agent.js` (1,051) | `agent.js` (546): state machine, ground, air, the landing. `agentslide.js` (B8): the slide. `agenttraversal.js`: every climb. `agentvisual.js`: how it is drawn, and the camera's dip. `agentstate.js`: `SHADE_STATE` |
 | `systems/ai.js` (788) | `ai.js` (498): the state machine. `aiperception.js`, `ainav.js` (route, steering, stuck). `aistate.js`: `AI_STATE`, `angleDelta`, `DEFUSE_SNAP` |
 | `mapkit.js` (821) | `mapkit.js` (380): `GameMap`, `addSolid`, decals, rooms, lights, waypoints. `mapgen.js`: walls with openings, floor plates, staircases, vent runs. `mapclimb.js`: `deriveClimbableSurfaces`, `supportApproaches` (B3), `supportCandidates` |
@@ -572,12 +606,10 @@ the `G` command toggles it in `testcommands.js` and `wiring.js` reads it —
 rather than a `let` in `main.js`. And `harness.cameraOwner` still returns the
 owner string; the object behind it is `cameraowner.js`.
 
-`main.js` is 594 (C1 took the panels out at 583; C2 put eleven lines back
-for the briefing's hold and dismiss, which read the frame's own input and
-planner) and `physics.js` is 600: the next job that touches either splits
-it rather than adding to it. The clean cut in main.js is `bootstrap()`
-(about 110 lines) into a `boot.js` that returns the singletons; mind the
-"moved method references a module constant" trap below when doing it.
+`main.js` is 470 (C3 moved `bootstrap()` out as `boot.js`'s `bootWorld()`,
+which returns every singleton for main.js to destructure) and `physics.js`
+is 600: the next job that touches physics.js splits it rather than adding
+to it.
 
 ## A failed climb is never silent - B2
 
@@ -859,7 +891,7 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8, D25, D26, D27, D28, D30 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25, D26, D27, D28, D30, D31 and the Provisional section of `DECISIONS.md`; Josh answers there.
 
 - **D25**: whether the deck's void edges should carry a rail except at the
   lips, so the duct roofs stop being routes up and a lit lip (B7) means
@@ -879,6 +911,9 @@ These are D8, D25, D26, D27, D28, D30 and the Provisional section of `DECISIONS.
 - **D30**: the round-start briefing - that it holds the round until a
   key, what it says, that it shows every round. Provisional; the check
   reads the words, nobody has read the card at a real screen size.
+- **D31**: the hit marker, the damage arc and the red vignette - sizes,
+  colours, times, and that the arc sits at 0.32 half-heights. Provisional;
+  the pixels say each is drawn where it should be, not that it reads.
 
 - Whether the **site ring** still reads correctly now that the plant is the
   whole room. Nobody has looked at it since the meaning changed.

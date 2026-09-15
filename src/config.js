@@ -1203,6 +1203,34 @@ export const CONFIG = {
   },
 
   // -------------------------------------------------------------------------
+  // Hit and damage feedback (Section 13, amended - C3). One screen-space
+  // quad drawn over the scene in the frame (systems/feedback.js), so the
+  // pixel checks can see it where a DOM overlay would be invisible to them.
+  // Sizes are in half screen heights (1 = from the centre to the top edge);
+  // times are wall-clock seconds.
+  // -------------------------------------------------------------------------
+  feedback: {
+    /** The hit marker: four diagonal strokes round the centre, on a landed knife, taser or round. */
+    hitMarkerTime: 0.18,
+    hitMarkerInner: 0.025,
+    hitMarkerOuter: 0.065,
+    hitMarkerThickness: 0.007,
+    hitMarkerColor: 0xffffff,
+    /** The damage direction: an arc on a ring round the centre, toward where it came from. */
+    indicatorTime: 1.1,
+    indicatorRadius: 0.32,
+    indicatorWidth: 0.045,
+    /** Half the arc, radians. */
+    indicatorArc: 0.38,
+    indicatorColor: 0xf07a25,
+    /** The vignette: the screen edge, from `vignetteInner` out, at `vignetteMax` opacity when health is gone. */
+    vignetteInner: 0.55,
+    vignetteOuter: 1.35,
+    vignetteMax: 0.85,
+    vignetteColor: 0x6e100c,
+  },
+
+  // -------------------------------------------------------------------------
   // Debug tooling (Section 17, 17.1)
   // -------------------------------------------------------------------------
   debug: {

@@ -112,6 +112,11 @@ Click the canvas to capture the mouse. Bindings are rebindable at runtime via
 `input.rebind(action, code)`; the defaults live in `DEFAULT_BINDINGS` in
 `src/config.js`.
 
+When a knife, a taser or (as the Warden) a round lands, a small mark
+flashes on the screen centre; when you take damage, an arc round the centre
+points at where it came from, and the edge of the screen reddens with the
+health you have lost.
+
 Every round opens on a **briefing**: your objective in a line, the three
 sites by name, and this table for the role you are playing, read from the
 live bindings. The round waits until you press any key or mouse button (the

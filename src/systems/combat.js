@@ -306,7 +306,8 @@ export class Combat {
 
     this.hits++;
     const damage = damageAtRange(hit.distance) * (hit.headshot ? G.headshotMultiplier : 1);
-    this._damage(shade, damage, 'shade', hit.headshot ? 'headshot' : 'body');
+    // From the muzzle: the damage direction (C3) points at the Warden.
+    this._damage(shade, damage, 'shade', hit.headshot ? 'headshot' : 'body', this._origin);
   }
 
   // -------------------------------------------------------------------------
@@ -387,9 +388,12 @@ export class Combat {
   // Damage and death
   // -------------------------------------------------------------------------
 
-  /** Public entry for damage from outside combat, e.g. a frag (Section 9.2). */
-  applyDamage(actor, amount, who, kind) {
-    this._damage(actor, amount, who, kind);
+  /**
+   * Public entry for damage from outside combat, e.g. a frag (Section 9.2).
+   * @param {object} [from] where it came from, for the damage direction (C3)
+   */
+  applyDamage(actor, amount, who, kind, from) {
+    this._damage(actor, amount, who, kind, from);
   }
 
   /**

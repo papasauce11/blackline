@@ -10,7 +10,8 @@
  *
  * What is here is what has to be: the singletons, `initMatch`, the loop and
  * the fixed step in its spec order. The pieces that were only cohesive
- * blocks of it live beside it (F3): `loop.js` (the rAF scheduler),
+ * blocks of it live beside it (F3): `boot.js` (building the world - C3),
+ * `loop.js` (the rAF scheduler),
  * `timestep.js` (the step planner), `matchstate.js` (what a match is),
  * `view.js` (renderer, camera, toon ramp, resize, lost context),
  * `cameraowner.js` (whose rig the camera is on, and mouse look),
@@ -25,38 +26,18 @@
 import * as THREE from 'three';
 import { CONFIG, SETTINGS, rng, deriveSeed, debugRequested } from './config.js';
 import { Emitter } from './emitter.js';
-import { Freefly } from './freefly.js';
-import { Input } from './input.js';
-import { buildMap } from './map.js';
-import { createWardenGroundView } from './groundview.js';
+import { bootWorld } from './boot.js';
 import { FrameLoop } from './loop.js';
 import { computeStepPlan } from './timestep.js';
 import { resolveMatchOptions, createMatchState, bootMatchOptions } from './matchstate.js';
-import {
-  createRenderer, createScene, createCamera, createToonGradient, resizeView, watchContextLoss,
-} from './view.js';
-import { createCameraOwnership } from './cameraowner.js';
+import { createCamera } from './view.js';
 import { readShadeIntent, idleShadeIntent, readWardenIntent } from './intents.js';
 import { useShadeGadget, useWardenGadget } from './loadout.js';
-import { wireMatchEvents } from './wiring.js';
 import { gatherHudState } from './hudstate.js';
 import { recordStepFields, recordFrameFields } from './debugfields.js';
 import { createHarness } from './harness.js';
-import { Shade, createIntent } from './entities/agent.js';
-import { Warden, createWardenIntent } from './entities/enforcer.js';
-import { createDetection } from './systems/detection.js';
-import { createWardenAI } from './systems/ai.js';
-import { createCombat } from './systems/combat.js';
-import { createAudio } from './systems/audio.js';
-import { createGadgets } from './systems/gadgets.js';
-import { createObjective } from './systems/objective.js';
-import { createEffects } from './systems/effects.js';
-import { createDeathCam } from './systems/deathcam.js';
-import { createPanels } from './panels.js';
-import { DebugTools } from './ui/debug.js';
-import { registerAutoTests } from './tests/index.js';
-import { registerAssertions } from './tests/assertions.js';
-import { wireTestCommands } from './testcommands.js';
+import { createIntent } from './entities/agent.js';
+import { createWardenIntent } from './entities/enforcer.js';
 
 // ---------------------------------------------------------------------------
 // Engine singletons
@@ -65,12 +46,12 @@ import { wireTestCommands } from './testcommands.js';
 /** @type {THREE.WebGLRenderer} */ let renderer = null;
 /** @type {THREE.Scene} */ let scene = null;
 /** @type {THREE.PerspectiveCamera} */ let camera = null;
-/** @type {Input} */ let input = null;
-/** @type {DebugTools} */ let debugTools = null;
-/** @type {Freefly} */ let freefly = null;
+/** @type {import('./input.js').Input} */ let input = null;
+/** @type {import('./ui/debug.js').DebugTools} */ let debugTools = null;
+/** @type {import('./freefly.js').Freefly} */ let freefly = null;
 /** @type {import('./map.js').GameMap} */ let map = null;
-/** @type {Shade} */ let shade = null;
-/** @type {Warden} */ let warden = null;
+/** @type {import('./entities/agent.js').Shade} */ let shade = null;
+/** @type {import('./entities/enforcer.js').Warden} */ let warden = null;
 /** @type {import('./systems/detection.js').Detection} */ let detection = null;
 /** @type {import('./systems/ai.js').WardenAI} */ let wardenAI = null;
 /** @type {import('./systems/combat.js').Combat} */ let combat = null;
@@ -79,6 +60,7 @@ import { wireTestCommands } from './testcommands.js';
 /** @type {import('./systems/objective.js').Objective} */ let objective = null;
 /** @type {import('./systems/effects.js').Effects} */ let effects = null;
 /** @type {import('./systems/deathcam.js').DeathCam} */ let deathCam = null;
+/** @type {import('./systems/feedback.js').Feedback} */ let feedback = null;
 /** @type {import('./ui/hud.js').Hud} */ let hud = null;
 /** @type {import('./groundview.js').WardenGroundView} */ let groundView = null;
 /** @type {import('./ui/menu.js').Menu} */ let menu = null;
@@ -93,7 +75,7 @@ const wardenIntent = createWardenIntent();
  */
 const wardenIdleIntent = createWardenIntent();
 
-/** @type {ReturnType<typeof createCameraOwnership>} whose rig the one camera is on */
+/** @type {ReturnType<typeof import('./cameraowner.js').createCameraOwnership>} whose rig the one camera is on */
 let cameraOwner = null;
 
 const emitter = new Emitter();
@@ -228,120 +210,13 @@ function togglePause() {
 // ---------------------------------------------------------------------------
 
 function bootstrap() {
-  const canvas = document.getElementById('bl-canvas');
-  if (!canvas) throw new Error('bootstrap: #bl-canvas not found');
-
-  renderer = createRenderer(canvas);
-  scene = createScene();
-  camera = createCamera();
-  scene.add(camera);
-
-  // Section 4: 4-step gradient map generated in code via DataTexture. Created
-  // here in the composition root and passed down, because both map.js and
-  // entities/ need it and neither may import the other (Section 3.1).
-  const gradientMap = createToonGradient(CONFIG.render.toonSteps);
-
-  map = buildMap({ gradientMap });
-  scene.add(map.root);
-  // Block A7: the Warden's reachable ground, drawable from the F4 panel.
-  // Hidden by default; `test:toggle-warden-ground` shows it.
-  groundView = createWardenGroundView(map.wardenGround);
-  scene.add(groundView.root);
-
-  debugState.collisionBoxes = map.collision.boxCount;
-  debugState.mapLedges = map.ledges.length;
-
-  shade = new Shade({ collision: map.collision, gradientMap, emitter });
-  scene.add(shade.mesh);
-  scene.add(shade.groundBlob);
-  scene.add(shade.cameraRig);
-  shade.reset(map.shadeSpawns[0]);
-
-  warden = new Warden({ collision: map.collision, gradientMap, emitter });
-  scene.add(warden.mesh);
-  scene.add(warden.groundBlob);
-  scene.add(warden.cameraRig);
-  warden.reset(map.wardenSpawns[0]);
-
-  // The one camera's owner, now both rigs exist. Combat's finisher and the
-  // death camera are handed `set` so they take the camera the same way the
-  // frame does, rather than reaching for it.
-  cameraOwner = createCameraOwnership({ camera, scene, shade, warden, emitter });
-  const setCameraOwner = (owner) => cameraOwner.set(owner);
-
-  // Section 7: light sampling, the visibility meter, the Section 4.2 feedback
-  // and the noise field. Built after both actors, because it seeds the meter
-  // from the Shade's spawn rather than letting it ramp up from zero.
-  detection = createDetection({ map, emitter });
-  detection.reset(shade);
-
-  // Section 11. The AI fills the same intent a human fills in free-roam; the
-  // composition root is what steps the controller with it, so there is exactly
-  // one path into the Warden.
-  gadgets = createGadgets({ map, emitter, detection });
-  wardenAI = createWardenAI({ map, warden, detection, gadgets, emitter });
-
-  // Section 8. The finisher needs the camera and the time scale, so it is
-  // handed the same two functions the composition root uses rather than
-  // reaching for them.
-  combat = createCombat({
-    map, emitter, detection, ai: wardenAI, scene, camera, setTimeScale, setCameraOwner,
-  });
-  // Section 14. Listens on the emitter and is unlocked by the first gesture,
-  // because a context built before one starts suspended (Section 15).
-  audio = createAudio({ emitter, listener: shade });
-  effects = createEffects({ scene, emitter });
-  // Section 10.2's death camera and Section 15's respawnShade. Built before
-  // objective so the reinsert can be handed the whole restore rather than half
-  // of it; the two callbacks are late-bound because each needs the other.
-  deathCam = createDeathCam({
-    scene, camera, emitter, effects, setCameraOwner,
-    forceReinsert: () => objective.forceReinsert(shade, warden),
-  });
-  objective = createObjective({
-    map, emitter, detection, ai: wardenAI, gadgets,
-    respawnShade: (target, spawn) => deathCam.respawnShade(target, spawn),
-  });
-
-  // The HUD, the scoreboard, the menu and the briefing, and what their
-  // buttons do (panels.js); the handlers read the live objects through getters.
-  ({ hud, scoreboard, menu, briefing } = createPanels({
-    initMatch, setPaused, objective: () => objective, audio: () => audio, match: () => match,
-    map: () => map, input: () => input,
-  }));
-
-  wireMatchEvents({
-    emitter, hud, audio, combat, shade, warden, deathCam, effects, scoreboard, objective, gadgets,
-    // Section 17.1 test mode: the Shade ignores damage while set. The `G`
-    // command (testcommands.js) toggles it in the shared bag; the F3 overlay
-    // shows it from the same place, so there is one value.
-    isGodMode: () => !!debugState.godMode,
-  });
-
-  input = new Input(canvas);
-  // Built after input, which it reads, and parked on a Shade spawn at eye
-  // height so re-enabling it from the console starts somewhere sensible.
-  freefly = new Freefly(input, {
-    x: map.shadeSpawns[0].position.x,
-    y: map.shadeSpawns[0].position.y + CONFIG.shade.standHeight * CONFIG.shade.eyeHeightRatio,
-    z: map.shadeSpawns[0].position.z,
-  });
-
-  canvas.addEventListener('mousedown', () => {
-    input.requestLock();
-    audio.unlock();
-  });
-
-  window.addEventListener('resize', () => {
-    const size = resizeView(renderer, camera);
-    if (size) emitter.emit('view:resize', size);
-  });
-  watchContextLoss(canvas, debugState, emitter);
-
-  debugTools = new DebugTools({ input, emitter, debugState, harness });
-  registerAssertions(debugTools, harness);
-  registerAutoTests(debugTools);
-  wireTestCommands({ harness });
+  // Everything built is boot.js (C3); what runs it stays here. `match` is a
+  // getter because the menu is built before the first match exists.
+  ({
+    renderer, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
+    combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
+    briefing, cameraOwner,
+  } = bootWorld({ emitter, debugState, harness, initMatch, setPaused, setTimeScale, match: () => match }));
 
   setTimeScale(1);
   debugState.stepsPerFrame = 0;
@@ -535,6 +410,7 @@ const harness = createHarness({
   objective: () => objective,
   effects: () => effects,
   deathCam: () => deathCam,
+  feedback: () => feedback,
   hud: () => hud,
   groundView: () => groundView,
   menu: () => menu,

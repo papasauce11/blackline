@@ -5329,3 +5329,108 @@ off. `CONFIG.round.roundEndDelay` is still read by nothing (noted on C4).
 
 **Left.** C3 (hit and damage feedback) is next; then C4, which the
 round-number fix and the `roundEndDelay` note feed.
+
+## C3 — hit and damage feedback, in the frame (2026-09-15, same run)
+
+The second job of the 17:00 run, after C2. Getting shot in Blackline was
+a number on the health bar and a HUD line; landing a knife was the
+Warden's health in the kill feed. Block C's third job: a hit marker, a
+damage direction, a vignette by lost health - and, the queue said, pixel
+checks for each with `brightnessDelta` proving the vignette.
+
+**Built.**
+
+1. *In the frame, not the DOM.* `readPixels` cannot see a DOM overlay (the
+   HUD's flashbang white is one), so `systems/feedback.js` draws all three
+   with the renderer: one full-screen quad, a `ShaderMaterial` whose vertex
+   shader passes clip coordinates straight through - no camera, no FOV, no
+   aspect, `frustumCulled` off - drawn last with no depth test. The
+   fragment shader composites three layers with a straight-alpha `over`:
+   the vignette (`smoothstep(vignetteInner, vignetteOuter, |ndc|)` times
+   `vignetteMax` times health lost), the direction arc (a ring at
+   `indicatorRadius` in aspect-corrected half-heights, `indicatorArc`
+   either side of `dirAngle`), the hit marker (four diagonal strokes,
+   `|abs(x)-abs(y)| < thickness` between `hitMarkerInner` and `Outer`).
+   Every number is `CONFIG.feedback`. `mesh.visible` is false whenever all
+   three are zero, so the idle cost is no draw call; `warm(renderer,
+   scene)` compiles the program at boot, because the soak counts
+   `renderer.info.programs` before and after a match and a program first
+   compiled when the Shade is first shot is a leak to it. The first
+   `ShaderMaterial` in the project.
+2. *What it listens to.* `combat:damage` for the human's actor with an
+   `at` sets the arc's source; `frame:render` runs the clocks and writes
+   the uniforms, the bearing recomputed every frame as `atan2(x, -z)` of
+   the source in camera space (`camera.worldToLocal`), so the arc stays on
+   the source as the camera turns; `combat:knife-hit` and `gadget:taser`
+   mark for the Shade, `combat:impact` on the Shade marks for a human
+   Warden; `match:init` resets. The vignette reads the human actor's
+   health each frame and is nothing while dead - the death camera's view
+   is not the body's.
+3. *Where damage comes from.* `combat:damage` carried `at` only for the
+   knife on the Warden (the AI's reason to break off DEFEND). The rifle
+   now passes its muzzle (`this._origin`) as `from` for the Shade; the
+   frag's `gadget:damage` carries the blast `at` and wiring passes it
+   through `combat.applyDamage(actor, amount, who, kind, from)`. The AI's
+   listener filters on `target === 'warden'`, so nothing there moved.
+4. *`boot.js`.* main.js was 594 and HANDOFF said the next touch splits it.
+   `bootstrap()`'s body is `bootWorld({ emitter, debugState, harness,
+   initMatch, setPaused, setTimeScale, match })`, which builds the world
+   in the same order and returns every singleton for main.js to
+   destructure into its lets; main.js keeps the match, the loop, the step
+   and the frame. main.js is 470; boot.js 183. The "moved method references
+   a module constant" trap was checked by hand (`CONFIG`, `Shade`,
+   `Warden` imported; `objective` and `input` late-bound as lets, as they
+   were).
+5. *Three checks*, tests/feedback.js, each reading the framebuffer
+   between two `renderer.render` calls with no simulation step between
+   them, so the only thing that can differ is the feedback
+   (`feedback.update(0)` settles the uniforms; forcing a timer to 0 is the
+   "without" frame):
+   `the-vignette-deepens-with-lost-health-and-leaves-the-centre-alone` -
+   the Shade at site A (somewhere lit: a red over the dark apron reddens
+   black, which is not darker), `combat.applyDamage` to half then to a
+   tenth, the changed pixels reach every edge, the centre 40% is
+   untouched, `brightnessDelta` over the frame's outer 10% band is under
+   -8 at half and at least 1.3x that at a tenth (-11.6 and -20.8), the
+   deeper vignette reaches at least as many pixels, and at full health
+   after a new match the quad is invisible and a forced draw of it changes
+   no pixel.
+   `a-landed-knife-puts-a-hit-marker-at-the-centre-and-a-miss-does-not` -
+   the Warden in front at 1.2m, F into `pressedCodes`, one step: the
+   Warden's health drops, the marker's clock starts, the difference
+   against the same frame with the clock at 0 is centred within 4px of
+   the screen centre, no wider than `hitMarkerOuter` (45x45 px of 720),
+   hundreds brighter; `update(hitMarkerTime + 0.01)` runs it out; the
+   Warden out of range, F again, no clock starts.
+   `damage-draws-an-arc-toward-where-it-came-from` - `applyDamage` with a
+   source 6m along each of the camera's own axes, health held at 90 so
+   the vignette is the same in every frame: the arc's pixels are entirely
+   right of centre, entirely left, entirely below (behind) and entirely
+   above (ahead), each ~2550 px at 0.31-0.32 half-heights from the centre
+   against `indicatorRadius` 0.32; no source, no arc; gone after
+   `indicatorTime`.
+6. *Spec 20.14* (Section 13 gains the three), *D31* (provisional: drawn in
+   the frame, the sizes, the colours, red not black, nothing while dead),
+   *README* (a paragraph under Controls).
+
+**Verified.**
+
+- Subset (the three new checks, the briefing pair, the knife
+  classification, the visibility feedback, the 600-line guard): 8 of 8
+  after two rounds on the vignette's instrument - the first measured
+  darkening over the changed mask at the dark spawn (-8.4 vs -12.1, no
+  clear step), the second over the outer band somewhere lit.
+- Mutation: the arc's bearing mirrored (`atan2(-x, -z)`) puts the arc
+  check red at "right: the arc is not entirely right of centre ...
+  cx 526.5; left: ... cx 752.5" - the two swapped; reverted.
+- Full suite, `npm run suite`: **144 passed, 1 failed** run 1 (432s), **144 passed, 1 failed** run 2
+  (461s), the frame budget skipped headless, 0 red, 0 flaky, 0 console
+  errors, 0 context losses, 0 loop frames.
+
+**Not built.** The human-Warden hit marker (`combat:impact` on the Shade)
+has no check: a Warden with an opponent is not a configuration the menu
+offers, and emitting the event by hand spawns effects' sparks with it. One
+arc, the latest source; a frag and a rifle from two sides show one. The
+HUD's flashbang white stays DOM; it was never asked to be measured.
+
+**Left.** C4 (round and match end screens) is next; then C5, C6.

@@ -990,3 +990,24 @@ takes `round`, and the intermission passes the number, where before it
 reset every round to 1. C2, 2026-09-15; the checks are
 `a-round-opens-on-a-briefing-that-any-key-dismisses` and
 `the-briefing-follows-the-round-and-the-setting-skips-it`.
+
+### 20.14 Section 13 - hit and damage feedback
+
+Section 13's HUD says nothing about being hit or hitting. Three things are
+added, drawn by the renderer over the scene rather than in the DOM (one
+screen-space quad, `systems/feedback.js`, invisible and costing no draw
+call while it has nothing to show), so the pixel checks can prove them:
+a **hit marker** - four short diagonal strokes on the screen centre for
+`feedback.hitMarkerTime` when a shot of yours lands (the Shade's knife or
+taser; the Warden's round on the Shade); a **damage direction** - an arc on
+a ring round the centre, toward where the damage came from, recomputed
+every frame as the camera turns, for `feedback.indicatorTime`, from
+`combat:damage` events that carry a source (a rifle round carries its
+muzzle, a frag its blast); and a **vignette** - the screen edge tinted
+toward `feedback.vignetteColor`, `vignetteMax` opaque at no health, in
+proportion to the health lost, while the actor is alive (a dead actor's
+view is the death camera's). All three are for whichever actor the human
+is driving. C3, 2026-09-15; the checks are
+`the-vignette-deepens-with-lost-health-and-leaves-the-centre-alone`,
+`a-landed-knife-puts-a-hit-marker-at-the-centre-and-a-miss-does-not` and
+`damage-draws-an-arc-toward-where-it-came-from`.

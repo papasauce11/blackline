@@ -307,6 +307,37 @@ Josh overrides any of it; the text is `ui/briefing.js`, the numbers are
 the round's own.
 **decided:**
 
+### D31 — What hit and damage feedback looks like
+C3. The queue asked for a hit marker, a damage direction indicator and a
+screen-edge vignette scaling with lost health, each proven from the
+pixels. Taken, every number in `config.js` under `feedback`:
+
+- **Drawn by the renderer, not the DOM.** One full-screen quad with a
+  shader (`systems/feedback.js`), because `readPixels` cannot see the DOM
+  and the queue asks for pixel checks. A side effect worth knowing: it is
+  the first `ShaderMaterial` in the project, and the toon look is
+  untouched (D10 still holds - this is HUD in the frame, not a post pass).
+- **The hit marker** is four diagonal strokes round the centre, white,
+  0.025-0.065 half-heights out, for 0.18s. Alternative: a colour per
+  target (light, alarm, Warden), or a marker that grows with damage dealt.
+- **The direction** is an arc on a ring 0.32 half-heights from the centre
+  (inside the Shade's silhouette in third person, outside the crosshair
+  in first), Warden orange, 0.76 radians wide, 1.1s, fading over the last
+  0.44s; one arc, the latest source. Alternatives: several arcs at once
+  (a frag and a rifle from two sides is rare); a full-width screen-edge
+  flash on the source's side instead of a ring.
+- **The vignette** is `0x6e100c` - a red, not a black - at up to 0.85
+  opacity from 0.55 of the way to the edge out, in proportion to health
+  lost, and nothing at all at full health. Red rather than dark because
+  the map is dark: a dark vignette over a dark apron is invisible, and
+  the number the check takes is measured somewhere lit. Alternatives: a
+  pulse at low health; a desaturation.
+- **Nothing while dead.** The death camera's view is not the body's; the
+  vignette would otherwise sit at full strength for the 15s countdown.
+
+Josh overrides any of it; nobody has seen it at a real screen size.
+**decided:**
+
 ## Blocking — waiting on Josh
 
 ### D8 — Does the site ring still read, now the plant is the whole room?

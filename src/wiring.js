@@ -17,7 +17,7 @@ export function wireMatchEvents(s) {
   // Frag blasts are damage from outside combat; combat still owns applying it.
   emitter.on('gadget:damage', (event) => {
     if (s.isGodMode()) return;
-    if (event.target === 'shade') combat.applyDamage(shade, event.amount, 'shade', event.source);
+    if (event.target === 'shade') combat.applyDamage(shade, event.amount, 'shade', event.source, event.at);
   });
   emitter.on('objective:life-lost', (event) => {
     hud.push(`life lost - ${event.remaining} left`);

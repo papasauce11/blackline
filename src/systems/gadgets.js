@@ -264,7 +264,7 @@ export class Gadgets {
           z: shade.position.z,
         };
         if (!this.collision.lineOfSight(torso, at)) damage *= GA.frag.noLineOfSightMultiplier;
-        this.emitter.emit('gadget:damage', { target: 'shade', amount: damage, source: GADGET.FRAG });
+        this.emitter.emit('gadget:damage', { target: 'shade', amount: damage, source: GADGET.FRAG, at: { ...at } });
         break;
       }
 

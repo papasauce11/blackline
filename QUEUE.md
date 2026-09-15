@@ -77,9 +77,6 @@ Anything here that changes a **rule** is blocking — write the question.
 Anything that changes **presentation** is provisional — do it, log it under
 Provisional in `DECISIONS.md`, move on.
 
-- [ ] **C3 (M)** Hit and damage feedback. Hit marker on a landed shot, damage
-  direction indicator, screen-edge vignette scaling with lost health.
-  *done-when:* pixel checks for each; `brightnessDelta` proves the vignette.
 - [ ] **C4 (M)** Round and match end screens that explain: who won, how
   (defused / detonated / eliminated / time), a five-line timeline of the
   round. *done-when:* a check ends a round each way and reads the reason.
@@ -162,6 +159,25 @@ budget checks are the ceiling.
 
 ## Done
 
+- **C3** Hit and damage feedback. `systems/feedback.js`: one screen-space
+  quad with a shader, drawn by the renderer over the scene (so the pixels
+  see it), invisible while idle; the hit marker (four strokes on the
+  centre, `hitMarkerTime`) on `combat:knife-hit`, `gadget:taser` and, as
+  the Warden, `combat:impact` on the Shade; the damage arc (a ring at
+  `indicatorRadius`, toward the source, recomputed as the camera turns,
+  `indicatorTime`) on `combat:damage` events that carry `at` - the rifle
+  passes its muzzle, the frag its blast through `gadget:damage.at` and
+  `combat.applyDamage(..., from)`; the vignette (`vignetteColor`,
+  `vignetteMax` at no health) from the human actor's health, nothing
+  while dead. `feedback.warm()` compiles the program at boot so the soak's
+  program count holds. `boot.js` split from main.js (`bootWorld()`,
+  594 -> 470). Three checks (tests/feedback.js): the vignette measured
+  over the outer band somewhere lit, monotonic, the centre 40% untouched,
+  nothing drawn at full health; the knife through F, the mark centred and
+  bounded, a miss draws none; the arc right/left/behind/ahead from
+  `applyDamage` with a source at the camera's own axes, no source no arc,
+  gone on its clock. Spec 20.14, D31 (provisional), README. HASH_C3,
+  2026-09-15, scheduled run.
 - **C2** Round-start briefing and controls card. `ui/briefing.js`: a DOM
   card raised by `panels.js` on the player's routes into a round (Play,
   Free roam, Next round) and never by `initMatch`; per role the objective
