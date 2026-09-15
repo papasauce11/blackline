@@ -175,7 +175,7 @@ budget checks are the ceiling.
   through `initMatch` - it takes `round` now. Checks
   `a-round-opens-on-a-briefing-that-any-key-dismisses` and
   `the-briefing-follows-the-round-and-the-setting-skips-it`
-  (tests/briefing.js). Spec 20.13, D30 (provisional), README. HASH_C2,
+  (tests/briefing.js). Spec 20.13, D30 (provisional), README. `f9c249d`,
   2026-09-15, scheduled run.
 - **C1** Playtest build. `DEBUG` is gone; the gate is `SETTINGS.debug`,
   seeded false (`CONFIG.settings.defaults.debug`), read live by the step,
