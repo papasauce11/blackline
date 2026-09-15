@@ -35,7 +35,7 @@ export function createHarness(live, root) {
 
     /**
      * Put the presentation layer where a check expects to find it: no menu, no
-     * intermission, nothing paused, the HUD shown. The suite runner calls this
+     * intermission, no briefing, nothing paused, the HUD shown. The suite runner calls this
      * before every check (F2). The frame derives `hud.visible` from the menu
      * and `hud.update()` draws nothing while hidden, so a check that rendered
      * a frame behind a menu used to leave the next HUD-reading check reading a
@@ -45,6 +45,7 @@ export function createHarness(live, root) {
     resetPresentation() {
       live.menu().hide();
       live.scoreboard().hide();
+      live.briefing().hide();
       setPaused(false);
       live.hud().setVisible(true);
     },

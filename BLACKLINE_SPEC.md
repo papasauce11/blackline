@@ -971,3 +971,22 @@ panel up takes it down. The console handle `window.BLACKLINE` is present in
 both builds: it is the AUTO suite's way in, and the suite turns the gate on
 for the length of a run and puts it back. C1, 2026-09-15; the check is
 `with-the-debug-gate-off-every-debug-key-does-nothing`.
+
+### 20.13 Section 13 - the round opens on a briefing
+
+Section 13 lists the menus: main, settings, the intermission scoreboard,
+the match end screen. There is one more: a **round-start briefing and
+controls card**, raised on every route into a round - the main menu's Play
+and Free roam, the intermission's Next round - and never by `initMatch`
+itself. Per role it says the objective in one line, names the three sites,
+and lists the controls read from the live bindings; it holds the round
+(no simulation step runs while it is up, as under the pause menu, and the
+HUD is not drawn behind it) until any key or mouse button, which is spent
+- the Space that takes it down is not the round's first jump, and Esc is
+a key like any other while the card is up. A setting, *round briefing*
+(`SETTINGS.briefing`, on by default), turns it off, and off the round
+starts on the click. Next round now starts the next round: `initMatch`
+takes `round`, and the intermission passes the number, where before it
+reset every round to 1. C2, 2026-09-15; the checks are
+`a-round-opens-on-a-briefing-that-any-key-dismisses` and
+`the-briefing-follows-the-round-and-the-setting-skips-it`.

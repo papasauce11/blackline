@@ -112,6 +112,12 @@ Click the canvas to capture the mouse. Bindings are rebindable at runtime via
 `input.rebind(action, code)`; the defaults live in `DEFAULT_BINDINGS` in
 `src/config.js`.
 
+Every round opens on a **briefing**: your objective in a line, the three
+sites by name, and this table for the role you are playing, read from the
+live bindings. The round waits until you press any key or mouse button (the
+press starts the round and does nothing else). Turn it off with **round
+briefing** in the settings menu.
+
 ### Climbing
 
 There are no affordance markings. If a surface has a top you could stand on and

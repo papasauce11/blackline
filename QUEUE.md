@@ -77,16 +77,17 @@ Anything here that changes a **rule** is blocking — write the question.
 Anything that changes **presentation** is provisional — do it, log it under
 Provisional in `DECISIONS.md`, move on.
 
-- [ ] **C2 (M)** Round-start briefing and controls card. Per role: objective in
-  one line, the three sites named, the controls. Any key dismisses; a setting
-  to skip. *done-when:* a check reads the briefing text for both roles and
-  that a keypress dismisses it within one step.
 - [ ] **C3 (M)** Hit and damage feedback. Hit marker on a landed shot, damage
   direction indicator, screen-edge vignette scaling with lost health.
   *done-when:* pixel checks for each; `brightnessDelta` proves the vignette.
 - [ ] **C4 (M)** Round and match end screens that explain: who won, how
   (defused / detonated / eliminated / time), a five-line timeline of the
   round. *done-when:* a check ends a round each way and reads the reason.
+  Found by C2: `CONFIG.round.roundEndDelay` (2.5s) is read by nothing - the
+  intermission goes up on the `objective:round-end` event in the same step
+  the round ends, over whatever killed you; and the main menu's Play does
+  not reset the objective's score itself (every route back to the main
+  menu does, so it holds today - make it Play's own business here).
 - [ ] **C5 (M)** Difficulty pass driven by the AI checks. Measure
   time-to-detect and time-to-kill per difficulty setting. *done-when:* a check
   asserts both are monotonic across settings, and the values live in
@@ -161,6 +162,21 @@ budget checks are the ceiling.
 
 ## Done
 
+- **C2** Round-start briefing and controls card. `ui/briefing.js`: a DOM
+  card raised by `panels.js` on the player's routes into a round (Play,
+  Free roam, Next round) and never by `initMatch`; per role the objective
+  in one line with the round's own numbers, the three sites as `id name`
+  from `map.sites`, the controls read from `input.bindings`; it holds the
+  round (`held = paused || briefing.open` in the frame) and the HUD is
+  not drawn behind it; any key or mouse button dismisses it through the
+  Input in the frame, and the press is spent (`briefing.dismiss(input)`).
+  `SETTINGS.briefing` (default true) and the settings row *round briefing*
+  (`#bl-brief`). Found and fixed: Next round reset the round number to 1
+  through `initMatch` - it takes `round` now. Checks
+  `a-round-opens-on-a-briefing-that-any-key-dismisses` and
+  `the-briefing-follows-the-round-and-the-setting-skips-it`
+  (tests/briefing.js). Spec 20.13, D30 (provisional), README. HASH_C2,
+  2026-09-15, scheduled run.
 - **C1** Playtest build. `DEBUG` is gone; the gate is `SETTINGS.debug`,
   seeded false (`CONFIG.settings.defaults.debug`), read live by the step,
   `ui/debug.js` and `bootMatchOptions`; `?debug=1` (`debugRequested()` in

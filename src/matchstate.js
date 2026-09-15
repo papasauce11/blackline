@@ -29,6 +29,11 @@ export function bootMatchOptions(search) {
  * of the same call, so the defaults are the competitive match and every
  * field can be overridden. The live settings (`SETTINGS.x`, never
  * `CONFIG.settings.defaults.x`) seed the length and the difficulty.
+ *
+ * `round` is the round the call starts. The intermission's Next round
+ * button goes through `initMatch` too (Section 15: every actor rebuilt),
+ * and passes the next number; before C2 it was reset to 1 by the call, so
+ * the HUD's `r1` and the scoreboard's round column never moved.
  */
 export function resolveMatchOptions(options = {}) {
   return {
@@ -36,6 +41,7 @@ export function resolveMatchOptions(options = {}) {
     role: CONFIG.match.humanRole,
     ai: true,
     objective: true,
+    round: 1,
     matchLength: SETTINGS.matchLength,
     difficulty: SETTINGS.difficulty,
     ...options,
@@ -57,7 +63,7 @@ export function createMatchState(options, seed) {
     seed,
     matchLength: length,
     winsNeeded: CONFIG.match.lengths[length],
-    roundNumber: 1,
+    roundNumber: options.round,
     score: { shade: 0, warden: 0 },
     rounds: [],
     over: false,

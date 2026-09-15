@@ -18,7 +18,8 @@
  * `wiring.js` (the emitter listeners between systems), `hudstate.js` (what
  * the HUD is told), `debugfields.js` (what the F3 overlay is told),
  * `harness.js` (what the AUTO suite is handed) and `panels.js` (the HUD,
- * the scoreboard and the menu, and what their buttons do - C1).
+ * the scoreboard, the menu and the briefing, and what their buttons do -
+ * C1, C2).
  */
 
 import * as THREE from 'three';
@@ -82,6 +83,7 @@ import { wireTestCommands } from './testcommands.js';
 /** @type {import('./groundview.js').WardenGroundView} */ let groundView = null;
 /** @type {import('./ui/menu.js').Menu} */ let menu = null;
 /** @type {import('./ui/scoreboard.js').Scoreboard} */ let scoreboard = null;
+/** @type {import('./ui/briefing.js').Briefing} */ let briefing = null;
 const shadeIntent = createIntent();
 const wardenIntent = createWardenIntent();
 /**
@@ -128,6 +130,7 @@ let match = null;
  * @param {'shade'|'warden'} [options.role]
  * @param {boolean} [options.ai]
  * @param {boolean} [options.objective]
+ * @param {number} [options.round] the round number to start on; 1 by default
  * @param {number} [options.seed] explicit seed, for reproducing a bug
  */
 export function initMatch(options = {}) {
@@ -165,7 +168,7 @@ export function initMatch(options = {}) {
   if (effects) effects.reset();
   // A match must never start on the previous one's death camera (Section 15).
   if (deathCam) deathCam.reset();
-  if (objective && opts.objective !== false) objective.resetRound(1);
+  if (objective && opts.objective !== false) objective.resetRound(opts.round);
   // A new match must never start behind a stale intermission.
   if (scoreboard) scoreboard.hide();
   if (audio) audio.reset();
@@ -300,10 +303,11 @@ function bootstrap() {
     respawnShade: (target, spawn) => deathCam.respawnShade(target, spawn),
   });
 
-  // The HUD, the scoreboard and the menu, and what their buttons do
-  // (panels.js); the handlers read the live objects through getters.
-  ({ hud, scoreboard, menu } = createPanels({
+  // The HUD, the scoreboard, the menu and the briefing, and what their
+  // buttons do (panels.js); the handlers read the live objects through getters.
+  ({ hud, scoreboard, menu, briefing } = createPanels({
     initMatch, setPaused, objective: () => objective, audio: () => audio, match: () => match,
+    map: () => map, input: () => input,
   }));
 
   wireMatchEvents({
@@ -436,7 +440,11 @@ function renderFrame(wallDelta) {
   // Before the steps: a step clears input edges, which would eat F3/F4 — and
   // Esc, which is read here for the same reason.
   debugTools.pollKeys();
-  if (input.pressed('pause')) togglePause();
+  // C2: the briefing holds the round until any key or mouse button (Esc is
+  // one); the press is spent, so the key that starts the round is not a jump.
+  if (briefing.open) {
+    if (input.pressedCodes.size) briefing.dismiss(input);
+  } else if (input.pressed('pause')) togglePause();
 
   const owner = humanOwner();
   // Section 8.3: the finisher owns the camera while it runs. Reasserting
@@ -454,7 +462,9 @@ function renderFrame(wallDelta) {
 
   // Paused feeds the planner nothing rather than skipping it: the accumulator
   // must not quietly fill while the menu is up, or resuming replays the pause.
-  const plan = computeStepPlan(accumulator, paused ? 0 : wallDelta, clock.timeScale);
+  // The briefing holds the round the same way.
+  const held = paused || briefing.open;
+  const plan = computeStepPlan(accumulator, held ? 0 : wallDelta, clock.timeScale);
   accumulator = plan.accumulator;
   for (let i = 0; i < plan.steps; i++) {
     fixedStep(plan.dt);
@@ -463,7 +473,7 @@ function renderFrame(wallDelta) {
   debugState.stepsPerFrame = plan.steps;
   // Edges still have to be consumed while paused, or the Esc that resumes is
   // still pending on the next frame and pauses straight back.
-  if (paused) input.clearEdges();
+  if (held) input.clearEdges();
 
   const alpha = accumulator / plan.dt;
   if (owner === 'freefly') freefly.apply(camera);
@@ -485,8 +495,8 @@ function renderFrame(wallDelta) {
   // the simulation rather than being part of it.
   audio.step(wallDelta, { detectionAccumulator: wardenAI.accumulator });
 
-  // The HUD is not drawn behind a menu or an intermission.
-  hud.setVisible(!menu.open && !scoreboard.open);
+  // The HUD is not drawn behind a menu, an intermission or the briefing.
+  hud.setVisible(!menu.open && !scoreboard.open && !briefing.open);
   if (hud.visible) {
     hud.update(wallDelta, gatherHudState({ match, shade, warden, gadgets, detection, combat, objective }));
   }
@@ -529,6 +539,7 @@ const harness = createHarness({
   groundView: () => groundView,
   menu: () => menu,
   scoreboard: () => scoreboard,
+  briefing: () => briefing,
   paused: () => paused,
   cameraOwner: () => cameraOwner.owner,
   freefly: () => freefly,

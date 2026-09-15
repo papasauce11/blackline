@@ -1288,6 +1288,12 @@ export const CONFIG = {
       difficulty: 'medium',
       /** The debug gate (Section 17.1, amended): off is the playtest build. */
       debug: false,
+      /**
+       * The round-start briefing and controls card (C2). On, it goes up on
+       * every route into a round - Play, Free roam, Next round - and holds
+       * the round until any key; off, the round starts on the click.
+       */
+      briefing: true,
     },
   },
 };

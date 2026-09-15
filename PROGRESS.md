@@ -5235,3 +5235,97 @@ console; the queue did not ask and the suite needs it. `PLAYTEST.md` is
 C6's, and C6 says every C job updates it once it exists.
 
 **Left.** C2 (the round-start briefing and controls card) is next.
+
+## C2 — the round opens on a briefing (2026-09-15, scheduled run)
+
+The 17:00 run. The playtest build opens on the main menu, and Play dropped
+you into the turbine hall with no word of what to do or which key does it;
+the README had the controls, the game did not. Block C's second job.
+
+**Built.**
+
+1. *`ui/briefing.js`.* A DOM card in the scoreboard's style: the round
+   number (or *Free roam*), *you are the Shade / Warden*, the objective in
+   one line, the sites, the controls, and *any key to start*. The numbers
+   are the round's own - `CONFIG.round.plantHoldTime`, `detonationTime`,
+   `defuseHoldTime`, `duration`, `CONFIG.shade.lives` - so the card cannot
+   drift from the rule; the sites are `map.sites` as `A Turbine Hall · B
+   Loading Bay · C Server Vault`; the controls are read from
+   `input.bindings` through `keyLabel()` (`KeyW` → `W`, `ControlLeft` →
+   `Ctrl`, `Mouse0` → `LMB`), every binding of an action shown, so a rebind
+   shows the key you would press. Per role: the Shade's card lists crouch,
+   jump/climb (tap to hang, hold to go over), plant, knife, smoke/flash/
+   taser; the Warden's lists fire, aim, reload, defuse (only with the
+   objective on), stun/frag/alarm; both list move, look, sprint, pause. The
+   Warden's card is in the Warden's orange.
+2. *Where it is raised, and where it is not.* `panels.js` calls `brief()`
+   after `initMatch` in the three handlers that are a player's way into a
+   round - Play, Free roam, Next round - and nowhere else. `initMatch` does
+   not know it exists: every AUTO check calls `initMatch`, and a card that
+   went up on each would hold every check. The suite sees it only when a
+   check presses the button, and `resetPresentation()` (harness.js) takes
+   it down before every check with the menu and the scoreboard.
+3. *It holds the round.* In `renderFrame` (main.js) `held = paused ||
+   briefing.open` feeds the step planner nothing, as the pause does, and
+   clears the edges; the HUD is not drawn behind it. The dismissal is read
+   in the frame before the pause key, from `input.pressedCodes` - any code,
+   keyboard or mouse - and `briefing.dismiss(input)` hides the card and
+   `clearAll()`s the Input, so the Space that took the card down is not the
+   round's first jump and an Esc is not a pause. The same frame then steps
+   the round: "within one step" is literal. Eleven lines in main.js (594).
+4. *The setting.* `SETTINGS.briefing`, seeded true from
+   `CONFIG.settings.defaults.briefing`; the settings menu's *round briefing*
+   row (`#bl-brief`) flips it; off, `brief()` returns and the click starts
+   the round.
+5. *Found: Next round started round 1 again.* The intermission's button
+   called `objective.resetRound()` (number + 1) and then `initMatch`, which
+   called `objective.resetRound(1)`. The HUD's `r1` never moved and the
+   scoreboard's round column was `1, 1, 1`; no check went through the
+   button. `resolveMatchOptions` has `round: 1`, `initMatch` passes it to
+   `resetRound`, `createMatchState` records it as `roundNumber`, and the
+   button passes `objective.round.number + 1`. The card said *Round 1* for
+   round 2 and that is how it was seen.
+6. *Two checks*, tests/briefing.js, both through the real buttons
+   (`button.click()`) and the real key path (`press()` into
+   `pressedCodes`, then `renderFrame`):
+   `a-round-opens-on-a-briefing-that-any-key-dismisses` - Play raises the
+   Shade's card and it carries the role, `W A S D`, `Shift`, `Esc`, the
+   three sites by id and name, *Round 1*, `E`, `4 seconds`, `45 seconds`,
+   `3 lives`, `Space`, `F`, `Ctrl`, and not *reload*; five frames with W
+   held and no press move neither `clock.sim` nor `round.elapsed`, the
+   card stays, the HUD is hidden; a Space takes it down in one frame, that
+   frame steps, the Input is empty after, the Shade's feet and vertical
+   speed say it was not a jump, the HUD is back. Free roam raises the
+   Warden's card (`LMB`, `RMB`, `R`, *free roam*, *no clock*, no *plant*)
+   and `Mouse0` takes it down. Play again and `Escape` takes it down
+   without pausing or raising the menu.
+   `the-briefing-follows-the-round-and-the-setting-skips-it` - round 1
+   from Play, its clock run out through the step, the intermission up,
+   Next round: round 2 in the objective and the match record, the score
+   kept, the card says *Round 2*; the settings row turns the setting off
+   and on; off, Play raises no card and the first frame steps, and Next
+   round raises none and starts round 2.
+7. *Spec 20.13* (Section 13 gains the briefing; the round-number fix),
+   *D30* (provisional: the hold, the press spent, the wording, every
+   round), *README* (a paragraph under Controls).
+
+**Verified.**
+
+- Subset (the two new checks, the debug gate, the HUD read, the 600-line
+  guard, the difficulty presets): 6 of 6.
+- Mutation: `held = paused` alone puts the first check red at "shade: the
+  simulation ran 0.083s behind the card; shade: the round ran behind the
+  card; warden: the simulation ran 0.083s behind the card"; reverted. (The
+  revert was a `git checkout` of main.js, which also took C2's edits with
+  it; re-applied from the patch scripts, subset green again, 594 lines.)
+- Full suite, `npm run suite`: **141 passed, 1 failed** both runs (405s,
+  455s), the frame budget skipped headless, 0 red, 0 flaky, 0 console
+  errors, 0 context losses, 0 loop frames.
+
+**Not built.** No pixel check: the card is DOM over the canvas, as the menu
+and the scoreboard are, and `readPixels` cannot see it; the check reads
+the words. Nothing shortens the card after round 1; the setting is the way
+off. `CONFIG.round.roundEndDelay` is still read by nothing (noted on C4).
+
+**Left.** C3 (hit and damage feedback) is next; then C4, which the
+round-number fix and the `roundEndDelay` note feed.

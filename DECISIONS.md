@@ -272,6 +272,41 @@ it removes nine climbs that went through a duct wall or a gantry, which the
 parkour safety rule already forbade.
 **decided:**
 
+### D30 — What the round-start briefing is, and that it holds the round
+C2. The queue asked for a briefing and controls card, per role, any key
+dismisses, a setting to skip. Taken:
+
+- **It holds the round.** No simulation step runs while the card is up -
+  the same hold as the pause menu - and the HUD is not drawn behind it.
+  Reason: a card over a running round is a card the Warden hunts you
+  through while you read it; and a first round that starts on a click you
+  made on a menu button is a round that starts before you have found the
+  keys. This is flow, not a rule: nothing a player can do changed. The
+  alternative - the clock runs, the card is a translucent overlay - was
+  not taken because the spec's 240s are the Shade's, not the card's.
+- **Any key or mouse button, and the press is spent.** The key that takes
+  the card down is not also a jump, a shot or a pause. Alternative: Space
+  or Enter only, which makes every other key a dead key on the one screen a
+  new player sees first.
+- **What it says.** The heading is the round number (or *Free roam*), the
+  role, one line of objective with the round's own numbers (the plant
+  hold, the detonation clock, the lives, the minutes to plant - from
+  `CONFIG.round` and `CONFIG.shade`, so the card cannot disagree with the
+  rule), the three sites as `id name` from `map.sites`, and a table of the
+  controls for the role read from `input.bindings` so a rebind shows the
+  key you would press. The Warden's card is in the Warden's orange.
+- **Every round, not the first only.** A best-of-5 shows it five times; it
+  is one key each. Alternative: first round only, or a short form after
+  round 1. The setting (*round briefing*, on by default) is the way off.
+- **The round number bug** the card exposed is fixed, not decided: Next
+  round went through `initMatch`, which reset the round to 1, so the HUD
+  read `r1` all match and the scoreboard's round column never moved.
+  `initMatch` takes `round` now.
+
+Josh overrides any of it; the text is `ui/briefing.js`, the numbers are
+the round's own.
+**decided:**
+
 ## Blocking — waiting on Josh
 
 ### D8 — Does the site ring still read, now the plant is the whole room?

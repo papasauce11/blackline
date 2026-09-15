@@ -175,6 +175,8 @@ export class Menu {
           <span class="value" id="bl-diff">${SETTINGS.difficulty}</span></div>
         <div class="row"><span>invert Y</span>
           <span class="value" id="bl-inv">${SETTINGS.invertY ? 'on' : 'off'}</span></div>
+        <div class="row"><span>round briefing</span>
+          <span class="value" id="bl-brief">${SETTINGS.briefing ? 'on' : 'off'}</span></div>
         <div class="row"><span>debug tooling</span>
           <span class="value" id="bl-dbg">${SETTINGS.debug ? 'on' : 'off'}</span></div>
         <button class="back" data-action="back">Back</button>
@@ -205,6 +207,13 @@ export class Menu {
     inv.onclick = () => {
       SETTINGS.invertY = !SETTINGS.invertY;
       inv.textContent = SETTINGS.invertY ? 'on' : 'off';
+    };
+    // C2: the round-start briefing and controls card. Off, Play and Next
+    // round start the round on the click.
+    const brief = this.root.querySelector('#bl-brief');
+    brief.onclick = () => {
+      SETTINGS.briefing = !SETTINGS.briefing;
+      brief.textContent = SETTINGS.briefing ? 'on' : 'off';
     };
     // Section 17.1, amended (C1): the debug gate, off by default. On, F3
     // and F4 work; off, they and every test key are inert, and a frame

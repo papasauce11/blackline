@@ -40,6 +40,7 @@ import { register as registerGroundView } from './groundview.js';
 import { register as registerFreeRoam } from './freeroam.js';
 import { register as registerSettings } from './settings.js';
 import { register as registerDebugGate } from './debuggate.js';
+import { register as registerBriefing } from './briefing.js';
 import { register as registerDeathCam } from './deathcam.js';
 import { register as registerPresentation } from './presentation.js';
 import { register as registerVisual } from './visual.js';
@@ -78,6 +79,7 @@ export function registerAutoTests(debugTools) {
   registerFreeRoam(debugTools);
   registerSettings(debugTools);
   registerDebugGate(debugTools);
+  registerBriefing(debugTools);
   registerDeathCam(debugTools);
   registerPresentation(debugTools);
   registerVisual(debugTools);

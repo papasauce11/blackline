@@ -28,9 +28,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after C1 (2026-09-15) |
-| AUTO suite | headless, `npm run suite`: **139 passed, 1 failed** (2026-09-15, after C1), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **C2** (M: the round-start briefing and controls card), then C3-C6. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after C2 (2026-09-15) |
+| AUTO suite | headless, `npm run suite`: **141 passed, 1 failed** (2026-09-15, after C2), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **C3** (M: hit and damage feedback), then C4-C6. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C2, C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -39,7 +39,7 @@ Phases 1–49 of the original build are done and committed. The **redesign**
 (phases 1-50 of the plan below) is closed as of B9, 2026-09-14, but for two
 jobs that wait on Josh (B5b on D25, B5d on D27). One directive arrived
 outside it (the plant, below). **Block C is under way**: C1, the playtest
-build, landed 2026-09-15 (below, "The playtest build").
+build, and C2, the round-start briefing, landed 2026-09-15 (below).
 
 ---
 
@@ -67,6 +67,35 @@ check: `with-the-debug-gate-off-every-debug-key-does-nothing`
 panel left open, all 15 debug keys through the real path change nothing.
 `panels.js` (the HUD, the scoreboard, the menu and their buttons) split
 from main.js for the 600-line guard.
+
+## The round opens on a briefing - C2
+
+Every route into a round the player has - the main menu's Play and Free
+roam, the intermission's Next round (`panels.js`, `brief()`) - raises
+`ui/briefing.js`: the round number (or *Free roam*), the role, the
+objective in one line with the round's own numbers (`CONFIG.round`,
+`CONFIG.shade.lives`), the three sites as `id name` from `map.sites`, and
+the controls for the role read from `input.bindings` (`keyLabel()` turns a
+code into what is on the key). It is **never raised by `initMatch`**, which
+every check calls, so the suite never sees it unless a check presses the
+button. It **holds the round**: the frame feeds the step planner nothing
+while it is up (`held = paused || briefing.open`, main.js), the HUD is not
+drawn behind it, and `resetPresentation()` takes it down before every
+check. **Any key or mouse button dismisses it**, read in the frame before
+the pause key from `input.pressedCodes`, and `briefing.dismiss(input)`
+spends the press: a Space is not a jump, an Esc is not a pause.
+`SETTINGS.briefing` (seeded true) and the settings row *round briefing*
+(`#bl-brief`) turn it off; off, the click starts the round. Spec 20.13,
+D30 (provisional: the hold, the wording, every round).
+
+Found under it: **Next round reset the round to 1.** The intermission goes
+through `initMatch` (Section 15, every actor rebuilt), which called
+`objective.resetRound(1)`; the HUD read `r1` all match and the scoreboard's
+round column never moved. `initMatch` takes `round` (default 1), the
+intermission passes `objective.round.number + 1`, and `match.roundNumber`
+follows. Checks: `a-round-opens-on-a-briefing-that-any-key-dismisses` and
+`the-briefing-follows-the-round-and-the-setting-skips-it`
+(tests/briefing.js), both driving the real buttons and the real key path.
 
 ---
 
@@ -520,7 +549,7 @@ check keeps it so. Nothing moved changes an order or a name a check reaches:
 
 | Was | Now |
 |---|---|
-| `main.js` (1,145) | `main.js` (597): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`, the rAF scheduler), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js` (whose rig the camera is on, mouse look, ADS FOV), `intents.js` (input → intent), `loadout.js` (the gadget slots), `wiring.js` (the emitter listeners between systems), `hudstate.js` (what the HUD is told), `debugfields.js` (what the F3 overlay is told), `harness.js` (`createHarness(live, loop)` — one getter per live object), `panels.js` (C1: the HUD, the scoreboard and the menu, and what their buttons do) |
+| `main.js` (1,145) | `main.js` (597): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`, the rAF scheduler), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js` (whose rig the camera is on, mouse look, ADS FOV), `intents.js` (input → intent), `loadout.js` (the gadget slots), `wiring.js` (the emitter listeners between systems), `hudstate.js` (what the HUD is told), `debugfields.js` (what the F3 overlay is told), `harness.js` (`createHarness(live, loop)` — one getter per live object), `panels.js` (C1, C2: the HUD, the scoreboard, the menu and the briefing, and what their buttons do) |
 | `entities/agent.js` (1,051) | `agent.js` (546): state machine, ground, air, the landing. `agentslide.js` (B8): the slide. `agenttraversal.js`: every climb. `agentvisual.js`: how it is drawn, and the camera's dip. `agentstate.js`: `SHADE_STATE` |
 | `systems/ai.js` (788) | `ai.js` (498): the state machine. `aiperception.js`, `ainav.js` (route, steering, stuck). `aistate.js`: `AI_STATE`, `angleDelta`, `DEFUSE_SNAP` |
 | `mapkit.js` (821) | `mapkit.js` (380): `GameMap`, `addSolid`, decals, rooms, lights, waypoints. `mapgen.js`: walls with openings, floor plates, staircases, vent runs. `mapclimb.js`: `deriveClimbableSurfaces`, `supportApproaches` (B3), `supportCandidates` |
@@ -543,8 +572,12 @@ the `G` command toggles it in `testcommands.js` and `wiring.js` reads it —
 rather than a `let` in `main.js`. And `harness.cameraOwner` still returns the
 owner string; the object behind it is `cameraowner.js`.
 
-`main.js` is 583 (C1 took the panels out) and `physics.js` is 600: the next
-job that touches either splits it further rather than adding to it.
+`main.js` is 594 (C1 took the panels out at 583; C2 put eleven lines back
+for the briefing's hold and dismiss, which read the frame's own input and
+planner) and `physics.js` is 600: the next job that touches either splits
+it rather than adding to it. The clean cut in main.js is `bootstrap()`
+(about 110 lines) into a `boot.js` that returns the singletons; mind the
+"moved method references a module constant" trap below when doing it.
 
 ## A failed climb is never silent - B2
 
@@ -826,7 +859,7 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8, D25, D26, D27, D28 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25, D26, D27, D28, D30 and the Provisional section of `DECISIONS.md`; Josh answers there.
 
 - **D25**: whether the deck's void edges should carry a rail except at the
   lips, so the duct roofs stop being routes up and a lit lip (B7) means
@@ -843,6 +876,9 @@ These are D8, D25, D26, D27, D28 and the Provisional section of `DECISIONS.md`; 
 - **D28**: how the routes are lit - emissive sides on every stage, a
   warm-white strip on every landing edge. Provisional; the pixels say it
   is a step brighter, not that it reads as a route.
+- **D30**: the round-start briefing - that it holds the round until a
+  key, what it says, that it shows every round. Provisional; the check
+  reads the words, nobody has read the card at a real screen size.
 
 - Whether the **site ring** still reads correctly now that the plant is the
   whole room. Nobody has looked at it since the meaning changed.
