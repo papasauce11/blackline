@@ -5097,3 +5097,70 @@ AUTO checks hold the rewritten 6 and 26 and leaves "does it read" to Josh.
 **Left.** Block B is closed but for B5b (D25), B5d (D27) and B8b. Block C
 (playable and testable) is next: C1, the playtest build with the debug
 gate off by default.
+
+## B8b — the B5c check asks the gantry case of the geometry (2026-09-15, scheduled run)
+
+The first job of the 02:00 run. B8 swept the way up (`riseIsClear`,
+climbprobe.js) and nine approaches went - one under the hall gantry and
+eight through the walls that stand on every low duct lip's long edges.
+B5c's check `a-mantle-never-passes-through-a-solid` asked the geometry
+about a solid *under* the landing and could not see any of those nine: a
+duct wall and the gantry are *above* the landing, and the body goes
+through them on the way. Until now only tests/hang.js drove one such face,
+and the sweep itself was the only thing that said the other eight were
+refused for a reason.
+
+**Built.**
+
+1. *The rule can be asked without the sweep.* `supportApproaches(collision,
+   box, { sweep = true })` in mapclimb.js; `sweep: false` leaves out
+   `riseFits` and names what the rule named before B8. `GameMap.
+   _supportApproaches(box, opts)` passes it through. Nothing in the game
+   asks for it; the derivation, the census and every other check call it
+   as before.
+2. *The geometric clause* (tests/routes.js, the same check). For every
+   wide solid, every approach the unswept rule names - 159 today - is
+   handed to `riseThrough()`: the crouched capsule along `movePath` from
+   the spot to the landing (the same start and end `riseFits` uses), 16
+   samples to the sweep's 6, and at each an AABB overlap written by hand
+   against every solid whose top is above the landing's. No call to
+   `riseIsClear`. The two must agree exactly, both ways: an approach the
+   rule names that the geometry sends through a solid is B8's bug back; an
+   approach the sweep refuses with nothing in the way is a rule that has
+   grown an exception. 159 asked, 9 refused, 150 named, no disagreement.
+3. *The controller clause.* At each of the nine, `driveAtFace()` stands
+   the body on the support at the spot, faces the face and holds W and
+   Space with the press repeated for 90 steps, and requires a scuff with
+   the feet never over the top. All nine scuff: the eight duct-lip side
+   faces from the ground beside the mouths (the two on
+   `vent-up-vault-lip-from` are out of reach from the corridor floor and
+   scuff as "too tall"), and hall-container's +z face from the ground
+   under gantry-hall, where the body hangs and its pull-up scuffs. A
+   refused set that came back empty is itself a failure - the controller
+   clause would have proven nothing.
+4. *The list.* The F4 log carries every refused approach with its
+   solid and the highest the feet got; the detail line groups them by the
+   box climbed (the runner cuts a detail at 400 characters, and the full
+   form was 480): `vent-low-north-lip-to +z/-z, vent-low-south-lip-from
+   +z/-z, vent-low-south-lip-to +z/-z, vent-up-vault-lip-from +x/-x (out
+   of reach), hall-container +z through gantry-hall` - B8's nine, by name.
+
+**Verified.**
+
+- Two mutations, each run against the subset and reverted: the rule's
+  sweep off (`if (false && !riseFits...)`) puts the check red at every
+  duct lip with "the rule names it and the body rises through
+  vent-low-north-wall-b"; the controller's sweep off (`_climbOnto` without
+  `riseIsClear`) puts it red with "the controller got the feet to 2.44m,
+  over the 2.30m top, through vent-low-north-wall-b". Each side holds the
+  other.
+- Subset, the check alone: green, 1.6s.
+- Full suite, `npm run suite`: **138 passed, 1 failed** both runs (386s, 441s), the frame budget skipped headless, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames; the check's detail identical between the runs.
+
+**Not built.** The runner's 400-character detail cap was left alone; the
+check's detail was fitted to it instead (399 characters), and the F4 log
+has the long form.
+
+**Left.** Block B is closed but for B5b (D25) and B5d (D27), both waiting
+on Josh. Block C is next: C1, the playtest build with the debug gate off
+by default.

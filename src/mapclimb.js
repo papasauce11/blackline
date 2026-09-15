@@ -167,10 +167,15 @@ export function supportCandidates(collision, box) {
  * under one obstruction, or a face whose top is blocked at one end, still
  * counts elsewhere.
  *
+ * `sweep: false` leaves out the last sentence - the way up (B8) - and names
+ * what the rule named before it: the approaches through a duct wall or the
+ * hall gantry. Nothing in the game asks for that; B8b's check does, to hold
+ * the sweep to the geometry without taking the sweep's word for it.
+ *
  * @returns {{box: object, y: number, rise: number, x: number, z: number,
  *            nx: number, nz: number}[]}
  */
-export function supportApproaches(collision, box) {
+export function supportApproaches(collision, box, { sweep = true } = {}) {
   const out = [];
   const minSupport = S.radius * 2;
   const margin = S.vaultReach + S.radius;
@@ -195,7 +200,7 @@ export function supportApproaches(collision, box) {
         const z = alongX ? (rect.z0 + rect.z1) / 2 : rect.z0 + (rect.z1 - rect.z0) * t;
         if (!handsReachFace(collision, box, face, x, z, other.max.y, depth)) continue;
         if (!landingFits(collision, box, face, x, z)) continue;
-        if (!riseFits(collision, box, face, x, z, other.max.y)) continue;
+        if (sweep && !riseFits(collision, box, face, x, z, other.max.y)) continue;
         out.push({ box: other, y: other.max.y, rise, x, z, nx: face.nx, nz: face.nz });
         break;
       }

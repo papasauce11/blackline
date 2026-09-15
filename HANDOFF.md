@@ -28,17 +28,17 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after B9 (2026-09-14) |
-| AUTO suite | headless, `npm run suite`: **138 passed, 1 failed** (2026-09-14, after B9), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **B8b** (S: the B5c check asks the gantry case of the geometry), then **Block C** - C1, the playtest build with the debug gate off by default. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after B8b (2026-09-15) |
+| AUTO suite | headless, `npm run suite`: **138 passed, 1 failed** (2026-09-15, after B8b), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **Block C** - C1, the playtest build with the debug gate off by default. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
 
 Phases 1–49 of the original build are done and committed. The **redesign**
 (phases 1-50 of the plan below) is closed as of B9, 2026-09-14, but for two
-jobs that wait on Josh (B5b on D25, B5d on D27) and one small follow-up
-(B8b). One directive arrived outside it (the plant, below). **Block C is next.**
+jobs that wait on Josh (B5b on D25, B5d on D27). One directive arrived
+outside it (the plant, below). **Block C is next.**
 
 ---
 
@@ -250,8 +250,15 @@ lip's edge and the mantle went through it. 146 -> 139; the same 22 stacked
 climbs; every top still climbed. The rule's sentence is now: *a surface is
 climbable when the body could reach its face from somewhere it can stand,
 get its hands over the top in open air, rise to the landing through
-nothing, and fit on top where it lands.* Spec 20.10. B8b (queued) gives the
-B5c check a geometric clause for it.
+nothing, and fit on top where it lands.* Spec 20.10. B8b (2026-09-15) holds
+the sweep to the geometry: `supportApproaches(collision, box, { sweep:
+false })` names what the rule named before B8, and
+`a-mantle-never-passes-through-a-solid` asks of every one of those 159
+whether the crouched body along `movePath` meets a solid above the landing
+- overlap written by hand, no call to `riseIsClear` - and requires the
+rule's answer to match exactly both ways (9 refused, 150 named), then
+drives the controller at each of the nine and requires a scuff with the
+feet never over the top. Turning either sweep off puts it red.
 
 Seven checks: tests/feel.js (four), tests/hang.js, and tests/traversalfuzz.js
 - `traversal-fuzz-ten-thousand-steps-never-sticks` starts every episode at

@@ -69,19 +69,6 @@ there. The census is the contract; **never weaken it**.
   and asserts it does; the room-A sample of
   `every-legal-plant-has-a-warden-who-can-reach-it` is no longer defused
   through the deck; suite twice with identical answers.
-- [ ] **B8b (S)** The B5c check asks the gantry case of the geometry.
-  `a-mantle-never-passes-through-a-solid` (tests/routes.js) asks, without
-  the rule's own sweep, whether a solid sits over the spot and under the
-  landing; B8's sweep (`riseIsClear`) also refuses a solid *above* the
-  landing that the move's path still passes through (the duct walls on the
-  lips' edges, the gantry over hall-container), and today only tests/hang.js
-  drives one such face. Add a geometric clause: for every approach the rule
-  names, sample the crouched capsule along `movePath` from the spot to the
-  landing against every solid whose top is above the landing's, written
-  without calling `riseIsClear`; and drive the controller at each duct lip's
-  side face from the ground beside the mouth, requiring a scuff and the body
-  never above the lip. *done-when:* the check lists the nine faces B8
-  removed as refused by geometry and by the controller; suite twice.
 
 ## Block C — playable and testable
 
@@ -178,6 +165,21 @@ budget checks are the ceiling.
 
 ## Done
 
+- **B8b** The B5c check asks the gantry case of the geometry.
+  `supportApproaches(collision, box, { sweep })` (mapclimb.js) can name
+  what the rule named before B8's sweep; `a-mantle-never-passes-through-a-solid`
+  (tests/routes.js) takes every such approach - 159 - and asks the geometry
+  on its own (`riseThrough`: the crouched capsule along `movePath`, 16
+  samples, AABB overlap by hand, no call to `riseIsClear`) whether the body
+  rises through a solid above the landing; the rule's answer must match
+  exactly both ways (9 refused, 150 named, no disagreement); and at each of
+  the nine it drives the controller (`driveAtFace`: W and Space held from
+  the spot) requiring a scuff with the feet never over the top. The nine
+  are B8's nine by name: vent-low-north-lip-to +z/-z, vent-low-south-lip-from
+  +z/-z, vent-low-south-lip-to +z/-z, vent-up-vault-lip-from +x/-x (out of
+  reach), hall-container +z through gantry-hall. Two mutations proven red
+  (the rule's sweep off; the controller's sweep off). `COMMIT_B8B`,
+  2026-09-15, scheduled run.
 - **B9** Close. Spec 20.11: Sections 5 (the markings withdrawn for material
   and light, the traversal line round the eight declared routes), 6.1 (the
   band rows withdrawn for one reach rule, the press, the hang, the tell,

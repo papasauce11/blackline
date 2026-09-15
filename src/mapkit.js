@@ -254,9 +254,12 @@ export class GameMap {
     return supportCandidates(this.collision, box);
   }
 
-  /** Every place a body could stand to climb this box: surface, spot and face. */
-  _supportApproaches(box) {
-    return supportApproaches(this.collision, box);
+  /**
+   * Every place a body could stand to climb this box: surface, spot and face.
+   * `{ sweep: false }` is the list before the way up is swept (B8b's check).
+   */
+  _supportApproaches(box, opts) {
+    return supportApproaches(this.collision, box, opts);
   }
 
   // -------------------------------------------------------------------------
