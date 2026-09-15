@@ -171,7 +171,7 @@ budget checks are the ceiling.
   console still work. `panels.js` split from main.js (603 -> 583). Check
   `with-the-debug-gate-off-every-debug-key-does-nothing` (tests/debuggate.js):
   on, F3/F4/T are live; off, 15 keys through `pollKeys()` change nothing.
-  Spec 20.12; README. `COMMIT_C1`, 2026-09-15, scheduled run.
+  Spec 20.12; README. `b430771`, 2026-09-15, scheduled run.
 - **B8b** The B5c check asks the gantry case of the geometry.
   `supportApproaches(collision, box, { sweep })` (mapclimb.js) can name
   what the rule named before B8's sweep; `a-mantle-never-passes-through-a-solid`
