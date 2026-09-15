@@ -77,10 +77,6 @@ Anything here that changes a **rule** is blocking — write the question.
 Anything that changes **presentation** is provisional — do it, log it under
 Provisional in `DECISIONS.md`, move on.
 
-- [ ] **C1 (M)** Playtest build. A `debug` gate — `?debug=1` or a settings
-  toggle — **off by default**; with it off, F3/F4 and every `DEBUG_KEYS` code
-  are inert and the harness still works for the suite. *done-when:* a check
-  runs with the gate off and asserts every debug key does nothing.
 - [ ] **C2 (M)** Round-start briefing and controls card. Per role: objective in
   one line, the three sites named, the controls. Any key dismisses; a setting
   to skip. *done-when:* a check reads the briefing text for both roles and
@@ -165,6 +161,17 @@ budget checks are the ceiling.
 
 ## Done
 
+- **C1** Playtest build. `DEBUG` is gone; the gate is `SETTINGS.debug`,
+  seeded false (`CONFIG.settings.defaults.debug`), read live by the step,
+  `ui/debug.js` and `bootMatchOptions`; `?debug=1` (`debugRequested()` in
+  config.js, applied in main.js before bootstrap) or the settings menu's
+  *debug tooling* row turns it on; off with a panel up, the next frame
+  takes it down. `window.BLACKLINE` in both builds; `AutoSuite.runChecks()`
+  holds the gate up for a run and puts it back, so `npm run suite` and the
+  console still work. `panels.js` split from main.js (603 -> 583). Check
+  `with-the-debug-gate-off-every-debug-key-does-nothing` (tests/debuggate.js):
+  on, F3/F4/T are live; off, 15 keys through `pollKeys()` change nothing.
+  Spec 20.12; README. `COMMIT_C1`, 2026-09-15, scheduled run.
 - **B8b** The B5c check asks the gantry case of the geometry.
   `supportApproaches(collision, box, { sweep })` (mapclimb.js) can name
   what the rule named before B8's sweep; `a-mantle-never-passes-through-a-solid`
@@ -178,7 +185,7 @@ budget checks are the ceiling.
   are B8's nine by name: vent-low-north-lip-to +z/-z, vent-low-south-lip-from
   +z/-z, vent-low-south-lip-to +z/-z, vent-up-vault-lip-from +x/-x (out of
   reach), hall-container +z through gantry-hall. Two mutations proven red
-  (the rule's sweep off; the controller's sweep off). `COMMIT_B8B`,
+  (the rule's sweep off; the controller's sweep off). `db695ed`,
   2026-09-15, scheduled run.
 - **B9** Close. Spec 20.11: Sections 5 (the markings withdrawn for material
   and light, the traversal line round the eight declared routes), 6.1 (the

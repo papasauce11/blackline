@@ -5164,3 +5164,74 @@ has the long form.
 **Left.** Block B is closed but for B5b (D25) and B5d (D27), both waiting
 on Josh. Block C is next: C1, the playtest build with the debug gate off
 by default.
+
+## C1 — the playtest build: the debug gate is off by default (2026-09-15, same run)
+
+The second job of the 02:00 run, after B8b, and the first of Block C. What
+you got by opening the page was the debug build: `DEBUG = true` in
+config.js, F3 and F4 live, every test key a press away from teleporting the
+Shade or planting the charge. Section 17.1 said *"defaulting to true during
+development"*; a playtest is not development.
+
+**Built.**
+
+1. *The gate is a live setting.* `DEBUG` is gone; `SETTINGS.debug`, seeded
+   `false` from `CONFIG.settings.defaults.debug`, is the gate, and the
+   three places that read the flag (`main.js`: the F3 fields and the
+   assertions in the step; `ui/debug.js`: the overlay refresh, `pollKeys`,
+   the assertion step; `matchstate.js`: `?mode=freeroam`) read it live.
+   `debugRequested(search)` in config.js reads `?debug=1` (or `debug=true`)
+   and main.js sets the gate from it before `bootstrap()`; the settings
+   menu has a *debug tooling* row (`#bl-dbg`, on/off) that flips it at any
+   time. Off with a panel up - the settings row mid-match - the next
+   frame's `debugTools.update()` takes both panels down (`hidePanels()`).
+2. *The harness is always there.* `window.BLACKLINE` is set in both builds:
+   it is the AUTO suite's way in, and `AutoSuite.runChecks()` turns the
+   gate on for the length of a run and puts it back as found, the way it
+   does the loop (F4) - so `npm run suite` needed no URL change, a
+   playtest tab that ran the suite from the console is a playtest tab
+   after, and every check that presses F4 through the real path still
+   does. The console banner prints only under the gate.
+3. *`resetSettings()` resets the gate too*, which is right - it is a
+   setting - and `match-length-reaches-the-scoreboard` (tests/settings.js)
+   calls it mid-suite: it now snapshots the gate and puts it back, or every
+   check after it that presses F4 presses a dead key. Not a weakening: the
+   check still requires every default restored, the gate included (six
+   values now).
+4. *`panels.js`.* main.js went to 603 with the gate and the handle, and
+   HANDOFF said the next job that touched it splits rather than adds. The
+   HUD, the scoreboard and the menu, and what their buttons do, moved out
+   as `createPanels({ initMatch, setPaused, objective, audio, match })` -
+   getters for the live objects, as wiring.js does, because the menu is
+   built before the first match. main.js is 583.
+5. *The check* `with-the-debug-gate-off-every-debug-key-does-nothing`
+   (tests/debuggate.js): the default is false; `debugRequested` reads the
+   URL forms and refuses `debug=0`; the settings row turns the gate on and
+   off; then with the gate ON, F3 shows the overlay, F4 opens the panel and
+   T changes the time scale (so a dead key cannot pass as gated) and
+   `?mode=freeroam` boots free-roam; then with the gate OFF and the panel
+   left open, all 15 debug keys pressed through `pollKeys()` change nothing
+   - the Shade's position and health, god mode, the time scale, the AI
+   state, the plant, the ground overlay, the panels and the F4 log as one
+   snapshot - Y and U start no suite (spied), free-roam does not boot, and
+   a frame takes the panels down in state and in the DOM. Everything it
+   touches is put back in a `finally`.
+6. *README* (the playtest build and the debug build; `?debug=1` in the
+   seed example; the tooling section rewritten), **spec 20.12** (17.1
+   amended: the gate, its two switches, what off means, the handle in both
+   builds).
+
+**Verified.**
+
+- Subset (the new check, the 600-line guard, the settings checks, the
+  ground overlay's F4-then-N, the HUD read, free-roam, the regression-set
+  check): 9 of 9.
+- Mutation: `pollKeys()` without the gate puts the check red at "with the
+  gate off, F3 changed something: ... overlay true panel true"; reverted.
+- Full suite, `npm run suite`: **139 passed, 1 failed** both runs (394s, 426s), the frame budget skipped headless, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames.
+
+**Not built.** Nothing hides the harness from a playtester who opens the
+console; the queue did not ask and the suite needs it. `PLAYTEST.md` is
+C6's, and C6 says every C job updates it once it exists.
+
+**Left.** C2 (the round-start briefing and controls card) is next.

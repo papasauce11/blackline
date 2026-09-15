@@ -175,6 +175,8 @@ export class Menu {
           <span class="value" id="bl-diff">${SETTINGS.difficulty}</span></div>
         <div class="row"><span>invert Y</span>
           <span class="value" id="bl-inv">${SETTINGS.invertY ? 'on' : 'off'}</span></div>
+        <div class="row"><span>debug tooling</span>
+          <span class="value" id="bl-dbg">${SETTINGS.debug ? 'on' : 'off'}</span></div>
         <button class="back" data-action="back">Back</button>
       </div>`;
 
@@ -203,6 +205,14 @@ export class Menu {
     inv.onclick = () => {
       SETTINGS.invertY = !SETTINGS.invertY;
       inv.textContent = SETTINGS.invertY ? 'on' : 'off';
+    };
+    // Section 17.1, amended (C1): the debug gate, off by default. On, F3
+    // and F4 work; off, they and every test key are inert, and a frame
+    // takes any open panel down.
+    const dbg = this.root.querySelector('#bl-dbg');
+    dbg.onclick = () => {
+      SETTINGS.debug = !SETTINGS.debug;
+      dbg.textContent = SETTINGS.debug ? 'on' : 'off';
     };
     this.root.querySelector('[data-action=back]').onclick = () => this.show(this._settingsReturn || 'main');
   }

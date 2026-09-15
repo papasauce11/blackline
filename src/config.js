@@ -13,10 +13,21 @@
  */
 
 // ---------------------------------------------------------------------------
-// Debug flag (Section 17.1). Test-mode bindings are inert when this is false.
+// Debug gate (Section 17.1, amended - 20.12, C1). The F3 overlay, the F4
+// panel and every test-mode key are inert unless `SETTINGS.debug` is true.
+// It is OFF by default - a playtest build is what you get by opening the
+// page - and `?debug=1` on the URL or the settings menu's "debug tooling"
+// row turns it on. The live value is `SETTINGS.debug`, below with the other
+// settings; `CONFIG.settings.defaults.debug` is only its seed. The AUTO
+// suite turns it on for the length of a run (`ui/autosuite.js`), so the
+// harness works whichever way the page was opened.
 // ---------------------------------------------------------------------------
 
-export const DEBUG = true;
+/** Does this URL query ask for the debug tooling? `?debug=1` or `debug=true`. */
+export function debugRequested(search) {
+  const query = typeof search === 'string' ? search : '';
+  return /(?:^|[?&])debug=(?:1|true)(?:&|$)/.test(query);
+}
 
 // ---------------------------------------------------------------------------
 // Seeded PRNG (Section 2, Section 15)
@@ -1275,6 +1286,8 @@ export const CONFIG = {
       masterVolume: 0.7,
       matchLength: 5,
       difficulty: 'medium',
+      /** The debug gate (Section 17.1, amended): off is the playtest build. */
+      debug: false,
     },
   },
 };

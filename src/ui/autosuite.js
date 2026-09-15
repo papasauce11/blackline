@@ -11,7 +11,7 @@
  * This module imports config only.
  */
 
-import { CONFIG, rng } from '../config.js';
+import { CONFIG, SETTINGS, rng } from '../config.js';
 
 export class AutoSuite {
   /**
@@ -165,9 +165,16 @@ export class AutoSuite {
     const loop = this.harness.loop;
     const loopWasRunning = !!(loop && loop.running);
     if (loopWasRunning) loop.stop();
+    // And the debug gate is up for the length of the run (C1): the suite is
+    // the debug tooling, and checks press F4 and the panel's keys through
+    // the real path. Put back as found, so a playtest tab that ran the suite
+    // from the console is a playtest tab after.
+    const gateWasUp = SETTINGS.debug;
+    SETTINGS.debug = true;
     try {
       return await this._runChecks(tests);
     } finally {
+      SETTINGS.debug = gateWasUp;
       if (loopWasRunning) loop.start();
     }
   }

@@ -16,12 +16,13 @@
  * `cameraowner.js` (whose rig the camera is on, and mouse look),
  * `intents.js` (input to intent), `loadout.js` (the gadget slots),
  * `wiring.js` (the emitter listeners between systems), `hudstate.js` (what
- * the HUD is told), `debugfields.js` (what the F3 overlay is told) and
- * `harness.js` (what the AUTO suite is handed).
+ * the HUD is told), `debugfields.js` (what the F3 overlay is told),
+ * `harness.js` (what the AUTO suite is handed) and `panels.js` (the HUD,
+ * the scoreboard and the menu, and what their buttons do - C1).
  */
 
 import * as THREE from 'three';
-import { CONFIG, DEBUG, rng, deriveSeed } from './config.js';
+import { CONFIG, SETTINGS, rng, deriveSeed, debugRequested } from './config.js';
 import { Emitter } from './emitter.js';
 import { Freefly } from './freefly.js';
 import { Input } from './input.js';
@@ -29,7 +30,7 @@ import { buildMap } from './map.js';
 import { createWardenGroundView } from './groundview.js';
 import { FrameLoop } from './loop.js';
 import { computeStepPlan } from './timestep.js';
-import { resolveMatchOptions, createMatchState, bootMatchOptions, COMPETITIVE, FREEROAM } from './matchstate.js';
+import { resolveMatchOptions, createMatchState, bootMatchOptions } from './matchstate.js';
 import {
   createRenderer, createScene, createCamera, createToonGradient, resizeView, watchContextLoss,
 } from './view.js';
@@ -50,9 +51,7 @@ import { createGadgets } from './systems/gadgets.js';
 import { createObjective } from './systems/objective.js';
 import { createEffects } from './systems/effects.js';
 import { createDeathCam } from './systems/deathcam.js';
-import { createHud } from './ui/hud.js';
-import { createMenu } from './ui/menu.js';
-import { createScoreboard } from './ui/scoreboard.js';
+import { createPanels } from './panels.js';
 import { DebugTools } from './ui/debug.js';
 import { registerAutoTests } from './tests/index.js';
 import { registerAssertions } from './tests/assertions.js';
@@ -301,30 +300,11 @@ function bootstrap() {
     respawnShade: (target, spawn) => deathCam.respawnShade(target, spawn),
   });
 
-  hud = createHud();
-  scoreboard = createScoreboard({
-    onNextRound: () => {
-      objective.resetRound();
-      initMatch({ ...match, seed: rng.seed });
-    },
-    onMenu: () => {
-      objective.resetMatch();
-      menu.show('main');
-    },
-  });
-  // Section 12: both modes boot through the same initMatch, so the menu
-  // picks a configuration rather than a code path.
-  menu = createMenu({
-    onFirstGesture: () => audio.unlock(),
-    onVolume: (value) => audio.setMasterVolume(value),
-    onPlay: () => initMatch(COMPETITIVE),
-    onFreeRoam: () => initMatch(FREEROAM),
-    onResume: () => setPaused(false),
-    onQuit: () => {
-      setPaused(false);
-      objective.resetMatch();
-    },
-  });
+  // The HUD, the scoreboard and the menu, and what their buttons do
+  // (panels.js); the handlers read the live objects through getters.
+  ({ hud, scoreboard, menu } = createPanels({
+    initMatch, setPaused, objective: () => objective, audio: () => audio, match: () => match,
+  }));
 
   wireMatchEvents({
     emitter, hud, audio, combat, shade, warden, deathCam, effects, scoreboard, objective, gadgets,
@@ -428,10 +408,10 @@ function fixedStep(dt) {
   }
   effects.step(dt);
 
-  if (DEBUG) recordStepFields(debugState, { detection, wardenAI, effects, gadgets, objective });
+  if (SETTINGS.debug) recordStepFields(debugState, { detection, wardenAI, effects, gadgets, objective });
 
   emitter.emit('sim:step', dt);
-  if (DEBUG) debugTools.step();
+  if (SETTINGS.debug) debugTools.step();
 }
 
 /** Who the human is currently driving. */
@@ -574,14 +554,21 @@ const harness = createHarness({
 // Go
 // ---------------------------------------------------------------------------
 
+// The debug gate, before anything reads it: `?debug=1` opens the tooling
+// for this page load (C1). Off, the page is the playtest build.
+if (debugRequested(location.search)) SETTINGS.debug = true;
+
 bootstrap();
 
 initMatch(bootMatchOptions(location.search));
 loop.start();
 
-if (DEBUG) {
-  // Console handle so a seed can be reproduced by hand (Section 16, check 28).
-  window.BLACKLINE = harness;
+// Console handle so a seed can be reproduced by hand (Section 16, check 28),
+// and the AUTO suite's way in whether or not the gate is up: the headless
+// runner reaches the game through it and the suite turns the gate on for
+// the length of a run.
+window.BLACKLINE = harness;
+if (SETTINGS.debug) {
   console.log(
     `%c BLACKLINE %c three r${THREE.REVISION}  seed ${rng.seed}  F3 debug  F4 test mode `,
     'background:#2fd6c3;color:#08090b;font-weight:bold',

@@ -117,7 +117,11 @@ export function register(debugTools) {
         seen.push(`best of ${length} -> first to ${wanted}`);
       }
 
-      // resetSettings() must put every live value back, not just some.
+      // resetSettings() must put every live value back, not just some. That
+      // includes the debug gate (C1), which the suite holds up for the run:
+      // put it back after, or every check that presses F4 from here on
+      // presses a dead key.
+      const gate = SETTINGS.debug;
       SETTINGS.matchLength = 11;
       SETTINGS.difficulty = 'hard';
       resetSettings();
@@ -126,6 +130,7 @@ export function register(debugTools) {
           problems.push(`resetSettings left ${key} at ${SETTINGS[key]}`);
         }
       }
+      SETTINGS.debug = gate;
 
       SETTINGS.matchLength = was;
       h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });

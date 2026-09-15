@@ -26,13 +26,26 @@ Then open the URL it prints (usually `http://localhost:3000`).
 
 It is a static site, so it deploys to Vercel with no configuration.
 
-### Reproducing a specific match
+### The playtest build, and the debug build
 
-The match seed is shown in the F3 debug overlay. To replay a seed, append it to
-the URL:
+What you get by opening the page is the **playtest build**: no overlay, no
+test mode, every debug key inert. The debug tooling is behind a gate that is
+off by default. To turn it on for a page load, add `?debug=1`:
 
 ```
-http://localhost:3000/?seed=2709321559
+http://localhost:3000/?debug=1
+```
+
+or flip **debug tooling** in the settings menu at any time. Off again, any
+open panel comes down on the next frame.
+
+### Reproducing a specific match
+
+The match seed is shown in the F3 debug overlay (debug build). To replay a
+seed, append it to the URL:
+
+```
+http://localhost:3000/?debug=1&seed=2709321559
 ```
 
 ---
@@ -159,8 +172,13 @@ out loud if any of them has no cover rather than quietly skipping it.
 A test-mode command whose subsystem has not been built yet reports
 `no handler yet` in the panel rather than silently appearing to work.
 
-All debug tooling is gated behind `DEBUG` in `src/config.js`. Set it to `false`
-and every binding above goes inert.
+All debug tooling is behind the gate `SETTINGS.debug` (seeded from
+`CONFIG.settings.defaults.debug`, which is `false`): `?debug=1` on the URL or
+the settings menu's **debug tooling** row turns it on; off, every binding
+above is inert and `?mode=freeroam` boots the ordinary match (the menu's
+Free roam button still works). The AUTO suite turns the gate on for the
+length of a run and puts it back, so `BLACKLINE.debugTools.runAutoTests()`
+from the console works in either build, and so does `npm run suite`.
 
 ---
 
@@ -239,5 +257,6 @@ emitter created in `main.js` and passed down — never through sibling imports.
 The composition root's own pieces beside it — `view.js`, `loop.js`,
 `timestep.js`, `matchstate.js`, `cameraowner.js`, `intents.js`, `loadout.js`,
 `wiring.js`, `hudstate.js`, `debugfields.js`, `harness.js` — import config
-only and are imported by `main.js` alone. Any module past ~600 lines is split
+only and are imported by `main.js` alone; `panels.js` (the HUD, scoreboard
+and menu, and their buttons) imports `ui/` as well. Any module past ~600 lines is split
 (`config.js`, a table, excepted); a check in the AUTO suite holds the line.

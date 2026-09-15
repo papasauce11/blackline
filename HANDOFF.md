@@ -28,9 +28,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after B8b (2026-09-15) |
-| AUTO suite | headless, `npm run suite`: **138 passed, 1 failed** (2026-09-15, after B8b), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **Block C** - C1, the playtest build with the debug gate off by default. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after C1 (2026-09-15) |
+| AUTO suite | headless, `npm run suite`: **139 passed, 1 failed** (2026-09-15, after C1), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **C2** (M: the round-start briefing and controls card), then C3-C6. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -38,7 +38,35 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 Phases 1–49 of the original build are done and committed. The **redesign**
 (phases 1-50 of the plan below) is closed as of B9, 2026-09-14, but for two
 jobs that wait on Josh (B5b on D25, B5d on D27). One directive arrived
-outside it (the plant, below). **Block C is next.**
+outside it (the plant, below). **Block C is under way**: C1, the playtest
+build, landed 2026-09-15 (below, "The playtest build").
+
+---
+
+## The playtest build - C1
+
+What you get by opening the page is now the **playtest build**: no F3, no
+F4, every test key inert, no runtime assertions, no F3 fields recorded,
+`?mode=freeroam` ignored (the menu's Free roam button is the player's way
+in and is not gated). The gate is `SETTINGS.debug`, seeded `false` from
+`CONFIG.settings.defaults.debug`; `?debug=1` on the URL
+(`debugRequested()`, config.js, applied in main.js before `bootstrap()`) or
+the settings menu's *debug tooling* row turns it on, and off again with a
+panel up the next frame takes the panel down (`debugTools.hidePanels()`
+from `update()`). `DEBUG` no longer exists. Spec 20.12.
+
+`window.BLACKLINE` is set in **both** builds - it is the suite's way in -
+and `AutoSuite.runChecks()` holds the gate up for the length of a run and
+puts it back, the way it does the loop (F4). So `npm run suite` is
+unchanged, `BLACKLINE.debugTools.runAutoTests()` from the console works in
+a playtest tab, and a check that presses F4 through `pollKeys()` still
+finds it live. `resetSettings()` resets the gate too (it is a setting);
+the one check that calls it mid-suite snapshots and restores it. The
+check: `with-the-debug-gate-off-every-debug-key-does-nothing`
+(tests/debuggate.js) - on, F3, F4 and T do their thing; off, with the
+panel left open, all 15 debug keys through the real path change nothing.
+`panels.js` (the HUD, the scoreboard, the menu and their buttons) split
+from main.js for the 600-line guard.
 
 ---
 
@@ -492,7 +520,7 @@ check keeps it so. Nothing moved changes an order or a name a check reaches:
 
 | Was | Now |
 |---|---|
-| `main.js` (1,145) | `main.js` (597): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`, the rAF scheduler), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js` (whose rig the camera is on, mouse look, ADS FOV), `intents.js` (input → intent), `loadout.js` (the gadget slots), `wiring.js` (the emitter listeners between systems), `hudstate.js` (what the HUD is told), `debugfields.js` (what the F3 overlay is told), `harness.js` (`createHarness(live, loop)` — one getter per live object) |
+| `main.js` (1,145) | `main.js` (597): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`, the rAF scheduler), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js` (whose rig the camera is on, mouse look, ADS FOV), `intents.js` (input → intent), `loadout.js` (the gadget slots), `wiring.js` (the emitter listeners between systems), `hudstate.js` (what the HUD is told), `debugfields.js` (what the F3 overlay is told), `harness.js` (`createHarness(live, loop)` — one getter per live object), `panels.js` (C1: the HUD, the scoreboard and the menu, and what their buttons do) |
 | `entities/agent.js` (1,051) | `agent.js` (546): state machine, ground, air, the landing. `agentslide.js` (B8): the slide. `agenttraversal.js`: every climb. `agentvisual.js`: how it is drawn, and the camera's dip. `agentstate.js`: `SHADE_STATE` |
 | `systems/ai.js` (788) | `ai.js` (498): the state machine. `aiperception.js`, `ainav.js` (route, steering, stuck). `aistate.js`: `AI_STATE`, `angleDelta`, `DEFUSE_SNAP` |
 | `mapkit.js` (821) | `mapkit.js` (380): `GameMap`, `addSolid`, decals, rooms, lights, waypoints. `mapgen.js`: walls with openings, floor plates, staircases, vent runs. `mapclimb.js`: `deriveClimbableSurfaces`, `supportApproaches` (B3), `supportCandidates` |
@@ -515,8 +543,8 @@ the `G` command toggles it in `testcommands.js` and `wiring.js` reads it —
 rather than a `let` in `main.js`. And `harness.cameraOwner` still returns the
 owner string; the object behind it is `cameraowner.js`.
 
-`main.js` is 596 and `physics.js` is 600: the next job that touches either
-splits it further rather than adding to it.
+`main.js` is 583 (C1 took the panels out) and `physics.js` is 600: the next
+job that touches either splits it further rather than adding to it.
 
 ## A failed climb is never silent - B2
 
@@ -600,7 +628,10 @@ how it looks, how it sounds):
 npx serve -l 5173 .
 ```
 
-In the browser console (`window.BLACKLINE` is the harness):
+Open it with **`?debug=1`** for F3 and F4 (C1: the page without it is the
+playtest build, every debug key inert; the settings menu's *debug tooling*
+row also turns the gate on). In the browser console (`window.BLACKLINE` is
+the harness in both builds; the suite holds the gate up while it runs):
 
 ```js
 await BLACKLINE.debugTools.runAutoTests();      // full suite (~6s)

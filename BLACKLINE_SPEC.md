@@ -954,3 +954,20 @@ resolves-to-real-checks` requires every id to exist.
 **Section 18.** "All 29 test script checks pass" reads them as amended
 here, and adds: *the census is green and the regression set's named checks
 are all present* - the definition of done includes the rule.
+
+### 20.12 Section 17.1 - the debug gate is off by default
+
+Section 17.1 reads *"Test mode is gated behind a `DEBUG` flag in
+`config.js`, defaulting to true during development."* Development is over
+for the purposes of a playtest, and the flag is now a gate that is **off by
+default** and live: `SETTINGS.debug`, seeded false from
+`CONFIG.settings.defaults.debug`. `?debug=1` on the URL turns it on for a
+page load; the settings menu's *debug tooling* row turns it on or off at any
+time. Off, the F3 overlay, the F4 panel and every key in the 17.1 table are
+inert, the Section 17 runtime assertions do not run, the F3 fields are not
+recorded, `?mode=freeroam` boots the competitive match (the menu's Free roam
+button is the player's way in and is not gated), and a frame drawn with a
+panel up takes it down. The console handle `window.BLACKLINE` is present in
+both builds: it is the AUTO suite's way in, and the suite turns the gate on
+for the length of a run and puts it back. C1, 2026-09-15; the check is
+`with-the-debug-gate-off-every-debug-key-does-nothing`.

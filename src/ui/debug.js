@@ -18,7 +18,7 @@
  * phases, so a partial build reports honestly instead of showing dead rows.
  */
 
-import { CONFIG, DEBUG, DEBUG_KEYS } from '../config.js';
+import { CONFIG, SETTINGS, DEBUG_KEYS } from '../config.js';
 import { AutoSuite } from './autosuite.js';
 
 // ---------------------------------------------------------------------------
@@ -166,7 +166,12 @@ export class DebugTools {
    * @param {number} frameMs frame delta in milliseconds
    */
   update(wallDt, frameMs) {
-    if (!DEBUG) return;
+    if (!SETTINGS.debug) {
+      // The gate went down with a panel up (the settings row, mid-match):
+      // take the panels down with it, so nothing debug is on screen.
+      if (this.overlayVisible || this.testModeVisible) this.hidePanels();
+      return;
+    }
 
     this._sampleFps(frameMs);
 
@@ -202,7 +207,7 @@ export class DebugTools {
    * step calls input.clearEdges() and would otherwise eat the keypress.
    */
   pollKeys() {
-    if (!DEBUG) return;
+    if (!SETTINGS.debug) return;
     const input = this.input;
 
     if (input.keyPressed(DEBUG_KEYS.toggleOverlay)) {
@@ -340,9 +345,17 @@ export class DebugTools {
     this._assertions.set(name, fn);
   }
 
+  /** Both panels off screen, whatever they were. */
+  hidePanels() {
+    this.overlayVisible = false;
+    this.overlayEl.classList.add('bl-hidden');
+    this.testModeVisible = false;
+    this.testEl.classList.add('bl-hidden');
+  }
+
   /** Called from the fixed step. Throttled by CONFIG.debug.assertionInterval. */
   step() {
-    if (!DEBUG || this._assertions.size === 0) return;
+    if (!SETTINGS.debug || this._assertions.size === 0) return;
     this._assertionStepCounter++;
     if (this._assertionStepCounter % CONFIG.debug.assertionInterval !== 0) return;
 
