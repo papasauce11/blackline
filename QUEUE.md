@@ -37,18 +37,8 @@ Full reasoning in `HANDOFF.md` under "the plant must be defusable".
 Placed here, after A and before B, on purpose: the suite is the instrument
 every later block is measured with, and a gate that answers differently on a
 busy PC is a gate that will eventually wave something through. The letter is
-a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done; the
-next gate job, if one is found, goes here.
-
-- [ ] **F5 (S)** `the-death-camera-frames-the-killer` (tests/visual.js)
-  is red run alone - `npm run suite -- --runs 1 --subset
-  "death-camera-frames"` says *the killer covered 0 pixels; the ragdoll
-  moved 0.000* - and green in the full suite, so it inherits something
-  from a check before it (the F2 shape: a HUD check green only because
-  of who ran before). Found by C4, on HEAD before it (queued here: it is a gate job, not a Block C one). Find what it
-  inherits, make the check set it up itself, and say in PROGRESS what it
-  was. *done-when:* the check is green alone and in the full suite, twice
-  each, with no threshold moved.
+a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
+F5 (2026-09-16); the next gate job, if one is found, goes here.
 
 ## Block B — the traversal redesign, phases 12–50
 
@@ -161,6 +151,15 @@ budget checks are the ceiling.
 
 ## Done
 
+- **F5** `the-death-camera-frames-the-killer` was red run alone because
+  the first draw of its view at site A compiles for 39s headless, the
+  first `readPixels` blocked on it, and the death camera's 16.5s
+  wall-clock guard fired under the read: the Shade was force-reinserted,
+  the camera went to the origin, the check read nothing. In the full
+  suite an earlier check at site A had paid the compile. The check warms
+  its own view (one `renderFrame` and a `readPixels`) before the kill,
+  listens for `deathcam:guard` and names it if it fires, and reports the
+  warm time. No threshold moved. 2026-09-16, scheduled run.
 - **C4** The round and match end screens say how. `OUTCOME` (detonated /
   defused / eliminated / time) recorded by `_end()` on the round and the
   record; `round.timeline` (`{ t, text }`: begins, the plant, each life

@@ -28,9 +28,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after C4 (2026-09-16) |
-| AUTO suite | headless, `npm run suite`: **146 passed, 1 failed** (2026-09-16, after C4), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **F5** (S: `the-death-camera-frames-the-killer` is red run alone - a gate job), then C5 (M: the difficulty pass), C6. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C4 done 2026-09-16; C3, C2, C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after F5 (2026-09-16) |
+| AUTO suite | headless, `npm run suite`: **146 passed, 1 failed** (2026-09-16, after F5), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **C5** (M: the difficulty pass), then C6. F5 (the death-camera pixel check warms its view) and C4 done 2026-09-16; B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C4 done 2026-09-16; C3, C2, C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -852,6 +852,17 @@ drew its noise texture from `Math.random`, so two renders were two different
 signals. Since B2 it seeds a private `mulberry32` (`RENDER_NOISE_SEED` in
 audio.js) and a rendered sound is the same samples every time. If it ever
 answers differently between two runs again, something else is random.
+
+**A wall-clock guard and a cold view do not mix.** The death camera's
+guard (`reinsert.wallClockGuard`, 16.5s) is measured on the wall clock
+by design; the first draw of a view the renderer has not seen compiles
+for tens of seconds headless (39s at site A, measured by F5), and
+`readPixels` blocks until it is done. A check that starts a guarded
+state and then reads pixels through it for the first time gets the
+guard, not the picture - and red only when run alone, because in the
+full suite an earlier check paid the compile. Warm the view (a
+`renderFrame` and a `readPixels`) before starting anything guarded,
+and listen for `deathcam:guard` so the check says so if it fires.
 
 **A check that emits half an event leaves the other half behind.** The
 audio check emits a synthetic `gadget:detonate` for the sound; effects hears

@@ -5554,3 +5554,51 @@ timeline, the objective's; the alarm and the sighting are not on it.
 
 **Left.** F5 (the visual check red alone) is next, then C5 (the
 difficulty pass), C6.
+
+## F5 — the death-camera pixel check warms its own view (2026-09-16, same run)
+
+The second job of the 02:00 run, after C4, which found it: C4's subset
+runs put `the-death-camera-frames-the-killer` (tests/visual.js) red -
+*the killer covered 0 pixels; the ragdoll moved 0.000* - and it was red
+alone on HEAD before C4 too, green in the full suite. The F2 shape.
+
+**Found.** Not a HUD or a menu this time: the clock. Instrumented, the
+check's first `grab()` - `deathCam.step`, `renderer.render`,
+`readPixels` - took 38.4s, all of it in the `readPixels`, which blocks
+until the software renderer has finished the draw, and that draw was the
+first of this view: the Shade and the Warden stood at site A, which the
+runner's 60 warm frames at the spawn never look at. SwiftShader compiles
+what it has not drawn, and headless on this machine that was 39s. The
+death camera's wall-clock guard (`reinsert.wallClockGuard`, 16.5s,
+Section 15, measured on the wall clock on purpose) fired inside the
+read: `forceReinsert`, the Shade back on a spawn with no ragdoll, the
+camera restored to the origin, and the two grabs after it (0.57s each,
+warm now) read a view with no killer in it. In the full suite the
+vignette check (C3) and others had stood at site A first and paid the
+compile; alone, this check paid it under the guard. Moving one
+`renderFrame` + `readPixels` to before the kill moved the 39s with it
+(`warmMs` 39058, the grabs 580/558/539ms, no guard).
+
+**Built.** The check warms its own view before the kill - one
+`h.renderFrame(1/60)` and a `readPixels`, with the reason in a comment -
+listens for `deathcam:guard` for the length of its reads and names the
+guard in its problems if it fires (before, a guard under the reads was
+inferred from two wrong numbers), and reports the warm time in its
+detail (`the view warmed in 38.5s before the kill`). No threshold moved,
+nothing skipped. HANDOFF gains the trap: a wall-clock guard and a cold
+view do not mix.
+
+**Verified.**
+
+- Alone, `--subset "death-camera-frames"`, twice: green both, `the killer
+  covers 54753 pixels, centred within 0% of frame centre; the body
+  tumbled 2.83 then froze`.
+- Full suite, `npm run suite`: **146 passed, 1 failed** run 1 (419s), **146 passed, 1 failed** run 2 (473s),
+  the frame budget skipped headless, 0 red, 0 flaky, 0 console errors,
+  0 context losses, 0 loop frames. In the full suite the view warms in
+  0.8s - already compiled by the checks before it.
+
+**Left.** C5 (the difficulty pass) is next; then C6. Every other pixel
+check that starts a guarded state should be read with this in mind; none
+does today (the finisher's guard is under combat's own check, which does
+not read pixels).

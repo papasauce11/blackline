@@ -503,12 +503,30 @@ export function register(debugTools) {
       });
       h.stepFrames(5);
 
+      // Warm this view before the death camera starts its wall-clock guard
+      // (F5). The first draw of a view compiles what it has not drawn yet,
+      // and headless on the software renderer that took 39s here - the
+      // guard is 16.5s, so run alone the first grab below fired it, the
+      // Shade was force-reinserted and the check read a camera at the
+      // origin and a body that never fell. In the full suite an earlier
+      // check at site A had already paid. The readPixels is what makes the
+      // draw finish now rather than inside the guarded window.
+      const warmStart = performance.now();
+      h.renderFrame(1 / 60);
+      gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
+      const warmMs = performance.now() - warmStart;
+
       shade.health = 0;
       h.emitter.emit('combat:death', { target: 'shade', kind: 'test' });
       if (!deathCam.active) {
         restore();
         return { pass: false, detail: 'no death camera to look through' };
       }
+      // The guard is the only way the camera comes down inside this check
+      // short of the reinsert; if it fires, the numbers below are about
+      // nothing, and the reason should be said rather than inferred.
+      let guarded = null;
+      const offGuard = h.emitter.on('deathcam:guard', (event) => { guarded = event.after; });
 
       // The death camera owns the camera, so render through it as the frame
       // loop would rather than repointing it.
@@ -551,6 +569,8 @@ export function register(debugTools) {
       if (moved < 0.05) problems.push(`the ragdoll moved ${moved.toFixed(3)} in its first 0.4s — it is not tumbling`);
       if (drift > 1e-6) problems.push(`the ragdoll was still drifting ${drift.toFixed(4)} after it should have frozen`);
       if (gl.getError() !== 0) problems.push('GL error during the reads');
+      offGuard();
+      if (guarded !== null) problems.push(`the wall-clock guard fired ${guarded.toFixed(1)}s in, under the reads`);
 
       deathCam.restore();
       restore();
@@ -559,7 +579,8 @@ export function register(debugTools) {
         detail: problems.length === 0
           ? `the killer covers ${killer.count} pixels, centred within `
             + `${(Math.abs(killer.bounds.cx - width / 2) / width * 100).toFixed(0)}% of frame centre; `
-            + `the body tumbled ${moved.toFixed(2)} then froze to ${drift.toFixed(5)} drift`
+            + `the body tumbled ${moved.toFixed(2)} then froze to ${drift.toFixed(5)} drift; `
+            + `the view warmed in ${(warmMs / 1000).toFixed(1)}s before the kill`
           : problems.join('; '),
       };
     },
