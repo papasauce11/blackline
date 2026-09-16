@@ -166,7 +166,7 @@ budget checks are the ceiling.
   7.2/1.4/0.9s. `the-warden-fires-in-bursts-of-rounds-at-the-torso`
   holds the burst, the aim point and the god mode. Spec 20.16, D33
   (provisional: the Warden is much deadlier than any playtest has had).
-  COMMIT_HASH, 2026-09-16, scheduled run.
+  `072cc8d`, 2026-09-16, scheduled run.
 - **F5** `the-death-camera-frames-the-killer` was red run alone because
   the first draw of its view at site A compiles for 39s headless, the
   first `readPixels` blocked on it, and the death camera's 16.5s
