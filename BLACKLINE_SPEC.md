@@ -1039,3 +1039,26 @@ and `play-from-the-main-menu-starts-a-fresh-match`, and
 `the-briefing-follows-the-round-and-the-setting-skips-it` and the
 *round ends while awaiting reinsert* scenario of
 `the-state-machines-survive-each-other` step through the delay.
+
+### 20.16 Sections 11 and 17.1 - the difficulty presets, measured, and the gun aimed
+
+Section 11's difficulty line stands: three presets adjusting the fill
+rate, the aim error cone and the reaction delay, medium 120ms and 2.5
+degrees. What they are worth is now measured and held:
+`each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` stands a
+lit, still Shade 8m and 16m up a clear lane from a Warden and requires
+time-to-detect (the first step in view to ENGAGE) and time-to-kill
+(ENGAGE to the death) both to fall from each preset to the next in the
+order `config.js` lists them, eight seeds each. Building it found the gun
+rather than the numbers, and Section 11's ENGAGE row reads as it always
+meant to: the Warden **aims at the torso** (the point its perception
+sees), where it aimed at the floor line the planner keeps; **fires in
+bursts of 3-7 rounds** at the gun's rate with a 0.25-0.7s pause between,
+where a burst was 3-7 sixtieths of a second - one round, sometimes two;
+and its **aim error is a cone in yaw and pitch, drawn afresh for every
+burst**, where it was a pitch-only bias held for the whole engagement.
+Measured on medium: a lit, still Shade at 8m is engaged 4.97s after it
+is first seen and dead 0.51s after that; at 16m, 9.3s and 1.4s. Section
+17.1's god mode now covers the rifle as well as the frag, which is what
+it said. `the-warden-fires-in-bursts-of-rounds-at-the-torso` holds the
+burst, the aim point and the god mode. C5, 2026-09-16; D33.

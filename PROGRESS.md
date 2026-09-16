@@ -5602,3 +5602,114 @@ view do not mix.
 check that starts a guarded state should be read with this in mind; none
 does today (the finisher's guard is under combat's own check, which does
 not read pixels).
+
+## C5 — the difficulty pass, driven by the checks (2026-09-16, scheduled run)
+
+The first job of the 17:00 run. The queue asked for time-to-detect and
+time-to-kill measured per preset, a check that holds both monotonic
+across the presets, and the values in `config.js` under `ai.difficulty`.
+The values were there already - `fillRate`, `aimErrorDegrees`,
+`reactionDelay`, medium's two being Section 11's - so the job was the
+instrument, and the instrument found the gun.
+
+**Built.** `tests/difficulty.js`, two checks.
+
+- `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`: for
+  each preset in `config.js` order, eight seeds, two ranges (8m and 16m,
+  both inside `engageRange`), `engage()` stands the Warden at the south
+  end of the Turbine Hall lane facing +Z and a lit, still Shade up it,
+  holds the Warden's spot (and its facing until it engages), withholds
+  the frag (`gadgets.loadout.frag = 0`: a 60-damage blast at the 2s
+  static mark would put every preset at the same number), and counts
+  steps from the first in view to ENGAGE (detect) and from ENGAGE to the
+  death (kill). The comparison is paired - the same seeds for every
+  preset - and the means must fall from each preset to the next, both
+  numbers, at both ranges. Per-seed kills go to the F4 log; the detail
+  line is `detect/kill hits/shots` per preset per range (the runner
+  keeps 400 characters).
+- `the-warden-fires-in-bursts-of-rounds-at-the-torso`: on the tightest
+  preset at 8m, god mode on, 3.5s of ENGAGE (short of a magazine):
+  `combat:shot` times grouped by the gun's own interval into bursts,
+  every finished burst 3-7 rounds, every pause 0.25-0.7s, no two rounds
+  faster than the gun; the `combat:impact` heights on the Shade average
+  within 0.3m of the torso the eye sees; and the Shade's health stays
+  100.
+
+**Found, and fixed.** The first run of the first check: *0 of 52 rounds
+hit at 8m* - on every preset, including hard - and the kill stalled at
+30s.
+
+1. **The gun was aimed at the feet.** `_stepEngage` faced `lastKnown`
+   with the aim flag, and `lastKnown.y` is `shade.feetY` (the planner
+   needs the floor). A round aimed at the floor line meets the floor at
+   the same distance as the capsule's bottom face, and the floor wins;
+   the ones that hit were the half of the spread that went up, and with
+   the pitch bias drawn negative for the engagement, none. ENGAGE now
+   aims `this._aim` at `lastKnown.y + height * torsoHeightRatio` - the
+   same point perception sees - with no allocation per step. Aim fixed
+   alone: easy 4.67s / medium 1.81s / hard 1.58s to kill at 8m (5 seeds),
+   and the first round 0.3-0.6s after ENGAGE, which was wrong too.
+2. **A burst was steps.** `_fireBurst` set `_burstRemaining` to 3-7 and
+   decremented it every step it ran, so a burst was 3-7 sixtieths of a
+   second - one round at 600rpm, sometimes two - then a 0.25-0.7s pause:
+   about 100 rounds a minute, and 30s of ENGAGE fired 52. The AI now
+   holds the trigger and counts `combat:shot` events for the Warden
+   (subscribed beside the DEFEND break-off), starting the pause when the
+   burst's rounds are out. `config.js` says "rounds per burst".
+3. **The aim error was a pitch-only bias held for the whole engagement**,
+   one `rng.unit()` at ENGAGE entry. One draw decided the fight and a
+   bigger cone could be a luckier one (a +5 degree lift on an aim at the
+   feet put easy's rounds in the body). `_drawAimError()` draws yaw and
+   pitch, on entering ENGAGE and again for every burst, from the seeded
+   stream (`_aimYaw`, `_aimPitch`; `_face` applies the yaw to the
+   desired bearing and the pitch as before). A preset's degrees now
+   govern its hit fraction.
+4. **God mode did not cover the rifle.** Section 17.1 says the Shade
+   ignores damage; `wiring.js` guarded `gadget:damage` (the frag) and
+   nothing guarded `_stepWarden`'s `_damage`. It has been that way since
+   the test commands were wired (`53808d6`) and nobody noticed while the
+   rifle hit the floor; `the-warden-never-leaves-its-ground` sets it
+   expecting to survive a 20s hunt. `Combat` takes `isGodMode` (boot.js
+   passes the one reader of `debugState.godMode`) and `_damage` refuses
+   for the Shade while it is set; the frag's guard in wiring.js is gone,
+   `applyDamage` goes through the same `_damage`.
+
+**Measured** (lit, still, frag withheld, 8 seeds; detect from the first
+step in view, kill from ENGAGE):
+
+| | 8m detect | 8m kill | 8m hit | 16m detect | 16m kill | 16m hit |
+|---|---|---|---|---|---|---|
+| easy | 7.35s | 0.86s | 26/52 | 13.63s | 7.21s | 34/249 |
+| medium | 4.97s | 0.51s | 32/39 | 9.27s | 1.40s | 34/70 |
+| hard | 3.60s | 0.35s | 32/32 | 6.73s | 0.93s | 38/50 |
+
+Detect is the formula (reaction delay, then `fillRate * 0.68 * 0.8` per
+second at 8m) and does not vary with the seed; kill does, by the burst
+and the cone: hard's 0.35s is four rounds at 600rpm every seed, easy's
+at 16m runs from 0.35s to 18.5s (a reload). The presets separate by aim
+only at range and by the fill everywhere; at 8m hard and medium are a
+machine. The preset values are unchanged; D33 records what was changed
+instead and the line to turn if the Warden is now too deadly - it is
+much deadlier than the one every playtest so far has had.
+
+**Verified.**
+
+- Alone, `--subset "bursts-of-rounds|each-difficulty"`: green, *20
+  rounds in 3.5s as bursts of [6 3 7] with pauses of [0.32 0.58 0.38]s;
+  19 hit at a mean height of 1.20m (torso 1.15m); health stayed 100
+  under god mode*. The first check takes 20s (the 16m detect phases).
+- Full suite once with the aim and the burst fixed, before the god-mode
+  change: 147 passed, 1 failed (the frame budget, skipped), 0 red.
+- Full suite twice, `npm run suite`: **148 passed, 1 failed** run 1 (428s),
+  **148 passed, 1 failed** run 2 (503s), the frame budget skipped
+  headless, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop
+  frames.
+
+**Not built.** No preset value moved: the order the check requires held
+once the gun worked, and the spread between presets is Josh's to widen
+(D33 lists the levers). The check measures one lane and a still Shade;
+a moving one, a crouched one and a dark one are the meter's and the
+noise model's business and have their own checks.
+
+**Left.** C6 (`PLAYTEST.md`) is next; it should tell Josh the Warden
+shoots straight now.

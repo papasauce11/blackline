@@ -175,7 +175,7 @@ Test-mode keys are **inert unless the F4 panel is open**, which is what keeps
 |---|---|
 | `1` `2` `3` | Teleport the Shade to plant site A / B / C |
 | `4` | Teleport the Shade behind the Warden (takedown setup) |
-| `G` | God mode |
+| `G` | God mode: the Shade ignores the rifle and the frag |
 | `H` | Kill the Shade instantly (exercises reinsert) |
 | `J` | Instantly plant the charge |
 | `K` | Cycle the Warden's FSM state |
@@ -221,7 +221,7 @@ magic numbers live anywhere else. The file is organised by spec section:
 | `round` | Round timer, plant / defuse / detonation times, milestones |
 | `reinsert` | Lives, reinsert delay, spawn scoring, wall-clock guard |
 | `match` | Best-of-N lengths |
-| `ai` | FSM timings, perception cone, difficulty presets |
+| `ai` | FSM timings, perception cone, burst sizes, difficulty presets (what each is worth in seconds is in D33 and measured by `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`) |
 | `map` | Dimensions, vertical layout, shadow casters, plant-site rings, lighting |
 | `audio` | Synthesis parameters for every sound |
 | `effects` | Pool sizes, ragdoll damping, footprint fade, impact sparks |

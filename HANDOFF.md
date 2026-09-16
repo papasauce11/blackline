@@ -28,9 +28,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after F5 (2026-09-16) |
-| AUTO suite | headless, `npm run suite`: **146 passed, 1 failed** (2026-09-16, after F5), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **C5** (M: the difficulty pass), then C6. F5 (the death-camera pixel check warms its view) and C4 done 2026-09-16; B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C4 done 2026-09-16; C3, C2, C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after C5 (2026-09-16) |
+| AUTO suite | headless, `npm run suite`: **148 passed, 1 failed** (2026-09-16, after C5), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **C6** (S: `PLAYTEST.md`), the last of Block C; then D1 (map plumbing). C5 (the difficulty pass), F5 and C4 done 2026-09-16; B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C3, C2, C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -40,7 +40,8 @@ Phases 1–49 of the original build are done and committed. The **redesign**
 jobs that wait on Josh (B5b on D25, B5d on D27). One directive arrived
 outside it (the plant, below). **Block C is under way**: C1, the playtest
 build, C2, the round-start briefing, and C3, hit and damage feedback,
-landed 2026-09-15; C4, the end screens, 2026-09-16 (below).
+landed 2026-09-15; C4, the end screens, and C5, the difficulty pass,
+2026-09-16 (below). C6 closes it.
 
 ---
 
@@ -158,6 +159,32 @@ winner's rounds), the timeline through `timelineLines()` (all of it up
 to `TIMELINE_LINES` = 5, else the first and the last four) and a *how*
 column. Play calls `objective().resetMatch()` itself (panels.js). Checks:
 tests/roundend.js. Spec 20.15, D32.
+
+## The Warden shoots straight, and the presets are measured - C5
+
+**The Warden is much deadlier than any playtest so far has had.** The
+difficulty pass changed no preset value (`ai.difficulty`: fill, aim cone,
+reaction delay - Section 11's numbers); its instrument found the gun.
+Until C5 ENGAGE aimed at `lastKnown.y`, the Shade's *feet* (the planner's
+floor point), so half of every burst met the floor first and, with the
+pitch bias drawn negative, all of it - 0 of 52 rounds hit at 8m on every
+preset; and a "burst" was `engageBurstMin`-`Max` *steps* - one round,
+sometimes two, then a 0.25-0.7s pause. Now `_stepEngage` aims `_aim` at
+the torso the eye sees (`torsoHeightRatio`), a burst is 3-7 rounds
+counted as the gun fires them (the AI subscribes to `combat:shot`, holds
+`intent.fire` until the burst is out, then starts the pause), and the aim
+error is a cone in yaw and pitch redrawn for every burst
+(`_drawAimError`, `_aimYaw`/`_aimPitch`, applied in `_face` when aiming)
+where it was a pitch-only bias held for the whole engagement. A lit,
+still Shade at 8m on medium: engaged 4.97s after it is first seen, dead
+0.51s after that; the table is in D33 and on the `difficulty` block in
+config.js. `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`
+(tests/difficulty.js) holds both times falling from preset to preset at
+8m and 16m, eight paired seeds; `the-warden-fires-in-bursts-of-rounds-at-the-torso`
+holds the burst, the aim point and god mode. **God mode covers the rifle
+now** (`Combat.isGodMode`, from boot.js; `_damage` refuses for the Shade
+while it is set) - since the test commands were wired it had guarded only
+the frag, which nobody noticed while the rifle hit the floor. Spec 20.16.
 
 ---
 
@@ -832,8 +859,11 @@ own business, and `initMatch` at the top remains the way to start clean.
 **The pulsing site ring pollutes pixel samples.** It sits dead centre under a
 camera pointed at a site and swings 0.35–0.9 opacity. Sample off it.
 
-**Four rifle rounds kill the Shade.** God-mode it in any long test or the AI
-ends your measurement window.
+**Four rifle rounds kill the Shade, and since C5 the Warden lands them.**
+God-mode it (`h.debugState.godMode = true`) in any long test or the AI ends
+your measurement window - and put it back. Until C5 god mode guarded only
+the frag, so a check that set it and survived did so because the rifle was
+aimed at the floor.
 
 **Smoke blocks AI sight entirely and a seen flashbang blinds it** — so the
 check-29 load only coexists with gunfire if the smoke is off the firing line.

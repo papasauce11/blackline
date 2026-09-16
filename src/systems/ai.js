@@ -79,7 +79,9 @@ export class WardenAI {
     this._repathTimer = 0;
     this._stuckAnchor = { x: 0, z: 0 };
     this._defendTarget = null;
-    this._aimOffset = 0;
+    this._aimYaw = 0;
+    this._aimPitch = 0;
+    this._aim = { x: 0, y: 0, z: 0 };
 
     this._scratch = { x: 0, y: 0, z: 0 };
 
@@ -105,6 +107,17 @@ export class WardenAI {
         this.lastKnown = { x: this.warden.position.x, y: this.warden.feetY, z: this.warden.position.z };
       }
       this._enter(AI_STATE.ENGAGE);
+    }));
+    // A burst is rounds, counted as the gun fires them. The AI holds the
+    // trigger (`_fireBurst`) and the gun's own rate decides when a round
+    // leaves; before C5 the AI counted steps, so a "burst of 3-7" was a
+    // sixtieth of a second's worth - one round, sometimes two - and a pause.
+    this._unsubscribe.push(this.emitter.on('combat:shot', (event) => {
+      if (event.actor !== 'warden' || this._burstRemaining <= 0) return;
+      this._burstRemaining -= 1;
+      if (this._burstRemaining <= 0) {
+        this._burstPause = rng.range(A.engageBurstPauseMin, A.engageBurstPauseMax);
+      }
     }));
   }
 
@@ -146,7 +159,8 @@ export class WardenAI {
     this._alarmProbeTimer = 0;
     this._repathTimer = 0;
     this._defendTarget = null;
-    this._aimOffset = 0;
+    this._aimYaw = 0;
+    this._aimPitch = 0;
     this._stuckAnchor.x = this.warden.position.x;
     this._stuckAnchor.z = this.warden.position.z;
 
@@ -232,9 +246,7 @@ export class WardenAI {
     this._stateTimer = 0;
     this._scanPhase = 0;
     if (state === AI_STATE.ENGAGE) {
-      // Draw a fresh aim error for this engagement, from the seeded stream so
-      // a replayed seed reproduces the same shots (Section 16 check 28).
-      this._aimOffset = (rng.unit() * this.difficulty.aimErrorDegrees * Math.PI) / 180;
+      this._drawAimError();
       this._shadeAnchor.x = Infinity;
       this._staticTimer = 0;
     }
@@ -295,7 +307,15 @@ export class WardenAI {
     }
 
     const distance = this._distanceTo(this.lastKnown);
-    this._face(this.lastKnown, dt, true);
+    // The gun aims where the eye looks - the torso (`torsoHeightRatio`), not
+    // the floor line `lastKnown` keeps for the planner. Aimed at the feet, a
+    // round meets the floor at the same distance as the capsule's bottom and
+    // the floor wins: C5 measured 0 of 52 hits at 8m on every preset.
+    const body = shade && shade.health > 0 ? shade.height : CONFIG.shade.standHeight;
+    this._aim.x = this.lastKnown.x;
+    this._aim.y = this.lastKnown.y + body * CONFIG.detection.torsoHeightRatio;
+    this._aim.z = this.lastKnown.z;
+    this._face(this._aim, dt, true);
 
     if (this.sees) {
       // Frag call (Section 11): the Shade has held still long enough to be
@@ -378,12 +398,26 @@ export class WardenAI {
     }
     if (this._burstRemaining <= 0) {
       this._burstRemaining = rng.int(A.engageBurstMin, A.engageBurstMax);
+      this._drawAimError();
     }
+    // Held until the burst's rounds are out (`combat:shot`, above).
     this.intent.fire = true;
-    this._burstRemaining -= 1;
-    if (this._burstRemaining <= 0) {
-      this._burstPause = rng.range(A.engageBurstPauseMin, A.engageBurstPauseMax);
-    }
+  }
+
+  /**
+   * The aim error cone (Section 11 difficulty): where the hands hold the gun
+   * against the torso they mean to hit, in yaw and in pitch, up to
+   * `aimErrorDegrees` either way. Drawn on entering ENGAGE and again for
+   * every burst, from the seeded stream so a replayed seed reproduces the
+   * same shots (Section 16 check 28); the gun's own spread (Section 8.1) is
+   * on top of it. Before C5 it was a pitch-only bias held for the whole
+   * engagement, so one draw decided a fight and a preset's number meant
+   * nothing across it.
+   */
+  _drawAimError() {
+    const cone = (this.difficulty.aimErrorDegrees * Math.PI) / 180;
+    this._aimYaw = rng.unit() * cone;
+    this._aimPitch = rng.unit() * cone;
   }
 
   /** SEARCH: sweep the nearest waypoints to the last known position. */

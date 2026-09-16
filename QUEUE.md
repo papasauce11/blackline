@@ -77,12 +77,9 @@ Anything here that changes a **rule** is blocking — write the question.
 Anything that changes **presentation** is provisional — do it, log it under
 Provisional in `DECISIONS.md`, move on.
 
-- [ ] **C5 (M)** Difficulty pass driven by the AI checks. Measure
-  time-to-detect and time-to-kill per difficulty setting. *done-when:* a check
-  asserts both are monotonic across settings, and the values live in
-  `config.js` under `ai.difficulty`.
 - [ ] **C6 (S)** `PLAYTEST.md` for Josh: how to run, what to look at, what
-  cannot be verified without eyes, known issues. Update it every C/D/E job.
+  cannot be verified without eyes, known issues (C5: the Warden shoots
+  straight now - say so, with D33's numbers). Update it every C/D/E job.
   *done-when:* the file exists and `HANDOFF.md` links it.
 
 ## Block D — the second map: the container yard
@@ -151,6 +148,25 @@ budget checks are the ceiling.
 
 ## Done
 
+- **C5** The difficulty pass, driven by the checks. The preset values
+  (`ai.difficulty`: fill, aim cone, reaction delay) were already in
+  config and are unchanged; the instrument found the gun.
+  `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`
+  (tests/difficulty.js): a lit, still Shade 8m and 16m up the hall lane,
+  eight seeds per preset, time-to-detect and time-to-kill both required
+  to fall from each preset to the next in config order. Its first run:
+  0 of 52 rounds hit on every preset - ENGAGE aimed at `lastKnown.y`,
+  the Shade's feet; a "burst" was 3-7 steps, one round, sometimes two;
+  the aim error was a pitch-only bias held for the whole fight. Now the
+  gun aims at the torso the eye sees, a burst is 3-7 rounds counted as
+  the gun fires them (`combat:shot`), the cone is yaw and pitch redrawn
+  per burst (`_drawAimError`); and god mode covers the rifle
+  (`Combat.isGodMode`), which only ever guarded the frag. Measured:
+  8m detect 7.35/4.97/3.60s, kill 0.86/0.51/0.35s; 16m 13.6/9.3/6.7s and
+  7.2/1.4/0.9s. `the-warden-fires-in-bursts-of-rounds-at-the-torso`
+  holds the burst, the aim point and the god mode. Spec 20.16, D33
+  (provisional: the Warden is much deadlier than any playtest has had).
+  COMMIT_HASH, 2026-09-16, scheduled run.
 - **F5** `the-death-camera-frames-the-killer` was red run alone because
   the first draw of its view at site A compiles for 39s headless, the
   first `readPixels` blocked on it, and the death camera's 16.5s

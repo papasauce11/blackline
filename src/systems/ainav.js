@@ -114,17 +114,17 @@ export const NAVIGATION = {
     const dz = target.z - this.warden.position.z;
     if (Math.abs(dx) < 1e-6 && Math.abs(dz) < 1e-6) return 0;
 
-    const desired = Math.atan2(-dx, -dz);
+    // Aim error cone (Section 11 difficulty): the gun is held off the target
+    // by `_aimYaw` and `_aimPitch`, drawn per burst (`_drawAimError`).
+    const desired = Math.atan2(-dx, -dz) + (aim ? this._aimYaw : 0);
     let delta = angleDelta(this.warden.yaw, desired);
     const maxTurn = A.turnRate * dt;
     const applied = Math.max(-maxTurn, Math.min(maxTurn, delta));
 
     let pitchDelta = 0;
     if (aim) {
-      // Aim error cone (Section 11 difficulty): the Warden does not track
-      // perfectly, and the error is drawn from the seeded stream.
       const eyeDy = (target.y !== undefined ? target.y : this.warden.eyeY) - this.warden.eyeY;
-      const desiredPitch = Math.atan2(eyeDy, Math.hypot(dx, dz)) + this._aimOffset;
+      const desiredPitch = Math.atan2(eyeDy, Math.hypot(dx, dz)) + this._aimPitch;
       pitchDelta = Math.max(-maxTurn, Math.min(maxTurn, desiredPitch - this.warden.pitch));
     }
     this.warden.look(applied, pitchDelta);

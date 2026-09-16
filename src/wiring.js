@@ -11,14 +11,13 @@ import { sayOutcome } from './ui/scoreboard.js';
 
 /**
  * @param {object} s the built systems and actors, by name
- * @param {() => boolean} s.isGodMode Section 17.1 test mode, read live
  */
 export function wireMatchEvents(s) {
   const { emitter, hud, audio, combat, shade, warden, deathCam, effects, scoreboard, objective, gadgets } = s;
 
-  // Frag blasts are damage from outside combat; combat still owns applying it.
+  // Frag blasts are damage from outside combat; combat still owns applying
+  // it, and god mode (Section 17.1) with it.
   emitter.on('gadget:damage', (event) => {
-    if (s.isGodMode()) return;
     if (event.target === 'shade') combat.applyDamage(shade, event.amount, 'shade', event.source, event.at);
   });
   emitter.on('objective:life-lost', (event) => {

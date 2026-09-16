@@ -377,6 +377,55 @@ five-line timeline of the round, and to honour `roundEndDelay`. Taken:
 Josh overrides any of it.
 **decided:**
 
+### D33 — How the Warden shoots, and what the difficulty presets are worth
+C5. The queue asked for time-to-detect and time-to-kill measured per
+preset, held monotonic by a check, the values in `config.js` under
+`ai.difficulty`. The values were already there (`fillRate`,
+`aimErrorDegrees`, `reactionDelay`; medium's two are Section 11's) and are
+**unchanged**. The measurement found the gun, not the numbers, and two
+fixes changed how the Warden shoots on every preset:
+
+- **The gun aims at the torso.** ENGAGE aimed at `lastKnown.y`, which is
+  the Shade's *feet* (kept there for the planner), so half of every burst
+  went into the floor and, with the pitch bias drawn negative, all of it:
+  0 of 52 rounds hit at 8m on every preset. It aims now where the eye
+  looks (`torsoHeightRatio`, the perception point).
+- **A burst is rounds.** `engageBurstMin`-`Max` (3-7) was decremented per
+  *step*, so a "burst" was a sixtieth of a second's worth - one round,
+  sometimes two - then a 0.25-0.7s pause: about 100 rounds a minute from a
+  600rpm gun. The AI now holds the trigger until the gun has fired the
+  burst's rounds (`combat:shot`). This is what Section 11 says, and it
+  makes the Warden much deadlier than the one in every playtest so far:
+  a lit, still Shade at 8m dies **0.51s** after ENGAGE begins on medium
+  (was 1.8s with the aim fixed alone; effectively never with both bugs).
+  The line to turn if that is too much: `ai.engageBurstMin`/`Max` and the
+  pauses, or the gun's own numbers in `combat.gun` (Section 8.1).
+- **The aim error is a cone in yaw and pitch, redrawn per burst**
+  (`_drawAimError`), where it was a pitch-only bias held for the whole
+  engagement: one draw decided a fight, and a bigger cone could mean a
+  luckier one. Now a preset's degrees govern its hit fraction: at 16m
+  easy lands 14%, medium 49%, hard 76%.
+
+Measured (`each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`,
+lit, still, frag withheld, 8 seeds; detect is from the first step in view,
+kill from ENGAGE):
+
+| | 8m detect | 8m kill | 16m detect | 16m kill |
+|---|---|---|---|---|
+| easy | 7.35s | 0.86s | 13.6s | 7.2s |
+| medium | 4.97s | 0.51s | 9.3s | 1.4s |
+| hard | 3.60s | 0.35s | 6.7s | 0.9s |
+
+Not changed, and worth a look in play: hard's cone (1.2 degrees) makes it
+a machine at 8m - 32 of 32 - and medium is close behind it there; the
+presets separate by aim only at range, and by the fill everywhere.
+Alternatives if the spread between presets should be wider: a bigger easy
+cone (8 degrees), a per-preset burst size, a per-preset `engageRange`.
+Also found: god mode (Section 17.1, `G`) only ever guarded the frag; the
+rifle now honours it too (`Combat.isGodMode`), which is what the checks
+that set it were assuming.
+**decided:**
+
 ## Blocking — waiting on Josh
 
 ### D8 — Does the site ring still read, now the plant is the whole room?

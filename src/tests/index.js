@@ -30,6 +30,7 @@ import { register as registerWarden } from './warden.js';
 import { register as registerWardenGround } from './wardenground.js';
 import { register as registerDetection } from './detection.js';
 import { register as registerAI } from './ai.js';
+import { register as registerDifficulty } from './difficulty.js';
 import { register as registerCombat } from './combat.js';
 import { register as registerAudio } from './audio.js';
 import { register as registerGadgets } from './gadgets.js';
@@ -71,6 +72,7 @@ export function registerAutoTests(debugTools) {
   registerWardenGround(debugTools);
   registerDetection(debugTools);
   registerAI(debugTools);
+  registerDifficulty(debugTools);
   registerCombat(debugTools);
   registerAudio(debugTools);
   registerGadgets(debugTools);

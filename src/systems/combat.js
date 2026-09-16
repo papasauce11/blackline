@@ -178,8 +178,12 @@ export class Combat {
    * @param {THREE.PerspectiveCamera} options.camera
    * @param {(scale:number)=>void} options.setTimeScale
    * @param {(owner:string|null)=>void} options.setCameraOwner
+   * @param {()=>boolean} [options.isGodMode] Section 17.1 test mode, read
+   *   live: the Shade ignores damage while it is set - the rifle's here, a
+   *   frag's through `applyDamage`. Until C5 only the frag was guarded,
+   *   which nobody noticed while the rifle was aimed at the floor.
    */
-  constructor({ map, emitter, detection, ai, scene, camera, setTimeScale, setCameraOwner }) {
+  constructor({ map, emitter, detection, ai, scene, camera, setTimeScale, setCameraOwner, isGodMode }) {
     this.map = map;
     this.scene = scene || null;
     this.ai = ai || null;
@@ -188,6 +192,7 @@ export class Combat {
     this.camera = camera;
     this.setTimeScale = setTimeScale || (() => {});
     this.setCameraOwner = setCameraOwner || (() => {});
+    this.isGodMode = isGodMode || (() => false);
 
     this.weapon = new Weapon();
     /** Section 8.3 state. Null when nothing cinematic is happening. */
@@ -404,6 +409,7 @@ export class Combat {
    */
   _damage(actor, amount, who, kind, from) {
     if (actor.health <= 0) return;
+    if (who === 'shade' && this.isGodMode()) return;
     actor.health = Math.max(0, actor.health - amount);
     this.emitter.emit('combat:damage', {
       target: who, amount, kind, remaining: actor.health,

@@ -107,8 +107,12 @@ export function bootWorld({ emitter, debugState, harness, initMatch, setPaused, 
   // Section 8. The finisher needs the camera and the time scale, so it is
   // handed the same two functions the composition root uses rather than
   // reaching for them.
+  // Section 17.1 test mode: the Shade ignores damage while set. The `G`
+  // command (testcommands.js) toggles it in the shared bag; the F3 overlay
+  // shows it from the same place, so there is one value.
+  const isGodMode = () => !!debugState.godMode;
   const combat = createCombat({
-    map, emitter, detection, ai: wardenAI, scene, camera, setTimeScale, setCameraOwner,
+    map, emitter, detection, ai: wardenAI, scene, camera, setTimeScale, setCameraOwner, isGodMode,
   });
   // Section 14. Listens on the emitter and is unlocked by the first gesture,
   // because a context built before one starts suspended (Section 15).
@@ -144,10 +148,6 @@ export function bootWorld({ emitter, debugState, harness, initMatch, setPaused, 
 
   wireMatchEvents({
     emitter, hud, audio, combat, shade, warden, deathCam, effects, scoreboard, objective, gadgets,
-    // Section 17.1 test mode: the Shade ignores damage while set. The `G`
-    // command (testcommands.js) toggles it in the shared bag; the F3 overlay
-    // shows it from the same place, so there is one value.
-    isGodMode: () => !!debugState.godMode,
   });
 
   input = new Input(canvas);

@@ -814,6 +814,7 @@ export const CONFIG = {
     fragStaticTime: 2,
     /** Effective firing range the AI closes to before shooting. */
     engageRange: 18,
+    /** Rounds per burst (Section 11), and the pause between bursts, seconds. */
     engageBurstMin: 3,
     engageBurstMax: 7,
     engageBurstPauseMin: 0.25,
@@ -866,7 +867,18 @@ export const CONFIG = {
     defendHoldRadius: 1.4,
     defendRepathInterval: 1.5,
 
-    /** Three difficulty presets (Section 11). Default is medium. */
+    /**
+     * Three difficulty presets (Section 11), listed easiest first: the
+     * accumulator's fill per second at point-blank on a lit, sprinting
+     * Shade; the aim error cone, degrees either way in yaw and in pitch,
+     * drawn afresh for every burst; the delay before a sighting starts to
+     * fill. Default is medium. What each is worth (C5, D33), a lit, still
+     * Shade in plain view: engaged 7.35 / 4.97 / 3.60s after it is first
+     * seen at 8m and dead 0.86 / 0.51 / 0.35s after that; at 16m, 13.6 /
+     * 9.3 / 6.7s and 7.2 / 1.4 / 0.9s.
+     * `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`
+     * holds the order.
+     */
     difficulty: {
       easy: { fillRate: 26, aimErrorDegrees: 5.0, reactionDelay: 0.28 },
       medium: { fillRate: 38, aimErrorDegrees: 2.5, reactionDelay: 0.12 },
