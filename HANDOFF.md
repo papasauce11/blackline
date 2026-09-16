@@ -28,9 +28,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after C3 (2026-09-15) |
-| AUTO suite | headless, `npm run suite`: **144 passed, 1 failed** (2026-09-15, after C3), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **C4** (M: round and match end screens), then C5, C6. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C3, C2, C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after C4 (2026-09-16) |
+| AUTO suite | headless, `npm run suite`: **146 passed, 1 failed** (2026-09-16, after C4), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **F5** (S: `the-death-camera-frames-the-killer` is red run alone - a gate job), then C5 (M: the difficulty pass), C6. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C4 done 2026-09-16; C3, C2, C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -40,7 +40,7 @@ Phases 1–49 of the original build are done and committed. The **redesign**
 jobs that wait on Josh (B5b on D25, B5d on D27). One directive arrived
 outside it (the plant, below). **Block C is under way**: C1, the playtest
 build, C2, the round-start briefing, and C3, hit and damage feedback,
-landed 2026-09-15 (below).
+landed 2026-09-15; C4, the end screens, 2026-09-16 (below).
 
 ---
 
@@ -130,6 +130,34 @@ darker, and the queue's `brightnessDelta` wants a darkening. D31.
 
 `boot.js` holds `bootWorld()`, the old `bootstrap()` body: main.js
 destructures its return into the singletons. main.js is 470.
+
+## The round closes on an end screen - C4
+
+A round ends with an **outcome** as well as a reason: `OUTCOME`
+(`systems/roundstate.js`, re-exported by objective.js: detonated /
+defused / eliminated / time), set by `_end(winner, reason, outcome)` on
+`round.outcome`, the round record and the `objective:round-end` event.
+The objective keeps a **timeline** of its own round (`round.timeline`,
+`{ t, text }` at `round.elapsed`: `round N begins`, `charge armed at A`,
+`life lost - 1 left`, `reinserted`, `warden down` / `warden taken down`,
+and the reason at the end), copied into the record. **The intermission
+is not raised on `round-end` any more.** `_end` sets `round.endTimer` to
+`CONFIG.round.roundEndDelay` (2.5s); `step()` on an ended round runs
+`_stepEnded()`, which counts it on the sim clock and emits
+`objective:intermission` once; the wiring shows the scoreboard and
+restores the death camera on that, and puts a HUD line up on
+`round-end`. A check that ends a round and wants the card steps
+`2 + ceil(roundEndDelay / dt)` first (tests/briefing.js does). The death
+camera now stays on the killer through the delay when the third life
+ended the round, and the card takes it down - it used to stay up under
+the card until the next `initMatch` or the wall-clock guard, because the
+objective hears `combat:death` before the wiring begins the camera.
+`ui/scoreboard.js` prints who and how (`sayOutcome(outcome, reason)`,
+one sentence per Section 10.4 row; the match screen tallies the
+winner's rounds), the timeline through `timelineLines()` (all of it up
+to `TIMELINE_LINES` = 5, else the first and the last four) and a *how*
+column. Play calls `objective().resetMatch()` itself (panels.js). Checks:
+tests/roundend.js. Spec 20.15, D32.
 
 ---
 

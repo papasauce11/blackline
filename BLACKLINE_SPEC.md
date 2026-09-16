@@ -1011,3 +1011,31 @@ is driving. C3, 2026-09-15; the checks are
 `the-vignette-deepens-with-lost-health-and-leaves-the-centre-alone`,
 `a-landed-knife-puts-a-hit-marker-at-the-centre-and-a-miss-does-not` and
 `damage-draws-an-arc-toward-where-it-came-from`.
+
+### 20.15 Sections 10.4, 10.5 and 13 - the round and match end screens say how
+
+Section 10.5's scoreboard between rounds listed the round number, winner,
+duration, takedowns and plant site; the match end screen was that with a
+different heading. Both now **explain**: who took the round and how, one
+of Section 10.4's four outcomes as a sentence (the charge detonated; the
+Warden defused the charge; the Shade lost all lives before planting; the
+clock ran out with no plant) and as a word in a *how* column of the
+table; and a **timeline of the round** from the objective's own record
+(`round.timeline`: the round begins, the plant, each life lost and
+reinsert, each Warden down, the end, each with the round's clock), five
+lines at most - the first and the last four when there are more. The
+match screen says the same of the match, with a tally of how the winner
+took its rounds. Each round record carries `outcome` (one of `OUTCOME` in
+`systems/roundstate.js`) beside the reason it kept. And the screen comes
+**`roundEndDelay` (2.5s) after the end**, counted by the objective on the
+sim clock and raised on `objective:intermission`, not in the step that
+ended the round; the HUD carries the result as a line meanwhile, and the
+death camera, if the third life was the end, stays on the killer until
+the screen takes it down (before, it stayed up under the card until the
+next round or the wall-clock guard). The main menu's Play starts a fresh
+match itself (`resetMatch()`), whichever route raised the menu. C4,
+2026-09-16; the checks are `the-end-screen-says-who-won-and-how-each-way`
+and `play-from-the-main-menu-starts-a-fresh-match`, and
+`the-briefing-follows-the-round-and-the-setting-skips-it` and the
+*round ends while awaiting reinsert* scenario of
+`the-state-machines-survive-each-other` step through the delay.

@@ -64,6 +64,9 @@ export function createPanels({ initMatch, setPaused, objective, audio, match, ma
     onFirstGesture: () => audio().unlock(),
     onVolume: (value) => audio().setMasterVolume(value),
     onPlay: () => {
+      // A fresh match is Play's own business (C4): the score and the round
+      // records go here, not on whichever route brought the menu up.
+      objective().resetMatch();
       initMatch(COMPETITIVE);
       brief();
     },

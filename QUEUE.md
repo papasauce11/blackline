@@ -40,6 +40,16 @@ busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done; the
 next gate job, if one is found, goes here.
 
+- [ ] **F5 (S)** `the-death-camera-frames-the-killer` (tests/visual.js)
+  is red run alone - `npm run suite -- --runs 1 --subset
+  "death-camera-frames"` says *the killer covered 0 pixels; the ragdoll
+  moved 0.000* - and green in the full suite, so it inherits something
+  from a check before it (the F2 shape: a HUD check green only because
+  of who ran before). Found by C4, on HEAD before it (queued here: it is a gate job, not a Block C one). Find what it
+  inherits, make the check set it up itself, and say in PROGRESS what it
+  was. *done-when:* the check is green alone and in the full suite, twice
+  each, with no threshold moved.
+
 ## Block B — the traversal redesign, phases 12–50
 
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
@@ -77,14 +87,6 @@ Anything here that changes a **rule** is blocking — write the question.
 Anything that changes **presentation** is provisional — do it, log it under
 Provisional in `DECISIONS.md`, move on.
 
-- [ ] **C4 (M)** Round and match end screens that explain: who won, how
-  (defused / detonated / eliminated / time), a five-line timeline of the
-  round. *done-when:* a check ends a round each way and reads the reason.
-  Found by C2: `CONFIG.round.roundEndDelay` (2.5s) is read by nothing - the
-  intermission goes up on the `objective:round-end` event in the same step
-  the round ends, over whatever killed you; and the main menu's Play does
-  not reset the objective's score itself (every route back to the main
-  menu does, so it holds today - make it Play's own business here).
 - [ ] **C5 (M)** Difficulty pass driven by the AI checks. Measure
   time-to-detect and time-to-kill per difficulty setting. *done-when:* a check
   asserts both are monotonic across settings, and the values live in
@@ -159,6 +161,26 @@ budget checks are the ceiling.
 
 ## Done
 
+- **C4** The round and match end screens say how. `OUTCOME` (detonated /
+  defused / eliminated / time) recorded by `_end()` on the round and the
+  record; `round.timeline` (`{ t, text }`: begins, the plant, each life
+  lost and reinsert, each Warden down, the end) logged by the objective
+  and copied into the record; `roundEndDelay` honoured - `_stepEnded()`
+  counts it on the sim clock and emits `objective:intermission`, which
+  the wiring shows the scoreboard on and restores the death camera on
+  (it used to stay up under the card after the third life, until the
+  next round or the wall-clock guard); `round-end` is a HUD line.
+  `ui/scoreboard.js`: `round 3 to the warden · the Warden defused the
+  charge`, the match's tally of how, the timeline (five lines: all, or
+  the first and the last four), a *how* column; `sayOutcome()` exported.
+  Play calls `resetMatch()` itself. `systems/roundstate.js` split from
+  objective.js (602 -> 521). Checks (tests/roundend.js):
+  `the-end-screen-says-who-won-and-how-each-way` (four rounds, one
+  match, each way through the step; the delay, the death camera, the
+  text, the cap; the match screen) and
+  `play-from-the-main-menu-starts-a-fresh-match`; the briefing check and
+  the state-machine fuzz step through the delay. Spec 20.15, D32 (provisional), README.
+  2026-09-16, scheduled run.
 - **C3** Hit and damage feedback. `systems/feedback.js`: one screen-space
   quad with a shader, drawn by the renderer over the scene (so the pixels
   see it), invisible while idle; the hit marker (four strokes on the

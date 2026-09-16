@@ -12,78 +12,24 @@
  * is no field to forget to clear, because clearing is not how it works.
  *
  * The plant rule - where a charge may be left at all - is `plantrule.js`
- * (F3), re-exported here.
+ * (F3), re-exported here; so are the round's vocabulary and its state
+ * factory, `roundstate.js` (C4).
  */
 
 import { CONFIG, SETTINGS } from '../config.js';
 import { withinDefuseReach, canDefuseAt, hasHeadroomAt, canPlantAt } from './plantrule.js';
+import { CHARGE, ROUND, OUTCOME, createRoundState } from './roundstate.js';
 
 export { DEFUSE_REACH, PLANT_HEADROOM, withinDefuseReach } from './plantrule.js';
+export { CHARGE, ROUND, OUTCOME, createRoundState } from './roundstate.js';
 
 const R = CONFIG.round;
 const N = CONFIG.noise;
-
-export const CHARGE = {
-  CARRIED: 'carried',
-  PLANTED: 'planted',
-  DEFUSED: 'defused',
-  DETONATED: 'detonated',
-};
-
-export const ROUND = {
-  ACTIVE: 'active',
-  ENDED: 'ended',
-};
 
 /** Reused so the per-frame defuse test allocates nothing. */
 const FOOT = { x: 0, y: 0, z: 0 };
 /** Reused so the per-step plant gate allocates nothing. */
 const SPOT = { x: 0, y: 0, z: 0 };
-
-/**
- * Every mutable thing a round owns. A defaults factory, not a reset method:
- * a new object cannot inherit a field somebody forgot to clear.
- */
-export function createRoundState(number) {
-  return {
-    number,
-    state: ROUND.ACTIVE,
-    timeRemaining: R.duration,
-    elapsed: 0,
-    charge: CHARGE.CARRIED,
-    site: null,
-    /**
-     * Where the charge actually is, once planted. The plant is free within the
-     * room, so the site id says which room and this says which spot - the
-     * Warden has to walk to the charge, not to the middle of the floor.
-     */
-    chargeAt: null,
-    plantProgress: 0,
-    plantNoiseTimer: 0,
-    /**
-     * Is the Shade holding interact somewhere the Warden could never defuse?
-     * One step's answer, not a latch: the HUD line D6 decided is the only
-     * thing a refused plant produces, and a line that outlived the hold would
-     * be a rule the player cannot un-trigger.
-     */
-    plantRefused: false,
-    defuseProgress: 0,
-    defuseRetain: 0,
-    detonationTimer: 0,
-    /** Section 14's plant beep. Shortens as the detonation clock runs down. */
-    beepTimer: 0,
-    lives: CONFIG.shade.lives,
-    reinsertTimer: 0,
-    awaitingReinsert: false,
-    deathPosition: null,
-    lastSpawnIndex: 0,
-    takedowns: 0,
-    // Section 10.3: each milestone fires at most once per round.
-    milestones: { plant: false, takedown: false },
-    winner: null,
-    reason: null,
-  };
-}
 
 export class Objective {
   /**
@@ -167,7 +113,10 @@ export class Objective {
 
   step(dt, { shade, warden, intent }) {
     const round = this.round;
-    if (round.state !== ROUND.ACTIVE) return;
+    if (round.state !== ROUND.ACTIVE) {
+      this._stepEnded(dt);
+      return;
+    }
 
     round.elapsed += dt;
 
@@ -183,7 +132,7 @@ export class Objective {
       // Section 10.4: the base clock only matters before a plant. After one,
       // the detonation clock is the effective timer.
       round.timeRemaining -= dt;
-      if (round.timeRemaining <= 0) this._end('warden', 'time expired with no plant');
+      if (round.timeRemaining <= 0) this._end('warden', 'time expired with no plant', OUTCOME.TIME);
     }
   }
 
@@ -253,6 +202,7 @@ export class Objective {
     }
     // The Warden stops patrolling and goes to the charge (Section 11 DEFEND).
     if (this.ai) this.ai.setDefendTarget(round.chargeAt);
+    this._log(`charge armed at ${site.id}`);
     this.emitter.emit('objective:planted', { site: site.id, at: round.chargeAt });
   }
 
@@ -314,8 +264,8 @@ export class Objective {
     const round = this.round;
     round.detonationTimer -= dt;
     if (round.detonationTimer <= 0) {
-      this._end('shade', 'charge detonated');
       round.charge = CHARGE.DETONATED;
+      this._end('shade', 'charge detonated', OUTCOME.DETONATED);
       return;
     }
 
@@ -360,7 +310,7 @@ export class Objective {
     round.defuseRetain = R.defuseRetainTime;
     if (round.defuseProgress >= R.defuseHoldTime) {
       round.charge = CHARGE.DEFUSED;
-      this._end('warden', 'charge defused');
+      this._end('warden', 'charge defused', OUTCOME.DEFUSED);
     }
   }
 
@@ -389,12 +339,13 @@ export class Objective {
     round.lives--;
     round.plantProgress = 0;
     round.plantRefused = false;
+    this._log(`life lost - ${round.lives} left`);
     this.emitter.emit('objective:life-lost', { remaining: round.lives });
 
     // Section 10.4: losing the third life ends the round UNLESS the charge is
     // already planted, in which case the detonation clock carries on alone.
     if (round.lives <= 0 && round.charge !== CHARGE.PLANTED) {
-      this._end('warden', 'shade lost all lives before planting');
+      this._end('warden', 'shade lost all lives before planting', OUTCOME.ELIMINATED);
       return;
     }
     if (round.lives <= 0) return;
@@ -406,6 +357,7 @@ export class Objective {
   _onWardenDown(event) {
     const round = this.round;
     round.takedowns++;
+    this._log(event && event.kind === 'takedown' ? 'warden taken down' : 'warden down');
     // Section 10.3: first takedown extends the round by 30s, once.
     if (event && event.kind === 'takedown' && !round.milestones.takedown) {
       round.milestones.takedown = true;
@@ -447,6 +399,7 @@ export class Objective {
       this.ai.lastKnown = round.deathPosition || this.ai.lastKnown;
       this.ai._enterSearch();
     }
+    this._log('reinserted');
     this.emitter.emit('objective:reinsert', { spawn: bestIndex, lives: round.lives });
   }
 
@@ -477,7 +430,12 @@ export class Objective {
   // Round and match end (Section 10.4, 10.5)
   // -------------------------------------------------------------------------
 
-  _end(winner, reason) {
+  /**
+   * @param {'shade'|'warden'} winner
+   * @param {string} reason the sentence the record keeps
+   * @param {string} [outcome] one of OUTCOME; the word the end screen says
+   */
+  _end(winner, reason, outcome = null) {
     const round = this.round;
     if (round.state !== ROUND.ACTIVE) return;
     // Section 10.5: best of N, first to the target. Once someone has reached
@@ -490,16 +448,21 @@ export class Objective {
     round.state = ROUND.ENDED;
     round.winner = winner;
     round.reason = reason;
+    round.outcome = outcome;
+    round.endTimer = R.roundEndDelay;
+    this._log(reason);
     this.score[winner]++;
 
     this.rounds.push({
       number: round.number,
       winner,
       reason,
+      outcome,
       duration: round.elapsed,
       takedowns: round.takedowns,
       site: round.site,
       livesLeft: round.lives,
+      timeline: round.timeline.slice(),
     });
 
     if (this.score[winner] >= this.target) {
@@ -507,7 +470,28 @@ export class Objective {
       this.emitter.emit('match:over', { winner, score: { ...this.score } });
     }
     this.emitter.emit('objective:round-end', {
-      winner, reason, number: round.number, score: { ...this.score },
+      winner, reason, outcome, number: round.number, score: { ...this.score },
+    });
+  }
+
+  /** One line on the round's timeline, stamped with the round's own clock. */
+  _log(text) {
+    this.round.timeline.push({ t: this.round.elapsed, text });
+  }
+
+  /**
+   * The round has ended and the intermission has not gone up: count
+   * `roundEndDelay` down on the sim clock and raise it once. The card is
+   * the wiring's; this is only when.
+   */
+  _stepEnded(dt) {
+    const round = this.round;
+    if (round.intermission) return;
+    round.endTimer -= dt;
+    if (round.endTimer > 0) return;
+    round.intermission = true;
+    this.emitter.emit('objective:intermission', {
+      winner: round.winner, outcome: round.outcome, number: round.number, matchOver: this.matchOver,
     });
   }
 

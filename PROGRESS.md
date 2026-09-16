@@ -5434,3 +5434,123 @@ arc, the latest source; a frag and a rifle from two sides show one. The
 HUD's flashbang white stays DOM; it was never asked to be measured.
 
 **Left.** C4 (round and match end screens) is next; then C5, C6.
+
+## C4 — the round and match end screens say how (2026-09-16, scheduled run)
+
+The 02:00 run, gate green at 144/1. The intermission said `Round 2 to the
+warden` over a reason string and a table; the match screen was the same
+with a different heading; both went up in the very step the round ended,
+over whatever killed you, and `CONFIG.round.roundEndDelay` (2.5s) was read
+by nothing. Block C's fourth job: who won, how, a five-line timeline, the
+delay honoured, and Play resetting the score itself.
+
+**Built.**
+
+1. *The outcome is a word the objective records.* `OUTCOME`
+   (detonated / defused / eliminated / time) beside `CHARGE` and `ROUND`;
+   `_end(winner, reason, outcome)` records it on the round and in the
+   round record, and the `objective:round-end` event carries it. The
+   reason strings are untouched - `a-full-best-of-five` compares them
+   by value - and the fuzz's `_end('warden', 'test')` records no outcome,
+   which the screen prints as the reason. The vocabulary and
+   `createRoundState` moved to `systems/roundstate.js` (99 lines) when
+   objective.js reached 602; objective.js re-exports them and is 521.
+2. *The timeline is the objective's own log.* `round.timeline` is
+   `{ t, text }` from `round N begins` at 0: the plant (`charge armed at
+   A`), each life lost (`life lost - 1 left`), each reinsert, each Warden
+   down (`warden taken down` for a takedown), and the end (the reason).
+   `_log()` stamps `round.elapsed`; the record takes a copy. Nothing the
+   objective does not hear is on it - the alarm and the first sighting
+   belong to detection, and would need the wiring to log them (D32).
+3. *The delay.* `step()` on an ended round runs `_stepEnded(dt)`:
+   `endTimer` (set to `roundEndDelay` by `_end`) counts down on the sim
+   clock and, once, emits `objective:intermission`. The wiring shows the
+   scoreboard on that event and not on `round-end`; `round-end` puts one
+   line on the HUD (`round 1 to the warden - the clock ran out with no
+   plant`, `sayOutcome()` from ui/scoreboard.js). The death camera moves
+   to the intermission too - and that fixed something: the objective
+   subscribes to `combat:death` before the wiring does, so on the third
+   life `round-end` restored a death camera the wiring had not yet
+   begun, and the camera then stayed on the killer under the card until
+   the next `initMatch` or the 16.5s wall-clock guard and its
+   `console.warn`. Now it stays for the 2.5s and the intermission takes
+   it down; the check asserts both.
+4. *The screens.* `ui/scoreboard.js`: the heading is `round 3 to the
+   warden · the Warden defused the charge` (or `warden wins the match ·
+   1 clock, 1 defused, 1 eliminated`, a tally of the winner's rounds), in
+   the winner's colour; the timeline as an `<ol>` with the round's clock
+   on each line, `timelineLines()` printing all of it up to
+   `TIMELINE_LINES` (5), else the first and the last four; the table has
+   a *how* column. `first to N` stays. The wording is one table,
+   `OUTCOMES`, exported as `sayOutcome(outcome, reason)`.
+5. *Play is a fresh match.* `panels.js` `onPlay` calls
+   `objective().resetMatch()` before `initMatch(COMPETITIVE)`. Every route
+   back to the main menu already reset, so nothing changed for the
+   player; a check now holds it on its own.
+6. *Two checks*, tests/roundend.js.
+   `the-end-screen-says-who-won-and-how-each-way` plays one match of four
+   rounds through the objective's step: the clock (`timeRemaining` 0.5
+   and stepped), a plant at A and the fuse run down, a plant at B with
+   the Warden on the charge and `sees` false for the hold, and three
+   deaths each through the real 15s reinsert countdown. After each end:
+   the outcome on the round and the record, the record's timeline,
+   nothing on the screen in the ending step nor one real step later
+   (`h.stepFrames` - fixedStep, objective, wiring), the death camera on
+   the killer during the delay for the third-life round, the screen up
+   after `ceil(2.5/dt)` more steps with the death camera down; then the
+   text: `round N to the <winner>`, the sentence, the score with its
+   dash, the timeline's line count equal to `min(5, record.timeline
+   .length)` (2/3/3/5 - the elimination round logs seven), its first
+   line the round beginning, its last the reason, the plant or the last
+   life on it, a clock on every line; the last table row's number and
+   winner; and on the fourth round, which ends a first-to-3 for the
+   Warden 3-1, `warden wins the match`, the tally words and the Main
+   menu button. `SETTINGS.matchLength` pinned to the default for the
+   run and restored.
+   `play-from-the-main-menu-starts-a-fresh-match` puts a round on the
+   books through the step, starts round 2, raises the main menu with
+   `menu.show('main')` - the one route that resets nothing - and clicks
+   Play: 0-0, no records, round 1, the charge carried, the match not
+   over. Reverting the `resetMatch()` in `onPlay` is a 1-0 on the card.
+   `the-briefing-follows-the-round-and-the-setting-skips-it` steps
+   `2 + ceil(roundEndDelay/dt)` before looking for the intermission
+   (it stepped 1); the first cut stepped `1 + ceil` and 150 × 1/60 did
+   not reach 2.5 in floating point.
+7. *Spec 20.15*, *D32* (provisional: the delay, the death camera through
+   it, the sentences, the five-line rule, the match tally), *README*
+   (a paragraph under Controls after the briefing's).
+
+**Verified.**
+
+- Subset (the two new checks, the briefing pair, best-of-five, the defuse
+  check, match length, the 600-line guard, the death camera pair): 12 of
+  12 after two fixes - the timeline `<li>` printed `0:00round 1 begins`
+  with no space between the span and the text, and the briefing check's
+  step count above.
+- Full suite, first pass: 145 passed, 2 failed both runs, one red both
+  times - `the-state-machines-survive-each-other`, "the death camera
+  outlived the round". Its *round ends while awaiting reinsert* scenario
+  killed the Shade, ended the round by hand and expected the camera gone
+  60 steps later; the round has a 2.5s tail now and the camera holds the
+  killer through it by design (D32). The scenario asks more than it
+  did: the camera still up at 60 steps, and gone `ceil(2.5/dt) + 2`
+  steps after the end. Not loosened - the moment it measures at moved
+  with the rule, and it gained an assertion.
+- Full suite, `npm run suite`: **146 passed, 1 failed** run 1 (429s), **146 passed, 1 failed** run 2
+  (495s), the frame budget skipped headless, 0 red, 0 flaky,
+  0 console errors, 0 context losses, 0 loop
+  frames.
+
+**Found.** `the-death-camera-frames-the-killer` (tests/visual.js) is red
+run alone - `--subset "death-camera-frames"` on HEAD before this job, the
+same detail: *the killer covered 0 pixels; the ragdoll moved 0.000* - and
+green in the full suite, so it is inheriting something from a check
+before it. The same shape as the F2 lesson. Queued as F5, a gate job; not
+touched here, it is not this job's.
+
+**Not built.** The HUD line at the round end has no check of its own (the
+feed is DOM and the screen's text is the proof the queue asked for). One
+timeline, the objective's; the alarm and the sighting are not on it.
+
+**Left.** F5 (the visual check red alone) is next, then C5 (the
+difficulty pass), C6.

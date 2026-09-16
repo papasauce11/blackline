@@ -41,6 +41,7 @@ import { register as registerFreeRoam } from './freeroam.js';
 import { register as registerSettings } from './settings.js';
 import { register as registerDebugGate } from './debuggate.js';
 import { register as registerBriefing } from './briefing.js';
+import { register as registerRoundEnd } from './roundend.js';
 import { register as registerFeedback } from './feedback.js';
 import { register as registerDeathCam } from './deathcam.js';
 import { register as registerPresentation } from './presentation.js';
@@ -81,6 +82,7 @@ export function registerAutoTests(debugTools) {
   registerSettings(debugTools);
   registerDebugGate(debugTools);
   registerBriefing(debugTools);
+  registerRoundEnd(debugTools);
   registerFeedback(debugTools);
   registerDeathCam(debugTools);
   registerPresentation(debugTools);

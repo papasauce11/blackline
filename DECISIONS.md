@@ -338,6 +338,45 @@ pixels. Taken, every number in `config.js` under `feedback`:
 Josh overrides any of it; nobody has seen it at a real screen size.
 **decided:**
 
+### D32 — What the round and match end screens say, and when
+C4. The queue asked for end screens that explain who won, how, and a
+five-line timeline of the round, and to honour `roundEndDelay`. Taken:
+
+- **The delay is 2.5s** (`round.roundEndDelay`, already in config and read
+  by nothing until now), counted on the sim clock by the objective from the
+  step that ended the round; the intermission goes up on a new event,
+  `objective:intermission`, and nothing else moves to it. During it the
+  HUD carries one line, `round N to the warden - the charge was defused`,
+  over the scene. Alternatives: no delay (as it was: the card over
+  whatever killed you); a longer one with the scene slowed.
+- **The death camera stays up through the delay** when the third life was
+  the end, and the intermission takes it down. Before, the round end
+  restored a camera the death had not yet begun (the objective hears the
+  death first), so the death camera stayed up under the intermission
+  until the next round's `initMatch` - or the 16.5s wall-clock guard, with
+  its console warning, if the player sat on the card that long. A fix, not
+  a choice, but it changes what is on screen for those seconds.
+- **How, in a sentence,** one per Section 10.4 row: *the charge
+  detonated*, *the Warden defused the charge*, *the Shade lost all 3
+  lives before planting*, *the clock ran out with no plant*; one word per
+  row in the table's new *how* column (detonated / defused / eliminated /
+  clock). The wording lives in `ui/scoreboard.js` (`sayOutcome`); the
+  objective records only the outcome key and the reason it always kept.
+- **The timeline** is the objective's own log (`round.timeline`): the round
+  begins, the plant, each life lost, each reinsert, each Warden down, the
+  end, each with the round's clock. The screen prints at most five: all of
+  them when there are five or fewer, else the first and the last four, so
+  the end and what led to it always show. Alternatives: every line, with
+  a scroll; the five "most important" by a weighting; the detection
+  events too (the alarm, the first sighting) - those belong to systems
+  the objective does not hear, and would need the wiring to log them.
+- **The match screen** is the round screen with *Warden wins the match*
+  and a tally of how the winner took its rounds (*1 clock, 1 defused, 1
+  eliminated*), the last round's timeline under it, and *Main menu*.
+
+Josh overrides any of it.
+**decided:**
+
 ## Blocking — waiting on Josh
 
 ### D8 — Does the site ring still read, now the plant is the whole room?

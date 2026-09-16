@@ -7,6 +7,8 @@
  * events meet. Called once from bootstrap after every system exists.
  */
 
+import { sayOutcome } from './ui/scoreboard.js';
+
 /**
  * @param {object} s the built systems and actors, by name
  * @param {() => boolean} s.isGodMode Section 17.1 test mode, read live
@@ -41,7 +43,13 @@ export function wireMatchEvents(s) {
     if (event.target !== 'shade') return;
     deathCam.begin(shade, warden);
   });
-  emitter.on('objective:round-end', () => deathCam.restore());
+  // C4: the round's end is a HUD line over the scene for `roundEndDelay`;
+  // the death camera, if the last life was the end, stays on the killer for
+  // that long too, and the intermission takes both down.
+  emitter.on('objective:round-end', (event) => {
+    hud.push(`round ${event.number} to the ${event.winner} - ${sayOutcome(event.outcome, event.reason)}`);
+  });
+  emitter.on('objective:intermission', () => deathCam.restore());
   // Section 15's ragdoll-lite. A body that stays is also the only feedback
   // that a takedown actually landed on something.
   emitter.on('combat:death', (event) => {
@@ -54,7 +62,7 @@ export function wireMatchEvents(s) {
     effects.ragdoll(warden.mesh, { x: dx / length, z: dz / length });
     hud.push('warden down');
   });
-  emitter.on('objective:round-end', () => {
+  emitter.on('objective:intermission', () => {
     scoreboard.show({ rounds: objective.rounds, score: objective.score, matchOver: objective.matchOver });
   });
   emitter.on('ai:throw', (event) => {

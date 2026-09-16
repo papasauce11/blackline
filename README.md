@@ -123,6 +123,14 @@ live bindings. The round waits until you press any key or mouse button (the
 press starts the round and does nothing else). Turn it off with **round
 briefing** in the settings menu.
 
+Every round closes on an **end screen**, two and a half seconds after the
+round ends (the scene, and the death camera if the last life ended it, stay
+up for that long): who took the round and how - the clock, a detonation, a
+defuse or the third life - the score, a timeline of the round (the plant,
+each life lost and reinsert, each Warden down, the end; five lines at most),
+and the table of rounds so far. The match screen says the same of the
+match, with a tally of how the winner took its rounds.
+
 ### Climbing
 
 There are no affordance markings. If a surface has a top you could stand on and

@@ -160,7 +160,8 @@ export function register(debugTools) {
         click(h.menu.root, 'play');
         h.briefing.dismiss(h.input);
         h.objective.round.timeRemaining = 0.001;
-        h.stepFrames(1);
+        // C4: the intermission comes `roundEndDelay` after the end.
+        h.stepFrames(2 + Math.ceil(R.roundEndDelay / CONFIG.time.fixedDt));
         if (!h.scoreboard.open) problems.push('the round end did not raise the intermission');
         click(h.scoreboard.root, 'next');
         if (h.scoreboard.open) problems.push('Next round left the intermission open');
@@ -187,7 +188,7 @@ export function register(debugTools) {
         h.renderFrame();
         if (h.clock.sim <= sim) problems.push('with the setting off, the first frame after Play ran no step');
         h.objective.round.timeRemaining = 0.001;
-        h.stepFrames(1);
+        h.stepFrames(2 + Math.ceil(R.roundEndDelay / CONFIG.time.fixedDt));
         click(h.scoreboard.root, 'next');
         if (h.briefing.open) problems.push('with the setting off, Next round raised the briefing');
         if (h.objective.round.number !== 2) problems.push(`with the setting off, Next round started round ${h.objective.round.number}, want 2`);

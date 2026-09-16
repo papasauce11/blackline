@@ -390,7 +390,12 @@ export function register(debugTools) {
           kill();
           if (!h.objective.round.awaitingReinsert) return;
           h.objective._end('warden', 'test');
+          // C4: the round has a tail. The death camera holds the killer
+          // until the intermission, `roundEndDelay` after the end, takes
+          // it down - and not a step longer.
           h.stepFrames(60);
+          if (!h.deathCam.active) problems.push('the death camera dropped before the intermission');
+          h.stepFrames(Math.ceil(CONFIG.round.roundEndDelay / CONFIG.time.fixedDt) + 2 - 60);
           if (h.deathCam.active) problems.push('the death camera outlived the round');
         }],
 
