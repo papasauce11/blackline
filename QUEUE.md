@@ -77,10 +77,8 @@ Anything here that changes a **rule** is blocking — write the question.
 Anything that changes **presentation** is provisional — do it, log it under
 Provisional in `DECISIONS.md`, move on.
 
-- [ ] **C6 (S)** `PLAYTEST.md` for Josh: how to run, what to look at, what
-  cannot be verified without eyes, known issues (C5: the Warden shoots
-  straight now - say so, with D33's numbers). Update it every C/D/E job.
-  *done-when:* the file exists and `HANDOFF.md` links it.
+(C1-C6 done; **Block C is closed** 2026-09-16. `PLAYTEST.md` is updated
+by every Block D and E job - the queue's own done-whens include it.)
 
 ## Block D — the second map: the container yard
 
@@ -148,6 +146,18 @@ budget checks are the ceiling.
 
 ## Done
 
+- **C6** `PLAYTEST.md` for Josh: how to run it (the playtest build,
+  `?debug=1`, `?seed=`, the settings), what to look at newest first (the
+  Warden shooting straight with D33's numbers, the briefing and end
+  screens, the feedback, climbing without markings, where you may plant -
+  each with the checks that hold its mechanics and what is left for
+  eyes), what cannot be verified without eyes (the frame budget on a GPU,
+  looks, sounds, feel, the Warden as an opponent), known issues and open
+  questions (D27, D25, D8, D33), and how to answer. `HANDOFF.md` links it
+  at the top. Check `playtest-md-exists-is-linked-and-names-real-checks`
+  (tests/donedef.js): the four sections, every backticked check id
+  registered, HANDOFF.md mentions it. COMMIT_HASH, 2026-09-16, scheduled
+  run.
 - **C5** The difficulty pass, driven by the checks. The preset values
   (`ai.difficulty`: fill, aim cone, reaction delay) were already in
   config and are unchanged; the instrument found the gun.

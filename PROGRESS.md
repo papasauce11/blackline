@@ -5713,3 +5713,49 @@ noise model's business and have their own checks.
 
 **Left.** C6 (`PLAYTEST.md`) is next; it should tell Josh the Warden
 shoots straight now.
+
+## C6 — PLAYTEST.md, the notes Josh plays from (2026-09-16, same run)
+
+The second job of the 17:00 run, after C5, and the last of Block C. The
+queue asked for a file for Josh - how to run, what to look at, what
+cannot be verified without eyes, known issues - updated by every C, D and
+E job, linked from HANDOFF.md.
+
+**Built.** `PLAYTEST.md`, 148 lines: *Run it* (the playtest build,
+`?debug=1`, `?seed=`, the settings menu, Y and U from the F4 panel, the
+*gl context lost* row to read before believing a red); *What to look at*
+newest first - the Warden shooting straight (C5, with D33's table and the
+warning that it is much deadlier than any playtest before), the briefing
+and the end screens (C2, C4), the feedback (C3), climbing without
+markings (Block B), where you may plant (Block A) - each naming the
+checks that hold its mechanics and saying what is left for eyes; *What
+cannot be verified without eyes* (the frame budget on a GPU and how to
+run that check in a tab, looks, sounds, feel - spec checks 1-7 and 13-16
+as the redesign rewrote them - and the Warden as an opponent); *Known
+issues and open questions* (the defuse through the floor D27, the duct
+roofs D25, the ring D8, hard a machine at 8m D33, settings apply at the
+next match, the one expected console warning); *How to answer* (a line
+under `decided:`; provisional decisions override the same way). README's
+*Running it* and HANDOFF's first paragraph point at it.
+
+**Check.** `playtest-md-exists-is-linked-and-names-real-checks`
+(tests/donedef.js, beside the other definition-of-done readers): fetches
+`PLAYTEST.md` from the origin the suite is served from, requires the four
+`##` sections, takes every backticked kebab word of four or more parts as
+a check id and requires it registered in `_autoTests` (a renamed check
+would leave Josh a line that runs nothing), and requires `HANDOFF.md` to
+mention the file. Seven ids named today, all registered. The file
+missing, a section missing, a stale id or the link gone each put it red.
+
+**Verified.**
+
+- Alone, `--subset "playtest-md"`: green, *148 lines, the 4 sections, 7
+  checks named and every one registered, linked from HANDOFF.md*.
+- Full suite twice, `npm run suite`: **149 passed, 1 failed** run 1 (441s),
+  **149 passed, 1 failed** run 2 (475s), the frame budget skipped headless, 0 red,
+  0 flaky, 0 console errors, 0 context losses, 0 loop frames.
+
+**Not built.** No section for the yard: there is no yard. D6 adds it.
+
+**Left.** Block C is closed. D1 (map plumbing, M) is next, then D2 (the
+yard blockout, L - a whole run).

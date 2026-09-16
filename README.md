@@ -16,6 +16,9 @@ Built to `BLACKLINE_SPEC.md`, which is the contract for this repo.
 
 ## Running it
 
+Playing it rather than building it? `PLAYTEST.md` is the short version:
+what to look at, what only eyes can judge, what is known to be wrong.
+
 No build step, no bundler, no npm dependencies. Any static server works.
 
 ```bash

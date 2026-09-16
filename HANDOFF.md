@@ -3,7 +3,9 @@
 **Read this first.** Then `QUEUE.md` (the work), `DECISIONS.md` (what waits
 on Josh, and what he has decided), `PLAN.md` (the protocol a session follows).
 `BLACKLINE_SPEC.md` is the contract; `PROGRESS.md` is the full append-only
-history (3,000 lines) — read only the last entry.
+history (3,000 lines) — read only the last entry. `PLAYTEST.md` is Josh's:
+how to run it, what to look at, what only eyes can judge, what is known to
+be wrong - every Block C, D and E job updates it (C6).
 
 ## Last audit
 
@@ -28,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after C5 (2026-09-16) |
-| AUTO suite | headless, `npm run suite`: **148 passed, 1 failed** (2026-09-16, after C5), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **C6** (S: `PLAYTEST.md`), the last of Block C; then D1 (map plumbing). C5 (the difficulty pass), F5 and C4 done 2026-09-16; B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. C3, C2, C1 and B8b done 2026-09-15; B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after C6 (2026-09-16) |
+| AUTO suite | headless, `npm run suite`: **149 passed, 1 failed** (2026-09-16, after C6), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
+| Next job | **D1** (M: map plumbing - a registry, `buildMap(id)`, `?map=`, every check parameterised over the map), the first of Block D; then D2 (L: the yard blockout). **Block C is closed** 2026-09-16 (C6, C5, F5 and C4 that day; C3, C2, C1 and B8b 2026-09-15). B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -38,10 +40,11 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 Phases 1–49 of the original build are done and committed. The **redesign**
 (phases 1-50 of the plan below) is closed as of B9, 2026-09-14, but for two
 jobs that wait on Josh (B5b on D25, B5d on D27). One directive arrived
-outside it (the plant, below). **Block C is under way**: C1, the playtest
-build, C2, the round-start briefing, and C3, hit and damage feedback,
-landed 2026-09-15; C4, the end screens, and C5, the difficulty pass,
-2026-09-16 (below). C6 closes it.
+outside it (the plant, below). **Block C is closed** (2026-09-16): C1,
+the playtest build, C2, the round-start briefing, and C3, hit and damage
+feedback, landed 2026-09-15; C4, the end screens, C5, the difficulty
+pass, and C6, `PLAYTEST.md`, 2026-09-16 (below). Block D, the second
+map, is next.
 
 ---
 

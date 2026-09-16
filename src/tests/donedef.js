@@ -252,4 +252,48 @@ export function register(debugTools) {
       };
     },
   });
+
+  debugTools.registerAutoTest({
+    id: 'playtest-md-exists-is-linked-and-names-real-checks',
+    spec: 'Section 16 (the HUMAN checks are a checklist for Josh), C6',
+    name: 'PLAYTEST.md has its four sections, HANDOFF.md points at it, and every check it names exists',
+    run: async (h) => {
+      // C6: the notes Josh plays from. A file nothing reads rots like a
+      // comment; this reads it. The headings are the queue's four
+      // questions, the checks it names in backticks must be registered
+      // (a renamed check would leave him a line that runs nothing), and
+      // HANDOFF.md must link it or a session never finds it.
+      const origin = location.origin;
+      const problems = [];
+      const response = await fetch(`${origin}/PLAYTEST.md`);
+      if (!response.ok) return { pass: false, detail: `PLAYTEST.md: HTTP ${response.status}` };
+      const text = await response.text();
+
+      const sections = ['Run it', 'What to look at', 'What cannot be verified without eyes', 'Known issues'];
+      for (const title of sections) {
+        if (!new RegExp(`^## ${title}`, 'm').test(text)) problems.push(`no "## ${title}" section`);
+      }
+
+      // A backticked kebab word of four or more parts is a check id.
+      const ids = new Set(h.debugTools._autoTests.map((test) => test.id));
+      const named = new Set();
+      const missing = [];
+      for (const match of text.matchAll(/`([a-z0-9]+(?:-[a-z0-9]+){3,})`/g)) {
+        named.add(match[1]);
+        if (!ids.has(match[1])) missing.push(match[1]);
+      }
+      if (named.size === 0) problems.push('names no check at all');
+      if (missing.length) problems.push(`names checks that do not exist: ${missing.join(', ')}`);
+
+      const handoff = await (await fetch(`${origin}/HANDOFF.md`)).text();
+      if (handoff.indexOf('PLAYTEST.md') === -1) problems.push('HANDOFF.md does not mention PLAYTEST.md');
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${text.split(/\r?\n/).length} lines, the ${sections.length} sections, ${named.size} checks named and every one registered, linked from HANDOFF.md`
+          : problems.join('; '),
+      };
+    },
+  });
 }
