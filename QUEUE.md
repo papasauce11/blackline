@@ -156,7 +156,7 @@ budget checks are the ceiling.
   questions (D27, D25, D8, D33), and how to answer. `HANDOFF.md` links it
   at the top. Check `playtest-md-exists-is-linked-and-names-real-checks`
   (tests/donedef.js): the four sections, every backticked check id
-  registered, HANDOFF.md mentions it. COMMIT_HASH, 2026-09-16, scheduled
+  registered, HANDOFF.md mentions it. `866b2c2`, 2026-09-16, scheduled
   run.
 - **C5** The difficulty pass, driven by the checks. The preset values
   (`ai.difficulty`: fill, aim cone, reaction delay) were already in
