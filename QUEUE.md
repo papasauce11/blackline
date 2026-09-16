@@ -159,7 +159,7 @@ budget checks are the ceiling.
   suite an earlier check at site A had paid the compile. The check warms
   its own view (one `renderFrame` and a `readPixels`) before the kill,
   listens for `deathcam:guard` and names it if it fires, and reports the
-  warm time. No threshold moved. 2026-09-16, scheduled run.
+  warm time. No threshold moved. `6bef575`, 2026-09-16, scheduled run.
 - **C4** The round and match end screens say how. `OUTCOME` (detonated /
   defused / eliminated / time) recorded by `_end()` on the round and the
   record; `round.timeline` (`{ t, text }`: begins, the plant, each life
