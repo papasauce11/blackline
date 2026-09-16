@@ -180,7 +180,7 @@ budget checks are the ceiling.
   text, the cap; the match screen) and
   `play-from-the-main-menu-starts-a-fresh-match`; the briefing check and
   the state-machine fuzz step through the delay. Spec 20.15, D32 (provisional), README.
-  2026-09-16, scheduled run.
+  `a5d8918`, 2026-09-16, scheduled run.
 - **C3** Hit and damage feedback. `systems/feedback.js`: one screen-space
   quad with a shader, drawn by the renderer over the scene (so the pixels
   see it), invisible while idle; the hit marker (four strokes on the
