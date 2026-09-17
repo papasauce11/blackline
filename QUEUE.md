@@ -174,7 +174,7 @@ budget checks are the ceiling.
   127 passed, 2 failed (the frame budget skipped; `lit-pools`, D4's),
   26 not for this map; the census 58 surfaces, 163 approaches, 11 leg
   ups all on routes; 151 of 151 approaches climbed. Spec 20.18.
-  `HASH`, 2026-09-17, scheduled run.
+  `cafc97f`, 2026-09-17, scheduled run.
 - **D1** Map plumbing. `src/maps/index.js` is the registry (`plant`:
   "Meridian Substation", `src/map.js` and `mapdata.js` moved to
   `maps/plant.js` and `maps/plantdata.js`; `yard`: "Container Yard",
