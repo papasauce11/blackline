@@ -88,23 +88,6 @@ a railed walkway reached by stairs with an overhead view, glazed, with only
 small apertures to shoot through. Provisional: D9 (night, floodlit), D11
 (three apertures ~0.4m), D12 (the walkway is out of the Shade's reach).
 
-- [ ] **D2 (L)** Yard blockout. Ground, fence, container stacks 1–3 high
-  (2.6m each: one is a jump-mantle, two needs a stack), three sites in
-  yard bays, Warden spawn at a gatehouse, Shade starts outside the fence.
-  The five v2 requirements re-read for outdoors: level 2 is one connected
-  container-top deck; stairless routes up are stacks; every bay has 2+
-  entries; the walkway plays the raised-ceiling role. Start from
-  `src/maps/yard.js` (D1's placeholder: every number there is D2's to
-  replace) and its `EXPECTS`; `npm run suite -- --map yard` is the
-  instrument, `--map plant,yard` both. *done-when:* nav, census and
-  objective checks pass on `yard`; "needs a leg up" reported; the 21
-  checks D1 left red on the empty yard (PROGRESS.md, D1 - the ledge
-  searches, the routes, the alarm mounts, the plant-rule four, the
-  traversal fuzz) are green or, where the yard has no such thing by
-  design (a duct interior for `a-charge-cannot-be-planted-inside-anything`;
-  a `seed+1` slice on a small graph for `a-match-replays-identically-from-its-seed`),
-  the check is made to read the map it is on rather than scoped away;
-  `PLAYTEST.md`'s yard paragraph rewritten.
 - [ ] **D3 (M)** The Warden's walkway. Stairs, railing, a glazed booth;
   glass blocks shots and knives except through the apertures; the
   walkway height exceeds `standing + jumpBonus` from every stack top within
@@ -113,11 +96,24 @@ small apertures to shoot through. Provisional: D9 (night, floodlit), D11
   climbable surface reaches the walkway.
 - [ ] **D4 (M)** Yard lighting. Night, floodlights on masts as the shadowed
   key (one shadowed light stays the rule — pick the mast that covers the
-  most), fill from the sky, pools of dark between stacks. *done-when:*
-  the lighting readability checks pass on `yard` within the frame budget.
+  most), fill from the sky, pools of dark between stacks. The four lamps
+  in `maps/yarddata.js` are D2's placeholders at 6m over the sites and
+  the gate. *done-when:* the lighting readability checks pass on `yard`
+  within the frame budget - `lit-pools-and-dark-gaps-are-actually-contrasty`
+  is the one check red on the yard since D2 (the lamps add 6.6 over a
+  sky of 21.4; the sky is the problem), and `every-route-reads-lit-from-its-foot`
+  stays green (0.43-0.45 at the pallets today, over a 0.25 floor).
 - [ ] **D5 (M)** AI on the yard. Patrol routes over `wardenGround`, defend
-  paths to all three sites, alarm placement. *done-when:* every AI check
-  passes on `yard`; a soak of 3 matches with no stall.
+  paths to all three sites, alarm placement. Three checks stand in the
+  Turbine Hall's lit lane by coordinate and are `maps: ['plant']` since
+  D2 - `ai-state-machine-follows-section-11`,
+  `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`,
+  `the-warden-fires-in-bursts-of-rounds-at-the-torso` - because their
+  numbers depend on the lane's light (D33's table); D5 gives them a lit
+  lane on the yard (a `clearLane` that asks the detection model for
+  light, tests/lanes.js, or the yard's own coordinates once D4 has lit
+  it) and takes the scoping off. *done-when:* every AI check passes on
+  `yard`, those three included; a soak of 3 matches with no stall.
 - [ ] **D6 (S)** Both maps in the regression set; the menu defaults to
   `plant`; `PLAYTEST.md` gets a yard section. Since D1 the runner takes
   `--map plant,yard` and `runRegressionSet` filters by the map the page
@@ -154,6 +150,31 @@ budget checks are the ceiling.
 
 ## Done
 
+- **D2** Yard blockout. `maps/yard.js` and `maps/yarddata.js`: inside
+  the site fence a 60 x 42 working yard walled by a ring of one-high
+  containers with a gate north and south and a 40ft laid across each as
+  an arch (the Warden under, the Shade over; the ring's tops one
+  surface); bays A and B either side of the gate lane, each walled by
+  the ring and two 12m rows and open at the corner they leave, C across
+  the south with the lane's gap and the rear gate; a two-high stack in
+  A and B, a three-high on C's west wall, storage blocks of stacks
+  either side of C; pallets (every route's first step on foot), a skip,
+  a flatbed trailer (its crawl space the yard's "inside anything"), a
+  gatehouse with a one-face pallet slot. The container is a 2.9m high
+  cube (D35): one high a jump and a grab, two high needs a stack. 71
+  boxes, 21 waypoints, 9 routes; every row and stack touches the ring
+  so the one-high tops are one connected deck. Checks (tests/yard.js):
+  `the-container-tops-are-one-connected-deck`,
+  `one-high-is-a-jump-and-two-high-needs-a-stack`; `plantableSpots`
+  enumerates crawl spaces and the inside-anything checks take them; the
+  room-entry derivation splits a run at a sill change (found under bay
+  B); five open-floor checks find a lane on the map they run on
+  (tests/lanes.js) and the hang-under-a-lid case searches for a lidded
+  lip; three lit-lane AI checks scoped to plant for D5. On the yard:
+  127 passed, 2 failed (the frame budget skipped; `lit-pools`, D4's),
+  26 not for this map; the census 58 surfaces, 163 approaches, 11 leg
+  ups all on routes; 151 of 151 approaches climbed. Spec 20.18.
+  `HASH`, 2026-09-17, scheduled run.
 - **D1** Map plumbing. `src/maps/index.js` is the registry (`plant`:
   "Meridian Substation", `src/map.js` and `mapdata.js` moved to
   `maps/plant.js` and `maps/plantdata.js`; `yard`: "Container Yard",

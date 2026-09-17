@@ -48,7 +48,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'every-plant-spot-in-a-site-room-answers-to-the-defuse-rule',
     spec: 'Section 10.1 amended / D5 / Block A5',
-    name: 'Floor, crate top or duct: the plant commits exactly where a Warden could defuse and nowhere else',
+    name: 'Floor, crate top, duct or crawl space: the plant commits exactly where a Warden could defuse and nowhere else',
     run: (h) => {
       const problems = [];
       h.initMatch({ mode: 'competitive', role: 'shade', ai: false, objective: true });
@@ -56,17 +56,22 @@ export function register(debugTools) {
       if (!h.map.wardenGround) return { pass: false, detail: 'map.wardenGround was never derived' };
 
       const spots = plantableSpots(h);
-      const kinds = { floor: 0, top: 0, vent: 0 };
-      const legalBy = { floor: 0, top: 0, vent: 0 };
+      const kinds = { floor: 0, top: 0, vent: 0, crawl: 0 };
+      const legalBy = { floor: 0, top: 0, vent: 0, crawl: 0 };
       for (const spot of spots) {
         kinds[spot.kind]++;
         if (spot.legal) legalBy[spot.kind]++;
       }
-      if (!kinds.floor || !kinds.top || !kinds.vent) {
+      // Three kinds of place: the floor, a top, and inside something - which
+      // on the plant is a duct and on the yard the crawl space under the
+      // trailer (D2). A map with none of the third kind cannot exercise D20.
+      const inside = kinds.vent + kinds.crawl;
+      if (!kinds.floor || !kinds.top || !inside) {
         return {
           pass: false,
           detail: `the census found ${kinds.floor} floor spots, ${kinds.top} climbable tops and `
-            + `${kinds.vent} vent interiors inside site rooms; it needs all three kinds to mean anything`,
+            + `${inside} enclosed interiors (${kinds.vent} in ducts, ${kinds.crawl} in crawl spaces) inside site rooms; `
+            + 'it needs all three kinds to mean anything',
         };
       }
 
@@ -111,11 +116,11 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${spots.length} plant spots in ${h.map.sites.length} site rooms `
-            + `(${kinds.floor} floor, ${kinds.top} climbable tops, ${kinds.vent} vent interiors); `
+            + `(${kinds.floor} floor, ${kinds.top} climbable tops, ${kinds.vent} vent interiors, ${kinds.crawl} crawl spaces); `
             + `${planted} committed where the charge landed within 5cm of the body, ${held} refused with `
             + `no progress. Refused by kind: `
             + `${kinds.floor - legalBy.floor} floor, ${kinds.top - legalBy.top} tops, `
-            + `${kinds.vent - legalBy.vent} ducts (${lidded} of the refusals by headroom, D20)`
+            + `${kinds.vent - legalBy.vent} ducts, ${kinds.crawl - legalBy.crawl} crawl spaces (${lidded} of the refusals by headroom, D20)`
           : problems.slice(0, 6).join('; ') + (problems.length > 6 ? ` (+${problems.length - 6} more)` : ''),
       };
     },

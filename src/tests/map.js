@@ -284,7 +284,8 @@ export function register(debugTools) {
           return !h.map.collision.isClear({ x: entry.at.x, y, z: entry.at.z }, half);
         });
         if (bad.length) {
-          problems.push(`${room.id}: ${bad.length} reported entries are blocked`);
+          problems.push(`${room.id}: ${bad.length} reported entries are blocked: ${bad.map((entry) =>
+            `${entry.edge} at (${entry.at.x.toFixed(1)}, ${entry.at.y.toFixed(1)}, ${entry.at.z.toFixed(1)})`).join(', ')}`);
           continue;
         }
         const kinds = room.entries.map((entry) => entry.edge).join('/');

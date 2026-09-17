@@ -19,6 +19,7 @@
 
 import { CONFIG } from '../config.js';
 import { CHARGE } from '../systems/objective.js';
+import { PLANT_HEADROOM } from '../systems/plantrule.js';
 import { createIntent } from '../entities/agent.js';
 
 const R = CONFIG.round;
@@ -65,14 +66,6 @@ export const spotOffTheRing = (h, site, want) => {
   return centre;
 };
 
-/**
- * Every climbable top a standing body fits on inside a site's room, as a
- * foot position at its centre, with whether the plant rule allows a charge
- * there. Taken from the census's own ledge list, so a map rebuild that moves
- * a crate moves the checks that use this with it.
- */
-
-/** Put the Shade in a site's room, off the ring, and hold interact. */
 /** Put the Shade in a site's room, off the ring, and hold interact. */
 export const plantAt = (h, siteId) => {
   const objective = h.objective;
@@ -125,24 +118,12 @@ export const perchesInSiteRooms = (h) => {
 
 /**
  * Every place inside a site room a Shade could leave a charge: the room
- * floors on a coarse grid, the climbable tops, and the vent interiors. A
- * spot is a FOOT position, because that is what the plant records and what
- * the defuse reach is measured from.
- *
- * The body is placed by its feet and the objective is driven directly, which
- * means a duct sample carries a standing capsule poking through the duct
- * roof. Nothing in `objective.step()` looks at the capsule - it reads the
- * feet and the room - and whether a body physically fits in a duct is
- * `tests/map.js`'s question, answered there. What is filtered here is
- * whether a *crouched* Shade fits, so the census never enumerates a spot no
- * Shade could occupy.
- */
-
-/**
- * Every place inside a site room a Shade could leave a charge: the room
- * floors on a coarse grid, the climbable tops, and the vent interiors. A
- * spot is a FOOT position, because that is what the plant records and what
- * the defuse reach is measured from.
+ * floors on a coarse grid, the climbable tops, the crawl spaces and the
+ * vent interiors. A spot is a FOOT position, because that is what the
+ * plant records and what the defuse reach is measured from. `kind` is
+ * `floor`, `top`, `crawl` or `vent`; the last two are the enclosed
+ * interiors D20 refuses, and a check that asks about "inside anything"
+ * takes both.
  *
  * The body is placed by its feet and the objective is driven directly, which
  * means a duct sample carries a standing capsule poking through the duct
@@ -191,6 +172,15 @@ export const plantableSpots = (h) => {
   // The climbable tops - the list the census check derives its own from.
   for (const perch of perchesInSiteRooms(h)) add('top', perch.tag, perch.foot);
 
+  // The crawl spaces (D2): under anything a crouched body fits beneath and a
+  // standing Warden's headroom does not - the bed of the yard's trailer.
+  // Not a list of trailers, any more than the ducts are a list of ducts:
+  // every solid inside a site room whose underside sits that far above the
+  // floor, sampled along its length between whatever holds it up. On the
+  // plant nothing qualifies (the ducts hang at 2.3m, the gantries higher),
+  // which is the honest count there.
+  for (const spot of crawlSpaces(h)) add('crawl', spot.what, spot.foot);
+
   // The vent interiors, along the run rather than across it.
   for (const vent of h.map.vents) {
     const alongX = vent.axis === 'x';
@@ -213,7 +203,43 @@ export const plantableSpots = (h) => {
   return spots;
 };
 
-/** Stand at a spot and hold interact until the plant commits or the hold is over. */
+/**
+ * Every crawl space in a site room: the floor under a solid whose underside
+ * clears a crouched Shade and not a standing Warden (`PLANT_HEADROOM`), as
+ * foot positions along the solid's long axis, each one a crouched body
+ * fits at and a standing one does not. What D20's "inside things" means
+ * when the thing is not a duct.
+ */
+export const crawlSpaces = (h) => {
+  const S = CONFIG.shade;
+  const crouchHalf = { x: S.radius, y: S.crouchHeight / 2, z: S.radius };
+  const standHalf = { x: S.radius, y: S.standHeight / 2, z: S.radius };
+  const out = [];
+  for (const site of h.map.sites) {
+    const room = site.room;
+    if (!room) continue;
+    for (const box of h.map.collision.boxes) {
+      if (!box.solid) continue;
+      const gap = box.min.y - room.floorY;
+      if (gap < S.crouchHeight + 0.1 || gap >= PLANT_HEADROOM.height) continue;
+      if (box.max.x - box.min.x < S.radius * 2 || box.max.z - box.min.z < S.radius * 2) continue;
+      const cx = (box.min.x + box.max.x) / 2;
+      const cz = (box.min.z + box.max.z) / 2;
+      if (cx < room.min.x || cx > room.max.x || cz < room.min.z || cz > room.max.z) continue;
+      const alongX = box.max.x - box.min.x >= box.max.z - box.min.z;
+      const from = alongX ? box.min.x : box.min.z;
+      const to = alongX ? box.max.x : box.max.z;
+      for (let t = 0.1; t <= 0.91; t += 0.2) {
+        const along = from + (to - from) * t;
+        const foot = { x: alongX ? along : cx, y: room.floorY + 0.02, z: alongX ? cz : along };
+        if (!h.map.collision.isClear({ x: foot.x, y: foot.y + crouchHalf.y, z: foot.z }, crouchHalf)) continue;
+        if (h.map.collision.isClear({ x: foot.x, y: foot.y + standHalf.y, z: foot.z }, standHalf)) continue;
+        out.push({ what: `under ${box.tag || 'a solid'} at ${along.toFixed(1)}`, foot, box });
+      }
+    }
+  }
+  return out;
+};
 
 /** Stand at a spot and hold interact until the plant commits or the hold is over. */
 export const plantOutcomeAt = (h, spot) => {
@@ -232,6 +258,3 @@ export const plantOutcomeAt = (h, spot) => {
   }
   return { charge: objective.round.charge, peak, at: objective.round.chargeAt };
 };
-
-/** Put the Shade in a site's room, off the ring, and hold interact. */
-/** Put the Shade in a site's room, off the ring, and hold interact. */

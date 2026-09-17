@@ -454,6 +454,52 @@ and the page is built on one of them. Provisional, done as recommended:
   (PROGRESS.md).
 **decided:**
 
+### D35 — The yard's shape: high-cube containers, a ring with two arches
+D2 (2026-09-17). The queue says "container stacks 1-3 high (2.6m each:
+one is a jump-mantle, two needs a stack)". Built as recommended, with one
+number changed to make the sentence true:
+
+- **The container is 2.9m, a high cube, not 2.6.** `shade.reach.standing`
+  is 2.6, so a 2.6m top is a standing mantle at the very limit and a
+  floating-point coin toss; at 2.9 one high is a jump and a grab (over
+  the hang height, 2.59), two high (5.8) is past the jump's 3.8 and needs
+  the one below as a stage, three high is 8.7. `CONTAINER` in
+  maps/yarddata.js; `one-high-is-a-jump-and-two-high-needs-a-stack`
+  (tests/yard.js) holds the sentence. Alternative: 2.6 with the reach
+  lowered - a rule change, not taken.
+- **The working yard is a ring of one-high containers** (60 x 42, inside
+  the site fence) with a gate north and south and a container laid
+  across each as an arch: the Warden walks under, the Shade over, and
+  the ring's tops stay one surface. Every bay wall and every stack
+  touches the ring or a row that does, so the one-high tops are one
+  connected deck (`the-container-tops-are-one-connected-deck`). The
+  Shade climbs in anywhere; the Warden uses the gates. Alternative: a
+  chain-link fence with gates and containers straddling it - fewer
+  boxes, but the fence is a wall to the Shade too (thin, nothing to
+  stand on), which makes the gates chokepoints.
+- **The bays open at a corner.** A and B are walled by the ring on two
+  sides, a 12m row on the south and a 12m row on the lane side, and the
+  corner where those two do not meet is the Warden's way in (an L of
+  9.4m and 4.6m); C has the lane's gap in its north row and the rear
+  gate behind it. A second ground entry each would cut a row's top off
+  the deck, so the second entry is the sky.
+- **The routes start on pallets** (1.0m, a vault from the ground, a 1.9m
+  mantle onto the row beside them): tests/routes.js wants a first step
+  found on foot within a standing reach, and a container is not. Nine
+  routes, one per stack and one per arch.
+- **"Inside anything" on the yard is the crawl space under the flatbed
+  trailer** in bay B (bed 1.2-1.5m: a crouched Shade fits under, a
+  standing Warden's headroom does not, so the plant is refused there by
+  the lid, D20). The census (`plantableSpots`) enumerates crawl spaces
+  on every map - the plant has none, honestly - and the two
+  inside-anything checks take ducts and crawl spaces alike.
+- **Colours are the blockout's**: rows gunmetal, second tier concrete,
+  third orange, so a stack reads by height and the orange pallets read
+  against the rows (B7's contrast check measures it). E5 replaces them.
+- **Lighting is D4's.** Four placeholder lamps; `lit-pools-and-dark-gaps`
+  is red on the yard until D4 gives it a night rig.
+**decided:**
+
 ## Blocking — waiting on Josh
 
 ### D8 — Does the site ring still read, now the plant is the whole room?

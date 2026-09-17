@@ -12,6 +12,7 @@
 import { CONFIG } from '../config.js';
 import { createIntent } from '../entities/agent.js';
 import { createWardenIntent } from '../entities/enforcer.js';
+import { clearLane } from './lanes.js';
 
 export function register(debugTools) {
   // -------------------------------------------------------------------------
@@ -185,10 +186,14 @@ export function register(debugTools) {
         return seen;
       };
 
+      // A straight clear run on whatever map this is (tests/lanes.js): 3s
+      // of the Shade's sprint is 19.5m.
+      const run = clearLane(h, 22);
+      if (!run) return { pass: false, detail: 'no 22m clear lane on this map' };
       const lane = (actor, height) => () => {
         actor.reset(actor === h.shade ? h.map.shadeSpawns[0] : h.map.wardenSpawns[0]);
-        actor.position.set(-24, height / 2 + 0.05, -19);
-        actor.yaw = Math.PI;
+        actor.position.set(run.x, run.y + height / 2 + 0.05, run.z);
+        actor.yaw = run.yaw;
         actor.velocity.set(0, 0, 0);
       };
 

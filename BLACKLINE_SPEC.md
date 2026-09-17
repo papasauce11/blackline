@@ -1087,3 +1087,32 @@ Checks: `every-registered-map-builds-and-the-page-is-on-the-one-its-url-asked-fo
 `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one`,
 `a-check-registered-for-another-map-is-reported-not-run` (tests/maps.js).
 D1, 2026-09-17; D34.
+
+### 20.18 Section 5 - the second map, the container yard, blocked out
+
+`yard`, "Container Yard" (`maps/yard.js`, its data in `maps/yarddata.js`;
+D2, 2026-09-17), is built to Section 5's five v2 requirements re-read for
+outdoors: the Shade starts on the apron outside a working yard walled by
+a ring of one-high containers (requirement 3); the tops of the one-high
+containers are one connected deck - every bay wall and every stack
+touches the ring or a row that does, and a container laid across each of
+the two gates as an arch keeps the ring one surface over them
+(requirement 2); the stairless routes up are stacks, pallets to a row
+top to a second tier to a third, declared as `map.routes` (requirement
+4); every bay has two entries, one of them the sky (requirement 5); the
+raised ceiling is the Warden's walkway, D3's. The container is a high
+cube, 2.9m (D35): above `shade.reach.standing`, so one high is a jump
+and a grab, and two high is past the jump's reach, so it needs the one
+below. Section 5's counts are the plant's; the yard promises its own
+(`EXPECTS`: 4 lights, 21 waypoints, 3 sites in 3 rooms, 9 routes).
+Section 10.1's "not inside anything" (20.3, D20) has a second reading
+here: the crawl space under bay B's trailer, refused by the same headroom
+clause; the census enumerates crawl spaces on every map. Section 16: two
+checks on the yard alone, `the-container-tops-are-one-connected-deck`
+and `one-high-is-a-jump-and-two-high-needs-a-stack` (tests/yard.js); the
+checks that only need open floor find a lane on the map they run on
+(tests/lanes.js) instead of standing at the Turbine Hall's coordinates;
+the hang-under-a-lid case searches the map for a lidded lip; three AI
+checks that stand in the hall's lit lane are the plant's until D5. The
+room-entry derivation splits a run where its sill changes (a gap beside
+a row is two entries, not one at the row's centre). D2, 2026-09-17; D35.

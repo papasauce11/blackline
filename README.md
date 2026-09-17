@@ -54,8 +54,11 @@ http://localhost:3000/?debug=1&seed=2709321559
 ### Choosing a map
 
 Two maps are registered (`src/maps/index.js`): `plant`, Meridian
-Substation, and `yard`, the container yard (an empty plane until Block D
-blocks it out). The page opens on `plant`; `?map=yard` opens the other,
+Substation, and `yard`, the container yard - a ring of containers with a
+gate at each end, three bays and stacks one to three high; a container
+is 2.9m, a jump and a grab, and the second tier needs the first (D2; the
+Warden's walkway, the night lighting and the AI's yard are D3-D5). The
+page opens on `plant`; `?map=yard` opens the other,
 and the main menu's *map* row reloads the page on the next one, keeping
 the seed and the debug gate. The headless suite runs on one map at a
 time: `npm run suite` is `plant`, `npm run suite -- --map plant,yard`

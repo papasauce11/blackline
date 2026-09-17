@@ -183,12 +183,14 @@ export function register(debugTools) {
       const { width, height } = reader;
       try {
         // The Warden in front of the Shade at knife range, facing it, the
-        // Shade facing the Warden (the arrangement tests/combat.js uses).
-        const x = -18;
-        const z = -4;
-        h.warden.position.set(x, CONFIG.warden.standHeight / 2 + 0.05, z);
+        // Shade facing the Warden (the arrangement tests/combat.js uses),
+        // on the first site's floor - open on every map.
+        const x = h.map.sites[0].position.x;
+        const z = h.map.sites[0].position.z;
+        const y = h.map.sites[0].position.y;
+        h.warden.position.set(x, y + CONFIG.warden.standHeight / 2 + 0.05, z);
         h.warden.yaw = Math.PI;
-        h.shade.position.set(x, CONFIG.shade.standHeight / 2 + 0.05, z + 1.2);
+        h.shade.position.set(x, y + CONFIG.shade.standHeight / 2 + 0.05, z + 1.2);
         h.shade.yaw = Math.atan2(-(x - h.shade.position.x), -(z - h.shade.position.z));
         h.stepFrames(5);
         h.renderFrame();

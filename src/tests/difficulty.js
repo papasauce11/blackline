@@ -134,6 +134,7 @@ function engage(h, name, seed, range) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you',
+    maps: ['plant'], // LANE is the Turbine Hall's, lit by hall-1; D33's table was measured there; the yard's lane is D5's
     spec: 'Section 11 (difficulty)',
     name: 'Time-to-detect and time-to-kill both fall from one preset to the next, at 8m and at 16m',
     run: (h) => {
@@ -197,6 +198,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'the-warden-fires-in-bursts-of-rounds-at-the-torso',
+    maps: ['plant'], // LANE is the Turbine Hall's; the yard's lane is D5's
     spec: 'Section 11 (ENGAGE), Section 17.1 (god mode)',
     name: 'A burst is 3-7 rounds at the gun\'s rate, aimed at the torso, and god mode stops every one',
     run: (h) => {

@@ -17,6 +17,7 @@ import { register as registerEngine } from './engine.js';
 import { register as registerDeterminism } from './determinism.js';
 import { register as registerMap } from './map.js';
 import { register as registerMaps } from './maps.js';
+import { register as registerYard } from './yard.js';
 import { register as registerNavigation } from './navigation.js';
 import { register as registerShade } from './shade.js';
 import { register as registerMovement } from './movement.js';
@@ -60,6 +61,7 @@ export function registerAutoTests(debugTools) {
   registerDeterminism(debugTools);
   registerMap(debugTools);
   registerMaps(debugTools);
+  registerYard(debugTools);
   registerNavigation(debugTools);
   registerShade(debugTools);
   registerMovement(debugTools);

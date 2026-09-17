@@ -19,10 +19,18 @@ the F4 test panel (or turn on *debug tooling* in the settings menu);
 the same shots. **`?map=yard`** opens the second map (D1, 2026-09-17), or
 click the *map* row on the main menu, which reloads the page on the next
 map and keeps the seed. The menu names the map you are on; the briefing
-names it after the sites. The yard is an **empty fenced plane** until D2
-blocks it out - three open bays with a site in each, nothing to climb -
-so there is nothing to look at there yet beyond the plumbing: that the
-page opens on it, that a match runs on it, that the menu takes you back.
+names it after the sites. The yard is **blocked out** (D2, 2026-09-17):
+a ring of one-high containers round a 60 x 42 working yard with a gate
+north and south and a container laid across each as an arch, three bays
+(A and B either side of the lane from the gate, C across the south),
+stacks one to three high, pallets, a skip, a flatbed trailer, a
+gatehouse. A container is 2.9m: a jump and a grab from the ground, and
+the second tier needs the first. Every one-high top connects to every
+other - along the rows, up a stack and down again, over the arches - so
+once you are up you can cross the whole yard without touching the
+ground, and the Warden can never follow. Day lighting from four
+placeholder lamps until D4; no walkway until D3; the Warden patrols it
+on a 21-node graph but has not been tuned for it (D5).
 The settings menu has the difficulty (easy / medium /
 hard), the match length (best of 5 or 11), the round briefing on or off,
 mouse sensitivity and volume. Controls, gadget slots and the climbing
@@ -33,10 +41,12 @@ minutes on this PC's software GL; seconds on a GPU), **U** the regression
 set. `npm run suite` is the same thing headless. Both are green at every
 commit; if one is red in your tab, the F3 overlay's *gl context lost* row
 says whether the GPU was taken away mid-run. On the yard, Y runs only the
-checks that are not about the substation's geometry (23 are, and the
-banner counts them as *not for this map*) and, until D2, 21 of the rest
-are honestly red there: no ledge to climb, no wall to mount a camera on.
-`npm run suite -- --map yard` is the same headless.
+checks that are not about the substation's geometry (26 are, and the
+banner counts them as *not for this map*) and one of the rest is red
+there until D4: `lit-pools-and-dark-gaps-are-actually-contrasty`, which
+wants the lamps to out-light the sky. `npm run suite -- --map yard` is
+the same headless; the yard is not in `npm run suite`'s default gate
+until D6.
 
 ## What to look at
 
@@ -146,9 +156,15 @@ now. What is not, and why:
   check fires its own wall-clock guard on purpose. In play, that guard
   fires only if a death camera has been up 16.5s - which the end screen
   now prevents (C4).
-- **The yard is a placeholder** (D1, D34): an empty fenced plane with
-  three sites, so the map plumbing has a second map to prove itself on.
-  D2 blocks it out. Switching maps reloads the page; that is by design.
+- **The yard is a blockout** (D2, D35): the shape is there and the
+  checks hold it (`the-container-tops-are-one-connected-deck`,
+  `one-high-is-a-jump-and-two-high-needs-a-stack`, and the census, the
+  routes and the plant rule all run on it), but it is lit like noon
+  (D4), has no walkway (D3), and the Warden has not been tuned for it
+  (D5). What only eyes can judge: whether a 2.9m container feels like a
+  jump-and-grab you would expect, whether the bays read as bays from the
+  lane, whether the arches over the gates read as arches. Switching
+  maps reloads the page; that is by design.
 
 ## How to answer
 

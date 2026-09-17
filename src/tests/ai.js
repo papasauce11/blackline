@@ -426,6 +426,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'ai-state-machine-follows-section-11',
+    maps: ['plant'], // stands in the Turbine Hall lane at (-24, -19), lit by hall-1; the yard's lane is D5's
     spec: 'Section 11 (state table)',
     name: 'Noise, thresholds and a stun move the AI through the spec states',
     run: (h) => {

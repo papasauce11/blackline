@@ -13,6 +13,7 @@
 import { CONFIG } from '../config.js';
 import { GADGET } from '../systems/gadgets.js';
 import { WARDEN_STATE } from '../entities/enforcer.js';
+import { clearLane, alongLane } from './lanes.js';
 
 const GA = CONFIG.gadgets;
 
@@ -305,9 +306,14 @@ export function register(debugTools) {
       h.shade.reset(h.map.shadeSpawns[0]);
       h.warden.reset(h.map.wardenSpawns[0]);
 
-      h.shade.position.set(-20, CONFIG.shade.standHeight / 2 + 0.05, -4);
-      h.warden.position.set(-16, CONFIG.warden.standHeight / 2 + 0.05, -4);
-      const aim = { x: 1, y: 0, z: 0 };
+      // The Shade at the foot of a clear lane, the Warden down it
+      // (tests/lanes.js): 4m for the hit, range + 3 for the miss.
+      const lane = clearLane(h, GA.taser.range + 4);
+      if (!lane) return { pass: false, detail: `no ${GA.taser.range + 4}m clear lane on this map` };
+      const near = alongLane(lane, 4);
+      h.shade.position.set(lane.x, lane.y + CONFIG.shade.standHeight / 2 + 0.05, lane.z);
+      h.warden.position.set(near.x, near.y + CONFIG.warden.standHeight / 2 + 0.05, near.z);
+      const aim = { x: lane.dx, y: 0, z: lane.dz };
 
       const hit = gadgets.fireTaser(h.shade, h.warden, aim);
       if (hit !== 'warden') problems.push(`taser at 4m hit ${hit}, want the warden`);
@@ -318,7 +324,8 @@ export function register(debugTools) {
       // Out of range on a fresh charge does nothing (Section 9.1: 6m).
       gadgets.reset();
       h.warden.reset(h.map.wardenSpawns[0]);
-      h.warden.position.set(-20 + GA.taser.range + 3, CONFIG.warden.standHeight / 2 + 0.05, -4);
+      const beyond = alongLane(lane, GA.taser.range + 3);
+      h.warden.position.set(beyond.x, beyond.y + CONFIG.warden.standHeight / 2 + 0.05, beyond.z);
       const far = gadgets.fireTaser(h.shade, h.warden, aim);
       if (far === 'warden') problems.push(`taser reached ${GA.taser.range + 3}m, range is ${GA.taser.range}m`);
       if (gadgets.taserCharge !== GA.taser.charges && far === null) problems.push('a miss cost a charge');

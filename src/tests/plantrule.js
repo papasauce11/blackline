@@ -450,14 +450,18 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'a-charge-cannot-be-planted-inside-anything',
     spec: 'Section 10.1 amended / D20 / Block A6',
-    name: 'Every duct interior in a site room refuses the plant, by its lid and not by the reach',
+    name: 'Every enclosed interior in a site room - a duct, a crawl space - refuses the plant, by its lid and not by the reach',
     run: (h) => {
       const problems = [];
       h.initMatch({ mode: 'competitive', role: 'shade', ai: false, objective: true });
       const objective = h.objective;
 
-      const ducts = plantableSpots(h).filter((spot) => spot.kind === 'vent');
-      if (!ducts.length) return { pass: false, detail: 'no duct interior lies inside a site room, so there is nothing to refuse' };
+      // "Inside anything" is whatever the map it runs on has: the plant's
+      // ducts, the yard's crawl space under the trailer (D2). Both are the
+      // same clause - a lid over the charge - and both come from
+      // `plantableSpots`, so a map with neither is honestly red here.
+      const ducts = plantableSpots(h).filter((spot) => spot.kind === 'vent' || spot.kind === 'crawl');
+      if (!ducts.length) return { pass: false, detail: 'no duct interior or crawl space lies inside a site room, so there is nothing to refuse' };
 
       // --- every duct is refused, and the plant agrees ------------------
       for (const duct of ducts) {
@@ -517,7 +521,8 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${ducts.length} duct interiors inside site rooms, all refused by their lid: unmoved by a 50m defuse `
+          ? `${ducts.length} enclosed interiors inside site rooms (${ducts.filter((d) => d.kind === 'vent').length} in ducts, `
+            + `${ducts.filter((d) => d.kind === 'crawl').length} in crawl spaces), all refused by their lid: unmoved by a 50m defuse `
             + `reach, opened by dropping the headroom to ${(CONFIG.shade.crouchHeight * 0.5).toFixed(2)}m, refused `
             + `again on restore. ${open.length} of ${tops.length} reachable tops have open air above and stay legal`
           : problems.join('; '),

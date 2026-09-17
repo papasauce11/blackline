@@ -12,6 +12,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { WARDEN_STATE, createWardenIntent } from '../entities/enforcer.js';
+import { clearLane } from './lanes.js';
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
@@ -90,11 +91,15 @@ export function register(debugTools) {
     run: (h) => {
       const dt = CONFIG.time.fixedDt;
       const intent = createWardenIntent();
+      // A clear lane on whatever map this is (tests/lanes.js): 3s of sprint
+      // is 15m.
+      const lane = clearLane(h, 20);
+      if (!lane) return { pass: false, detail: 'no 20m clear lane on this map' };
 
       const settle = (sprint, ads) => {
         h.warden.reset(h.map.wardenSpawns[0]);
-        h.warden.position.set(-24, CONFIG.warden.standHeight / 2 + 0.05, -19);
-        h.warden.yaw = Math.PI; // down the clear lane of the Turbine Hall
+        h.warden.position.set(lane.x, lane.y + CONFIG.warden.standHeight / 2 + 0.05, lane.z);
+        h.warden.yaw = lane.yaw;
         intent.forward = 1;
         intent.strafe = 0;
         intent.sprint = sprint;

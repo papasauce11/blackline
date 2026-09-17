@@ -30,12 +30,13 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after D1 (2026-09-17) |
-| AUTO suite | headless, `npm run suite` (the `plant` map): **152 passed, 1 failed** (2026-09-17, after D1), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. On `yard` (`--map yard`, not in the default gate): 108 passed, 22 failed, 23 not for this map - the 21 red are the empty yard's, D2's list |
-| Next job | **D2** (L: the yard blockout, a whole run), then D3-D6. **D1 done** 2026-09-17 (below): the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16 (C6, C5, F5 and C4 that day; C3, C2, C1 and B8b 2026-09-15). B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after D2 (2026-09-17) |
+| AUTO suite | headless, `npm run suite` (the `plant` map): **152 passed, 1 failed, 2 not for this map** (2026-09-17, after D2), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. On `yard` (`--map yard`, not in the default gate until D6): **127 passed, 2 failed, 26 not for this map**, both runs - the frame budget skipped, and `lit-pools-and-dark-gaps-are-actually-contrasty`, which is D4's (the lamps add 6.6 over a sky of 21.4) |
+| Next job | **D3** (M: the Warden's walkway), then D4-D6. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
-| Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
+| Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
+| Map, yard | 71 boxes, 58 climbable, Warden ground 15,335 cells in one component, 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up (the two arches and the nine upper tiers), every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck |
 
 Phases 1–49 of the original build are done and committed. The **redesign**
 (phases 1-50 of the plan below) is closed as of B9, 2026-09-14, but for two
@@ -44,19 +45,61 @@ outside it (the plant, below). **Block C is closed** (2026-09-16): C1,
 the playtest build, C2, the round-start briefing, and C3, hit and damage
 feedback, landed 2026-09-15; C4, the end screens, C5, the difficulty
 pass, and C6, `PLAYTEST.md`, 2026-09-16 (below). Block D, the second
-map, is under way: D1, the plumbing, 2026-09-17 (below); D2, the yard
-itself, is next.
+map, is under way: D1, the plumbing, and D2, the yard blocked out, both
+2026-09-17 (below); D3, the walkway, is next.
 
 ---
+
+## The yard is blocked out - D2
+
+`src/maps/yard.js` (the geometry) and `src/maps/yarddata.js` (sites,
+spawns, lights, waypoints, routes, and `CONTAINER` / `TIERS`, which both
+read). Inside the site fence a **60 x 42 working yard walled by a ring of
+one-high containers**, a gate north and south, and a **40ft laid across
+each gate as an arch**: the Warden walks under, the Shade climbs it from
+the ring top either side and walks over, so the ring's tops stay one
+surface. Bays A and B either side of the gate lane, each walled by the
+ring and two 12m rows and open at the corner they leave (the Warden's
+way in); C across the south with the lane's gap and the rear gate; stacks
+in every bay and in the storage blocks either side of C. **Every row and
+stack touches the ring or a row that does, so the one-high tops are one
+connected deck** (v2 requirement 2, outdoors) -
+`the-container-tops-are-one-connected-deck` (tests/yard.js) floods them by
+touching and by the rule's climbs and names any island. **The container is
+2.9m, a high cube (D35)**: past `shade.reach.standing` (2.6), so one high
+is a jump and a grab; two high (5.8) is past the jump's 3.8 and needs the
+one below - `one-high-is-a-jump-and-two-high-needs-a-stack` holds the
+sentence and drives every upper tier from the tier below. Every route
+starts on **pallets** (1.0m: a vault from the ground, a 1.9m mantle onto
+the row beside them) because tests/routes.js wants a first step found on
+foot within a standing reach. What the checks need at ground level and
+where it is: the header comment of yard.js. **"Inside anything" on the
+yard is the crawl space under bay B's trailer** (bed 1.2-1.5m): the
+census (`plantableSpots`) enumerates crawl spaces on every map, kind
+`crawl`, and the inside-anything checks take ducts and crawl spaces
+alike; the plant has none, honestly.
+
+Under it, two things that were not the yard's: the **room-entry
+derivation merged runs of different sills** (a 9m gap and then a 12m row
+was one entry at the row's centre; `maprooms.js` splits a run where the
+sill changes - the plant's walls reach the ceiling, so it never showed),
+and **five checks stood at the Turbine Hall's coordinates** for open
+floor (speeds, the noise ladder, the taser, the knife) - `tests/lanes.js`,
+`clearLane(h, length)`, finds a straight clear run on whatever map the
+page is on; the hang-under-a-lid case searches for a lidded lip
+(`findLiddedLip`, tests/hang.js) instead of naming hall-container. Three
+AI checks that stand in the hall's LIT lane are `maps: ['plant']` until
+D5 gives them a lane the yard's lamps light. Not built: lighting (D4;
+`lit-pools` is red on the yard until then), the walkway (D3), the AI's
+tuning (D5), the yard in the default gate (D6). Spec 20.18, D35.
 
 ## Two maps, one page load each - D1
 
 `src/maps/index.js` is the registry: `plant` ("Meridian Substation" -
 `maps/plant.js` and `maps/plantdata.js`, which were `src/map.js` and
-`src/mapdata.js`) and `yard` ("Container Yard" - `maps/yard.js`, an
-**empty fenced plane** with three open bays as rooms, a site in each,
-the spawns, four lamps, eight waypoints; every number is D2's to
-replace). `buildMap(id, { gradientMap })` is the only way a map is
+`src/mapdata.js`) and `yard` ("Container Yard" - `maps/yard.js` and
+`maps/yarddata.js`; an empty fenced plane under D1, blocked out by D2,
+above). `buildMap(id, { gradientMap })` is the only way a map is
 built, at boot, from `requestedMapId(location.search)` (`?map=yard`; an
 unknown id opens `plant` with a warning); **another map is another page
 load** (D34) - the main menu's *map* row calls `goToMap(id)`, which sets
@@ -75,7 +118,7 @@ a structure (lips, ducts, staircases) the yard will never have. The
 rule for a new check: **name the map only if you name its geometry.** A
 check that searches the map for a feature (a ledge in the hang band, a
 wall near a waypoint) stays generic and is honestly red on a map with
-none - 21 are, on the empty yard, and D2's done-when turns them.
+none - 21 were, on the empty yard, and D2 turned all but D4's one.
 `a-check-registered-for-another-map-is-reported-not-run` requires every
 `maps` entry to name a registered id. The runner: `npm run suite --
 --map plant,yard` loads the page once per map, runs each `--runs` times,
@@ -791,7 +834,7 @@ npx serve -l 5173 .
 
 Open it with **`?debug=1`** for F3 and F4 (C1: the page without it is the
 playtest build, every debug key inert; the settings menu's *debug tooling*
-row also turns the gate on). In the browser console (`window.BLACKLINE` is
+row also turns the gate on). `?map=yard` for the container yard (D2). In the browser console (`window.BLACKLINE` is
 the harness in both builds; the suite holds the gate up while it runs):
 
 ```js

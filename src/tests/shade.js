@@ -12,6 +12,7 @@
 import { CONFIG, rng } from '../config.js';
 import { classifyReach } from '../physics.js';
 import { SHADE_STATE, createIntent } from '../entities/agent.js';
+import { clearLane } from './lanes.js';
 
 /**
  * An intent that reads as deliberately approaching a ledge. The airborne
@@ -321,14 +322,15 @@ export function register(debugTools) {
     run: (h) => {
       const dt = CONFIG.time.fixedDt;
       const intent = createIntent();
+      // A long clear lane on whatever map this is: well past what a 2s
+      // sprint covers (tests/lanes.js; the Turbine Hall's 27m until D2).
+      const lane = clearLane(h, 20);
+      if (!lane) return { pass: false, detail: 'no 20m clear lane on this map' };
 
       const settle = (sprint, crouch) => {
-        // A long clear lane down the Turbine Hall: 27m of open floor before the
-        // south wall, well past what a 2s sprint covers. Kept east of the
-        // grade vent that now pierces the west wall, and north of the crates.
         h.shade.reset(h.map.shadeSpawns[0]);
-        h.shade.position.set(-24, CONFIG.shade.standHeight / 2 + 0.05, -19);
-        h.shade.yaw = Math.PI; // +Z, along the hall
+        h.shade.position.set(lane.x, lane.y + CONFIG.shade.standHeight / 2 + 0.05, lane.z);
+        h.shade.yaw = lane.yaw;
         intent.forward = 1;
         intent.strafe = 0;
         intent.sprint = sprint;

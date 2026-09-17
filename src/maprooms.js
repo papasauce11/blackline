@@ -101,6 +101,11 @@ function lateralEntries(collision, room) {
         flush();
         continue;
       }
+      // A run is one opening at one sill. Where the sill changes - a gap in
+      // a row of containers beside the row itself, which the Shade comes in
+      // over (D2) - that is two entries, and recording them as one put the
+      // "entry" at the centre of the row, where nothing passes.
+      if (runStart !== null && sill !== runSill) flush();
       if (runStart === null) {
         runStart = a;
         runSill = sill;

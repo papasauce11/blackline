@@ -5893,3 +5893,166 @@ map but nothing runs it on both in one go - D6. The menu switches maps
 by reloading, not in place (D34).
 
 **Left.** D2, the yard blockout (L, a whole run), then D3-D6.
+
+## D2 — the yard blockout: a ring, two arches, three bays, stacks to three high (2026-09-17, scheduled run)
+
+The 17:00 run's one job, sized L. The queue asked for the yard's
+geometry: ground, fence, container stacks one to three high, three
+sites in bays, the Warden at a gatehouse, the Shade outside; the five v2
+requirements re-read for outdoors; and the 21 checks D1 left honestly
+red on the empty plane green, or made to read the map they run on.
+
+**Built.**
+
+- `src/maps/yard.js`, the geometry, and `src/maps/yarddata.js`, the
+  data (sites, spawns, lights, waypoints, routes, and the container's
+  numbers - `CONTAINER`, `TIERS` - which both files read). 71 boxes,
+  builds in 145ms. The shape (D35, provisional): inside the site fence a
+  **working yard of 60 x 42 walled by a ring of one-high containers**
+  laid end to end, a gate north and south, and a **40ft container laid
+  across each gate as an arch** - the Warden walks under at a
+  container's headroom, the Shade climbs it from the ring top either
+  side and walks over, and the ring's tops stay one surface. Bays A and
+  B either side of the lane from the north gate, each walled by the
+  ring on two sides, a 12m row on the south and a 12m row on the lane
+  side, open at the corner where those two do not meet (the Warden's
+  way in, an L of 9.4m and 4.6m); bay C across the south with the
+  lane's gap in its north row and the rear gate behind it; a storage
+  block of stacks either side of C. **Every row and every stack touches
+  the ring or a row that does**, so the one-high tops are one connected
+  deck. In the bays: a two-high stack against the ring (two 20ft side by
+  side, a second tier on the northern one), pallets against it, a skip
+  (bay A), a flatbed trailer (bay B); on bay C's west wall a 20ft and a
+  10ft on that, the three-high; the gatehouse in the lane beside the
+  north gate with a slot behind it holding a pallet stack with one open
+  face; loose pallets in the mid lane. West storage: a 40ft against bay
+  C's wall with a 20ft and a 10ft stepping up its east end, a two-high
+  in the ring's corner, a loose 20ft; east: a two-high in the corner, a
+  20ft with a 10ft on it.
+- **The container is a high cube, 2.9m**, not the queue's 2.6 (D35):
+  `shade.reach.standing` is 2.6, so a 2.6m top is a standing mantle at
+  the exact limit; at 2.9 one high is a jump and a grab (the hang line
+  is 2.59), two high (5.8) is past the jump's 3.8 and needs the one
+  below, which is what the queue's sentence says. Tier colours step
+  (gunmetal, concrete, orange) so a stack reads by height and the
+  orange pallets read against the dark rows; E5 replaces them.
+- **Nine routes**, one per stack and one per arch, every one starting
+  on pallets (1.0m: a vault from the ground, a 1.9m mantle onto the row
+  beside them - tests/routes.js wants a first step found on foot within
+  a standing reach, and a container is not one). 21 waypoints down the
+  lanes; 4 placeholder lamps (D4 lights it); Shade spawns at the apron
+  corners, the Warden at the gatehouse and one in each bay. `EXPECTS`:
+  4 lights, 21 waypoints, 3 sites in 3 rooms, at least 9 routes.
+- **"Inside anything" on the yard is the crawl space under the
+  trailer** (bed 1.2-1.5m: a crouched Shade fits under, a standing
+  Warden's headroom does not). `plantableSpots` (tests/plantspots.js)
+  gained `crawlSpaces()`: every solid in a site room whose underside
+  clears a crouch and not `PLANT_HEADROOM`, sampled along its length;
+  kind `crawl`. `a-charge-cannot-be-planted-inside-anything` and the
+  census take ducts and crawl spaces alike as the third kind of place.
+  On the plant it enumerates nothing new (the ducts hang at 2.3m), and
+  the plant census's numbers are what they were.
+- **The room-entry derivation splits a run where its sill changes**
+  (`maprooms.js`). Bay B's south edge is a 9m gap and then a 12m row,
+  and the boundary walk recorded them as ONE entry at the row's centre
+  (the gap at sill 0, the row at sill 3.0 - a Shade comes in over it -
+  merged because a run only ended where nothing passed at any sill), so
+  `every-room-has-two-entries` found its "entry" inside the row. The
+  plant never showed it: its walls reach the ceiling. The check's
+  "blocked" message names the entry now.
+- **Checks that only need open floor find it on the map they run on.**
+  `warden-speeds-and-no-crouch`, `shade-speeds-match-spec`,
+  `shade-is-quieter-than-the-warden`, `taser-stuns-costs-a-charge-and-recharges`
+  and `a-landed-knife-puts-a-hit-marker...` stood at the Turbine Hall's
+  coordinates - open floor on the empty yard by luck, inside a container
+  row on the built one. `tests/lanes.js`: `clearLane(h, length)`, a
+  straight run of floor a standing Warden walks without touching
+  anything, on the Warden's ground, from the sites first and then the
+  waypoints and spawns, eight headings, the first that fits (the same
+  every run on a map); `alongLane()`. The knife stands on site A's
+  floor, open on every map. Three that stand in the hall's LIT lane -
+  `ai-state-machine-follows-section-11`, `each-difficulty-...`,
+  `the-warden-fires-in-bursts...` - are `maps: ['plant']` with the
+  reason (D33's table was measured there; a lane the yard's lamps light
+  is D5's, queued under it).
+- **The hang under a lid searches the map** (`findLiddedLip`,
+  tests/hang.js): a ground-level lip in the hang band with a solid less
+  than a crouch over its landing. On the plant it finds hall-container's
+  south face under gantry-hall, as the check named by tag before; the
+  yard has no such lip by design, and the check proves the stretch on
+  any hangable lip (ring-west-0) and says the lid case is not this
+  map's.
+- Docs: spec 20.18, D35 (provisional), README's map paragraph,
+  PLAYTEST.md's yard paragraphs (how to run, what the suite says there,
+  what only eyes can judge).
+
+**Checks.** tests/yard.js, both `maps: ['yard']` because both name the
+container's height:
+
+- `the-container-tops-are-one-connected-deck`: union-find over every
+  climbable top at a tier height - an edge where two touch at a level,
+  one where the rule names a climb from one onto the other (the drop is
+  its reverse) - must be one component; and each arch must be climbable
+  from the ring on both sides of its gate, since the gates are where the
+  ring is cut. **44 tops at 2.9/5.8/8.7: 31 touch, 20 climbs, one
+  deck.** Cut any row loose and it names the island.
+- `one-high-is-a-jump-and-two-high-needs-a-stack`: the container is past
+  a standing reach, inside a jump's, over the hang line; two high is
+  not; every climbable top is at a tier or under the first, every tier
+  is built; every top above the first tier has no usable approach from
+  walkable ground and one from the tier below; and the controller,
+  stood at that approach, gets on top. **33 tops one high, 9 two high,
+  2 three high; 11 above the first tier, 11 climbed.**
+
+**Verified, on the yard** (`--map yard`, the run before VERIFY): **127
+passed, 2 failed, 26 not for this map** - the frame budget, skipped
+headless, and `lit-pools-and-dark-gaps-are-actually-contrasty` (the
+lamps add 6.6 over a sky of 21.4; D4's, night). Of D1's 21: 19 green
+(the ledge searches find the ring, the skip, the pallets; the routes and
+their lighting - pallets against the rows read 0.43-0.45, the landing
+edges 0.74-0.75; the alarm mounts on a container; the plant-rule four
+with 19 tops and 5 crawl spaces in the site rooms, 13 tops and all 5
+crawl spaces refused; the fuzz at 151 approaches; `a-match-replays...`
+differs on 226 of 240 samples at seed+1 on the 21-node graph), 1 made to
+read the map (the hang under a lid), 1 D4's. The census: **58 climbable
+surfaces, 163 approaches, the controller onto all 58, 11 need a leg up**
+(the two arches and the nine second and third tiers, every one a stage
+or a landing of a route; the first cut counted bay C's west wall too,
+because its pallets sat on the one spot the rule samples a quarter of
+the way along the wall - moved 2m, and the wall is a climb from the
+ground again);
+`every-approach...`: **151 of 151**; no dead climbs (58 tops: 33 lead
+on, 15 walk off, 10 drop); `a-mantle-never-passes-through-a-solid`
+green; the Warden's ground 15,335 cells, one component, every spawn,
+waypoint and site on it; the last leg to all 186 legal plants planned
+within 6m; the AI walked to and began defusing 3 of 3 sampled tops.
+
+**Verified, VERIFY.** `npm run suite -- --map plant,yard` (two runs
+each): yard **127 passed, 2 failed, 26 not for this map** both runs
+(152s, 148s), 0 flaky, 0 console errors; plant 151 passed, 2 failed both
+runs, with `frame-budget-under-the-check-29-load` red at a CPU median of
+9.55 / 14.45ms - and those two plant runs took 1080s and 892s against
+the gate's 437s that afternoon: the machine was loaded (by what, not
+found; the load was gone after), and a CPU-timing check on a loaded
+machine measures the machine. Alone, a minute later: 3.50ms median,
+green. Then `npm run suite` (the gate, plant, twice): **152 passed, 1
+failed, 2 not for this map** run 1 (440s), **152 passed, 1 failed, 2
+not for this map** run 2 (486s) - the frame budget skipped headless, the
+two yard checks not for this map, 0 red, 0 flaky, 0 console errors, 0
+context losses, 0 loop frames, exit 0. 155 checks registered, 153
+before D2.
+
+**Found.** Two of my own: the first cut put the second tier at the same
+end of a base as the pallets, so the rule refused the base (the landing
+was under the tier) - moved; and the pallets in the gatehouse slot are
+under the north arch, so the ring's top there is roofed and the rule
+names no climb onto it - the arch's route starts on pallets in bay B
+instead, and the slot's pallets stay as the one-face box the lid check
+wants. One the plant hid: the merged-sill entry above.
+
+**Not built.** Lighting (D4), the walkway (D3), the AI's tuning for the
+yard (D5, and the three lit-lane checks it owes), the yard in the
+default gate (D6). No 40ft container is a single box longer than 12m;
+no container is anything but a box.
+
+**Left.** D3 next.
