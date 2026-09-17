@@ -3,7 +3,7 @@
  *
  * Section 5's readability rule: "no room is a single-door trap".
  *
- * Rooms are DECLARED in map.js with a footprint; their entries are not. They
+ * Rooms are DECLARED by a map (maps/) with a footprint; their entries are not. They
  * are derived here from the geometry after the map is built, so cutting a
  * doorway or a hatch changes the count and typing a room name does not.
  *

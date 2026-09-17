@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after C6 (2026-09-16) |
-| AUTO suite | headless, `npm run suite`: **149 passed, 1 failed** (2026-09-16, after C6), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty |
-| Next job | **D1** (M: map plumbing - a registry, `buildMap(id)`, `?map=`, every check parameterised over the map), the first of Block D; then D2 (L: the yard blockout). **Block C is closed** 2026-09-16 (C6, C5, F5 and C4 that day; C3, C2, C1 and B8b 2026-09-15). B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after D1 (2026-09-17) |
+| AUTO suite | headless, `npm run suite` (the `plant` map): **152 passed, 1 failed** (2026-09-17, after D1), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. On `yard` (`--map yard`, not in the default gate): 108 passed, 22 failed, 23 not for this map - the 21 red are the empty yard's, D2's list |
+| Next job | **D2** (L: the yard blockout, a whole run), then D3-D6. **D1 done** 2026-09-17 (below): the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16 (C6, C5, F5 and C4 that day; C3, C2, C1 and B8b 2026-09-15). B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -44,7 +44,45 @@ outside it (the plant, below). **Block C is closed** (2026-09-16): C1,
 the playtest build, C2, the round-start briefing, and C3, hit and damage
 feedback, landed 2026-09-15; C4, the end screens, C5, the difficulty
 pass, and C6, `PLAYTEST.md`, 2026-09-16 (below). Block D, the second
-map, is next.
+map, is under way: D1, the plumbing, 2026-09-17 (below); D2, the yard
+itself, is next.
+
+---
+
+## Two maps, one page load each - D1
+
+`src/maps/index.js` is the registry: `plant` ("Meridian Substation" -
+`maps/plant.js` and `maps/plantdata.js`, which were `src/map.js` and
+`src/mapdata.js`) and `yard` ("Container Yard" - `maps/yard.js`, an
+**empty fenced plane** with three open bays as rooms, a site in each,
+the spawns, four lamps, eight waypoints; every number is D2's to
+replace). `buildMap(id, { gradientMap })` is the only way a map is
+built, at boot, from `requestedMapId(location.search)` (`?map=yard`; an
+unknown id opens `plant` with a warning); **another map is another page
+load** (D34) - the main menu's *map* row calls `goToMap(id)`, which sets
+`location.search` to `mapUrl(search, id)`, keeping the seed and the
+gate. `GameMap` has `id` and `name`; `addSite`, `addShadeSpawn`,
+`addWardenSpawn` and `addLightRig` are the kit's now; `validateMap(map,
+expects)` takes each map's own counts (`EXPECTS` at the top of each
+builder). Spec 20.17.
+
+**The suite is parameterised over the map.** A check registered with
+`maps: ['plant']` runs there and is reported *not for this map*
+elsewhere - never run, never a pass; a check with no `maps` runs on
+every map and reads `h.map`. 23 checks are scoped today, each with its
+reason on the line: they name a tag, a coordinate, a Section 5 count or
+a structure (lips, ducts, staircases) the yard will never have. The
+rule for a new check: **name the map only if you name its geometry.** A
+check that searches the map for a feature (a ledge in the hang band, a
+wall near a waypoint) stays generic and is honestly red on a map with
+none - 21 are, on the empty yard, and D2's done-when turns them.
+`a-check-registered-for-another-map-is-reported-not-run` requires every
+`maps` entry to name a registered id. The runner: `npm run suite --
+--map plant,yard` loads the page once per map, runs each `--runs` times,
+judges red and flaky **per map**, prints `run 1 (plant): ...` and tags
+ids `[map]`; the default is `plant` alone until D6 puts the yard in the
+gate. It refuses a page that booted a different map than it asked for.
+Checks: tests/maps.js (three), and the briefing check names the map.
 
 ---
 
@@ -645,7 +683,7 @@ check keeps it so. Nothing moved changes an order or a name a check reaches:
 | `entities/agent.js` (1,051) | `agent.js` (546): state machine, ground, air, the landing. `agentslide.js` (B8): the slide. `agenttraversal.js`: every climb. `agentvisual.js`: how it is drawn, and the camera's dip. `agentstate.js`: `SHADE_STATE` |
 | `systems/ai.js` (788) | `ai.js` (498): the state machine. `aiperception.js`, `ainav.js` (route, steering, stuck). `aistate.js`: `AI_STATE`, `angleDelta`, `DEFUSE_SNAP` |
 | `mapkit.js` (821) | `mapkit.js` (380): `GameMap`, `addSolid`, decals, rooms, lights, waypoints. `mapgen.js`: walls with openings, floor plates, staircases, vent runs. `mapclimb.js`: `deriveClimbableSurfaces`, `supportApproaches` (B3), `supportCandidates` |
-| `map.js` (810) | `map.js` (537): the geometry. `mapdata.js`: sites, spawns, lights, waypoints. `mapvalidate.js` |
+| `map.js` (810) | `maps/plant.js` (was `map.js`, 537): the geometry. `maps/plantdata.js` (was `mapdata.js`): sites, spawns, lights, waypoints, routes. `mapvalidate.js`. Since D1 `maps/index.js` is the registry and `maps/yard.js` the second map |
 | `physics.js` (735) | `physics.js` (600): `CollisionWorld`, gravity, `classifyReach`. `collisionbox.js`: the box and the ray-slab test |
 | `systems/objective.js` (646) | `objective.js` (536). `plantrule.js`: `DEFUSE_REACH`, `PLANT_HEADROOM`, `withinDefuseReach`, `canDefuseAt(map, at)`, `hasHeadroomAt`, `canPlantAt` — re-exported and wrapped as methods, so every existing import and call still works |
 | `mapground.js` (628, after B5c) | `mapground.js` (539): `WardenGround`, `route()`, `deriveWardenGround`. `groundprobe.js`: the column probes the flood and the planner share — `standableFloors`, `walkable`, `groundUnder` |
@@ -763,7 +801,9 @@ await BLACKLINE.debugTools.runRegressionSet();  // Section 16's set, 16 checks
 
 In-game: **F3** overlay · **F4** test mode · then **Y** full suite, **U**
 regression set, **N** the Warden's ground on the floor. Run the suite **twice** — a flaky check shows as a different
-answer, not a pass.
+answer, not a pass. Add **`?map=yard`** (or click the menu's *map* row)
+for the second map; Y there runs the checks that are not the
+substation's and the banner counts the rest as *not for this map* (D1).
 
 ---
 

@@ -50,6 +50,9 @@ export class Menu {
    * @param {(config:object)=>void} handlers.onPlay
    * @param {()=>void} handlers.onFreeRoam
    * @param {()=>void} [handlers.onFirstGesture] the audio gate
+   * @param {{id:string,name:string}[]} [handlers.maps] every map the registry offers (D1)
+   * @param {()=>string} [handlers.mapId] the map this page is on
+   * @param {(id:string)=>void} [handlers.onMap] the map row's click: the next map in the list
    */
   constructor(handlers) {
     this.handlers = handlers || {};
@@ -133,15 +136,36 @@ export class Menu {
     };
   }
 
+  /** The registry's maps, and the one this page is on. */
+  _maps() {
+    const maps = this.handlers.maps || [];
+    const id = this.handlers.mapId ? this.handlers.mapId() : null;
+    const current = maps.find((entry) => entry.id === id) || maps[0] || { id, name: id || '' };
+    return { maps, current };
+  }
+
   _renderMain() {
+    const { maps, current } = this._maps();
     this.root.innerHTML = `
       <div class="card">
         <h1>Blackline</h1>
-        <div class="tag">meridian substation</div>
+        <div class="tag">${current.name.toLowerCase()}</div>
         <button data-action="play">Play</button>
         <button data-action="freeroam">Free Roam</button>
         <button data-action="settings">Settings</button>
+        <div class="row"><span>map</span>
+          <span class="value" id="bl-map" title="${maps.map((entry) => entry.name).join(' / ')}">${current.name}</span></div>
       </div>`;
+    // D1: the map row cycles the registry. Another map is another page
+    // load (maps/index.js), so the click hands the id up and the page goes;
+    // with one map registered there is nothing to cycle to and the row is
+    // only a label.
+    const row = this.root.querySelector('#bl-map');
+    row.onclick = () => {
+      if (maps.length < 2) return;
+      const next = maps[(maps.findIndex((entry) => entry.id === current.id) + 1) % maps.length];
+      if (this.handlers.onMap) this.handlers.onMap(next.id);
+    };
     this.root.querySelector('[data-action=play]').onclick = () => {
       this._gesture();
       this.hide();

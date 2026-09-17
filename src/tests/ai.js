@@ -348,6 +348,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'ai-perception-cone-and-accumulator',
+    maps: ['plant'], // the hall's east wall is the through-wall case
     spec: 'Section 11 (perception)',
     name: '90 degree cone, 25m, needs an unobstructed ray; drains without one',
     run: (h) => {

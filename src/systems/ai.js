@@ -34,7 +34,7 @@ const TAU = Math.PI * 2;
 export class WardenAI {
   /**
    * @param {object} options
-   * @param {import('../map.js').GameMap} options.map
+   * @param {import('../mapkit.js').GameMap} options.map
    * @param {import('../entities/enforcer.js').Warden} options.warden
    * @param {import('./detection.js').Detection} options.detection
    * @param {object} options.emitter

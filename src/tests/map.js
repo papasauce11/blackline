@@ -38,6 +38,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'swept-collision-no-tunnelling',
+    maps: ['plant'], // drives into the plant's west perimeter wall at x=-30
     spec: 'check 1 (auto half) / Section 15',
     name: 'An actor driven into a wall at extreme speed never passes through',
     run: (h) => {
@@ -147,6 +148,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'vent-runs-are-crouch-only-and-enterable',
+    maps: ['plant'], // v2's duct count is the plant's
     spec: 'Section 5 / check 5',
     name: 'Every vent run is crouch-only along its length and open at both mouths',
     run: (h) => {

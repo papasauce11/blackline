@@ -88,19 +88,23 @@ a railed walkway reached by stairs with an overhead view, glazed, with only
 small apertures to shoot through. Provisional: D9 (night, floodlit), D11
 (three apertures ~0.4m), D12 (the walkway is out of the Shade's reach).
 
-- [ ] **D1 (M)** Map plumbing. A registry `src/maps/index.js` keyed by id;
-  `buildMap(id)`; `?map=` URL param; the menu offers the list; **every check
-  is parameterised over the current map**, the regression set runs on all.
-  *done-when:* map 1 (`plant`) through the plumbing, suite identical to
-  before; a second id (`yard`) builds an empty ground plane and the suite
-  reports it per map.
 - [ ] **D2 (L)** Yard blockout. Ground, fence, container stacks 1–3 high
   (2.6m each: one is a jump-mantle, two needs a stack), three sites in
   yard bays, Warden spawn at a gatehouse, Shade starts outside the fence.
   The five v2 requirements re-read for outdoors: level 2 is one connected
   container-top deck; stairless routes up are stacks; every bay has 2+
-  entries; the walkway plays the raised-ceiling role. *done-when:* nav,
-  census and objective checks pass on `yard`; "needs a leg up" reported.
+  entries; the walkway plays the raised-ceiling role. Start from
+  `src/maps/yard.js` (D1's placeholder: every number there is D2's to
+  replace) and its `EXPECTS`; `npm run suite -- --map yard` is the
+  instrument, `--map plant,yard` both. *done-when:* nav, census and
+  objective checks pass on `yard`; "needs a leg up" reported; the 21
+  checks D1 left red on the empty yard (PROGRESS.md, D1 - the ledge
+  searches, the routes, the alarm mounts, the plant-rule four, the
+  traversal fuzz) are green or, where the yard has no such thing by
+  design (a duct interior for `a-charge-cannot-be-planted-inside-anything`;
+  a `seed+1` slice on a small graph for `a-match-replays-identically-from-its-seed`),
+  the check is made to read the map it is on rather than scoped away;
+  `PLAYTEST.md`'s yard paragraph rewritten.
 - [ ] **D3 (M)** The Warden's walkway. Stairs, railing, a glazed booth;
   glass blocks shots and knives except through the apertures; the
   walkway height exceeds `standing + jumpBonus` from every stack top within
@@ -115,8 +119,12 @@ small apertures to shoot through. Provisional: D9 (night, floodlit), D11
   paths to all three sites, alarm placement. *done-when:* every AI check
   passes on `yard`; a soak of 3 matches with no stall.
 - [ ] **D6 (S)** Both maps in the regression set; the menu defaults to
-  `plant`; `PLAYTEST.md` gets a yard section. *done-when:* `runRegressionSet`
-  covers both maps in under 20s.
+  `plant`; `PLAYTEST.md` gets a yard section. Since D1 the runner takes
+  `--map plant,yard` and `runRegressionSet` filters by the map the page
+  is on; what is left is the gate: `npm run suite` runs `plant` alone
+  and should run both once the yard is green (D34). *done-when:*
+  `runRegressionSet` covers both maps in under 20s; `npm run suite` with
+  no arguments gates both maps.
 
 ## Block E — styling
 
@@ -146,6 +154,28 @@ budget checks are the ceiling.
 
 ## Done
 
+- **D1** Map plumbing. `src/maps/index.js` is the registry (`plant`:
+  "Meridian Substation", `src/map.js` and `mapdata.js` moved to
+  `maps/plant.js` and `maps/plantdata.js`; `yard`: "Container Yard",
+  `maps/yard.js`, an empty fenced plane with three open bays, three
+  sites, the spawns, four lamps and eight waypoints - D2's to replace);
+  `buildMap(id)`, `requestedMapId(search)` for `?map=`, `mapUrl()` for
+  the menu's *map* row, which reloads the page on the next map keeping
+  the seed and the gate (D34). `GameMap` carries `id` and `name` and
+  places sites and spawns (`addSite`, `addShadeSpawn`, `addWardenSpawn`)
+  and the shared light rig (`addLightRig`) itself; `validateMap(map,
+  expects)` takes each map's own counts. The suite is parameterised over
+  the map: `maps: ['plant']` on the 23 checks that name the substation's
+  geometry, reported *not for this map* elsewhere and never run there;
+  the runner takes `--map plant,yard`, loads the page per map, judges
+  red and flaky per map and refuses a page that booted a different map
+  than asked. Yard census: 108 green, 21 honestly red (nothing to climb,
+  no wall to mount on, no perch in a site room), listed under D2. Checks
+  (tests/maps.js): `every-registered-map-builds-and-the-page-is-on-the-one-its-url-asked-for`,
+  `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one`,
+  `a-check-registered-for-another-map-is-reported-not-run`; the briefing
+  check requires the map's name. Spec 20.17. `<hash>`, 2026-09-17,
+  scheduled run.
 - **C6** `PLAYTEST.md` for Josh: how to run it (the playtest build,
   `?debug=1`, `?seed=`, the settings), what to look at newest first (the
   Warden shooting straight with D33's numbers, the briefing and end

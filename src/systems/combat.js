@@ -172,7 +172,7 @@ export function damageAtRange(distance) {
 export class Combat {
   /**
    * @param {object} options
-   * @param {import('../map.js').GameMap} options.map
+   * @param {import('../mapkit.js').GameMap} options.map
    * @param {object} options.emitter
    * @param {import('./detection.js').Detection} options.detection
    * @param {THREE.PerspectiveCamera} options.camera

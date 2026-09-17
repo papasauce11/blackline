@@ -35,10 +35,33 @@ export class AutoSuite {
    * @param {string} test.id short slug
    * @param {string} test.name human description
    * @param {string} test.spec which Section 16 check this covers
+   * @param {string[]} [test.maps] the registry ids this check is for (D1):
+   *   a check that names the first map's geometry - a tag, a room, a
+   *   coordinate - says `['plant']`; one that reads the map it is given
+   *   through `h.map` says nothing and runs everywhere
    * @param {(harness: object) => Promise<{pass: boolean, detail: string}>} test.run
    */
   registerAutoTest(test) {
     this.tests.push(test);
+  }
+
+  /**
+   * Which of these checks are for the map the page is on (D1). A check with
+   * no `maps` is for every map; one that lists them runs only there and is
+   * reported as "not for this map" elsewhere - never as a pass.
+   *
+   * @param {object[]} tests
+   * @returns {{ tests: object[], notForMap: string[] }}
+   */
+  applicable(tests) {
+    const id = this.harness.map ? this.harness.map.id : null;
+    const forThisMap = [];
+    const notForMap = [];
+    for (const test of tests) {
+      if (!test.maps || test.maps.indexOf(id) !== -1) forThisMap.push(test);
+      else notForMap.push(test.id);
+    }
+    return { tests: forThisMap, notForMap };
   }
 
   /**
@@ -100,13 +123,15 @@ export class AutoSuite {
       console.warn('[AUTO] suite already running');
       return null;
     }
-    const tests = options.subset || this.tests;
+    const { tests, notForMap } = this.applicable(options.subset || this.tests);
+    const mapId = this.harness.map ? this.harness.map.id : '?';
     const label = options.label || 'AUTO SUITE';
     this.running = true;
-    this._log(`running ${label.toLowerCase()} (${tests.length})`);
+    this._log(`running ${label.toLowerCase()} (${tests.length}, map ${mapId})`);
 
     console.log(
-      `%c BLACKLINE ${label}  seed=${rng.seed}  checks=${tests.length} `,
+      `%c BLACKLINE ${label}  map=${mapId}  seed=${rng.seed}  checks=${tests.length}`
+      + `${notForMap.length ? `  not for this map=${notForMap.length}` : ''} `,
       'background:#2fd6c3;color:#08090b;font-weight:bold'
     );
 
@@ -124,14 +149,15 @@ export class AutoSuite {
         ? 'background:#4ade80;color:#08090b;font-weight:bold'
         : 'background:#f87171;color:#08090b;font-weight:bold'
     );
-    this._log(`${label}: ${passed} passed, ${failed} failed`);
+    this._log(`${label}: ${passed} passed, ${failed} failed`
+      + `${notForMap.length ? `, ${notForMap.length} not for ${mapId}` : ''}`);
     if (contextLosses > 0) {
       const rerun = results.filter((r) => r.rerun).map((r) => r.id);
       this._log(`gl context lost ${contextLosses}x during the run; re-ran ${rerun.length}`);
     }
 
     this.running = false;
-    return { passed, failed, results, contextLosses };
+    return { passed, failed, results, contextLosses, map: mapId, notForMap };
   }
 
   /**

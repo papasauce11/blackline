@@ -1,29 +1,26 @@
 /**
- * BLACKLINE — mapdata.js
+ * BLACKLINE — maps/plantdata.js
  *
  * "Meridian Substation", v2: the level's data that is not geometry. Plant
  * sites, spawns, the destructible lights and the ambient rig, and the AI
- * waypoint graph. `map.js` lays the geometry and calls these in order once
- * the rooms exist (a site finds its room by containment). Split out of map.js
- * (F3) so the layout and the placements can each be read whole.
+ * waypoint graph. `plant.js` lays the geometry and calls these in order once
+ * the rooms exist (a site finds its room by containment). Split out of the
+ * layout (F3) so the two can each be read whole; `mapdata.js` until D1.
  *
- * Layering (Section 3.1): as map.js — mapkit, config, three.
+ * Layering (Section 3.1): as plant.js — mapkit, config, three.
  */
 
-import * as THREE from 'three';
-import { CONFIG } from './config.js';
-import { facing } from './mapkit.js';
+import { CONFIG } from '../config.js';
 
 const M = CONFIG.map;
-const P = CONFIG.palette;
 const G = M.groundY;
 const DECK = M.catwalkY;
-/** Top of the roof slab, as map.js has it. */
+/** Top of the roof slab, as plant.js has it. */
 const ROOF = M.ceilingY + M.wallThickness;
 
 /**
- * Plant sites (Section 5). Each site's room is derived by containment, so the
- * rooms must be declared first.
+ * Plant sites (Section 5). Each site's room is derived by containment
+ * (`GameMap.addSite`), so the rooms must be declared first.
  */
 export function placeSites(map) {
   const siteSpecs = [
@@ -31,35 +28,7 @@ export function placeSites(map) {
     { id: 'B', x: 18.0, y: G, z: -10.0, name: 'Loading Bay' },
     { id: 'C', x: 18.0, y: DECK, z: 12.5, name: 'Server Vault' },
   ];
-  const ringGeometry = new THREE.RingGeometry(M.marking.siteRingInner, M.marking.siteRingOuter, 36);
-  for (const spec of siteSpecs) {
-    const ring = map.addDecal(
-      ringGeometry,
-      P.hazardOrange,
-      new THREE.Vector3(spec.x, spec.y + 0.02, spec.z),
-      -Math.PI / 2,
-      M.marking.siteRingPulseMax
-    );
-    // The room the site is the objective of. Derived by containment rather
-    // than declared, so a site that moves cannot end up pointing at the room
-    // it used to be in. The plant is allowed anywhere in this volume
-    // (Section 10.1, amended); the ring says which room, not which square
-    // metre of it.
-    const room = map.rooms.find((entry) => (
-      spec.x >= entry.min.x && spec.x <= entry.max.x
-      && spec.z >= entry.min.z && spec.z <= entry.max.z
-      && spec.y >= entry.floorY - 0.5 && spec.y < entry.ceilingY - 0.5
-    )) || null;
-
-    map.sites.push({
-      id: spec.id,
-      name: spec.name,
-      position: new THREE.Vector3(spec.x, spec.y, spec.z),
-      radius: CONFIG.round.siteRadius,
-      room,
-      ring,
-    });
-  }
+  for (const spec of siteSpecs) map.addSite(spec);
 }
 
 /**
@@ -76,13 +45,7 @@ export function placeSpawns(map) {
     { x: -35.0, z: -27.0, name: 'north-west apron' },
     { x: 35.0, z: 27.0, name: 'south-east apron' },
   ];
-  for (const spec of shadeSpawnSpecs) {
-    map.shadeSpawns.push({
-      position: new THREE.Vector3(spec.x, G, spec.z),
-      yaw: facing(spec.x, spec.z, 0, 0),
-      name: spec.name,
-    });
-  }
+  for (const spec of shadeSpawnSpecs) map.addShadeSpawn({ ...spec, y: G });
 
   const wardenSpawnSpecs = [
     { x: -22.0, y: G, z: -12.0, yaw: Math.PI * 0.75, name: 'turbine hall' },
@@ -90,13 +53,7 @@ export function placeSpawns(map) {
     { x: 18.0, y: DECK, z: 16.5, yaw: 0, name: 'server vault' },
     { x: -28.8, y: DECK, z: -14.0, yaw: Math.PI / 2, name: 'deck west catwalk' },
   ];
-  for (const spec of wardenSpawnSpecs) {
-    map.wardenSpawns.push({
-      position: new THREE.Vector3(spec.x, spec.y, spec.z),
-      yaw: spec.yaw,
-      name: spec.name,
-    });
-  }
+  for (const spec of wardenSpawnSpecs) map.addWardenSpawn(spec);
 }
 
 /**
@@ -137,35 +94,9 @@ export function placeLights(map) {
     map.addPointLight(i, spec.x, spec.y, spec.z, spec.i, spec.tag);
   }
 
-  // Ambient rig. Section 4: one dim hemisphere, 2 directional fills.
-  // Section 4.1: exactly one of the directionals casts shadows.
-  const hemisphere = new THREE.HemisphereLight(P.ambientSky, P.ambientGround, L.hemisphereIntensity);
-  map.root.add(hemisphere);
-
-  const key = new THREE.DirectionalLight(P.lightCool, L.keyIntensity);
-  key.position.set(-L.keyDirection[0] * 60, -L.keyDirection[1] * 60, -L.keyDirection[2] * 60);
-  key.target.position.set(0, 0, 0);
-  key.castShadow = true; // The one and only shadow caster in the scene.
-  key.shadow.mapSize.set(CONFIG.render.shadowMapSize, CONFIG.render.shadowMapSize);
-  const frustum = CONFIG.render.shadowFrustum;
-  key.shadow.camera.left = frustum.left;
-  key.shadow.camera.right = frustum.right;
-  key.shadow.camera.top = frustum.top;
-  key.shadow.camera.bottom = frustum.bottom;
-  key.shadow.camera.near = frustum.near;
-  key.shadow.camera.far = frustum.far;
-  key.shadow.bias = CONFIG.render.shadowBias;
-  key.shadow.normalBias = CONFIG.render.shadowNormalBias;
-  key.shadow.camera.updateProjectionMatrix();
-  map.root.add(key);
-  map.root.add(key.target);
-  map.keyLight = key;
-
-  const fill = new THREE.DirectionalLight(P.ambientSky, L.fillIntensity);
-  fill.position.set(-L.fillDirection[0] * 60, -L.fillDirection[1] * 60, -L.fillDirection[2] * 60);
-  fill.castShadow = false;
-  map.root.add(fill);
-  map.root.add(fill.target);
+  // Ambient rig. Section 4: one dim hemisphere, 2 directional fills, exactly
+  // one of them casting (Section 4.1). Level-agnostic, so mapkit builds it.
+  map.addLightRig();
 }
 
 /**

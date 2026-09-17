@@ -36,6 +36,7 @@ function expectedLines(h) {
     ['the pause key', key('pause')],
   ];
   for (const site of h.map.sites) lines.push([`site ${site.id}`, `${site.id} ${site.name}`]);
+  lines.push(['the map', h.map.name]);
   if (h.match.role === 'warden') {
     lines.push(['the fire key', key('fire')], ['the aim key', key('ads')], ['the reload key', key('reload')]);
   } else {

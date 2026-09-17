@@ -27,6 +27,7 @@ import * as THREE from 'three';
 import { CONFIG, SETTINGS, rng, deriveSeed, debugRequested } from './config.js';
 import { Emitter } from './emitter.js';
 import { bootWorld } from './boot.js';
+import { requestedMapId, mapUrl } from './maps/index.js';
 import { FrameLoop } from './loop.js';
 import { computeStepPlan } from './timestep.js';
 import { resolveMatchOptions, createMatchState, bootMatchOptions } from './matchstate.js';
@@ -49,7 +50,7 @@ import { createWardenIntent } from './entities/enforcer.js';
 /** @type {import('./input.js').Input} */ let input = null;
 /** @type {import('./ui/debug.js').DebugTools} */ let debugTools = null;
 /** @type {import('./freefly.js').Freefly} */ let freefly = null;
-/** @type {import('./map.js').GameMap} */ let map = null;
+/** @type {import('./mapkit.js').GameMap} */ let map = null;
 /** @type {import('./entities/agent.js').Shade} */ let shade = null;
 /** @type {import('./entities/enforcer.js').Warden} */ let warden = null;
 /** @type {import('./systems/detection.js').Detection} */ let detection = null;
@@ -216,7 +217,13 @@ function bootstrap() {
     renderer, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
     briefing, cameraOwner,
-  } = bootWorld({ emitter, debugState, harness, initMatch, setPaused, setTimeScale, match: () => match }));
+  } = bootWorld({
+    emitter, debugState, harness, initMatch, setPaused, setTimeScale, match: () => match,
+    // D1: the map is the URL's for this page load; the menu's map row
+    // reloads with another, keeping the seed and the debug gate.
+    mapId: requestedMapId(location.search),
+    goToMap: (id) => { location.search = mapUrl(location.search, id); },
+  }));
 
   setTimeScale(1);
   debugState.stepsPerFrame = 0;

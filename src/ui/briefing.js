@@ -158,17 +158,19 @@ export class Briefing {
    * @param {number} state.round the round about to start
    * @param {{id:string,name:string}[]} state.sites the map's plant sites
    * @param {Record<string,string[]>} state.bindings the Input's live action map
+   * @param {string} [state.mapName] the map's name, after the sites (D1)
    */
-  show({ match, round, sites, bindings }) {
+  show({ match, round, sites, bindings, mapName }) {
     const warden = match.role === 'warden';
     const heading = match.objectiveEnabled ? `Round ${round}` : 'Free roam';
+    const where = mapName ? ` &middot; <i>${mapName}</i>` : '';
     this.root.classList.toggle('warden', warden);
     this.root.innerHTML = `
       <div class="card">
         <h1>${heading}</h1>
         <div class="sub">you are the ${warden ? 'Warden' : 'Shade'}</div>
         <div class="objective">${objectiveLine(match, bindings)}</div>
-        <div class="sites">${(sites || []).map((site) => `<span><b>${site.id}</b> ${site.name}</span>`).join(' &middot; ')}</div>
+        <div class="sites">${(sites || []).map((site) => `<span><b>${site.id}</b> ${site.name}</span>`).join(' &middot; ')}${where}</div>
         <table><tbody>
           ${controlRows(match, bindings).map(([key, does]) => `
             <tr><td class="key">${key}</td><td class="does">${does}</td></tr>`).join('')}

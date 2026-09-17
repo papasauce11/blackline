@@ -1062,3 +1062,28 @@ is first seen and dead 0.51s after that; at 16m, 9.3s and 1.4s. Section
 17.1's god mode now covers the rifle as well as the frag, which is what
 it said. `the-warden-fires-in-bursts-of-rounds-at-the-torso` holds the
 burst, the aim point and the god mode. C5, 2026-09-16; D33.
+
+### 20.17 Sections 3, 5, 13 and 16 - the map registry
+
+Section 3 lists `map.js` as the level. There is a registry now
+(`src/maps/index.js`, D1): every map the game can build, keyed by a short
+id - `plant` is "Meridian Substation" (`maps/plant.js`, Section 5's map,
+its data in `maps/plantdata.js`) and `yard` is Block D's container yard
+(`maps/yard.js`; D2 blocks it out - until then an empty, fenced ground
+plane with three bays, three sites and the spawns a match needs).
+`buildMap(id)` is the only way a map gets built. A map is built once, at
+boot, and the world is built on it: `?map=<id>` on the URL picks it for
+the page load (an unknown id opens the default, `plant`, with a warning),
+the main menu names the map the page is on and its **map** row reloads
+with the next one, keeping the seed and the debug gate, and the briefing
+names it after the sites. Section 5's counts are what the plant map
+promises (`validateMap(map, expects)`); another map promises its own.
+Section 16's suite is parameterised over the map: a check registered
+with `maps: ['plant']` runs there and is reported *not for this map*
+elsewhere, never as a pass; one with no `maps` runs on every map; and
+the headless runner takes `--map plant,yard` and reports per map, with
+red and flaky judged per map. `npm run suite` alone still runs `plant`.
+Checks: `every-registered-map-builds-and-the-page-is-on-the-one-its-url-asked-for`,
+`the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one`,
+`a-check-registered-for-another-map-is-reported-not-run` (tests/maps.js).
+D1, 2026-09-17; D34.

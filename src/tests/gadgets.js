@@ -220,6 +220,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'grenades-do-not-tunnel-through-walls',
+    maps: ['plant'], // thrown at the plant's west wall
     spec: 'Section 9 / Section 16 check 18',
     name: 'A grenade thrown hard at a wall stays on this side of it',
     run: (h) => {
@@ -259,6 +260,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'flashbang-needs-line-of-sight',
+    maps: ['plant'], // the hall's east wall is the unseen case
     spec: 'Section 9.1',
     name: 'A flash round a corner does not blind the AI; one in the open does',
     run: (h) => {

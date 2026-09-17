@@ -29,9 +29,11 @@ import { createBriefing } from './ui/briefing.js';
  * @param {() => object} root.match the current match record
  * @param {() => object} root.map the map, for the sites the briefing names
  * @param {() => object} root.input the Input, for the bindings it shows
+ * @param {{id: string, name: string}[]} root.maps every registered map, for the menu's map row (D1)
+ * @param {(id: string) => void} root.goToMap what the map row does: another page load
  * @returns {{ hud: object, scoreboard: object, menu: object, briefing: object }}
  */
-export function createPanels({ initMatch, setPaused, objective, audio, match, map, input }) {
+export function createPanels({ initMatch, setPaused, objective, audio, match, map, input, maps, goToMap }) {
   const hud = createHud();
   const briefing = createBriefing();
 
@@ -42,6 +44,7 @@ export function createPanels({ initMatch, setPaused, objective, audio, match, ma
     if (!SETTINGS.briefing) return;
     briefing.show({
       match: match(), round: objective().round.number, sites: map().sites, bindings: input().bindings,
+      mapName: map().name,
     });
   };
 
@@ -61,6 +64,9 @@ export function createPanels({ initMatch, setPaused, objective, audio, match, ma
   // Section 12: both modes boot through the same initMatch, so the menu
   // picks a configuration rather than a code path.
   const menu = createMenu({
+    maps,
+    mapId: () => map().id,
+    onMap: (id) => goToMap(id),
     onFirstGesture: () => audio().unlock(),
     onVolume: (value) => audio().setMasterVolume(value),
     onPlay: () => {

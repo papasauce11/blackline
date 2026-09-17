@@ -1,7 +1,7 @@
 /**
  * BLACKLINE — mapkit.js
  *
- * The construction kit `map.js` builds "Meridian Substation" out of. This file
+ * The construction kit every map under `maps/` is built out of. This file
  * knows how to make geometry; it knows nothing about the level.
  *
  * Layering (Section 3.1): imports from physics, config and mapbake only, so it
@@ -39,9 +39,17 @@ const P = CONFIG.palette;
 // ---------------------------------------------------------------------------
 
 export class GameMap {
-  constructor(gradientMap, name) {
+  /**
+   * @param {THREE.DataTexture} gradientMap the toon ramp every material shares
+   * @param {string} id the registry's key for this map (`maps/index.js`, D1)
+   * @param {string} name what the menu and the briefing call it
+   */
+  constructor(gradientMap, id, name) {
     this.root = new THREE.Group();
-    this.root.name = name;
+    this.root.name = id;
+    /** The registry's id: `plant`, `yard`. What `?map=` and a check's `maps` list name. */
+    this.id = id;
+    this.name = name;
 
     this.collision = new CollisionWorld();
     this.materials = createMaterialCache(gradientMap);
@@ -192,6 +200,74 @@ export class GameMap {
   }
 
   // -------------------------------------------------------------------------
+  // Sites and spawns
+  // -------------------------------------------------------------------------
+
+  /**
+   * A plant site (Section 5). Its room is derived by containment rather than
+   * declared, so a site that moves cannot end up pointing at the room it
+   * used to be in - which is why the rooms must be declared first. The
+   * plant is allowed anywhere in that volume (Section 10.1, amended); the
+   * ring says which room, not which square metre of it.
+   *
+   * @param {{id: string, name: string, x: number, y: number, z: number}} spec
+   */
+  addSite(spec) {
+    const ringGeometry = new THREE.RingGeometry(M.marking.siteRingInner, M.marking.siteRingOuter, 36);
+    const ring = this.addDecal(
+      ringGeometry,
+      P.hazardOrange,
+      new THREE.Vector3(spec.x, spec.y + 0.02, spec.z),
+      -Math.PI / 2,
+      M.marking.siteRingPulseMax
+    );
+    const room = this.rooms.find((entry) => (
+      spec.x >= entry.min.x && spec.x <= entry.max.x
+      && spec.z >= entry.min.z && spec.z <= entry.max.z
+      && spec.y >= entry.floorY - 0.5 && spec.y < entry.ceilingY - 0.5
+    )) || null;
+    const site = {
+      id: spec.id,
+      name: spec.name,
+      position: new THREE.Vector3(spec.x, spec.y, spec.z),
+      radius: CONFIG.round.siteRadius,
+      room,
+      ring,
+    };
+    this.sites.push(site);
+    return site;
+  }
+
+  /**
+   * A Shade spawn. Index 0 is the fixed round-start spawn (Section 5); the
+   * rest are reinsert-only candidates (Section 10.2, Section 15). Faces
+   * the site's centre unless told otherwise.
+   * @param {{x: number, y?: number, z: number, yaw?: number, name: string}} spec
+   */
+  addShadeSpawn(spec) {
+    const y = spec.y !== undefined ? spec.y : M.groundY;
+    const spawn = {
+      position: new THREE.Vector3(spec.x, y, spec.z),
+      yaw: spec.yaw !== undefined ? spec.yaw : facing(spec.x, spec.z, 0, 0),
+      name: spec.name,
+    };
+    this.shadeSpawns.push(spawn);
+    return spawn;
+  }
+
+  /**
+   * A Warden spawn. The Warden's ground is flooded from these (A1), so a
+   * spawn is also a statement that the ground under it is reachable.
+   * @param {{x: number, y?: number, z: number, yaw: number, name: string}} spec
+   */
+  addWardenSpawn(spec) {
+    const y = spec.y !== undefined ? spec.y : M.groundY;
+    const spawn = { position: new THREE.Vector3(spec.x, y, spec.z), yaw: spec.yaw, name: spec.name };
+    this.wardenSpawns.push(spawn);
+    return spawn;
+  }
+
+  // -------------------------------------------------------------------------
   // Rooms (Section 5 readability: no room is a single-door trap)
   // -------------------------------------------------------------------------
 
@@ -304,6 +380,45 @@ export class GameMap {
     };
     this.lights.push(record);
     return record;
+  }
+
+  /**
+   * The ambient rig every map shares. Section 4: one dim hemisphere and two
+   * directional fills; Section 4.1: exactly one of the directionals casts
+   * shadows, at the configured size and frustum, and it is `map.keyLight`.
+   * D4 will put the yard's floodlights on top of this; the rule that one
+   * light casts stays here.
+   */
+  addLightRig() {
+    const L = M.lighting;
+    const hemisphere = new THREE.HemisphereLight(P.ambientSky, P.ambientGround, L.hemisphereIntensity);
+    this.root.add(hemisphere);
+
+    const key = new THREE.DirectionalLight(P.lightCool, L.keyIntensity);
+    key.position.set(-L.keyDirection[0] * 60, -L.keyDirection[1] * 60, -L.keyDirection[2] * 60);
+    key.target.position.set(0, 0, 0);
+    key.castShadow = true; // The one and only shadow caster in the scene.
+    key.shadow.mapSize.set(CONFIG.render.shadowMapSize, CONFIG.render.shadowMapSize);
+    const frustum = CONFIG.render.shadowFrustum;
+    key.shadow.camera.left = frustum.left;
+    key.shadow.camera.right = frustum.right;
+    key.shadow.camera.top = frustum.top;
+    key.shadow.camera.bottom = frustum.bottom;
+    key.shadow.camera.near = frustum.near;
+    key.shadow.camera.far = frustum.far;
+    key.shadow.bias = CONFIG.render.shadowBias;
+    key.shadow.normalBias = CONFIG.render.shadowNormalBias;
+    key.shadow.camera.updateProjectionMatrix();
+    this.root.add(key);
+    this.root.add(key.target);
+    this.keyLight = key;
+
+    const fill = new THREE.DirectionalLight(P.ambientSky, L.fillIntensity);
+    fill.position.set(-L.fillDirection[0] * 60, -L.fillDirection[1] * 60, -L.fillDirection[2] * 60);
+    fill.castShadow = false;
+    this.root.add(fill);
+    this.root.add(fill.target);
+    return key;
   }
 
   /**

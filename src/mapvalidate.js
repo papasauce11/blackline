@@ -3,8 +3,9 @@
  *
  * Build-time validation. The counts in Section 5 are contractual, and the v2
  * requirements are structural, so the map asserts both rather than letting a
- * miscount or a severed deck drift in silently. `buildMap()` calls it last
- * and throws on any failure.
+ * miscount or a severed deck drift in silently. Every map's builder calls it
+ * last, with the counts that map promises (D1: the plant's are Section 5's,
+ * from `CONFIG.map`; the yard states its own), and it throws on any failure.
  */
 
 import { CONFIG } from './config.js';
@@ -12,7 +13,18 @@ import { classifyReach } from './physics.js';
 
 const M = CONFIG.map;
 
-export function validateMap(map) {
+/**
+ * @param {import('./mapkit.js').GameMap} map
+ * @param {object} expects the counts this map promises
+ * @param {number} expects.lights destructible point lights
+ * @param {number} expects.waypoints
+ * @param {number} expects.shadeSpawns
+ * @param {number} expects.wardenSpawns
+ * @param {number} expects.sites
+ * @param {number} expects.rooms
+ * @param {number} expects.routes declared stairless routes, a minimum
+ */
+export function validateMap(map, expects) {
   const problems = [];
 
   const expect = (actual, wanted, what) => {
@@ -21,11 +33,11 @@ export function validateMap(map) {
   const expectAtLeast = (actual, wanted, what) => {
     if (actual < wanted) problems.push(`expected at least ${wanted} ${what}, built ${actual}`);
   };
-  expect(map.lights.length, M.destructibleLightCount, 'destructible lights');
-  expect(map.waypoints.length, M.waypointCount, 'waypoints');
-  expect(map.shadeSpawns.length, M.shadeSpawnCount, 'shade spawns');
-  expect(map.wardenSpawns.length, M.wardenSpawnCount, 'warden spawns');
-  expect(map.sites.length, M.plantSiteCount, 'plant sites');
+  expect(map.lights.length, expects.lights, 'destructible lights');
+  expect(map.waypoints.length, expects.waypoints, 'waypoints');
+  expect(map.shadeSpawns.length, expects.shadeSpawns, 'shade spawns');
+  expect(map.wardenSpawns.length, expects.wardenSpawns, 'warden spawns');
+  expect(map.sites.length, expects.sites, 'plant sites');
 
   // A site with no room cannot be planted at all now that the room IS the
   // plant zone, and a silent null here would read in play as "the interact key
@@ -33,7 +45,7 @@ export function validateMap(map) {
   for (const site of map.sites) {
     if (!site.room) problems.push(`site "${site.id}" is not inside any room`);
   }
-  expect(map.rooms.length, M.roomCount, 'rooms');
+  expect(map.rooms.length, expects.rooms, 'rooms');
 
   for (const light of map.lights) {
     if (light.light.castShadow) problems.push(`point light ${light.lightId} casts shadows (Section 4.1)`);
@@ -98,7 +110,7 @@ export function validateMap(map) {
   // v2 requirement 4, the other half: the routes are declared (B5), every
   // stage names a box that exists, and there are at least as many as the
   // requirement asks. Whether each one climbs is tests/routes.js's question.
-  expectAtLeast(map.routes.length, M.stairlessRouteMin, 'stairless routes');
+  expectAtLeast(map.routes.length, expects.routes, 'stairless routes');
   for (const route of map.routes) {
     for (const stage of route.stages) {
       for (const box of stage) {
@@ -109,6 +121,6 @@ export function validateMap(map) {
 
   if (problems.length) {
     for (const problem of problems) console.error(`[map] ${problem}`);
-    throw new Error(`buildMap: ${problems.length} validation failure(s); see console`);
+    throw new Error(`buildMap(${map.id}): ${problems.length} validation failure(s); see console`);
   }
 }

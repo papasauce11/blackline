@@ -426,6 +426,34 @@ rifle now honours it too (`Combat.isGodMode`), which is what the checks
 that set it were assuming.
 **decided:**
 
+### D34 — How a map is chosen, and what the yard is until D2
+D1. Two maps exist (`plant`, the substation; `yard`, the container yard)
+and the page is built on one of them. Provisional, done as recommended:
+
+- **Another map is another page load.** `?map=yard` on the URL, or the
+  main menu's *map* row, which reloads with the next map in the registry
+  keeping the seed and the debug gate. Every system takes the map at
+  construction and `initMatch` rebuilds the actors on it (Section 15); a
+  live switch would need a teardown path nothing else exercises, and a
+  reload is the honest version of the same thing. Alternative: rebuild
+  the world in place from the menu - more code, no visible difference
+  but the flash of a load.
+- **The menu names the map** under the title (where "meridian substation"
+  was) and the briefing names it after the sites, in italics.
+- **The yard, until D2, is an empty fenced plane** with three open bays as
+  rooms, a site at each centre, a lamp over each and one at the gate, the
+  Shade at the apron corners, the Warden at the gate and in each bay, and
+  a ring of eight waypoints. Every number is a placeholder D2 owns; the
+  registry entry exists so the plumbing is exercised by a second map that
+  is not the first with a different name.
+- **`npm run suite` still runs `plant` alone.** `--map plant,yard` runs
+  both and reports per map. The yard is not in the default gate until D6
+  puts both maps in the regression set, because a check registered for
+  the plant's geometry is reported *not for this map* on the yard rather
+  than run, and how many of the 150 are scoped that way is D1's census
+  (PROGRESS.md).
+**decided:**
+
 ## Blocking — waiting on Josh
 
 ### D8 — Does the site ring still read, now the plant is the whole room?

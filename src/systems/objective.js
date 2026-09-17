@@ -34,7 +34,7 @@ const SPOT = { x: 0, y: 0, z: 0 };
 export class Objective {
   /**
    * @param {object} options
-   * @param {import('../map.js').GameMap} options.map
+   * @param {import('../mapkit.js').GameMap} options.map
    * @param {object} options.emitter
    * @param {import('./detection.js').Detection} options.detection
    * @param {import('./ai.js').WardenAI} options.ai

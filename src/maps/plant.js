@@ -1,11 +1,13 @@
 /**
- * BLACKLINE — map.js
+ * BLACKLINE — maps/plant.js
  *
- * "Meridian Substation", v2. The level: geometry, collision volumes, spawns,
- * plant sites, lights and AI waypoints. The machinery that builds it lives in
+ * "Meridian Substation", v2 - the map the registry (`maps/index.js`) knows
+ * as `plant` (D1). The level: geometry, collision volumes, spawns, plant
+ * sites, lights and AI waypoints. The machinery that builds it lives in
  * `mapkit.js`; this file is the layout. The placements that are data rather
- * than geometry - sites, spawns, lights, waypoints - are `mapdata.js`, and
- * the build-time asserts are `mapvalidate.js` (F3).
+ * than geometry - sites, spawns, lights, waypoints - are `plantdata.js`,
+ * and the build-time asserts are `mapvalidate.js` (F3), handed the counts
+ * this map promises. Was `src/map.js` until D1 put every map under `maps/`.
  *
  * Layering (Section 3.1): may import from mapkit, physics and config.
  *
@@ -31,11 +33,11 @@
  * interior is X -30..30, Z -22.5..22.5, with its shell walls outside that.
  */
 
-import { CONFIG } from './config.js';
-import { GameMap } from './mapkit.js';
-import { placeSites, placeSpawns, placeLights, placeWaypoints, placeRoutes } from './mapdata.js';
-import { validateMap } from './mapvalidate.js';
-import { lightRoutes } from './maproutelight.js';
+import { CONFIG } from '../config.js';
+import { GameMap } from '../mapkit.js';
+import { placeSites, placeSpawns, placeLights, placeWaypoints, placeRoutes } from './plantdata.js';
+import { validateMap } from '../mapvalidate.js';
+import { lightRoutes } from '../maproutelight.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
@@ -84,17 +86,30 @@ const doorway = (from, to, base) => opening(from, to, base, base + 2.4);
 /** Window: a crouch-height slot the Shade fits through and the Warden does not. */
 const window_ = (from, to, base) => opening(from, to, base + 0.4, base + 1.6);
 
+/** What this map promises to have built, asserted by validateMap() last. */
+const EXPECTS = {
+  lights: M.destructibleLightCount,
+  waypoints: M.waypointCount,
+  shadeSpawns: M.shadeSpawnCount,
+  wardenSpawns: M.wardenSpawnCount,
+  sites: M.plantSiteCount,
+  rooms: M.roomCount,
+  routes: M.stairlessRouteMin,
+};
+
 // ---------------------------------------------------------------------------
-// buildMap
+// buildPlantMap
 // ---------------------------------------------------------------------------
 
 /**
  * @param {object} options
+ * @param {string} options.id the registry's id for this map (`plant`)
+ * @param {string} options.name what the menu and the briefing call it
  * @param {THREE.DataTexture} options.gradientMap 4-step toon ramp from main.js
  * @returns {GameMap}
  */
-export function buildMap({ gradientMap }) {
-  const map = new GameMap(gradientMap, 'meridian-substation-v2');
+export function buildPlantMap({ id, name, gradientMap }) {
+  const map = new GameMap(gradientMap, id, name);
   map.shell = { x0: -HALF_W - WALL, x1: HALF_W + WALL, z0: -HALF_D - WALL, z1: HALF_D + WALL };
 
   // -------------------------------------------------------------------------
@@ -518,7 +533,7 @@ export function buildMap({ gradientMap }) {
   lightRoutes(map);
   map.deriveRoomEntries();
   map.deriveWardenGround();
-  validateMap(map);
+  validateMap(map, EXPECTS);
 
   return map;
 }

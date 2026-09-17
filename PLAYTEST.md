@@ -16,7 +16,14 @@ Open `http://localhost:5173`. That is the **playtest build**: no debug
 keys, no overlay, no assertions. Add **`?debug=1`** for the F3 overlay and
 the F4 test panel (or turn on *debug tooling* in the settings menu);
 `?seed=12345` replays a match - the same seed is the same patrol order and
-the same shots. The settings menu has the difficulty (easy / medium /
+the same shots. **`?map=yard`** opens the second map (D1, 2026-09-17), or
+click the *map* row on the main menu, which reloads the page on the next
+map and keeps the seed. The menu names the map you are on; the briefing
+names it after the sites. The yard is an **empty fenced plane** until D2
+blocks it out - three open bays with a site in each, nothing to climb -
+so there is nothing to look at there yet beyond the plumbing: that the
+page opens on it, that a match runs on it, that the menu takes you back.
+The settings menu has the difficulty (easy / medium /
 hard), the match length (best of 5 or 11), the round briefing on or off,
 mouse sensitivity and volume. Controls, gadget slots and the climbing
 rules are in `README.md`.
@@ -25,7 +32,11 @@ The AUTO suite, from the F4 panel: **Y** runs everything (about seven
 minutes on this PC's software GL; seconds on a GPU), **U** the regression
 set. `npm run suite` is the same thing headless. Both are green at every
 commit; if one is red in your tab, the F3 overlay's *gl context lost* row
-says whether the GPU was taken away mid-run.
+says whether the GPU was taken away mid-run. On the yard, Y runs only the
+checks that are not about the substation's geometry (23 are, and the
+banner counts them as *not for this map*) and, until D2, 21 of the rest
+are honestly red there: no ledge to climb, no wall to mount a camera on.
+`npm run suite -- --map yard` is the same headless.
 
 ## What to look at
 
@@ -135,6 +146,9 @@ now. What is not, and why:
   check fires its own wall-clock guard on purpose. In play, that guard
   fires only if a death camera has been up 16.5s - which the end screen
   now prevents (C4).
+- **The yard is a placeholder** (D1, D34): an empty fenced plane with
+  three sites, so the map plumbing has a second map to prove itself on.
+  D2 blocks it out. Switching maps reloads the page; that is by design.
 
 ## How to answer
 

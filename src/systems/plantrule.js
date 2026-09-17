@@ -120,7 +120,7 @@ const REACHES = (cell, at) => withinDefuseReach(cell, at);
  * over-permissive: every cell returned is a place the fill proved a standing
  * body fits. That is the safe side of D5, and the same direction D16 chose.
  *
- * @param {import('../map.js').GameMap} map
+ * @param {import('../mapkit.js').GameMap} map
  * @param {{x:number,y:number,z:number}} at a foot position for the charge
  * @returns {boolean}
  */
@@ -133,7 +133,7 @@ export function canDefuseAt(map, at) {
  * clause: a charge with a lid on it is inside something. See
  * `PLANT_HEADROOM` for why it is a headroom test and not a list of ducts.
  *
- * @param {import('../map.js').GameMap} map
+ * @param {import('../mapkit.js').GameMap} map
  * @param {{x:number,y:number,z:number}} at a foot position for the charge
  */
 export function hasHeadroomAt(map, at) {
@@ -152,7 +152,7 @@ export function hasHeadroomAt(map, at) {
  * and it is not inside anything (D20). Both halves are mechanical; neither
  * knows a duct or a crate by name.
  *
- * @param {import('../map.js').GameMap} map
+ * @param {import('../mapkit.js').GameMap} map
  * @param {{x:number,y:number,z:number}} at a foot position for the charge
  */
 export function canPlantAt(map, at) {

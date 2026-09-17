@@ -67,6 +67,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'visibility-reads-lit-and-dark-zones',
+    maps: ['plant'], // the plant's lit hall and dark vault
     spec: 'Section 16 checks 8 and 9 (auto half)',
     name: 'Turbine Hall reads above 70; the Server Vault reads below 25',
     run: (h) => {
@@ -108,6 +109,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'light-break-invalidates-the-cache',
+    maps: ['plant'], // hall-site-a
     spec: 'Section 16 check 10 / Section 15',
     name: 'Shooting out the light overhead drops the meter within 200ms',
     run: (h) => {
@@ -159,6 +161,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'shade-is-quieter-than-the-warden',
+    maps: ['plant'], // stands in the plant's hall
     spec: 'Section 7.2',
     name: 'Noise radii match spec, and crouch and vents are silent',
     run: (h) => {

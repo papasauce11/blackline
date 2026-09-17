@@ -15,7 +15,7 @@
  * floor). Two of those were rule and controller disagreeing; the third was
  * a route nobody had decided on.
  *
- * So the map now declares its routes (`map.routes`, mapdata.js) and two
+ * So the map now declares its routes (`map.routes`, maps/plantdata.js) and two
  * checks hold it to them, both through the rule's own approaches rather
  * than by driving - every approach the rule names is proven to climb by
  * `every-approach-the-rule-names-is-a-climb-the-controller-makes`, so the
@@ -329,6 +329,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'a-mantle-never-passes-through-a-solid',
+    maps: ['plant'], // drives from under the plant's two low ducts
     spec: 'Section 6.1 (parkour safety rule) / B5c, B8, B8b',
     name: 'From where a climb starts to where it lands, the body is in open air - by the rule, by the geometry, and by the controller',
     run: (h) => {

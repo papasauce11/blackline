@@ -43,6 +43,7 @@ const FIELDS = [
   { key: 'seed', label: 'match seed', fmt: (v) => String(v) },
   { key: 'rngCalls', label: 'rng calls', fmt: num(0) },
   { key: 'mode', label: 'mode', fmt: String },
+  { key: 'map', label: 'map', fmt: String },
   { key: 'roundState', label: 'round state', fmt: String },
   { key: 'collisionBoxes', label: 'collision boxes', fmt: num(0) },
   { key: 'mapLedges', label: 'marked ledges', fmt: num(0) },

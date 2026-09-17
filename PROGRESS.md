@@ -5759,3 +5759,137 @@ missing, a section missing, a stale id or the link gone each put it red.
 
 **Left.** Block C is closed. D1 (map plumbing, M) is next, then D2 (the
 yard blockout, L - a whole run).
+
+## D1 — map plumbing: the registry, `?map=`, the suite per map (2026-09-17, scheduled run)
+
+The first job of Block D and the 17:00 run. The queue asked for a
+registry keyed by id, `buildMap(id)`, a `?map=` parameter, the menu
+offering the list, every check parameterised over the current map, and a
+second id that builds an empty ground plane and is reported per map.
+
+**Built.**
+
+- `src/maps/index.js`, the registry: `plant` ("Meridian Substation") and
+  `yard` ("Container Yard"), in menu order; `mapIds()`, `listMaps()`,
+  `mapEntry()`, `buildMap(id, { gradientMap })` (throws on an unknown id
+  and on a map that calls itself something else), `requestedMapId(search)`
+  (`?map=`, case-insensitive; an unknown id opens the default with a
+  console warning - a playtest typo should not be a blank page - and the
+  runner checks `map.id` against what it asked for so that fallback can
+  never be a green run on the wrong map), `mapUrl(search, id)` (the
+  query the menu's map row navigates to, keeping `seed` and `debug`;
+  pure, so a check can ask it without leaving the page).
+- `src/map.js` -> `src/maps/plant.js` (`buildPlantMap`), `src/mapdata.js`
+  -> `src/maps/plantdata.js`. Section 3's "map.js" is the registry and
+  its maps now (spec 20.17). `GameMap(gradientMap, id, name)` carries
+  both; the site, the spawns and the ambient rig moved into the kit
+  (`addSite` - the room by containment, the ring; `addShadeSpawn`,
+  `addWardenSpawn`; `addLightRig` - the hemisphere, the one casting key,
+  the fill) because the yard needs the same three and a second copy is
+  how they drift. `validateMap(map, expects)`: Section 5's counts are the
+  plant's promise (`EXPECTS` in plant.js, from `CONFIG.map`); the yard
+  states its own. The JSDoc types that said `import('../map.js').GameMap`
+  say `mapkit.js`, where the class always was.
+- `src/maps/yard.js`: an 80 x 65 ground plane and the fence, three open
+  bays declared as rooms (so each site has one; the entry derivation
+  counts every open edge, honestly), a site at each centre, the Shade at
+  the four apron corners outside the working yard (`map.shell`), the
+  Warden at the gate and in each bay, a lamp over each site and one at
+  the gate, eight waypoints in a ring through the bays. Five boxes,
+  20,224 ground cells, 0 routes, builds in 137ms. Every number is a
+  placeholder D2 owns.
+- Boot: `main.js` reads `requestedMapId(location.search)` and hands
+  `bootWorld` the id and `goToMap` (`location.search = mapUrl(...)`);
+  boot builds that one map and every system takes it as before. Another
+  map is another page load (D34): the systems take the map at
+  construction and `initMatch` rebuilds the actors on it, and a live
+  rebuild would be a teardown path nothing else exercises.
+- The menu: the tag under the title is the map's name; a *map* row
+  (`#bl-map`) names it and lists the rest in its tooltip; a click hands
+  the next id in registry order to the page-load handler (with one map
+  registered the row is a label). The briefing names the map after the
+  sites. The F3 overlay has a `map` row.
+- The suite (`ui/autosuite.js`): `registerAutoTest` takes `maps`, a list
+  of registry ids; `applicable(tests)` splits a list by the map the page
+  is on; `runAutoTests` runs the applicable ones and returns `map` and
+  `notForMap` with the counts, and the banner says both. Nothing about
+  the run order or the result shape changed for a check with no `maps`.
+  `runRegressionSet` goes through the same filter.
+- The runner (`scripts/suite.mjs`): `--map plant,yard`, default `plant`;
+  one page load per map with `?map=<id>` merged into `--query`, `RUNS`
+  runs each with the cooldown between; the report has `maps`, `map` and
+  `notForMap` on every run and `map` on every red, flaky, expected-red
+  and skipped entry; `judge()` groups by map, so flaky is two answers on
+  the same map and a check red on one map is red there, named. The
+  summary prints `run 1 (plant): ...` and tags ids with `[map]` when more
+  than one ran. `--details` writes `{ map, results }` per run. A page
+  that boots a different map than asked crashes the run (exit 2).
+- **The census of what is the substation's.** Ran the whole suite on the
+  empty yard: 153 checks, 110 green, 43 red. Read every red: 23 name the
+  first map's geometry - a tag (`hall-container`, `hall-site-a`,
+  `stack-hall-low`), a coordinate (the west wall at x=-30, the hall's
+  east wall), a Section 5 count (20 waypoints, two grade duct mouths), a
+  structure the yard will never have (the deck's lips, the ducts, the
+  staircases) - and are now `maps: ['plant']`, each with the reason on
+  the line. Two of those had been *green* on the yard by luck
+  (`ai-perception-cone-and-accumulator`'s through-wall case and
+  `flashbang-needs-line-of-sight`'s unseen case put the Shade 22-30m off
+  on open ground, which is unseen for the wrong reason), which is why
+  the census read the passes too. `the-vignette-deepens-with-lost-health`
+  is scoped as well: it measures over the plant's site A and its
+  darkening threshold is that backdrop's (D31). The other 20 red - the
+  ledge searches (tests/feel.js, hang.js, scuff.js, movement.js), the
+  routes (`every-stacked-climb...`, `every-route-reads-lit...`), the
+  alarm mounts (no wall within 3m of any waypoint), the plant-rule four
+  (no perch, no duct interior in a site room), the traversal fuzz (0
+  approaches), `lit-pools-and-dark-gaps` (D4's) - read the map they are
+  on and say honestly that it has nothing; they are D2's list. And one
+  that is neither: `a-match-replays-identically-from-its-seed` requires
+  `seed+1` to produce a different 20s slice, and on an 8-node graph the
+  two seeds' shuffles began 4, 2 both times, so the Warden walked the
+  same two legs (probed by hand: circuits `42307516` and `42163075`).
+  Not a determinism bug; a weak instrument on a small graph, noted for
+  D5 (the AI on the yard) rather than loosened here.
+
+**Checks.** tests/maps.js, on every map:
+
+- `every-registered-map-builds-and-the-page-is-on-the-one-its-url-asked-for`:
+  the registry has at least two ids, the default among them, none
+  duplicated; the page is on `requestedMapId(location.search)`, its
+  map's root is in the scene, the F3 field agrees; every registered map
+  builds off the scene with its own toon ramp and has collision, both
+  spawn kinds, sites each in a room, Warden ground with every Warden
+  spawn and every site on it, a key light and waypoints; an unknown id
+  throws; seven `?map=` / `mapUrl` cases and the round trip for every id.
+  Building the plant inside a check costs 0.4-8s (the first build after
+  boot pays the material cache).
+- `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one`: the
+  main menu names the map the page is on and its row's tooltip names
+  every registered map; a real click on the row, with the page-load
+  handler stood in for (the real one leaves the page), asks for the map
+  after this one in registry order, once.
+- `a-check-registered-for-another-map-is-reported-not-run`:
+  `applicable()` keeps a check with no `maps` and one naming this map,
+  reports one naming another map and one naming none; and every `maps`
+  entry across the registered suite names a registered id - a typo there
+  is a check that never runs anywhere, silently.
+- `a-round-opens-on-a-briefing-that-any-key-dismisses` (tests/briefing.js)
+  now requires the map's name on the card.
+
+**Verified.**
+
+- Subset on `plant` and on `yard` (`--map yard`): the three new checks,
+  the two briefing checks, the shadow-caster and spawn checks, 7 of 7
+  green on both.
+- Full suite on `yard`, once, after the scoping: **108 passed, 22 failed,
+  23 not for this map** (52s - an empty map is quick), the 21 red above
+  plus the frame budget skipped; the same 21 before the scoping, so no
+  check changed its answer by being left generic.
+- Full suite on `plant`, twice, `npm run suite`: **152 passed, 1 failed** run 1 (437s), **152 passed, 1 failed** run 2 (506s) - 149 before D1 and three new checks; the frame budget skipped headless, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames.
+
+**Not built.** The yard is not in the default gate; `--map yard` runs it
+and is red until D2, by the list above. The regression set filters by
+map but nothing runs it on both in one go - D6. The menu switches maps
+by reloading, not in place (D34).
+
+**Left.** D2, the yard blockout (L, a whole run), then D3-D6.

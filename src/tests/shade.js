@@ -94,6 +94,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'parkour-safety-gate',
+    maps: ['plant'], // a destination inside the plant's west wall
     spec: 'Section 6.1 / check 4',
     name: 'A traversal move into blocked space is refused, leaving state untouched',
     run: (h) => {
@@ -124,6 +125,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'container-top-is-not-a-dead-end',
+    maps: ['plant'], // hall-container and gantry-hall
     spec: 'reported bug: cannot climb from the container',
     name: 'A vault-band ledge climbs from the air, so a small platform is never a trap',
     run: (h) => {
@@ -187,6 +189,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'backing-off-a-ledge-does-not-re-climb',
+    maps: ['plant'], // hall-container
     spec: 'reported bug: pulled back up when falling off backwards',
     name: 'Stepping backwards off a ledge falls to the floor instead of auto-climbing',
     run: (h) => {
@@ -252,6 +255,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'sprint-vault-clears-a-crate',
+    maps: ['plant'], // stack-hall-low
     spec: 'Section 6.1 / check 2',
     name: 'Running at a vault-band crate and jumping vaults it, landing clean on top',
     run: (h) => {
@@ -351,6 +355,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'crouch-blocked-under-vent-roof',
+    maps: ['plant'], // the plant's ducts
     spec: 'Section 6.1 / check 5',
     name: 'Standing up inside a vent is refused rather than pushing through the roof',
     run: (h) => {

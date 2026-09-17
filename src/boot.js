@@ -15,7 +15,7 @@
 import { CONFIG } from './config.js';
 import { Freefly } from './freefly.js';
 import { Input } from './input.js';
-import { buildMap } from './map.js';
+import { buildMap, listMaps } from './maps/index.js';
 import { createWardenGroundView } from './groundview.js';
 import {
   createRenderer, createScene, createCamera, createToonGradient, resizeView, watchContextLoss,
@@ -48,9 +48,13 @@ import { wireTestCommands } from './testcommands.js';
  * @param {(paused: boolean) => void} root.setPaused
  * @param {(value: number) => void} root.setTimeScale
  * @param {() => object} root.match the current match record, read live
+ * @param {string} root.mapId which registered map to build (D1); the URL's, or the default
+ * @param {(id: string) => void} root.goToMap reload the page on another map, for the menu's map row
  * @returns {object} every singleton, by the name main.js keeps it under
  */
-export function bootWorld({ emitter, debugState, harness, initMatch, setPaused, setTimeScale, match }) {
+export function bootWorld({
+  emitter, debugState, harness, initMatch, setPaused, setTimeScale, match, mapId, goToMap,
+}) {
   const canvas = document.getElementById('bl-canvas');
   if (!canvas) throw new Error('bootstrap: #bl-canvas not found');
 
@@ -60,17 +64,21 @@ export function bootWorld({ emitter, debugState, harness, initMatch, setPaused, 
   scene.add(camera);
 
   // Section 4: 4-step gradient map generated in code via DataTexture. Created
-  // here in the composition root and passed down, because both map.js and
+  // here in the composition root and passed down, because both the maps and
   // entities/ need it and neither may import the other (Section 3.1).
   const gradientMap = createToonGradient(CONFIG.render.toonSteps);
 
-  const map = buildMap({ gradientMap });
+  // D1: one map per page load, from the registry. Every system below takes
+  // it at construction; another map is another page load (maps/index.js).
+  const map = buildMap(mapId, { gradientMap });
   scene.add(map.root);
   // Block A7: the Warden's reachable ground, drawable from the F4 panel.
   // Hidden by default; `test:toggle-warden-ground` shows it.
   const groundView = createWardenGroundView(map.wardenGround);
   scene.add(groundView.root);
 
+  debugState.map = map.id;
+  debugState.map = map.id;
   debugState.collisionBoxes = map.collision.boxCount;
   debugState.mapLedges = map.ledges.length;
 
@@ -143,7 +151,7 @@ export function bootWorld({ emitter, debugState, harness, initMatch, setPaused, 
   let input = null;
   const { hud, scoreboard, menu, briefing } = createPanels({
     initMatch, setPaused, objective: () => objective, audio: () => audio, match,
-    map: () => map, input: () => input,
+    map: () => map, input: () => input, maps: listMaps(), goToMap,
   });
 
   wireMatchEvents({

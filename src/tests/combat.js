@@ -112,6 +112,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'hitscan-respects-cover-and-the-head-line',
+    maps: ['plant'], // the plant's walls are the cover
     spec: 'Section 8.1 / check 1',
     name: 'A shot stops at a wall, and only lands a headshot above the head line',
     run: (h) => {

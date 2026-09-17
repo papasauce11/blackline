@@ -74,6 +74,7 @@ function climbStanding(h, box, approach) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'every-deck-lip-is-climbed-from-a-standing-approach',
+    maps: ['plant'], // the plant's deck lips
     spec: 'Section 5, amended (B4)',
     name: 'Every lip-* has an approach the rule names where a standing body fits, and the controller climbs it from there without crouching',
     run: (h) => {

@@ -96,6 +96,7 @@ function meleeKey(h) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'the-vignette-deepens-with-lost-health-and-leaves-the-centre-alone',
+    maps: ['plant'], // measured over the plant's site A; the darkening it wants is that backdrop's (D31)
     spec: 'Section 13, amended (20.14; C3)',
     name: 'Damage darkens the screen edge in proportion to health lost, the centre is untouched, and at full health nothing is drawn',
     run: (h) => {

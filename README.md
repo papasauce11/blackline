@@ -51,6 +51,16 @@ seed, append it to the URL:
 http://localhost:3000/?debug=1&seed=2709321559
 ```
 
+### Choosing a map
+
+Two maps are registered (`src/maps/index.js`): `plant`, Meridian
+Substation, and `yard`, the container yard (an empty plane until Block D
+blocks it out). The page opens on `plant`; `?map=yard` opens the other,
+and the main menu's *map* row reloads the page on the next one, keeping
+the seed and the debug gate. The headless suite runs on one map at a
+time: `npm run suite` is `plant`, `npm run suite -- --map plant,yard`
+both, reported per map.
+
 ---
 
 ## Three.js version

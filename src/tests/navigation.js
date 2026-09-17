@@ -17,6 +17,7 @@ import { createWardenIntent } from '../entities/enforcer.js';
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'waypoint-graph-valid',
+    maps: ['plant'], // Section 5's node count is the plant's
     spec: 'Section 5 / Section 11',
     name: '14 waypoints, links bidirectional, graph fully connected',
     run: (h) => {
@@ -59,6 +60,7 @@ export function register(debugTools) {
   // -------------------------------------------------------------------------
   debugTools.registerAutoTest({
     id: 'warden-upper-deck-fully-connected',
+    maps: ['plant'], // the plant's deck
     spec: 'v2 requirement 2',
     name: 'Every walkable square of the upper deck is one connected region',
     run: (h) => {
@@ -172,6 +174,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'shade-reaches-level-2-without-stairs',
+    maps: ['plant'], // names the plant's five routes by tag
     spec: 'v2 requirement 4 / check 3',
     name: 'Four routes climb to the upper deck without using a staircase',
     run: (h) => {
@@ -383,6 +386,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'warden-can-walk-between-floors',
+    maps: ['plant'], // the plant's staircases
     spec: 'Section 6.2 / Section 5',
     name: 'The Warden walks up every staircase to the upper floor unaided',
     run: (h) => {

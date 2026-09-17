@@ -227,6 +227,7 @@ export function register(debugTools) {
   // -------------------------------------------------------------------------
   debugTools.registerAutoTest({
     id: 'every-vent-mouth-reads-by-contrast-from-its-approach',
+    maps: ['plant'], // the plant's nine duct mouths
     spec: 'Section 5, amended (B6)',
     name: 'From the approach to every vent mouth, the duct and what is seen through it contrast with the concrete around it',
     run: (h) => {

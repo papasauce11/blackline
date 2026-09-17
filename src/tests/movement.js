@@ -116,6 +116,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'slide-into-a-vent-lowers-the-capsule',
+    maps: ['plant'], // the plant's ducts
     spec: 'Section 6.1 / check 5',
     name: 'Sprint plus crouch slides, drops to vent height, and passes through',
     run: (h) => {
