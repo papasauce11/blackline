@@ -174,7 +174,7 @@ budget checks are the ceiling.
   (tests/maps.js): `every-registered-map-builds-and-the-page-is-on-the-one-its-url-asked-for`,
   `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one`,
   `a-check-registered-for-another-map-is-reported-not-run`; the briefing
-  check requires the map's name. Spec 20.17. `<hash>`, 2026-09-17,
+  check requires the map's name. Spec 20.17. `5ee5798`, 2026-09-17,
   scheduled run.
 - **C6** `PLAYTEST.md` for Josh: how to run it (the playtest build,
   `?debug=1`, `?seed=`, the settings), what to look at newest first (the
