@@ -164,7 +164,7 @@ budget checks are the ceiling.
   the dimmest pool and above black, the sky under a third of the
   brightest pool). Found: the plant's fill colour lands nothing.
   Spec 20.20, D39 provisional — 2026-09-18, scheduled run, commit
-  `PENDING`.
+  `e5e55cb`.
 - **D3** The Warden's walkway. A glazed run 7.2m up over the mid lane's
   north edge (`WALKWAY`, maps/yard.js), one flight of 24 treads up the
   west side of the gate lane (`addStaircase` takes `steps`), rails both
