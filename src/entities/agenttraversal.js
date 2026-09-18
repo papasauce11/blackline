@@ -376,11 +376,17 @@ export const TRAVERSAL = {
 
     this._hangTimer += dt;
 
-    // Pull up with Space (Section 6.1, amended 20.3). Read before the settle
-    // grace, and as a HELD key: the grab that got us here was the tap window,
-    // so a key still down now is a hold, and a hold means carry on over. A
-    // press later, from a settled hang, pulls up the same way.
-    if (intent.jump || intent.jumpPressed) {
+    // Pull up with Space (Section 6.1, amended 20.3). A fresh press pulls up
+    // at once, from a settled hang. A key HELD since the grab is a hold only
+    // once it has outlasted `hangHoldDelay` after the hand landed: the grab
+    // starts on the step the key goes down, so the grab plus this delay is
+    // the tap window - about 0.3s from key-down, which a human tap on a
+    // spacebar fits inside and a hold does not. A release before then leaves
+    // you hanging. (The grab alone was the window at first, 0.18s, and a
+    // 250ms tap went over.)
+    const heldThrough = intent.jump && !intent.jumpPressed && this._hangTimer >= S.hangHoldDelay;
+    const firstHeldStep = heldThrough && this._hangTimer < S.hangHoldDelay + dt * 1.5;
+    if (intent.jumpPressed || heldThrough) {
       if (this._climbOnto(SHADE_STATE.PULLUP, ledge, S.hangPullUpDuration)) {
         this._hangLedge = null;
         return;
@@ -396,9 +402,9 @@ export const TRAVERSAL = {
       }
       // Genuinely blocked: stay hanging, which is the correct "return to the
       // previous state" behaviour - but not a silent one (B2). The hands slap
-      // the lip on the press, and on the first step if Space was held
-      // through the grab; a held key does not hammer it every step.
-      if (intent.jumpPressed || this._hangTimer <= dt * 1.5) {
+      // the lip on the press, and once if Space was held through the grab;
+      // a held key does not hammer it every step.
+      if (intent.jumpPressed || firstHeldStep) {
         this._scuff({ ...ledge, rise: ledge.topY - this.feetY, reach: this._reachNow() }, false);
       }
     }

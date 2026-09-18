@@ -681,9 +681,11 @@ the lip. What happens next is decided by the key:
 | Mantle-height ledge | grabs and **hangs** | grabs and **carries on over** |
 | From a settled hang | Space pulls up; crouch drops; A/D shimmy | |
 
-The grab's duration (`hangGrabDuration`, 0.18s) is the tap window: a key still
-down when the hand lands is a hold. There is no separate hold timer and no
-delay on the climb - the grab is part of the climb, and reads as one.
+The tap window is the grab (`hangGrabDuration`, 0.18s) plus `hangHoldDelay`
+(0.12s) after the hand lands - 0.30s from key-down. A key still down at the end
+of it is a hold; released before it, a hang. A fresh press from a settled hang
+pulls up at once. (At first the grab alone was the window, and a 250ms tap -
+an ordinary press of a spacebar - went over; 2026-09-17.)
 
 Consequences. A grab that has no room below the lip (a ledge too low to hang
 from, something under it) goes straight over, so a low mantle is never

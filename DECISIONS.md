@@ -95,6 +95,18 @@ had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
 ## Provisional — done as recommended, override any time
 
+### D36 — How long a tap of Space can be
+Josh, 2026-09-17, playing: *"tap to hang not working."* Reproduced with real
+key events: the grab starts on the step the key goes down and the hand lands
+0.18s later, and that was the whole tap window — 200ms hung, 250ms went over.
+An ordinary press of a spacebar is 150–250ms.
+Taken: a key held through the grab counts as a hold only after
+`hangHoldDelay` (0.12s) past the hand landing — **0.30s from key-down**, the
+usual tap/hold split. A fresh press from a settled hang still pulls up at
+once. The rule (D21) is unchanged; only the number moved. Widen or narrow it
+in `config.js`.
+**decided:**
+
 ### D9 — Yard time of day
 Night, floodlit from masts, pools of dark between stacks. Reason: stealth
 reads best against hard light, and one shadowed key light is the rule.

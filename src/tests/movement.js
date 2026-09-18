@@ -435,6 +435,19 @@ export function register(debugTools) {
         problems.push(`crouch from the hang did not drop to the floor (feet ${shade.feetY.toFixed(2)}, state ${shade.state})`);
       }
 
+      // A human tap is not one step. The window is the grab plus
+      // `hangHoldDelay` - 0.30s from key-down - so 250ms down then released
+      // is still a hang, and 500ms down is a hold and goes over. With the
+      // grab alone as the window, 250ms went over (2026-09-17).
+      const longTap = driveAtLedge(h, spot, { airborne: false, pressAt: 5, hold: false, holdFor: 15, steps: 90 });
+      if (longTap.onTop || shade.state !== SHADE_STATE.HANG) {
+        problems.push(`a 250ms tap went over ${tag} instead of hanging (state ${shade.state})`);
+      }
+      const longHold = driveAtLedge(h, spot, { airborne: false, pressAt: 5, hold: false, holdFor: 30, steps: 120 });
+      if (!longHold.onTop) {
+        problems.push(`a 500ms hold did not go over ${tag} (feet ${longHold.feet.toFixed(2)}, state ${shade.state})`);
+      }
+
       // A hold on the ground: over, and through a grab on the way.
       const hold = driveAtLedge(h, spot, { airborne: false, pressAt: 5, hold: true, steps: 90 });
       if (!hold.onTop) problems.push(`a hold on the ground did not go over ${tag} (feet ${hold.feet.toFixed(2)})`);
@@ -472,8 +485,8 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${tag} (${(top - ground).toFixed(2)}m, above the ${hangMin.toFixed(2)}m hang line): a tap hangs at feet `
-            + `${hangFeet.toFixed(2)}, a hold goes over through a grab, Space pulls up, crouch drops, the same `
-            + `mid-fall; ${lowerNotes.join('; ')}`
+            + `${hangFeet.toFixed(2)} (250ms down still hangs, 500ms goes over), a hold goes over through a grab, `
+            + `Space pulls up, crouch drops, the same mid-fall; ${lowerNotes.join('; ')}`
           : problems.join('; '),
       };
     },
@@ -485,7 +498,7 @@ export function register(debugTools) {
  * Space once on a given step — released the next step (a tap) or kept down
  * until the end (a hold). Drives the real input.
  */
-export function driveAtLedge(h, spot, { airborne, pressAt, hold, steps }) {
+export function driveAtLedge(h, spot, { airborne, pressAt, hold, holdFor = 0, steps }) {
   const shade = h.shade;
   const { box, x, z, yaw } = spot;
   const ground = CONFIG.map.groundY;
@@ -510,6 +523,9 @@ export function driveAtLedge(h, spot, { airborne, pressAt, hold, steps }) {
   let sawClimb = false;
   let sawGrab = false;
   let onTop = false;
+  // Space goes up after the step at `pressAt + holdFor` (a one-step tap by
+  // default), or never, for a hold.
+  const releaseAt = hold || pressAt === null ? Infinity : pressAt + holdFor;
   for (let i = 0; i < steps && !onTop; i++) {
     if (pressAt !== null && i === pressAt) {
       h.input.heldCodes.add('Space');
@@ -517,7 +533,7 @@ export function driveAtLedge(h, spot, { airborne, pressAt, hold, steps }) {
     }
     h.stepFrames(1);
     h.input.clearEdges();
-    if (!hold) h.input.heldCodes.delete('Space');
+    if (i >= releaseAt) h.input.heldCodes.delete('Space');
     states.add(shade.state);
     if (climbStates.has(shade.state)) sawClimb = true;
     if (shade.state === SHADE_STATE.GRAB) sawGrab = true;

@@ -150,6 +150,10 @@ budget checks are the ceiling.
 
 ## Done
 
+- **D36** The tap window for a hang is 0.30s from key-down (grab +
+  `hangHoldDelay`), not the 0.18s grab alone — a 250ms tap went over; the
+  tap/hold check now has a 250ms tap and a 500ms hold — 2026-09-17, Josh's
+  session.
 - **D2** Yard blockout. `maps/yard.js` and `maps/yarddata.js`: inside
   the site fence a 60 x 42 working yard walled by a ring of one-high
   containers with a gate north and south and a 40ft laid across each as

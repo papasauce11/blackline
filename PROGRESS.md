@@ -6056,3 +6056,30 @@ default gate (D6). No 40ft container is a single box longer than 12m;
 no container is anything but a box.
 
 **Left.** D3 next.
+
+## D36 — a tap of Space can be 250ms (2026-09-17)
+
+Josh, playing: *"tap to hang not working."* The tap/hold check was green and
+drives the real input layer — but with a one-step tap. Reproduced with real
+`KeyboardEvent`s through `renderFrame`, which is the path play uses: the grab
+starts on the step the key goes down and the hand lands 0.18s later, and that
+was the whole tap window. 100ms and 200ms taps hung; a 250ms tap went over.
+An ordinary press of a spacebar is 150–250ms, so in play most taps were holds.
+
+**Built.** `hangHoldDelay: 0.12`. In `_stepHang()` a key held since the grab
+counts as a hold only once `_hangTimer` has passed it — 0.30s from key-down
+all told, the usual tap/hold split. A fresh press from a settled hang pulls up
+at once, as before; the B2 slap on a blocked pull-up fires on the press, or
+once on the first honoured held step. The rule (D21) is untouched; a hold now
+pulls up 0.12s after the hand lands instead of on the same step, which reads
+as grab-then-pull. Provisional D36 records the number.
+
+**Verified.** `tap-space-grabs-the-ledge-hold-space-climbs-it` gained two
+tiers — 250ms down then released still hangs, 500ms down goes over — and
+`driveAtLedge()` a `holdFor`. Red on the previous traversal with exactly the
+complaint ("a 250ms tap went over hall-container instead of hanging"). Real
+keys in the pane at hall-container: 100, 250 and 280ms taps hang; 400ms and
+500ms holds go over, sprinting in from 2.5m the same. The hang, feel and
+scuff checks unchanged. Full suite 152 passed / 1 failed (the frame budget,
+skipped headless), twice, identical, zero console errors.
+

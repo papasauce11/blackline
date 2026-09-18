@@ -332,6 +332,15 @@ export const CONFIG = {
      */
     hangGrabDuration: 0.18,
     /**
+     * How long Space has to stay down AFTER the hand lands before a key held
+     * through the grab counts as a hold. The grab starts on the step the key
+     * goes down, so grab + this is the tap window from key-down: 0.30s. With
+     * the grab alone as the window a 250ms tap went over (Josh, 2026-09-17,
+     * "tap to hang not working"). A fresh press from a settled hang ignores
+     * this and pulls up at once.
+     */
+    hangHoldDelay: 0.12,
+    /**
      * Josh: "shouldn't be able to hang on anything shorter than 1.4x the height
      * of the shade from the vault position." A ledge lower than this many
      * Shade-heights above the surface the climb started on is not grabbed; it
