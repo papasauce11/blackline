@@ -86,7 +86,8 @@ Decided: D2. Outdoors, similar size to the first. Container stacks give the
 Shade vertical advantage that is hard for the Warden to close. The Warden has
 a railed walkway reached by stairs with an overhead view, glazed, with only
 small apertures to shoot through. Provisional: D9 (night, floodlit), D11
-(three apertures ~0.4m), D12 (the walkway is out of the Shade's reach).
+(three apertures ~0.4m), D12 (the walkway is out of the Shade's reach),
+D37 (the walkway as built), D39 (the lighting as built).
 
 - [ ] **D3b (S)** A Warden-only door at the stair's mouth — **blocked:
   D38.** Only if Josh picks option 2 or 3 there. A box the Warden's body
@@ -97,15 +98,6 @@ small apertures to shoot through. Provisional: D9 (night, floodlit), D11
   drives the Shade up the stair through `input.heldCodes` and asserts it
   stops at the door while the Warden, driven the same way, walks through;
   `nothing-climbs-to-the-walkway-and-the-warden-walks-up` unchanged.
-- [ ] **D4 (M)** Yard lighting. Night, floodlights on masts as the shadowed
-  key (one shadowed light stays the rule — pick the mast that covers the
-  most), fill from the sky, pools of dark between stacks. The four lamps
-  in `maps/yarddata.js` are D2's placeholders at 6m over the sites and
-  the gate. *done-when:* the lighting readability checks pass on `yard`
-  within the frame budget - `lit-pools-and-dark-gaps-are-actually-contrasty`
-  is the one check red on the yard since D2 (the lamps add 6.6 over a
-  sky of 21.4; the sky is the problem), and `every-route-reads-lit-from-its-foot`
-  stays green (0.43-0.45 at the pallets today, over a 0.25 floor).
 - [ ] **D5 (M)** AI on the yard. Patrol routes over `wardenGround`, defend
   paths to all three sites, alarm placement. Three checks stand in the
   Turbine Hall's lit lane by coordinate and are `maps: ['plant']` since
@@ -114,8 +106,11 @@ small apertures to shoot through. Provisional: D9 (night, floodlit), D11
   `the-warden-fires-in-bursts-of-rounds-at-the-torso` - because their
   numbers depend on the lane's light (D33's table); D5 gives them a lit
   lane on the yard (a `clearLane` that asks the detection model for
-  light, tests/lanes.js, or the yard's own coordinates once D4 has lit
-  it) and takes the scoping off. *done-when:* every AI check passes on
+  light, tests/lanes.js, or the yard's own coordinates now D4 has lit
+  it: the gate lane under the gate mast, the mid lane under the
+  walkway's lamp) and takes the scoping off. The meter under a yard mast
+  reads in the fifties against the plant's hall's seventies (D39) -
+  D33's numbers may need the yard's own column. *done-when:* every AI check passes on
   `yard`, those three included; a soak of 3 matches with no stall.
 - [ ] **D6 (S)** Both maps in the regression set; the menu defaults to
   `plant`; `PLAYTEST.md` gets a yard section. Since D1 the runner takes
@@ -153,6 +148,23 @@ budget checks are the ceiling.
 
 ## Done
 
+- **D4** Yard lighting. Night (D9): four floodlight masts (`MASTS`,
+  `MAST`, maps/yarddata.js - a pole and an arm thinner than a body, the
+  lamp 6.5m up over bays A, B, C and the gate) and a fifth lamp under
+  the walkway's floor; the lamps 2.5x the plant's pendants (C's half);
+  `addLightRig(rig)` takes the map's numbers (hemisphere 0.2, a cool
+  fill 0.14 from overhead, the key 0.3 warm) and `aimKeyLight` points
+  the one shadowed key from bay C's mast head - the mast that covers the
+  most Warden ground inside the ring, 2274 cells - at the centre, 28°
+  up. `lit-pools-and-dark-gaps-are-actually-contrasty` green on the
+  yard: 26.9 / 24.5 / 21.0 over a sky of 8.1 / 3.0 / 8.1. Checks
+  (tests/yardlight.js): `the-yard-is-floodlit-from-masts-at-night`
+  (the masts, the key's mast by count, its aim, colour, elevation),
+  `the-yard-is-dark-between-its-pools` (gaps and a key shadow under half
+  the dimmest pool and above black, the sky under a third of the
+  brightest pool). Found: the plant's fill colour lands nothing.
+  Spec 20.20, D39 provisional — 2026-09-18, scheduled run, commit
+  `PENDING`.
 - **D3** The Warden's walkway. A glazed run 7.2m up over the mid lane's
   north edge (`WALKWAY`, maps/yard.js), one flight of 24 treads up the
   west side of the gate lane (`addStaircase` takes `steps`), rails both

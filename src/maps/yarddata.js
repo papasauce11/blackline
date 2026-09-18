@@ -14,6 +14,7 @@
 import { CONFIG } from '../config.js';
 
 const M = CONFIG.map;
+const P = CONFIG.palette;
 const G = M.groundY;
 
 /**
@@ -67,25 +68,115 @@ export function placeSpawns(map) {
 }
 
 /**
- * Destructible point lights, and the ambient rig. Four for now, one over
- * each site and one at the gate, hung where D4's masts will put them; the
- * yard's lighting (night, floodlit - D9) is D4's job and these are its
- * placeholders. Site C is the dimmest, as the plant's is.
+ * The yard at night (D4; D9 provisional). Floodlights on masts light the
+ * sites and the gate in pools; between the stacks it is dark. The sky is
+ * the rig over `CONFIG.map.lighting`'s: a hemisphere too dim to read the
+ * ground by, a cool fill from straight overhead so a shadow is a shade
+ * and not a hole (Section 4's dark gaps have to be navigable), and the
+ * one shadowed key (Section 4.1) is a floodlight: warm, low, aimed from
+ * the head of the mast that covers the most of the yard's ground at its
+ * centre, so every stack throws a long hard shadow away from it; the sky
+ * lands about 8 of luma on the ground where the key reaches and 3 in a
+ * shadow, a lamp 13 to 22 in its pool. The lamps, not the sky, are
+ * what light a site - `lit-pools-and-dark-gaps-
+ * are-actually-contrasty` requires each site's lamp to add more than the
+ * sky lands there, because shooting the lamp out is the mechanic, and a
+ * day sky (the plant's rig outdoors) put 21 of luma on the ground before
+ * a lamp added its 7. The numbers to turn are here.
+ */
+export const RIG = {
+  hemisphereIntensity: 0.2,
+  keyIntensity: 0.3,
+  // The fill is what a shadow reads by: from straight overhead, in the
+  // lamps' cool, less than half the day's - `ambientSky`, the plant's fill
+  // colour, is too dark a blue to land anything at any intensity.
+  fillIntensity: 0.14,
+  fillDirection: [0.15, -1.0, 0.1],
+  fillColor: P.lightCool,
+};
+
+/**
+ * A floodlight mast: a pole on the ground, an arm from its top, the lamp
+ * at the arm's end. The pole and the arm are thinner than a body, so the
+ * rule finds nothing to stand on and nothing to climb, and each stands
+ * against a wall or in a corner off every lane the Warden walks. The
+ * head is at `head`: past a standing reach from any tier top beside it,
+ * under the tier the walkway keeps for itself. A head at 6.5m needs
+ * `lift` times the plant's pendant to land the same pool - the inverse
+ * square, and the yard's ground is the darker concrete.
+ */
+export const MAST = { pole: 0.3, arm: 0.15, height: 6.7, head: 6.5, lift: 2.5 };
+
+/**
+ * Where the masts stand, and where their heads hang. `pole` is the
+ * foot's centre, `head` the lamp's (x, z) - the arm reaches from one to
+ * the other. `KEY_MAST` names the one the shadowed key shines from: the
+ * mast whose lamp reaches the most of the Warden's ground inside the ring
+ * (the arena, not the apron) - bay C's, which stands in the widest open
+ * floor in the yard and reaches the mid lane and the east store besides.
+ * `the-yard-is-floodlit-from-masts-at-night` (tests/yardlight.js) counts
+ * the cells and holds the name to the count.
+ */
+export const MASTS = [
+  // Against bay A's south row, the arm out over the site.
+  { tag: 'bay-a', pole: [-19.0, -4.55], head: [-19.0, -7.7], dim: false },
+  // Bay B, the mirror.
+  { tag: 'bay-b', pole: [16.0, -4.55], head: [16.0, -7.7], dim: false },
+  // Against bay C's east wall, the arm out over the bay. The dimmest, as
+  // the plant's site C is.
+  { tag: 'bay-c', pole: [9.45, 10.5], head: [6.4, 10.5], dim: true },
+  // In the open ground west of the gate lane, north of the stair's foot,
+  // the arm out over the lane just inside the arch.
+  { tag: 'gate', pole: [-3.85, -17.0], head: [0.0, -17.0], dim: false },
+];
+export const KEY_MAST = 'bay-c';
+
+/**
+ * Destructible point lights, and the rig. Four floodlights on masts
+ * (`MASTS`) and a fifth under the walkway's floor: the Warden's post
+ * lights the crossroads it looks down on, so the mid lane is a pool and
+ * not a gap. `EXPECTS.lights` (yard.js) is five.
  */
 export function placeLights(map) {
   const L = M.lighting;
-  const LAMP_Y = 6.0;
-  const lightSpecs = [
-    { x: -19.0, y: LAMP_Y, z: -8.0, i: L.pointIntensity, tag: 'bay-a' },
-    { x: 16.0, y: LAMP_Y, z: -8.0, i: L.pointIntensity, tag: 'bay-b' },
-    { x: 0.0, y: LAMP_Y, z: 10.5, i: L.pointIntensity * 0.45, tag: 'bay-c' },
-    { x: 0.0, y: LAMP_Y, z: -17.0, i: L.pointIntensity, tag: 'gate' },
-  ];
-  for (let i = 0; i < lightSpecs.length; i++) {
-    const spec = lightSpecs[i];
-    map.addPointLight(i, spec.x, spec.y, spec.z, spec.i, spec.tag);
+  const bright = L.pointIntensity * MAST.lift;
+  const dim = bright * 0.5;
+  let id = 0;
+  for (const spec of MASTS) {
+    mast(map, spec);
+    map.addPointLight(id++, spec.head[0], G + MAST.head, spec.head[1], spec.dim ? dim : bright, spec.tag);
   }
-  map.addLightRig();
+  // Under the walkway's slab (floor at 7.2, the slab 0.2 thick), over the
+  // mid lane's north edge.
+  map.addPointLight(id++, 0.0, G + 6.75, -2.2, bright, 'walkway');
+
+  const key = MASTS.find((spec) => spec.tag === KEY_MAST);
+  map.addLightRig({ ...RIG, keyColor: P.lightWarm });
+  map.aimKeyLight([-key.head[0], -(G + MAST.head), -key.head[1]]);
+  map.keyMast = KEY_MAST;
+}
+
+/** The pole and the arm of a mast, both thinner than a body (see `MAST`). */
+function mast(map, spec) {
+  const [px, pz] = spec.pole;
+  const [hx, hz] = spec.head;
+  const half = MAST.pole / 2;
+  const top = G + MAST.height;
+  map.addSolid({
+    min: [px - half, G, pz - half],
+    max: [px + half, top, pz + half],
+    color: P.wardenGunmetal,
+    tag: `mast-${spec.tag}`,
+    castShadow: false,
+  });
+  const a = MAST.arm / 2;
+  map.addSolid({
+    min: [Math.min(px, hx) - a, top - MAST.arm, Math.min(pz, hz) - a],
+    max: [Math.max(px, hx) + a, top, Math.max(pz, hz) + a],
+    color: P.wardenGunmetal,
+    tag: `mast-${spec.tag}-arm`,
+    castShadow: false,
+  });
 }
 
 /**

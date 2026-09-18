@@ -6194,3 +6194,96 @@ Josh's eyes: whether a 0.4m slot is usable with a mouse, whether 30%
 opacity reads as glass, whether the run reads as the Warden's from the
 floor (PLAYTEST.md). The three AI checks scoped to the plant are still
 D5's; the run has no waypoints until then.
+
+## D4 — the yard at night: four masts, a fifth lamp, one warm key from bay C (2026-09-18, scheduled run)
+
+The 17:00 run's first job, sized M. The queue asked for night (D9):
+floodlights on masts as the shadowed key - one shadowed light stays the
+rule, pick the mast that covers the most - fill from the sky, pools of
+dark between stacks; and for `lit-pools-and-dark-gaps-are-actually-
+contrasty`, red on the yard since D2, to go green within the frame
+budget with `every-route-reads-lit-from-its-foot` still green. The
+baseline said why it was red: the lamps added 6.6 / 6.6 / 3.2 of luma
+at the sites over a sky of 21.4 - the plant's rig outdoors, with no
+roof to shadow its key, lit the whole yard like noon, and the plant's
+sites read 28.5 / 20.2 / 12.7 over a sky of 1.8 / 1.8 / 2.6.
+
+**Built.**
+
+- **The rig is the map's.** `addLightRig(rig)` (mapkit.js) takes a
+  map's numbers over `CONFIG.map.lighting`'s - intensities, directions,
+  and `hemisphereSky` / `hemisphereGround` / `keyColor` / `fillColor`
+  where the palette's defaults are not the map's; the plant passes none
+  and is unchanged. `aimKeyLight(direction, at)` points the key and
+  records its unit vector in `keyLight.userData.direction` for the
+  checks. The rule that exactly one light casts stays in the kit.
+- **Four masts** (`MASTS`, `MAST`, yarddata.js): a pole 0.3m square on
+  the ground, an arm 0.15 from its top, the lamp at the arm's end 6.5m
+  up - both parts thinner than a body, so the rule finds nothing to
+  stand on and neither derives climbable. Bay A's against its south row
+  with the arm out over the site, B's the mirror, C's against its east
+  wall, the gate's in the open ground west of the lane north of the
+  stair's foot with the arm over the lane. Each stands against a wall
+  or in a corner, off every lane the Warden walks and every waypoint
+  link. Considered and not built: masts at the ring's corners as a real
+  yard has them - 14m from the sites, past where a lamp lands a pool or
+  the meter counts it.
+- **A fifth lamp under the walkway's floor** over the mid lane: the
+  Warden's post lights the crossroads it looks down on, so the mid lane
+  is a pool and not a gap. `EXPECTS.lights` is 5.
+- **The lamps are 2.5x the plant's pendants** (`MAST.lift`; C's half
+  that, the dimmest as the plant's is). The inverse square of a head at
+  6.5m over the yard's darker concrete: at 26 candela a lamp at 6m landed
+  6.6. The meter under a mast reads in the fifties (the plant's hall,
+  over 70, has five lamps on it); D5 tunes the AI to the yard's.
+- **The sky** (`RIG`): hemisphere 0.2, a fill 0.14 from straight
+  overhead in `lightCool`, the key 0.3 in `lightWarm`. Found on the way:
+  the plant's fill colour, `ambientSky`, is too dark a blue to land
+  anything at any intensity - the first night read its shadows at luma
+  0.07, a hole by Section 4's own words, with the fill at 0.08 in that
+  colour; in the lamps' cool at 0.14 a shadow reads 3.0.
+- **The key is bay C's floodlight.** "The mast that covers the most",
+  counted as Warden-ground cells inside the ring within the lamp's range
+  of its head: bay C 2274, bay B 1906, bay A 1731, the gate 1544. So the
+  key is aimed from C's head at the yard's centre, 28° up: every stack's
+  shadow falls north-west, 5.5m for a one-high. Bay B's site floor sits
+  in its south row's shadow (sky 3.0); A's and C's are key-lit (8.1); C
+  stays the darkest by its lamp, 21.0 to B's 24.5. `KEY_MAST` is
+  declared, not derived, and the check holds the name to the count.
+
+**Verified.** `lit-pools-and-dark-gaps-are-actually-contrasty` on the
+yard: **site A 26.9 (+18.9), B 24.5 (+21.5), C 21.0 (+12.9)** over a sky
+of 8.1 / 3.0 / 8.1, C the darkest, A 1.28x C. `every-route-reads-lit-
+from-its-foot`: the pallets read 84 lit / 72 unlit against 31 at A
+(contrast 0.46), 69 / 51 against 29 at B (0.41), 49 / 28 against 18 at
+C - the step is the emissive's and the surround went darker, so every
+contrast rose. Two new checks, `src/tests/yardlight.js`, both on the
+yard:
+
+- `the-yard-is-floodlit-from-masts-at-night`: every mast has a pole on
+  the ground and an arm that reaches its head, both under a body's
+  width, neither climbable, a lamp at the head; the key casts, is
+  `lightWarm`, points within 0.999 of the line from `KEY_MAST`'s head to
+  the centre, under 45° up; and the coverage count names `KEY_MAST`
+  first with no tie. The first draft also required the rule to name no
+  approach onto a pole and went red on all four: the rule names an
+  approach onto any face a body can put its hands on, and it is the top
+  that is too narrow - the assertion was wrong, not the mast.
+- `the-yard-is-dark-between-its-pools`: read straight down as lit-pools
+  does, a lane no lamp reaches (the west store's, 3.0), the ground west
+  of bay C (4.9) and a stack's key shadow found from the key's own
+  direction (`shadowGap`: the ring's south row's, 3.0) all read under
+  half the dimmest pool (10.5) and above 1; the sky alone lands under a
+  third of the brightest pool on every site (0.30 today - the tightest
+  margin in the job; the lamps' lift is what moved it from 0.335, not
+  the key).
+
+Yard suite: **133 passed, 1 failed, 26 not for this map**, twice, identical (0 red, 0 flaky, 0 console errors; the one failure the frame budget, skipped headless; 130 passed after D3 - these two checks and lit-pools). Plant suite: **153 passed, 1 failed, 6 not for this map** (the two new checks are the yard's), twice as two `--runs 1` runs - two plant runs at 420-450s each no longer fit the tool's 10-minute cap, and a backgrounded run stopped from the tool left a dead runner behind; the 154 outcomes identical between them, 0 red, 0 console errors, 0 context losses.
+
+**Left.** D39 (provisional): every number, and the alternatives - the
+gate's mast as the key, from the north. Josh's eyes: whether it reads as
+a yard at night or a black screen with four spots, whether the warm key
+on the container faces sells "floodlit", whether the meter's fifties
+under a mast match how lit you look (PLAYTEST.md). D5 next: the AI on
+the yard, and the three plant-scoped AI checks given a lane the yard's
+lamps light.

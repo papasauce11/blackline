@@ -95,6 +95,54 @@ had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
 ## Provisional — done as recommended, override any time
 
+### D39 — The yard's lighting as built: masts, one warm key from bay C, a dark sky
+D4 (2026-09-18). D9 stands (night, floodlit from masts, pools of dark
+between stacks); this is what it came out as, and the numbers to turn,
+all in `src/maps/yarddata.js`:
+
+- **Four masts and a fifth lamp.** A mast is a pole 0.3m square on the
+  ground against a wall or in a corner off every lane, an arm from its
+  top, the lamp at the arm's end 6.5m up (`MASTS`, `MAST`): bay A's
+  against its south row with the arm out over the site, bay B's the
+  mirror, bay C's against its east wall, the gate's in the open ground
+  west of the lane north of the stair's foot with the arm over the lane.
+  The fifth lamp hangs under the walkway's floor over the mid lane: the
+  Warden's post lights the crossroads it looks down on. Five is the
+  yard's count (`EXPECTS.lights`); Section 5's twelve are the plant's.
+  Alternative: masts at the ring's corners like a real yard - 14m from
+  the sites, past where a lamp lands a pool or the meter counts it.
+- **The lamps are 2.5x the plant's pendants** (`MAST.lift`; bay C's is
+  half that, the dimmest as the plant's is). A head at 6.5m over the
+  yard's dark concrete needs it: at the plant's 26 candela the pool
+  read 6.6 of luma against a day sky of 21. Now the lamps add 19 / 22 /
+  13 at A / B / C over a sky of 8 / 3 / 8. The meter under a mast reads
+  in the fifties; under the plant's hall it reads over 70 from five
+  lamps. D5 tunes the AI to what the yard's lamps land.
+- **The sky lands a third of the day's, a seventh in a shadow.** Hemisphere 0.2 (was 0.55), the
+  fill 0.14 from straight overhead in the lamps' cool (`P.lightCool`;
+  the plant's fill colour, `ambientSky`, is too dark a blue to land
+  anything at any intensity - the shadows read at luma 0.07 with it),
+  the key 0.3 (was 1.15). A shadow reads at luma 3, a key-lit floor at
+  8. Alternative: a brighter fill, which makes the shadows a shade and
+  costs the pools their contrast - the check line is that the sky alone
+  lands under a third of the brightest pool (0.30 today).
+- **The one shadowed key is bay C's floodlight.** "Pick the mast that
+  covers the most": counted as Warden-ground cells inside the ring within
+  the lamp's range of its head, bay C's mast covers 2274 to bay B's
+  1906, A's 1731, the gate's 1544 (`the-yard-is-floodlit-from-masts-at-
+  night` holds the name to the count). So the key is warm (`lightWarm`),
+  aimed from that head at the yard's centre, 28 degrees up: every stack's
+  shadow falls north-west, 5.5m for a one-high; bay B's site floor is in
+  its south row's shadow (sky 3), A's and C's are key-lit (sky 8), and
+  C stays the darkest by its lamp. Alternative: the gate's mast, from the
+  north, which shadows bays B and C and lights the gate lane down its
+  length - a different look, not a different rule. `KEY_MAST` is the
+  name to change.
+- **`addLightRig(rig)` takes the map's numbers** over `CONFIG.map.
+  lighting`'s (the plant passes none) and `aimKeyLight(direction, at)`
+  points the key; the rule that exactly one light casts stays in the kit.
+**decided:**
+
 ### D37 — The walkway as built: where it is, what a slot is, what stops a knife
 D3 (2026-09-18). D11 and D12 stand; this is what they came out as, and one
 number that moved:

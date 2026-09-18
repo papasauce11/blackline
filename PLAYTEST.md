@@ -28,9 +28,10 @@ gatehouse. A container is 2.9m: a jump and a grab from the ground, and
 the second tier needs the first. Every one-high top connects to every
 other - along the rows, up a stack and down again, over the arches - so
 once you are up you can cross the whole yard without touching the
-ground, and the Warden can never follow. Day lighting from four
-placeholder lamps until D4; no walkway until D3; the Warden patrols it
-on a 21-node graph but has not been tuned for it (D5).
+ground, and the Warden can never follow. **Night** (D4, 2026-09-18):
+four floodlights on masts over the sites and the gate, a fifth under
+the walkway, and dark between the stacks; the walkway is up (D3); the
+Warden patrols it on a 21-node graph but has not been tuned for it (D5).
 The settings menu has the difficulty (easy / medium /
 hard), the match length (best of 5 or 11), the round briefing on or off,
 mouse sensitivity and volume. Controls, gadget slots and the climbing
@@ -42,16 +43,38 @@ set. `npm run suite` is the same thing headless. Both are green at every
 commit; if one is red in your tab, the F3 overlay's *gl context lost* row
 says whether the GPU was taken away mid-run. On the yard, Y runs only the
 checks that are not about the substation's geometry (26 are, and the
-banner counts them as *not for this map*) and one of the rest is red
-there until D4: `lit-pools-and-dark-gaps-are-actually-contrasty`, which
-wants the lamps to out-light the sky. `npm run suite -- --map yard` is
-the same headless; the yard is not in `npm run suite`'s default gate
-until D6.
+banner counts them as *not for this map*); since D4 every one of the
+rest is green there. `npm run suite -- --map yard` is the same
+headless; the yard is not in `npm run suite`'s default gate until D6.
 
 ## What to look at
 
 Newest first. Each item says what the checks already prove and what is
 left for you.
+
+### The yard is lit at night (D4, 2026-09-18)
+
+`?map=yard`. Stand in the gate lane and look: four floodlight masts, a
+pole against a wall and an arm out over the site, in bays A, B and C
+and beside the gate, and a lamp under the walkway's floor over the mid
+lane. The sky is nearly nothing; one warm low light from bay C's mast
+(the one that covers the most yard, by the checks' count) throws every
+stack's shadow north-west and long; the pools under the lamps are the
+sites. The checks prove: the lamps out-light the sky at every site
+(`lit-pools-and-dark-gaps-are-actually-contrasty`, +13 to +22 of luma
+over a sky of 3 to 8), a lane no lamp reaches and a stack's shadow read
+under half the dimmest pool and above black, the sky alone lands under a
+third of the brightest pool, and no mast is anything the rule lets you
+climb (`tests/yardlight.js`). What only eyes can judge: whether it reads
+as a *yard at night* or as a black screen with four spots - the fill is
+less than half the day's and the shadows read at luma 3, which is navigable
+by the number and may not be by the eye; whether the warm key on the
+container faces sells "floodlit" or looks like sunset; whether the
+meter's reading under a mast (in the fifties) matches how lit you look, and
+whether standing in a shadow at the meter's floor looks as hidden as it
+reads. Shoot a mast's lamp out and the pool goes; the sky stays. The
+numbers to turn are `RIG`, `MAST.lift` and the masts' `dim` flag in
+`src/maps/yarddata.js` (D39).
 
 ### The yard has the Warden's walkway (D3, 2026-09-18)
 
@@ -180,7 +203,7 @@ now. What is not, and why:
   checks hold it (`the-container-tops-are-one-connected-deck`,
   `one-high-is-a-jump-and-two-high-needs-a-stack`, and the census, the
   routes and the plant rule all run on it), and the walkway is up (D3),
-  but it is lit like noon (D4) and the Warden has not been tuned for it
+  and it is lit at night (D4), but the Warden has not been tuned for it
   (D5). What only eyes can judge: whether a 2.9m container feels like a
   jump-and-grab you would expect, whether the bays read as bays from the
   lane, whether the arches over the gates read as arches. Switching

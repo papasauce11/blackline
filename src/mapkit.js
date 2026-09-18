@@ -390,20 +390,26 @@ export class GameMap {
   }
 
   /**
-   * The ambient rig every map shares. Section 4: one dim hemisphere and two
-   * directional fills; Section 4.1: exactly one of the directionals casts
-   * shadows, at the configured size and frustum, and it is `map.keyLight`.
-   * D4 will put the yard's floodlights on top of this; the rule that one
-   * light casts stays here.
+   * The ambient rig every map shares the shape of. Section 4: one dim
+   * hemisphere and two directional fills; Section 4.1: exactly one of the
+   * directionals casts shadows, at the configured size and frustum, and it
+   * is `map.keyLight`. `rig` is the map's own numbers over `M.lighting`'s
+   * (the plant passes none; the yard's night is D4's): the intensities, the
+   * directions, and `hemisphereSky` / `hemisphereGround` / `keyColor` /
+   * `fillColor` where the palette's defaults are not the map's. The rule
+   * that one light casts stays here whatever the numbers.
    */
-  addLightRig() {
-    const L = M.lighting;
-    const hemisphere = new THREE.HemisphereLight(P.ambientSky, P.ambientGround, L.hemisphereIntensity);
+  addLightRig(rig = {}) {
+    const L = { ...M.lighting, ...rig };
+    const colour = (value, fallback) => (value !== undefined ? value : fallback);
+    this.lightRig = L;
+
+    const hemisphere = new THREE.HemisphereLight(
+      colour(L.hemisphereSky, P.ambientSky), colour(L.hemisphereGround, P.ambientGround), L.hemisphereIntensity
+    );
     this.root.add(hemisphere);
 
-    const key = new THREE.DirectionalLight(P.lightCool, L.keyIntensity);
-    key.position.set(-L.keyDirection[0] * 60, -L.keyDirection[1] * 60, -L.keyDirection[2] * 60);
-    key.target.position.set(0, 0, 0);
+    const key = new THREE.DirectionalLight(colour(L.keyColor, P.lightCool), L.keyIntensity);
     key.castShadow = true; // The one and only shadow caster in the scene.
     key.shadow.mapSize.set(CONFIG.render.shadowMapSize, CONFIG.render.shadowMapSize);
     const frustum = CONFIG.render.shadowFrustum;
@@ -419,12 +425,30 @@ export class GameMap {
     this.root.add(key);
     this.root.add(key.target);
     this.keyLight = key;
+    this.aimKeyLight(L.keyDirection);
 
-    const fill = new THREE.DirectionalLight(P.ambientSky, L.fillIntensity);
+    const fill = new THREE.DirectionalLight(colour(L.fillColor, P.ambientSky), L.fillIntensity);
     fill.position.set(-L.fillDirection[0] * 60, -L.fillDirection[1] * 60, -L.fillDirection[2] * 60);
     fill.castShadow = false;
     this.root.add(fill);
     this.root.add(fill.target);
+    return key;
+  }
+
+  /**
+   * Point the key light along `direction` at `at` (the origin unless given):
+   * a directional light is parallel, so this is the whole of "where it
+   * shines from", and `at` is only where its shadow camera looks. The yard
+   * aims it from a floodlight mast's head at the yard's centre (D4);
+   * `keyLight.userData.direction` holds the unit vector for the checks.
+   */
+  aimKeyLight(direction, at = { x: 0, y: 0, z: 0 }) {
+    const key = this.keyLight;
+    const d = new THREE.Vector3(direction[0], direction[1], direction[2]).normalize();
+    key.position.set(at.x - d.x * 60, at.y - d.y * 60, at.z - d.z * 60);
+    key.target.position.set(at.x, at.y, at.z);
+    key.target.updateMatrixWorld(true);
+    key.userData.direction = [d.x, d.y, d.z];
     return key;
   }
 

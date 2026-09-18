@@ -2,16 +2,16 @@
  * BLACKLINE — maps/yard.js
  *
  * "Container Yard", the registry's `yard` (Block D). D1 registered it as an
- * empty plane; D2 is the blockout: the geometry; D3 the Warden's walkway.
- * The placements that are data rather than geometry - sites, spawns,
- * lights, waypoints, routes - are `yarddata.js`, as the plant's are
- * `plantdata.js`.
+ * empty plane; D2 is the blockout: the geometry; D3 the Warden's walkway;
+ * D4 the night, in yarddata.js. The placements that are data rather than
+ * geometry - sites, spawns, the lights and their masts, waypoints, routes -
+ * are `yarddata.js`, as the plant's are `plantdata.js`.
  *
  * Decided: D2 (outdoors, a shipping-container yard, similar size to the
  * first map; the Shade takes vertical advantage the Warden cannot close;
  * the Warden has a railed, glazed walkway reached by stairs, with small
- * apertures to shoot through). Provisional: D9 (night, D4's), D11 and D12
- * (the walkway, below), D35 (the shape built here).
+ * apertures to shoot through). Provisional: D9 and D39 (night, yarddata.js),
+ * D11 and D12 (the walkway, below), D35 (the shape built here).
  *
  * The shape. One ground plane, the site fence round the whole 80 x 65 as
  * the plant has it, and inside that a WORKING YARD of 60 x 42 walled by a
@@ -140,7 +140,7 @@ export const WALKWAY = {
 
 /** What this map promises to have built, asserted by validateMap() last. */
 const EXPECTS = {
-  lights: 4,
+  lights: 5,
   waypoints: 21,
   shadeSpawns: 4,
   wardenSpawns: 4,

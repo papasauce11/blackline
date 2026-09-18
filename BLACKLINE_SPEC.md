@@ -1145,3 +1145,31 @@ every wall was thicker than its reach. Section 16: three checks,
 `a-knife-stops-at-a-wall-a-body-cannot-pass` on every map
 (tests/walkway.js). `addStaircase` takes `steps`. D3, 2026-09-18; D37,
 D38.
+
+### 20.20 Sections 4, 4.1 and 5 - the yard at night
+
+The yard (20.18) is lit at night (D4, 2026-09-18; D9, D39): Section 4's
+"one dim hemisphere, 12 destructible point lights, 2 directional fills"
+is the rig's shape on every map and the plant's numbers; a map may pass
+its own numbers (`addLightRig(rig)`, mapkit.js) and the yard does - a
+hemisphere a third of the day's and a fill less than half, the fill from straight
+overhead in the lamps' cool so a shadow is a shade and not a hole, and
+the key a floodlight: warm, 0.3, aimed from the head of the mast that
+covers the most of the Warden's ground inside the ring at the yard's
+centre, 28 degrees up, so every stack throws a long hard shadow.
+Section 4.1 is untouched: that key is the one shadow caster, and the
+point lights cast none. The yard's destructible lights are five: four
+floodlights on masts (`MASTS`, maps/yarddata.js - a pole and an arm
+thinner than a body, so Section 6.1's rule finds nothing to stand on)
+over the sites and the gate, and one under the walkway's floor over the
+mid lane; each is 2.5 times the plant's pendant (bay C's half that), the
+inverse square of a head at 6.5m over dark concrete. Section 4's "high
+contrast between lit pools and dark gaps" is held on the yard by the
+same check as the plant, `lit-pools-and-dark-gaps-are-actually-
+contrasty` (each site's lamp adds more than the sky lands), and by two
+of its own (Section 16): `the-yard-is-floodlit-from-masts-at-night`
+(the masts, the key's mast by count, its aim, colour and elevation) and
+`the-yard-is-dark-between-its-pools` (a lane no lamp reaches and a
+stack's key shadow read under half the dimmest pool and above black;
+the sky alone lands under a third of the brightest pool on every site).
+tests/yardlight.js. D4, 2026-09-18; D39.

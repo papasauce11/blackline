@@ -4,7 +4,7 @@
  * The map registry (D1). Every map the game can build, keyed by a short id:
  * `plant` is "Meridian Substation" (`plant.js`, the first map, `src/map.js`
  * until D1) and `yard` is the container yard of Block D (`yard.js`,
- * blocked out by D2; its walkway, lighting and AI are D3-D5).
+ * blocked out by D2, its walkway D3, its night D4; the AI on it is D5).
  * `buildMap(id)` is the only way a map gets built; `?map=<id>` on the URL picks one for the page load,
  * the main menu's map row does the same by reloading with it, and the
  * headless runner passes it per run (`npm run suite -- --map plant,yard`).

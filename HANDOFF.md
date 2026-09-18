@@ -30,13 +30,13 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after D3 (2026-09-18) |
-| AUTO suite | headless, `npm run suite` (the `plant` map): **153 passed, 1 failed, 4 not for this map** (2026-09-18, after D3), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. On `yard` (`--map yard`, not in the default gate until D6): **130 passed, 2 failed, 26 not for this map** - the frame budget skipped, and `lit-pools-and-dark-gaps-are-actually-contrasty`, which is D4's (the lamps add 6.6 over a sky of 21.4) |
-| Next job | **D4** (M: yard lighting), then D5, D6. **D3 done** 2026-09-18 (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after D4 (2026-09-18) |
+| AUTO suite | headless, `npm run suite` (the `plant` map): **153 passed, 1 failed, 6 not for this map (the two new yard checks make it 6)** (2026-09-18, after D4), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. On `yard` (`--map yard`, not in the default gate until D6): **133 passed, 1 failed, 26 not for this map**, both runs, 0 red, 0 flaky - the frame budget skipped and nothing else red; `lit-pools-and-dark-gaps-are-actually-contrasty` went green there with D4 |
+| Next job | **D5** (M: AI on the yard), then D6. **D4 done** 2026-09-18 (below): the yard at night, four masts and a fifth lamp, one warm key from bay C. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
-| Map, yard | 124 boxes (71 before the walkway's 53), 58 climbable, Warden ground 15,332 cells in one component (the run and its stair included), 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up (the two arches and the nine upper tiers), every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
+| Map, yard | 132 boxes (71 before the walkway's 53, 124 before the masts' 8), 58 climbable, 5 lamps (four on masts, one under the walkway), Warden ground 15,332 cells in one component (the run and its stair included), 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up (the two arches and the nine upper tiers), every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
 
 Phases 1–49 of the original build are done and committed. The **redesign**
 (phases 1-50 of the plan below) is closed as of B9, 2026-09-14, but for two
@@ -46,10 +46,44 @@ the playtest build, C2, the round-start briefing, and C3, hit and damage
 feedback, landed 2026-09-15; C4, the end screens, C5, the difficulty
 pass, and C6, `PLAYTEST.md`, 2026-09-16 (below). Block D, the second
 map, is under way: D1, the plumbing, and D2, the yard blocked out, both
-2026-09-17 (below); D3, the walkway, 2026-09-18 (below); D4, the
-lighting, is next.
+2026-09-17 (below); D3, the walkway, and D4, the night, 2026-09-18
+(below); D5, the AI on the yard, is next.
 
 ---
+
+## The yard at night - D4
+
+`RIG`, `MAST`, `MASTS` and `KEY_MAST` in `src/maps/yarddata.js` state
+it; `placeLights` builds it. **Four floodlight masts** - a pole 0.3m
+square on the ground against a wall or in a corner off every lane, an
+arm from its top, the lamp at the arm's end 6.5m up: bay A's against
+its south row with the arm out over the site, B's the mirror, C's
+against its east wall, the gate's in the open ground west of the lane
+north of the stair's foot - and a **fifth lamp under the walkway's
+floor** over the mid lane. Both mast parts are thinner than a body, so
+the climb rule finds nothing to stand on and nothing derives climbable
+(the rule still names *approaches* onto their faces - that is what an
+approach is; the top is what is too narrow). The lamps are **2.5x the
+plant's pendants** (`MAST.lift`; C's half that): a head at 6.5m over
+dark concrete needs it, and the meter under a mast reads in the
+fifties. **The sky lands a third of the day's** (a seventh in a shadow): `addLightRig(rig)` (mapkit)
+now takes a map's numbers over `CONFIG.map.lighting`'s - the yard's are
+hemisphere 0.2, a fill 0.14 from straight overhead in `lightCool` (the
+plant's fill colour `ambientSky` is too dark a blue to land anything;
+with it the shadows read 0.07), and the key 0.3, warm, **aimed from bay
+C's mast head at the yard's centre** (`aimKeyLight`), 28 degrees up. Bay
+C's is the mast that covers the most Warden ground inside the ring (2274
+cells to 1906 / 1731 / 1544), which is the job's rule for the one
+shadowed light; `the-yard-is-floodlit-from-masts-at-night` counts the
+cells and holds `KEY_MAST` to the count. Readings: pools A 26.9 / B
+24.5 / C 21.0; the sky alone 8.1 / 3.0 / 8.1 (B's site floor is in its
+south row's key shadow); a lane no lamp reaches 3.0, a stack's shadow
+3.0. `lit-pools-and-dark-gaps-are-actually-contrasty` is green on the
+yard for the first time; `the-yard-is-dark-between-its-pools` holds
+the gaps under half the dimmest pool and above black and the sky under a
+third of the brightest pool (0.30 - the tightest margin in the job; the
+lamps' lift is what moved it, not the key). `EXPECTS.lights` is 5.
+Spec 20.20, D39 (every number, and the alternatives).
 
 ## The Warden's walkway - D3
 
@@ -857,7 +891,8 @@ Deliberately-red list and the two runs agree. Each run in the report carries
 `contextLosses` and `rerun`, the checks re-run after the GPU was taken away
 and given back (F1); the summary prints them as `GL CONTEXT LOST`. Zero is
 the normal reading; a non-zero one is the machine, not the game, unless the
-same check is in the list every run. `--runs 1` is a one-minute gate;
+same check is in the list every run. `--runs 1` is the gate (a minute on a
+quiet PC, 450s on a throttled one - see the traps);
 `--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
 the match; `--details <file>` (B8) writes every check's id, outcome and
 detail line per run - the readings a PROGRESS entry quotes, which the
@@ -909,6 +944,16 @@ lists the re-runs, so read that line before believing any red pixel check.
 If you ever see a 0x0 drawing buffer with the canvas still sized, it is
 this, not a resize. A check that needs to lose the context on purpose
 registers with `losesContext: true`.
+
+**A plant run can take 450s, and two of them do not fit the Bash tool's
+10-minute cap.** The D4 run's gate took 452s for one plant run (the yard
+is 190s); `npm run suite` for VERIFY is two runs plus a 45s cooldown. Start
+it with `run_in_background` writing to a file and wait on the file
+(`until grep -q "suite: " <file>`), or split it into two `--runs 1` runs
+with `--details` and compare the answers yourself. Stopping a
+backgrounded run from the tool does not stop the runner: node and its
+headless Chrome carry on, still writing to the redirected file, and a
+second run started beside them fights for the four pinned cores.
 
 **Two sessions in this repo will collide on decision numbers.** A5 raised its
 question as D19 while, ten minutes earlier and unseen, another session had
@@ -1088,8 +1133,13 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8, D25, D26, D27, D28, D30, D31, D38 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25, D26, D27, D28, D30, D31, D38, D39 and the Provisional section of `DECISIONS.md`; Josh answers there.
 
+- **D39**: the yard's lighting as built - four masts, a fifth lamp under
+  the walkway, the lamps 2.5x the plant's, a dark sky, the one shadowed
+  key warm from bay C's mast. Provisional; the pixels say the pools
+  out-light the sky and the gaps are dark, not that it reads as a yard
+  at night rather than a black screen with four spots.
 - **D38**: whether the Shade may walk up the Warden's stair into the
   booth. Today it can - nothing climbs to the walkway, but the stair is
   walked by both bodies and there is no such thing as a door only one
