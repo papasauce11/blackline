@@ -171,7 +171,7 @@ budget checks are the ceiling.
   Warden's ground walked the container deck from the ninth tread until
   the stair got its west rail. D37 provisional (as built), D38 blocking
   (may the Shade walk the stair) — 2026-09-18, scheduled run, commit
-  (next commit records the hash).
+  `8d189d4`.
 - **D36** The tap window for a hang is 0.30s from key-down (grab +
   `hangHoldDelay`), not the 0.18s grab alone — a 250ms tap went over; the
   tap/hold check now has a 250ms tap and a 500ms hold — 2026-09-17, Josh's
