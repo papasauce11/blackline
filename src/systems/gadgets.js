@@ -96,7 +96,9 @@ export class Gadgets {
       // A swing is a short arc, not a ray: anything inside the blade's reach
       // and roughly in front of the swinger is cut.
       if (this._inCone(event.origin, event.direction, this.alarm, event.range, 0)) {
-        if (this.collision.lineOfSight(event.origin, this.alarm)) this.destroyAlarm('knife');
+        // Through open air, not through a pane: a blade stops where a body
+        // does (D3), so the line is asked of every solid box, glass included.
+        if (this.collision.lineOfSight(event.origin, this.alarm, (box) => box.solid)) this.destroyAlarm('knife');
       }
     });
   }

@@ -25,6 +25,9 @@ const N = CONFIG.noise;
 
 const DEG = Math.PI / 180;
 
+/** What stops a blade: everything a body cannot pass, glass included. */
+const solidFilter = (box) => box.solid;
+
 /** Wall-clock seconds. Deliberately not the sim clock: the finisher scales it. */
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
 
@@ -347,6 +350,14 @@ export class Combat {
 
     if (!warden || warden.state === WARDEN_STATE.DEAD) return null;
     const kind = this.classifyKnife(shade, warden);
+    // A blade is stopped by what a bullet is (D3): the world between the two
+    // bodies. Until the walkway there was nothing thin enough to matter - a
+    // wall is wider than the arc - and the swing never asked; a glazed pane
+    // is a hand's width, and the Warden behind it is in range and untouched.
+    if (kind !== null && !this.knifeReaches(shade, warden)) {
+      this.emitter.emit('combat:knife-miss', { blocked: true });
+      return null;
+    }
     if (kind === 'takedown') {
       this._beginFinisher(shade, warden);
       return 'takedown';
@@ -359,6 +370,25 @@ export class Combat {
     }
     this.emitter.emit('combat:knife-miss', {});
     return null;
+  }
+
+  /**
+   * Is there open air from the Shade's torso to the Warden's (D3)? The same
+   * line `rayHitsActor` is occluded on, asked of every solid box - glass
+   * included, which a line of sight passes and a blade does not.
+   */
+  knifeReaches(shade, warden) {
+    const from = {
+      x: shade.position.x,
+      y: shade.feetY + shade.height * CONFIG.detection.torsoHeightRatio,
+      z: shade.position.z,
+    };
+    const to = {
+      x: warden.position.x,
+      y: warden.feetY + CONFIG.warden.standHeight * CONFIG.detection.torsoHeightRatio,
+      z: warden.position.z,
+    };
+    return this.map.collision.lineOfSight(from, to, solidFilter);
   }
 
   /**

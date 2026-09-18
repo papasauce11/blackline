@@ -217,6 +217,8 @@ export const CONFIG = {
     lightWarm: 0xffe6bd,
     lightCool: 0xbfd9ff,
     brokenGlass: 0x191c1f,
+    /** Glazing (D3): the walkway's panes, pale and cool, drawn translucent. */
+    glass: 0xa9d6e8,
   },
 
   // -------------------------------------------------------------------------
@@ -992,6 +994,8 @@ export const CONFIG = {
      * starts. Sized to the taller actor.
      */
     stairHeadroom: 1.95,
+    /** How much of a glazed pane is pane (D3): enough to read as glass, not enough to hide the yard behind it. */
+    glassOpacity: 0.3,
 
     /**
      * A box this wide AND this deep casts a shadow however thin it is. Roofs,

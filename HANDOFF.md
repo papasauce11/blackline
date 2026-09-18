@@ -30,13 +30,13 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after D2 (2026-09-17) |
-| AUTO suite | headless, `npm run suite` (the `plant` map): **152 passed, 1 failed, 2 not for this map** (2026-09-17, after D2), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. On `yard` (`--map yard`, not in the default gate until D6): **127 passed, 2 failed, 26 not for this map**, both runs - the frame budget skipped, and `lit-pools-and-dark-gaps-are-actually-contrasty`, which is D4's (the lamps add 6.6 over a sky of 21.4) |
-| Next job | **D3** (M: the Warden's walkway), then D4-D6. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after D3 (2026-09-18) |
+| AUTO suite | headless, `npm run suite` (the `plant` map): **153 passed, 1 failed, 4 not for this map** (2026-09-18, after D3), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. On `yard` (`--map yard`, not in the default gate until D6): **130 passed, 2 failed, 26 not for this map** - the frame budget skipped, and `lit-pools-and-dark-gaps-are-actually-contrasty`, which is D4's (the lamps add 6.6 over a sky of 21.4) |
+| Next job | **D4** (M: yard lighting), then D5, D6. **D3 done** 2026-09-18 (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
-| Map, yard | 71 boxes, 58 climbable, Warden ground 15,335 cells in one component, 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up (the two arches and the nine upper tiers), every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck |
+| Map, yard | 124 boxes (71 before the walkway's 53), 58 climbable, Warden ground 15,332 cells in one component (the run and its stair included), 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up (the two arches and the nine upper tiers), every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
 
 Phases 1–49 of the original build are done and committed. The **redesign**
 (phases 1-50 of the plan below) is closed as of B9, 2026-09-14, but for two
@@ -46,9 +46,51 @@ the playtest build, C2, the round-start briefing, and C3, hit and damage
 feedback, landed 2026-09-15; C4, the end screens, C5, the difficulty
 pass, and C6, `PLAYTEST.md`, 2026-09-16 (below). Block D, the second
 map, is under way: D1, the plumbing, and D2, the yard blocked out, both
-2026-09-17 (below); D3, the walkway, is next.
+2026-09-17 (below); D3, the walkway, 2026-09-18 (below); D4, the
+lighting, is next.
 
 ---
+
+## The Warden's walkway - D3
+
+`WALKWAY` in `src/maps/yard.js` states it; `walkway(map)` builds it. A
+glazed run 12 x 2.4m, its **floor 7.2m up over the mid lane's north
+edge** (x -6..6, z -3.4..-1.0), between the bays: the end faces look
+down the mid lane into bays A and B's open corners, the south face over
+bay C's gap, and from the middle the Warden sees all three sites through
+the glass. One flight of **24 treads** (`addStaircase` takes `steps`)
+up the west side of the gate lane beside bay A's lane row, **rails both
+sides** (the west rail is load-bearing: without it the Warden's ground
+stepped off the ninth tread onto the row's top and walked the whole
+container deck), the door the stair's mouth in the north face. A metre
+of parapet, glass to a roof at 2.3m, and **three slots 0.4m wide from
+the parapet's top to 1.95m** (D37 says why they are tall: the eye is at
+1.755 and a square slot aims 19° down at most): west to bay A, east to
+bay B, the middle of the south face to bay C.
+
+**Glass** is `addSolid({ glass: true })`: `CollisionBox.glass`, solid to
+a body, a round and a blade, `blocksSight` false so the eye, the AI and
+the light model pass; `materials.glass()` (mapbake.js) at
+`map.glassOpacity` 0.3, double-sided, no depth write, no shadow. The
+rifle's raycast takes no filter, so a pane stops a round already. **The
+knife stops where a body does** now: `Combat.knifeReaches()` asks for
+open air torso to torso of every solid box (`lineOfSight` with a solid
+filter), a blocked swing is `combat:knife-miss { blocked: true }`, the
+alarm camera's knife listener asks the same. It had no world test at
+all before; the plant's walls are thicker than its reach.
+
+Checks, `tests/walkway.js`: the run's skin against 4 eyes x 40 points
+(stopped, or out through a slot or the door, nowhere else), the real gun
+through the west slot (19.5m, at site A) and at the pane (0.57m), the
+real knife at the slot (cuts) and at the pane (blocked); D12's sentence
+over every top within 4m, the rule on all 53 boxes with and without a
+staged perch (3m under the floor: nothing, the parapet; 3m under the
+roof: the roof, so the rule is reading the geometry), the Warden's
+ground, and the human Warden up the stair (3.9s) and along the run;
+and, on every map, a knife in a clear lane with and without a staged
+post, glass or not. **D38 (blocking): the Shade can walk up the stair.**
+A stair is walked by anyone and a door only one body passes is a new
+rule; D3b is queued behind it. Spec 20.19, D37.
 
 ## The yard is blocked out - D2
 
@@ -1046,7 +1088,13 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8, D25, D26, D27, D28, D30, D31 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25, D26, D27, D28, D30, D31, D38 and the Provisional section of `DECISIONS.md`; Josh answers there.
+
+- **D38**: whether the Shade may walk up the Warden's stair into the
+  booth. Today it can - nothing climbs to the walkway, but the stair is
+  walked by both bodies and there is no such thing as a door only one
+  passes. Recommendation is to play it as built; a Warden-only door
+  (D3b) is a new rule and sized S if wanted.
 
 - **D25**: whether the deck's void edges should carry a rail except at the
   lips, so the duct roofs stop being routes up and a lit lip (B7) means

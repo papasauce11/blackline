@@ -95,6 +95,39 @@ had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
 ## Provisional — done as recommended, override any time
 
+### D37 — The walkway as built: where it is, what a slot is, what stops a knife
+D3 (2026-09-18). D11 and D12 stand; this is what they came out as, and one
+number that moved:
+
+- **Where.** A glazed run 7.2m up over the mid lane's north edge (x -6..6,
+  z -3.4..-1.0), reached by one flight of 24 treads up the west side of the
+  gate lane beside bay A's lane row. The end faces look down the mid lane
+  into the bays' open corners; the south face over bay C's gap. From the
+  middle of the run the Warden sees all three sites through the glass.
+  Alternative: over the gate lane, north-south - it covers the Warden's
+  own approach and neither bay.
+- **A slot is 0.4m wide and 0.95m tall, not 0.4m square.** D11 says "about
+  0.4m". The Warden's eye is 1.755m over the floor and its body cannot get
+  closer than 0.57m to a pane; a 0.4m square slot at eye height lets it aim
+  at most 19° down, and site A's floor is 33° down from the west slot. The slot
+  runs from the parapet's top (1.0m) to 1.95m, so it aims down to 53° and
+  up to 19°, and sideways as far as the Warden steps off the slot's axis.
+  Make it square in `WALKWAY.aperture` and the west slot no longer reaches
+  site A (the check says so).
+- **The door is the stair's mouth**, 2m wide in the north face, glass over
+  it from 2.1m. It is the fourth opening and the check counts it: a Warden
+  standing in it covers the stair and the gate lane north, and no bay.
+- **A knife stops where a body does.** The knife had no world test at all -
+  it was distance and arc - which nothing noticed while every wall was
+  thicker than its reach. A pane is a hand's width. The swing now asks for
+  open air from the Shade's torso to the Warden's, of every solid box, the
+  same line a round is occluded on; glass stops it and a slot does not.
+  `a-knife-stops-at-a-wall-a-body-cannot-pass` runs on every map.
+- **The parapet is a metre and both stair rails are real.** Without the
+  west rail the Warden's ground stepped off the ninth tread onto the lane
+  row's top and walked the whole container deck from there.
+**decided:**
+
 ### D36 — How long a tap of Space can be
 Josh, 2026-09-17, playing: *"tap to hang not working."* Reproduced with real
 key events: the grab starts on the step the key goes down and the hand lands
@@ -748,4 +781,35 @@ all along, the change is one predicate, and the census proves what it
 buys before it is kept. This changes where the Shade may plant and where
 the Warden may defuse, so it waits for a line here; B5d in `QUEUE.md` is
 sized for it and blocked on this.
+**decided:**
+
+### D38 — May the Shade walk up the Warden's stairs into the booth?
+D3 built the walkway D12 asked for: nothing climbs to it, by the rule, and the
+check proves it. But the Warden reaches it by a staircase, and a staircase is
+walked - there is no rule in the game that lets one body up a stair and not
+the other (the plant's two flights are walked by both). So the Shade can walk
+up the same 24 treads, through the door, and stand in the booth: the one way
+onto the walkway is open to both. D12's reason - "a Shade on the walkway
+closes the gaps for free" - is about the Shade using it as a vantage, and
+that is exactly what the stair allows. Nothing was built to stop it, because
+anything that would is a new rule.
+
+Options:
+1. **As built.** The stair is the one way up, 9.6m long, railed, in the open
+   gate lane, and the booth is a dead end: a Shade that climbs it is out of
+   the bays, audible on every tread, and cornered if the Warden follows. A
+   Warden camping the booth can be flushed by a Shade that climbs the stair,
+   which is a fair answer to camping.
+2. **A Warden-only door** at the stair's mouth (or its foot): a volume the
+   Warden's body passes and the Shade's does not - the first role-gated
+   collision in the game. One flag on a box, one line in the solver's
+   filter, one check. It makes the booth the Warden's alone and makes a
+   camped booth unanswerable except by planting somewhere it cannot see.
+3. **A Warden-only door with a cost**: the Shade may open it (the interact
+   key, a few seconds, a noise event), so the booth is enterable but never
+   silently. More rule than 2.
+
+Recommendation: 1, and play it before deciding - it is the option that adds
+no rule, and D4 says Josh tests what the routine cannot. If 2 or 3, a
+follow-up job (D3b in `QUEUE.md`) is sized S and blocked here.
 **decided:**

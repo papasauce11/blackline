@@ -113,6 +113,10 @@ export class GameMap {
    * @param {boolean} [spec.vent] crouch-only silent volume
    * @param {boolean} [spec.solid]
    * @param {boolean} [spec.blocksSight]
+   * @param {boolean} [spec.glass] glazing (D3): a translucent pane that is
+   *   solid to a body, a shot and a knife and nothing to a line of sight -
+   *   the Warden's walkway is glazed so it sees the yard and shoots only
+   *   through its apertures. Implies `blocksSight: false`; casts no shadow
    * @param {boolean} [spec.outline] give it an inverted-hull outline
    * @param {string} [spec.tag]
    */
@@ -129,7 +133,9 @@ export class GameMap {
     const geometry = new THREE.BoxGeometry(width, height, depth);
     applyContactTint(geometry, cy);
 
-    const material = this.materials.toon(spec.color !== undefined ? spec.color : P.concrete);
+    const material = spec.glass
+      ? this.materials.glass(spec.color !== undefined ? spec.color : P.glass)
+      : this.materials.toon(spec.color !== undefined ? spec.color : P.concrete);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(cx, cy, cz);
     mesh.name = spec.tag || 'solid';
@@ -150,7 +156,7 @@ export class GameMap {
     // is an occluder however thin it is. Trim and stripes stay out of the
     // shadow pass, which is what the original test was protecting.
     const broad = width >= M.shadowCasterMinSpan && depth >= M.shadowCasterMinSpan;
-    mesh.castShadow = spec.castShadow !== false && (height > 0.5 || broad);
+    mesh.castShadow = spec.castShadow !== false && !spec.glass && (height > 0.5 || broad);
     mesh.receiveShadow = true;
     this.root.add(mesh);
 
@@ -162,7 +168,8 @@ export class GameMap {
       {
         solid: spec.solid !== false,
         vent: spec.vent === true,
-        blocksSight: spec.blocksSight !== false,
+        blocksSight: spec.blocksSight !== false && !spec.glass,
+        glass: spec.glass === true,
         tag: spec.tag,
       }
     );

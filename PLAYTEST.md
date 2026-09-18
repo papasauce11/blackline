@@ -53,6 +53,22 @@ until D6.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The yard has the Warden's walkway (D3, 2026-09-18)
+
+`?map=yard`, or the menu's *map* row. Free roam as the Warden: from the
+gatehouse turn west, the stair is against bay A's lane row, 24 treads up
+to a glazed run over the mid lane. The checks prove: the glass stops a
+round and a knife and not your eye; the three slots (each end, the
+middle of the south face) are the only way a round leaves, and each
+looks down into its bay's open corner or bay C's gap; nothing climbs to
+the run, by the rule, from anything within 4m; the Warden walks it end
+to end. What only eyes can judge: whether the slots are usable at all
+with a mouse - they are 0.4m wide and you have to put the muzzle in one
+and aim down (D37 says why they are tall); whether 30% opacity reads as
+glass or as haze; whether the run reads as *the Warden's* from the yard
+floor. As the Shade: walk up the stair. You can, all the way into the
+booth - that is D38, and it is yours.
+
 ### The Warden shoots straight now (C5, 2026-09-16)
 
 Until 2026-09-16 the Warden aimed at your **feet** and fired one round a
@@ -156,11 +172,15 @@ now. What is not, and why:
   check fires its own wall-clock guard on purpose. In play, that guard
   fires only if a death camera has been up 16.5s - which the end screen
   now prevents (C4).
+- **The Shade can walk up the Warden's stair** (D38, blocking D3b).
+  Nothing climbs to the walkway, but a stair is walked by anyone; the
+  booth is open to a Shade that takes the 24 treads. As built on
+  purpose - a door only one body passes is a new rule - and yours.
 - **The yard is a blockout** (D2, D35): the shape is there and the
   checks hold it (`the-container-tops-are-one-connected-deck`,
   `one-high-is-a-jump-and-two-high-needs-a-stack`, and the census, the
-  routes and the plant rule all run on it), but it is lit like noon
-  (D4), has no walkway (D3), and the Warden has not been tuned for it
+  routes and the plant rule all run on it), and the walkway is up (D3),
+  but it is lit like noon (D4) and the Warden has not been tuned for it
   (D5). What only eyes can judge: whether a 2.9m container feels like a
   jump-and-grab you would expect, whether the bays read as bays from the
   lane, whether the arches over the gates read as arches. Switching

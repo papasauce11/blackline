@@ -211,9 +211,11 @@ export const GENERATORS = {
    * @param {number} spec.crossMax across-axis maximum
    * @param {number} spec.baseY floor the stairs rise from
    * @param {number} spec.deckY surface the flight arrives on
+   * @param {number} [spec.steps] treads; `map.stairSteps` (the plant's
+   *   deck) unless the flight has further to go (the yard's walkway, D3)
    */
   addStaircase(spec) {
-    const steps = M.stairSteps;
+    const steps = spec.steps || M.stairSteps;
     const rise = M.stairRise;
     const run = M.stairRun;
     const built = [];

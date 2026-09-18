@@ -6083,3 +6083,114 @@ keys in the pane at hall-container: 100, 250 and 280ms taps hang; 400ms and
 scuff checks unchanged. Full suite 152 passed / 1 failed (the frame budget,
 skipped headless), twice, identical, zero console errors.
 
+## D3 — the Warden's walkway: a stair, a glazed run, three slots (2026-09-18, scheduled run)
+
+The 02:00 run's first job, sized M. The queue asked for the walkway
+Josh described in D2 - railed, reached by stairs, glazed, with only
+small apertures to shoot through - under the provisional D11 (three
+apertures, about 0.4m, at the ends and the middle) and D12 (out of the
+Shade's reach: above `standing + jumpBonus` from every stack top within
+4m), and two checks: rays from the walkway to 40 points hit glass except
+through the apertures; no climbable surface reaches it.
+
+**Built.**
+
+- **Where it is.** `WALKWAY` in `maps/yard.js`: a run 12m long and 2.4
+  wide, its floor 7.2m up, over the mid lane's north edge (x -6..6,
+  z -3.4..-1.0) - between the bays, so its end faces look west and east
+  down the mid lane straight into bays A and B's open corners and its
+  south face over bay C's gap. From the middle the Warden sees all three
+  sites through the glass. Considered and not built: over the gate
+  lane north-south, which covers the Warden's own approach and neither
+  bay. The stair is one flight of **24 treads** (`addStaircase` takes
+  `steps`; 20 was the plant's deck and 6.0m is not enough - 6.0 - 2.9 is
+  under a jump's 3.8) up the west side of the gate lane beside bay A's
+  lane row, arriving at the run's north-west corner; the door is the
+  stair's mouth, 2m wide, glass over it from 2.1m. Rails both sides,
+  six boxes each, a metre over the treads. The run: a slab, a parapet
+  a metre high on every side, glass from there to a roof at 2.3m, and
+  the three slots.
+- **A slot is 0.4m wide and 0.95m tall** (D37), not the square D11's
+  "about 0.4m" reads as: the Warden's eye is 1.755m over the floor and
+  its body stops 0.57m short of a pane, so a square slot at eye height
+  aims 19° down at most and site A's floor is 33° down from the west
+  slot. The slot runs from the parapet's top to 1.95m: 53° down, 19°
+  up, and sideways as far as the Warden steps off its axis. West slot
+  to bay A, east to bay B, the middle of the south face to bay C; to
+  cover another bay the Warden walks to another slot, which is D11's
+  reason.
+- **Glass** is a new kind of solid: `addSolid({ glass: true })` (the
+  kit; `CollisionBox.glass`, `materials.glass()` in mapbake.js, a toon
+  material at `map.glassOpacity` 0.3, double-sided, no depth write, no
+  shadow). Solid to a body, a round and a blade; `blocksSight` false,
+  so a line of sight - the AI's, the light model's - passes. The
+  rifle's world raycast takes no filter and already stops at every
+  solid box, so a pane stops a round with no change to combat.
+- **The knife stops where a body does.** The knife had no world test
+  at all: `classifyKnife` is distance and arc, and nothing noticed
+  because every wall in the plant is thicker than its 1.9m reach. A pane
+  is a hand's width; a Warden behind it was in range and cut. `_swingKnife`
+  now asks `knifeReaches()` - open air from the Shade's torso to the
+  Warden's, of every solid box, glass included (`lineOfSight` with a
+  solid filter, the same line a round is occluded on) - and a blocked
+  swing is a `combat:knife-miss` with `blocked: true`. The alarm
+  camera's knife listener asks the same. Spec 20.19 amends 8.2.
+- 53 boxes, 124 on the yard now. `EXPECTS` unchanged: no new light,
+  waypoint, spawn, room or route. D5 gives the run its waypoints.
+
+**Verified.** Three checks, `src/tests/walkway.js`:
+
+- `the-walkway-is-glazed-and-shoots-only-through-its-apertures`
+  (yard): from an eye behind each slot, placed on the line from the
+  slot's centre to its site, and from mid-run, a ray to each of 40
+  points (the 3 sites, the 21 waypoints, 16 on a ring) either stops at
+  the walkway's own skin or leaves through a declared opening and
+  nowhere else; each slot passes a ray to its site; a ray a pane stops
+  is one the eye sees through. Then the real gun in free roam, the
+  trigger held one step: through the west slot the round lands 19.5m
+  out at site A; from beside the slot it lands 0.57m out, on the pane.
+  Then the real knife, the Shade on a staged perch at the run's floor
+  outside the west pane, the Warden inside, 1.36m apart: at the slot it
+  cuts 50, at the pane nothing, and the miss says `blocked`. 145 rays
+  stopped (42 at glass the eye sees through), 15 left through the slots.
+- `nothing-climbs-to-the-walkway-and-the-warden-walks-up` (yard): D12's
+  sentence over the geometry - every body-wide top within 4m of the
+  footprint is more than 3.8m under the floor (two are: the lane rows,
+  4.3m under); the rule names none of the 53 boxes climbable and no
+  approach onto the floor or the roof; then the other half, so the
+  answer is the geometry's and not a flag: a perch staged 3m under the
+  floor outside the west pane gets 0 approaches (the parapet stops the
+  rise), a perch 3m under the roof gets 1 onto the roof, and both go
+  when the perch does; the Warden's ground includes the run; and the
+  human Warden, W held from 1.5m short of the first tread, is on the
+  run and through the door in 3.9s and at its east end 3.4s later.
+- `a-knife-stops-at-a-wall-a-body-cannot-pass` (every map): in a clear
+  lane (tests/lanes.js), the two at 1.36m facing: open, 50; with a
+  staged post between them, 0 and `blocked`; with the post glass, 0,
+  `blocked`, and the line of sight through it still open; post gone,
+  50. Runs in the default gate on the plant, so the knife's world test
+  cannot be reverted quietly.
+
+Found under it: **the Warden walked the container deck.** The first
+build railed only the stair's open side, and `one-high-is-a-jump-and-two-
+high-needs-a-stack` went red with "arch-north is climbable from walkable
+ground": the flight passes bay A's lane row's top at 2.9m 0.2m away, the
+Warden's ground stepped off the ninth tread (3.0m) onto the row, and
+from there every one-high top in the yard was Warden ground. The west
+rail is why there is a west rail; the check that caught it is D2's, on
+the deck, not D3's. Also: the first arrival test turned the Warden east
+while its body was still in the doorway, and it stood against the
+parapet's end - the check now waits for the whole body inside.
+
+Yard suite: 130 passed, 2 failed (the frame budget, skipped headless;
+`lit-pools-and-dark-gaps-are-actually-contrasty`, D4's), 26 not for
+this map - D2's 127 plus these three. Plant suite: **153 passed, 1 failed (the frame budget, skipped
+headless), 4 not for this map**, twice, identical, zero console errors.
+
+**Left.** D38, blocking: the Shade can walk up the stair into the
+booth - a stair is walked by anyone and a door only one body passes is
+a new rule. D3b (a Warden-only door) is queued behind it, sized S.
+Josh's eyes: whether a 0.4m slot is usable with a mouse, whether 30%
+opacity reads as glass, whether the run reads as the Warden's from the
+floor (PLAYTEST.md). The three AI checks scoped to the plant are still
+D5's; the run has no waypoints until then.

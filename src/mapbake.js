@@ -53,6 +53,24 @@ export function createMaterialCache(gradientMap) {
       }
       return material;
     },
+    /**
+     * Glazing (D3): the same toon shading, drawn translucent and from both
+     * sides so a pane reads from inside the booth and out. No depth write,
+     * so the panes behind a pane still draw; the collision box under it is
+     * as solid as any other.
+     */
+    glass(color) {
+      const key = `${color}:glass`;
+      let material = cache.get(key);
+      if (!material) {
+        material = new THREE.MeshToonMaterial({
+          color, gradientMap, vertexColors: true,
+          transparent: true, opacity: M.glassOpacity, depthWrite: false, side: THREE.DoubleSide,
+        });
+        cache.set(key, material);
+      }
+      return material;
+    },
     dispose() {
       for (const material of cache.values()) material.dispose();
       cache.clear();

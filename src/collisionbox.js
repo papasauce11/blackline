@@ -31,6 +31,8 @@ export class CollisionBox {
    *   `deriveClimbableSurfaces()`, never declared; the map has no say
    * @param {boolean} [flags.vent] crouch-only, silent volume
    * @param {boolean} [flags.blocksSight] blocks rays for light and perception
+   * @param {boolean} [flags.glass] glazing (D3): solid to a body, a shot and
+   *   a knife, and nothing to a line of sight - `blocksSight` false
    * @param {string}  [flags.tag] human label, used by the debug overlay
    */
   constructor(min, max, flags = {}) {
@@ -42,6 +44,8 @@ export class CollisionBox {
     /** Crouch-only, silent volume (Section 5). */
     this.vent = flags.vent === true;
     this.blocksSight = flags.blocksSight !== false;
+    /** Glazing: what the walkway's checks look for a shot to stop at. */
+    this.glass = flags.glass === true;
     this.tag = flags.tag || '';
     /** Set by the map derivation: what move this ledge calls for. */
     this.reachMove = null;

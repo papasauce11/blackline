@@ -1118,3 +1118,30 @@ the hang-under-a-lid case searches the map for a lidded lip; three AI
 checks that stand in the hall's lit lane are the plant's until D5. The
 room-entry derivation splits a run where its sill changes (a gap beside
 a row is two entries, not one at the row's centre). D2, 2026-09-17; D35.
+
+### 20.19 Sections 5 and 8.2 - the Warden's walkway on the yard, and what stops a knife
+
+The yard's raised ceiling (20.18) is the Warden's walkway (D3,
+2026-09-18): a glazed run 7.2m up over the mid lane's north edge,
+reached by one flight of 24 treads up the west side of the gate lane,
+with a parapet a metre high, glass from there to a roof at 2.3m, and
+three apertures - a slot 0.4m wide from the parapet's top to 1.95m in
+each end face, looking down the mid lane into bays A and B's open
+corners, and one in the middle of the south face over bay C's gap (D11,
+D37). The door is the stair's mouth in the north face. Its floor is
+above `standing + jumpBonus` from every top within 4m, so Section 6.1's
+rule names no way onto it and nothing has to say so (D12); the stair is
+walked, by both bodies, and whether the Shade may is D38. Glazing is a
+new kind of solid (`addSolid`'s `glass`, `CollisionBox.glass`): solid
+to a body, a round and a blade, and nothing to a line of sight
+(`blocksSight` false), drawn translucent; the Warden sees the whole yard
+through it and shoots only through the slots. **Section 8.2 amended:**
+the knife lands only with open air from the Shade's torso to the
+Warden's, asked of every solid box - the same line Section 8.1's round
+is occluded on. It had no world test before, which nothing noticed while
+every wall was thicker than its reach. Section 16: three checks,
+`the-walkway-is-glazed-and-shoots-only-through-its-apertures` and
+`nothing-climbs-to-the-walkway-and-the-warden-walks-up` on the yard,
+`a-knife-stops-at-a-wall-a-body-cannot-pass` on every map
+(tests/walkway.js). `addStaircase` takes `steps`. D3, 2026-09-18; D37,
+D38.

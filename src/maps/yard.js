@@ -2,14 +2,16 @@
  * BLACKLINE — maps/yard.js
  *
  * "Container Yard", the registry's `yard` (Block D). D1 registered it as an
- * empty plane; D2 is the blockout: the geometry. The placements that are
- * data rather than geometry - sites, spawns, lights, waypoints, routes -
- * are `yarddata.js`, as the plant's are `plantdata.js`.
+ * empty plane; D2 is the blockout: the geometry; D3 the Warden's walkway.
+ * The placements that are data rather than geometry - sites, spawns,
+ * lights, waypoints, routes - are `yarddata.js`, as the plant's are
+ * `plantdata.js`.
  *
  * Decided: D2 (outdoors, a shipping-container yard, similar size to the
  * first map; the Shade takes vertical advantage the Warden cannot close;
- * the Warden's glazed walkway is D3's). Provisional: D9 (night, D4's),
- * D11, D12 (D3's), D35 (the shape built here).
+ * the Warden has a railed, glazed walkway reached by stairs, with small
+ * apertures to shoot through). Provisional: D9 (night, D4's), D11 and D12
+ * (the walkway, below), D35 (the shape built here).
  *
  * The shape. One ground plane, the site fence round the whole 80 x 65 as
  * the plant has it, and inside that a WORKING YARD of 60 x 42 walled by a
@@ -34,6 +36,25 @@
  * declared in yarddata.js and held by tests/routes.js. The pallets are
  * where a route starts on foot: 1.0m, a vault from the ground and a 1.9m
  * mantle onto the row beside them.
+ *
+ * THE WALKWAY (D3) is the Warden's overhead view: a glazed run 7.2m up
+ * over the mid lane's north edge, between the bays, reached by one flight
+ * of stairs up the west side of the gate lane, beside bay A's lane row
+ * (the gatehouse has the east). It is where the Warden
+ * cannot be reached and cannot easily shoot from. Its floor is above
+ * `standing + jumpBonus` from every top within 4m (D12), so the climb rule
+ * names no way up and nothing has to say so; a parapet a metre high and
+ * glass from there to the roof close it, and the glass is solid to a body,
+ * a shot and a knife and nothing to a line of sight, so the Warden sees the
+ * whole yard through it and shoots only through THREE APERTURES (D11):
+ * a slot in each end face, looking down the mid lane into the bays' open
+ * corners - A from the west, B from the east - and one in the middle of
+ * the south face over bay C's gap. Each is a hand's width (0.4m) and
+ * reaches from the parapet down to just above the eye, so a Warden with
+ * its muzzle in the slot can aim down into a bay and not much else; to
+ * cover another bay it walks to another slot. The door is the stair's
+ * mouth in the north face. `WALKWAY` states all of it; tests/walkway.js
+ * holds it.
  *
  * What the checks need at ground level, and where it is: a vault-band box
  * with a straight run (the loose pallets in the mid lane), a mantle-band
@@ -87,6 +108,35 @@ const GATEHOUSE_HEIGHT = 2.4;
 
 /** The gates in the ring, and the arch laid across each. */
 const GATE = { halfWidth: 3.6, archLength: 12.0 };
+
+/**
+ * The Warden's walkway (D3, D11, D12). A stair of `stair.steps` treads
+ * rises to `floorY`; the run is a floor slab, a parapet `rail` high, glass
+ * from there to `headroom`, a roof. Every pane and the parapet are `pane`
+ * thick, inside the footprint. The apertures are slots `aperture.width`
+ * wide from the parapet's top to `aperture.top` above the floor (the
+ * Warden's eye is at 1.755), one per site: `face` is the pane it is cut
+ * in, `at` its centre along that pane, `site` what it looks down into.
+ * The door is the stair's mouth: the north pane stops at the stair's
+ * sides and the glass above it starts at `door.height`.
+ */
+export const WALKWAY = {
+  x0: -6.0, x1: 6.0, z0: -3.4, z1: -1.0,
+  stair: { x0: -6.0, x1: -4.0, start: -13.0, steps: 24 },
+  floorY: G + 24 * M.stairRise,
+  slab: 0.2,
+  rail: 1.0,
+  headroom: 2.3,
+  roof: 0.15,
+  pane: 0.1,
+  aperture: { width: 0.4, top: 1.95 },
+  apertures: [
+    { id: 'west', face: 'west', at: -2.2, site: 'A' },
+    { id: 'east', face: 'east', at: -2.2, site: 'B' },
+    { id: 'south', face: 'south', at: 0.0, site: 'C' },
+  ],
+  door: { height: 2.1 },
+};
 
 /** What this map promises to have built, asserted by validateMap() last. */
 const EXPECTS = {
@@ -281,6 +331,14 @@ export function buildYardMap({ id, name, gradientMap }) {
   pallets(map, 'pallets-loose', 13.25, 2.0);
 
   // -------------------------------------------------------------------------
+  // The Warden's walkway (D3): the stair up the gate lane's west side, the
+  // glazed run over the mid lane's north edge. After every stack, because
+  // its height is answerable to theirs (D12) and nothing else is.
+  // -------------------------------------------------------------------------
+
+  walkway(map);
+
+  // -------------------------------------------------------------------------
   // Rooms (Section 5 readability). Entries are derived, never declared: the
   // bays are open to the sky, so the ceiling is one and the gaps in the rows
   // the rest.
@@ -333,6 +391,95 @@ function container(map, tag, x, z, along, length, tier) {
     outline: tier > 0,
     tag,
   });
+}
+
+/**
+ * The walkway (D3). The stair first: `steps` treads from the lane beside
+ * bay A's lane row to the floor's height, a rail on both sides the whole
+ * flight - the west rail is not decoration: the flight passes the row's
+ * top at 2.9m, and without it the Warden's ground stepped off the ninth
+ * tread onto the row and from there along the whole container deck.
+ * Then the run: the slab, the parapet on
+ * every side but the stair's mouth, the glass above the parapet with a
+ * slot cut for each aperture, the glass over the door, the roof.
+ */
+function walkway(map) {
+  const K = WALKWAY;
+  const floor = K.floorY;
+  const stair = map.addStaircase({
+    tag: 'stair-walkway', axis: 'z', start: K.stair.start, crossMin: K.stair.x0, crossMax: K.stair.x1,
+    baseY: G, deckY: floor, steps: K.stair.steps,
+  });
+  // The rails: a box every four treads each side, from the lowest tread's
+  // top in the group to a metre over the highest.
+  const rise = M.stairRise;
+  const run = M.stairRun;
+  for (let g = 0; g < K.stair.steps / 4; g++) {
+    const z0 = K.stair.start + g * 4 * run;
+    const y0 = G + (g * 4 + 1) * rise;
+    const y1 = G + (g * 4 + 4) * rise + K.rail;
+    rail(map, `stair-walkway-rail-w${g}`, [K.stair.x0, y0, z0], [K.stair.x0 + K.pane, y1, z0 + 4 * run]);
+    rail(map, `stair-walkway-rail-e${g}`, [K.stair.x1 - K.pane, y0, z0], [K.stair.x1, y1, z0 + 4 * run]);
+  }
+
+  // The run. The slab the stair's top tread meets; the roof over it.
+  map.addSolid({
+    min: [K.x0, floor - K.slab, K.z0], max: [K.x1, floor, K.z1],
+    color: P.wardenGunmetal, tag: 'walkway-floor',
+  });
+  map.addSolid({
+    min: [K.x0, floor + K.headroom, K.z0], max: [K.x1, floor + K.headroom + K.roof, K.z1],
+    color: P.wardenGunmetal, tag: 'walkway-roof',
+  });
+
+  // The four faces, as spans along each pane: the north pane stops at the
+  // stair's mouth, the door, and the glass above it starts at the door's
+  // height. A face is the parapet, then glass to the roof with its slot
+  // cut out: a pane either side of the slot up to the slot's top, and one
+  // over it the whole span.
+  const t = K.pane;
+  const railTop = floor + K.rail;
+  const glassTop = floor + K.headroom;
+  const slotTop = floor + K.aperture.top;
+  const faces = {
+    west: { axis: 'z', fixed: [K.x0, K.x0 + t], span: [K.z0, K.z1] },
+    east: { axis: 'z', fixed: [K.x1 - t, K.x1], span: [K.z0, K.z1] },
+    north: { axis: 'x', fixed: [K.z0, K.z0 + t], span: [K.stair.x1, K.x1 - t] },
+    south: { axis: 'x', fixed: [K.z1 - t, K.z1], span: [K.x0 + t, K.x1 - t] },
+  };
+  const box = (tag, face, a, b, y0, y1, glass) => {
+    const f = faces[face];
+    const min = f.axis === 'z' ? [f.fixed[0], y0, a] : [a, y0, f.fixed[0]];
+    const max = f.axis === 'z' ? [f.fixed[1], y1, b] : [b, y1, f.fixed[1]];
+    return glass ? pane(map, tag, min, max) : rail(map, tag, min, max);
+  };
+  for (const [name, f] of Object.entries(faces)) {
+    const [a, b] = f.span;
+    box(`walkway-rail-${name}`, name, a, b, floor, railTop, false);
+    const slot = K.apertures.find((ap) => ap.face === name);
+    if (!slot) {
+      box(`walkway-glass-${name}`, name, a, b, railTop, glassTop, true);
+      continue;
+    }
+    const s0 = slot.at - K.aperture.width / 2;
+    const s1 = slot.at + K.aperture.width / 2;
+    box(`walkway-glass-${name}-0`, name, a, s0, railTop, slotTop, true);
+    box(`walkway-glass-${name}-1`, name, s1, b, railTop, slotTop, true);
+    box(`walkway-glass-${name}-over`, name, a, b, slotTop, glassTop, true);
+  }
+  // Over the door: glass from the door's head to the roof, the stair's width.
+  pane(map, 'walkway-glass-door-over', [K.stair.x0, floor + K.door.height, K.z0], [K.stair.x1, glassTop, K.z0 + t]);
+  return stair;
+}
+
+/** A parapet or a handrail: thinner than a body, so nothing to stand on and nothing to climb. */
+function rail(map, tag, min, max) {
+  return map.addSolid({ min, max, color: P.concreteDark, tag, castShadow: false });
+}
+
+/** A pane of the walkway's glazing: solid, see-through (`addSolid`'s `glass`). */
+function pane(map, tag, min, max) {
+  return map.addSolid({ min, max, glass: true, tag });
 }
 
 /** A pallet stack: a crate's height, a body and a half square. */

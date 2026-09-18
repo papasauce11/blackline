@@ -88,12 +88,15 @@ a railed walkway reached by stairs with an overhead view, glazed, with only
 small apertures to shoot through. Provisional: D9 (night, floodlit), D11
 (three apertures ~0.4m), D12 (the walkway is out of the Shade's reach).
 
-- [ ] **D3 (M)** The Warden's walkway. Stairs, railing, a glazed booth;
-  glass blocks shots and knives except through the apertures; the
-  walkway height exceeds `standing + jumpBonus` from every stack top within
-  4m (D12). *done-when:* a check raycasts from the walkway to 40 sample
-  points and hits glass except through the apertures; a check asserts no
-  climbable surface reaches the walkway.
+- [ ] **D3b (S)** A Warden-only door at the stair's mouth — **blocked:
+  D38.** Only if Josh picks option 2 or 3 there. A box the Warden's body
+  passes and the Shade's does not (the first role-gated collision:
+  a flag on `CollisionBox`, a filter in the swept solver's move for the
+  Shade, nothing else), across the door in `WALKWAY`; option 3 adds the
+  interact key, a hold time and a noise event. *done-when:* a check
+  drives the Shade up the stair through `input.heldCodes` and asserts it
+  stops at the door while the Warden, driven the same way, walks through;
+  `nothing-climbs-to-the-walkway-and-the-warden-walks-up` unchanged.
 - [ ] **D4 (M)** Yard lighting. Night, floodlights on masts as the shadowed
   key (one shadowed light stays the rule — pick the mast that covers the
   most), fill from the sky, pools of dark between stacks. The four lamps
@@ -150,6 +153,25 @@ budget checks are the ceiling.
 
 ## Done
 
+- **D3** The Warden's walkway. A glazed run 7.2m up over the mid lane's
+  north edge (`WALKWAY`, maps/yard.js), one flight of 24 treads up the
+  west side of the gate lane (`addStaircase` takes `steps`), rails both
+  sides, a metre of parapet, glass to a roof at 2.3m, three slots (0.4 x
+  0.95m: end faces to bays A and B, the south face to C), the door the
+  stair's mouth. Glass is `addSolid({ glass })`: solid to a body, a round
+  and a blade, nothing to a line of sight. The knife gained the world
+  test it never had (open air torso to torso, every solid box; spec
+  20.19). Checks (tests/walkway.js): `the-walkway-is-glazed-and-shoots-
+  only-through-its-apertures` (4 eyes x 40 points, the real gun through
+  the west slot and at the pane, the real knife the same),
+  `nothing-climbs-to-the-walkway-and-the-warden-walks-up` (D12's
+  sentence over the geometry, the rule with and without a staged perch,
+  the human Warden up the stair and along the run),
+  `a-knife-stops-at-a-wall-a-body-cannot-pass` (every map). Found: the
+  Warden's ground walked the container deck from the ninth tread until
+  the stair got its west rail. D37 provisional (as built), D38 blocking
+  (may the Shade walk the stair) — 2026-09-18, scheduled run, commit
+  (next commit records the hash).
 - **D36** The tap window for a hang is 0.30s from key-down (grab +
   `hangHoldDelay`), not the 0.18s grab alone — a 250ms tap went over; the
   tap/hold check now has a 250ms tap and a 500ms hold — 2026-09-17, Josh's
