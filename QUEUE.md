@@ -142,7 +142,7 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   every map): a flat-white silhouette from a clear lane, 3.4:1 tall,
   hood 28px over neck 11px at 8m and 10 over 6 at 25m, six parts, one
   material, 12 calls. Spec 20.24, D40 provisional. — 2026-09-19,
-  scheduled run, commit `(next commit)`.
+  scheduled run, commit `d063252`.
 - **D7** The regression set whole on every map. `src/tests/anymap.js`:
   five checks that search the map they are on, one for each clause the
   plant's five named checks held in the set -
