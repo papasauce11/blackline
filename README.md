@@ -202,7 +202,10 @@ Test-mode keys are **inert unless the F4 panel is open**, which is what keeps
 
 `U` is the one to run after a change. It resolves the spec's named regression
 set to the AUTO checks that cover those numbers, adds the named ones, and says
-out loud if any of them has no cover rather than quietly skipping it.
+out loud if any of them has no cover rather than quietly skipping it. The set
+is the same 29 checks on every map (D7): the clauses that named the plant's
+geometry are held by checks that search whatever map the page is on
+(`src/tests/anymap.js`), and the plant's named cases stay in `Y`.
 
 A test-mode command whose subsystem has not been built yet reports
 `no handler yet` in the panel rather than silently appearing to work.

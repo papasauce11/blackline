@@ -122,7 +122,7 @@ function standSpots(box, face) {
  * when you climb onto them - a check that only ever tries a standing body
  * declares those approaches impossible and never drives the one that matters.
  */
-function bodyHeightAt(h, stand, feet) {
+export function bodyHeightAt(h, stand, feet) {
   for (const height of [S.standHeight, S.crouchHeight]) {
     const half = { x: S.radius, y: height / 2, z: S.radius };
     if (h.map.collision.isClear({ x: stand.x, y: feet + half.y + 0.02, z: stand.z }, half)) return height;
@@ -224,7 +224,7 @@ function standHeightsAt(h, box, stand) {
  *
  * @returns {boolean} whether the body ended up on top
  */
-function attemptClimb(h, box, face, stand, feet, height) {
+export function attemptClimb(h, box, face, stand, feet, height) {
   const shade = h.shade;
   shade.reset({ position: { x: stand.x, y: feet, z: stand.z }, yaw: Math.atan2(face.nx, face.nz) });
   if (height < S.standHeight) {

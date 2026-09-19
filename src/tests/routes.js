@@ -60,25 +60,25 @@ const FACES = [
 ];
 
 /** Is this an approach the rule would let the body take: in reach, with a landing? */
-function usable(h, box, approach, reach = FULL_REACH) {
+export function usable(h, box, approach, reach = FULL_REACH) {
   const move = classifyReach(approach.rise, reach);
   if (move === null || move === 'step') return false;
   return landingFits(h, box, approach);
 }
 
 /** The rule's approaches to `box` that the body could actually take. */
-function usableApproaches(h, box, reach = FULL_REACH) {
+export function usableApproaches(h, box, reach = FULL_REACH) {
   return h.map._supportApproaches(box).filter((approach) => usable(h, box, approach, reach));
 }
 
 /** Does the rule name a way onto `box` from ground a walking body reaches? */
-function fromWalkableGround(h, box, reach = FULL_REACH) {
+export function fromWalkableGround(h, box, reach = FULL_REACH) {
   return usableApproaches(h, box, reach).some((approach) =>
     onWalkableGround(h, { x: approach.x, z: approach.z }, approach.y));
 }
 
 /** Does the rule name a way onto `box` from any box in `from`? */
-function fromAnyOf(h, box, from) {
+export function fromAnyOf(h, box, from) {
   return usableApproaches(h, box).some((approach) => from.includes(approach.box));
 }
 
@@ -219,6 +219,117 @@ function groundUnder(h, x, z, ceiling) {
   return best;
 }
 
+/**
+ * The three clauses of `a-mantle-never-passes-through-a-solid` that read
+ * whatever map they are on (D7): by the rule, no approach it names starts
+ * under a solid it lands over; by the geometry, the rule's sweep and
+ * `riseThrough` agree exactly on every approach; by the controller, at
+ * each approach the sweep refuses, a press scuffs and the body stays under
+ * the top. The plant's check adds its named cases after these, and asks
+ * that the sweep refused something (its ducts see to it); `no-climb-the-
+ * rule-names-rises-through-a-solid` (tests/anymap.js) runs them alone on
+ * every map and reports a map where the sweep refuses nothing as that.
+ * Starts a match and leaves the menu hidden.
+ *
+ * @returns {{ problems: string[], approaches: number, unswept: number,
+ *   refused: number, summary: string[] }}
+ */
+export function mantleClauses(h, debugTools) {
+  const problems = [];
+  // By the rule: no approach it names starts under a solid it lands
+  // over. A mantle is a diagonal from the spot to the landing, and every
+  // one goes over the corner of the box it climbs - so "passes through"
+  // cannot mean "touches": at a duct mouth the floor slab is coincident
+  // with the lip's top and the body brushes both. What it means is a
+  // solid that is over the spot - its footprint contains it, its
+  // underside is above the feet - and under the landing. The body would
+  // have to go through it to get from one to the other. A fact about the
+  // geometry, asked without the rule's own sweep. (A solid ABOVE the
+  // landing that the path still goes through - a gantry 0.3m over a lip
+  // - is B8's, swept in `riseIsClear` and driven in tests/hang.js.)
+  let approaches = 0;
+  for (const box of h.map.collision.boxes) {
+    if (!box.climbable) continue;
+    for (const approach of usableApproaches(h, box)) {
+      approaches++;
+      for (const other of h.map.collision.boxes) {
+        if (other === box || !other.solid) continue;
+        if (approach.x < other.min.x || approach.x > other.max.x) continue;
+        if (approach.z < other.min.z || approach.z > other.max.z) continue;
+        if (other.min.y <= approach.y + 0.01) continue;
+        if (other.max.y > box.max.y + 0.01) continue;
+        problems.push(`${box.tag} from ${approach.box.tag} at ${approach.x.toFixed(2)},${approach.z.toFixed(2)}: `
+          + `${other.tag} is over the spot (${other.min.y.toFixed(2)}-${other.max.y.toFixed(2)}m) and under the `
+          + `${box.max.y.toFixed(2)}m landing`);
+      }
+    }
+  }
+
+  // By the geometry (B8b): the way up. B8 found the hang under
+  // gantry-hall pulling up THROUGH the gantry - the landing beyond its
+  // edge is legal, the column to the lip's top is open, and the body is
+  // taller than a hand - and swept the move's path (`riseFits`). What
+  // that sweep refuses is a solid ABOVE the landing, which the clause
+  // above cannot see. So: every approach the rule would name without
+  // the sweep, and for each, `riseThrough` asks the geometry on its own
+  // whether the crouched body along the path meets anything higher than
+  // the top. The two must agree exactly - a refusal the geometry cannot
+  // find is a rule that has grown an exception, and a solid the rule
+  // lets the body through is B8's bug again.
+  const refused = [];
+  let unswept = 0;
+  const minSupport = S.radius * 2;
+  for (const box of h.map.collision.boxes) {
+    if (!box.solid) continue;
+    if (box.max.x - box.min.x < minSupport || box.max.z - box.min.z < minSupport) continue;
+    const named = new Set(h.map._supportApproaches(box).map(approachKey));
+    for (const approach of h.map._supportApproaches(box, { sweep: false })) {
+      unswept++;
+      const through = riseThrough(h, box, approach);
+      const swept = !named.has(approachKey(approach));
+      const where = `${box.tag || 'box'} ${faceName(approach)} face from ${approach.box.tag || 'box'} at `
+        + `${approach.x.toFixed(2)},${approach.z.toFixed(2)}`;
+      if (through && !swept) {
+        problems.push(`${where}: the rule names it and the body rises through ${through.tag || 'a solid'}`);
+      } else if (!through && swept) {
+        problems.push(`${where}: the sweep refuses it and the geometry finds nothing in the way`);
+      } else if (through) {
+        refused.push({ box, approach, through, where, inReach: usable(h, box, approach) });
+      }
+    }
+  }
+
+  // And by the controller, at each of those: stand where the rule would
+  // have stood, hold W and Space, and require a scuff (20.5) with the
+  // body never on top - it may hang (the gantry case, B8), it may not
+  // rise through the wall.
+  h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+  h.menu.hide();
+  h.setPaused(false);
+  // The F4 log carries each one in full; the detail line, which the
+  // runner cuts at 400 characters, groups them by the box climbed and
+  // names the solid only when it is not the duct's own wall.
+  const listed = new Map();
+  debugTools.logResult(`the way up: ${refused.length} of ${unswept} approaches refused by the sweep, each through a solid the geometry names:`);
+  for (const { box, approach, through, where, inReach } of refused) {
+    const drove = driveAtFace(h, box, approach);
+    if (drove === null) { problems.push(`${where}: no body fits at the spot`); continue; }
+    if (drove.highest > box.max.y - 0.12) {
+      problems.push(`${where}: the controller got the feet to ${drove.highest.toFixed(2)}m, over the ${box.max.y.toFixed(2)}m top, through ${through.tag}`);
+    } else if (!drove.scuffed) {
+      problems.push(`${where}: the press was silent - no climb and no scuff`);
+    } else {
+      debugTools.logResult(`  ${where}: through ${through.tag}, ${inReach ? 'scuffed' : 'out of reach, scuffed'} with the feet at most ${drove.highest.toFixed(2)}m`);
+      const ownWall = through.tag === `${box.tag.replace(/-lip-(from|to)$/, '')}-wall-${through.tag.slice(-1)}`;
+      const line = `${ownWall ? '' : ` through ${through.tag}`}${inReach ? '' : ' (out of reach)'}`;
+      const key = `${box.tag}|${line}`;
+      listed.set(key, (listed.get(key) || []).concat(faceName(approach)));
+    }
+  }
+  const summary = [...listed].map(([key, faces]) => `${key.split('|')[0]} ${faces.join('/')}${key.split('|')[1]}`);
+  return { problems, approaches, unswept, refused: refused.length, summary };
+}
+
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'every-stacked-climb-is-a-step-of-a-declared-route',
@@ -330,7 +441,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'a-mantle-never-passes-through-a-solid',
     maps: ['plant'], // drives from under the plant's two low ducts
-    spec: 'Section 6.1 (parkour safety rule) / B5c, B8, B8b',
+    spec: "Section 6.1 (parkour safety rule) / B5c, B8, B8b - the plant by name; the set holds the clauses on every map through no-climb-the-rule-names-rises-through-a-solid",
     name: 'From where a climb starts to where it lands, the body is in open air - by the rule, by the geometry, and by the controller',
     run: (h) => {
       // B6's approach survey found the rule naming a climb onto a duct lip
@@ -338,101 +449,13 @@ export function register(debugTools) {
       // floor slab, the landing inside the mouth is a legal crouch, and the
       // mantle carried the body straight up through the floor. The safety
       // rule validates where a move ends; this asks about the way there.
-      const problems = [];
-
-      // By the rule: no approach it names starts under a solid it lands
-      // over. A mantle is a diagonal from the spot to the landing, and every
-      // one goes over the corner of the box it climbs - so "passes through"
-      // cannot mean "touches": at a duct mouth the floor slab is coincident
-      // with the lip's top and the body brushes both. What it means is a
-      // solid that is over the spot - its footprint contains it, its
-      // underside is above the feet - and under the landing. The body would
-      // have to go through it to get from one to the other. A fact about the
-      // geometry, asked without the rule's own sweep. (A solid ABOVE the
-      // landing that the path still goes through - a gantry 0.3m over a lip
-      // - is B8's, swept in `riseIsClear` and driven in tests/hang.js.)
-      let approaches = 0;
-      for (const box of h.map.collision.boxes) {
-        if (!box.climbable) continue;
-        for (const approach of usableApproaches(h, box)) {
-          approaches++;
-          for (const other of h.map.collision.boxes) {
-            if (other === box || !other.solid) continue;
-            if (approach.x < other.min.x || approach.x > other.max.x) continue;
-            if (approach.z < other.min.z || approach.z > other.max.z) continue;
-            if (other.min.y <= approach.y + 0.01) continue;
-            if (other.max.y > box.max.y + 0.01) continue;
-            problems.push(`${box.tag} from ${approach.box.tag} at ${approach.x.toFixed(2)},${approach.z.toFixed(2)}: `
-              + `${other.tag} is over the spot (${other.min.y.toFixed(2)}-${other.max.y.toFixed(2)}m) and under the `
-              + `${box.max.y.toFixed(2)}m landing`);
-          }
-        }
-      }
-
-      // By the geometry (B8b): the way up. B8 found the hang under
-      // gantry-hall pulling up THROUGH the gantry - the landing beyond its
-      // edge is legal, the column to the lip's top is open, and the body is
-      // taller than a hand - and swept the move's path (`riseFits`). What
-      // that sweep refuses is a solid ABOVE the landing, which the clause
-      // above cannot see. So: every approach the rule would name without
-      // the sweep, and for each, `riseThrough` asks the geometry on its own
-      // whether the crouched body along the path meets anything higher than
-      // the top. The two must agree exactly - a refusal the geometry cannot
-      // find is a rule that has grown an exception, and a solid the rule
-      // lets the body through is B8's bug again.
-      const refused = [];
-      let unswept = 0;
-      const minSupport = S.radius * 2;
-      for (const box of h.map.collision.boxes) {
-        if (!box.solid) continue;
-        if (box.max.x - box.min.x < minSupport || box.max.z - box.min.z < minSupport) continue;
-        const named = new Set(h.map._supportApproaches(box).map(approachKey));
-        for (const approach of h.map._supportApproaches(box, { sweep: false })) {
-          unswept++;
-          const through = riseThrough(h, box, approach);
-          const swept = !named.has(approachKey(approach));
-          const where = `${box.tag || 'box'} ${faceName(approach)} face from ${approach.box.tag || 'box'} at `
-            + `${approach.x.toFixed(2)},${approach.z.toFixed(2)}`;
-          if (through && !swept) {
-            problems.push(`${where}: the rule names it and the body rises through ${through.tag || 'a solid'}`);
-          } else if (!through && swept) {
-            problems.push(`${where}: the sweep refuses it and the geometry finds nothing in the way`);
-          } else if (through) {
-            refused.push({ box, approach, through, where, inReach: usable(h, box, approach) });
-          }
-        }
-      }
-      if (!refused.length) problems.push('nothing left for the sweep to refuse; the controller clause below proved nothing');
-
-      // And by the controller, at each of those: stand where the rule would
-      // have stood, hold W and Space, and require a scuff (20.5) with the
-      // body never on top - it may hang (the gantry case, B8), it may not
-      // rise through the wall.
-      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
-      h.menu.hide();
-      h.setPaused(false);
+      // The three clauses that read the map they are on - the rule, the
+      // geometry, the controller at what the sweep refuses - are
+      // `mantleClauses` since D7, run here and on every map by
+      // tests/anymap.js; the plant's named cases follow them.
+      const { problems, approaches, unswept, refused, summary } = mantleClauses(h, debugTools);
+      if (!refused) problems.push('nothing left for the sweep to refuse; the controller clause proved nothing');
       const shade = h.shade;
-      // The F4 log carries each one in full; the detail line, which the
-      // runner cuts at 400 characters, groups them by the box climbed and
-      // names the solid only when it is not the duct's own wall.
-      const listed = new Map();
-      debugTools.logResult(`the way up: ${refused.length} of ${unswept} approaches refused by the sweep, each through a solid the geometry names:`);
-      for (const { box, approach, through, where, inReach } of refused) {
-        const drove = driveAtFace(h, box, approach);
-        if (drove === null) { problems.push(`${where}: no body fits at the spot`); continue; }
-        if (drove.highest > box.max.y - 0.12) {
-          problems.push(`${where}: the controller got the feet to ${drove.highest.toFixed(2)}m, over the ${box.max.y.toFixed(2)}m top, through ${through.tag}`);
-        } else if (!drove.scuffed) {
-          problems.push(`${where}: the press was silent - no climb and no scuff`);
-        } else {
-          debugTools.logResult(`  ${where}: through ${through.tag}, ${inReach ? 'scuffed' : 'out of reach, scuffed'} with the feet at most ${drove.highest.toFixed(2)}m`);
-          const ownWall = through.tag === `${box.tag.replace(/-lip-(from|to)$/, '')}-wall-${through.tag.slice(-1)}`;
-          const line = `${ownWall ? '' : ` through ${through.tag}`}${inReach ? '' : ' (out of reach)'}`;
-          const key = `${box.tag}|${line}`;
-          listed.set(key, (listed.get(key) || []).concat(faceName(approach)));
-        }
-      }
-      const summary = [...listed].map(([key, faces]) => `${key.split('|')[0]} ${faces.join('/')}${key.split('|')[1]}`);
 
       // By the controller, without asking the rule: stand on the ground
       // under each low duct's floor slab, a hand's reach short of its lip,
@@ -490,7 +513,7 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${approaches} approaches, none under a solid it lands over; the sweep refuses ${refused.length} `
+          ? `${approaches} approaches, none under a solid it lands over; the sweep refuses ${refused} `
             + `of ${unswept}, each through a solid the geometry names (a duct wall unless said) and a scuff `
             + `under the top: ${summary.join(', ')}; ${tried} presses under a duct floor, all scuffs under the slab`
           : problems.join('; '),

@@ -1302,18 +1302,22 @@ export const CONFIG = {
      * 20.11, B9). Section 16's numbers were written for marked bands; these
      * are what a climb is now - the census, the rule with no exceptions,
      * the declared routes, a mantle through nothing, the tap and the hold,
-     * the tell, the Warden on its ground, and the traversal fuzz.
+     * the tell, the Warden on its ground, and the traversal fuzz. Every id
+     * here runs on every map (D7): the mantle clauses and the cover clause
+     * are tests/anymap.js, which searches the map it is on; the plant's
+     * named checks stay in the full suite and out of the set.
      */
     regressionChecks: [
       'every-climbable-surface-can-actually-be-climbed',
       'the-climb-rule-has-no-exceptions',
       'every-approach-the-rule-names-is-a-climb-the-controller-makes',
       'every-stacked-climb-is-a-step-of-a-declared-route',
-      'a-mantle-never-passes-through-a-solid',
+      'no-climb-the-rule-names-rises-through-a-solid',
       'tap-space-grabs-the-ledge-hold-space-climbs-it',
       'a-climb-beyond-reach-bumps-poses-and-sounds',
       'the-warden-never-leaves-its-ground',
       'traversal-fuzz-ten-thousand-steps-never-sticks',
+      'a-round-stops-at-cover-and-reads-the-head-line',
     ],
     /** How many Section 16 checks there are, for coverage reporting. */
     specCheckCount: 29,

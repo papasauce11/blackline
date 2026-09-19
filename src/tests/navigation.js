@@ -175,7 +175,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'shade-reaches-level-2-without-stairs',
     maps: ['plant'], // names the plant's five routes by tag
-    spec: 'v2 requirement 4 / check 3',
+    spec: "v2 requirement 4 - the plant's five routes by tag (Section 16's third; the set holds it on every map through every-declared-route-is-driven-from-the-ground-to-its-landing)",
     name: 'Four routes climb to the upper deck without using a staircase',
     run: (h) => {
       const deck = CONFIG.map.catwalkY;

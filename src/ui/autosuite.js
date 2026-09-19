@@ -90,7 +90,8 @@ export class AutoSuite {
    * id, split into the ones that run here and the ones registered for other
    * maps only, and the Section 16 numbers that no check running HERE covers.
    * `runRegressionSet` runs the first list and says the rest out loud;
-   * `the-regression-set-resolves-to-real-checks` holds the shape.
+   * `the-regression-set-resolves-to-real-checks` holds the shape, and since
+   * D7 holds the last two lists empty on every map (tests/anymap.js).
    *
    * @returns {{ subset: object[], notForMap: object[], uncovered: number[] }}
    */
@@ -122,7 +123,8 @@ export class AutoSuite {
    * written for marked bands, and the census and the routes are what a climb
    * is now. Since D6 the set is asked per map: a check registered for another
    * map is named, and a Section 16 number only such a check covers is a
-   * number this map's regression run does not hold.
+   * number this map's regression run does not hold. Since D7 both lists
+   * are empty on every registered map, and red in the suite if not.
    */
   runRegressionSet() {
     const wanted = CONFIG.debug.regressionSet;

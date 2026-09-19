@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after D6 (2026-09-19) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **154 passed, 1 failed, 6 not for this map**, yard **137 passed, 1 failed, 23 not for this map** (2026-09-19, after D6), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U): plant 29 checks in 60s headless, yard 24 in 24s, 5 of the set not for the yard (D7) |
-| Next job | **D7** (M: the regression set whole on every map - five of its checks name the plant's geometry), the last of Block D but D3b (waits on D38); then Block E, styling, E1 first. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after D7 (2026-09-19) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **159 passed, 1 failed, 6 not for this map**, yard **142 passed, 1 failed, 23 not for this map** (2026-09-19, after D7), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **E1** (M: the Shade, from primitives to an articulated toon figure) - Block E, styling, opens; **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -47,11 +47,47 @@ feedback, landed 2026-09-15; C4, the end screens, C5, the difficulty
 pass, and C6, `PLAYTEST.md`, 2026-09-16 (below). Block D, the second
 map, is under way: D1, the plumbing, and D2, the yard blocked out, both
 2026-09-17 (below); D3, the walkway, and D4, the night, 2026-09-18
-(below); D5, the AI on the yard, and D6, both maps in the gate,
-2026-09-19 (below). D7, the regression set whole on every map, is next
-and the last of Block D but D3b (waits on D38); then Block E, styling.
+(below); D5, the AI on the yard, D6, both maps in the gate, and D7,
+the regression set whole on every map, 2026-09-19 (below). **Block D is
+closed but for D3b** (waits on D38). Block E, styling, is next: E1, the
+Shade.
 
 ---
+
+## The regression set is whole on every map - D7
+
+`src/tests/anymap.js`: five checks with no `maps`, each the rule's
+clause of one of the set's plant-bound checks, asked of whatever map the
+page is on by **searching it**. `a-body-driven-into-any-solid-never-
+passes-through` (check 1) drives the Shade's body from every site and
+Warden spawn in four headings at 6.5 / 50 / 200 / 1000 m/s and sweeps
+every step's path by hand against every solid taller than a step
+(`segmentEnters`), so a tunnel that lands in open air on the far side
+is caught, not only one that ends inside a wall; 112 drives a map, 0
+breaches. `every-declared-route-is-driven-from-the-ground-to-its-
+landing` (check 3) climbs every route in `map.routes` stage by stage
+with the census's own drive (`attemptClimb`, now exported from
+tests/readability.js) and lets the body settle forty frames on each
+top: plant 8 routes / 31 climbs, yard 9 / 29. `no-climb-the-rule-names-
+rises-through-a-solid` is **`mantleClauses`** (tests/routes.js), the
+three map-generic clauses of the plant's mantle check factored out and
+shared with it; the yard has nothing the sweep refuses, and the check
+says so rather than failing the map. `a-lamp-lit-site-reads-lit-and-
+the-darkest-ground-reads-dark` (checks 8 and 9): the brightest site at
+least `LIT_METER` with headroom under the clamp, the darkest of a 2m
+grid over the Warden's ground under 25 (plant A 84 / darkest 3.0; yard
+B 58 / darkest 3.0). `a-round-stops-at-cover-and-reads-the-head-line`:
+the head line down `clearLane(h, 9)`, then three pieces of cover found
+among the solids with walking ground three metres either side.
+
+**The plant's five named checks are unchanged and out of the set**:
+their `spec` lines state the number in words (what `checksCovered`
+reads is "check N") and name the set's check; `regressionChecks` names
+`no-climb-...` in place of the plant's mantle id and adds the cover
+clause. **`the-regression-set-resolves-to-real-checks` is red on any
+map** where the set has a check for another map or a number nothing
+running there covers - what D6 reported, D7 fails. U on both maps: 29
+checks, 0 not for this map, every number covered. Spec 20.23.
 
 ## Both maps in the gate - D6
 
@@ -73,9 +109,10 @@ tunnelling`, `shade-reaches-level-2-without-stairs`, `a-mantle-never-
 passes-through-a-solid`, `visibility-reads-lit-and-dark-zones`,
 `hitscan-respects-cover-and-the-head-line` - each names the plant's
 geometry); the other four numbers are held on the yard by other
-checks, and Section 16's check 3 is held there by nothing. D7 (M) is queued to make the set whole there.
-Headless: plant 60s, yard 24s - the queue's "under 20s" is a GPU-tab
-number nobody has read yet (PLAYTEST.md asks Josh for it).
+checks, and Section 16's check 3 is held there by nothing. **D7 made
+the set whole** (above): 29 on both. Headless it is about a minute on
+the plant and half that on the yard - the queue's "under 20s" is a
+GPU-tab number nobody has read yet (PLAYTEST.md asks Josh for it).
 
 ## The AI on the yard - D5
 
@@ -967,8 +1004,8 @@ the normal reading; a non-zero one is the machine, not the game, unless the
 same check is in the list every run. `--runs 1` is the gate (about 11
 minutes for both maps: 450s for the plant, 190s for the yard, a 45s
 cooldown between - see the traps; the full `npm run suite` is four runs,
-about 24 minutes); `--regression` the regression set per map instead (60s
-and 24s); `--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
+about 24 minutes); `--regression` the regression set per map instead (plant 29 checks in 58s headless, yard 29 in 25s);
+`--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
 the match; `--details <file>` (B8) writes every check's id, outcome and
 detail line per run - the readings a PROGRESS entry quotes, which the
 stdout report never carried for a green check.
@@ -991,14 +1028,15 @@ the harness in both builds; the suite holds the gate up while it runs):
 
 ```js
 await BLACKLINE.debugTools.runAutoTests();      // full suite (~6s)
-await BLACKLINE.debugTools.runRegressionSet();  // Section 16's set: 29 checks on the plant, 24 on the yard
+await BLACKLINE.debugTools.runRegressionSet();  // Section 16's set: 29 checks on either map (D7)
 ```
 
 In-game: **F3** overlay · **F4** test mode · then **Y** full suite, **U**
 regression set, **N** the Warden's ground on the floor. Run the suite **twice** — a flaky check shows as a different
 answer, not a pass. Add **`?map=yard`** (or click the menu's *map* row)
 for the second map; Y there runs the checks that are not the
-substation's and the banner counts the rest as *not for this map* (D1).
+substation's and the banner counts the rest as *not for this map* (D1);
+U runs the whole set there (D7).
 
 ---
 

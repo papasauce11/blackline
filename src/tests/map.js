@@ -39,7 +39,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'swept-collision-no-tunnelling',
     maps: ['plant'], // drives into the plant's west perimeter wall at x=-30
-    spec: 'check 1 (auto half) / Section 15',
+    spec: "Section 15 - the plant by name (Section 16's first, the auto half; the set holds it on every map through a-body-driven-into-any-solid-never-passes-through)",
     name: 'An actor driven into a wall at extreme speed never passes through',
     run: (h) => {
       const world = h.map.collision;

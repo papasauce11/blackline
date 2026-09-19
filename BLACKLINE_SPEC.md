@@ -1224,3 +1224,26 @@ that map covers; `the-regression-set-resolves-to-real-checks` holds
 that split on every map. On the yard today five of the set's 29 are
 the plant's by geometry (Section 16's check 3 is held there by nothing); D7 in the queue is to make the set whole. `--regression` runs
 the set headless per map. D6, 2026-09-19.
+
+### 20.23 Section 16 - the regression set is whole on every map
+
+"Regression set after any patch" is held on every registered map by
+checks that search the map they are on (`src/tests/anymap.js`), and
+`the-regression-set-resolves-to-real-checks` is red on any map where a
+check in the set is registered for another map or a number in the set
+is covered by nothing running there. The five checks of the set that
+named the plant's geometry (20.22) stay in the full suite as they were,
+out of the set; each one's rule clause is in the set asked of the map:
+check 1's auto half drives a body from every site and Warden spawn in
+four headings at 6.5, 50, 200 and 1000 m/s and sweeps every step's
+path against every solid taller than a step; check 3 drives every
+declared route (`map.routes`, 20.11) from walkable ground to its
+landing through the controller and lets the body settle where it
+lands; the mantle-through-nothing clauses (20.6, 20.8, 20.10) run on
+every map and report a map where the sweep refuses nothing as that;
+checks 8 and 9's auto half asks that the brightest site read at least
+half the meter with headroom under the clamp and the darkest place on
+the Warden's ground under 25; and a round stops at the first solid
+between the muzzle and the body, and lands a headshot only above the
+head line, down a clear lane and across three pieces of cover the map
+is searched for. The set is 29 checks on both maps. D7, 2026-09-19.

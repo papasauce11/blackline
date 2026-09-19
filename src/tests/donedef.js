@@ -187,8 +187,10 @@ export function register(debugTools) {
       // the checks registered for other maps; it must agree with this
       // check's own count, run more than nothing, and name every check it
       // leaves out - the map's regression run is only as honest as that
-      // line. A Section 16 number that only a check for another map covers
-      // is reported, not failed: it is the map's gap, and the queue's.
+      // line. Since D7 the set is WHOLE on every map: a check in it that
+      // is registered for another map, or a Section 16 number in it that
+      // no check running here covers, is red - the clause belongs in
+      // tests/anymap.js, searching the map it is on, not behind a tag.
       const here = dt.suite.regressionSet();
       const applicable = withIds.filter((test) => !test.maps || test.maps.indexOf(h.map.id) !== -1);
       if (here.subset.length !== applicable.length) {
@@ -201,14 +203,18 @@ export function register(debugTools) {
       const elsewhere = here.notForMap.map((test) => test.id);
       const named = new Set(dt._autoTests.map((test) => test.id));
       if (elsewhere.some((id) => !named.has(id))) problems.push('the set names a check for another map that is not registered');
+      if (elsewhere.length) {
+        problems.push(`on ${h.map.id} ${elsewhere.length} of the set ${elsewhere.length > 1 ? 'are' : 'is'} for other maps only: ${elsewhere.join(', ')} (D7: the set is whole on every map)`);
+      }
+      if (here.uncovered.length) {
+        problems.push(`on ${h.map.id} no check in the set covers Section 16 check${here.uncovered.length > 1 ? 's' : ''} ${here.uncovered.join(', ')}`);
+      }
 
       const claimed = [...coverage.keys()].sort((a, b) => a - b);
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `on ${h.map.id} the regression set runs ${here.subset.length} of its ${withIds.length} checks`
-            + (elsewhere.length ? `, ${elsewhere.length} for other maps (${elsewhere.join(', ')})` : '')
-            + (here.uncovered.length ? `, Section 16 check${here.uncovered.length > 1 ? 's' : ''} ${here.uncovered.join(', ')} covered only there` : ', every number covered here')
+          ? `on ${h.map.id} the regression set runs all ${here.subset.length} of its checks, none for another map, every number covered here`
             + `; the suite claims ${claimed.length} of Section 16's ${CONFIG.debug.specCheckCount} checks `
             + `(${claimed.join(', ')}); the set ${wanted.join(', ')} resolves to `
             + `${subset.length} of ${dt._autoTests.length} checks, all of them present, and with the `

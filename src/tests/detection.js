@@ -69,7 +69,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'visibility-reads-lit-and-dark-zones',
     maps: ['plant'], // the plant's lit hall and dark vault
-    spec: 'Section 16 checks 8 and 9 (auto half)',
+    spec: "Section 7.1 - the plant by name: the Turbine Hall and the Server Vault (Section 16's eighth and ninth, the auto half; the set holds them on every map through a-lamp-lit-site-reads-lit-and-the-darkest-ground-reads-dark)",
     name: 'Turbine Hall reads above 70; the Server Vault reads below 25',
     run: (h) => {
       const d = h.detection;

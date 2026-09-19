@@ -6442,3 +6442,107 @@ the five plant-bound checks into a generic clause and the plant's
 named cases.
 
 **Left.** D7; Block E after it (D3b waits on D38).
+
+## D7 — the regression set whole on every map (2026-09-19, scheduled run)
+
+The 17:00 run's job, sized M. D6 left the yard's U running 24 of the
+set's 29 and Section 16's check 3 held there by nothing: five of the
+set's checks name the plant's geometry - a drive into the west wall at
+x=-30, five routes by tag, the two low ducts, the Turbine Hall and the
+Server Vault, the hall's east wall. The queue asked for each to be
+split into a clause that searches the map it is on and the plant's
+named case kept as it is, with the generic one in the set. The gate
+(`--runs 1`, both maps) was plant 154/1/6, yard 137/1/23, 0 red.
+
+**Built.** `src/tests/anymap.js`, five checks with no `maps`, each the
+rule's clause asked of whatever map the page is on by searching it:
+
+- **`a-body-driven-into-any-solid-never-passes-through`** (check 1's
+  auto half). From every site and Warden spawn, in the four axis
+  headings, at 6.5, 50, 200 and 1000 m/s, 180 steps of
+  `moveAndSlide` with the Shade's body; and at every step the path
+  from where the body was to where it is, swept by hand
+  (`segmentEnters`, a slab test against the box grown by the body and
+  shrunk by 2cm) against every solid whose top is above a step from
+  the feet. The plant's check reads the final x against a wall face it
+  knows; this one has no face to know, and the sweep is what catches a
+  tunnel that lands in open air on the far side - at 1000 m/s a step
+  is 16m and the ring is 2.4 thick. Solids within a step of the feet
+  are excluded because a step-up's own path crosses their corner by
+  design. A drive of 150m or more that met nothing is a body that left
+  the site, and red. 112 drives on each map, 107 stopped (five
+  6.5 m/s runs from a spawn find nothing in 19.5m), 0 breaches, and no
+  step-up on either map's lines.
+- **`every-declared-route-is-driven-from-the-ground-to-its-landing`**
+  (check 3). Every route in `map.routes`, stage by stage: the first
+  from walkable ground within a standing reach (`onWalkableGround`),
+  every later one from a box of the stage below, the landing a
+  climbable top at `route.landing` the rule names from some stage -
+  each climbed with the census's own drive (`attemptClimb`, exported
+  from tests/readability.js with `bodyHeightAt`), then forty frames
+  with the keys up so the move finishes and gravity settles, and the
+  feet within 0.35 of the top with the body in open air: "lands clean".
+  No stair tread on any route. God mode on for the drive (the Warden
+  lands its rounds since C5) and put back. Plant: 8 routes, 31 climbs;
+  yard: 9 routes, 29 climbs, every rise 1.0 / 1.9 / 2.9 as the tiers
+  say. The rule's word on each stage was already good
+  (`every-stacked-climb-...`, `every-approach-...`); what this adds is
+  the chain driven and the landing settled, on every map.
+- **`no-climb-the-rule-names-rises-through-a-solid`.** The plant's
+  mantle check had four clauses and three of them read the map they
+  are on: by the rule, by the geometry (the sweep and `riseThrough`
+  agree exactly), by the controller at each approach the sweep
+  refuses. Those are **`mantleClauses(h, debugTools)`** in
+  tests/routes.js now, called by both checks; the plant's keeps its
+  fourth clause (the four presses under the duct floors) and its
+  demand that the sweep refused something. On the yard the sweep
+  refuses nothing - 152 approaches, agreement on all 172 unswept, no
+  solid above any landing on the path - and the check says so rather
+  than failing a map for its geometry.
+- **`a-lamp-lit-site-reads-lit-and-the-darkest-ground-reads-dark`**
+  (checks 8 and 9's auto half). `meterAt` (D5) at every site: the
+  brightest reads at least `LIT_METER` (half the meter) and under the
+  clamp less five, check 10's headroom; and the darkest of a 2m grid
+  over every floor of the Warden's ground reads under 25, the plant's
+  Server Vault line. Plant: A 84.4, B 36.9, C 9.0, darkest 3.0 at -27.8, 21.8
+  (the ground floor's south-west corner); yard: A 57.9, B 58.2, C
+  41.8, darkest 3.0 at 0.3, 23.8, outside the ring's south face.
+  Bay C's site reads under the line - its mast is the shadowed key and
+  its lamp is half lift (D39) - which the check reports and does not
+  hold; the plant's C is the vault, dark by design.
+- **`a-round-stops-at-cover-and-reads-the-head-line`.** Down
+  `clearLane(h, 9)` with the Shade 8m along: a torso ray hits and is
+  not a headshot, a ray above the head line is, and the world has
+  nothing before the body. Then cover: the first three solids with
+  walking ground at their own foot three metres either side, tall
+  enough to hide a torso, the Shade behind and the muzzle before; the
+  round must be on the Shade's line (`rayHitsActor`) and the world's
+  first hit closer. The plant's shell walls and the yard's ring, at 3m
+  of 6.1 and 8.1.
+
+The plant's five checks stay in the full suite exactly as they were,
+and leave the set: their `spec` lines name the number in words rather
+than as "check N" (which is what `checksCovered` reads) and name the
+set's check that holds the clause; `regressionChecks` swaps the plant's
+mantle id for the generic one and adds the cover clause.
+**`the-regression-set-resolves-to-real-checks` is red** on any map
+where the set has a check registered for another map or a number no
+check running there covers - D6 reported those; D7 fails them, so a
+sixth plant-only check cannot creep back behind a tag. U on both maps:
+**29 checks, 0 not for this map, every number covered.** Spec 20.23.
+PLAYTEST.md's gate paragraph rewritten; the 20s question still waits
+on a GPU tab.
+
+**Verified.** `--subset` of the eleven checks touched, both maps, first: the plant's five named checks unchanged in their readings, the five new ones green, the resolve check reporting 29 of 29 on each map. Then `npm run suite`, no arguments, both maps twice: plant **159 passed, 1 failed, 6 not for this map** (443s, 498s), yard **142 passed, 1 failed, 23 not for this map** (182s, 208s), every outcome identical between runs, 0 red, 0 flaky, 0 console errors, 0 context losses; the one failure on each is the frame-budget check, skipped headless. `--regression --runs 1`: **plant 29 passed in 58s, yard 29 passed in 25s**, nothing not for this map on either.
+
+**Found.** The plant's regression set is the same size it was (five
+out, five in), and the full suite grew by five on each map. Nothing
+the plant's checks held is held less: they run in Y as before; U on
+the plant runs the searched clauses in their place, which on the plant
+find the hall (A at 84), the shell walls and the same nine refused
+approaches. The yard has nothing the sweep refuses, so the mantle
+check's controller clause proves nothing there today; it will the day
+a lip is built under something.
+
+**Left.** Block D is closed but for D3b (waits on D38). Block E, the
+styling, is next: E1, the Shade.

@@ -46,11 +46,16 @@ added. Both are green at every commit; if one is red in your tab, the F3
 overlay's *gl context lost* row says whether the GPU was taken away
 mid-run. On the yard, Y runs only the checks that are not about the
 substation's geometry (23 are, and the banner counts them as *not for
-this map*); every one of the rest is green there. U on the yard runs 24
-of the regression set's 29 and says in the console which 5 are the
-plant's (D7 will give the yard its own). **One number only your tab can
-give:** the queue asked for the regression set to run in under 20
-seconds; headless it is 60s on the plant and 24s on the yard, all of it
+this map*); every one of the rest is green there. **U runs the whole
+regression set on both maps** since D7 (2026-09-19): 29 checks on
+each, none of them the other map's - the five that named the plant's
+walls, ducts and rooms are still in Y on the plant, and the set holds
+what they held by searching whatever map it is on (a body driven into
+every solid from every site and spawn, every declared route driven to
+its landing, the brightest site and the darkest ground, cover found
+among the solids). **One number only your tab can give:** the queue
+asked for the regression set to run in under 20 seconds; headless it
+is about a minute on the plant and half that on the yard, all of it
 software GL. On each map, in the console with `?debug=1`:
 `console.time('U'); await BLACKLINE.debugTools.runRegressionSet();
 console.timeEnd('U')` - if a GPU tab is under 20s the bar is met, and if

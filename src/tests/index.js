@@ -29,6 +29,7 @@ import { register as registerHang } from './hang.js';
 import { register as registerReadability } from './readability.js';
 import { register as registerDeck } from './deck.js';
 import { register as registerRoutes } from './routes.js';
+import { register as registerAnyMap } from './anymap.js';
 import { register as registerLegibility } from './legibility.js';
 import { register as registerWarden } from './warden.js';
 import { register as registerWardenGround } from './wardenground.js';
@@ -76,6 +77,7 @@ export function registerAutoTests(debugTools) {
   registerReadability(debugTools);
   registerDeck(debugTools);
   registerRoutes(debugTools);
+  registerAnyMap(debugTools);
   registerLegibility(debugTools);
   registerWarden(debugTools);
   registerWardenGround(debugTools);

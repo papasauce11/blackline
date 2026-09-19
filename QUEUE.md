@@ -89,6 +89,9 @@ small apertures to shoot through. Provisional: D9 (night, floodlit), D11
 (three apertures ~0.4m), D12 (the walkway is out of the Shade's reach),
 D37 (the walkway as built), D39 (the lighting as built).
 
+(D1-D7 done; **Block D is closed but for D3b** 2026-09-19, which waits
+on D38.)
+
 - [ ] **D3b (S)** A Warden-only door at the stair's mouth — **blocked:
   D38.** Only if Josh picks option 2 or 3 there. A box the Warden's body
   passes and the Shade's does not (the first role-gated collision:
@@ -98,27 +101,6 @@ D37 (the walkway as built), D39 (the lighting as built).
   drives the Shade up the stair through `input.heldCodes` and asserts it
   stops at the door while the Warden, driven the same way, walks through;
   `nothing-climbs-to-the-walkway-and-the-warden-walks-up` unchanged.
-- [ ] **D7 (M)** The regression set whole on every map. Five of its 29
-  checks are `maps: ['plant']` and the yard's U runs 24
-  (`the-regression-set-resolves-to-real-checks` names them:
-  `swept-collision-no-tunnelling` drives into the plant's west wall,
-  `shade-reaches-level-2-without-stairs` names its five routes by tag,
-  `a-mantle-never-passes-through-a-solid` drives from under its two low
-  ducts, `visibility-reads-lit-and-dark-zones` reads its hall and vault,
-  `hitscan-respects-cover-and-the-head-line` uses its walls); the other
-  numbers are held on the yard by other checks, and Section 16's check 3
-  is held there by nothing. For each: split
-  the clause that is about the rule (a body never tunnels through any
-  solid, every declared route is climbed, no approach lands over a solid
-  it starts under, a site the lamps light reads lit and a gap reads dark,
-  a round stops at cover) into a check that searches the map it is on
-  (`clearLane`, `map.routes`, the census, the sites, `findLiddedLip`-style
-  searches), keep the plant's named cases as they are, and put the
-  generic one in `regressionChecks` or under the Section 16 number.
-  *done-when:* `runRegressionSet` on every registered map reports 0 not
-  for this map and every Section 16 number in the set covered; nothing
-  the plant's checks hold today is held less.
-
 ## Block E — styling
 
 Decided: D3 — the Shade and the Warden first, then the map. Provisional: D10
@@ -147,6 +129,31 @@ budget checks are the ceiling.
 
 ## Done
 
+- **D7** The regression set whole on every map. `src/tests/anymap.js`:
+  five checks that search the map they are on, one for each clause the
+  plant's five named checks held in the set -
+  `a-body-driven-into-any-solid-never-passes-through` (check 1: from
+  every site and Warden spawn, four headings, 6.5/50/200/1000 m/s,
+  every step's path swept by hand against every solid taller than a
+  step, so a tunnel that lands in open air is caught),
+  `every-declared-route-is-driven-from-the-ground-to-its-landing`
+  (check 3: `map.routes` stage by stage through the controller from
+  walkable ground, forty frames to settle, feet on the top in open
+  air), `no-climb-the-rule-names-rises-through-a-solid` (the mantle
+  check's three generic clauses, factored to `mantleClauses` in
+  tests/routes.js and shared with the plant's check),
+  `a-lamp-lit-site-reads-lit-and-the-darkest-ground-reads-dark`
+  (checks 8 and 9: the brightest site at least `LIT_METER` with
+  headroom, the darkest of a 2m grid over the Warden's ground under
+  25), `a-round-stops-at-cover-and-reads-the-head-line` (a clear lane
+  for the head line, three pieces of cover found among the solids).
+  The plant's five stay in the full suite as they were and out of the
+  set (their spec lines no longer claim the number; `regressionChecks`
+  names the generic ids). `the-regression-set-resolves-to-real-checks`
+  is red on any map where the set has a check for another map or an
+  uncovered number. U: 29 checks on the plant and 29 on the yard, 0 not
+  for this map, every number covered. Spec 20.23. — 2026-09-19,
+  scheduled run, commit `(next commit)`.
 - **D6** Both maps in the gate. `npm run suite` runs every map the
   registry lists (`registeredMapIds()`, scripts/suite.mjs, reads
   `src/maps/index.js` as text), twice each, judged per map; `--map`
