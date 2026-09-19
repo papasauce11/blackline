@@ -15,6 +15,9 @@
  * map) and then the waypoints and spawns, in eight headings. The first
  * that fits wins, so the answer is the same every run on a given map.
  *
+ * `clearLanes(h, length)` is every such run in that order, for a check
+ * that needs more of a lane than a body's run (E1 wants 25m of sight).
+ *
  * `litLane(h, length, stands)` is the same run, and the map's lamps light
  * it: the visibility meter reads at least `LIT_METER` for a standing Shade
  * at every distance in `stands` down it (D5). The AI checks that measure a
@@ -40,7 +43,7 @@ const LANE_STEP = 0.25;
  * shadow never do.
  */
 export const LIT_METER = D.meterMax / 2;
-const HEADINGS = [
+export const HEADINGS = [
   { dx: 0, dz: 1 }, { dx: 0, dz: -1 }, { dx: 1, dz: 0 }, { dx: -1, dz: 0 },
   { dx: Math.SQRT1_2, dz: Math.SQRT1_2 }, { dx: -Math.SQRT1_2, dz: Math.SQRT1_2 },
   { dx: Math.SQRT1_2, dz: -Math.SQRT1_2 }, { dx: -Math.SQRT1_2, dz: -Math.SQRT1_2 },
@@ -68,7 +71,7 @@ function runLength(h, start, heading, limit) {
  *   the start (feet), the yaw that faces along it (the actors' convention:
  *   forward is (-sin yaw, -cos yaw)), the heading, and where it was found
  */
-function* clearLanes(h, length) {
+export function* clearLanes(h, length) {
   const candidates = [
     ...h.map.sites.map((site) => ({ at: site.position, from: `site ${site.id}` })),
     ...h.map.waypoints.filter(Boolean).map((node) => ({ at: node.position, from: `waypoint ${node.tag || node.id}` })),

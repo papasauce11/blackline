@@ -6546,3 +6546,92 @@ a lip is built under something.
 
 **Left.** Block D is closed but for D3b (waits on D38). Block E, the
 styling, is next: E1, the Shade.
+
+## E1 — the Shade: a hood, a cowl, thin limbs, six merged parts on one material (2026-09-19, scheduled run)
+
+The 17:00 run's second job, sized M, after D7; Block E opens with it
+(D3: the Shade and the Warden first). D7's verify (159/1/6 and 142/1/23)
+stood as the gate. The queue asked for an articulated toon figure - a
+hood, a narrow silhouette, long limbs - from merged geometry on one
+material with the rim kept, held by a silhouette pixel check at 8m and
+25m and draw calls unchanged.
+
+**The reading of "merged geometry, one material".** A merged mesh
+cannot bend an elbow; the only merged AND articulated body is a skinned
+one, and Section 4 forbids a rigged skeleton ("animate by rotating and
+translating primitive limb groups"). So the six groups agentvisual.js
+poses - torso, head, two arms, two legs - are unchanged, and what each
+group holds is what changed: ONE merged geometry with its colours in a
+vertex attribute, on the one toon material that carries the rim, plus
+ONE hull on the one outline material. Twelve draw calls for the body
+where there were twenty (ten primitives, ten hulls). Two would need a
+skeleton; twelve is what the spec allows. D40 records the choice.
+
+**Built** (`FIGURE`, entities/agentmesh.js; every number is there):
+
+- **The hood.** A sphere shell of 0.21 round the head, open at the face
+  (0.3 pi, centred on -z, the way the Shade faces) and below a drape of
+  0.7 pi, and a second shell of 0.2 inside it facing inward in charcoal
+  (`inward`: mirrored in x, its normals turned), so the opening shows a
+  dark hood with the dark head in it and not the room behind. A cowl
+  (an open cylinder 0.05 to 0.25 over 0.14m) over the shoulders, its
+  apex under the hood's rim. Hood and cowl are the torso's teal and the
+  torso's piece, so the hood turns with the body and the head turns
+  inside it as it did.
+- **The neck.** The torso capsule narrowed from 0.19 to 0.14 and set so
+  its rounded top IS the neck, ending just under the hood's rim: between
+  the hood's widest row and the cowl the silhouette steps in to a third
+  of the hood's width. That step is what "hooded" is at 25m, where the
+  whole body is forty pixels tall.
+- **The limbs.** Arms 0.05 and legs 0.06 in radius (were 0.058 and
+  0.068), the same length, the same pivots, the same reach to the glove
+  and the boot - the hanging glove lands on the lip as before, and
+  `a-hang-is-at-full-stretch-under-the-lip` reads it. The last child of
+  a limb group is an empty at the glove or boot, which is what that
+  check reads and what E3 will want.
+- **The hull.** Grown per primitive, `FIGURE.outline` on every side about
+  the primitive's own centre before it is placed, then merged like the
+  body. Not scaled 1.03 about the part: a limb group's origin is its
+  pivot and a hull scaled about the shoulder sat 2cm off the glove. The
+  hull and the fresnel rim share the silhouette's outer two pixels, and
+  on a thin limb the hull takes them: at 1cm `the-rim-light-is-really-
+  on-screen` read "edge +44 vs core +51, a wash"; at 5mm on 4.5cm arms
+  it read 1.6x in the subset and then **1.48x in one run of the verify
+  and 1.56x in the other** against its 1.5x line - flaky, because the
+  idle pose the check frames moves with how many frames have been
+  rendered, and the margin was gone. The fix was the figure, not the
+  line: arms 0.05 and legs 0.06 (from 0.045 / 0.055) and the hull 4mm,
+  and it reads 2.0x twice on the plant and 2.3x twice on the yard, with
+  the hull still owning the outline (141 against 8, 120 against 9).
+- **`materials` is `{ body, outline }`.** `Detection._applyFeedback`
+  scales `body.color` from white, which darkens teal and charcoal
+  together; `visibility-feedback-matches-the-meter` reads it there.
+
+**`the-shade-reads-as-a-hooded-figure-at-8m-and-25m`** (tests/figure.js,
+every map). The structure first: six body meshes, all on the one
+material, every one with a colour attribute, six hulls. Then the
+silhouette: the Shade at the near end of the first clear lane facing
+down it, an eye 8m down the lane and one 25m away in open air that sees
+it (`standAndEyes`, searched over `clearLanes` and the eight headings -
+the plant has no 25m lane, it has 25m of sight), the body on a flat
+unlit white for the two frames with its shadow off, the difference
+frame the shape. Tall and narrow (height over width at least 2.2:1; it
+is 3.4), and the widest row of the top 14% at least 1.5x the narrowest
+row of the 14-22% band under it. Plant: 8m ~3000px, 124x35, hood 28px
+over neck 12; 25m ~350px, 40x12, 10 over 6. Yard: the same to a pixel
+(the idle bob moves the neck reading a row or two between runs; the
+line is 1.5x and it reads 2.3x).
+Draw calls with the body shown less hidden: 12, at most 12, at least
+the twelve meshes. The old figure fails it three ways: ten parts, no
+colour attribute, a head narrower than the capsule under it.
+
+Found on the way: the difference frame lit by the map's own lamps found
+659 of the body's 3000 pixels on the yard at night - the charcoal limbs
+were within eight levels of the container behind them - hence the flat
+white; and `clearLane(h, 26)` does not exist on the plant, hence sight.
+
+**Verified.** the touched pixel checks in a subset first (the rim check at 5mm/4.5cm: 1.6x on the plant, 1.7x on the yard; the figure check green on both maps). Then `npm run suite`, both maps twice: **plant 159 passed, 2 failed then 160 passed, 1 failed** - `the-rim-light-is-really-on-screen` flaky at 1.48x / 1.56x - so the figure was changed (above) and the suite run again in full: plant **160 passed, 1 failed, 6 not for this map** (460s, 501s), yard **143 passed, 1 failed, 23 not for this map** (203s, 202s), every outcome identical between runs, 0 red, 0 flaky, 0 console errors, 0 context losses; the one failure on each is the frame-budget check, skipped headless. `a-hang-is-at-full-stretch-under-the-lip` reads the gloves at the lip on both maps as before; `the-outline-darkens-the-silhouette-edge` 141 against 8; `visibility-feedback-matches-the-meter` and `the-shade-visibly-dims-with-the-meter` unchanged in shape (luma 42 to 110 across the meter).
+
+**Left.** E2, the Warden, next; then E3, animation - the limb-end
+empties and the six groups are there for it. Josh looks at the figure
+(PLAYTEST.md, D40).

@@ -318,7 +318,7 @@ export function register(debugTools) {
         d._applyFeedback(h.shade);
         readings.push({
           meter: value,
-          body: materials.teal.color.getHSL({ h: 0, s: 0, l: 0 }).l,
+          body: materials.body.color.getHSL({ h: 0, s: 0, l: 0 }).l,
           rim: materials.outline.color.getHSL({ h: 0, s: 0, l: 0 }).l,
         });
       }

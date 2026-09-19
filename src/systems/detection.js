@@ -166,8 +166,6 @@ export class Detection {
     this._origins = [];
     for (let i = 0; i < D.raysPerLight; i++) this._origins.push({ x: 0, y: 0, z: 0 });
 
-    this._baseTeal = new THREE.Color(P.shadeTeal);
-    this._baseCharcoal = new THREE.Color(P.shadeCharcoal);
     this._baseRim = new THREE.Color(P.signageTeal);
   }
 
@@ -346,9 +344,10 @@ export class Detection {
     const t = clamp(this.smoothed / D.meterMax, 0, 1);
     this.litFraction = t;
 
+    // One material since E1, its tones in the vertices: scaling its white
+    // base darkens teal and charcoal together.
     const body = F.silhouetteDarkness + (1 - F.silhouetteDarkness) * t;
-    materials.teal.color.copy(this._baseTeal).multiplyScalar(body);
-    materials.charcoal.color.copy(this._baseCharcoal).multiplyScalar(body);
+    materials.body.color.setScalar(body);
 
     const rim = F.rimMin + (F.rimMax - F.rimMin) * t;
     materials.outline.color.copy(this._baseRim).multiplyScalar(rim);

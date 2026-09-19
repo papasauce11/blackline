@@ -53,6 +53,7 @@ import { register as registerFeedback } from './feedback.js';
 import { register as registerDeathCam } from './deathcam.js';
 import { register as registerPresentation } from './presentation.js';
 import { register as registerVisual } from './visual.js';
+import { register as registerFigure } from './figure.js';
 import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
@@ -101,6 +102,7 @@ export function registerAutoTests(debugTools) {
   registerDeathCam(debugTools);
   registerPresentation(debugTools);
   registerVisual(debugTools);
+  registerFigure(debugTools);
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);

@@ -95,6 +95,48 @@ had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
 ## Provisional — done as recommended, override any time
 
+### D40 — The Shade's figure as built: a hood, a cowl, thin limbs, six merged parts
+E1 (2026-09-19). D3 stands (the Shade and the Warden first); this is what
+the Shade came out as, and the numbers to turn, all in `FIGURE`
+(`src/entities/agentmesh.js`). Nothing the player can do changed; the
+capsule the game simulates is untouched.
+
+- **A hood, open at the face, and a short cowl over the shoulders**, both
+  the torso's teal and one piece with it, so the hood turns with the
+  body and the head turns inside it; a charcoal lining inside the hood so
+  the opening shows a dark hood and not the room behind the head. The
+  torso capsule narrowed from 0.19 to 0.14 and its top is the neck, just
+  under the hood's rim: the silhouette steps in there, which is what
+  reads as a hooded head at 25m (10 pixels over 6). Alternative: a hood
+  that runs into the shoulders with no step, a cloaked shape - the
+  figure reads bulkier and the head is lost at distance.
+- **Thin long limbs**: the arms 0.05 and the legs 0.06 in radius (were
+  0.058 and 0.068; 0.045 and 0.055 first, and the rim check below said
+  why not), the same length and the same pivots, the oversized gloves
+  and boots kept. The hanging glove lands on the lip as before
+  (`a-hang-is-at-full-stretch-under-the-lip`, tests/hang.js).
+- **Six merged parts on one material.** Each limb group holds one merged
+  geometry with its colours in a vertex attribute, on one toon material
+  that carries the rim, plus one hull on one outline material: twelve
+  draw calls where there were twenty. Not a skinned mesh, which would be
+  two: Section 4 forbids a rigged skeleton, and the six groups are what
+  agentvisual.js poses. The queue's "merged geometry, one material" is
+  read that way.
+- **The hull is grown 4mm** on every side of every primitive about its
+  own centre, before placement, instead of scaled 1.03 about a part's
+  pivot (Section 4's words, written for a mesh per primitive): a shade
+  under the old torso's edge and a visible one on a 5cm arm. The hull
+  and the fresnel rim share the silhouette's outer pixels, and on a thin
+  limb the hull takes them: at 1cm `the-rim-light-is-really-on-screen`
+  read a wash, at 5mm on 4.5cm arms it read 1.5x one run and 1.6x the
+  next against a 1.5x line (the idle pose moves between runs), and at
+  4mm on 5cm arms it reads 2.0-2.1x. Thinner arms want a thinner hull
+  than a pixel at 3m can draw.
+Josh: the pixels say tall, narrow and hooded at 8m and 25m
+(`the-shade-reads-as-a-hooded-figure-at-8m-and-25m`); whether it reads
+as the Shade is yours - PLAYTEST.md says where to look.
+**decided:**
+
 ### D39 — The yard's lighting as built: masts, one warm key from bay C, a dark sky
 D4 (2026-09-18). D9 stands (night, floodlit from masts, pools of dark
 between stacks); this is what it came out as, and the numbers to turn,

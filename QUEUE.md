@@ -104,13 +104,11 @@ on D38.)
 ## Block E — styling
 
 Decided: D3 — the Shade and the Warden first, then the map. Provisional: D10
-(no post-processing until the characters are done). Draw-call and frame
-budget checks are the ceiling.
+(no post-processing until the characters are done), D40 (the Shade's
+figure as built). Draw-call and frame budget checks are the ceiling.
 
-- [ ] **E1 (M)** The Shade. From primitives to an articulated toon figure:
-  hood, narrow silhouette, long limbs; merged geometry, one material, rim
-  light kept. *done-when:* silhouette pixel check at 8m and 25m; draw calls
-  unchanged.
+(E1 done 2026-09-19.)
+
 - [ ] **E2 (M)** The Warden. Helmet, vest, rifle silhouette, broad stance.
   *done-when:* the two figures are distinguishable by silhouette alone in a
   pixel check at 25m, in the dark.
@@ -129,6 +127,22 @@ budget checks are the ceiling.
 
 ## Done
 
+- **E1** The Shade. `FIGURE` (entities/agentmesh.js): a hood round the
+  head open at the face over a charcoal lining, a short cowl over the
+  shoulders, the torso narrowed to 0.14 with its top the neck under the
+  hood's rim, thin long limbs at the old pivots and reach (the hang's
+  glove still lands on the lip), gloves and boots kept. Each of the six
+  limb groups holds ONE merged geometry with vertex colours
+  (`mergePieces`, `part`) on one toon material carrying the rim, plus
+  one hull on one outline material grown 4mm per primitive
+  (`grown`): 12 draw calls, were 20; no skeleton (Section 4), so
+  agentvisual.js poses the same six groups unchanged.
+  `materials` is `{ body, outline }` and detection scales `body.color`.
+  `the-shade-reads-as-a-hooded-figure-at-8m-and-25m` (tests/figure.js,
+  every map): a flat-white silhouette from a clear lane, 3.4:1 tall,
+  hood 28px over neck 11px at 8m and 10 over 6 at 25m, six parts, one
+  material, 12 calls. Spec 20.24, D40 provisional. — 2026-09-19,
+  scheduled run, commit `(next commit)`.
 - **D7** The regression set whole on every map. `src/tests/anymap.js`:
   five checks that search the map they are on, one for each clause the
   plant's five named checks held in the set -

@@ -1247,3 +1247,24 @@ the Warden's ground under 25; and a round stops at the first solid
 between the muzzle and the body, and lands a headshot only above the
 head line, down a clear lane and across three pieces of cover the map
 is searched for. The set is 29 checks on both maps. D7, 2026-09-19.
+
+### 20.24 Section 4 - the Shade's silhouette: a hood, and six merged parts
+
+The Shade's figure (E1, D40): to the lanky body Section 4 describes,
+a hood round the head open at the face over a dark lining and a short
+cowl over the shoulders, the torso narrowed so the silhouette steps in
+at the neck under the hood, the limbs thinner at the same length and
+pivots. "Animate by rotating and translating primitive limb groups"
+stands - the six groups the controller poses are unchanged - but each
+group now holds ONE merged geometry with its colours in a vertex
+attribute, and the whole body is one toon material carrying the rim
+and one outline material: twelve draw calls where there were twenty.
+No skeleton, as Section 4 says. The inverted hull is grown 4mm on
+every side of each primitive about its own centre before placement
+rather than scaled 1.03 about a part - a shade under the old torso's
+edge and a visible one on a 5cm arm; thicker, and the hull takes the
+outer pixels the fresnel rim needs on a thin limb.
+`the-shade-reads-as-a-hooded-figure-at-8m-and-25m` (tests/figure.js)
+reads the silhouette back on every map: tall and narrow, a hood wider
+than the neck under it at both distances, six parts on one material,
+at most twelve draw calls. E1, 2026-09-19.

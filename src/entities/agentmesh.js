@@ -4,8 +4,9 @@
  * The Shade's body.
  *
  * Section 4: lanky. Tall capsule torso, long limbs, small head, oversized boots
- * and gloves. Teal and charcoal. No faces, no hair, no skeletal rig - the
- * controller animates by rotating and translating these primitive groups.
+ * and gloves, and since E1 a hood. Teal and charcoal. No faces, no hair, no
+ * skeletal rig - the controller animates by rotating and translating six
+ * limb groups, each holding one merged mesh and its hull.
  *
  * Layering (Section 3.1): imports config only. Split out of agent.js, which was
  * 869 lines against the ~600 guidance; construction and control are the natural
@@ -100,25 +101,151 @@ function addRimLight(material, uniforms) {
 }
 
 // ---------------------------------------------------------------------------
-// Mesh construction
+// Mesh construction (E1)
 //
-// Section 4: lanky. Tall capsule torso, long limbs, small head, oversized boots
-// and gloves. Teal and charcoal. No faces, no hair, no skeletal rig.
+// Section 4: lanky. Tall torso, long limbs, small head, oversized boots and
+// gloves, teal and charcoal, readable silhouette above all else. No faces,
+// no hair, no skeletal rig - the controller animates by rotating and
+// translating the six limb GROUPS below (agentvisual.js), exactly as it did
+// when each group held two or three primitive meshes.
+//
+// What E1 changed is what a group holds. Every part - the torso with its
+// hood and mantle, the head, each arm with its glove, each leg with its
+// boot - is ONE merged geometry with the colours in a vertex attribute, so
+// the whole body is six meshes sharing ONE toon material (the rim is on it,
+// Section 4.2) and six hulls sharing one outline material: twelve draw
+// calls where there were twenty. A skinned mesh would be two, but Section 4
+// forbids a rigged skeleton, and a merged mesh cannot bend an elbow.
+//
+// The hull is built per primitive, not by scaling the finished part: a limb
+// group's origin is its pivot, and a hull scaled about the shoulder sits
+// 2cm off the glove. Each primitive is grown by `FIGURE.outline` on every
+// side about its own centre before it is placed (Section 4's 1.03 was a
+// scale about a capsule's centre; a fixed growth is the same edge on the
+// torso and a visible one on a 4cm arm), and the grown pieces are merged
+// the same way. `FIGURE` states the proportions; D40 argues them.
 // ---------------------------------------------------------------------------
 
-export function outlined(geometry, material, group, outlineMaterial) {
-  const mesh = new THREE.Mesh(geometry, material);
+/**
+ * The figure, in metres and fractions of the standing height. The pivots
+ * and the reach of the arms are what they were before E1 (the hanging
+ * glove lands on the lip because of them - tests/hang.js reads it); the
+ * widths are narrower and the hood is new.
+ */
+export const FIGURE = {
+  /**
+   * How far every hull piece is grown on each side: a shade under Section
+   * 4's 1.03 on the old torso. The hull and the fresnel rim share the
+   * silhouette's outer pixels, and on a thin limb the hull takes them:
+   * `the-rim-light-is-really-on-screen` read a wash at 1cm and 1.5x at
+   * 5mm on 4.5cm arms; 4mm on 5cm arms reads 2x (D40).
+   */
+  outline: 0.004,
+  /** The capsule's top is the neck: it reaches just under the hood's rim. */
+  torso: { pivot: 0.62, radius: 0.14, length: 0.3 },
+  head: { pivot: 0.29, radius: 0.11 },
+  /**
+   * A shell round the head, open at the face and below the drape (D40): the
+   * hooded silhouette, wider than the neck under it. `lining` is a second
+   * shell just inside, facing in, so the opening shows a dark hood and not
+   * the world behind the head.
+   */
+  hood: { radius: 0.21, lining: 0.2, opening: 0.3 * Math.PI, drape: 0.7 * Math.PI },
+  /** A short cowl over the shoulders, its apex under the hood's rim, open underneath. */
+  mantle: { top: 0.05, bottom: 0.25, height: 0.14, lift: 0.027 },
+  /** Pivot and reach as before E1 (the glove is what hangs from a lip). */
+  arm: { x: 0.19, pivot: 0.16, length: 0.3, radius: 0.05, glove: 0.14, reach: 0.081 },
+  leg: { x: 0.09, pivot: 0.46, length: 0.4, radius: 0.06, boot: 0.16, reach: 0.095 },
+};
+
+/**
+ * Merge placed primitives into one indexed geometry with a colour per vertex.
+ * @param {{geometry: THREE.BufferGeometry, color: THREE.Color}[]} pieces already transformed
+ */
+function mergePieces(pieces) {
+  let vertices = 0;
+  let indices = 0;
+  for (const { geometry } of pieces) {
+    vertices += geometry.attributes.position.count;
+    indices += geometry.index.count;
+  }
+  const position = new Float32Array(vertices * 3);
+  const normal = new Float32Array(vertices * 3);
+  const color = new Float32Array(vertices * 3);
+  const index = new Uint16Array(indices);
+  let v = 0;
+  let i = 0;
+  for (const { geometry, color: tint } of pieces) {
+    const p = geometry.attributes.position;
+    const n = geometry.attributes.normal;
+    for (let k = 0; k < p.count; k++) {
+      position[(v + k) * 3] = p.getX(k);
+      position[(v + k) * 3 + 1] = p.getY(k);
+      position[(v + k) * 3 + 2] = p.getZ(k);
+      normal[(v + k) * 3] = n.getX(k);
+      normal[(v + k) * 3 + 1] = n.getY(k);
+      normal[(v + k) * 3 + 2] = n.getZ(k);
+      color[(v + k) * 3] = tint.r;
+      color[(v + k) * 3 + 1] = tint.g;
+      color[(v + k) * 3 + 2] = tint.b;
+    }
+    const ix = geometry.index;
+    for (let k = 0; k < ix.count; k++) index[i + k] = ix.getX(k) + v;
+    v += p.count;
+    i += ix.count;
+    geometry.dispose();
+  }
+  const merged = new THREE.BufferGeometry();
+  merged.setAttribute('position', new THREE.BufferAttribute(position, 3));
+  merged.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
+  merged.setAttribute('color', new THREE.BufferAttribute(color, 3));
+  merged.setIndex(new THREE.BufferAttribute(index, 1));
+  merged.computeBoundingSphere();
+  return merged;
+}
+
+/** The same shell facing inward: mirrored in x (the opening is symmetric about x) and its normals turned. */
+function inward(geometry) {
+  geometry.scale(-1, 1, 1);
+  const n = geometry.attributes.normal;
+  for (let k = 0; k < n.count; k++) n.setXYZ(k, -n.getX(k), -n.getY(k), -n.getZ(k));
+  return geometry;
+}
+
+/** A primitive grown by `FIGURE.outline` on every side about its own centre. */
+function grown(geometry) {
+  geometry.computeBoundingBox();
+  const size = geometry.boundingBox.getSize(new THREE.Vector3());
+  const d = FIGURE.outline * 2;
+  return geometry.clone().scale(1 + d / size.x, 1 + d / size.y, 1 + d / size.z);
+}
+
+/**
+ * One part of the body: the pieces merged into a mesh on `group`, with its
+ * hull. A piece is a primitive at the origin, a colour, and where it goes
+ * in the group (a position, and optionally a rotation).
+ */
+function part(group, pieces, material, outlineMaterial) {
+  const place = (geometry, at, rotation) => {
+    if (rotation) geometry.rotateX(rotation.x || 0).rotateY(rotation.y || 0).rotateZ(rotation.z || 0);
+    return geometry.translate(at.x || 0, at.y || 0, at.z || 0);
+  };
+  const body = mergePieces(pieces.map(({ geometry, color, at = {}, rotation }) => ({
+    geometry: place(geometry.clone(), at, rotation), color,
+  })));
+  const hull = mergePieces(pieces.map(({ geometry, color, at = {}, rotation }) => ({
+    geometry: place(grown(geometry), at, rotation), color,
+  })));
+  for (const { geometry } of pieces) geometry.dispose();
+
+  const mesh = new THREE.Mesh(body, material);
   mesh.castShadow = true;
   mesh.receiveShadow = false;
   group.add(mesh);
-
   // Child of the mesh, not a sibling of it. Callers reposition the mesh they
-  // get back — a limb segment hangs from its pivot — and a sibling outline
-  // stays at the pivot instead of following. That left four outline capsules
-  // stranded at the shoulders and hips, invisible only for as long as the
-  // outline was painted near-black. Parenting makes the drift impossible.
-  const outline = new THREE.Mesh(geometry, outlineMaterial);
-  outline.scale.setScalar(CONFIG.render.outlineScale);
+  // get back and a sibling outline stays behind; parenting makes the drift
+  // impossible (Phase 5).
+  const outline = new THREE.Mesh(hull, outlineMaterial);
   mesh.add(outline);
   return mesh;
 }
@@ -127,53 +254,78 @@ export function buildShadeMesh(gradientMap) {
   const root = new THREE.Group();
   root.name = 'shade';
 
-  // Section 4.2's rim, on the Shade only. Both body materials share one set of
-  // uniforms so the per-frame update is a single write.
+  // Section 4.2's rim, on the Shade only. One body material for the six
+  // parts, coloured by vertex, so the per-frame update is a single write:
+  // `body.color` scales every tone together (systems/detection.js).
   const rim = createRimUniforms();
-  const teal = addRimLight(new THREE.MeshToonMaterial({ color: P.shadeTeal, gradientMap }), rim);
-  const charcoal = addRimLight(new THREE.MeshToonMaterial({ color: P.shadeCharcoal, gradientMap }), rim);
+  const body = addRimLight(new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap }), rim);
   // One outline material for the whole body, not one per part. Section 4.2
   // drives the edge brightness from the visibility meter every frame, and that
-  // has to be a single assignment rather than a walk over nine materials.
+  // has to be a single assignment rather than a walk over the hulls.
   const outline = new THREE.MeshBasicMaterial({ color: P.outline, side: THREE.BackSide, fog: true });
 
   const H = S.standHeight;
+  const teal = new THREE.Color(P.shadeTeal);
+  const charcoal = new THREE.Color(P.shadeCharcoal);
+  const G = FIGURE;
 
-  // Torso: tall capsule.
+  // Torso: a narrow capsule, the hood round where the head sits and a cowl
+  // over the shoulders, all one piece so the hood turns with the torso and
+  // the head turns inside it. The hood is a sphere shell open at the face
+  // (the Shade faces -z; three's phi puts -z at 1.5 pi) and open below the
+  // drape, so between it and the mantle's apex the silhouette steps in: a
+  // hooded head, not a helmet.
   const torso = new THREE.Group();
-  torso.position.y = H * 0.62;
+  torso.position.y = H * G.torso.pivot;
   torso.userData.baseY = torso.position.y;
-  outlined(new THREE.CapsuleGeometry(0.19, H * 0.34, 4, 10), teal, torso, outline);
+  const headY = H * G.head.pivot;
+  const phiStart = 1.5 * Math.PI + G.hood.opening / 2;
+  const phiLength = 2 * Math.PI - G.hood.opening;
+  part(torso, [
+    { geometry: new THREE.CapsuleGeometry(G.torso.radius, H * G.torso.length, 4, 10), color: teal },
+    { geometry: new THREE.SphereGeometry(G.hood.radius, 14, 10, phiStart, phiLength, 0, G.hood.drape), color: teal, at: { y: headY } },
+    { geometry: inward(new THREE.SphereGeometry(G.hood.lining, 14, 10, phiStart, phiLength, 0, G.hood.drape)), color: charcoal, at: { y: headY } },
+    {
+      geometry: new THREE.CylinderGeometry(G.mantle.top, G.mantle.bottom, G.mantle.height, 12, 1, true),
+      color: teal,
+      at: { y: H * G.arm.pivot + G.mantle.lift },
+    },
+  ], body, outline);
   root.add(torso);
 
-  // Small head, sat high on the torso.
+  // Small head, inside the hood; it takes the pitch (agentvisual.js).
   const head = new THREE.Group();
-  head.position.y = H * 0.29;
-  outlined(new THREE.SphereGeometry(0.125, 12, 10), charcoal, head, outline);
+  head.position.y = headY;
+  part(head, [{ geometry: new THREE.SphereGeometry(G.head.radius, 12, 10), color: charcoal }], body, outline);
   torso.add(head);
 
-  // Long limbs, pivoting from the shoulder and hip.
-  const makeLimb = (parent, x, y, length, radius, boot) => {
+  // Long limbs, pivoting from the shoulder and hip: a thin capsule and the
+  // oversized glove or boot (Section 4) in one piece. The last child of a
+  // limb group is an empty at the glove's or boot's centre, for anything
+  // that needs to know where the hand is (the hang, tests/hang.js).
+  const makeLimb = (parent, x, y, spec, cap) => {
     const limb = new THREE.Group();
     limb.position.set(x, y, 0);
-    const segment = outlined(new THREE.CapsuleGeometry(radius, length, 3, 8), charcoal, limb, outline);
-    segment.position.y = -length / 2 - radius;
-    // Oversized boots and gloves (Section 4).
-    const cap = new THREE.Group();
-    cap.position.y = -length - radius * 1.4;
-    outlined(new THREE.BoxGeometry(boot, boot * 0.62, boot * 1.25), teal, cap, outline);
-    limb.add(cap);
+    const capY = -spec.length * H - spec.reach;
+    part(limb, [
+      { geometry: new THREE.CapsuleGeometry(spec.radius, spec.length * H, 3, 8), color: charcoal, at: { y: -spec.length * H / 2 - spec.radius } },
+      { geometry: new THREE.BoxGeometry(cap, cap * 0.62, cap * 1.25), color: teal, at: { y: capY } },
+    ], body, outline);
+    const end = new THREE.Object3D();
+    end.name = 'limb-end';
+    end.position.y = capY;
+    limb.add(end);
     parent.add(limb);
     return limb;
   };
 
-  const armL = makeLimb(torso, -0.235, H * 0.16, H * 0.3, 0.058, 0.15);
-  const armR = makeLimb(torso, 0.235, H * 0.16, H * 0.3, 0.058, 0.15);
-  const legL = makeLimb(root, -0.105, H * 0.46, H * 0.4, 0.068, 0.17);
-  const legR = makeLimb(root, 0.105, H * 0.46, H * 0.4, 0.068, 0.17);
+  const armL = makeLimb(torso, -G.arm.x, H * G.arm.pivot, G.arm, G.arm.glove);
+  const armR = makeLimb(torso, G.arm.x, H * G.arm.pivot, G.arm, G.arm.glove);
+  const legL = makeLimb(root, -G.leg.x, H * G.leg.pivot, G.leg, G.leg.boot);
+  const legR = makeLimb(root, G.leg.x, H * G.leg.pivot, G.leg, G.leg.boot);
 
   root.userData.parts = { torso, head, armL, armR, legL, legR };
-  root.userData.materials = { teal, charcoal, outline };
+  root.userData.materials = { body, outline };
   root.userData.rim = rim;
   return root;
 }

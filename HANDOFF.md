@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after D7 (2026-09-19) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **159 passed, 1 failed, 6 not for this map**, yard **142 passed, 1 failed, 23 not for this map** (2026-09-19, after D7), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **E1** (M: the Shade, from primitives to an articulated toon figure) - Block E, styling, opens; **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after E1 (2026-09-19) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **160 passed, 1 failed, 6 not for this map**, yard **143 passed, 1 failed, 23 not for this map** (2026-09-19, after E1), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **E2** (M: the Warden - helmet, vest, rifle silhouette, broad stance; the two figures told apart by silhouette at 25m in the dark), then E3, animation. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -49,10 +49,42 @@ map, is under way: D1, the plumbing, and D2, the yard blocked out, both
 2026-09-17 (below); D3, the walkway, and D4, the night, 2026-09-18
 (below); D5, the AI on the yard, D6, both maps in the gate, and D7,
 the regression set whole on every map, 2026-09-19 (below). **Block D is
-closed but for D3b** (waits on D38). Block E, styling, is next: E1, the
-Shade.
+closed but for D3b** (waits on D38). Block E, styling, is open: E1, the
+Shade's figure, 2026-09-19 (below); E2, the Warden, is next.
 
 ---
+
+## The Shade's figure - E1
+
+`FIGURE` (entities/agentmesh.js) states it. A **hood** round the head -
+a sphere shell open at the face over a charcoal lining facing inward
+(`inward`) - and a short **cowl** over the shoulders, both the torso's
+teal and the torso's piece; the torso capsule narrowed to 0.14 with its
+top the **neck** just under the hood's rim, so the silhouette steps in
+there; the limbs thinner at the old length, pivots and
+reach (0.05 / 0.06), gloves and boots kept. **Six groups, six merged meshes, one
+material.** agentvisual.js poses the same six groups (torso, head,
+arms, legs) as before; each holds ONE merged geometry with vertex
+colours (`mergePieces`, `part`) on one `MeshToonMaterial` with the rim,
+plus one hull on one outline material - **12 draw calls, were 20**. Not
+a skinned mesh: Section 4 forbids a rigged skeleton, and that is how the
+queue's "merged geometry, one material" is read (D40). The hull is
+**grown 4mm per primitive** about its own centre (`grown`) before
+placement, not scaled about the part's pivot; the hull and the rim
+share the silhouette's outer pixels, and thicker (or thinner arms) the
+rim check reads a wash - it went flaky at 5mm on 4.5cm arms. `materials` is `{ body, outline }`; detection scales
+`body.color` from white. The last child of a limb group is an empty at
+the glove or boot (tests/hang.js reads it; E3 will want it).
+
+`the-shade-reads-as-a-hooded-figure-at-8m-and-25m` (tests/figure.js,
+every map): six parts on one material with colours, six hulls; the
+Shade at the near end of the first clear lane, an eye 8m down it and
+one 25m away with sight (`standAndEyes`), the body on a flat unlit
+white for the two frames (the yard's lamps left the charcoal limbs
+within eight levels of the containers), tall and narrow (3.4:1) with a
+hood wider than the neck under it (28px over 11 at 8m, 10 over 6 at
+25m, the same on both maps); 12 draw calls, at most 12. Spec 20.24;
+PLAYTEST.md says what only eyes can judge.
 
 ## The regression set is whole on every map - D7
 

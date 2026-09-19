@@ -66,6 +66,31 @@ not, say so under D6 in `QUEUE.md`.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The Shade has a hood (E1, 2026-09-19)
+
+Either map, any mode. The third-person camera is always on the Shade;
+the free-fly camera (`?debug=1`, then `BLACKLINE.freefly.enabled = true`
+in the console) walks round it. The body is rebuilt: a
+narrow teal torso with a hood round the head, open at the face over a
+dark lining, a short cowl over the shoulders, thin long charcoal limbs,
+the big gloves and boots kept. It is still six groups the controller
+poses, so every pose you know - the run, the slide, the hang at full
+stretch, the hands-up slap of a failed climb, the knife arc - is drawn
+as it was; what changed is what each group holds: one merged mesh on
+one material, twelve draw calls for the body where there were twenty.
+The checks prove: tall and narrow (3.4:1) and a hood wider than the
+neck under it at 8m and at 25m, on both maps, from a flat silhouette
+(`the-shade-reads-as-a-hooded-figure-at-8m-and-25m`); the rim still
+sits at the edge and the hull still owns the outline (`the-rim-light-
+is-really-on-screen`, `the-outline-darkens-the-silhouette-edge`); the
+meter still darkens the whole body (`the-shade-visibly-dims-with-the-
+meter`). What only eyes can judge: whether it reads as the Shade - a
+hooded figure, not a bottle with a collar; whether the hood's dark
+opening reads as a face turned toward you or as a hole; whether the
+4mm outline is enough on the thin arms at distance; whether the cowl
+sits right when the arms swing. The numbers to turn are all in
+`FIGURE` (`src/entities/agentmesh.js`), argued under D40.
+
 ### The Warden plays the yard (D5, 2026-09-19)
 
 `?map=yard`, a competitive match. The Warden patrols the lanes and the
