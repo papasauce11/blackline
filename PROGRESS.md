@@ -6287,3 +6287,102 @@ on the container faces sells "floodlit", whether the meter's fifties
 under a mast match how lit you look (PLAYTEST.md). D5 next: the AI on
 the yard, and the three plant-scoped AI checks given a lane the yard's
 lamps light.
+
+## D5 — the AI on the yard: a lit lane, a near goal over the ground, stuck means moving (2026-09-19, scheduled run)
+
+The 02:00 run's first job, sized M. The queue asked for the Warden on
+the yard - patrol over `wardenGround`, defend paths to all three sites,
+alarm placement - for the three AI checks that stood in the Turbine
+Hall by coordinate since D2 to be given a lane the yard's lamps light
+and their `maps: ['plant']` taken off, and for a soak of three matches
+with no stall. The gate was green (153 passed, 1 failed - the frame
+budget, skipped - 0 red, 0 console errors, 446s).
+
+**Built.**
+
+- **`litLane(h, length, stands)`** (tests/lanes.js): `clearLane`'s
+  search - the sites, the waypoints, the spawns, eight headings, the
+  first clear run wins - and the visibility meter has to read at least
+  `LIT_METER` (half its range, 50) for a standing Shade at every
+  distance in `stands` down it, read through `detection.reset()` as a
+  spawn seeds the meter (`meterAt`). The AI checks that measure a "lit,
+  still" Shade hold the meter at its maximum so their numbers are the
+  preset's and not the lamp's; the lane is what makes that an
+  approximation and not a lie. Half is the line: Section 16 draws the
+  plant's lit and dark at 70 and 25, a mast's pool reads in the fifties
+  and sixties (D39), a gap between stacks reads the ambient floor.
+- **The three checks stand on it and run on every map.**
+  `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` and
+  `the-warden-fires-in-bursts-of-rounds-at-the-torso` ask for 17m lit
+  at 8 and 16; `ai-state-machine-follows-section-11` for 9m lit at 8.
+  On the plant the first two moved from (-24, -19) to `hall-north`
+  under hall-1 (meter 78 / 58) - site A has no 17m run - and **D33's
+  table is unchanged to the hundredth** (8m: 7.35/0.86, 4.97/0.51,
+  3.60/0.35; 16m: 13.64/7.21, 9.27/1.40, 6.74/0.93). On the yard the
+  lane runs north from site C up the gate lane, under the walkway's
+  lamp (meter 63 at 8m, 80 at 16m): **8m: easy 7.35s/1.16s, medium
+  4.97s/0.43s, hard 3.60s/0.41s; 16m: easy 13.63s/7.36s, medium
+  9.27s/1.25s, hard 6.73s/0.82s** - the detects identical (the meter is
+  held), the kills within a third of a second, the order held. D33's
+  table needs no yard column. The burst check: 20 rounds as [6 3 6] at
+  a mean height of 1.10m against a torso at 1.15.
+- **A near goal is walked to over the ground** (`ai.directRouteRange`,
+  10m; `_pathTo`, ainav.js). The state-machine check went red on the
+  yard first: the noise 8m up the lane from site A, and the Warden
+  investigated it by way of the graph node nearest it, `bay-a-north`,
+  a metre and a half *beyond* it - walked past the Shade making the
+  noise, out of its own cone at a metre (the trace: 65-87 degrees off
+  its facing), the accumulator peaked at 81 and drained, SEARCH,
+  PATROL. Now a goal within 10m flat is planned by `WardenGround.route()`
+  from the Warden's own feet - the planner that has done the last leg
+  since A8 - and the graph is not consulted; past that, the graph as
+  before. A goal the planner cannot reach (off the ground, past the
+  snap) falls through to the graph.
+- **Stuck means moving** (`_meansToMove`, ainav.js). The soak's first
+  run: twelve stuck re-paths in nine rounds on the yard, thirteen on
+  the plant, and every one of them in DEFEND, under a metre from the
+  charge, 2.7 to 7.9 seconds into the defuse. Section 11's detector
+  ("less than 0.3m over 2s while in a moving state") read a kneeling
+  Warden as wedged, re-pathed it, and the route began at the nearest
+  graph node: it stood up, walked there, and came back to begin the
+  defuse again - four to eight seconds a round, and it did it in every
+  playtest so far. A moving state now means a route the AI has not
+  reached the end of (ENGAGE, which closes on the Shade with no route,
+  always counts), so a Warden that has arrived and holds - the defuse,
+  INVESTIGATE's scan - is not stuck, and a wedged one, which has not
+  arrived, still is. Spec 20.21 for both.
+- **`the-warden-plays-three-matches-on-this-map-without-a-stall`**
+  (tests/aisoak.js, every map): three best-of-fives, each round the
+  way the intermission starts one (`initMatch` with the round number,
+  its own seed), the Warden from a different spawn each round, a
+  patrol of 6 / 10 / 14 seconds, the plant at A, B, C in turn from
+  `plantAt`, the Shade to the farthest spawn, and the defence on the
+  detonation clock. Holds: every round ends defused and the Warden's
+  (a Shade seen on the way is a problem, not an excuse), the match
+  over at 3-0, the Warden's feet on `wardenGround` every step
+  (`onGround`, exported from tests/wardenground.js), a camera hung
+  every match, and at most three re-paths in all - the cap that would
+  have said twelve. The rounds and every re-path (state, distance to
+  the charge, defuse progress) go to the F4 log.
+
+**Verified.** The AI subset on both maps after the two fixes: 28 passed
+on the yard, 31 on the plant, 0 failed. The soak on the yard: 3-0 3-0
+3-0, 9 rounds defused, 14,579 steps on the ground, 9 cameras, **0
+re-paths**; from 10 to 40m the defuse landed 11.6 to 25.5s after the
+plant. The plant: 9 rounds, 16,279 steps, 9 cameras, 0 re-paths, 8 to
+34m in 10.9 to 31.4s. `the-ai-walks-to-the-charge-and-defuses-it` got
+quicker on both maps by the re-path it no longer takes (plant 17.1 to
+15.9s, yard 26.4 to 24.5s); `ai-patrols-without-getting-stuck` reads 0
+re-paths on both. Full suite, both maps, twice: plant **154 passed, 1 failed, 6 not for this map** (409s and 507s), yard **137 passed, 1 failed, 23 not for this map** (192s and 197s), every outcome identical between runs, 0 red, 0 flaky, 0 console errors, 0 context losses; the one failure is the frame budget, skipped headless. 153 and 133 before D5: the soak is new, and on the yard the three unscoped checks are three more passes and three fewer *not for this map*.
+
+**Found.** Two AI defects on every map, above, neither the yard's:
+the overshoot to the node beyond a near goal, and the kneeling Warden
+counted as stuck. Both were invisible to the checks that existed - the
+hall's lane had its nearest node short of the Shade, and no check
+counted re-paths through a defuse.
+
+**Left.** D6 (both maps in the gate). Josh's eyes on the yard's Warden:
+whether it reads as patrolling a yard or pacing lanes, whether a defence
+across 40m of yard feels fair against a 45s clock (PLAYTEST.md).
+`ai-perception-cone-and-accumulator` stays `maps: ['plant']` - its
+through-wall case names the hall's east wall.

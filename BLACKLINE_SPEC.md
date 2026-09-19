@@ -1173,3 +1173,40 @@ of its own (Section 16): `the-yard-is-floodlit-from-masts-at-night`
 stack's key shadow read under half the dimmest pool and above black;
 the sky alone lands under a third of the brightest pool on every site).
 tests/yardlight.js. D4, 2026-09-18; D39.
+
+### 20.21 Section 11 - the AI on the yard: a near goal over the ground, and stuck means moving
+
+The Warden AI plays the yard (D5, 2026-09-19) with two amendments to
+Section 11's navigation, both of them on every map. **A goal within
+`ai.directRouteRange` (10m, flat) is walked to over the Warden's ground
+from its own feet** (`WardenGround.route()`, the planner that already
+did the last leg since Block A8), and the waypoint graph is not
+consulted; past that range the route is A-star over the graph to the
+node nearest the goal and the planned leg from there, as before. Routed
+through the graph, a noise eight metres up the yard's lane was
+investigated by way of the node nearest it, which stood beyond it, so
+the Warden walked past the Shade making the noise - out of its own
+90-degree cone at a metre - and came back. **"Stuck handling ... while
+in a moving state" reads as: while the AI means to move** - a moving
+state, not paused at a patrol node, and a route it has not reached the
+end of (ENGAGE, which closes on the Shade with no route, always means
+to move). A Warden that has arrived and is holding - kneeling over a
+charge for the eight seconds of a defuse, scanning at a noise - is not
+stuck; the detector read it as wedged every two seconds, re-pathed it
+from the nearest graph node, and it stood up, walked there and came
+back to begin the defuse again (twelve re-paths in nine rounds of D5's
+soak, every one at the charge). A wedged Warden has not arrived, so the
+detector still sees it. Section 16: `the-warden-plays-three-matches-on-
+this-map-without-a-stall` (tests/aisoak.js) plays three matches on
+whatever map the page is on - a patrol from a different spawn each
+round, the plant at a different site, the Warden defending from
+wherever the patrol left it - and holds every round defused on the
+detonation clock, the Warden's feet on its ground every step, a camera
+hung every match, and no more than three re-paths in all. The three
+checks Section 16 stood in the Turbine Hall by coordinate
+(`ai-state-machine-follows-section-11`, `each-difficulty-is-quicker-to-
+see-you-and-quicker-to-kill-you`, `the-warden-fires-in-bursts-of-
+rounds-at-the-torso`) stand on `litLane()` (tests/lanes.js) - a clear
+run the map's lamps light to at least half the meter at every range
+they measure - and run on every map; D33's table is unchanged on the
+plant. D5, 2026-09-19.

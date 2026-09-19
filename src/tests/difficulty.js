@@ -21,19 +21,27 @@
 
 import { CONFIG, SETTINGS } from '../config.js';
 import { AI_STATE } from '../systems/ai.js';
+import { LIT_METER, alongLane, litLane } from './lanes.js';
 
 const A = CONFIG.ai;
 
-/**
- * The Turbine Hall lane the perception checks use: the Warden at its south
- * end facing +Z, the Shade up the lane, nothing between them.
- */
-const LANE = { x: -24, z: -19, yaw: Math.PI };
 /**
  * Metres up the lane, both inside `engageRange` so the Warden fires from
  * where it stands. At 16m the aim error cone is twice the metres it is at 8.
  */
 const RANGES = [8, 16];
+/**
+ * The lane: a clear run the map's lamps light at both ranges (`litLane`,
+ * D5), the Warden at its foot facing along it, the Shade up it, nothing
+ * between them. Until D5 it was the Turbine Hall's by coordinate, which
+ * kept both checks off the yard; on the plant it is still the hall's, from
+ * `hall-north` under hall-1 (site A has no 17m run), and D33's table stands
+ * to the hundredth. On the yard it runs north from site C up the gate lane
+ * (meter 63 at 8m, 80 at 16m under the walkway's lamp).
+ */
+const lane = (h) => litLane(h, RANGES[RANGES.length - 1] + 1, RANGES);
+/** The yaw that faces back down a lane: forward is (-sin yaw, -cos yaw). */
+const facingBack = (lane) => Math.atan2(lane.dx, lane.dz);
 /** Seeds every preset is measured with at every range: the comparison is paired. */
 const SEEDS = [0xd1f1, 0xd1f2, 0xd1f3, 0xd1f4, 0xd1f5, 0xd1f6, 0xd1f7, 0xd1f8];
 /** The longest a detection or a kill is allowed to take before it is a stall. */
@@ -56,16 +64,15 @@ const KILL_LIMIT = 30;
  *   stalled: string|null }} seconds from the first step in view to ENGAGE,
  *   and from ENGAGE to the death; or a stall's reason
  */
-function engage(h, name, seed, range) {
+function engage(h, name, seed, range, LANE) {
   const dt = CONFIG.time.fixedDt;
   SETTINGS.difficulty = name;
   h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed });
   const { warden, shade, wardenAI, detection, combat, gadgets } = h;
   gadgets.loadout.frag = 0;
 
-  warden.reset({ position: { x: LANE.x, y: 0, z: LANE.z }, yaw: LANE.yaw });
-  // Shade forward is (-sin yaw, -cos yaw): yaw 0 faces -Z, back down the lane.
-  shade.reset({ position: { x: LANE.x, y: 0, z: LANE.z + range }, yaw: 0 });
+  warden.reset({ position: { x: LANE.x, y: LANE.y, z: LANE.z }, yaw: LANE.yaw });
+  shade.reset({ position: alongLane(LANE, range), yaw: facingBack(LANE) });
   h.stepFrames(2);
   const held = warden.position.clone();
   wardenAI.reset();
@@ -134,7 +141,6 @@ function engage(h, name, seed, range) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you',
-    maps: ['plant'], // LANE is the Turbine Hall's, lit by hall-1; D33's table was measured there; the yard's lane is D5's
     spec: 'Section 11 (difficulty)',
     name: 'Time-to-detect and time-to-kill both fall from one preset to the next, at 8m and at 16m',
     run: (h) => {
@@ -142,11 +148,15 @@ export function register(debugTools) {
       const was = SETTINGS.difficulty;
       const names = Object.keys(A.difficulty);
       const lines = [];
+      const LANE = lane(h);
+      if (!LANE) {
+        return { pass: false, detail: `no clear lane of ${RANGES[RANGES.length - 1] + 1}m the lamps light to ${LIT_METER} at ${RANGES.join('m and ')}m on this map` };
+      }
 
       for (const range of RANGES) {
         const measured = [];
         for (const name of names) {
-          const runs = SEEDS.map((seed) => engage(h, name, seed, range));
+          const runs = SEEDS.map((seed) => engage(h, name, seed, range, LANE));
           const stalled = runs
             .map((run, i) => (run.stalled ? `seed ${i}: ${run.stalled}` : null))
             .filter(Boolean);
@@ -188,7 +198,8 @@ export function register(debugTools) {
       SETTINGS.difficulty = was;
       h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
 
-      const report = `detect/kill, hits/shots; lit, still, ${SEEDS.length} seeds each - ${lines.join(' | ')}`;
+      const report = `detect/kill, hits/shots; lit, still, ${SEEDS.length} seeds each, from ${LANE.from} `
+        + `(meter ${LANE.meters.map((m) => m.toFixed(0)).join('/')} at ${RANGES.join('/')}m) - ${lines.join(' | ')}`;
       return {
         pass: problems.length === 0,
         detail: problems.length === 0 ? report : `${problems.join('; ')} - ${report}`,
@@ -198,7 +209,6 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'the-warden-fires-in-bursts-of-rounds-at-the-torso',
-    maps: ['plant'], // LANE is the Turbine Hall's; the yard's lane is D5's
     spec: 'Section 11 (ENGAGE), Section 17.1 (god mode)',
     name: 'A burst is 3-7 rounds at the gun\'s rate, aimed at the torso, and god mode stops every one',
     run: (h) => {
@@ -206,6 +216,8 @@ export function register(debugTools) {
       const G = CONFIG.combat.gun;
       const problems = [];
       const was = SETTINGS.difficulty;
+      const LANE = lane(h);
+      if (!LANE) return { pass: false, detail: `no clear lane the lamps light to ${LIT_METER} on this map` };
       // The tightest cone, so nearly every round lands and the impacts say
       // where the gun was pointed.
       const names = Object.keys(A.difficulty);
@@ -213,8 +225,8 @@ export function register(debugTools) {
       h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: 0xb0b5 });
       const { warden, shade, wardenAI, detection, combat, gadgets } = h;
       gadgets.loadout.frag = 0;
-      warden.reset({ position: { x: LANE.x, y: 0, z: LANE.z }, yaw: LANE.yaw });
-      shade.reset({ position: { x: LANE.x, y: 0, z: LANE.z + RANGES[0] }, yaw: 0 });
+      warden.reset({ position: { x: LANE.x, y: LANE.y, z: LANE.z }, yaw: LANE.yaw });
+      shade.reset({ position: alongLane(LANE, RANGES[0]), yaw: facingBack(LANE) });
       h.stepFrames(2);
       const held = warden.position.clone();
       wardenAI.reset();

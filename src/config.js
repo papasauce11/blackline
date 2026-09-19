@@ -855,6 +855,17 @@ export const CONFIG = {
      */
     maxUnpathedLeg: 6,
     /**
+     * A goal this close, flat, is walked to over the ground planner from
+     * the Warden's own feet, and the waypoint graph is not consulted (D5).
+     * The graph is for the long haul; routed through it, a goal eight
+     * metres up a lane was reached by way of the node nearest it, which on
+     * the yard stood a metre and a half beyond it, so the Warden walked
+     * past the noise it was investigating - and past the Shade making it,
+     * out of its cone - and came back. Past this range the graph's route
+     * ends at that node as before and the planner does the last leg.
+     */
+    directRouteRange: 10,
+    /**
      * How far off a planned line the Warden actually walks, and so how much
      * ground a pulled segment of `WardenGround.route()` keeps to either side
      * of itself (B5c). The follower advances to the next point from

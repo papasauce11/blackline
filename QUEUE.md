@@ -98,20 +98,6 @@ D37 (the walkway as built), D39 (the lighting as built).
   drives the Shade up the stair through `input.heldCodes` and asserts it
   stops at the door while the Warden, driven the same way, walks through;
   `nothing-climbs-to-the-walkway-and-the-warden-walks-up` unchanged.
-- [ ] **D5 (M)** AI on the yard. Patrol routes over `wardenGround`, defend
-  paths to all three sites, alarm placement. Three checks stand in the
-  Turbine Hall's lit lane by coordinate and are `maps: ['plant']` since
-  D2 - `ai-state-machine-follows-section-11`,
-  `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`,
-  `the-warden-fires-in-bursts-of-rounds-at-the-torso` - because their
-  numbers depend on the lane's light (D33's table); D5 gives them a lit
-  lane on the yard (a `clearLane` that asks the detection model for
-  light, tests/lanes.js, or the yard's own coordinates now D4 has lit
-  it: the gate lane under the gate mast, the mid lane under the
-  walkway's lamp) and takes the scoping off. The meter under a yard mast
-  reads in the fifties against the plant's hall's seventies (D39) -
-  D33's numbers may need the yard's own column. *done-when:* every AI check passes on
-  `yard`, those three included; a soak of 3 matches with no stall.
 - [ ] **D6 (S)** Both maps in the regression set; the menu defaults to
   `plant`; `PLAYTEST.md` gets a yard section. Since D1 the runner takes
   `--map plant,yard` and `runRegressionSet` filters by the map the page
@@ -148,6 +134,26 @@ budget checks are the ceiling.
 
 ## Done
 
+- **D5** AI on the yard. `litLane(h, length, stands)` (tests/lanes.js):
+  a clear run the map's lamps light to half the meter at every stand;
+  `ai-state-machine-follows-section-11`,
+  `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` and
+  `the-warden-fires-in-bursts-of-rounds-at-the-torso` stand on it and
+  run on every map (the plant: `hall-north`, D33's table unchanged; the
+  yard: north from site C up the gate lane, 63 / 80 on the meter, kills
+  within a third of a second of the plant's). Two AI fixes on every map
+  (ainav.js, spec 20.21): a goal within `ai.directRouteRange` (10m) is
+  planned over the ground from the Warden's feet, not by way of the
+  graph node nearest it (which on the yard stood beyond the noise - the
+  Warden walked past the Shade); and stuck means a route not yet reached
+  (`_meansToMove`) - a kneeling Warden was re-pathed every 2s of its
+  defuse and walked off to the nearest node and back, twelve times in
+  nine rounds. `the-warden-plays-three-matches-on-this-map-without-a-
+  stall` (tests/aisoak.js, every map): three best-of-fives, every round
+  from a different spawn to a different site, all defused on the clock,
+  feet on the ground every step, a camera every match, at most three
+  re-paths (0 on both maps). — 2026-09-19, scheduled run, commit
+  `D5_COMMIT`.
 - **D4** Yard lighting. Night (D9): four floodlight masts (`MASTS`,
   `MAST`, maps/yarddata.js - a pole and an arm thinner than a body, the
   lamp 6.5m up over bays A, B, C and the gate) and a fifth lamp under

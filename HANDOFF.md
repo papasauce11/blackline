@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after D4 (2026-09-18) |
-| AUTO suite | headless, `npm run suite` (the `plant` map): **153 passed, 1 failed, 6 not for this map (the two new yard checks make it 6)** (2026-09-18, after D4), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. On `yard` (`--map yard`, not in the default gate until D6): **133 passed, 1 failed, 26 not for this map**, both runs, 0 red, 0 flaky - the frame budget skipped and nothing else red; `lit-pools-and-dark-gaps-are-actually-contrasty` went green there with D4 |
-| Next job | **D5** (M: AI on the yard), then D6. **D4 done** 2026-09-18 (below): the yard at night, four masts and a fifth lamp, one warm key from bay C. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after D5 (2026-09-19) |
+| AUTO suite | headless, `npm run suite` (the `plant` map): **154 passed, 1 failed, 6 not for this map** (2026-09-19, after D5), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. On `yard` (`--map yard`, not in the default gate until D6): **137 passed, 1 failed, 23 not for this map**, both runs, 0 red, 0 flaky - the frame budget skipped and nothing else red; the three AI checks D5 unscoped and the soak are green there |
+| Next job | **D6** (S: both maps in the gate), then Block E. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -47,9 +47,55 @@ feedback, landed 2026-09-15; C4, the end screens, C5, the difficulty
 pass, and C6, `PLAYTEST.md`, 2026-09-16 (below). Block D, the second
 map, is under way: D1, the plumbing, and D2, the yard blocked out, both
 2026-09-17 (below); D3, the walkway, and D4, the night, 2026-09-18
-(below); D5, the AI on the yard, is next.
+(below); D5, the AI on the yard, 2026-09-19 (below); D6, both maps in
+the gate, is next.
 
 ---
+
+## The AI on the yard - D5
+
+**`litLane(h, length, stands)`** (tests/lanes.js) is `clearLane` with
+the map's lamps on it: the first clear run whose visibility meter reads
+at least `LIT_METER` (half the meter, 50) for a standing Shade at every
+distance in `stands`, read as a spawn seeds the meter (`meterAt`,
+through `detection.reset()`). The three AI checks that stood in the
+Turbine Hall by coordinate - `ai-state-machine-follows-section-11`,
+`each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`,
+`the-warden-fires-in-bursts-of-rounds-at-the-torso` - stand on it and
+run on every map. They hold the meter at its maximum; the lane is what
+makes "lit" true rather than a lie. On the plant the lane is from
+`hall-north` (site A has no 17m run) and **D33's table is unchanged**;
+on the yard it runs north from site C up the gate lane under the
+walkway's lamp (meter 63 / 80 at 8 / 16m) and the kills land within a
+third of a second of the plant's. `ai-perception-cone-and-accumulator`
+stays plant-only: its through-wall case names the hall's east wall.
+
+**Two AI fixes, on every map** (ainav.js; spec 20.21). A goal within
+**`ai.directRouteRange`** (10m, flat) is planned by
+`WardenGround.route()` from the Warden's own feet and the waypoint
+graph is not consulted - routed through the node nearest the goal,
+which on the yard stood beyond an 8m noise, the Warden walked past the
+Shade making it, out of its own cone. And **stuck means moving**
+(`_meansToMove`): Section 11's detector fires only while the AI has a
+route it has not reached the end of (ENGAGE, which closes with no
+route, always counts). Before, a Warden kneeling over a charge was
+"stuck" every 2s of its 8s defuse, re-pathed from the nearest graph
+node, stood up, walked there and came back - twelve re-paths in nine
+rounds of the soak, every one at the charge, four to eight seconds a
+round, in every playtest so far. `the-ai-walks-to-the-charge-and-
+defuses-it` got quicker on both maps by exactly that.
+
+**`the-warden-plays-three-matches-on-this-map-without-a-stall`**
+(tests/aisoak.js, every map): three best-of-fives, each round through
+`initMatch` with its round number and its own seed, the Warden from a
+different spawn, a patrol of 6 / 10 / 14s, the plant at A, B, C in turn
+(`plantAt`), the Shade to the farthest spawn, the defence on the
+detonation clock. Every round defused and the Warden's, the match over
+at 3-0, feet on `wardenGround` every step (`onGround`, now exported
+from tests/wardenground.js), a camera hung every match, at most three
+re-paths in all (0 on both maps). The rounds and every re-path (state,
+distance to the charge, defuse progress) go to the F4 log; the
+runner's detail line keeps 400 characters.
 
 ## The yard at night - D4
 
@@ -980,6 +1026,18 @@ gate a routine has; the pane is for humans.
 - The one time this bit hard: an emulated resize left the canvas 0×0 and *all
   eight* pixel checks went black at once. The obvious reading (the last commit
   broke rendering) was wrong.
+
+**The runner keeps 400 characters of a check's detail, and the F4 log
+is not in the report.** A diagnostic that matters goes at the front of
+the failure line, compact; D5 lost two runs to a trace that was cut off
+before the interesting part. `debugTools.logResult()` reaches the F4
+panel in a tab, never the runner.
+
+**The working copy is mixed: some files CRLF, some LF.** A patch script
+that assumes one fails silently on the other (D5's first patch matched
+nothing in the CRLF `tests/difficulty.js`). Detect per file: read with
+`newline=""`, note whether `\r\n` is in it, work in LF, write back the
+way it was.
 
 **Bash heredocs fail on JS content** in this shell — `unexpected EOF`. Use the
 Write tool for new files and a `python - <<'PY'` block for edits.

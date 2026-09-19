@@ -31,7 +31,7 @@ once you are up you can cross the whole yard without touching the
 ground, and the Warden can never follow. **Night** (D4, 2026-09-18):
 four floodlights on masts over the sites and the gate, a fifth under
 the walkway, and dark between the stacks; the walkway is up (D3); the
-Warden patrols it on a 21-node graph but has not been tuned for it (D5).
+Warden patrols it on a 21-node graph and defends every bay (D5).
 The settings menu has the difficulty (easy / medium /
 hard), the match length (best of 5 or 11), the round briefing on or off,
 mouse sensitivity and volume. Controls, gadget slots and the climbing
@@ -51,6 +51,36 @@ headless; the yard is not in `npm run suite`'s default gate until D6.
 
 Newest first. Each item says what the checks already prove and what is
 left for you.
+
+### The Warden plays the yard (D5, 2026-09-19)
+
+`?map=yard`, a competitive match. The Warden patrols the lanes and the
+bays, investigates a noise, hangs its camera on a container, defends a
+plant in any bay from wherever it was. Two things changed on **both**
+maps and you will see them on the plant too: a Warden investigating a
+noise or a sighting within ten metres walks straight to it over the
+ground rather than by way of the nearest waypoint (it used to walk
+past you to a node beyond and come back), and a Warden kneeling over
+your charge stays kneeling - until D5 its own stuck detector read the
+eight-second defuse as "wedged" every two seconds, re-pathed it, and it
+stood up, walked to the nearest waypoint and came back to start again
+(the defuse took four to eight seconds longer than it should, in every
+playtest so far). The checks prove: three matches on each map, every
+round from a different spawn, the plant at a different site, every one
+defused on the clock with the Warden's feet on its ground every step
+and no re-paths (`the-warden-plays-three-matches-on-this-map-without-a-
+stall`); the difficulty table holds on the yard's lit lane within a
+third of a second of the plant's (D33); the state machine walks its
+escalation on the yard (`tests/ai.js`, `tests/difficulty.js`,
+`tests/aisoak.js`). What only eyes can judge: whether it reads as
+patrolling a yard or pacing lanes; whether a defence across forty
+metres of yard against a 45-second clock feels fair from the Shade's
+side (the soak's longest was 25.5s from 40m); whether the Warden under
+a mast, in the fifties on the meter, sees you the way the plant's
+Warden does in the seventies; whether a Warden that now walks straight
+at a noise is too sharp on medium. The numbers to turn:
+`ai.directRouteRange` (10m) in `src/config.js`, and the presets as
+before.
 
 ### The yard is lit at night (D4, 2026-09-18)
 
@@ -202,9 +232,9 @@ now. What is not, and why:
 - **The yard is a blockout** (D2, D35): the shape is there and the
   checks hold it (`the-container-tops-are-one-connected-deck`,
   `one-high-is-a-jump-and-two-high-needs-a-stack`, and the census, the
-  routes and the plant rule all run on it), and the walkway is up (D3),
-  and it is lit at night (D4), but the Warden has not been tuned for it
-  (D5). What only eyes can judge: whether a 2.9m container feels like a
+  routes and the plant rule all run on it), the walkway is up (D3), it
+  is lit at night (D4), and the Warden plays it (D5); it is not in the
+  default gate until D6. What only eyes can judge: whether a 2.9m container feels like a
   jump-and-grab you would expect, whether the bays read as bays from the
   lane, whether the arches over the gates read as arches. Switching
   maps reloads the page; that is by design.

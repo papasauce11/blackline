@@ -12,7 +12,7 @@
  */
 
 import { findPath } from './astar.js';
-import { A, DEFUSE_SNAP, MOVING_STATES, angleDelta } from './aistate.js';
+import { A, AI_STATE, DEFUSE_SNAP, MOVING_STATES, angleDelta } from './aistate.js';
 
 export const NAVIGATION = {
   /**
@@ -40,6 +40,22 @@ export const NAVIGATION = {
     const ground = this.map.wardenGround;
     const stand = ground ? ground.standAt(goal, DEFUSE_SNAP) : null;
     const feet = { x: this.warden.position.x, y: this.warden.feetY, z: this.warden.position.z };
+
+    // A goal within `directRouteRange` is planned over the ground from the
+    // feet and the graph is left alone (D5): routed through the node
+    // nearest the goal, a noise eight metres up the yard's lane was
+    // investigated by way of a node a metre and a half beyond it, and the
+    // Warden walked past the Shade making it, out of its own cone. The
+    // planner is the same one that does the last leg below; only the goal
+    // it cannot reach - off the ground, past the snap - falls through.
+    if (ground && this._distanceTo(stand || goal) <= A.directRouteRange) {
+      const direct = ground.route(feet, goal, A.maxUnpathedLeg, DEFUSE_SNAP, A.routeEdgeMargin);
+      if (direct) {
+        for (let i = 1; i < direct.length; i++) this._route.push(direct[i]);
+        return;
+      }
+    }
+
     const from = this.map.nearestWaypoint(feet);
     const to = this.map.nearestWaypoint(stand || goal);
     if (from && to) {
@@ -159,6 +175,23 @@ export const NAVIGATION = {
   // -------------------------------------------------------------------------
 
   /**
+   * Is the AI trying to get somewhere? A moving state, not paused at a
+   * patrol node, and - unless it is ENGAGE, which closes on the Shade with no
+   * route at all - a route it has not reached the end of. A Warden that has
+   * arrived and is holding there is not stuck: kneeling over a charge for
+   * the eight seconds of a defuse, DEFEND tripped the detector every two of
+   * them and re-pathed, and the route it built began at the nearest graph
+   * node, so it stood up, walked to it, and came back to start the defuse
+   * again (D5's soak: twelve re-paths in nine rounds, every one at the
+   * charge). A wedged Warden has not arrived, so the detector still sees it.
+   */
+  _meansToMove() {
+    if (MOVING_STATES.indexOf(this.state) === -1 || this._pauseTimer > 0) return false;
+    if (this.state === AI_STATE.ENGAGE) return true;
+    return this._routeIndex < this._route.length;
+  },
+
+  /**
    * "If the AI's position changes less than 0.3m over 2s while in a moving
    * state, force a re-path from the nearest waypoint."
    *
@@ -166,7 +199,7 @@ export const NAVIGATION = {
    * on a corner still believes it is walking, which is the whole failure.
    */
   _checkStuck(dt) {
-    if (MOVING_STATES.indexOf(this.state) === -1 || this._pauseTimer > 0) {
+    if (!this._meansToMove()) {
       this.stuckTimer = 0;
       this._stuckAnchor.x = this.warden.position.x;
       this._stuckAnchor.z = this.warden.position.z;

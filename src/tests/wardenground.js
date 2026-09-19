@@ -40,7 +40,7 @@ const DESCENT = 1.0;
  * close, no more than `DESCENT` below the feet and no more than a step above
  * them, so a stair is walked down and a deck edge is not.
  */
-function onGround(ground, at, grounded) {
+export function onGround(ground, at, grounded) {
   const drop = grounded ? W.stepHeight : DESCENT;
   const near = (y) => y <= at.y + W.stepHeight && y >= at.y - drop;
   if (ground.floorsAt(at.x, at.z).some(near)) return true;

@@ -11,6 +11,8 @@
 
 import { CONFIG, rng } from '../config.js';
 import { AI_STATE } from '../systems/ai.js';
+import { angleDelta } from '../systems/aistate.js';
+import { LIT_METER, alongLane, litLane } from './lanes.js';
 
 /**
  * Walk the Shade at a patrolling Warden in one stance and report what the AI
@@ -426,13 +428,19 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'ai-state-machine-follows-section-11',
-    maps: ['plant'], // stands in the Turbine Hall lane at (-24, -19), lit by hall-1; the yard's lane is D5's
     spec: 'Section 11 (state table)',
     name: 'Noise, thresholds and a stun move the AI through the spec states',
     run: (h) => {
       const ai = h.wardenAI;
       const dt = CONFIG.time.fixedDt;
       const problems = [];
+
+      // A clear lane the map's lamps light 8m down it (D5): the Turbine
+      // Hall's on the plant, the gate lane's on the yard. The meter is held
+      // at its maximum below; the lane is what makes "lit" true.
+      const range = 8;
+      const lane = litLane(h, range + 1, [range]);
+      if (!lane) return { pass: false, detail: `no clear lane the lamps light to ${LIT_METER} at ${range}m on this map` };
 
       const settle = () => {
         h.warden.reset(h.map.wardenSpawns[0]);
@@ -447,14 +455,23 @@ export function register(debugTools) {
       // accumulator directly does not work and should not — the drain runs
       // before the threshold test, so an assigned 100 is already below it.
       settle();
-      h.warden.position.set(-24, CONFIG.warden.standHeight / 2 + 0.05, -19);
-      h.warden.yaw = Math.PI; // +Z, down a clear lane in the Turbine Hall
-      h.shade.position.set(-24, CONFIG.shade.standHeight / 2 + 0.05, -11);
+      h.warden.position.set(lane.x, lane.y + CONFIG.warden.standHeight / 2 + 0.05, lane.z);
+      h.warden.yaw = lane.yaw; // down the lane
+      const ahead = alongLane(lane, range);
+      h.shade.position.set(ahead.x, ahead.y + CONFIG.shade.standHeight / 2 + 0.05, ahead.z);
       h.detection.reset(h.shade);
       h.detection.noise.emit(
         h.shade.position.x, h.shade.feetY, h.shade.position.z, 12, 'test', 'shade'
       );
 
+      // What the escalation did, for the failure line: every state change
+      // with its time, how long the Warden had eyes on the Shade, the peak
+      // of the accumulator.
+      let elapsed = 0;
+      let seen = 0;
+      let peak = 0;
+      const trail = [];
+      const trace = [];
       // Tick detection alongside, exactly as fixedStep does. Without it the
       // noise field never ages, a stale event lives forever, and the Warden
       // re-investigates it the moment it wanders back into range.
@@ -463,11 +480,28 @@ export function register(debugTools) {
           h.detection.step(dt, { shade, warden: h.warden });
           // Hold the Shade fully lit; the meter itself is Phase 5's problem.
           h.detection.smoothed = CONFIG.detection.meterMax;
+          const was = ai.state;
           h.warden.step(dt, ai.step(dt, { shade }));
+          elapsed += dt;
+          if (ai.sees) seen += dt;
+          peak = Math.max(peak, ai.accumulator);
+          // Once a second: state, seen or not, the accumulator, the range
+          // and how far off the facing the Shade is. This is what said the
+          // Warden walked past the Shade (D5).
+          if (Math.round(elapsed / dt) % 60 === 0) {
+            const dx = h.shade.position.x - h.warden.position.x;
+            const dz = h.shade.position.z - h.warden.position.z;
+            const offDeg = Math.abs(angleDelta(h.warden.yaw, Math.atan2(-dx, -dz))) * 180 / Math.PI;
+            trace.push(`${elapsed.toFixed(0)}s ${ai.state[0]}${ai.sees ? '+' : '-'}${ai.accumulator.toFixed(0)} ${Math.hypot(dx, dz).toFixed(1)}m ${offDeg.toFixed(0)}deg`);
+          }
+          if (ai.state !== was) trail.push(`${ai.state}@${elapsed.toFixed(1)}s`);
           if (target && ai.state === target) return i;
         }
         return -1;
       };
+      const story = () => `lane from ${lane.from} heading (${lane.dx.toFixed(2)}, ${lane.dz.toFixed(2)}), `
+        + `states [${trail.join(' ')}], saw the Shade for ${seen.toFixed(1)}s, accumulator peaked ${peak.toFixed(0)}, `
+        + `the Warden ended ${Math.hypot(h.warden.position.x - h.shade.position.x, h.warden.position.z - h.shade.position.z).toFixed(1)}m from it; [${trace.join(', ')}]`;
 
       ai._perceive(dt, h.shade);
       if (ai.state !== AI_STATE.SUSPICIOUS) problems.push(`noise gave ${ai.state}, want suspicious`);
@@ -475,7 +509,7 @@ export function register(debugTools) {
         problems.push(`after the hold got ${ai.state}, want investigate`);
       }
       if (drive(Math.ceil(20 / dt), AI_STATE.ENGAGE, h.shade) < 0) {
-        problems.push(`never engaged a lit Shade in view (state ${ai.state}, acc ${ai.accumulator.toFixed(0)})`);
+        problems.push(`never engaged a lit Shade in view (state ${ai.state}, acc ${ai.accumulator.toFixed(0)}; ${story()})`);
       }
 
       // Losing sight for 2.5s in ENGAGE -> SEARCH.
@@ -501,7 +535,7 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? 'noise -> suspicious -> investigate; accumulator 100 -> engage; sight lost 2.5s -> search; search timeout -> patrol; stun freezes then -> search'
+          ? `from ${lane.from} (meter ${lane.meters[0].toFixed(0)} at ${range}m): noise -> suspicious -> investigate; accumulator 100 -> engage; sight lost 2.5s -> search; search timeout -> patrol; stun freezes then -> search`
           : problems.join('; '),
       };
     },
