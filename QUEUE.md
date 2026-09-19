@@ -153,7 +153,7 @@ budget checks are the ceiling.
   from a different spawn to a different site, all defused on the clock,
   feet on the ground every step, a camera every match, at most three
   re-paths (0 on both maps). — 2026-09-19, scheduled run, commit
-  `D5_COMMIT`.
+  `fa57703`.
 - **D4** Yard lighting. Night (D9): four floodlight masts (`MASTS`,
   `MAST`, maps/yarddata.js - a pole and an arm thinner than a body, the
   lamp 6.5m up over bays A, B, C and the gate) and a fifth lamp under
