@@ -161,7 +161,7 @@ budget checks are the ceiling.
   "under 20s" is a GPU-tab number this machine cannot read, and
   PLAYTEST.md asks Josh for it. Plant 154 passed, 1 failed, 6 not for this map, yard 137 passed, 1 failed, 23 not for this map, twice
   each, 0 red, 0 flaky. — 2026-09-19, scheduled run, commit
-  `D6_COMMIT`.
+  `ddb702a`.
 - **D5** AI on the yard. `litLane(h, length, stands)` (tests/lanes.js):
   a clear run the map's lamps light to half the meter at every stand;
   `ai-state-machine-follows-section-11`,
