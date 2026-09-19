@@ -6386,3 +6386,59 @@ whether it reads as patrolling a yard or pacing lanes, whether a defence
 across 40m of yard feels fair against a 45s clock (PLAYTEST.md).
 `ai-perception-cone-and-accumulator` stays `maps: ['plant']` - its
 through-wall case names the hall's east wall.
+
+## D6 — both maps in the gate, the regression set asked per map (2026-09-19, scheduled run)
+
+The 02:00 run's second job, sized S, after D5. The queue asked for both
+maps in the regression set, the menu defaulting to `plant`, a yard
+section in PLAYTEST.md, and for `npm run suite` with no arguments to
+gate both maps; D5's verify (154/1/6 and 137/1/23) stood as the gate.
+
+**Built.**
+
+- **The runner's default is every registered map.** `registeredMapIds()`
+  (scripts/suite.mjs) reads the `REGISTRY` entries out of
+  `src/maps/index.js` as text - the module imports three.js through the
+  page's import map, so node cannot load it - and `npm run suite` loads
+  the page once per id and runs the suite twice on each, judged per map
+  as D1 built it; `--map` narrows as before. A third map is in the gate
+  the day it is registered. **`--regression`** runs the page's own
+  `runRegressionSet()` (F4 then U) per map instead of the whole suite
+  and the run line says so with its time.
+- **The regression set is asked per map.** `AutoSuite.regressionSet()`
+  resolves the set for the map the page is on: every check that covers
+  one of Section 16's numbers or is named by id, split into the ones
+  `applicable()` keeps here and the ones registered for other maps, and
+  the numbers no check running here covers. `runRegressionSet` prints
+  both in the console before it runs (it used to count coverage over
+  every registered check, so a number held only by a plant check read
+  as covered on the yard). `the-regression-set-resolves-to-real-checks`
+  (tests/donedef.js, every map) holds the page's split to its own
+  count: the set on this map is the set less the other maps' checks,
+  runs more than nothing, and every check it leaves out is registered;
+  its line names them and the numbers covered only elsewhere.
+- **The menu's default was `plant` already** (`DEFAULT_MAP_ID`, D1) and
+  `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one`
+  holds it; PLAYTEST.md's yard text is in *Run it* since D2 and its
+  gate paragraph is rewritten for D6.
+
+**Verified.** `--regression --runs 1`: **plant 29 checks in 59.5s, yard
+24 in 24.4s, 5 not for this map** - `swept-collision-no-tunnelling`,
+`shade-reaches-level-2-without-stairs`, `a-mantle-never-passes-through-
+a-solid`, `visibility-reads-lit-and-dark-zones`, `hitscan-respects-
+cover-and-the-head-line`, each naming the plant's geometry; the other
+numbers are held on the yard by other checks, and Section 16's check 3
+by nothing, which the check now says. `npm run suite`, no arguments, both maps twice: plant
+**154 passed, 1 failed, 6 not for this map**, yard **137 passed, 1 failed, 23 not for this map**, every outcome identical between
+runs, 0 red, 0 flaky, 0 console errors, 0 context losses (433s, 487s, 185s, 216s).
+
+**Found.** The done-when's "under 20s" is not met headless and cannot
+be measured here: 60s on the plant and 24s on the yard under software
+GL, where a frame is 400ms and five of the set's checks read pixels.
+PLAYTEST.md asks Josh to time U in a GPU tab on each map; if it is over
+20s there, the set is too big and that is a job. And the set is not
+whole on the yard: D7 (M), queued in Block D ahead of styling, splits
+the five plant-bound checks into a generic clause and the plant's
+named cases.
+
+**Left.** D7; Block E after it (D3b waits on D38).

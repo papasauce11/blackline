@@ -39,13 +39,22 @@ rules are in `README.md`.
 
 The AUTO suite, from the F4 panel: **Y** runs everything (about seven
 minutes on this PC's software GL; seconds on a GPU), **U** the regression
-set. `npm run suite` is the same thing headless. Both are green at every
-commit; if one is red in your tab, the F3 overlay's *gl context lost* row
-says whether the GPU was taken away mid-run. On the yard, Y runs only the
-checks that are not about the substation's geometry (26 are, and the
-banner counts them as *not for this map*); since D4 every one of the
-rest is green there. `npm run suite -- --map yard` is the same
-headless; the yard is not in `npm run suite`'s default gate until D6.
+set. `npm run suite` is the same thing headless, **on both maps** since
+D6 (2026-09-19): the page is loaded once per map, the suite run twice on
+each, and every map the registry lists is in the gate the day it is
+added. Both are green at every commit; if one is red in your tab, the F3
+overlay's *gl context lost* row says whether the GPU was taken away
+mid-run. On the yard, Y runs only the checks that are not about the
+substation's geometry (23 are, and the banner counts them as *not for
+this map*); every one of the rest is green there. U on the yard runs 24
+of the regression set's 29 and says in the console which 5 are the
+plant's (D7 will give the yard its own). **One number only your tab can
+give:** the queue asked for the regression set to run in under 20
+seconds; headless it is 60s on the plant and 24s on the yard, all of it
+software GL. On each map, in the console with `?debug=1`:
+`console.time('U'); await BLACKLINE.debugTools.runRegressionSet();
+console.timeEnd('U')` - if a GPU tab is under 20s the bar is met, and if
+not, say so under D6 in `QUEUE.md`.
 
 ## What to look at
 

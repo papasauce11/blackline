@@ -182,12 +182,35 @@ export function register(debugTools) {
       );
       if (withIds.length >= dt._autoTests.length) problems.push('with the redesign checks the regression set is the entire suite');
 
+      // And on THIS map (D6): what F4-then-U and `npm run suite --regression`
+      // actually run here. The set the page resolves is the set above less
+      // the checks registered for other maps; it must agree with this
+      // check's own count, run more than nothing, and name every check it
+      // leaves out - the map's regression run is only as honest as that
+      // line. A Section 16 number that only a check for another map covers
+      // is reported, not failed: it is the map's gap, and the queue's.
+      const here = dt.suite.regressionSet();
+      const applicable = withIds.filter((test) => !test.maps || test.maps.indexOf(h.map.id) !== -1);
+      if (here.subset.length !== applicable.length) {
+        problems.push(`on ${h.map.id} the page resolves the set to ${here.subset.length} checks, this check counts ${applicable.length}`);
+      }
+      if (here.subset.length === 0) problems.push(`on ${h.map.id} the regression set runs nothing`);
+      if (here.subset.length + here.notForMap.length !== withIds.length) {
+        problems.push(`on ${h.map.id} ${here.subset.length} run and ${here.notForMap.length} are not for the map, but the set is ${withIds.length}`);
+      }
+      const elsewhere = here.notForMap.map((test) => test.id);
+      const named = new Set(dt._autoTests.map((test) => test.id));
+      if (elsewhere.some((id) => !named.has(id))) problems.push('the set names a check for another map that is not registered');
+
       const claimed = [...coverage.keys()].sort((a, b) => a - b);
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `the suite claims ${claimed.length} of Section 16's ${CONFIG.debug.specCheckCount} checks `
-            + `(${claimed.join(', ')}); the regression set ${wanted.join(', ')} resolves to `
+          ? `on ${h.map.id} the regression set runs ${here.subset.length} of its ${withIds.length} checks`
+            + (elsewhere.length ? `, ${elsewhere.length} for other maps (${elsewhere.join(', ')})` : '')
+            + (here.uncovered.length ? `, Section 16 check${here.uncovered.length > 1 ? 's' : ''} ${here.uncovered.join(', ')} covered only there` : ', every number covered here')
+            + `; the suite claims ${claimed.length} of Section 16's ${CONFIG.debug.specCheckCount} checks `
+            + `(${claimed.join(', ')}); the set ${wanted.join(', ')} resolves to `
             + `${subset.length} of ${dt._autoTests.length} checks, all of them present, and with the `
             + `${byId.length} redesign checks by id to ${withIds.length}`
           : problems.join('; '),

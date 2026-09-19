@@ -14,17 +14,22 @@
 // context is back, by the suite runner in src/ui/autosuite.js. The report
 // carries `contextLosses` and `rerun` per run so that is never invisible.
 //
-//   node scripts/suite.mjs [--runs 2] [--subset <regex>] [--pre "<js>"]
-//                          [--map plant,yard] [--channel chrome|msedge]
-//                          [--timeout 600000] [--cores N] [--cooldown SECONDS]
-//                          [--details FILE]
+//   node scripts/suite.mjs [--runs 2] [--subset <regex>] [--regression]
+//                          [--pre "<js>"] [--map plant,yard]
+//                          [--channel chrome|msedge] [--timeout 600000]
+//                          [--cores N] [--cooldown SECONDS] [--details FILE]
 //
 // --map names the registered maps to run on (src/maps/index.js), comma
 // separated; the page is loaded once per map with `?map=<id>` and the suite
-// run N times on each. Default `plant`, the first map. The report carries
-// `map` on every run and every red, flaky or skipped entry, and a run's
+// run N times on each. The default is every map the registry lists, read
+// from that file, so a map added there is in the gate the day it lands
+// (D6; until then the default was `plant` alone). The report carries `map`
+// on every run and every red, flaky or skipped entry, and a run's
 // `notForMap` is the checks registered for other maps only, which are never
 // counted either way (D1).
+// --regression runs the regression set (Section 16's numbers and the
+// redesign's checks by id, `runRegressionSet()` in the page) instead of the
+// whole suite: the quick gate, per map, with its time on the run line.
 // --pre runs in the page before the suite, e.g. to reseed the rng.
 // --details writes every check's id, outcome and detail line, per run, to
 // FILE as JSON - the readings a PROGRESS.md entry quotes (B8). The report on
@@ -64,7 +69,10 @@ const TIMEOUT = Number(args.timeout ?? 600000);
 const SUBSET = args.subset ? new RegExp(args.subset) : null;
 const PRE = args.pre ?? null;
 const QUERY = args.query ?? null; // e.g. "seed=20260908", appended to the page URL
-const MAPS = String(args.map ?? 'plant').split(',').map(s => s.trim()).filter(Boolean);
+const REGRESSION = !!args.regression;
+const MAPS = args.map
+  ? String(args.map).split(',').map(s => s.trim()).filter(Boolean)
+  : registeredMapIds();
 const DETAILS = args.details ?? null;
 // Half the logical CPUs by default, never fewer than two - one core cannot
 // run a browser and a compositor without the page timing out.
@@ -105,6 +113,21 @@ function parseArgs(argv) {
     else { out[key] = next; i++; }
   }
   return out;
+}
+
+// Every map the registry lists, in its order: the `{ id: '...' }` entries of
+// REGISTRY in src/maps/index.js, read as text because that module imports
+// three.js through the page's import map and node cannot load it. One
+// source of truth for what a map is, so the gate cannot forget one.
+function registeredMapIds() {
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'maps', 'index.js'), 'utf8');
+  const start = src.indexOf('const REGISTRY = [');
+  const end = src.indexOf('];', start);
+  if (start < 0 || end < 0) throw new Error('src/maps/index.js: REGISTRY not found');
+  const ids = [];
+  for (const m of src.slice(start, end).matchAll(/\{\s*id:\s*'([a-z0-9-]+)'/g)) ids.push(m[1]);
+  if (!ids.length) throw new Error('src/maps/index.js: REGISTRY lists no maps');
+  return ids;
 }
 
 // The single source of truth for what may be red: the bullet list under
@@ -272,7 +295,7 @@ async function main() {
       for (let i = 0; i < RUNS; i++) {
         if (i > 0 && COOLDOWN_MS > 0) await sleep(COOLDOWN_MS);
         const t0 = Date.now();
-        const r = await page.evaluate(async (subsetSource) => {
+        const r = await page.evaluate(async ([subsetSource, regression]) => {
           const h = window.BLACKLINE;
           for (let k = 0; k < 60; k++) h.renderFrame(1 / 60);
           const loopFramesBefore = h.loop.frames;
@@ -283,9 +306,14 @@ async function main() {
             opts.subset = h.debugTools._autoTests.filter(t => re.test(t.id));
             opts.label = 'suite:' + subsetSource;
           }
-          const res = await h.debugTools.runAutoTests(opts);
+          // The regression set is the page's own subset (F4 then U); the
+          // runner asks for it the same way the key does.
+          const res = regression
+            ? await h.debugTools.runRegressionSet()
+            : await h.debugTools.runAutoTests(opts);
           return {
             map: res.map,
+            regression: !!regression,
             passed: res.passed,
             failed: res.failed,
             // Checks registered for other maps only; reported, never counted.
@@ -304,7 +332,7 @@ async function main() {
               id: x.id, pass: !!x.pass, detail: String(x.detail ?? '').slice(0, 400),
             })),
           };
-        }, SUBSET ? SUBSET.source : null);
+        }, [SUBSET ? SUBSET.source : null, REGRESSION]);
         r.ms = Date.now() - t0;
         runs.push(r);
       }
@@ -368,7 +396,7 @@ function judge(runs, renderer, consoleErrors) {
     renderer,
     maps,
     runs: runs.map(r => ({
-      map: r.map, passed: r.passed, failed: r.failed, notForMap: r.notForMap, ms: r.ms,
+      map: r.map, regression: r.regression, passed: r.passed, failed: r.failed, notForMap: r.notForMap, ms: r.ms,
       contextLosses: r.contextLosses, rerun: r.rerun, loopFrames: r.loopFrames,
     })),
     red,
@@ -385,7 +413,7 @@ function summary(r) {
   lines.push(`suite: ${r.ok ? 'OK' : 'FAIL'}  renderer: ${r.renderer}`);
   const tag = x => (r.maps.length > 1 ? `${x.id} [${x.map}]` : x.id);
   for (const [i, run] of r.runs.entries()) {
-    lines.push(`  run ${i + 1} (${run.map}): ${run.passed} passed, ${run.failed} failed`
+    lines.push(`  run ${i + 1} (${run.map}${run.regression ? ', regression set' : ''}): ${run.passed} passed, ${run.failed} failed`
       + `${run.notForMap ? `, ${run.notForMap} not for this map` : ''}, ${run.ms}ms`);
     if (run.contextLosses) {
       lines.push(`    GL CONTEXT LOST ${run.contextLosses}x during run ${i + 1}; re-ran after restore: ${run.rerun.join(', ') || 'nothing'}`);

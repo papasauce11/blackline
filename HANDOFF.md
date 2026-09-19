@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after D5 (2026-09-19) |
-| AUTO suite | headless, `npm run suite` (the `plant` map): **154 passed, 1 failed, 6 not for this map** (2026-09-19, after D5), both runs, 0 red, 0 flaky, 0 console errors; the one failure is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. On `yard` (`--map yard`, not in the default gate until D6): **137 passed, 1 failed, 23 not for this map**, both runs, 0 red, 0 flaky - the frame budget skipped and nothing else red; the three AI checks D5 unscoped and the soak are green there |
-| Next job | **D6** (S: both maps in the gate), then Block E. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after D6 (2026-09-19) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **154 passed, 1 failed, 6 not for this map**, yard **137 passed, 1 failed, 23 not for this map** (2026-09-19, after D6), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U): plant 29 checks in 60s headless, yard 24 in 24s, 5 of the set not for the yard (D7) |
+| Next job | **D7** (M: the regression set whole on every map - five of its checks name the plant's geometry), the last of Block D but D3b (waits on D38); then Block E, styling, E1 first. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -47,10 +47,35 @@ feedback, landed 2026-09-15; C4, the end screens, C5, the difficulty
 pass, and C6, `PLAYTEST.md`, 2026-09-16 (below). Block D, the second
 map, is under way: D1, the plumbing, and D2, the yard blocked out, both
 2026-09-17 (below); D3, the walkway, and D4, the night, 2026-09-18
-(below); D5, the AI on the yard, 2026-09-19 (below); D6, both maps in
-the gate, is next.
+(below); D5, the AI on the yard, and D6, both maps in the gate,
+2026-09-19 (below). D7, the regression set whole on every map, is next
+and the last of Block D but D3b (waits on D38); then Block E, styling.
 
 ---
+
+## Both maps in the gate - D6
+
+`npm run suite` runs **every map the registry lists**, read from
+`src/maps/index.js` by the runner (`registeredMapIds()`, scripts/
+suite.mjs - the module imports three.js through the page's import map,
+so it is read as text), so a third map is in the gate the day it is
+registered; `--map` still narrows it. `--regression` runs the page's
+own regression set (`runRegressionSet()`, F4 then U) per map instead
+of the whole suite and prints its time on the run line. **The set is
+asked per map** (`AutoSuite.regressionSet()`): the checks that cover
+Section 16's numbers or are named by id, split into the ones that run
+on this map and the ones registered for other maps only, and the
+numbers no check running *here* covers; `runRegressionSet` says both
+out loud, and `the-regression-set-resolves-to-real-checks` holds the
+page's split to its own count on every map. Today: the plant runs all
+29; **the yard runs 24, and 5 are the plant's** (`swept-collision-no-
+tunnelling`, `shade-reaches-level-2-without-stairs`, `a-mantle-never-
+passes-through-a-solid`, `visibility-reads-lit-and-dark-zones`,
+`hitscan-respects-cover-and-the-head-line` - each names the plant's
+geometry); the other four numbers are held on the yard by other
+checks, and Section 16's check 3 is held there by nothing. D7 (M) is queued to make the set whole there.
+Headless: plant 60s, yard 24s - the queue's "under 20s" is a GPU-tab
+number nobody has read yet (PLAYTEST.md asks Josh for it).
 
 ## The AI on the yard - D5
 
@@ -931,15 +956,19 @@ npm run suite
 ```
 
 `scripts/suite.mjs` serves the repo in-process, drives the Chrome already on
-this PC headless with software WebGL, warms 60 frames, runs the AUTO suite
-twice and prints a JSON report. Exit 0 means nothing is red outside QUEUE.md's
-Deliberately-red list and the two runs agree. Each run in the report carries
+this PC headless with software WebGL, loads the page once per registered
+map (D6: every map in `src/maps/index.js`; `--map plant` to narrow), warms
+60 frames, runs the AUTO suite twice on each and prints a JSON report. Exit
+0 means nothing is red outside QUEUE.md's Deliberately-red list and the two
+runs agree, judged per map. Each run in the report carries
 `contextLosses` and `rerun`, the checks re-run after the GPU was taken away
 and given back (F1); the summary prints them as `GL CONTEXT LOST`. Zero is
 the normal reading; a non-zero one is the machine, not the game, unless the
-same check is in the list every run. `--runs 1` is the gate (a minute on a
-quiet PC, 450s on a throttled one - see the traps);
-`--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
+same check is in the list every run. `--runs 1` is the gate (about 11
+minutes for both maps: 450s for the plant, 190s for the yard, a 45s
+cooldown between - see the traps; the full `npm run suite` is four runs,
+about 24 minutes); `--regression` the regression set per map instead (60s
+and 24s); `--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
 the match; `--details <file>` (B8) writes every check's id, outcome and
 detail line per run - the readings a PROGRESS entry quotes, which the
 stdout report never carried for a green check.
@@ -962,7 +991,7 @@ the harness in both builds; the suite holds the gate up while it runs):
 
 ```js
 await BLACKLINE.debugTools.runAutoTests();      // full suite (~6s)
-await BLACKLINE.debugTools.runRegressionSet();  // Section 16's set, 16 checks
+await BLACKLINE.debugTools.runRegressionSet();  // Section 16's set: 29 checks on the plant, 24 on the yard
 ```
 
 In-game: **F3** overlay · **F4** test mode · then **Y** full suite, **U**
@@ -991,12 +1020,13 @@ If you ever see a 0x0 drawing buffer with the canvas still sized, it is
 this, not a resize. A check that needs to lose the context on purpose
 registers with `losesContext: true`.
 
-**A plant run can take 450s, and two of them do not fit the Bash tool's
-10-minute cap.** The D4 run's gate took 452s for one plant run (the yard
-is 190s); `npm run suite` for VERIFY is two runs plus a 45s cooldown. Start
-it with `run_in_background` writing to a file and wait on the file
-(`until grep -q "suite: " <file>`), or split it into two `--runs 1` runs
-with `--details` and compare the answers yourself. Stopping a
+**A plant run can take 450s, and since D6 `npm run suite` is four runs -
+about 24 minutes - and even the gate (`--runs 1`, both maps) is 11.**
+Nothing of that fits the Bash tool's 10-minute cap. Start it with
+`run_in_background` writing to a file and wait on the file (`until grep
+-q "suite: " <file>`, itself backgrounded or in a Monitor - a foreground
+wait hits the same cap), or split it into `--runs 1 --map <id>` runs with
+`--details` and compare the answers yourself. Stopping a
 backgrounded run from the tool does not stop the runner: node and its
 headless Chrome carry on, still writing to the redirected file, and a
 second run started beside them fights for the four pinned cores.

@@ -1210,3 +1210,17 @@ rounds-at-the-torso`) stand on `litLane()` (tests/lanes.js) - a clear
 run the map's lamps light to at least half the meter at every range
 they measure - and run on every map; D33's table is unchanged on the
 plant. D5, 2026-09-19.
+
+### 20.22 Section 16 - the gate runs every registered map, and the regression set is asked per map
+
+`npm run suite` (Section 16's headless gate since P4) loads the page once
+per map the registry lists (`src/maps/index.js`; 20.17) and runs the
+suite twice on each, judged per map; a map is in the gate the day it is
+registered. "Regression set after any patch" is asked of the map the
+page is on: the checks that cover the set's numbers or are named by id
+(20.11), less those registered for other maps, which `runRegressionSet`
+names in the console along with any of the set's numbers no check on
+that map covers; `the-regression-set-resolves-to-real-checks` holds
+that split on every map. On the yard today five of the set's 29 are
+the plant's by geometry (Section 16's check 3 is held there by nothing); D7 in the queue is to make the set whole. `--regression` runs
+the set headless per map. D6, 2026-09-19.

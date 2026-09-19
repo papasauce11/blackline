@@ -85,31 +85,64 @@ export class AutoSuite {
   }
 
   /**
-   * Section 16: "Regression set after any patch: 1, 3, 9, 13, 17, 20, 22, 23,
-   * 27." Runs only the checks covering those, and says which of them no AUTO
-   * check covers — a regression run that silently skips half the set is worse
-   * than not having one. Since 20.11 the redesign's contract rides with it,
-   * by id (`regressionChecks`): Section 16's numbers were written for marked
-   * bands, and the census and the routes are what a climb is now.
+   * The regression set as it stands on the map the page is on (D6): every
+   * registered check that covers one of Section 16's numbers or is named by
+   * id, split into the ones that run here and the ones registered for other
+   * maps only, and the Section 16 numbers that no check running HERE covers.
+   * `runRegressionSet` runs the first list and says the rest out loud;
+   * `the-regression-set-resolves-to-real-checks` holds the shape.
+   *
+   * @returns {{ subset: object[], notForMap: object[], uncovered: number[] }}
    */
-  runRegressionSet() {
+  regressionSet() {
     const wanted = new Set(CONFIG.debug.regressionSet);
     const byId = new Set(CONFIG.debug.regressionChecks);
+    const all = this.tests.filter((test) => (
+      this.checksCovered(test).some((number) => wanted.has(number)) || byId.has(test.id)
+    ));
+    const { tests: subset } = this.applicable(all);
+    const here = new Set(subset);
     const covered = new Set();
-    const subset = this.tests.filter((test) => {
-      const hits = this.checksCovered(test).filter((number) => wanted.has(number));
-      for (const hit of hits) covered.add(hit);
-      return hits.length > 0 || byId.has(test.id);
-    });
-    const uncovered = [...wanted].filter((number) => !covered.has(number));
+    for (const test of subset) {
+      for (const number of this.checksCovered(test)) if (wanted.has(number)) covered.add(number);
+    }
+    return {
+      subset,
+      notForMap: all.filter((test) => !here.has(test)),
+      uncovered: [...wanted].filter((number) => !covered.has(number)),
+    };
+  }
+
+  /**
+   * Section 16: "Regression set after any patch: 1, 3, 9, 13, 17, 20, 22, 23,
+   * 27." Runs only the checks covering those, and says which of them no AUTO
+   * check covers on this map — a regression run that silently skips half the
+   * set is worse than not having one. Since 20.11 the redesign's contract
+   * rides with it, by id (`regressionChecks`): Section 16's numbers were
+   * written for marked bands, and the census and the routes are what a climb
+   * is now. Since D6 the set is asked per map: a check registered for another
+   * map is named, and a Section 16 number only such a check covers is a
+   * number this map's regression run does not hold.
+   */
+  runRegressionSet() {
+    const wanted = CONFIG.debug.regressionSet;
+    const { subset, notForMap, uncovered } = this.regressionSet();
+    const mapId = this.harness.map ? this.harness.map.id : '?';
+    if (notForMap.length) {
+      console.log(
+        `%c[regression] ${notForMap.length} of the set ${notForMap.length > 1 ? 'are' : 'is'} not for ${mapId}: `
+        + `${notForMap.map((test) => test.id).join(', ')} `,
+        'background:#f5c451;color:#08090b'
+      );
+    }
     if (uncovered.length) {
       console.log(
-        `%c[regression] no AUTO check covers Section 16 check${uncovered.length > 1 ? 's' : ''} `
+        `%c[regression] no AUTO check on ${mapId} covers Section 16 check${uncovered.length > 1 ? 's' : ''} `
         + `${uncovered.join(', ')} — run ${uncovered.length > 1 ? 'those' : 'that'} by hand `,
         'background:#f5c451;color:#08090b'
       );
     }
-    return this.runAutoTests({ subset, label: `REGRESSION SET (${[...wanted].join(', ')})` });
+    return this.runAutoTests({ subset, label: `REGRESSION SET (${wanted.join(', ')})` });
   }
 
   /**

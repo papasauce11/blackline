@@ -98,13 +98,26 @@ D37 (the walkway as built), D39 (the lighting as built).
   drives the Shade up the stair through `input.heldCodes` and asserts it
   stops at the door while the Warden, driven the same way, walks through;
   `nothing-climbs-to-the-walkway-and-the-warden-walks-up` unchanged.
-- [ ] **D6 (S)** Both maps in the regression set; the menu defaults to
-  `plant`; `PLAYTEST.md` gets a yard section. Since D1 the runner takes
-  `--map plant,yard` and `runRegressionSet` filters by the map the page
-  is on; what is left is the gate: `npm run suite` runs `plant` alone
-  and should run both once the yard is green (D34). *done-when:*
-  `runRegressionSet` covers both maps in under 20s; `npm run suite` with
-  no arguments gates both maps.
+- [ ] **D7 (M)** The regression set whole on every map. Five of its 29
+  checks are `maps: ['plant']` and the yard's U runs 24
+  (`the-regression-set-resolves-to-real-checks` names them:
+  `swept-collision-no-tunnelling` drives into the plant's west wall,
+  `shade-reaches-level-2-without-stairs` names its five routes by tag,
+  `a-mantle-never-passes-through-a-solid` drives from under its two low
+  ducts, `visibility-reads-lit-and-dark-zones` reads its hall and vault,
+  `hitscan-respects-cover-and-the-head-line` uses its walls); the other
+  numbers are held on the yard by other checks, and Section 16's check 3
+  is held there by nothing. For each: split
+  the clause that is about the rule (a body never tunnels through any
+  solid, every declared route is climbed, no approach lands over a solid
+  it starts under, a site the lamps light reads lit and a gap reads dark,
+  a round stops at cover) into a check that searches the map it is on
+  (`clearLane`, `map.routes`, the census, the sites, `findLiddedLip`-style
+  searches), keep the plant's named cases as they are, and put the
+  generic one in `regressionChecks` or under the Section 16 number.
+  *done-when:* `runRegressionSet` on every registered map reports 0 not
+  for this map and every Section 16 number in the set covered; nothing
+  the plant's checks hold today is held less.
 
 ## Block E — styling
 
@@ -134,6 +147,21 @@ budget checks are the ceiling.
 
 ## Done
 
+- **D6** Both maps in the gate. `npm run suite` runs every map the
+  registry lists (`registeredMapIds()`, scripts/suite.mjs, reads
+  `src/maps/index.js` as text), twice each, judged per map; `--map`
+  narrows, `--regression` runs the page's regression set per map and
+  times it. `AutoSuite.regressionSet()` resolves the set for the map the
+  page is on - what runs here, what is registered for other maps, which
+  Section 16 numbers only those cover - `runRegressionSet` says it in
+  the console, and `the-regression-set-resolves-to-real-checks` holds
+  the split on every map. The menu's default was `plant` already (D1,
+  `DEFAULT_MAP_ID`). Measured headless: the plant's set 29 checks in
+  60s, the yard's 24 in 24s (5 are the plant's - D7); the done-when's
+  "under 20s" is a GPU-tab number this machine cannot read, and
+  PLAYTEST.md asks Josh for it. Plant 154 passed, 1 failed, 6 not for this map, yard 137 passed, 1 failed, 23 not for this map, twice
+  each, 0 red, 0 flaky. — 2026-09-19, scheduled run, commit
+  `D6_COMMIT`.
 - **D5** AI on the yard. `litLane(h, length, stands)` (tests/lanes.js):
   a clear run the map's lamps light to half the meter at every stand;
   `ai-state-machine-follows-section-11`,
