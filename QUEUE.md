@@ -153,7 +153,7 @@ budget checks are the ceiling.
   is red on any map where the set has a check for another map or an
   uncovered number. U: 29 checks on the plant and 29 on the yard, 0 not
   for this map, every number covered. Spec 20.23. — 2026-09-19,
-  scheduled run, commit `(next commit)`.
+  scheduled run, commit `83ec7fc`.
 - **D6** Both maps in the gate. `npm run suite` runs every map the
   registry lists (`registeredMapIds()`, scripts/suite.mjs, reads
   `src/maps/index.js` as text), twice each, judged per map; `--map`
