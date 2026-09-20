@@ -6807,3 +6807,106 @@ failure on each is the frame-budget check, skipped headless.
 
 **Left.** E3, animation, next. The routine can now look at a pose
 before it commits one.
+
+## Audit — 2026-09-20
+
+**Landed.** Week 2026-09-12 → 09-20; oldest commit `7bec4fc` (B4,
+2026-09-12 17:44). 53 commits, 43 of them since the last audit
+(`c57e5a9`, 09-13). 29 entries under Done in QUEUE.md carry a date in
+the window: B3, B4, B4b, B2b, B5, B6, B5c, B7, B8, B9, B8b, C1, C2, C3,
+C4, F5, C5, C6, D1, D2, D36, D3, D4, D5, D6, D7, E1, E2, F6 — 23 of
+them since the last audit. Blocks C and D closed this week (D3b waits on
+D38); B is closed but for B5b (D25) and B5d (D27); F took F5 and F6; E is
+open at E3. Queued during the week, by id, against the queue at
+`7bec4fc`: 9 (B5b, B5c, B5d, B8b, D36, D3b, D7, F5, F6), 6 of them
+already done. At HEAD: 7 `[ ]` open (B5b, B5d, D3b, E6 blocked; E3, E4,
+E5 free), 0 `[~]` WIP. B5c, `[~]` for one run at the last audit, closed
+2026-09-14. E6 says *blocked: D10*, and D10 sits under the Provisional
+heading with an empty `decided:`; nothing reads that as blocking yet.
+
+**Blocked on Josh** (`decided:` empty, under the Blocking heading): D8
+site ring, 12 days (2026-09-08; nothing waits on it). D13 map-change
+placeholder, 12 days (nothing waits). D25 deck void edges, 7 days
+(2026-09-13; blocks B5b — the recommendation, option 1, is what is
+built). D27 defuse through a floor, 6 days (2026-09-14; blocks B5d;
+recommendation option 2). D38 the Shade on the Warden's stair, 2 days
+(2026-09-18; blocks D3b; recommendation option 1, as built). Decided
+but still filed under Blocking: D14, D15, D20, D23, as last week.
+
+**Suite health.** HEAD `ae89df1`, `npm run suite -- --runs 1`, both maps:
+plant **162 passed, 1 failed, 6 not for this map** (488s); yard **145
+passed, 1 failed, 23 not for this map** (213s); red [], flaky [],
+expectedRed [], unexpectedGreen [], skipped 2 (the frame-budget check,
+once per map, outcome fail), consoleErrors 0, contextLosses 0. Matches
+HANDOFF.md (162/1/6, 145/1/23) and the empty Deliberately-red list:
+**pass**. The run took 12 minutes with the 45s cooldown, past the
+10-minute limit the audit task gives the Bash tool; it survived only
+because it was backgrounded. Diff `7bec4fc..HEAD -- src/tests
+scripts/suite-skips.json`: 40 files, +6,607 / −110. Looked for looser
+thresholds, removed assertions, deleted checks, new skips:
+- `scripts/suite-skips.json` unchanged: the one frame-budget entry. No
+  check deleted; no numeric comparison loosened (every changed `<`/`>`
+  line in the diff is an addition). The census predicate
+  (`tests/readability.js:278`, `wideTop(box) && reachable`) is as the
+  last audit left it.
+- **23 checks were scoped to one map this week** — `+ maps: ['plant'],`
+  on each, e.g. `swept-collision-no-tunnelling`: `+    maps: ['plant'],
+  // drives into the plant's west perimeter wall at x=-30`. Total now 24
+  plant-only, 6 yard-only. On the plant nothing got looser; on the yard
+  the five clauses those checks held in the regression set are held by
+  D7's `tests/anymap.js` (`a-body-driven-into-any-solid-never-passes-
+  through` etc.), and `the-regression-set-resolves-to-real-checks` is
+  red on any map where a number goes uncovered. Flagged because a
+  scoped check is one that stopped running somewhere.
+- Two preconditions widened by definition, both D2: `tests/plantcensus.js`
+  `- if (!kinds.floor || !kinds.top || !kinds.vent) {` → `+ if
+  (!kinds.floor || !kinds.top || !inside) {` where `inside` is ducts plus
+  crawl spaces; `tests/plantrule.js` `a-charge-cannot-be-planted-inside-
+  anything`: `- .filter((spot) => spot.kind === 'vent')` → `+ ... ===
+  'vent' || spot.kind === 'crawl'`. The clause (a lid over the charge) is
+  the same; the yard's crawl space now counts as "inside".
+- Five checks that stood at Turbine Hall coordinates now search for a
+  lane (`clearLane` / `litLane`, tests/lanes.js) — the removed lines are
+  `h.warden.position.set(-24, ...)` and the like in ai.js, detection.js,
+  gadgets.js, shade.js, warden.js. Same assertions, found geometry.
+- Tighter, not looser: `tests/movement.js` `- if (!hold)
+  h.input.heldCodes.delete('Space');` → `+ if (i >= releaseAt) ...` with
+  D36's 250ms tap and 500ms hold asserted; `tests/visual.js` (F5) asserts
+  the death camera's wall-clock guard did not fire.
+- Game numbers, not check numbers (B8, D29 provisional): `config.js`
+  `hangDrop` 1.35 → 2.05, `hangPullUpDuration` 0.55 → 0.65.
+
+**Drift.** Over 600 lines: `src/config.js` 1,465 (was 1,282; exempt).
+TODO/FIXME: 0. `Math.random`: 1 real use, `systems/audio.js:97`, the
+noise buffer. `setTimeout`: 1 real use, `tests/performance.js:82`, in a
+check. Both as documented.
+
+**Fresh seeds.** `--subset "fuzz|soak" --query "seed=20260920"`: 2 checks
+per map (`shade-invariants-under-fuzz`, `traversal-fuzz-ten-thousand-
+steps-never-sticks`), 4 passed. Widened to `fuzz|stall|stuck|leaks-
+nothing|random-real-input|never-climbs`: 7 per map, **14 passed, 0
+failed** (the yard's soak 3-0 3-0 3-0, 0 re-paths; the traversal fuzz
+10,000 steps at 139 / 152 approaches). Nothing to queue. **But the seed
+never reached them**: every fuzz and soak check pins its own —
+`tests/fuzz.js:69` `seed: 8675309`, `tests/traversalfuzz.js:217,260`
+`seed: 20260914` and `197…`, `tests/aisoak.js:107` `SEED + m * 16`,
+`tests/shade.js:39` `rng.reseed(0xf0f0f0)`, `tests/wardenground.js:58`,
+`tests/difficulty.js:225` — and `initMatch` takes an explicit seed over
+the URL's (`main.js:124`). The weekly fresh-seed run has been re-running
+the builder's seeds under a new name since it started.
+
+**Environment.** A `npm run suite` from the 2026-09-18 17:00 build
+(started 17:40:19, `node scripts/suite.mjs` plus a headless Chrome,
+listening on 127.0.0.1:54315) was still alive at 10:22 today, 41 hours
+on, and shared the CPU with this audit's suite. The audit tried to end
+it and the session's permission classifier refused; it is Josh's to
+close (Task Manager: node.exe and its chrome from 09-18). The likely
+cause is the same as above: a run that outlived its Bash timeout and
+kept going.
+
+**Recommendation.** Make `?seed=` mean something to the fuzz and soak
+checks: have each take `deriveSeed(location.search)` when the URL names
+one and fall back to its pinned seed otherwise (one line in `initMatch`
+or in each check), so the weekly run explores a new week. Until then the
+"Fresh seeds" line above is the builder's own seeds, green again. And
+two lines under D25 and D27 would close Block B.
