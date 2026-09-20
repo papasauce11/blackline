@@ -11,6 +11,7 @@
 
 import { CONFIG } from '../config.js';
 import { SHADE_STATE } from './agentstate.js';
+import { blendFactor, easePose, restPose } from './pose.js';
 
 const S = CONFIG.shade;
 /** The knife lives in combat config; the arc that draws it reads the same
@@ -22,6 +23,51 @@ const KNIFE_SWING_TIME = CONFIG.combat.knife.swingAnimTime;
  * a shade short of it keeps the elbows in front of the head.
  */
 const HANG_ARM_ANGLE = -3.05;
+
+/**
+ * The poses (E3), in radians about each group's pivot - x forward for a
+ * limb and back for the torso's top, z out to the body's right - and the
+ * gait they sit on. Every state is a pose here or a pose over the gait;
+ * `_posture` fills the target and `easePose` (pose.js) carries the six
+ * groups there. Every number is a look, never a rule; D42 argues them.
+ */
+const POSE = {
+  /**
+   * The swing: the legs to the amplitude, the arms the other way by `arms`
+   * of it, the amplitude by speed; the body leans into its speed and bobs
+   * twice a cycle.
+   */
+  gait: { base: 0.22, perSpeed: 0.1, max: 0.9, arms: 0.75, lean: 0.025, bob: 0.03 },
+  /** The breath standing still: the torso rises and falls this much, this fast (rad/s). */
+  breath: { lift: 0.04, rate: 0.9 },
+  /** Low and forward, the thighs bent under the squashed body, the hands ahead and a little out, the head up to see; the gait under it, smaller. */
+  crouch: { lean: -0.35, legL: 0.55, legR: 0.25, arms: 0.35, armsOut: 0.15, head: 0.3, gait: 0.6 },
+  /** Leant back with the legs out ahead, the left hand trailing on the floor and the right out for balance. */
+  slide: { lean: 0.35, legL: 1.1, legR: 0.7, armL: -0.7, armR: 0.6, armROut: 0.3 },
+  /**
+   * Rising: a stride held and the arms trailing. Falling: the legs together
+   * and the arms out to the sides, by the fall (`fallSpeed` m/s is all of
+   * it). A press that has armed a climb with a face under the hands reaches
+   * for it instead, so the grab that follows comes up over the front.
+   */
+  air: { rise: { legL: 0.5, legR: -0.2, armL: -0.6, armR: -0.3 }, fall: { legs: 0.15, arms: -0.4, armsOut: 0.9 }, fallSpeed: 6, reach: 1.8 },
+  /** The hands planted ahead and down through the first half, pushing off behind by the end; the legs tucked over the top, a bell over the move. */
+  vault: { plant: 0.9, push: -0.4, tuckL: 1.4, tuckR: 1.0, lean: -0.5 },
+  /** The hands over the lip above the head, pressing down as the body comes up; the right knee over the lip, the left trailing. */
+  mantle: { reach: 2.4, press: 0.8, knee: 1.3, trail: 0.2, lean: -0.4 },
+  /** At full stretch (B8): the arms straight up (`HANG_ARM_ANGLE`), the legs hanging a little apart. */
+  hang: { legL: 0.12, legR: -0.06 },
+  /**
+   * From the hang the hands stay on the lip and the body rises past them:
+   * the arms go the long way round, over the front, from straight up to
+   * ahead and down (`over`), and the legs kick.
+   */
+  pullup: { over: 0.6, kickL: 0.9, kickR: -0.4, lean: -0.3 },
+  /** The legs taking a hard landing (B8): a squat, the arms out for balance; by the weight, as long as the recovery holds the speed down. */
+  landing: { legs: 0.6, lean: -0.4, arms: 0.3, armsOut: 0.7 },
+  /** How much of the aim's pitch the head takes. */
+  head: 0.25,
+};
 
 export const VISUAL = {
   /**
@@ -58,40 +104,13 @@ export const VISUAL = {
 
   _animate(wallDt) {
     const parts = this.mesh.userData.parts;
-    const speed = this.speed;
-    const moving = speed > 0.2 && (this.state === SHADE_STATE.GROUND || this.state === SHADE_STATE.SLIDE);
 
     // Section 4: animate by rotating and translating primitive limb groups.
-    if (moving) {
-      this._animTime += wallDt * (2.4 + speed * 0.55);
-    } else {
-      this._animTime += wallDt * 1.1;
-    }
-
-    const swing = moving ? Math.sin(this._animTime) * Math.min(0.9, 0.22 + speed * 0.1) : 0;
-    const idle = Math.sin(this._animTime * 0.8) * 0.04;
-
-    if (this.state === SHADE_STATE.HANG || this.state === SHADE_STATE.GRAB) {
-      parts.armL.rotation.x = HANG_ARM_ANGLE;
-      parts.armR.rotation.x = HANG_ARM_ANGLE;
-      parts.legL.rotation.x = 0.12;
-      parts.legR.rotation.x = -0.06;
-    } else if (this.state === SHADE_STATE.AIR) {
-      parts.armL.rotation.x = -0.8;
-      parts.armR.rotation.x = -0.5;
-      parts.legL.rotation.x = 0.4;
-      parts.legR.rotation.x = -0.3;
-    } else if (this.state === SHADE_STATE.SLIDE) {
-      parts.armL.rotation.x = -0.6;
-      parts.armR.rotation.x = 0.5;
-      parts.legL.rotation.x = 0.9;
-      parts.legR.rotation.x = 0.1;
-    } else {
-      parts.legL.rotation.x = swing;
-      parts.legR.rotation.x = -swing;
-      parts.armL.rotation.x = -swing * 0.75;
-      parts.armR.rotation.x = swing * 0.75;
-    }
+    // The state's pose into the one target record (E3), then every group
+    // eased toward it; the two timed tells below are written over the top.
+    const pose = this._pose;
+    this._posture(pose, wallDt);
+    easePose(parts.torso, parts, pose, blendFactor(wallDt));
 
     // The hands-up slap (B2): both arms thrown straight up against the face,
     // then dropped over the pose time. Overrides whatever the state posed.
@@ -104,7 +123,7 @@ export const VISUAL = {
 
     // The knife arc overrides the right arm for its duration: a fast wind-up
     // and a slower follow-through, so the swing reads as a strike rather than
-    // a twitch.
+    // a twitch. The ease takes the arm back to its pose when it is over.
     if (this._swingTimer > 0) {
       this._swingTimer = Math.max(0, this._swingTimer - wallDt);
       const t = 1 - this._swingTimer / KNIFE_SWING_TIME;
@@ -115,12 +134,156 @@ export const VISUAL = {
       parts.armR.rotation.z = -0.5 * Math.sin(t * Math.PI);
       parts.torso.rotation.y = -0.35 * Math.sin(t * Math.PI);
     } else {
-      parts.armR.rotation.z = 0;
       parts.torso.rotation.y = 0;
     }
+  },
 
-    parts.torso.position.y = parts.torso.userData.baseY + idle;
-    parts.head.rotation.x = this.pitch * 0.25;
+  /**
+   * The pose the state asks for this frame, into `pose` (E3). The gait is
+   * a swing of the legs by the ground covered; the ground's poses sit on
+   * it and every other state's replaces it. Timed moves key theirs on the
+   * move's own progress. Nothing here allocates: the record is filled in
+   * place.
+   */
+  _posture(pose, wallDt) {
+    const speed = this.speed;
+    const onGround = this.state === SHADE_STATE.GROUND;
+    const walking = onGround && speed > 0.2;
+
+    // The feet plant by the ground covered, not by the clock: half a cycle
+    // per stride of the band's footstep, so a foot lands as the step
+    // sounds, and a body that stops stops mid-stride and eases to rest.
+    if (walking) {
+      const band = this.movementBand;
+      const stride = band === 'crouch' ? S.crouchFootstepStride : band === 'sprint' ? S.sprintFootstepStride : S.footstepStride;
+      this._animTime += speed * wallDt * (Math.PI / stride);
+    }
+    this._breathTime += wallDt;
+
+    restPose(pose);
+    const G = POSE.gait;
+    const gait = walking ? Math.sin(this._animTime) * Math.min(G.max, G.base + speed * G.perSpeed) : 0;
+    pose.lift = Math.sin(this._breathTime * POSE.breath.rate) * POSE.breath.lift;
+    pose.headX = this.pitch * POSE.head;
+
+    switch (this.state) {
+      case SHADE_STATE.HANG:
+      case SHADE_STATE.GRAB: {
+        pose.armLX = HANG_ARM_ANGLE;
+        pose.armRX = HANG_ARM_ANGLE;
+        pose.legLX = POSE.hang.legL;
+        pose.legRX = POSE.hang.legR;
+        break;
+      }
+      case SHADE_STATE.PULLUP: {
+        const P = POSE.pullup;
+        const t = this._moveProgress();
+        const bell = Math.sin(t * Math.PI);
+        // Down from straight up through minus pi, which is plus pi: the
+        // hands pass in front of the body. The ease follows the short way to
+        // a target that moves a little each frame, so it goes round with it.
+        const arms = HANG_ARM_ANGLE - t * (2 * Math.PI + HANG_ARM_ANGLE - P.over);
+        pose.armLX = arms;
+        pose.armRX = arms;
+        pose.legLX = P.kickL * bell;
+        pose.legRX = P.kickR * bell;
+        pose.torsoX = P.lean * bell;
+        break;
+      }
+      case SHADE_STATE.VAULT: {
+        const V = POSE.vault;
+        const t = this._moveProgress();
+        const bell = Math.sin(t * Math.PI);
+        const arms = t < 0.5 ? V.plant : V.plant + (V.push - V.plant) * (t - 0.5) * 2;
+        pose.armLX = arms;
+        pose.armRX = arms;
+        pose.legLX = V.tuckL * bell;
+        pose.legRX = V.tuckR * bell;
+        pose.torsoX = V.lean * bell;
+        break;
+      }
+      case SHADE_STATE.MANTLE: {
+        const M = POSE.mantle;
+        const t = this._moveProgress();
+        const bell = Math.sin(t * Math.PI);
+        const arms = M.reach + (M.press - M.reach) * t;
+        pose.armLX = arms;
+        pose.armRX = arms;
+        pose.legLX = M.trail;
+        pose.legRX = M.knee * bell;
+        pose.torsoX = M.lean * bell;
+        break;
+      }
+      case SHADE_STATE.AIR: {
+        const A = POSE.air;
+        if (this._climbArmed && this._faceAhead) {
+          pose.armLX = A.reach;
+          pose.armRX = A.reach;
+          pose.legLX = A.rise.legL;
+          pose.legRX = A.rise.legR;
+          break;
+        }
+        const f = Math.max(0, Math.min(1, -this.velocity.y / A.fallSpeed));
+        pose.legLX = A.rise.legL + (A.fall.legs - A.rise.legL) * f;
+        pose.legRX = A.rise.legR + (-A.fall.legs - A.rise.legR) * f;
+        pose.armLX = A.rise.armL + (A.fall.arms - A.rise.armL) * f;
+        pose.armRX = A.rise.armR + (A.fall.arms - A.rise.armR) * f;
+        pose.armLZ = -A.fall.armsOut * f;
+        pose.armRZ = A.fall.armsOut * f;
+        break;
+      }
+      case SHADE_STATE.SLIDE: {
+        const D = POSE.slide;
+        pose.torsoX = D.lean;
+        pose.legLX = D.legL;
+        pose.legRX = D.legR;
+        pose.armLX = D.armL;
+        pose.armRX = D.armR;
+        pose.armRZ = D.armROut;
+        break;
+      }
+      default: {
+        // The ground: the gait, with the crouch and the landing on top of it.
+        const C = POSE.crouch;
+        const swing = this.crouching ? gait * C.gait : gait;
+        pose.legLX = swing;
+        pose.legRX = -swing;
+        pose.armLX = -swing * G.arms;
+        pose.armRX = swing * G.arms;
+        pose.torsoX = -speed * G.lean;
+        pose.lift += Math.abs(Math.sin(this._animTime)) * G.bob * (walking ? speed / S.sprintSpeed : 0);
+        if (this.crouching) {
+          pose.torsoX += C.lean;
+          pose.legLX += C.legL;
+          pose.legRX += C.legR;
+          pose.armLX += C.arms;
+          pose.armRX += C.arms;
+          pose.armLZ = -C.armsOut;
+          pose.armRZ = C.armsOut;
+          pose.headX += C.head;
+        }
+        // The weight of the landing (B8) while the legs take it: the
+        // recovery is `landing.recovery` scaled by the weight, so what is
+        // left of it over the whole is the weight still on the legs.
+        const r = this._landRecovery > 0 ? Math.min(1, this._landRecovery / S.landing.recovery) : 0;
+        if (r > 0) {
+          const L = POSE.landing;
+          pose.legLX += L.legs * r;
+          pose.legRX += L.legs * r;
+          pose.torsoX += L.lean * r;
+          pose.armLX += L.arms * r;
+          pose.armRX += L.arms * r;
+          pose.armLZ -= L.armsOut * r;
+          pose.armRZ += L.armsOut * r;
+        }
+      }
+    }
+  },
+
+  /** How far through the traversal move in flight, 0..1; 1 when there is none. */
+  _moveProgress() {
+    const move = this._move;
+    return move ? Math.min(1, move.timer / move.duration) : 1;
   },
 
   /**

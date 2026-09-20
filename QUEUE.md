@@ -40,6 +40,18 @@ busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
 F5 (2026-09-16) and F6 (2026-09-20); the next gate job, if one is found, goes here.
 
+- [ ] **F7 (S)** A look at a pose. `npm run shot -- --pose <name>` (and
+  `photograph(h, { pose })`, src/tests/look.js) steps the Shade into a
+  named state through the real keys before the frames - `crouch`,
+  `slide`, `vault`, `mantle`, `hang`, `pullup`, `landing` on the lane
+  and the ledges tests/animation.js uses - and holds the Warden with the
+  sights up for `aim`; the figures at rest without it, as now. E3 built
+  ten poses nobody has seen mid-move. *done-when:* a PNG per named pose
+  from the three-quarter eye with the body in the state named, read
+  back by the session that runs it; `a-look-at-both-figures-photographs-
+  every-eye` unchanged; the shot without `--pose` byte-identical in
+  what it covers.
+
 ## Block B — the traversal redesign, phases 12–50
 
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
@@ -107,12 +119,8 @@ Decided: D3 — the Shade and the Warden first, then the map. Provisional: D10
 (no post-processing until the characters are done), D40 (the Shade's
 figure as built). Draw-call and frame budget checks are the ceiling.
 
-(E1 done 2026-09-19; E2 done 2026-09-20.)
+(E1 done 2026-09-19; E2 and E3 done 2026-09-20.)
 
-- [ ] **E3 (M)** Animation. Procedural limb swing by speed; crouch, slide,
-  climb, mantle, hang and landing poses; the Warden's aim pose. *done-when:*
-  a check steps each state and asserts the pose changed; no per-frame
-  allocation.
 - [ ] **E4 (M)** Map materials, `plant`. A concrete / painted metal / glass
   set with grime and decals; toon ramps tuned per material. *done-when:*
   pixel checks unchanged or better; frame budget unchanged.
@@ -124,6 +132,31 @@ figure as built). Draw-call and frame budget checks are the ceiling.
 
 ## Done
 
+- **E3** Animation. `src/entities/pose.js`: one target record per body,
+  filled in place every frame, every limb group eased toward it the
+  shortest way round over `POSE_BLEND` 0.2s - a state change is a
+  movement, no frame allocates. The gait's phase advances by the ground
+  covered, half a cycle per stride of the band's footstep, amplitude by
+  speed (agentvisual.js `_posture`, enforcer.js `_posture`; the numbers
+  in each file's `POSE`). The Shade: the breath, the crouch, the slide,
+  the air rising and falling, the reach when a press has armed a climb
+  at a face, the vault, the mantle, the grab and the hang (as B8), the
+  pull-up with the hands over the front, the landing while the legs take
+  it. The Warden: the roll, a bob, a sprint lean; the sights raise both
+  arms by the rifle's carry pitch and then the aim's, so the rifle points
+  where it looks and the head takes the aim; the stun sags.
+  `the-shade-has-a-pose-for-every-state-and-a-stride-for-every-step` and
+  `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks`
+  (tests/animation.js, every map): every state through the real keys,
+  each pose at least 0.25 rad from standing and from every other (the
+  closest pair, rise and fall, 0.46), the leg across the vertical once a
+  stride of the ground covered (walking, crossings 2.10m apart against
+  the 2.1m stride; sprinting 2.60 against 2.6; a swing on the clock
+  reads 2.5 and 3.4), no swing standing, the pull-up's left arm at 1.97 rad half way, the
+  sights raising the right arm 0.70 -> 1.05 rad and the hand 0.15m,
+  looking up 0.6 raising it to 1.65, the carry back within 0.000 after.
+  Spec 20.26, D42 provisional. — 2026-09-20, scheduled run, commit
+  `TBD`.
 - **F6** A look, headless. `npm run shot -- [--map id] [--out dir]`
   (scripts/shot.mjs: the suite runner's server and launch, repeated) loads
   the page once per map and calls `photograph()` (src/tests/look.js):

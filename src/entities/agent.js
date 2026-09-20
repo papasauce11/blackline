@@ -28,6 +28,7 @@ import { SHADE_STATE } from './agentstate.js';
 import { SLIDE } from './agentslide.js';
 import { TRAVERSAL } from './agenttraversal.js';
 import { VISUAL } from './agentvisual.js';
+import { createPoseTarget } from './pose.js';
 
 export { SHADE_STATE } from './agentstate.js';
 
@@ -151,7 +152,11 @@ export class Shade {
     this.groundBlob = buildGroundBlob();
 
     this._smoothPosition = new THREE.Vector3();
+    /** The gait's phase, advanced by the ground covered (E3), and the breath's, by the clock. */
     this._animTime = 0;
+    this._breathTime = 0;
+    /** The pose the state asks for, filled in place every frame (E3, pose.js). */
+    this._pose = createPoseTarget();
     /** Counts down while the knife arm is mid-arc (Section 8.2). */
     this._swingTimer = 0;
     this._scratchCentre = { x: 0, y: 0, z: 0 };

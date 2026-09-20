@@ -72,6 +72,45 @@ say" and you want to see the same frame, that is the command.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The bodies move (E3, 2026-09-20)
+
+Either map. As the Shade, in a competitive match or free roam: walk,
+sprint, stop; crouch; sprint and tap crouch for the slide; jump; run at
+a crate and press Space for the vault, at a chest-high ledge for the
+mantle, jump-tap at a high lip for the hang and press Space again for
+the pull-up; drop off the deck or a stack for the landing. Every one of
+those is now drawn as its own pose, and the body moves INTO each pose
+over a fifth of a second rather than being replaced by it: the crouch
+leans forward with the thighs bent and the hands ahead; the slide leans
+back with the legs out and one hand trailing; a jump holds a stride
+with the arms back and, falling, spreads the arms; a press at a face
+puts both arms up for it; the vault plants the hands and tucks the
+legs; the mantle reaches over the lip and brings a knee up; the pull-up
+brings the hands over the front of the body as it rises; a hard
+landing squats with the arms out while the legs take it (B8's
+recovery). The legs swing by the ground covered - once a stride, so a
+foot plants about when the step sounds - and further at a sprint. As
+the Warden in free roam (or watching one): the walk rolls and bobs, a
+sprint leans; hold the right mouse button and both arms rise, the
+rifle comes level and follows where you look; let go and the carry
+comes back; the stun drops the arms and sags the body. The checks
+prove: every state at least a quarter radian from standing and from
+every other, the leg across the vertical once a stride at a walk and a
+sprint, no swing standing, the pull-up's hands in front, the sights
+raising the right hand 0.15m and the aim's pitch raising it further
+(`the-shade-has-a-pose-for-every-state-and-a-stride-for-every-step`,
+`the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks`). What
+only eyes can judge: whether a vault reads as a vault or a flail with
+straight limbs; whether the pull-up's arms going over the front read as
+a pull or a windmill; whether the fifth-of-a-second blend is a body
+moving or a body underwater; whether the crouch's raised boots (the
+squash shortens the legs, the pose bends them) show; whether the
+Warden's raised rifle reads as aimed AT you from down a lane; whether
+the feet still slide anywhere (a foot that plants once a stride is
+the claim). The numbers to turn are `POSE` at the top of
+`src/entities/agentvisual.js` and of `src/entities/enforcer.js`,
+argued under D42.
+
 ### The Warden has a helmet and a rifle (E2, 2026-09-20)
 
 Either map, a competitive match as the Shade: watch a patrol from a
@@ -82,9 +121,9 @@ over short splayed legs, heavy pauldrons, and a rifle held at the low
 ready in front of the belly, pointing ahead and a little down - both
 arms forward and pulled in to it (they were held behind the back
 before; nobody had noticed). It is still the six groups the controller
-poses, so the walk, the stun and the ragdoll are drawn as they were;
-each group is one merged mesh on one material, twelve draw calls where
-there were sixteen. The checks prove: at 25m as flat shapes, the Warden
+poses (since E3, above, the walk is by the ground covered, the sights
+raise the rifle, and the stun sags); each group is one merged mesh on
+one material, twelve draw calls where there were sixteen. The checks prove: at 25m as flat shapes, the Warden
 is broad (1.5:1) with a helmet narrower than the shoulders under it
 and, from the side, a middle that reaches 0.8m ahead of the helmet,
 while the Shade is narrow (3.3:1) and hooded and reaches nothing
@@ -107,9 +146,8 @@ in the console) walks round it. The body is rebuilt: a
 narrow teal torso with a hood round the head, open at the face over a
 dark lining, a short cowl over the shoulders, thin long charcoal limbs,
 the big gloves and boots kept. It is still six groups the controller
-poses, so every pose you know - the run, the slide, the hang at full
-stretch, the hands-up slap of a failed climb, the knife arc - is drawn
-as it was; what changed is what each group holds: one merged mesh on
+poses (E3, above, gave every state its own and the run its stride);
+what changed here is what each group holds: one merged mesh on
 one material, twelve draw calls for the body where there were twenty.
 The checks prove: tall and narrow (3.4:1) and a hood wider than the
 neck under it at 8m and at 25m, on both maps, from a flat silhouette

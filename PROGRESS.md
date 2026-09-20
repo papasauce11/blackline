@@ -6808,6 +6808,118 @@ failure on each is the frame-budget check, skipped headless.
 **Left.** E3, animation, next. The routine can now look at a pose
 before it commits one.
 
+## E3 — animation: a pose for every state, a stride for every step, the rifle raised to the aim (2026-09-20, scheduled run)
+
+The 17:00 run's first job, sized M, the first unblocked in block order
+after F6. The gate: `npm run suite -- --runs 1` on `7c71c70`, plant 162
+/ 1 / 6 and yard 145 / 1 / 23, 0 red, 0 flaky, 0 console errors. (A
+suite runner from the 09-18 17:00 run, the one the audit found, was
+still there, idle at 1.7s of CPU in two days; this session was not
+allowed to end it either.)
+
+**What was there.** The Shade's `_animate` had a swing whose phase ran
+on the clock at a rate by speed - the feet slid - and three poses that
+replaced it on a snap: the hang, the air, the slide. A vault, a mantle,
+a pull-up and a crouch had no pose at all (a crouch was the squash of
+the whole mesh and nothing else; a vault was a standing body carried
+over the crate). The Warden had the swing and the stun.
+
+**`src/entities/pose.js`** is the mechanism (D42 argues the numbers):
+one target record per body, twelve fields (the body group's lean,
+roll and lift, the head's pitch, each limb's x and z), filled in place
+every frame by the state and every group eased toward it by `easePose`
+the shortest way round over `POSE_BLEND` 0.2s - all of it when `wallDt`
+is 0, which is what `reset()` passes, so a reset draws the pose it is
+given. A state change is a movement rather than a replacement, and
+nothing allocates after construction: the record is the body's, the
+ease is arithmetic on the groups' own Euler fields, and `_posture` in
+both controllers reads `POSE` tables that are module constants. The
+gait's phase advances by the ground covered, `speed * wallDt * pi /
+stride` with the band's footstep stride, so a foot plants about when
+the step sounds and a body that stops stops mid-stride and eases to
+rest; the amplitude is by speed as before. Both mesh builders carry
+`userData.baseY` on the body group for the lift.
+
+**The Shade** (agentvisual.js `_posture`, 100 lines over the old 60):
+the breath standing; the crouch leant forward with the thighs bent under
+the squash and the hands ahead; the slide leant back, legs out, the
+left hand trailing; the air rising with a stride held and the arms
+back, falling with the legs together and the arms out by the fall
+speed; the reach - a press that has armed a climb with a face under the
+hands (`_climbArmed && _faceAhead`) puts both arms up and forward, so
+the grab that follows comes up over the front (from the old air pose
+the short way to straight-up was through the back, a windmill); the
+vault with the hands planted ahead and down through the first half and
+pushing off behind by the end, the legs tucked and the torso leant by a
+bell over the move; the mantle with the hands over the lip above the
+head pressing down as the body comes up, the right knee over; the grab
+and the hang as B8 left them; the pull-up, whose arms walk from
+straight up the LONG way to ahead-and-down - the target goes down
+through -pi, the ease keeps every angle in (-pi, pi] and takes the short
+way to a target that never moves far in a frame, so it goes round with
+it and the hands pass in front of the body; the landing as a squat with
+the arms out by `_landRecovery / landing.recovery`, the weight while the
+recovery holds the speed down. The scuff and the knife arc still write
+their arms over the top as the timed tells they are; the ease takes the
+arm back when they end.
+
+**The Warden** (enforcer.js `_posture`): the roll it had, a bob, a lean
+into a sprint; the carry swung a little by the gait; the sights
+(`adsBlend`, the value the FOV and the speed already read) raise both
+arms by the rifle's carry pitch (0.35, so the barrel is level) and then
+by the aim's pitch within a radian, so the rifle - a piece of the right
+arm's part since E2 - points where the Warden looks, and the swing
+leaves the arms; the head takes 0.3 of the pitch at the carry, all of
+it plus a drop to the sight with them up. The stun drops the arms as
+before and sags the chest and the head.
+
+**The checks** (tests/animation.js, every map).
+`the-shade-has-a-pose-for-every-state-and-a-stride-for-every-step`
+drives every state through the real keys - the first clear lane for
+the walk, the sprint, the crouch, the slide, the jump and a 5m drop;
+`findGroundLedge` for a vault-height, a mantle-height and a hangable
+ledge - and reads the twelve fields after each (mid-move for the timed
+ones, at 40% of a vault and a mantle, 50% of a grab and a pull-up).
+Every pose at least 0.25 rad from standing and from every other in
+some limb: plant and yard alike, ten poses, the closest pair rise and
+fall at 0.46. The leg across the vertical once a stride of the ground
+covered - the ground between one crossing and the next within 15% of
+the band's stride: walking 5.1m, crossings 2.10m apart against 2.1;
+sprinting 7.7m, 2.60 against 2.6 (a swing on the clock, which is what
+the first cut of the check could not tell apart by counting crossings,
+reads 2.5 and 3.4 here); reaching 0.56 rad walking and 0.85 sprinting;
+straying 0.000 standing. The hanging arms straight up; the pull-up's
+left arm at 1.97 rad half way - over the front.
+`the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks` (free
+roam as the Warden): the carry at `REST` standing, the leg once a stride
+(4.4m, crossings 2.00m apart against 2.0), the body rolling 0.050; Mouse2 held raising the right
+arm 0.70 -> 1.05 rad and the right hand 0.15m in the world (the
+gauntlet's `limb-end`, as tests/hang.js reads the glove); `look(0, 0.6)`
+raising the arm to 1.65 and the head to 0.45; the carry back within
+0.000 rad a second after the release; the stun dropping the arm to
+0.10. Revert the job and both are red on the first pose.
+
+**What did not move.** E1's and E2's silhouette readings are what they
+were to the pixel at 25m (the Shade 40x12, the Warden 40x26; at 8m the
+Shade's aspect reads 3.6:1 against 3.4 - the breath, which D40 already
+noted moves between runs); the hang's glove is on the lip; the scuff's
+arm is up on the scuff step; the camera's dips are what they were.
+`npm run shot -- --map plant` read back: both at rest, drawn as before
+(the rest pose is the carry and the stand, unchanged).
+
+**Verified.** A ten-check subset on the plant (10 / 10, 55s) and a
+six-check subset on the yard (6 / 6, 23s), the shot, then `npm run
+suite`, both maps twice: **plant 164 passed, 1 failed, 6 not for this map (469s, 523s; the plant's two runs loaded the check before its stride measure was tightened, so the plant ran twice more on the final text: 164 / 1 / 6, 467s and 537s), yard 147 passed, 1 failed, 23 not for this map (232s, 208s)**, every
+outcome identical between runs, 0 red, 0 flaky, 0 console errors, 0
+context losses; the one failure on each is the frame-budget check,
+skipped headless.
+
+**Left.** Nobody has seen a vault posed: `npm run shot` draws the
+figures at rest, and a look at a pose mid-move wants the photograph to
+step the Shade into one first - queued as F7 (S), which block order
+puts before E4, the plant's materials. The pose numbers are all in the
+two `POSE` tables and D42.
+
 ## Audit — 2026-09-20
 
 **Landed.** Week 2026-09-12 → 09-20; oldest commit `7bec4fc` (B4,

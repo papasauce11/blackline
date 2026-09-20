@@ -17,10 +17,41 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { applyGravity } from '../physics.js';
 import { buildWardenMesh, buildGroundBlob, WARDEN_FIGURE } from './wardenmesh.js';
+import { blendFactor, createPoseTarget, easePose, restPose } from './pose.js';
 
 const W = CONFIG.warden;
 /** The carry (E2): where the arms rest, and the rifle with them. */
 const REST = WARDEN_FIGURE.arm.rest;
+/** The rifle points this far under level at the carry; the aim lifts it out by as much. */
+const RIFLE_PITCH = WARDEN_FIGURE.rifle.pitch;
+
+/**
+ * The poses (E3), in radians about each group's pivot - x forward for a
+ * limb and back for the chest's top, z out to the body's right. The carry
+ * is `REST`; these are what the gait, the aim and the stun do about it.
+ * `_posture` fills the target and `easePose` (pose.js) carries the six
+ * groups there. Every number is a look, never a rule; D42 argues them.
+ */
+const POSE = {
+  /**
+   * Short legs, heavy gait (Section 4): less swing than the Shade, a roll of
+   * the body, a bob, a lean into a sprint; the arms swing a little about
+   * the carry.
+   */
+  gait: { base: 0.14, perSpeed: 0.08, max: 0.55, arms: 0.12, roll: 0.05, bob: 0.03, lean: 0.12 },
+  /**
+   * The sights up (Section 6.2's ADS, `adsBlend`): both arms rise by the
+   * rifle's own pitch, so the barrel is level, and then by the aim's within
+   * `pitchMax` of level, so the rifle points where the Warden looks; the
+   * swing leaves the arms; the head takes the whole pitch and drops
+   * `cheek` to the sight.
+   */
+  aim: { pitchMax: 1.0, cheek: -0.15 },
+  /** Rigid, the arms locked down and the rifle dropped with the right one, the body sagging: reads as "not currently a threat". */
+  stunned: { arms: 0.1, lean: -0.2, head: -0.4 },
+  /** How much of the aim's pitch the head takes at the carry. */
+  head: 0.3,
+};
 
 export const WARDEN_STATE = {
   GROUND: 'ground',
@@ -79,7 +110,10 @@ export class Warden {
     this.groundBlob = buildGroundBlob();
 
     this._smoothPosition = new THREE.Vector3();
+    /** The gait's phase, advanced by the ground covered (E3). */
     this._animTime = 0;
+    /** The pose the state asks for, filled in place every frame (E3, pose.js). */
+    this._pose = createPoseTarget();
     this._firstPerson = false;
   }
 
@@ -320,32 +354,60 @@ export class Warden {
   }
 
   _animate(wallDt) {
+    // Section 4: animate by rotating and translating primitive limb groups.
+    // The state's pose into the one target record (E3), then every group
+    // eased toward it.
     const parts = this.mesh.userData.parts;
+    this._posture(this._pose, wallDt);
+    easePose(parts.chest, parts, this._pose, blendFactor(wallDt));
+  }
+
+  /**
+   * The pose the state asks for this frame, into `pose` (E3): the gait by
+   * the ground covered, the carry with the aim raising the rifle out of it,
+   * or the stun. Nothing here allocates: the record is filled in place.
+   */
+  _posture(pose, wallDt) {
     const speed = this.speed;
     const moving = speed > 0.2 && this.state === WARDEN_STATE.GROUND;
-    this._animTime += wallDt * (moving ? 2.0 + speed * 0.5 : 0.9);
+    // The feet plant by the ground covered, as the Shade's do: half a cycle
+    // per stride of the band's footstep.
+    if (moving) {
+      const stride = this.movementBand === 'sprint' ? W.sprintFootstepStride : W.footstepStride;
+      this._animTime += speed * wallDt * (Math.PI / stride);
+    }
 
+    restPose(pose);
     if (this.state === WARDEN_STATE.STUNNED) {
-      // Rigid, arms locked down and the rifle dropped with the right one.
-      // Reads clearly as "not currently a threat".
-      parts.armL.rotation.set(0.1, 0, 0);
-      parts.armR.rotation.set(0.1, 0, 0);
-      parts.legL.rotation.x = 0;
-      parts.legR.rotation.x = 0;
+      const T = POSE.stunned;
+      pose.armLX = T.arms;
+      pose.armRX = T.arms;
+      pose.torsoX = T.lean;
+      pose.headX = T.head;
       return;
     }
 
-    // Short legs, heavy gait: less swing than the Shade, more body roll.
-    const swing = moving ? Math.sin(this._animTime) * Math.min(0.55, 0.14 + speed * 0.08) : 0;
-    parts.legL.rotation.x = swing;
-    parts.legR.rotation.x = -swing;
-    // Arms stay at the carry holding the rifle rather than swinging freely:
+    const G = POSE.gait;
+    const gait = moving ? Math.sin(this._animTime) * Math.min(G.max, G.base + speed * G.perSpeed) : 0;
+    const pace = moving ? Math.max(0, Math.min(1, (speed - W.walkSpeed) / (W.sprintSpeed - W.walkSpeed))) : 0;
+    pose.legLX = gait;
+    pose.legRX = -gait;
+    pose.torsoZ = moving ? Math.sin(this._animTime) * G.roll : 0;
+    pose.torsoX = -G.lean * pace;
+    pose.lift = moving ? Math.abs(Math.sin(this._animTime)) * G.bob * (speed / W.sprintSpeed) : 0;
+
+    // The arms at the carry holding the rifle rather than swinging freely:
     // positive x is forward on this rig (the old -1.15 held them behind the
-    // back), and z pulls them in to the centreline where the rifle is.
-    parts.armL.rotation.set(REST.left.x + swing * 0.12, 0, REST.left.z);
-    parts.armR.rotation.set(REST.right.x - swing * 0.12, 0, REST.right.z);
-    parts.chest.rotation.z = moving ? Math.sin(this._animTime) * 0.05 : 0;
-    parts.head.rotation.x = this.pitch * 0.3;
+    // back), and z pulls them in to the centreline where the rifle is. The
+    // sights lift both out of it, by the rifle's own pitch and then the aim's.
+    const aim = this.adsBlend;
+    const A = POSE.aim;
+    const raise = aim * (Math.max(-A.pitchMax, Math.min(A.pitchMax, this.pitch)) - RIFLE_PITCH);
+    pose.armLX = REST.left.x + gait * G.arms * (1 - aim) + raise;
+    pose.armLZ = REST.left.z;
+    pose.armRX = REST.right.x - gait * G.arms * (1 - aim) + raise;
+    pose.armRZ = REST.right.z;
+    pose.headX = this.pitch * (POSE.head + (1 - POSE.head) * aim) + A.cheek * aim;
   }
 
   _updateGroundBlob(feet) {

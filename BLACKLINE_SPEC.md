@@ -1293,3 +1293,33 @@ shapes at 25m: the Warden broad (1.5:1) with a top narrower than the
 shoulders under it and its middle reaching ahead of its helmet from the
 side; the Shade narrow (3.3:1), hooded, reaching nothing; each the
 other's opposite by a margin. E2, 2026-09-20.
+
+### 20.26 Section 4 - the bodies in motion: a pose for every state, a stride for every step, the aim
+
+Animation (E3, D42). "Animate by rotating and translating primitive
+limb groups procedurally" stands; what changed is what the groups are
+told. The gait's phase advances by the ground covered - half a cycle
+per stride of the band's footstep (7.2's cadence) - so a foot plants
+about when the step sounds and a body that stops stops mid-stride, the
+amplitude by speed; before, the phase ran on the clock and the feet
+slid. Every state of the Shade is a pose: the crouch, the slide, the
+air rising and falling, the reach when a press has armed a climb at a
+face, the vault, the mantle, the grab and the hang (20.4's stretch),
+the pull-up with the hands coming over the front, and the landing while
+the legs take it (20.10's weight). The frame fills one target record
+per body in place and every group is eased toward it the shortest way
+round over 0.2s (`src/entities/pose.js`), so a state change is a
+movement and no frame allocates. The Warden's carry (20.25) is raised
+by the sights (6.2's ADS blend): both arms up by the rifle's carry
+pitch so the barrel is level, then by the aim's pitch within a radian,
+so the rifle points where the Warden looks, and the head takes the
+aim; its gait is by the ground covered too, with the roll, a bob and a
+lean into a sprint; the stun still drops the arms and now sags the
+body. `the-shade-has-a-pose-for-every-state-and-a-stride-for-every-step`
+and `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks`
+(tests/animation.js) drive every state through the real keys on every
+map and read the groups back: each pose at least a quarter radian from
+standing and from every other, the leg across the vertical once a
+stride, the hanging arms straight up, the pull-up's hands in front, the
+right hand 0.15m higher with the sights up and higher again looking up,
+the carry back when they drop. E3, 2026-09-20.

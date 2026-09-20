@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after F6 (2026-09-20) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **162 passed, 1 failed, 6 not for this map**, yard **145 passed, 1 failed, 23 not for this map** (2026-09-20, after F6), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **E3** (M: animation - procedural limb swing by speed; crouch, slide, climb, mantle, hang and landing poses; the Warden's aim pose; a check steps each state and asserts the pose changed; no per-frame allocation), then E4, the plant's materials. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after E3 (2026-09-20) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **164 passed, 1 failed, 6 not for this map**, yard **147 passed, 1 failed, 23 not for this map** (2026-09-20, after E3), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **F7** (S: a look at a pose - `npm run shot -- --pose <name>` steps the Shade into a named state through the real keys before the frames and holds the Warden's sights up for `aim`; first by block order, Block F being the gate), then **E4** (M: map materials, `plant` - a concrete / painted metal / glass set with grime and decals, toon ramps tuned per material; pixel checks unchanged or better, frame budget unchanged), then E5, the yard's. **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -50,10 +50,83 @@ map, is under way: D1, the plumbing, and D2, the yard blocked out, both
 (below); D5, the AI on the yard, D6, both maps in the gate, and D7,
 the regression set whole on every map, 2026-09-19 (below). **Block D is
 closed but for D3b** (waits on D38). Block E, styling, is open: E1, the
-Shade's figure, 2026-09-19, and E2, the Warden's, 2026-09-20 (both
-below); E3, animation, is next.
+Shade's figure, 2026-09-19, E2, the Warden's, and E3, animation,
+2026-09-20 (all below); F7, a look at a pose, then E4, the plant's
+materials, are next.
 
 ---
+
+## The bodies in motion - E3
+
+**`src/entities/pose.js`** is the mechanism: one target record per body
+(`createPoseTarget`, twelve fields - the body group's lean, roll and
+lift, the head's pitch, each limb's x and z), filled in place every
+frame by the state, and every group eased toward it by `easePose` the
+shortest way round over `POSE_BLEND` (0.2s; nine tenths in a third of
+it; all of it when `wallDt` is 0, which is what `reset()` passes, so a
+reset draws the pose it is given). A state change is a movement, not a
+replacement, and no frame allocates. The Shade's poses are `POSE` at
+the top of agentvisual.js and its `_posture` fills the record; the
+Warden's are `POSE` at the top of enforcer.js and its `_posture`. Both
+mesh builders put `userData.baseY` on the body group (the torso, the
+chest) for the lift.
+
+**The gait is by the ground covered.** `_animTime` is the phase, advanced
+by `speed * wallDt * pi / stride` on the ground - the band's footstep
+stride, so a foot plants about when the step sounds - and frozen
+otherwise, so a body that stops stops mid-stride and eases to rest;
+the amplitude is by speed (Shade 0.57 rad at a walk, 0.85 at a sprint;
+Warden 0.38 at a walk). The clock-driven phase it replaced slid the
+feet. The breath (`_breathTime`) is the one thing still on the clock.
+
+**The Shade**: the crouch (leant forward, thighs bent under the squash,
+hands ahead and out, the head up), the slide (leant back, legs out, the
+left hand trailing), the air rising (a stride held, arms back) and
+falling (legs together, arms out, by `-vy / fallSpeed`), the **reach**
+(`_climbArmed && _faceAhead`: both arms up and forward at 1.8, so the
+grab that follows comes up over the front - from the old air pose the
+short way to straight-up was through the back), the vault (hands
+planted at 0.9 through the first half, then to -0.4; legs tucked and
+the torso leant by a bell over `_moveProgress()`), the mantle (arms from
+2.4 to 0.8 over the move, the right knee up, the left trailing), the
+grab and the hang (B8's stretch, `HANG_ARM_ANGLE`), the **pull-up** (the
+arms' target walks from -3.05 the long way to 0.6 - down through -pi,
+which the ease normalises to +pi - so the hands come over the front;
+the ease follows because the target never moves far in a frame), the
+landing (a squat with the arms out by `_landRecovery / landing.recovery`,
+which is the weight while the recovery holds the speed down). The scuff
+and the knife arc still write their arms over the top, as timed tells;
+the ease takes the arm back when they end.
+
+**The Warden**: the roll, a bob, a sprint lean; the carry `REST` swung
+a little by the gait; the sights (`adsBlend`, the value the FOV and the
+speed already read) raise both arms by `-rifle.pitch` (0.35, so the
+barrel is level) plus the aim's pitch within a radian, so the rifle
+points where the Warden looks - it is a piece of the right arm's part
+(E2), so rotating the arm is aiming it - and the swing leaves the arms;
+the head takes 0.3 of the pitch at the carry and all of it plus a
+`cheek` drop with the sights up. The stun drops the arms as before and
+sags the chest and the head.
+
+**The checks** (tests/animation.js, every map): `the-shade-has-a-pose-
+for-every-state-and-a-stride-for-every-step` drives every state through
+the real keys on the first clear lane and the ledges `findGroundLedge`
+finds, reads the twelve fields after each, and requires every pose at
+least 0.25 rad from standing and from every other in some limb (the
+closest pair, rise and fall, 0.46), the leg across the vertical once a
+stride of the ground covered - crossings 2.10m apart walking against
+the 2.1m stride, 2.60 sprinting against 2.6, within 15% (a swing on
+the clock reads 2.5 and 3.4; counting crossings could not tell them
+apart, measuring the ground between them can) - further at a sprint,
+none standing, the hanging arms
+straight up, and the pull-up's left arm between 0.5 and pi half way
+(1.97: over the front). `the-warden-walks-heavy-and-raises-the-rifle-to-
+where-it-looks` (free roam as the Warden): the carry at `REST`, the
+leg once a stride (crossings 2.00m apart), the body rolling 0.05, Mouse2 raising both
+arms 0.35 and the right hand 0.15m in the world, `look(0, 0.6)` raising
+the arm 0.6 more and the head 0.6, the carry back within 0.000 rad a
+second after the release, the stun dropping the arm to 0.1. Spec 20.26;
+D42 argues the numbers.
 
 ## The Warden's figure - E2
 
@@ -1308,6 +1381,13 @@ window has passed - which, with the loop stopped under the suite (F4),
 depends only on what ran before. Pair the event with the registry effect
 (visual.js and performance.js do) or clean up after it (audio.js does now).
 
+**Python's default encoding on this machine is cp1252.** A patch script
+that opens a markdown file with an em dash in it without
+`encoding='utf-8'` reads a different string, and an `anchor in s` that
+should be true is false (E3 lost one run of a DECISIONS.md patch to it;
+the JS sources are ASCII and never showed it). Open with
+`encoding='utf-8'` both ways.
+
 **Bash heredocs fail on some JS content even inside `python - <<'PY'`.** One
 patch died with `unexpected EOF` for no visible reason. Write the patch script
 to the scratchpad with the Write tool and run `python <path>` instead.
@@ -1366,8 +1446,13 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8, D25, D26, D27, D28, D30, D31, D38, D39, D40, D41 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25, D26, D27, D28, D30, D31, D38, D39, D40, D41, D42 and the Provisional section of `DECISIONS.md`; Josh answers there.
 
+- **D42**: the animation as built - a pose for every state, eased over
+  0.2s; the legs by the ground covered; the Warden's rifle raised to the
+  aim. Provisional; the numbers say every pose is a quarter radian from
+  every other and the sights lift the hand, not that a vault reads as a
+  vault or the blend as a body moving.
 - **D41**: the Warden's figure as built - a helmet on the shoulders with
   no neck, a vest, a rifle at the low ready in the right hand, a broad
   stance, the arms brought round from behind the back. Provisional; the

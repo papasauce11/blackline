@@ -6,8 +6,9 @@
  * Section 4: bulky. Wide box chest, short legs, helmet dominates the head,
  * heavy pauldrons. Orange and gunmetal. Since E2 a vest over the chest, a
  * rifle carried across the body, and a broad stance. No faces, no rig - the
- * controller animates by rotating the six limb groups (enforcer.js), each
- * holding one merged mesh and its hull (parts.js), as the Shade's do.
+ * controller animates by rotating the six limb groups (enforcer.js, through
+ * pose.js since E3), each holding one merged mesh and its hull (parts.js),
+ * as the Shade's do.
  *
  * What the Shade sees of the Warden is a silhouette in the dark at twenty
  * metres, so the figure is built for that reading first: broad where the
@@ -153,6 +154,8 @@ export function buildWardenMesh(gradientMap) {
   // under it and the pauldrons on it, one piece, rolling together.
   const chest = new THREE.Group();
   chest.position.y = H * G.torso.pivot;
+  // The height the bob lifts from (pose.js reads it, as on the Shade's torso).
+  chest.userData.baseY = chest.position.y;
   const pauldronAt = (side) => ({
     at: { x: side * G.pauldron.x, y: G.pauldron.lift },
     rotation: { z: -side * G.pauldron.tilt },

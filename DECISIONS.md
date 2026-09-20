@@ -95,6 +95,64 @@ had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
 ## Provisional — done as recommended, override any time
 
+### D42 — The animation as built: a pose for every state, a stride for every step, the rifle raised to the aim
+E3 (2026-09-20). What the bodies do now that they are figures (D40, D41),
+and the numbers to turn: the Shade's in `POSE` at the top of
+`src/entities/agentvisual.js`, the Warden's in `POSE` at the top of
+`src/entities/enforcer.js`, the blend in `src/entities/pose.js`. Nothing
+the player can do changed; every state, timer and capsule is as it was,
+and the frame reads them.
+
+- **The legs swing by the ground covered, not by the clock.** Half a
+  cycle per stride of the band's footstep (`footstepStride`, the crouch's
+  and the sprint's), so a foot plants about when the step sounds and a
+  body that stops stops mid-stride and eases to rest; the amplitude is by
+  speed (0.57 rad at a walk, 0.85 at a sprint), the arms swing the other
+  way by three quarters of it, the torso leans into the speed and bobs
+  twice a cycle. Before, the phase ran on the clock at a rate by speed,
+  so the feet slid. Alternative: the old clock, or the footstep sound's
+  own residual so the two are in phase to the frame - not worth a field
+  the simulation would have to expose.
+- **A pose for every state, eased.** Standing (the breath), the crouch
+  (leant forward, the thighs bent under the squash, the hands ahead), the
+  slide (leant back, the legs out, one hand trailing), the air rising (a
+  stride held, the arms trailing) and falling (the legs together, the
+  arms out to the sides, by the fall speed), the reach (a press that has
+  armed a climb with a face under the hands puts both arms up and forward
+  for it), the vault (the hands planted ahead and down through the first
+  half, pushing off behind by the end, the legs tucked over the top), the
+  mantle (the hands over the lip above the head pressing down as the body
+  comes up, the right knee over), the grab and the hang (B8's full
+  stretch, unchanged), the pull-up (the hands stay on the lip and come
+  over the FRONT of the body from straight up to ahead and down, the legs
+  kicking - the ease follows a target that walks the long way round), the
+  landing (a squat with the arms out, by the weight, for as long as the
+  recovery holds the speed down). Each is a target the frame fills in
+  place and every group is carried toward over `POSE_BLEND` 0.2s (nine
+  tenths in a third of it), so a state change is a movement, not a
+  replacement. Alternative: the snap the old poses had; or a longer blend
+  (0.4s reads as underwater on a 0.28s vault).
+- **The Warden raises the rifle to where it looks.** With the sights up
+  (`adsBlend`, the same value the FOV and the speed read) both arms rise
+  by the rifle's own carry pitch, so the barrel is level, and then by the
+  aim's pitch within a radian of level, so the rifle points where the
+  Warden looks; the swing leaves the arms; the head takes the whole pitch
+  and drops a little to the sight. At the carry the head takes 0.3 of it
+  as before. The Warden's gait is by the ground covered too, with the
+  roll it had, a bob and a lean into a sprint; the stun drops the arms
+  as before and now sags the body and the head. Alternative: the rifle
+  to the shoulder (a second arm rest under the pauldron) - the arms
+  cannot bend, and a straight arm at the shoulder points the rifle past
+  the cheek, not along it.
+Josh: the numbers say every state is drawn at least a quarter radian
+from standing and from every other, the leg crosses the vertical once a
+stride, and the sights lift the right hand 0.15m
+(`the-shade-has-a-pose-for-every-state-and-a-stride-for-every-step`,
+`the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks`); whether
+a vault reads as a vault or a flail, and whether the Warden's raised
+rifle reads as aiming at you, is yours - PLAYTEST.md says where to look.
+**decided:**
+
 ### D41 — The Warden's figure as built: a helmet on the shoulders, a vest, a rifle at the low ready, a broad stance
 E2 (2026-09-20). D3 stands (the Shade and the Warden first); this is what
 the Warden came out as, and the numbers to turn, all in `WARDEN_FIGURE`
