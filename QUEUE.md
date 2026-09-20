@@ -38,17 +38,7 @@ Placed here, after A and before B, on purpose: the suite is the instrument
 every later block is measured with, and a gate that answers differently on a
 busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
-F5 (2026-09-16); the next gate job, if one is found, goes here.
-
-- [ ] **F6 (S)** A look, headless. `npm run shot -- --map <id>`: the
-  runner's server and Chrome (scripts/suite.mjs), the page loaded once,
-  both actors placed on the first clear lane and photographed front,
-  side and at 8m and 25m by `renderer.domElement.toDataURL()` after a
-  `render` from a placed camera, written as PNGs a session can read.
-  E2 did this from a scratch script to see the Warden before committing
-  it; every Block E job will want the same. *done-when:* the script is
-  in `scripts/`, HANDOFF.md "Running it" names it, and a run on each
-  map writes its PNGs in under a minute.
+F5 (2026-09-16) and F6 (2026-09-20); the next gate job, if one is found, goes here.
 
 ## Block B — the traversal redesign, phases 12–50
 
@@ -134,6 +124,20 @@ figure as built). Draw-call and frame budget checks are the ceiling.
 
 ## Done
 
+- **F6** A look, headless. `npm run shot -- [--map id] [--out dir]`
+  (scripts/shot.mjs: the suite runner's server and launch, repeated) loads
+  the page once per map and calls `photograph()` (src/tests/look.js):
+  both actors on the figure checks' stand (`standAndEyes`, exported from
+  tests/figure.js), spread across each eye's line of sight so neither
+  hides the other, a frame from every eye in open air - front, side and
+  three-quarter at 4.5m, down the lane at 8m and 25m -
+  `renderer.domElement.toDataURL()` after the lens's render, written to
+  `shots/look-<map>-<eye>.png` (gitignored), ~30s a map.
+  `a-look-at-both-figures-photographs-every-eye` (every map): a PNG from
+  the front, 8m and 25m eyes always and the side eyes when in open air,
+  the bodies on at least 6000 / 2000 / 300 pixels (plant 27590 / 8610 /
+  886, yard 27882 / 8244 / 864). — 2026-09-20, scheduled run, commit
+  `TBD`.
 - **E2** The Warden. `WARDEN_FIGURE` (entities/wardenmesh.js, split out
   of enforcer.js): a domed helmet with a brim and a `wardenSteel` visor
   sat on the shoulders over a collar, no neck showing; gunmetal vest

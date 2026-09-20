@@ -6756,3 +6756,54 @@ against 8-9: the Shade's numbers, where they were.
 **Left.** E3, animation, next: the six groups, the limb-end empties and
 the rest pose are there for it, and the rifle rises with the right arm.
 Josh looks at the figure (PLAYTEST.md, D41).
+
+## F6 — a look, headless: `npm run shot` (2026-09-20, scheduled run)
+
+The 02:00 run's second job, sized S, queued by E2 an hour earlier and
+first by block order (Block F is the gate, and this is the gate's eye).
+E2's verify (161/1/6 and 144/1/23) stood as the gate. E2 had seen the
+Warden before committing it through a scratch script - the runner's
+Chrome, the page loaded once, a camera placed by hand and
+`renderer.domElement.toDataURL()` after a `render` - and every Block E
+job will want the same, so it is kept, in two halves.
+
+**`photograph(h)`** (src/tests/look.js) is the page's half. The stand is
+the figure checks' own (`standAndEyes`, now exported from
+tests/figure.js: the near end of the first clear lane with a 25m eye in
+open air that sees it), so the photographs are of the place the numbers
+were read at. Five eyes: front, side and three-quarter at 4.5m, and
+down the lane at 8m and 25m; a side eye may be in a wall on some map
+and is skipped with a reason, the other three are the stand's own. For
+each eye both actors are placed side by side facing down the lane and
+**spread across that eye's line of sight** - the first cut spread them
+across the lane, and from the side eye the Shade stood in front of the
+Warden - then drawn (never stepped: a stepped frame is the AI's and it
+walks the Warden off the stand), rendered without and with them through
+the lens, the difference counted, and the drawing buffer read as a PNG
+data URL. **`scripts/shot.mjs`** (`npm run shot -- [--map id] [--out
+dir] [--query ...]`) is the node half: the suite runner's server and
+launch repeated (suite.mjs runs the suite on import, so nothing can be
+imported from it), the page loaded once per registered map, the loop
+stopped and 60 frames warmed as the suite does, `photograph` imported
+through the page's own import map and its frames written to
+`shots/look-<map>-<eye>.png` (gitignored), one line per eye with the
+pixels the bodies cover. About 30s a map.
+
+**`a-look-at-both-figures-photographs-every-eye`** (every map): a PNG
+data URL from the front, 8m and 25m eyes always and from the side eyes
+when they are in open air, the bodies on at least 6000 pixels at 4.5m,
+2000 at 8m and 300 at 25m. Plant: front 27590, side 22910,
+three-quarter 28366, eight 8610, far 886, no eye skipped; yard: 27882,
+33349, 29122, 8244, 864, none skipped. Revert the job and the check
+goes with it, which is what a check of a tool can say.
+
+**Verified.** The three figure checks in a subset on both maps (3 / 3,
+57s and 26s), `npm run shot -- --map plant` twice (30s, five PNGs, the
+three-quarter frame read back: a helmeted guard with a rifle at the low
+ready beside a hooded figure), then `npm run suite`, both maps twice:
+**plant 162 passed, 1 failed, 6 not for this map (482s, 512s), yard 145 passed, 1 failed, 23 not for this map (207s, 214s)**, every outcome identical between
+runs, 0 red, 0 flaky, 0 console errors, 0 context losses; the one
+failure on each is the frame-budget check, skipped headless.
+
+**Left.** E3, animation, next. The routine can now look at a pose
+before it commits one.

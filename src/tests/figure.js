@@ -63,9 +63,10 @@ const CARRIES_NOT = 0.1;
  * Somewhere to stand with a clear line of sight to it from `far` metres away
  * and from 8: the first clear lane (open floor, the 8m eye down it) from
  * which some heading has an eye at `far` in open air that sees the stand.
- * A run a body walks is not needed at 25m; sight is.
+ * A run a body walks is not needed at 25m; sight is. tests/look.js
+ * photographs the same stand.
  */
-function standAndEyes(h, far) {
+export function standAndEyes(h, far) {
   const world = h.map.collision;
   const eyeHalf = { x: 0.2, y: 0.2, z: 0.2 };
   for (const lane of clearLanes(h, 9)) {

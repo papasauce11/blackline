@@ -61,6 +61,12 @@ software GL. On each map, in the console with `?debug=1`:
 console.timeEnd('U')` - if a GPU tab is under 20s the bar is met, and if
 not, say so under D6 in `QUEUE.md`.
 
+**`npm run shot`** (F6, 2026-09-20) writes PNGs of both figures side by
+side from five eyes - front, side, three-quarter, 8m and 25m - to
+`shots/`, one map or every map, without opening the game. It is how the
+routine looks at what it built; if a figure note below says "the pixels
+say" and you want to see the same frame, that is the command.
+
 ## What to look at
 
 Newest first. Each item says what the checks already prove and what is

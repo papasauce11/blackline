@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after E2 (2026-09-20) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **161 passed, 1 failed, 6 not for this map**, yard **144 passed, 1 failed, 23 not for this map** (2026-09-20, after E2), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **F6** (S, by block order: a headless look, `npm run shot`, the scratch script E2 used made a queue item) then **E3** (M: animation - procedural limb swing by speed; crouch, slide, climb, mantle, hang and landing poses; the Warden's aim pose; a check steps each state and asserts the pose changed; no per-frame allocation), then E4, the plant's materials. **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after F6 (2026-09-20) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **162 passed, 1 failed, 6 not for this map**, yard **145 passed, 1 failed, 23 not for this map** (2026-09-20, after F6), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **E3** (M: animation - procedural limb swing by speed; crouch, slide, climb, mantle, hang and landing poses; the Warden's aim pose; a check steps each state and asserts the pose changed; no per-frame allocation), then E4, the plant's materials. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -110,7 +110,7 @@ pieces, now shared; E1's readings are unchanged to the pixel.
 A look, headless: the scratch script that served the repo, loaded the
 page and wrote `renderer.domElement.toDataURL()` after a `render` from
 a placed camera gave a PNG the session could read - what the pane did,
-without the pane. Worth keeping in mind for any Block E job.
+without the pane. It is `npm run shot` since F6 (Running it, below).
 
 ## The Shade's figure - E1
 
@@ -1104,6 +1104,22 @@ with reasons (today: the frame-budget check; SwiftShader draws a frame in
 ~400ms). They are reported, never counted. Needs `npm install` once:
 `playwright-core` only, no browser download.
 
+A look at the figures, headless (F6):
+
+```bash
+npm run shot -- --map plant
+```
+
+`scripts/shot.mjs` serves and launches as the suite runner does, loads
+the page once per map (every registered map without `--map`), and calls
+`photograph()` (src/tests/look.js): both actors side by side on the
+figure checks' own stand, a frame from every eye in open air - front,
+side and three-quarter at 4.5m, down the lane at 8m and 25m - written
+to `shots/look-<map>-<eye>.png` (gitignored) in about 30s a map. A
+session reads the PNGs with the Read tool; that is the Browser pane's
+job done without the pane. `a-look-at-both-figures-photographs-every-
+eye` holds `photograph()` to a PNG from every eye with both bodies in it.
+
 In a real browser, for what headless cannot prove (the frame budget on a GPU,
 how it looks, how it sounds):
 
@@ -1175,7 +1191,8 @@ to be reset out.)
 
 **A scheduled run cannot use the Browser pane at all.** It refuses to start a
 dev server from an unattended session, by rule. `npm run suite` is the only
-gate a routine has; the pane is for humans.
+gate a routine has; the pane is for humans. For a look, `npm run shot`
+(F6) writes PNGs of both figures from five eyes that the Read tool shows.
 
 **The browser pane never composites.** `document.hidden` is always true,
 `requestAnimationFrame` never fires, screenshots time out. So:
