@@ -156,7 +156,7 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   sights raising the right arm 0.70 -> 1.05 rad and the hand 0.15m,
   looking up 0.6 raising it to 1.65, the carry back within 0.000 after.
   Spec 20.26, D42 provisional. — 2026-09-20, scheduled run, commit
-  `TBD`.
+  `db988e2`.
 - **F6** A look, headless. `npm run shot -- [--map id] [--out dir]`
   (scripts/shot.mjs: the suite runner's server and launch, repeated) loads
   the page once per map and calls `photograph()` (src/tests/look.js):
