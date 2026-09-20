@@ -18,7 +18,9 @@
  * that the Warden's arm rises with the sights and with the aim's pitch,
  * and is at the carry again when they drop. Whether any of it reads as
  * a body moving is PLAYTEST.md's. Every state is reached the way a
- * player reaches it, through the real keys (tests/fuzz.js's lesson).
+ * player reaches it, through the real keys (tests/fuzz.js's lesson):
+ * `strike` drives the Shade into a named state and leaves it there, for
+ * the check here and for the photograph (tests/look.js, F7).
  *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
@@ -147,6 +149,137 @@ function standing(h, actor, frames) {
   return stray;
 }
 
+/**
+ * Drive the Shade at a ledge from 0.8m off its face: forward held, Space
+ * pressed on the fifth step (held through or released the next), then
+ * frames until `state` is `mid` of the way through its move.
+ */
+function climb(h, spot, state, hold, mid) {
+  const shade = h.shade;
+  shade.reset({ position: { x: spot.x, y: CONFIG.map.groundY, z: spot.z }, yaw: spot.yaw });
+  for (let i = 0; i < 3; i++) frame(h);
+  h.input.clearAll();
+  h.input.heldCodes.add('KeyW');
+  for (let i = 0; i < 5; i++) frame(h);
+  press(h, 'Space');
+  frame(h);
+  if (!hold) h.input.heldCodes.delete('Space');
+  const through = () => shade.state === state && shade._move && shade._move.timer / shade._move.duration >= mid;
+  return frameUntil(h, through, 90);
+}
+
+/** The states `strike` knows, in the order the check reads them. */
+export const STRIKES = ['walk', 'sprint', 'crouch', 'slide', 'rise', 'fall', 'landing', 'vault', 'mantle', 'grab', 'hang', 'pullup'];
+
+/**
+ * Drive the Shade into a named state the way a player does - from the
+ * first clear lane, or the ledge the map has for it (tests/movement.js's
+ * `findGroundLedge`, the controller's own probe the arbiter) - and leave
+ * it there with the keys cleared: mid-stride for a walk and a sprint, part
+ * way through the move for a vault, a mantle, a grab and a pull-up, on
+ * the way up and on the way down for a jump, while the legs take it for
+ * a landing. The frame after is the photograph's (tests/look.js).
+ *
+ * @returns {{ reached: boolean, why: string }} `why` says what stopped it
+ */
+export function strike(h, name) {
+  const shade = h.shade;
+  const lane = clearLane(h, 10);
+  if (!lane) return { reached: false, why: 'no clear 10m lane on this map' };
+  const rest = { x: lane.x, y: lane.y, z: lane.z };
+  const stand = () => {
+    shade.reset({ position: rest, yaw: lane.yaw });
+    shade.pitch = 0;
+    for (let i = 0; i < 5; i++) frame(h);
+    h.input.clearAll();
+  };
+  const done = (reached, why) => { h.input.clearAll(); return { reached, why: reached ? '' : why }; };
+  const hangMin = S.standHeight * S.hangMinHeightRatio;
+  const fullReach = S.reach.standing + S.reach.jumpBonus;
+  switch (name) {
+    case 'walk':
+    case 'sprint': {
+      stand();
+      h.input.heldCodes.add('KeyW');
+      if (name === 'sprint') h.input.heldCodes.add('ShiftLeft');
+      // To speed, then to the leg's furthest reach: the frame after a
+      // crossing of the amplitude's sign is as far as the stride goes.
+      for (let i = 0; i < 30; i++) frame(h);
+      let last = Math.abs(shade.mesh.userData.parts.legL.rotation.x);
+      let rising = false;
+      const reached = frameUntil(h, () => {
+        const now = Math.abs(shade.mesh.userData.parts.legL.rotation.x);
+        const peak = rising && now < last;
+        rising = now > last;
+        last = now;
+        return peak;
+      }, 60);
+      return done(reached && shade.speed > 0.2, `the ${name} never swung a leg (speed ${shade.speed.toFixed(1)})`);
+    }
+    case 'crouch': {
+      stand();
+      h.input.heldCodes.add('ControlLeft');
+      for (let i = 0; i < SETTLE + 10; i++) frame(h);
+      return done(shade.crouching, `holding crouch did not crouch (state ${shade.state})`);
+    }
+    case 'slide': {
+      stand();
+      h.input.heldCodes.add('KeyW');
+      h.input.heldCodes.add('ShiftLeft');
+      for (let i = 0; i < 40; i++) frame(h);
+      press(h, 'ControlLeft');
+      const reached = frameUntil(h, () => shade.state === SHADE_STATE.SLIDE, 10, 12);
+      return done(reached, `a crouch at ${shade.speed.toFixed(1)} m/s did not slide (state ${shade.state})`);
+    }
+    case 'rise':
+    case 'fall': {
+      stand();
+      press(h, 'Space');
+      const rose = frameUntil(h, () => shade.state === SHADE_STATE.AIR && shade.velocity.y > 0, 10, 6);
+      if (name === 'rise') return done(rose, `a jump did not rise (state ${shade.state})`);
+      const fell = rose && frameUntil(h, () => shade.state === SHADE_STATE.AIR && shade.velocity.y < -2, 60, 4);
+      return done(fell, `the jump did not come down (state ${shade.state}, vy ${shade.velocity.y.toFixed(1)})`);
+    }
+    case 'landing': {
+      shade.reset({ position: { x: rest.x, y: rest.y + S.landing.hardFall + 1, z: rest.z }, yaw: lane.yaw });
+      shade.pitch = 0;
+      h.input.clearAll();
+      const reached = frameUntil(h, () => shade.state === SHADE_STATE.GROUND && shade._landRecovery > 0, 240, 3);
+      return done(reached, `a ${(S.landing.hardFall + 1).toFixed(1)}m drop did not land hard (state ${shade.state}, feet ${shade.feetY.toFixed(2)})`);
+    }
+    case 'vault': {
+      const spot = findGroundLedge(h, S.vaultMinHeight + 0.1, S.reach.vaultTop);
+      if (!spot) return done(false, 'no vault-height ground ledge was found');
+      return done(climb(h, spot, SHADE_STATE.VAULT, true, 0.4), `a press at ${spot.box.tag || 'the ledge'} did not reach the middle of a vault (state ${shade.state})`);
+    }
+    case 'mantle': {
+      const spot = findGroundLedge(h, S.reach.vaultTop + 0.1, Math.min(hangMin - 0.05, S.reach.standing));
+      if (!spot) return done(false, 'no mantle-height ground ledge under the hang height was found');
+      return done(climb(h, spot, SHADE_STATE.MANTLE, true, 0.4), `holding Space at ${spot.box.tag || 'the ledge'} did not reach the middle of a mantle (state ${shade.state})`);
+    }
+    case 'grab':
+    case 'hang':
+    case 'pullup': {
+      const spot = findGroundLedge(h, hangMin, fullReach, { hangable: true });
+      if (!spot) return done(false, 'no hangable ground-level ledge was found');
+      const tag = spot.box.tag || 'the ledge';
+      const grabbed = climb(h, spot, SHADE_STATE.GRAB, false, 0.5);
+      if (name === 'grab') return done(grabbed, `a tap at ${tag} did not reach the middle of a grab (state ${shade.state})`);
+      h.input.clearAll();
+      const hung = grabbed && frameUntil(h, () => shade.state === SHADE_STATE.HANG, 30, SETTLE);
+      if (name === 'hang') return done(hung, `the grab at ${tag} did not end hanging (state ${shade.state})`);
+      if (!hung) return done(false, `the grab at ${tag} did not end hanging (state ${shade.state})`);
+      press(h, 'Space');
+      frame(h);
+      h.input.heldCodes.delete('Space');
+      const half = () => shade.state === SHADE_STATE.PULLUP && shade._move && shade._move.timer / shade._move.duration >= 0.5;
+      return done(frameUntil(h, half, 60), `Space from the hang at ${tag} did not reach the middle of a pull-up (state ${shade.state})`);
+    }
+    default:
+      return done(false, `no such state as "${name}" to strike; one of ${STRIKES.join(', ')}`);
+  }
+}
+
 /** The world height of a limb group's end (the glove, the gauntlet, the boot). */
 function endHeight(actor, limb) {
   actor.mesh.updateMatrixWorld(true);
@@ -189,101 +322,19 @@ export function register(debugTools) {
       if (sprint.reach < walk.reach + 0.1) problems.push(`sprinting, the leg reaches ${sprint.reach.toFixed(2)} rad against ${walk.reach.toFixed(2)} walking - the swing is not by speed`);
       problems.push(...strideProblems('walking', walk, S.footstepStride), ...strideProblems('sprinting', sprint, S.sprintFootstepStride));
 
-      // The crouch: held, standing.
-      shade.reset({ position: rest, yaw: lane.yaw });
-      for (let i = 0; i < 5; i++) frame(h);
-      h.input.clearAll();
-      h.input.heldCodes.add('ControlLeft');
-      for (let i = 0; i < SETTLE + 10; i++) frame(h);
-      if (!shade.crouching) problems.push(`holding crouch did not crouch (state ${shade.state})`);
-      poses.crouch = readPose(shade);
-      h.input.clearAll();
-
-      // The slide: a sprint down the lane, then crouch.
-      shade.reset({ position: rest, yaw: lane.yaw });
-      for (let i = 0; i < 5; i++) frame(h);
-      h.input.clearAll();
-      h.input.heldCodes.add('KeyW');
-      h.input.heldCodes.add('ShiftLeft');
-      for (let i = 0; i < 40; i++) frame(h);
-      press(h, 'ControlLeft');
-      if (!frameUntil(h, () => shade.state === SHADE_STATE.SLIDE, 10, 12)) problems.push(`a crouch at ${shade.speed.toFixed(1)} m/s did not slide (state ${shade.state})`);
-      poses.slide = readPose(shade);
-      h.input.clearAll();
-
-      // The air, rising and falling: a jump on the spot.
-      shade.reset({ position: rest, yaw: lane.yaw });
-      for (let i = 0; i < 5; i++) frame(h);
-      h.input.clearAll();
-      press(h, 'Space');
-      if (!frameUntil(h, () => shade.state === SHADE_STATE.AIR && shade.velocity.y > 0, 10, 6)) problems.push(`a jump did not rise (state ${shade.state})`);
-      poses.rise = readPose(shade);
-      if (!frameUntil(h, () => shade.state === SHADE_STATE.AIR && shade.velocity.y < -2, 60, 4)) problems.push(`the jump did not come down (state ${shade.state}, vy ${shade.velocity.y.toFixed(1)})`);
-      poses.fall = readPose(shade);
-
-      // The landing: a hard fall onto the lane, read while the legs take it.
-      shade.reset({ position: { x: rest.x, y: rest.y + S.landing.hardFall + 1, z: rest.z }, yaw: lane.yaw });
-      if (!frameUntil(h, () => shade.state === SHADE_STATE.GROUND && shade._landRecovery > 0, 240, 3)) problems.push(`a ${(S.landing.hardFall + 1).toFixed(1)}m drop did not land hard (state ${shade.state}, feet ${shade.feetY.toFixed(2)})`);
-      poses.landing = readPose(shade);
-
-      // The climbs, each at a ledge the map has: the controller's own probe
-      // picks the face (tests/movement.js), the keys do the rest, and the
-      // pose is read part way through the move.
-      const climb = (spot, state, hold, mid) => {
-        const ground = CONFIG.map.groundY;
-        shade.reset({ position: { x: spot.x, y: ground, z: spot.z }, yaw: spot.yaw });
-        for (let i = 0; i < 3; i++) frame(h);
-        h.input.clearAll();
-        h.input.heldCodes.add('KeyW');
-        for (let i = 0; i < 5; i++) frame(h);
-        press(h, 'Space');
-        frame(h);
-        if (!hold) h.input.heldCodes.delete('Space');
-        const through = () => shade.state === state && shade._move && shade._move.timer / shade._move.duration >= mid;
-        const reached = frameUntil(h, through, 90);
-        const pose = readPose(shade);
-        return { reached, pose };
-      };
-      const hangMin = S.standHeight * S.hangMinHeightRatio;
-      const fullReach = S.reach.standing + S.reach.jumpBonus;
-      const vaultSpot = findGroundLedge(h, S.vaultMinHeight + 0.1, S.reach.vaultTop);
-      if (!vaultSpot) problems.push('no vault-height ground ledge was found');
-      else {
-        const v = climb(vaultSpot, SHADE_STATE.VAULT, true, 0.4);
-        if (!v.reached) problems.push(`a press at ${vaultSpot.box.tag || 'the ledge'} did not reach the middle of a vault (state ${shade.state})`);
-        poses.vault = v.pose;
-        h.input.clearAll();
+      // Every other state, struck the way a player gets there (`strike`),
+      // and read where it leaves the body: the crouch and the slide, the
+      // jump on the way up and down, a hard landing while the legs take
+      // it, and the climbs at the ledges the map has, part way through.
+      for (const name of STRIKES.slice(2)) {
+        const struck = strike(h, name);
+        if (!struck.reached) { problems.push(struck.why); continue; }
+        poses[name] = readPose(shade);
       }
-      const mantleSpot = findGroundLedge(h, S.reach.vaultTop + 0.1, Math.min(hangMin - 0.05, S.reach.standing));
-      if (!mantleSpot) problems.push('no mantle-height ground ledge under the hang height was found');
-      else {
-        const m = climb(mantleSpot, SHADE_STATE.MANTLE, true, 0.4);
-        if (!m.reached) problems.push(`holding Space at ${mantleSpot.box.tag || 'the ledge'} did not reach the middle of a mantle (state ${shade.state})`);
-        poses.mantle = m.pose;
-        h.input.clearAll();
-      }
-      const hangSpot = findGroundLedge(h, hangMin, fullReach, { hangable: true });
-      if (!hangSpot) problems.push('no hangable ground-level ledge was found');
-      else {
-        const tag = hangSpot.box.tag || 'the ledge';
-        const g = climb(hangSpot, SHADE_STATE.GRAB, false, 0.5);
-        if (!g.reached) problems.push(`a tap at ${tag} did not reach the middle of a grab (state ${shade.state})`);
-        poses.grab = g.pose;
-        h.input.clearAll();
-        if (!frameUntil(h, () => shade.state === SHADE_STATE.HANG, 30, SETTLE)) problems.push(`the grab at ${tag} did not end hanging (state ${shade.state})`);
-        poses.hang = readPose(shade);
-        if (poses.hang.armLX > -3.0 || poses.hang.armRX > -3.0) problems.push(`hanging arms at ${poses.hang.armLX.toFixed(2)} / ${poses.hang.armRX.toFixed(2)}, not straight up`);
-        // The pull-up: the hands stay on the lip and come past the front of
-        // the body, so half way through the arms are ahead of it, not behind.
-        press(h, 'Space');
-        frame(h);
-        h.input.heldCodes.delete('Space');
-        const half = () => shade.state === SHADE_STATE.PULLUP && shade._move && shade._move.timer / shade._move.duration >= 0.5;
-        if (!frameUntil(h, half, 60)) problems.push(`Space from the hang at ${tag} did not reach the middle of a pull-up (state ${shade.state})`);
-        poses.pullup = readPose(shade);
-        if (!(poses.pullup.armLX > 0.5 && poses.pullup.armLX < Math.PI)) problems.push(`half way up the pull-up the left arm is at ${poses.pullup.armLX.toFixed(2)} rad - the hands went behind, not over the front`);
-        h.input.clearAll();
-      }
+      if (poses.hang && (poses.hang.armLX > -3.0 || poses.hang.armRX > -3.0)) problems.push(`hanging arms at ${poses.hang.armLX.toFixed(2)} / ${poses.hang.armRX.toFixed(2)}, not straight up`);
+      // The pull-up: the hands stay on the lip and come past the front of
+      // the body, so half way through the arms are ahead of it, not behind.
+      if (poses.pullup && !(poses.pullup.armLX > 0.5 && poses.pullup.armLX < Math.PI)) problems.push(`half way up the pull-up the left arm is at ${poses.pullup.armLX.toFixed(2)} rad - the hands went behind, not over the front`);
 
       // Every pose apart from the rest, and from every other. The grab is
       // the reach into the hang and is measured against the rest only.
@@ -308,7 +359,7 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${readings.join('; ')}; the hanging arms straight up and half way up the pull-up the left arm at ${poses.pullup.armLX.toFixed(2)} rad, over the front; standing still the leg strays ${stray.toFixed(3)} rad`
+          ? `${readings.join('; ')}; the hanging arms straight up and half way up the pull-up the left arm at ${poses.pullup ? poses.pullup.armLX.toFixed(2) : '-'} rad, over the front; standing still the leg strays ${stray.toFixed(3)} rad`
           : `${problems.join('; ')} [${readings.join('; ')}]`,
       };
     },

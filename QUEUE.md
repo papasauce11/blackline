@@ -40,17 +40,6 @@ busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
 F5 (2026-09-16) and F6 (2026-09-20); the next gate job, if one is found, goes here.
 
-- [ ] **F7 (S)** A look at a pose. `npm run shot -- --pose <name>` (and
-  `photograph(h, { pose })`, src/tests/look.js) steps the Shade into a
-  named state through the real keys before the frames - `crouch`,
-  `slide`, `vault`, `mantle`, `hang`, `pullup`, `landing` on the lane
-  and the ledges tests/animation.js uses - and holds the Warden with the
-  sights up for `aim`; the figures at rest without it, as now. E3 built
-  ten poses nobody has seen mid-move. *done-when:* a PNG per named pose
-  from the three-quarter eye with the body in the state named, read
-  back by the session that runs it; `a-look-at-both-figures-photographs-
-  every-eye` unchanged; the shot without `--pose` byte-identical in
-  what it covers.
 
 ## Block B — the traversal redesign, phases 12–50
 
@@ -132,6 +121,23 @@ figure as built). Draw-call and frame budget checks are the ceiling.
 
 ## Done
 
+- **F7** A look at a pose. `npm run shot -- --pose <names|all>`
+  (scripts/shot.mjs) calls `photographPose(h, name)` (src/tests/look.js)
+  per name: `strike(h, name)` (tests/animation.js, factored out of E3's
+  check, which now drives through it) puts the Shade in the state
+  through the real keys - walk and sprint mid-stride, crouch, slide,
+  rise, fall, landing, vault 44%, mantle 40%, grab 56%, hang, pullup 51%
+  - or free roam holds the Warden's sights up for `aim`; the other actor
+  hidden, the eye 4.5m off the body at the first of six three-quarter /
+  side angles in open air with sight of its middle, the drawing buffer
+  as `shots/look-<map>-pose-<name>.png`, one line per pose with the state
+  the body was in. `a-look-at-a-pose-photographs-the-state-named` (every
+  map): every one of the thirteen reaches its state, finds an eye and
+  returns a PNG with the body on at least 3000 pixels (plant 4397-20489,
+  yard 4480-20489). `photograph()` untouched; the plain shot's coverage
+  moves a dozen pixels between runs with E3's breath (27630 / 22753 /
+  28106 / 8570 / 887 on the plant), not byte-identical. — 2026-09-20,
+  scheduled run, commit `TBD`.
 - **E3** Animation. `src/entities/pose.js`: one target record per body,
   filled in place every frame, every limb group eased toward it the
   shortest way round over `POSE_BLEND` 0.2s - a state change is a

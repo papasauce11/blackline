@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after E3 (2026-09-20) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **164 passed, 1 failed, 6 not for this map**, yard **147 passed, 1 failed, 23 not for this map** (2026-09-20, after E3), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **F7** (S: a look at a pose - `npm run shot -- --pose <name>` steps the Shade into a named state through the real keys before the frames and holds the Warden's sights up for `aim`; first by block order, Block F being the gate), then **E4** (M: map materials, `plant` - a concrete / painted metal / glass set with grime and decals, toon ramps tuned per material; pixel checks unchanged or better, frame budget unchanged), then E5, the yard's. **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after F7 (2026-09-20) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **165 passed, 1 failed, 6 not for this map (489s, 552s)**, yard **148 passed, 1 failed, 23 not for this map (237s, 222s)** (2026-09-20, after F7), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **E4** (M: map materials, `plant` - a concrete / painted metal / glass set with grime and decals, toon ramps tuned per material; pixel checks unchanged or better, frame budget unchanged), then E5, the yard's. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -51,8 +51,8 @@ map, is under way: D1, the plumbing, and D2, the yard blocked out, both
 the regression set whole on every map, 2026-09-19 (below). **Block D is
 closed but for D3b** (waits on D38). Block E, styling, is open: E1, the
 Shade's figure, 2026-09-19, E2, the Warden's, and E3, animation,
-2026-09-20 (all below); F7, a look at a pose, then E4, the plant's
-materials, are next.
+2026-09-20 (all below); F7, a look at a pose, the same day; E4, the
+plant's materials, is next.
 
 ---
 
@@ -1192,6 +1192,26 @@ to `shots/look-<map>-<eye>.png` (gitignored) in about 30s a map. A
 session reads the PNGs with the Read tool; that is the Browser pane's
 job done without the pane. `a-look-at-both-figures-photographs-every-
 eye` holds `photograph()` to a PNG from every eye with both bodies in it.
+
+A look at a pose (F7):
+
+```bash
+npm run shot -- --map plant --pose vault,aim     # or --pose all
+```
+
+`photographPose(h, name)` (src/tests/look.js) drives the Shade into the
+named state through the real keys (`strike`, tests/animation.js: walk,
+sprint, crouch, slide, rise, fall, landing, vault, mantle, grab, hang,
+pullup - the climbs part way through their move) or holds the Warden's
+sights up in free roam (`aim`), hides the other actor, and frames the
+body from the first of six eyes 4.5m off it in open air with sight of
+its middle, to `shots/look-<map>-pose-<name>.png`; one line per pose
+says the state the body was in. About 35s for all thirteen.
+`a-look-at-a-pose-photographs-the-state-named` holds every pose to its
+state and a PNG with the body on 3000 pixels. E3's poses were looked at
+this way before F7 was committed: the vault reads as a hurdle with the
+hands down, the mantle and the pull-up as climbs with the hands on the
+lip, the aim as a rifle held level at the chest.
 
 In a real browser, for what headless cannot prove (the frame budget on a GPU,
 how it looks, how it sounds):

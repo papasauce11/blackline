@@ -2,7 +2,7 @@
 //
 // A look at the figures, headless (F6):
 //
-//   npm run shot -- [--map plant,yard] [--out shots] [--query "seed=N"]
+//   npm run shot -- [--map plant,yard] [--out shots] [--query "seed=N"] [--pose crouch,vault,aim|all]
 //
 // Serves the repo in-process, drives the installed Chrome headless with
 // software WebGL the way scripts/suite.mjs does, loads the page once per
@@ -13,6 +13,13 @@
 // <out>/look-<map>-<eye>.png, and one line per eye says how many pixels
 // the bodies cover in it. The PNGs are what the Browser pane showed a
 // human session; a scheduled run has no pane, and can read a PNG.
+//
+// `--pose` (F7) photographs a state instead: `photographPose()` drives
+// the Shade into each named state through the real keys (a crouch, a
+// slide, a vault part way over, a hang, ...; `aim` is the Warden with the
+// sights up) and frames it where it is, from the first three-quarter eye
+// in open air - <out>/look-<map>-pose-<name>.png, one line per pose with
+// the state the body was in. `all` is every pose there is.
 //
 // The server and the launch are the suite runner's, repeated here rather
 // than imported: suite.mjs runs the suite on import. Keep the two in step.
@@ -28,6 +35,9 @@ const args = parseArgs(process.argv.slice(2));
 const CHANNEL = args.channel ?? 'chrome';
 const OUT = path.resolve(ROOT, String(args.out ?? 'shots'));
 const QUERY = args.query ? String(args.query) : '';
+const POSES = args.pose
+  ? String(args.pose).split(',').map(s => s.trim()).filter(Boolean)
+  : null;
 const MAPS = args.map
   ? String(args.map).split(',').map(s => s.trim()).filter(Boolean)
   : registeredMapIds();
@@ -113,6 +123,29 @@ async function main() {
 
       // The page's own module, through its import map; the loop stopped
       // and the shaders warmed first, as the suite does.
+      if (POSES) {
+        const looks = await page.evaluate(async (names) => {
+          const h = window.BLACKLINE;
+          h.loop.stop();
+          for (let k = 0; k < 60; k++) h.renderFrame(1 / 60);
+          const { photographPose, POSES: all } = await import('/src/tests/look.js');
+          const wanted = names.length === 1 && names[0] === 'all' ? all : names;
+          return wanted.map(name => photographPose(h, name));
+        }, POSES);
+        for (const look of looks) {
+          if (!look.dataUrl) {
+            process.stdout.write(`  ${look.pose}: no frame - ${look.why || `no eye in open air with sight of the body (${look.state})`}\n`);
+            failed = true;
+            continue;
+          }
+          const file = path.join(OUT, `look-${mapId}-pose-${look.pose}.png`);
+          fs.writeFileSync(file, Buffer.from(look.dataUrl.split(',')[1], 'base64'));
+          process.stdout.write(`${path.relative(ROOT, file)}  ${look.state}${look.reached ? '' : ` (NOT ${look.pose}: ${look.why})`}, ${look.covered}px of the body from the ${look.eye} eye\n`);
+          if (!look.reached) failed = true;
+        }
+        process.stderr.write(`shot: ${mapId}: ${looks.length} poses, ${Date.now() - t0}ms\n`);
+        continue;
+      }
       const look = await page.evaluate(async () => {
         const h = window.BLACKLINE;
         h.loop.stop();

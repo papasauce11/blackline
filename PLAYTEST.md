@@ -65,7 +65,11 @@ not, say so under D6 in `QUEUE.md`.
 side from five eyes - front, side, three-quarter, 8m and 25m - to
 `shots/`, one map or every map, without opening the game. It is how the
 routine looks at what it built; if a figure note below says "the pixels
-say" and you want to see the same frame, that is the command.
+say" and you want to see the same frame, that is the command. **`npm run
+shot -- --pose all`** (F7, 2026-09-20) does the same for a pose: the
+Shade driven into each state (walk, sprint, crouch, slide, rise, fall,
+landing, vault, mantle, grab, hang, pullup) and the Warden aiming, one
+PNG each, `--pose vault,aim` for a few.
 
 ## What to look at
 

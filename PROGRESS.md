@@ -6920,6 +6920,70 @@ step the Shade into one first - queued as F7 (S), which block order
 puts before E4, the plant's materials. The pose numbers are all in the
 two `POSE` tables and D42.
 
+## F7 — a look at a pose: `npm run shot -- --pose` (2026-09-20, scheduled run)
+
+The 17:00 run's second job, sized S, queued by E3 an hour earlier and
+first by block order (Block F is the gate, and this is its eye on a
+pose). E3's verify (164/1/6 and 147/1/23) stood as the gate.
+
+**`strike(h, name)`** (tests/animation.js) is E3's driving, factored
+out: the walk and the sprint left mid-stride (to speed, then to the
+frame after the leg's furthest reach), the crouch held, the slide from
+a sprint, the jump on the way up and on the way down, a hard landing
+while the legs take it, and the climbs at the ledges `findGroundLedge`
+finds - a vault and a mantle 40% through, a grab and a pull-up 50%
+through, a hang settled - every one through the real keys, the keys
+cleared after and nothing stepped since, so the body is where the
+state left it. `STRIKES` names them in order. E3's check now drives
+through it (the same readings to the digit: closest pair 0.46, crossings
+2.10 / 2.60 / 2.00 apart, the pull-up's arm 1.97), so the photograph
+and the check cannot disagree about what a state is.
+
+**`photographPose(h, name)`** (tests/look.js): the Shade struck, or the
+Warden in free roam with Mouse2 held sixty frames (`aim`, first person
+hides the body and it is shown for the frame); the other actor hidden;
+the eye 4.5m off the body's smoothed position at the first of six
+angles - front-left, front-right, left, right, back-left, back-right -
+that is in open air and sees the body's middle (a vault is over a
+crate and the front-left eye is in it; a hang is at a face and the
+front eyes are in the wall: those two frames come from the side); the
+drawing buffer as a PNG, the pixels the body covers, and the state the
+body was in with the move's progress. `npm run shot -- --pose
+<names|all>` (scripts/shot.mjs) writes `shots/look-<map>-pose-<name>.png`
+with one line per pose. The plain shot's path is untouched.
+
+**`a-look-at-a-pose-photographs-the-state-named`** (every map): all
+thirteen reach their state, find an eye and return a PNG with the body
+on at least 3000 pixels. Plant: walk 7945, sprint 8080, crouch 4894,
+slide 4397, rise 8557, fall 8975, landing 9429, vault 6438, mantle
+6509, grab 7792, hang 7786, pullup 6321, aim 20489; yard 4480 to 20489,
+the mantle from the right eye there. Revert the job and the check goes
+with it, which is what a check of a tool can say.
+
+**What the frames say** (read back with the Read tool): the sprint is
+a full stride with the arms swinging and a lean; the crouch is low and
+forward with the boots a hand off the floor (the squash shortens the
+legs and the pose bends them - PLAYTEST.md's question); the slide is
+flat, legs out, one hand trailing; the vault at 44% is a hurdle over
+the crate's edge with the hands down and the legs out ahead; the
+mantle at 40% has the hands on the lip at shoulder height and a knee
+up; the pull-up at 51% has the hands on the lip in front and the body
+rising past it, a leg kicked back; the aim holds the rifle level at
+the chest with the head down on it. Two small teal squares on the
+plant's floor near site A are the map's, in the frame at every pose
+there and not a limb.
+
+**Verified.** `npm run shot -- --map plant --pose all` (13 PNGs, 35s),
+the plain shot (five frames, coverage within a dozen pixels of E3's
+run: the breath), a four-check subset on the yard (4 / 4, 28s), then
+`npm run suite`, both maps twice: **plant 165 passed, 1 failed, 6 not for this map (489s, 552s), yard 148 passed, 1 failed, 23 not for this map (237s, 222s)**, every
+outcome identical between runs, 0 red, 0 flaky, 0 console errors, 0
+context losses; the one failure on each is the frame-budget check,
+skipped headless.
+
+**Left.** E4, the plant's materials, next; a Block E job can now look
+at a pose as well as a figure before it commits.
+
 ## Audit — 2026-09-20
 
 **Landed.** Week 2026-09-12 → 09-20; oldest commit `7bec4fc` (B4,

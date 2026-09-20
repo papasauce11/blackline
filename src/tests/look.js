@@ -18,12 +18,22 @@
  * and writes the PNGs; the check below calls it under the suite and
  * holds it to a frame from every eye with both bodies in it.
  *
+ * A look at a pose (F7): `photographPose(h, name)` drives the Shade into
+ * a named state the way a player gets there (`strike`, tests/animation.js
+ * - a crouch, a slide, a vault part way over, a hang, ...) and
+ * photographs it where it is, from the first three-quarter eye in open
+ * air with sight of it; `aim` is the Warden with the sights up on the
+ * stand. E3 built ten poses nobody had seen mid-move. `npm run shot --
+ * --pose <name>` writes them.
+ *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
+import { CONFIG } from '../config.js';
 import { createLens, difference, quiesce } from './pixels.js';
 import { alongLane } from './lanes.js';
 import { standAndEyes } from './figure.js';
+import { strike, STRIKES } from './animation.js';
 
 /** The eyes, by name: a direction relative to the lane (along, across) and a distance, or a lane eye the stand already has. */
 const EYES = [
@@ -109,7 +119,137 @@ export function photograph(h) {
   return { lane: lane.from, stand, views, skipped };
 }
 
+/** The poses `photographPose` knows: the Shade's, and the Warden's aim. */
+export const POSES = [...STRIKES, 'aim'];
+
+/** The eyes tried for a pose, in order, as (along the body's facing, across to its left) at 4.5m: the first in open air with sight of the body. */
+const POSE_EYES = [
+  { name: 'front-left', along: Math.SQRT1_2, across: Math.SQRT1_2 },
+  { name: 'front-right', along: Math.SQRT1_2, across: -Math.SQRT1_2 },
+  { name: 'left', along: 0, across: 1 },
+  { name: 'right', along: 0, across: -1 },
+  { name: 'back-left', along: -Math.SQRT1_2, across: Math.SQRT1_2 },
+  { name: 'back-right', along: -Math.SQRT1_2, across: -Math.SQRT1_2 },
+];
+const POSE_DISTANCE = 4.5;
+
+/**
+ * The Shade in a named state, or the Warden aiming, photographed where it
+ * is: the other actor out of the frame, the eye 4.5m off at three
+ * quarters (or the first of `POSE_EYES` in open air that sees the body's
+ * middle), the frame the drawing buffer as a PNG. Nothing is stepped
+ * between the strike and the frame, so a vault is photographed part way
+ * over. The match is left as `quiesce` leaves it.
+ *
+ * @returns {{ pose: string, reached: boolean, why: string, state: string, eye: string|null, covered: number, dataUrl: string|null }}
+ *   `state` is what the body was in for the frame; `reached` whether that
+ *   is the state named, `why` what stopped it when not; `eye` null when
+ *   no eye had sight of the body
+ */
+export function photographPose(h, name) {
+  const { shade, warden } = h;
+  const world = h.map.collision;
+  const restore = quiesce(h);
+  let actor;
+  let reached;
+  let why = '';
+  let state;
+  if (name === 'aim') {
+    // Free roam as the Warden, the sights held until the blend settles;
+    // first person hides the body, so it is shown for the frame.
+    h.initMatch({ mode: 'freeroam', role: 'warden', ai: false, objective: false });
+    const where = standAndEyes(h, 25);
+    if (where) {
+      warden.reset({ position: where.stand, yaw: where.lane.yaw });
+      warden.pitch = 0;
+      h.input.clearAll();
+      h.input.heldCodes.add('Mouse2');
+      for (let i = 0; i < 60; i++) { h.stepFrames(1); h.input.clearEdges(); warden.updateVisual(1 / 60); }
+      h.input.clearAll();
+    }
+    actor = warden;
+    reached = !!where && warden.adsBlend > 0.99;
+    why = where ? (reached ? '' : `the sights are at ${warden.adsBlend.toFixed(2)}`) : 'no stand on this map with a clear lane and 25m of sight';
+    state = `ads ${warden.adsBlend.toFixed(2)}`;
+  } else {
+    // The Shade driven by the keys with the AI off, so nothing shoots it
+    // on the way down a 5m drop.
+    h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
+    const struck = strike(h, name);
+    actor = shade;
+    reached = struck.reached;
+    why = struck.why;
+    state = shade.state + (shade.crouching ? ' (crouching)' : '') + (shade._move ? ` ${(shade._move.timer / shade._move.duration * 100).toFixed(0)}%` : '');
+  }
+
+  // The eye, from the body's facing: the first in open air that sees the
+  // body's middle (a vault is over a crate, and an eye can be in it).
+  const feet = actor.mesh.position;
+  const focus = { x: feet.x, y: feet.y + FOCUS, z: feet.z };
+  const forward = { x: -Math.sin(actor.yaw), z: -Math.cos(actor.yaw) };
+  const left = { x: -Math.cos(actor.yaw), z: Math.sin(actor.yaw) };
+  const eyeHalf = { x: 0.2, y: 0.2, z: 0.2 };
+  let eye = null;
+  let eyeName = null;
+  for (const spec of POSE_EYES) {
+    const candidate = {
+      x: feet.x + (forward.x * spec.along + left.x * spec.across) * POSE_DISTANCE,
+      y: feet.y + EYE,
+      z: feet.z + (forward.z * spec.along + left.z * spec.across) * POSE_DISTANCE,
+    };
+    if (!world.isClear(candidate, eyeHalf) || !world.lineOfSight(candidate, focus)) continue;
+    eye = candidate;
+    eyeName = spec.name;
+    break;
+  }
+
+  let covered = 0;
+  let dataUrl = null;
+  if (eye) {
+    const other = actor === shade ? warden : shade;
+    const wasVisible = { actor: actor.mesh.visible, other: other.mesh.visible };
+    other.mesh.visible = false;
+    const lens = createLens(h);
+    lens.look(eye, focus);
+    actor.mesh.visible = false;
+    const without = lens.grab();
+    actor.mesh.visible = true;
+    const withBody = lens.grab();
+    dataUrl = h.renderer.domElement.toDataURL('image/png');
+    covered = difference(withBody, without, lens.width, lens.height, 8).count;
+    lens.restore();
+    actor.mesh.visible = wasVisible.actor;
+    other.mesh.visible = wasVisible.other;
+  }
+  h.input.clearAll();
+  restore();
+  return { pose: name, reached, why, state, eye: eyeName, covered, dataUrl };
+}
+
 export function register(debugTools) {
+  debugTools.registerAutoTest({
+    id: 'a-look-at-a-pose-photographs-the-state-named',
+    spec: 'Section 4 (procedural animation) / F7',
+    name: 'photographPose() drives the Shade into each named state (and the Warden into the aim) and returns a PNG of it from an eye with sight of the body, mid-move for the climbs',
+    run: (h) => {
+      const problems = [];
+      const readings = [];
+      for (const name of POSES) {
+        const look = photographPose(h, name);
+        if (!look.reached) { problems.push(`${name}: ${look.why}`); continue; }
+        if (!look.eye) { problems.push(`${name}: no eye in open air with sight of the body (${look.state})`); continue; }
+        if (!look.dataUrl || !look.dataUrl.startsWith('data:image/png;base64,') || look.dataUrl.length < 1000) problems.push(`${name}: the frame is not a PNG`);
+        // One body at 4.5m covers thousands of pixels.
+        if (look.covered < 3000) problems.push(`${name}: the body covers ${look.covered} pixels from the ${look.eye} eye, want 3000`);
+        readings.push(`${name} ${look.state} ${look.covered}px ${look.eye}`);
+      }
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0 ? readings.join('; ') : `${problems.join('; ')} [${readings.join('; ')}]`,
+      };
+    },
+  });
+
   debugTools.registerAutoTest({
     id: 'a-look-at-both-figures-photographs-every-eye',
     spec: 'Section 4 (readable silhouettes) / F6',
