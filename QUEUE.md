@@ -137,7 +137,7 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   yard 4480-20489). `photograph()` untouched; the plain shot's coverage
   moves a dozen pixels between runs with E3's breath (27630 / 22753 /
   28106 / 8570 / 887 on the plant), not byte-identical. — 2026-09-20,
-  scheduled run, commit `TBD`.
+  scheduled run, commit `f7091c3`.
 - **E3** Animation. `src/entities/pose.js`: one target record per body,
   filled in place every frame, every limb group eased toward it the
   shortest way round over `POSE_BLEND` 0.2s - a state change is a
