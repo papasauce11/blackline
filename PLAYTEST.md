@@ -66,6 +66,33 @@ not, say so under D6 in `QUEUE.md`.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The Warden has a helmet and a rifle (E2, 2026-09-20)
+
+Either map, a competitive match as the Shade: watch a patrol from a
+container top or the deck. The Warden is rebuilt: a domed gunmetal
+helmet with a brim and a dark visor sat straight on the shoulders, no
+neck, an orange chest with vest plates front and back, a belt of hips
+over short splayed legs, heavy pauldrons, and a rifle held at the low
+ready in front of the belly, pointing ahead and a little down - both
+arms forward and pulled in to it (they were held behind the back
+before; nobody had noticed). It is still the six groups the controller
+poses, so the walk, the stun and the ragdoll are drawn as they were;
+each group is one merged mesh on one material, twelve draw calls where
+there were sixteen. The checks prove: at 25m as flat shapes, the Warden
+is broad (1.5:1) with a helmet narrower than the shoulders under it
+and, from the side, a middle that reaches 0.8m ahead of the helmet,
+while the Shade is narrow (3.3:1) and hooded and reaches nothing
+(`the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`); the
+hulls still sit on their parts (`outlines-sit-on-the-body-they-outline`).
+What only eyes can judge: whether it reads as the Warden - a guard, not
+a barrel with a gun; whether the rifle reads as a rifle at 25m in a dark
+lane, or as a stick; whether the arms, which cannot bend, look like
+they hold it or like they point at it; whether the stunned Warden with
+its arms dropped and the rifle pointing at the floor reads as "not a
+threat"; whether the walk's body roll looks right with the wider
+shoulders. The numbers to turn are all in `WARDEN_FIGURE`
+(`src/entities/wardenmesh.js`), argued under D41.
+
 ### The Shade has a hood (E1, 2026-09-19)
 
 Either map, any mode. The third-person camera is always on the Shade;

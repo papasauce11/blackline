@@ -95,6 +95,63 @@ had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
 ## Provisional — done as recommended, override any time
 
+### D41 — The Warden's figure as built: a helmet on the shoulders, a vest, a rifle at the low ready, a broad stance
+E2 (2026-09-20). D3 stands (the Shade and the Warden first); this is what
+the Warden came out as, and the numbers to turn, all in `WARDEN_FIGURE`
+(`src/entities/wardenmesh.js`). Nothing the player can do changed; the
+capsule the game simulates, the eye the rifle fires from and the AI are
+untouched.
+
+- **A domed helmet with a brim and a visor, sat on the shoulders.** The
+  skull is a box under it and shows nowhere: the chest's top is a hand
+  under the brim and a collar fills the gap, so the silhouette never
+  steps in under the helmet - the Shade's hood over a neck in reverse,
+  which is what the check reads (helmet 10 pixels over shoulders 26 at
+  25m; the Shade's hood 10 over 6). The shoulder line is set so that at
+  25m the top seventh of the figure is helmet and nothing else.
+  Alternative: the old box head on a bare chest - a neck shows, and at
+  25m the two tops read the same.
+- **A vest over the orange chest**: gunmetal plates proud of its front
+  and back, a belt of hips under it over the tops of the legs, so the
+  body is one block from shoulder to thigh (the old figure had 25cm of
+  nothing between the chest and the legs). Heavy pauldrons tilted down
+  at the outer edge are the widest row: 1.2m, 26 pixels at 25m against
+  the Shade's 12.
+- **The rifle at the low ready, in the right hand.** Both arms forward
+  and pulled in to the centreline, the hands together at the grip in
+  front of the belly, the rifle pointing ahead and 20 degrees down; the
+  elbows cannot bend, so the stock is short and the hands are close. It
+  is a piece of the right arm's merged part, built in that arm's frame
+  from the rest pose, so it goes where the right hand goes: the stun
+  drops it, and E3's aim pose raises it by rotating the arm. From the
+  side it reaches 0.8m past the helmet (41% of the height; the check
+  wants 25%), and the Shade reaches nothing (-3%). Alternative: port
+  arms across the chest with the muzzle over the left shoulder - it
+  reads from the front but not the side, and the side is where a Shade
+  watches a patrol from. A rifle in the torso's part would hold still
+  in the hands but could never be raised.
+- **The arms were behind the back.** The old carry set `rotation.x` to
+  -1.15 "forward holding the weapon"; on this rig positive x is forward
+  (the Shade's hang at -3.05 is straight up and a shade behind), so the
+  Warden has patrolled with both arms held out behind it since it was
+  first drawn (the makeRotationX matrix says so; nothing read it).
+  The rest pose is `WARDEN_FIGURE.arm.rest`, read by enforcer.js, and
+  the walk swings the arms a little about it.
+- **A broad stance**: short legs set at 0.22 and splayed a tenth of a
+  radian so the boots stand at 0.30, wider than the hips; 0.22 wide.
+- **Six merged parts on one material**, as the Shade (D40): twelve draw
+  calls where there were sixteen, two toon materials become one with
+  vertex colours, and `parts.js` is the one place a part is built. The
+  hull is grown 6mm, thicker than the Shade's 4mm: no rim shares the
+  edge on the Warden. One palette entry added, `wardenSteel` (0x1b1e21),
+  for the rifle and the visor: gunmetal on gunmetal lost the weapon
+  against the vest.
+Josh: the pixels say broad, flat-topped and carrying at 25m as a flat
+shape (`the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`);
+whether it reads as the Warden - a guard, not a barrel with a gun - is
+yours, and PLAYTEST.md says where to look.
+**decided:**
+
 ### D40 — The Shade's figure as built: a hood, a cowl, thin limbs, six merged parts
 E1 (2026-09-19). D3 stands (the Shade and the Warden first); this is what
 the Shade came out as, and the numbers to turn, all in `FIGURE`

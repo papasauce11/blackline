@@ -6635,3 +6635,124 @@ white; and `clearLane(h, 26)` does not exist on the plant, hence sight.
 **Left.** E2, the Warden, next; then E3, animation - the limb-end
 empties and the six groups are there for it. Josh looks at the figure
 (PLAYTEST.md, D40).
+
+## E2 — the Warden: a helmet on the shoulders, a vest, a rifle at the low ready, six merged parts (2026-09-20, scheduled run)
+
+The 02:00 run's one job, sized M, the second of Block E (D3: the Shade
+and the Warden first). The gate stood at 160/1/6 and 143/1/23 (exit 0;
+it was started before the first file was touched, and the yard's page
+load eight minutes in may have seen the tree mid-edit - it came back
+at HEAD's numbers with the new check not yet registered, so it read as
+the base either way). The queue asked for a helmet, a vest, a rifle
+silhouette and a broad stance, held by a pixel check that tells the
+two figures apart by silhouette alone at 25m, in the dark.
+
+**"In the dark" is read as "shape and nothing else."** The check draws
+each body on a flat unlit white and takes the difference frame, as E1
+did: the figure with no colour, no shading and no rim to help it, which
+is what a figure is in the dark. A literal reading - both bodies under
+the map's night at visibility zero - measures the lamps, not the
+figures: E1 found the yard's night hides a third of the Shade against
+the container behind it. Whether the lamps show either body is the
+lighting checks' question.
+
+**Built** (`WARDEN_FIGURE`, entities/wardenmesh.js, split out of
+enforcer.js as agentmesh.js was out of agent.js; every number is there):
+
+- **The helmet.** A dome of 0.21 on a band of 0.13 with a brim of 0.245
+  and a `wardenSteel` visor, over a box skull that shows nowhere: the
+  chest's top is a hand under the brim and a collar fills the neck, so
+  the silhouette never steps in under the helmet - the Shade's hood over
+  a neck in reverse, which is the front-view reading.
+- **The vest and the block.** Gunmetal plates proud of the orange
+  chest's front and back, and a belt of hips under the chest over the
+  tops of the legs: the old figure had 25cm of nothing between its chest
+  (bottom at 0.96) and its legs (top at 0.70). Pauldrons of 0.26 x 0.20
+  x 0.42 tilted down at the outer edge: the widest row, 1.2m.
+- **The stance.** Short legs of 0.22 at x 0.22, each tilted a tenth of
+  a radian about the hip so the boots stand at 0.30 (the leg box is
+  translated to hang from the pivot before `part` rotates it, so the
+  tilt is about the hip and the boot lands where the tilted leg ends).
+- **The rifle**, at the low ready. Both arms forward and pulled in to
+  the centreline (`arm.rest`: left x 1.0 / z 0.6, right x 0.7 / z -0.5),
+  the hands together at the grip in front of the belly, the rifle from
+  the right hand ahead and 20 degrees down; the elbows cannot bend, so
+  the stock is short (0.18 behind the hand) and the hands are close. It
+  is a piece of the right arm's merged part: `riflePieces` puts the
+  hand where the rest pose puts it (`handAt`, the arm's Euler as a
+  quaternion), points the rifle by `rifle.pitch` / `yaw`, and takes the
+  centre and the orientation into the arm's frame by the inverse of the
+  rest quaternion - so at the rest pose it is in the hands, and it goes
+  where the right hand goes: the stun drops it, and E3's aim pose will
+  raise it by rotating the arm. Port arms across the chest, tried first,
+  reads from the front and not the side, and the side is where a Shade
+  watches a patrol from.
+- **The arms were behind the back.** The old carry set `rotation.x =
+  -1.15` "forward holding the weapon"; positive x is forward on this rig
+  (makeRotationX: y=-1 goes to z=-sin, and forward is -z), so the
+  Warden has walked with both arms held out behind it since it was
+  first drawn. The rest pose is read by `_animate` and the walk swings
+  a little about it. D41 records it.
+- **Six merged parts on one material**, six hulls grown 6mm: 12 draw
+  calls, were 16 (eight meshes, eight scaled hulls, two toon materials).
+  `part`, `grown`, `mergePieces` and `inward` moved to
+  entities/parts.js, shared with the Shade; `part` takes the growth as
+  an argument (the Shade's 4mm shares its edge with the rim, the
+  Warden's has no rim) and a piece may carry a `quaternion` for the
+  rifle. One palette entry, `wardenSteel` 0x1b1e21: gunmetal on
+  gunmetal lost the weapon against the vest.
+
+**`the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`**
+(tests/figure.js, every map). The structure first, for the Warden as
+for the Shade (`structure`: six parts on the one material with vertex
+colours, six hulls). Then the same stand and 25m eye E1's check finds
+(`standAndEyes`), each figure turned to face the eye and then side-on
+(`yawToward`), on the flat white with the other hidden; the Warden is
+placed and drawn, never stepped - a stepped frame is the AI's and it
+would walk off the stand. Front: the Shade narrow (at least 2.2:1; 3.3)
+with its hood 1.5x the neck (10 over 6) and at least 0.9x anything in
+the band under it; the Warden broad (at most 2:1; 1.5) with its helmet
+at most 0.6x the widest row of the band under it (10 over 26); the
+Shade's aspect 1.5x the Warden's and the Warden's widest row 1.5x the
+Shade's (26 over 12). Side: the middle band (30-70% of the height)
+reaches at least 25% of the height ahead of the helmet on the Warden
+(41%; the rifle) and at most 10% ahead of the hood on the Shade (-2 to
+-3%). Twelve draw calls at most and at least the twelve meshes. The
+readings lead the failure line, in brackets after the problems: a red
+line has to say what it saw. `silhouette`, `band`, `rowExtents` (now
+left, right and width per row), `structure`, `flatten` and `drawCalls`
+are E1's check taken apart and shared; its readings are unchanged to
+the pixel (8m 122-126x35, hood 28 over 11-12; 25m 39-40x12, 10 over 5-6).
+
+**Found on the way.** Three wrong readings, each the geometry and not
+the check: `head.pivot` and `arm.pivot` were written in metres where
+the code multiplied by the standing height (the helmet at 2.38m, 49
+rows tall, the "shoulders" the skull box at 6px); then, with the head
+right, the helmet band read 22px - the top 14% of forty rows is seven
+rows, rounded, 0.34m, and the pauldrons' top corners at 1.645m were in
+it. The chest came down 5cm and the pauldrons 9cm so the top seventh of
+the figure is helmet and nothing else. A figure's proportions are
+argued against the band it is measured in. And a look: a scratch script
+that served the repo, loaded the page headless and wrote
+`renderer.domElement.toDataURL()` after a `render` from a placed camera
+gave PNGs this session could read - the figures at 4.5m front, side and
+three-quarter, and at 8m. The Warden reads as a helmeted guard with a
+gun in the side view; from the front the rifle is a short bar in the
+hands, as it would be. Not committed (it is not in the queue); a queue
+item asks whether it should be.
+
+**Verified.** The new check in a subset on the plant through three
+figure fixes (above), green at 40x26 / 40x12; then `npm run suite`,
+both maps twice: **plant 161 passed, 1 failed, 6 not for this map
+(454s, 508s), yard 144 passed, 1 failed, 23 not for this map (206s,
+202s)**, every outcome identical between runs, 0 red, 0 flaky, 0
+console errors, 0 context losses; the one failure on each is the
+frame-budget check, skipped headless. `outlines-sit-on-the-body-they-
+outline`: 12 body meshes across both actors, 12 outlines, coincident.
+`ragdoll-is-lite-and-freezes` unchanged. `the-rim-light-is-really-on-
+screen` 1.9x / 2.3x, `the-outline-darkens-the-silhouette-edge` 117-141
+against 8-9: the Shade's numbers, where they were.
+
+**Left.** E3, animation, next: the six groups, the limb-end empties and
+the rest pose are there for it, and the rifle rises with the right arm.
+Josh looks at the figure (PLAYTEST.md, D41).

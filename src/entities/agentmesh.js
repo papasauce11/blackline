@@ -8,13 +8,15 @@
  * skeletal rig - the controller animates by rotating and translating six
  * limb groups, each holding one merged mesh and its hull.
  *
- * Layering (Section 3.1): imports config only. Split out of agent.js, which was
+ * Layering (Section 3.1): imports config and parts.js (the merge and the hull,
+ * shared with the Warden's body since E2). Split out of agent.js, which was
  * 869 lines against the ~600 guidance; construction and control are the natural
  * seam, and nothing here runs after build time.
  */
 
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
+import { inward, part } from './parts.js';
 
 const S = CONFIG.shade;
 const P = CONFIG.palette;
@@ -117,13 +119,10 @@ function addRimLight(material, uniforms) {
 // calls where there were twenty. A skinned mesh would be two, but Section 4
 // forbids a rigged skeleton, and a merged mesh cannot bend an elbow.
 //
-// The hull is built per primitive, not by scaling the finished part: a limb
-// group's origin is its pivot, and a hull scaled about the shoulder sits
-// 2cm off the glove. Each primitive is grown by `FIGURE.outline` on every
-// side about its own centre before it is placed (Section 4's 1.03 was a
-// scale about a capsule's centre; a fixed growth is the same edge on the
-// torso and a visible one on a 4cm arm), and the grown pieces are merged
-// the same way. `FIGURE` states the proportions; D40 argues them.
+// The hull is built per primitive, grown by `FIGURE.outline` on every side
+// about its own centre before it is placed, and merged the same way
+// (`part`, parts.js, which says why). `FIGURE` states the proportions;
+// D40 argues them.
 // ---------------------------------------------------------------------------
 
 /**
@@ -157,98 +156,6 @@ export const FIGURE = {
   arm: { x: 0.19, pivot: 0.16, length: 0.3, radius: 0.05, glove: 0.14, reach: 0.081 },
   leg: { x: 0.09, pivot: 0.46, length: 0.4, radius: 0.06, boot: 0.16, reach: 0.095 },
 };
-
-/**
- * Merge placed primitives into one indexed geometry with a colour per vertex.
- * @param {{geometry: THREE.BufferGeometry, color: THREE.Color}[]} pieces already transformed
- */
-function mergePieces(pieces) {
-  let vertices = 0;
-  let indices = 0;
-  for (const { geometry } of pieces) {
-    vertices += geometry.attributes.position.count;
-    indices += geometry.index.count;
-  }
-  const position = new Float32Array(vertices * 3);
-  const normal = new Float32Array(vertices * 3);
-  const color = new Float32Array(vertices * 3);
-  const index = new Uint16Array(indices);
-  let v = 0;
-  let i = 0;
-  for (const { geometry, color: tint } of pieces) {
-    const p = geometry.attributes.position;
-    const n = geometry.attributes.normal;
-    for (let k = 0; k < p.count; k++) {
-      position[(v + k) * 3] = p.getX(k);
-      position[(v + k) * 3 + 1] = p.getY(k);
-      position[(v + k) * 3 + 2] = p.getZ(k);
-      normal[(v + k) * 3] = n.getX(k);
-      normal[(v + k) * 3 + 1] = n.getY(k);
-      normal[(v + k) * 3 + 2] = n.getZ(k);
-      color[(v + k) * 3] = tint.r;
-      color[(v + k) * 3 + 1] = tint.g;
-      color[(v + k) * 3 + 2] = tint.b;
-    }
-    const ix = geometry.index;
-    for (let k = 0; k < ix.count; k++) index[i + k] = ix.getX(k) + v;
-    v += p.count;
-    i += ix.count;
-    geometry.dispose();
-  }
-  const merged = new THREE.BufferGeometry();
-  merged.setAttribute('position', new THREE.BufferAttribute(position, 3));
-  merged.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
-  merged.setAttribute('color', new THREE.BufferAttribute(color, 3));
-  merged.setIndex(new THREE.BufferAttribute(index, 1));
-  merged.computeBoundingSphere();
-  return merged;
-}
-
-/** The same shell facing inward: mirrored in x (the opening is symmetric about x) and its normals turned. */
-function inward(geometry) {
-  geometry.scale(-1, 1, 1);
-  const n = geometry.attributes.normal;
-  for (let k = 0; k < n.count; k++) n.setXYZ(k, -n.getX(k), -n.getY(k), -n.getZ(k));
-  return geometry;
-}
-
-/** A primitive grown by `FIGURE.outline` on every side about its own centre. */
-function grown(geometry) {
-  geometry.computeBoundingBox();
-  const size = geometry.boundingBox.getSize(new THREE.Vector3());
-  const d = FIGURE.outline * 2;
-  return geometry.clone().scale(1 + d / size.x, 1 + d / size.y, 1 + d / size.z);
-}
-
-/**
- * One part of the body: the pieces merged into a mesh on `group`, with its
- * hull. A piece is a primitive at the origin, a colour, and where it goes
- * in the group (a position, and optionally a rotation).
- */
-function part(group, pieces, material, outlineMaterial) {
-  const place = (geometry, at, rotation) => {
-    if (rotation) geometry.rotateX(rotation.x || 0).rotateY(rotation.y || 0).rotateZ(rotation.z || 0);
-    return geometry.translate(at.x || 0, at.y || 0, at.z || 0);
-  };
-  const body = mergePieces(pieces.map(({ geometry, color, at = {}, rotation }) => ({
-    geometry: place(geometry.clone(), at, rotation), color,
-  })));
-  const hull = mergePieces(pieces.map(({ geometry, color, at = {}, rotation }) => ({
-    geometry: place(grown(geometry), at, rotation), color,
-  })));
-  for (const { geometry } of pieces) geometry.dispose();
-
-  const mesh = new THREE.Mesh(body, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = false;
-  group.add(mesh);
-  // Child of the mesh, not a sibling of it. Callers reposition the mesh they
-  // get back and a sibling outline stays behind; parenting makes the drift
-  // impossible (Phase 5).
-  const outline = new THREE.Mesh(hull, outlineMaterial);
-  mesh.add(outline);
-  return mesh;
-}
 
 export function buildShadeMesh(gradientMap) {
   const root = new THREE.Group();
@@ -290,13 +197,13 @@ export function buildShadeMesh(gradientMap) {
       color: teal,
       at: { y: H * G.arm.pivot + G.mantle.lift },
     },
-  ], body, outline);
+  ], body, outline, G.outline);
   root.add(torso);
 
   // Small head, inside the hood; it takes the pitch (agentvisual.js).
   const head = new THREE.Group();
   head.position.y = headY;
-  part(head, [{ geometry: new THREE.SphereGeometry(G.head.radius, 12, 10), color: charcoal }], body, outline);
+  part(head, [{ geometry: new THREE.SphereGeometry(G.head.radius, 12, 10), color: charcoal }], body, outline, G.outline);
   torso.add(head);
 
   // Long limbs, pivoting from the shoulder and hip: a thin capsule and the
@@ -310,7 +217,7 @@ export function buildShadeMesh(gradientMap) {
     part(limb, [
       { geometry: new THREE.CapsuleGeometry(spec.radius, spec.length * H, 3, 8), color: charcoal, at: { y: -spec.length * H / 2 - spec.radius } },
       { geometry: new THREE.BoxGeometry(cap, cap * 0.62, cap * 1.25), color: teal, at: { y: capY } },
-    ], body, outline);
+    ], body, outline, G.outline);
     const end = new THREE.Object3D();
     end.name = 'limb-end';
     end.position.y = capY;

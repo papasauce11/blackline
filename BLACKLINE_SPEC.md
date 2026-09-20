@@ -1268,3 +1268,28 @@ outer pixels the fresnel rim needs on a thin limb.
 reads the silhouette back on every map: tall and narrow, a hood wider
 than the neck under it at both distances, six parts on one material,
 at most twelve draw calls. E1, 2026-09-19.
+
+### 20.25 Section 4 - the Warden's silhouette: a helmet on the shoulders, a vest, a rifle, and six merged parts
+
+The Warden's figure (E2, D41): to the bulky body Section 4 describes,
+a domed helmet with a brim and a visor sat on the shoulders with no
+neck showing (a collar fills it), gunmetal vest plates proud of the
+orange chest, a belt of hips over the legs so the body is one block,
+the pauldrons the widest row, short legs splayed to a broad stance,
+and a rifle carried at the low ready in the right hand, a piece of that
+arm's part so it goes where the hand goes. "Animate by rotating and
+translating primitive limb groups" stands - the six groups the
+controller poses are unchanged, and the carry is a rest pose the walk
+swings about (`WARDEN_FIGURE.arm.rest`; the arms were held behind the
+back before) - but each group holds ONE merged geometry with its
+colours in a vertex attribute, on one toon material and one outline
+material: twelve draw calls where there were sixteen. No rim (4.2 is
+the Shade's) and no skeleton. The hull is grown 6mm per primitive
+(the Shade's 4mm shares its edge with the rim; the Warden's has no
+rim to share it with). One palette entry, `wardenSteel`, for the rifle
+and the visor. `the-warden-and-the-shade-are-told-apart-by-silhouette-
+at-25m` (tests/figure.js) reads both figures back on every map as flat
+shapes at 25m: the Warden broad (1.5:1) with a top narrower than the
+shoulders under it and its middle reaching ahead of its helmet from the
+side; the Shade narrow (3.3:1), hooded, reaching nothing; each the
+other's opposite by a margin. E2, 2026-09-20.

@@ -40,6 +40,16 @@ busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
 F5 (2026-09-16); the next gate job, if one is found, goes here.
 
+- [ ] **F6 (S)** A look, headless. `npm run shot -- --map <id>`: the
+  runner's server and Chrome (scripts/suite.mjs), the page loaded once,
+  both actors placed on the first clear lane and photographed front,
+  side and at 8m and 25m by `renderer.domElement.toDataURL()` after a
+  `render` from a placed camera, written as PNGs a session can read.
+  E2 did this from a scratch script to see the Warden before committing
+  it; every Block E job will want the same. *done-when:* the script is
+  in `scripts/`, HANDOFF.md "Running it" names it, and a run on each
+  map writes its PNGs in under a minute.
+
 ## Block B — the traversal redesign, phases 12–50
 
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
@@ -107,11 +117,8 @@ Decided: D3 — the Shade and the Warden first, then the map. Provisional: D10
 (no post-processing until the characters are done), D40 (the Shade's
 figure as built). Draw-call and frame budget checks are the ceiling.
 
-(E1 done 2026-09-19.)
+(E1 done 2026-09-19; E2 done 2026-09-20.)
 
-- [ ] **E2 (M)** The Warden. Helmet, vest, rifle silhouette, broad stance.
-  *done-when:* the two figures are distinguishable by silhouette alone in a
-  pixel check at 25m, in the dark.
 - [ ] **E3 (M)** Animation. Procedural limb swing by speed; crouch, slide,
   climb, mantle, hang and landing poses; the Warden's aim pose. *done-when:*
   a check steps each state and asserts the pose changed; no per-frame
@@ -127,6 +134,25 @@ figure as built). Draw-call and frame budget checks are the ceiling.
 
 ## Done
 
+- **E2** The Warden. `WARDEN_FIGURE` (entities/wardenmesh.js, split out
+  of enforcer.js): a domed helmet with a brim and a `wardenSteel` visor
+  sat on the shoulders over a collar, no neck showing; gunmetal vest
+  plates proud of the orange chest, a belt of hips over the legs (25cm
+  of nothing between chest and legs before), pauldrons the widest row;
+  short legs at 0.22 splayed to boots at 0.30; a rifle at the low ready
+  in the right hand's part, built in that arm's frame from the rest
+  pose (`riflePieces`), so the stun drops it and E3's aim can raise it.
+  The carry is `arm.rest`, read by enforcer.js - the old -1.15 held the
+  arms behind the back. Six merged parts on one material with vertex
+  colours and six hulls grown 6mm (`part`, now in entities/parts.js,
+  shared with the Shade): 12 draw calls, were 16.
+  `the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`
+  (tests/figure.js, every map): both figures as flat shapes from the
+  same 25m eye, front and side - the Warden 40x26 (1.5:1), helmet 10px
+  over shoulders 26, its middle 41% of its height ahead of its helmet
+  from the side; the Shade 40x12 (3.3:1), hood 10 over 6, -3%; each
+  bound the other's opposite. Spec 20.25, D41 provisional. — 2026-09-20,
+  scheduled run, commit `TBD`.
 - **E1** The Shade. `FIGURE` (entities/agentmesh.js): a hood round the
   head open at the face over a charcoal lining, a short cowl over the
   shoulders, the torso narrowed to 0.14 with its top the neck under the

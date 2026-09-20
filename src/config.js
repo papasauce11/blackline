@@ -204,6 +204,8 @@ export const CONFIG = {
     shadeCharcoal: 0x232a30,
     wardenOrange: 0xf07a25,
     wardenGunmetal: 0x4a5158,
+    /** Blued steel (E2): the Warden's rifle and visor, darker than the gunmetal so the weapon reads against the vest. */
+    wardenSteel: 0x1b1e21,
     concrete: 0x6b7076,
     concreteDark: 0x3d4247,
     /** Galvanised sheet: the ducts. Light and cool against every concrete. */

@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after E1 (2026-09-19) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **160 passed, 1 failed, 6 not for this map**, yard **143 passed, 1 failed, 23 not for this map** (2026-09-19, after E1), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **E2** (M: the Warden - helmet, vest, rifle silhouette, broad stance; the two figures told apart by silhouette at 25m in the dark), then E3, animation. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after E2 (2026-09-20) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **161 passed, 1 failed, 6 not for this map**, yard **144 passed, 1 failed, 23 not for this map** (2026-09-20, after E2), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **F6** (S, by block order: a headless look, `npm run shot`, the scratch script E2 used made a queue item) then **E3** (M: animation - procedural limb swing by speed; crouch, slide, climb, mantle, hang and landing poses; the Warden's aim pose; a check steps each state and asserts the pose changed; no per-frame allocation), then E4, the plant's materials. **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -50,9 +50,67 @@ map, is under way: D1, the plumbing, and D2, the yard blocked out, both
 (below); D5, the AI on the yard, D6, both maps in the gate, and D7,
 the regression set whole on every map, 2026-09-19 (below). **Block D is
 closed but for D3b** (waits on D38). Block E, styling, is open: E1, the
-Shade's figure, 2026-09-19 (below); E2, the Warden, is next.
+Shade's figure, 2026-09-19, and E2, the Warden's, 2026-09-20 (both
+below); E3, animation, is next.
 
 ---
+
+## The Warden's figure - E2
+
+`WARDEN_FIGURE` (entities/wardenmesh.js, split out of enforcer.js as
+agentmesh.js was out of agent.js) states it. A **domed helmet** with a
+brim and a `wardenSteel` visor sat on the shoulders over a **collar**,
+no neck showing: the chest's top is a hand under the brim, so the
+silhouette never steps in under the helmet - the Shade's hood over a
+neck in reverse. **Vest plates** proud of the orange chest front and
+back, a belt of **hips** over the tops of the legs (the old figure had
+25cm of nothing between chest and legs), **pauldrons** tilted down at
+the outer edge the widest row (1.2m), short legs at 0.22 splayed to
+boots at 0.30. **The rifle at the low ready**: both arms forward and
+pulled in to the centreline, the hands together at the grip in front
+of the belly, the rifle from the right hand ahead and 20 degrees down.
+It is a piece of the RIGHT ARM's merged part, built in that arm's
+frame from the rest pose (`riflePieces`: the hand from `handAt`, the
+direction from `rifle.pitch` / `yaw`, both taken into the arm's frame
+by the inverse of its rest quaternion), so it goes where the right
+hand goes - the stun drops it, E3's aim rotates the arm and raises it.
+`arm.rest` is the carry, read by enforcer.js `_animate`; **the old
+`-1.15` held the arms behind the back** (positive x is forward on this
+rig - the makeRotationX matrix, not a convention anyone had written
+down). Six merged parts on one toon material with vertex colours, six
+hulls grown 6mm (no rim to share the edge with): **12 draw calls, were
+16**. `part`, `grown`, `mergePieces`, `inward` moved to
+**entities/parts.js**, shared with the Shade; `part` takes the growth
+and a piece may carry a `quaternion`. `materials` is `{ body, outline }`
+as on the Shade. Spec 20.25; D41 argues the choices.
+
+The shoulder line is where it is for the check: at 25m the figure is
+forty rows and the "hood" band is the top seven (14%, rounded), so the
+pauldrons' top corners must sit below the seventh row (1.60m) or the
+helmet band reads the shoulders - it did, at 22px, until the chest and
+the pauldrons came down 5cm and 9cm. A figure's proportions are argued
+against the band it is measured in.
+
+`the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`
+(tests/figure.js, every map): the same stand and 25m eye as E1's check
+(`standAndEyes`), each figure turned to face the eye and then side-on,
+on the flat white with the other hidden, the Warden placed and drawn
+but never stepped (a stepped frame is the AI's). Front: the Shade
+narrow (3.3:1) with its hood 1.5x the neck and at least 0.9x anything
+in the band under it; the Warden broad (at most 2:1; 1.5) with its
+helmet at most 0.6x the widest row of the band under it (10 over 26);
+the Shade's aspect 1.5x the Warden's and the Warden's widest row 1.5x
+the Shade's (26 over 12). Side: the Warden's middle band (30-70% of
+the height) reaches at least 25% of the height ahead of its helmet
+(41%), the Shade's at most 10% ahead of its hood (-3%). Twelve draw
+calls at most. The readings lead the failure line too. `silhouette`,
+`band`, `structure`, `flatten` and `drawCalls` are the E1 check's
+pieces, now shared; E1's readings are unchanged to the pixel.
+
+A look, headless: the scratch script that served the repo, loaded the
+page and wrote `renderer.domElement.toDataURL()` after a `render` from
+a placed camera gave a PNG the session could read - what the pane did,
+without the pane. Worth keeping in mind for any Block E job.
 
 ## The Shade's figure - E1
 
@@ -1291,7 +1349,13 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8, D25, D26, D27, D28, D30, D31, D38, D39 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25, D26, D27, D28, D30, D31, D38, D39, D40, D41 and the Provisional section of `DECISIONS.md`; Josh answers there.
+
+- **D41**: the Warden's figure as built - a helmet on the shoulders with
+  no neck, a vest, a rifle at the low ready in the right hand, a broad
+  stance, the arms brought round from behind the back. Provisional; the
+  pixels say broad, flat-topped and carrying at 25m, not that it reads
+  as a guard rather than a barrel with a gun.
 
 - **D39**: the yard's lighting as built - four masts, a fifth lamp under
   the walkway, the lamps 2.5x the plant's, a dark sky, the one shadowed

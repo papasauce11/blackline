@@ -2,7 +2,8 @@
  * BLACKLINE — entities/enforcer.js
  *
  * The Warden controller (Section 6.2). First person, heavy, no crouch.
- * Layering (Section 3.1): may import from physics and config.
+ * Layering (Section 3.1): may import from physics and config; the body is
+ * built in wardenmesh.js (E2).
  *
  * One controller, two drivers. Section 6.2 calls the Warden
  * "AI-controlled, and human-controlled in free-roam only", and Section 12
@@ -15,9 +16,11 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { applyGravity } from '../physics.js';
+import { buildWardenMesh, buildGroundBlob, WARDEN_FIGURE } from './wardenmesh.js';
 
 const W = CONFIG.warden;
-const P = CONFIG.palette;
+/** The carry (E2): where the arms rest, and the rifle with them. */
+const REST = WARDEN_FIGURE.arm.rest;
 
 export const WARDEN_STATE = {
   GROUND: 'ground',
@@ -323,9 +326,10 @@ export class Warden {
     this._animTime += wallDt * (moving ? 2.0 + speed * 0.5 : 0.9);
 
     if (this.state === WARDEN_STATE.STUNNED) {
-      // Rigid, arms locked down. Reads clearly as "not currently a threat".
-      parts.armL.rotation.x = 0.1;
-      parts.armR.rotation.x = 0.1;
+      // Rigid, arms locked down and the rifle dropped with the right one.
+      // Reads clearly as "not currently a threat".
+      parts.armL.rotation.set(0.1, 0, 0);
+      parts.armR.rotation.set(0.1, 0, 0);
       parts.legL.rotation.x = 0;
       parts.legR.rotation.x = 0;
       return;
@@ -335,9 +339,11 @@ export class Warden {
     const swing = moving ? Math.sin(this._animTime) * Math.min(0.55, 0.14 + speed * 0.08) : 0;
     parts.legL.rotation.x = swing;
     parts.legR.rotation.x = -swing;
-    // Arms stay forward holding the weapon rather than swinging freely.
-    parts.armL.rotation.x = -1.15 + swing * 0.12;
-    parts.armR.rotation.x = -1.15 - swing * 0.12;
+    // Arms stay at the carry holding the rifle rather than swinging freely:
+    // positive x is forward on this rig (the old -1.15 held them behind the
+    // back), and z pulls them in to the centreline where the rifle is.
+    parts.armL.rotation.set(REST.left.x + swing * 0.12, 0, REST.left.z);
+    parts.armR.rotation.set(REST.right.x - swing * 0.12, 0, REST.right.z);
     parts.chest.rotation.z = moving ? Math.sin(this._animTime) * 0.05 : 0;
     parts.head.rotation.x = this.pitch * 0.3;
   }
@@ -363,91 +369,4 @@ export class Warden {
     this.groundBlob.scale.setScalar(0.6 + t * 0.55);
     this.groundBlob.material.opacity = CONFIG.effects.groundBlobOpacity * t;
   }
-}
-
-// ---------------------------------------------------------------------------
-// Mesh construction
-//
-// Section 4: bulky. Wide box chest, short legs, helmet dominates the head,
-// heavy pauldrons. Orange and gunmetal. No faces, no rig.
-// ---------------------------------------------------------------------------
-
-function outlined(geometry, material, group) {
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = true;
-  group.add(mesh);
-  // Child of the mesh, not a sibling. A limb segment is repositioned by its
-  // caller after this returns, and a sibling outline would stay behind at the
-  // pivot. Same fault the Shade had.
-  const outline = new THREE.Mesh(
-    geometry,
-    new THREE.MeshBasicMaterial({ color: P.outline, side: THREE.BackSide, fog: true })
-  );
-  outline.scale.setScalar(CONFIG.render.outlineScale);
-  mesh.add(outline);
-  return mesh;
-}
-
-function buildWardenMesh(gradientMap) {
-  const root = new THREE.Group();
-  root.name = 'warden';
-
-  const orange = new THREE.MeshToonMaterial({ color: P.wardenOrange, gradientMap });
-  const gunmetal = new THREE.MeshToonMaterial({ color: P.wardenGunmetal, gradientMap });
-
-  const H = W.standHeight;
-
-  // Wide box chest, sat low because the legs are short.
-  const chest = new THREE.Group();
-  chest.position.y = H * 0.66;
-  outlined(new THREE.BoxGeometry(0.78, H * 0.34, 0.5), orange, chest);
-  root.add(chest);
-
-  // Helmet dominates the head.
-  const head = new THREE.Group();
-  head.position.y = H * 0.24;
-  outlined(new THREE.BoxGeometry(0.38, 0.34, 0.4), gunmetal, head);
-  chest.add(head);
-
-  // Heavy pauldrons.
-  for (const side of [-1, 1]) {
-    const pauldron = new THREE.Group();
-    pauldron.position.set(side * 0.45, H * 0.12, 0);
-    outlined(new THREE.BoxGeometry(0.28, 0.24, 0.44), gunmetal, pauldron);
-    chest.add(pauldron);
-  }
-
-  const makeLimb = (parent, x, y, length, width, material) => {
-    const limb = new THREE.Group();
-    limb.position.set(x, y, 0);
-    const segment = outlined(new THREE.BoxGeometry(width, length, width), material, limb);
-    segment.position.y = -length / 2;
-    parent.add(limb);
-    return limb;
-  };
-
-  const armL = makeLimb(chest, -0.44, H * 0.04, H * 0.3, 0.19, gunmetal);
-  const armR = makeLimb(chest, 0.44, H * 0.04, H * 0.3, 0.19, gunmetal);
-  // Short legs (Section 4): a third of the body rather than half.
-  const legL = makeLimb(root, -0.19, H * 0.36, H * 0.34, 0.24, gunmetal);
-  const legR = makeLimb(root, 0.19, H * 0.36, H * 0.34, 0.24, gunmetal);
-
-  root.userData.parts = { chest, head, armL, armR, legL, legR };
-  return root;
-}
-
-function buildGroundBlob() {
-  const mesh = new THREE.Mesh(
-    new THREE.CircleGeometry(CONFIG.effects.groundBlobRadius, 16),
-    new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      transparent: true,
-      opacity: CONFIG.effects.groundBlobOpacity,
-      depthWrite: false,
-      fog: true,
-    })
-  );
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.name = 'warden-ground-blob';
-  return mesh;
 }
