@@ -152,7 +152,7 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   over shoulders 26, its middle 41% of its height ahead of its helmet
   from the side; the Shade 40x12 (3.3:1), hood 10 over 6, -3%; each
   bound the other's opposite. Spec 20.25, D41 provisional. — 2026-09-20,
-  scheduled run, commit `TBD`.
+  scheduled run, commit `41fb56c`.
 - **E1** The Shade. `FIGURE` (entities/agentmesh.js): a hood round the
   head open at the face over a charcoal lining, a short cowl over the
   shoulders, the torso narrowed to 0.14 with its top the neck under the
