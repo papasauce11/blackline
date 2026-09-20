@@ -137,7 +137,7 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   the front, 8m and 25m eyes always and the side eyes when in open air,
   the bodies on at least 6000 / 2000 / 300 pixels (plant 27590 / 8610 /
   886, yard 27882 / 8244 / 864). — 2026-09-20, scheduled run, commit
-  `TBD`.
+  `fc2bebe`.
 - **E2** The Warden. `WARDEN_FIGURE` (entities/wardenmesh.js, split out
   of enforcer.js): a domed helmet with a brim and a `wardenSteel` visor
   sat on the shoulders over a collar, no neck showing; gunmetal vest
