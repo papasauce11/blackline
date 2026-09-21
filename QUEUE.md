@@ -160,7 +160,8 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   and the deepest 4 luma, the kerb drawn, two calls). Pixel checks:
   mouths 0.26-0.88 (0.26-0.81), routes 0.29-0.63 (0.30-0.61), lit pools
   site A 24.5 (28.5) with hall over vault 2.40x (2.24x) - the grime
-  takes a seventh off a lit floor, D43. — 2026-09-21, scheduled run.
+  takes a seventh off a lit floor, D43. — 2026-09-21, scheduled run,
+  commit `2c25f18`.
 - **F7** A look at a pose. `npm run shot -- --pose <names|all>`
   (scripts/shot.mjs) calls `photographPose(h, name)` (src/tests/look.js)
   per name: `strike(h, name)` (tests/animation.js, factored out of E3's
