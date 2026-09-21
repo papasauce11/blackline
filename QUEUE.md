@@ -40,17 +40,31 @@ busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
 F5 (2026-09-16), F6 and F7 (2026-09-20); the next gate job, if one is found, goes here.
 
-- [ ] **F8 (S)** The key light's shadow stripes on a grazing wall. E4's
-  probe photographed the east shell wall from inside the bay at a
-  grazing angle: fine diagonal stripes across the whole face, there with
-  the old ramp and gone with `map.keyLight.castShadow` off - the
-  1024-map's texels on a wall nearly parallel to the light, not a
-  material. `shadowBias` -0.0006 / `shadowNormalBias` 0.02 today.
-  *done-when:* a check in tests/visual.js reads a grazing wall's luma
-  along a line and holds the count of alternations under a ceiling with
-  the shadow on, and the fix is a bias or a slope-scaled bias, not the
-  shadow off; `exactly-one-shadow-caster` and `lit-pools-and-dark-gaps`
-  unchanged.
+- [ ] **F8 (S)** The key light's shadow stripes on a wall it lights from
+  behind. E4's probe photographed the east shell wall from inside the
+  bay (eye (28.5, 1.6, -8) looking at (30, 1.2, -16)): fine diagonal
+  stripes a level or two deep across the whole face, there with the old
+  4-step ramp and gone with `map.keyLight.castShadow` off. What the
+  probe then found: the face is back-facing to the key (its normal is
+  -x, the key's direction (-0.39, -0.87, -0.30), n.L = -0.39), and every
+  ramp lights the back half of dotNL - the 4-step's texel for [-0.5, 0)
+  is 0.333, E4's concrete gives 0.4 there - so the wall takes a third
+  of the key from behind, times a shadow term that is the 1024-map's
+  texel staircase on a surface the map barely resolves. Zeroing the
+  ramp's four back texels removes the stripes entirely (the wall reads
+  plain); `shadowNormalBias` 0.15 and `shadowBias` -0.003 do not. The
+  fix is one of: no light from behind in the map's ramps (physically
+  right, and it darkens every face away from a lamp - the wrap light
+  is what fills the shadow side today, so measure `lit-pools` and the
+  route and mouth readings before and after), or a shadow term forced
+  to 0 where n.L < 0 (a `onBeforeCompile` line on the map's materials),
+  or a larger normal bias applied only when back-facing. *done-when:* a
+  check in tests/visual.js reads that wall's luma along a row from that
+  eye and holds the number of level-crossings against a smoothed copy
+  under a ceiling (the stripes are ~1 luma: an instrument at 1.5 counted
+  zero), red with the fix reverted; the fix is not the shadow off;
+  `exactly-one-shadow-caster`, `lit-pools-and-dark-gaps`, the mouths
+  and the routes unchanged or better.
 
 
 ## Block B — the traversal redesign, phases 12–50
