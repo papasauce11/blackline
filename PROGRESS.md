@@ -7324,3 +7324,40 @@ is the frame-budget sweep, skipped headless.
 **Left.** F9, the probe in the repo (this run used E4's scratch copy
 again). Whether a wall a third darker on its shadow side reads right is
 eyes' work, under D43.
+
+## F9 — a probe: `npm run probe` (2026-09-21, scheduled run, Josh present)
+
+**Gate.** F8's verify at `84315c3`: plant 168/1/6 twice, yard 148/1/26
+twice, 0 red, 0 flaky, 0 console errors.
+
+**What was built.** `scripts/probe.mjs` - `npm run probe -- [--map id]
+[--out dir] [--query q] <file.js> [...]`: loads the page on one map (the
+first registered without `--map`), stops the loop, warms 60 frames, and
+runs each file's text as the body of an async function with `h` and
+`THREE` in scope, so top-level `await` and `await import('/src/tests/
+pixels.js')` work; prints what it returns as JSON to stdout, writes any
+`pngs: [{ name, dataUrl }]` it returns to `shots/` first (and says so on
+stderr), and a file that throws prints the error and exits 1, no file
+exits 2. Several files run in turn in the same page. E4 and F8 were
+diagnosed with a scratch copy of this in two sessions' scratchpads; an
+instrument lives in the repo.
+
+**`scripts/headless.mjs`** is the server, the launch, the page and the
+map load, shared: `ROOT`, `MIME`, `parseArgs` (positionals under `_`
+now), `listArg`, `registeredMapIds`, `serve`, `launch`, `openPage`,
+`loadMap`, `writePng`. shot.mjs imports it and is 60 lines shorter for
+it; probe.mjs imports it. suite.mjs keeps its own copy - it runs the
+suite on import and adds the throttle token to the launch - with a
+note in its header to keep the two in step, which is the note shot.mjs
+used to carry.
+
+**Verified.** The probe on F8's own p3.js on the plant: the same
+readings the check quotes (2/0/1 crossings on, 23/21/12 off) and two
+PNGs in shots/, 28s; a file that throws exits 1 with the stack on
+stderr; no file exits 2 with the usage. `npm run shot -- --map plant`
+through the shared launch: five frames from the lane at site A, 35s.
+The two look checks through the suite on the plant: 2 passed. No
+source under src/ changed, so F8's four-run verify stands for the
+suite; B5d's verify, next, runs on this tree.
+
+**Left.** Nothing of F9's. Block F is closed again.

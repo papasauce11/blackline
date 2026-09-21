@@ -51,6 +51,11 @@
 // Neither changes what any check answers - they cost wall-clock, nothing
 // else. Windows exposes no temperature here, so the effect is not measurable
 // from this script; watch it in SpeedFan if you want the number.
+//
+// The server and the launch below are also scripts/headless.mjs's, which
+// shot.mjs and probe.mjs import (F9); this file runs the suite on import
+// and adds the throttle token to the launch, so it keeps its own. Keep the
+// two in step: a MIME type or a Chrome flag added here is added there.
 
 import http from 'node:http';
 import fs from 'node:fs';

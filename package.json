@@ -4,7 +4,8 @@
   "description": "Blackline - an original asymmetric stealth game. No build step; npm run suite is the headless AUTO suite.",
   "scripts": {
     "suite": "node scripts/suite.mjs",
-    "shot": "node scripts/shot.mjs"
+    "shot": "node scripts/shot.mjs",
+    "probe": "node scripts/probe.mjs"
   },
   "author": "",
   "license": "UNLICENSED",

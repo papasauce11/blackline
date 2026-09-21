@@ -38,24 +38,7 @@ Placed here, after A and before B, on purpose: the suite is the instrument
 every later block is measured with, and a gate that answers differently on a
 busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
-F5 (2026-09-16), F6 and F7 (2026-09-20); the next gate job, if one is found, goes here.
-
-- [ ] **F9 (S)** A probe: `npm run probe -- --map plant <file.js>`. E4
-  and its F8 diagnosis were done with a scratch script that serves the
-  repo and launches Chrome as shot.mjs does, loads the page on a map,
-  stops the loop, warms 60 frames, runs the JS in `<file.js>` inside the
-  page with `h` and `THREE` in scope (top-level await, `import('/src/
-  tests/pixels.js')` works) and prints what it returns as JSON, saving
-  any `{ pngs: [{ name, dataUrl }] }` it hands back to `shots/`. Every
-  "look at this view" and "what does this number read" question of a
-  scheduled run goes through it; it should be in the repo, not a
-  scratchpad. *done-when:* `scripts/probe.mjs` and the npm script; the
-  server and launch shared with shot.mjs (factor them into
-  `scripts/headless.mjs` and have both import it - suite.mjs runs on
-  import and stays as it is) or repeated with the same "keep in step"
-  note; HANDOFF.md's Running it says how; a check is not required (a
-  tool, like F6), but `a-look-at-both-figures-photographs-every-eye`
-  still passes through the shared launch.
+F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate job, if one is found, goes here.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -177,6 +160,19 @@ figure as built). Draw-call and frame budget checks are the ceiling.
 
 ## Done
 
+- **F9** A probe. `npm run probe -- [--map id] [--out dir] [--query q]
+  <file.js> [...]` (scripts/probe.mjs): loads the page on one map, stops
+  the loop, warms 60 frames, runs each file's text as an async function
+  body with `h` and `THREE` in scope, prints what it returns as JSON and
+  writes any `pngs: [{ name, dataUrl }]` to shots/ first; a throw is
+  exit 1. The server, the launch, the page and the map load are
+  `scripts/headless.mjs`, shared with shot.mjs (which now imports it);
+  suite.mjs keeps its own copy with a keep-in-step note, since it runs
+  on import and adds a throttle token. Proven on F8's own probe
+  (`a-wall-the-key-lights-from-behind-reads-plain`'s readings, the PNG
+  of the wall) and `a-look-at-both-figures-photographs-every-eye`
+  through the shared launch. — 2026-09-21, scheduled run, Josh present,
+  commit `F9_HASH`.
 - **F8** The key light gives nothing to a face it lights from behind.
   E4's stripes were the shadow term on a wall the key lights from
   behind: three's shadow pass draws back faces, so the depth stored for
@@ -193,7 +189,7 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   wall, every map material patched. Every plant light reading unchanged
   to the digit but one landing edge's surround, darker (contrast 0.83
   from 0.80); the yard's the same. — 2026-09-21, scheduled run, Josh
-  present, commit `F8_HASH`.
+  present, commit `84315c3`.
 - **E4** Map materials, `plant`. Three finishes by palette colour
   (`src/mapmaterials.js`, `CONFIG.map.finishes`; a map opts in with
   `new GameMap(..., { finishes })`, the plant does): concrete matte on

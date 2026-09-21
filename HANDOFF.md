@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after F8 (2026-09-21) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after F8), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **F9** (S: the probe script in the repo - `npm run probe`; Block F is before B in block order), then **B5d** (S: the defuse reach is a clear line - D27 decided "no" 2026-09-21, a Warden may not defuse through a floor), then **C7** (M: the site ring becomes a faint floor tint and the HUD names the site - D8), then **E5** (M: map materials, `yard` - corrugated containers, rust, painted numbers, wet ground, on E4's kit). Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after F9 (2026-09-21) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after F9), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **B5d** (S: the defuse reach is a clear line - D27 decided "no" 2026-09-21, a Warden may not defuse through a floor), then **C7** (M: the site ring becomes a faint floor tint and the HUD names the site - D8), then **E5** (M: map materials, `yard` - corrugated containers, rust, painted numbers, wet ground, on E4's kit). Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **F9 done** 2026-09-21: `npm run probe`, a question asked of the game headless (Running it). **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -1299,6 +1299,28 @@ state and a PNG with the body on 3000 pixels. E3's poses were looked at
 this way before F7 was committed: the vault reads as a hurdle with the
 hands down, the mantle and the pull-up as climbs with the hands on the
 lip, the aim as a rifle held level at the chest.
+
+A probe (F9) - a question asked of the game, headless:
+
+```bash
+npm run probe -- --map plant probe.js         # any path; several files run in turn
+```
+
+`scripts/probe.mjs` loads the page on one map (the first registered
+without `--map`), stops the loop, warms 60 frames, and runs the file's
+text as the body of an async function with `h` (the harness) and `THREE`
+in scope, so top-level `await` and `await import('/src/tests/pixels.js')`
+work; it prints what the file returns as JSON, and writes any `pngs:
+[{ name, dataUrl }]` it returns to `shots/<name>.png` first (`--out` to
+put them elsewhere, `--query "seed=N"` to reseed). A throw prints the
+error and exits 1. E4 and F8 were diagnosed with a scratch copy of this
+(a `createLens` from pixels.js, a `lens.look`, a `lens.grab`, a
+`renderer.domElement.toDataURL` for the PNG); every "what does this
+read" and "look at this view" of a scheduled run goes through it, and a
+finding that should stay true becomes a check. The server and the
+launch are `scripts/headless.mjs`, shared with shot.mjs; suite.mjs
+keeps its own copy (it runs on import and adds a throttle token) with a
+note to keep the two in step.
 
 In a real browser, for what headless cannot prove (the frame budget on a GPU,
 how it looks, how it sounds):
