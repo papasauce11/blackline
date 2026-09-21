@@ -95,6 +95,61 @@ had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
 ## Provisional — done as recommended, override any time
 
+### D43 — The plant's materials as built: three finishes, a grime, twenty decals
+E4 (2026-09-21). What the substation is made of, now that the bodies
+are figures (D40-D42) and Block E has reached the map. The numbers to
+turn are `CONFIG.map.finishes` and `CONFIG.map.decals` in
+`src/config.js`, the places in `src/maps/plantdecals.js`. Nothing the
+player can do changed; no collision box, rule or light moved, and the
+yard is untouched until E5.
+
+- **Three finishes by colour, not by box.** Concrete is the structure
+  (walls, floors, the deck, the ground, the roof), paint is everything
+  metal (crates, ducts, gantries, racks, housings, shutters), glass is
+  glass; a colour that is not named is concrete. Alternative: a finish
+  per solid, declared in the layout - more control, and one more thing
+  for a box to get wrong; the colour already says what a thing is (B6).
+- **A toon ramp per finish.** Concrete matte: eight gentle steps, no
+  hard edge, the face square to a lamp as bright as before and the
+  grazing faces a little darker. Paint glossy: three hard bands -
+  shadow, a flat body at 0.45, and the full face from a quarter on. The
+  actors keep the 4-step ramp. The pixel checks that read a crate or a
+  duct against concrete are the ceiling on concrete's mid-tones and the
+  floor on paint's: the first ramps put B6's thinnest mouth at 0.25
+  against 0.25. Alternative: one ramp with more steps for everything -
+  softer, and no difference between a wall and a crate, which is the
+  point of the job.
+- **Grime, generated, world-projected.** A tiling noise texture per
+  finish, no image (Section 2), multiplied into the colour: concrete
+  blotched with the odd larger stain (6m a tile), paint streaked with
+  fine scratches (3m), glass smudged (2m); projected in world metres
+  so a crate and its slab share one grain. It only darkens - a seventh
+  off a lit floor at these numbers (site A 28.5 to 24.5 luma), a fifth
+  at the first ones - and every relation the checks hold is unchanged
+  or better. Alternative: no grime, the finishes by ramp alone; or a
+  grime that lightens as well as darkens (a texel over 1 needs a float
+  texture, or a base colour lowered to make room, which changes the
+  palette D26 argues).
+- **Twenty decals, dressing only.** Wheel tracks and a painted kerb at
+  each roller door, leaks on the floors, drips down the walls from the
+  roof line and the deck's underside. Nothing on or near a climb, a
+  duct mouth or a site ring; Section 5 amended holds. Two draw calls
+  for the lot. Alternative: none (the grime alone), or stencilled
+  letters at the sites (a font, or a bitmap one drawn by hand - not
+  today).
+Josh: the numbers say every material is on its finish's ramp and
+grime, the grime is on screen under a lamp (concrete varies by 4 luma
+and darkens by 8, paint 2 and 6.5), every decal sits on a face, a stain
+darkens the floor under it, a kerb is drawn, and every pixel check that
+was green reads within a hundredth of where it was or better
+(`the-plant-is-dressed-in-three-finishes-and-the-grime-is-on-the-wall`,
+`the-plant-wears-its-decals-on-its-faces-in-two-draw-calls`); whether
+concrete reads as concrete and paint as paint, whether the blotches
+tile visibly along the 60m shell, whether a leak reads as a leak, and
+whether the whole is darker than you want, is yours - PLAYTEST.md says
+where to look.
+**decided:**
+
 ### D42 — The animation as built: a pose for every state, a stride for every step, the rifle raised to the aim
 E3 (2026-09-20). What the bodies do now that they are figures (D40, D41),
 and the numbers to turn: the Shade's in `POSE` at the top of

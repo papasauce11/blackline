@@ -26,6 +26,7 @@ import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { CollisionWorld } from './physics.js';
 import { createMaterialCache, applyContactTint, mergeGeometries } from './mapbake.js';
+import { createFinishSet, applyWorldUVs } from './mapmaterials.js';
 import { GENERATORS } from './mapgen.js';
 import { deriveRoomEntries } from './maprooms.js';
 import { deriveWardenGround } from './mapground.js';
@@ -43,8 +44,13 @@ export class GameMap {
    * @param {THREE.DataTexture} gradientMap the toon ramp every material shares
    * @param {string} id the registry's key for this map (`maps/index.js`, D1)
    * @param {string} name what the menu and the briefing call it
+   * @param {object} [options]
+   * @param {object} [options.finishes] the material finishes to dress the
+   *   map in (`CONFIG.map.finishes`, E4): a ramp and a grime texture per
+   *   finish, chosen per solid by its palette colour. Without it every
+   *   solid is on `gradientMap`, untextured.
    */
-  constructor(gradientMap, id, name) {
+  constructor(gradientMap, id, name, { finishes = null } = {}) {
     this.root = new THREE.Group();
     this.root.name = id;
     /** The registry's id: `plant`, `yard`. What `?map=` and a check's `maps` list name. */
@@ -52,7 +58,17 @@ export class GameMap {
     this.name = name;
 
     this.collision = new CollisionWorld();
-    this.materials = createMaterialCache(gradientMap);
+    /** The finish set (mapmaterials.js), or null for a map drawn flat. */
+    this.finishes = finishes ? createFinishSet(finishes) : null;
+    this.materials = createMaterialCache(gradientMap, this.finishes);
+    /**
+     * The decals laid (mapdecals.js): `{ kind, position, normal, w, h, tag }`
+     * each, the position on the surface. Data for the checks; nothing in
+     * the game reads it.
+     */
+    this.decals = [];
+    /** The merged decal meshes, one per material: at most two. */
+    this.decalMeshes = [];
 
     /** @type {{position:THREE.Vector3, yaw:number, name:string}[]} */
     this.shadeSpawns = [];
@@ -132,6 +148,10 @@ export class GameMap {
 
     const geometry = new THREE.BoxGeometry(width, height, depth);
     applyContactTint(geometry, cy);
+    // The grime is projected in world metres (E4), so a crate and the slab
+    // it stands on share one grain, and the seam between two boxes is not a
+    // seam in the texture.
+    applyWorldUVs(geometry, cx, cy, cz);
 
     const material = spec.glass
       ? this.materials.glass(spec.color !== undefined ? spec.color : P.glass)

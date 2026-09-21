@@ -36,6 +36,7 @@
 import { CONFIG } from '../config.js';
 import { GameMap } from '../mapkit.js';
 import { placeSites, placeSpawns, placeLights, placeWaypoints, placeRoutes } from './plantdata.js';
+import { placeDecals } from './plantdecals.js';
 import { validateMap } from '../mapvalidate.js';
 import { lightRoutes } from '../maproutelight.js';
 
@@ -109,7 +110,8 @@ const EXPECTS = {
  * @returns {GameMap}
  */
 export function buildPlantMap({ id, name, gradientMap }) {
-  const map = new GameMap(gradientMap, id, name);
+  // Dressed in the concrete / paint / glass finishes (E4); the yard is E5's.
+  const map = new GameMap(gradientMap, id, name, { finishes: M.finishes });
   map.shell = { x0: -HALF_W - WALL, x1: HALF_W + WALL, z0: -HALF_D - WALL, z1: HALF_D + WALL };
 
   // -------------------------------------------------------------------------
@@ -521,6 +523,9 @@ export function buildPlantMap({ id, name, gradientMap }) {
   placeLights(map);
   placeWaypoints(map);
   placeRoutes(map);
+  // The marks (E4, plantdecals.js). Nothing collides with them and nothing
+  // derives from them, so they can go on last.
+  placeDecals(map);
 
   // -------------------------------------------------------------------------
   // Finish

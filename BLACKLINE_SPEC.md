@@ -1323,3 +1323,31 @@ standing and from every other, the leg across the vertical once a
 stride, the hanging arms straight up, the pull-up's hands in front, the
 right hand 0.15m higher with the sights up and higher again looking up,
 the carry back when they drop. E3, 2026-09-20.
+
+### 20.27 Sections 2 and 4 - the plant's materials: three finishes, a grime, decals
+
+Map materials (E4, D43), the plant only until E5. "`MeshToonMaterial`
+with a 4-step gradient map" stands for the actors; a map that opts in
+draws every solid in one of three finishes by its palette colour, each
+a ramp of its own and a grime texture (`src/mapmaterials.js`,
+`CONFIG.map.finishes`): concrete, matte, eight gentle steps; painted
+metal, glossy, three hard bands; glass, never black. The grime is a
+tiling texture generated in code from a hashed lattice noise - no
+image, no random call, so Section 2's rules hold - projected in world
+metres onto every box (`applyWorldUVs`) and multiplied into the colour,
+so it only darkens; the palette is the colour it says. Decals
+(`src/mapdecals.js`, the plant's list in `src/maps/plantdecals.js`) are
+quads laid a centimetre proud of a face from a 2x2 atlas drawn the same
+way - a stain, a drip, a wheel scuff, a hazard kerb - merged into two
+meshes, the grime kinds a multiply over the surface's own lighting, the
+kerb toon-lit paint. Section 5 amended holds: nothing marks a climb, a
+duct mouth or a site ring, and nothing in the game reads a decal.
+`the-plant-is-dressed-in-three-finishes-and-the-grime-is-on-the-wall`
+and `the-plant-wears-its-decals-on-its-faces-in-two-draw-calls`
+(tests/materials.js) hold every material to its finish's ramp and
+grime, the ramps to their configured levels, the grime to the screen
+by difference under a lamp, every decal to the face of a solid clear
+of the sites, a stain to darkening the floor under it, a kerb to being
+drawn, and the lot to two draw calls; the pixel checks that were green
+before read unchanged or better in every relation they hold. E4,
+2026-09-21.

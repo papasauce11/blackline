@@ -76,6 +76,48 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The plant is concrete, paint and glass (E4, 2026-09-21)
+
+The plant only (`?map=plant`, the default); the yard is still flat until
+E5. Walk the Turbine Hall and the Loading Bay and look at the surfaces
+rather than the bodies. Every solid is now drawn in one of three
+finishes by what it is: concrete (the walls, floors, the deck, the
+ground, the roof) is matte, its toon ramp softened to five bands with
+no hot top, and blotched with a grime that darkens it here and there
+and pools in the odd larger stain; painted metal (the crates, the
+ducts, the gantries, the racks, the light housings, the roller
+shutters) is glossy, its body flat with one narrow bright band where a
+light is nearly square to it, and streaked with fine scratches; glass
+(none on the plant yet - the walkway's panes are the yard's) would
+never fall to black. The grime is projected in world metres, so a
+crate and the slab under it share one grain and no box has a stretched
+or a seamed texture. Then the marks: wheel tracks in through both
+roller doors and on the apron outside the north one, an orange-and-
+dark kerb painted across each door's threshold, leaks on the floors of
+the bay, the hall, the corridor, the deck and the vault, rain drips
+from the roof line down the hall's west wall above the catwalk, and
+drips from the deck's underside down the bay's north wall and the
+hall's east wall. None of them is on or near a climb, a duct mouth or
+a site ring. The checks prove: every material is on its finish's ramp
+and grime and the ramps differ as configured; a concrete wall and a
+painted crate vary across their faces with the grime and not without
+it; every decal sits on the face of a solid clear of the sites; a stain
+darkens the floor under it; a kerb is drawn; the lot costs two draw
+calls; and the readings of every pixel check that was green before are
+within a few levels of where they were
+(`the-plant-is-dressed-in-three-finishes-and-the-grime-is-on-the-wall`,
+`the-plant-wears-its-decals-on-its-faces-in-two-draw-calls`). What only
+eyes can judge: whether the grime reads as concrete or as dirt on a
+render; whether paint's hot band reads as gloss or as a stripe; whether
+the blotches tile visibly (six metres a repeat on concrete, three on
+paint - look along the 60m shell wall for a rhythm); whether the
+stains and drips read as leaks or as smudges; whether the kerbs read as
+paint on the floor or float; whether the whole is darker than you want
+(the grime takes about a tenth off concrete on average, and the
+lit-pools numbers moved a level or two). The numbers to turn are
+`CONFIG.map.finishes` and `CONFIG.map.decals` in `src/config.js`, the
+places in `src/maps/plantdecals.js`, argued under D43.
+
 ### The bodies move (E3, 2026-09-20)
 
 Either map. As the Shade, in a competitive match or free roam: walk,

@@ -36,15 +36,26 @@ export const SWEEP_STEP = 0.15;
  * light in the scene - the detection model reads point lights (Section 7.1)
  * and this is paint, not a lamp. One more material per lit colour, cached
  * the same way.
+ *
+ * With a finish set (E4, mapmaterials.js) each colour's material takes the
+ * ramp and the grime texture of the finish that colour is - concrete,
+ * paint or glass - in place of the shared ramp; the lit variant keeps the
+ * finish, so a route-lit crate is still a painted one. Without one (the
+ * yard, until E5) every material is on `gradientMap` with no texture, as
+ * before.
  */
-export function createMaterialCache(gradientMap) {
+export function createMaterialCache(gradientMap, finishes = null) {
   const cache = new Map();
+  const dressing = (color) => {
+    const finish = finishes ? finishes.of(color) : null;
+    return finish ? { gradientMap: finish.ramp, map: finish.grime } : { gradientMap };
+  };
   return {
     toon(color, lit = false) {
       const key = lit ? `${color}:lit` : color;
       let material = cache.get(key);
       if (!material) {
-        material = new THREE.MeshToonMaterial({ color, gradientMap, vertexColors: true });
+        material = new THREE.MeshToonMaterial({ color, ...dressing(color), vertexColors: true });
         if (lit) {
           material.emissive.set(color);
           material.emissiveIntensity = M.routeLighting.emissive;
@@ -64,12 +75,16 @@ export function createMaterialCache(gradientMap) {
       let material = cache.get(key);
       if (!material) {
         material = new THREE.MeshToonMaterial({
-          color, gradientMap, vertexColors: true,
+          color, ...dressing(color), vertexColors: true,
           transparent: true, opacity: M.glassOpacity, depthWrite: false, side: THREE.DoubleSide,
         });
         cache.set(key, material);
       }
       return material;
+    },
+    /** Every material made so far, with its cache key. For the checks. */
+    entries() {
+      return [...cache.entries()];
     },
     dispose() {
       for (const material of cache.values()) material.dispose();
@@ -152,7 +167,10 @@ export function bake(bucket, geometry, x, y, z, rotationX = 0, rotationZ = 0) {
   bucket.parts.push(geometry);
 }
 
-/** Concatenate box geometries into one. Position and normal only. */
+/**
+ * Concatenate geometries into one. Position and normal, and uv when every
+ * part carries it (the decals, E4).
+ */
 export function mergeGeometries(parts) {
   let total = 0;
   const flattened = parts.map((part) => {
@@ -161,13 +179,16 @@ export function mergeGeometries(parts) {
     total += plain.attributes.position.count;
     return plain;
   });
+  const withUv = flattened.every((part) => part.attributes.uv);
 
   const position = new Float32Array(total * 3);
   const normal = new Float32Array(total * 3);
+  const uv = withUv ? new Float32Array(total * 2) : null;
   let offset = 0;
   for (const part of flattened) {
     position.set(part.attributes.position.array, offset * 3);
     normal.set(part.attributes.normal.array, offset * 3);
+    if (uv) uv.set(part.attributes.uv.array, offset * 2);
     offset += part.attributes.position.count;
     part.dispose();
   }
@@ -175,6 +196,7 @@ export function mergeGeometries(parts) {
   const merged = new THREE.BufferGeometry();
   merged.setAttribute('position', new THREE.BufferAttribute(position, 3));
   merged.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
+  if (uv) merged.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   merged.computeBoundingSphere();
   return merged;
 }

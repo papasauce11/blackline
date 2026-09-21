@@ -7086,3 +7086,155 @@ one and fall back to its pinned seed otherwise (one line in `initMatch`
 or in each check), so the weekly run explores a new week. Until then the
 "Fresh seeds" line above is the builder's own seeds, green again. And
 two lines under D25 and D27 would close Block B.
+
+## E4 — map materials, the plant: concrete, paint and glass, grime and decals (2026-09-21, scheduled run)
+
+The 02:00 run's first job, sized M, the first unblocked in block order
+(B5b, B5d and D3b wait on D25, D27 and D38). The gate: `npm run suite
+-- --runs 1` on `298aaca`, plant 165 / 1 / 6 and yard 148 / 1 / 23, 0
+red, 0 flaky, 0 console errors; then a `--details` subset of every
+pixel check on the plant, for the readings to hold the job to.
+
+**What was there.** One 4-step ramp for everything (`createToonGradient`,
+view.js, boot's), every solid a flat colour with the contact tint, and
+the material language of B6 - concrete is what you do not pass through,
+metal what you do - carried by colour alone. No texture anywhere, by
+Section 2's rule against images.
+
+**Finishes** (`src/mapmaterials.js`, `CONFIG.map.finishes`; D43 argues
+the numbers). A map that opts in - `new GameMap(..., { finishes })`,
+the plant does, the yard waits for E5 - draws every solid in one of
+three finishes by its palette colour (`byPalette` names entries, not
+hex, so a retuned colour keeps its finish; anything unnamed is
+concrete): concrete, paint (`ductMetal`, `wardenGunmetal`,
+`wardenSteel`, the hazard pair) and glass. A finish is a **ramp** and a
+**grime**. The ramp is `createRamp(levels)`, the Section 4 gradient map
+from a list - eight texels, a quarter of dotNL each: concrete matte,
+eight gentle steps `[0, .2, .4, .55, .7, .8, .9, 1]`; paint glossy,
+three hard bands `[0, 0, .45, .45, .45, 1, 1, 1]` - shadow, a flat body,
+the full face from a quarter on; glass `[.4 … 1]`, never black. The
+grime is a 128-texel tiling `DataTexture` from a hashed lattice noise
+(`hash2`, `valueNoise` - deterministic by coordinate, not a random
+call, so Section 2's one rng is untouched), layers of cells per tile
+mapped onto [low, high], concrete with a low-frequency stain that
+darkens further above a threshold: concrete blotched (6m a tile, 0.86
+to 1), paint streaked (32 cells across and 3 down, 3m, 0.86 to 1),
+glass smudged (2m, 0.9 to 1). sRGB, since the multiply is against the
+palette's colours - which is why it darkens more than the texel says
+(a mean texel of 0.94 took a fifth off a lit floor at 0.88, a seventh
+at this). **`applyWorldUVs`** (called from `addSolid`) writes every
+box's UVs from its world position along the two axes each face lies
+in, so a crate and the slab under it wear one grain and a 38m plate
+does not stretch a tile; the texture's `repeat` turns metres into
+tiles. `createMaterialCache(gradientMap, finishes)` (mapbake.js) puts
+each colour on its finish's ramp and map; the lit variant (B7) keeps
+the finish, and emissive is untouched by a map in three, so a lit
+stage still steps up by exactly `routeLighting.emissive`. `entries()`
+on the cache is for the check.
+
+**Decals** (`src/mapdecals.js`, `src/maps/plantdecals.js`,
+`CONFIG.map.decals`). A 2x2 atlas drawn in code from the same noise: a
+stain (a blotch with a noise-broken edge), a drip (streaks hanging from
+the top edge, each its own length), a scuff (two wheel tracks, broken,
+trailing off) and a hazard kerb (orange and dark blocks, aged, with a
+clear margin). Each decal is a `PlaneGeometry` laid 1.2cm proud of a
+face by `face` and `along` (its v axis in the world: up on a wall,
+north on a floor unless told), UVs moved into its tile, merged into two
+meshes for two draw calls: the grime kinds on a `MeshBasicMaterial`
+with `MultiplyBlending` so the surface's own lighting shows through
+(fog off - a fogged multiplier darkens the whole quad at distance;
+`premultipliedAlpha: true`, which r180 requires for a multiply and
+without which it logs an error a frame and draws the quad opaque
+white: the first subset run had 161 console errors and a stain at
+luma 188 over a floor at 8), the hazard on a `MeshToonMaterial` on
+paint's ramp cut out by `alphaTest`. `mergeGeometries` now carries uv
+when every part has it. Twenty on the plant: wheel tracks in through
+both roller doors and on the apron outside the north one, a kerb across
+each threshold, leaks in the bay, the hall, the corridor, the deck and
+the vault, rain drips from the roof line down the hall's west wall,
+deck drips down the bay's north wall and the hall's east. None within
+reach of a climb, a duct mouth or a site ring: the map's list says
+where, `map.decals` records each for the checks, nothing in the game
+reads them. Section 5 amended still holds - nothing marks a climb.
+
+**The checks** (`tests/materials.js`, plant only):
+1. *`the-plant-is-dressed-in-three-finishes-and-the-grime-is-on-the-wall`*:
+   three finishes; the palette sorted as configured; every ramp's
+   texels are its configured levels and concrete's is not paint's;
+   every material the map made (eight: two concrete, six paint) is on
+   its finish's ramp and grime, lit variants and glass included; then
+   the pixels - the deck's underside over the north corridor under its
+   lamp (concrete) and the south duct's outer wall in the hall (paint),
+   each read square on from 2.5m, the crop with the grime minus the
+   same crop with the texture taken off every material of that finish
+   (and put back) is the grime itself, whatever the lighting's own
+   bands do: it varies pixel to pixel by at least 1 luma and darkens by
+   at least 2. Readings: concrete spread 4.13, darkens 7.8 at luma
+   101; paint 1.95, 6.5 at 80. The first instrument was the crop's own
+   standard deviation grimed against plain, on the hall's west wall at
+   luma 20: 1.48 against 1.30 - a surface that dark hides a tenth of
+   itself in a level, and the ramp's bands were most of the spread
+   either way. Read under a lamp, by difference, it is the grime.
+2. *`the-plant-wears-its-decals-on-its-faces-in-two-draw-calls`*: at
+   least twelve decals, every kind used, each with its surface point
+   inside a solid and its lifted point in clear air (`isClear` on a
+   centimetre box either side), none within the ring's clearance of a
+   site; two draw calls shown minus hidden from the bay; every floor
+   stain read from 2.2m over it takes at least a tenth off the floor's
+   luma and the deepest at least 3 (hall-leak-west 16.6 to 12.3,
+   deck-leak-north 14.7 to 11.2, the corridor's 2.9 to 2.2); the kerb
+   changes 287,265 pixels when hidden. With the multiply broken the
+   stain check went red at "188.2 against 8.0 bare".
+
+**The pixel checks that were green, before and after** (the plant,
+`--details`): vent mouths 0.26 to 0.81 → 0.26 to 0.88, the thinnest
+(the north duct's west mouth against the crates) 0.26 both times;
+routes from the foot: stack-hall-low 0.30 → 0.29, stack-bay-low 0.46 →
+0.51, stack-vault-low 0.59 → 0.60, fire-escape-base 0.61 → 0.63,
+fire-escape-3 0.46 → 0.48, steps 16-27 → 15-30; lit pools site A 28.5
+→ 24.5, B 20.2 → 17.5, C 12.7 → 10.2, ambient 1.8/1.8/2.6 → 1.1/1.1/
+1.9, hall over vault 2.24x → 2.40x; the rim +112.1 → +110.6 at the
+silhouette against +54.4 → +52.5 inside (2.1x both); the dim 42 → 42.3
+hidden and 109.7 → 110.7 lit; the outline's edge 144.4 → 145.3; the
+alarm fixture 5280 pixels both times, 1352 → 988 of them left after it
+is destroyed; the death camera, the figures and the poses within a few
+dozen pixels of the same frames. The first ramps
+(concrete brighter at mid angles, paint darker at grazing) put the
+north mouth at 0.25 against 0.25 and stack-hall-low at 0.26; the
+crates and the ducts read against concrete, so concrete's mid-tones
+have a ceiling and paint's a floor, and the config says so. The
+darkening is the grime: a seventh off a lit floor. Every relation the
+checks hold - pools over ambient, hall over vault, a step over unlit,
+a duct against its wall - is unchanged or better; the absolute level is
+lower, and D43 says so for Josh.
+
+**Draw calls and the budget.** Two more draw calls for every decal on
+the map; no new material per box (the cache is still by colour); three
+more textures and three programs (the map variants of toon, lit toon
+and glass) in the leak check's snapshot, unchanged across its five
+rounds. The frame budget is not measurable headless (SwiftShader draws
+a frame in 400-600ms); the CPU side of the sweep is as it was. A GPU
+reading is Josh's.
+
+**What the frames say** (the probe's PNGs, read with the Read tool):
+the crates and the ducts carry fine vertical streaks and the ducts show
+the three hard bands - a dark underside, a flat side, a bright top;
+the concrete walls and the deck's underside are softly blotched, the
+odd larger stain; the drips hang from the roof line down the hall's
+west wall; the kerbs read as painted blocks across the door; the wheel
+tracks are faint on a floor that dark. One thing seen that is not
+E4's: the east shell wall, at a grazing angle, carries fine diagonal
+stripes - the key light's shadow map on a wall nearly parallel to the
+light, there with the old ramp and gone with the shadow off. Queued as
+F8.
+
+**Verified.** Subsets while iterating (three runs of the affected
+checks on the plant, 130s each); then `npm run suite`, both maps
+twice: **167 passed, 1 failed, 6 not for this map, 148 passed, 1 failed, 25 not for this map**, every outcome identical between
+runs, 0 red, 0 flaky, 0 console errors, 0 context losses; the one
+failure on each is the frame-budget sweep, skipped headless.
+
+**Left.** E5, the yard's materials (containers, rust, painted numbers,
+wet ground): the kit is there - a finish is a ramp and a grime spec, a
+map opts in with its own `byPalette`, and decals are a list. F8, the
+shadow stripes. Whether any of it reads is D43.

@@ -1011,6 +1011,87 @@ export const CONFIG = {
     glassOpacity: 0.3,
 
     /**
+     * Material finishes (E4, D43). A map that opts in (`plant` does; the
+     * yard waits for E5) draws every solid in the finish its palette colour
+     * names here - concrete, painted metal or glass - and a finish is a
+     * toon ramp of its own and a grime texture (mapmaterials.js).
+     *
+     * `ramp` is the Section 4 gradient map with its steps tuned: eight
+     * texels, each a quarter of dotNL from -1 to 1, so `ramp[4]` is the
+     * light just on the surface and `ramp[7]` the light square to it.
+     * Concrete is matte: eight gentle steps, a roll-off with no hard edge,
+     * the face square to a lamp as bright as the shared 4-step ramp had it
+     * and the grazing faces a little darker. Paint is glossy: three hard
+     * bands - shadow, a flat body at 0.45, and the full face from a quarter
+     * on - the cel look a painted crate has and a wall does not. Glass
+     * never falls to black; a pane catches the sky from both sides. The
+     * pixel checks that read a crate or a duct against concrete
+     * (tests/legibility.js) are the ceiling on the concrete's mid-tones
+     * and the floor on paint's: B6's thinnest mouth sits at 0.26 against
+     * a 0.25 threshold.
+     *
+     * `grime` is the tiling multiplier: `tile` metres per repeat of the
+     * world-projected UVs, `layers` of value noise (`cells` per tile in u
+     * and v - unequal cells stretch the grain into streaks) mapped onto
+     * [`low`, `high`], and an optional `stain`, a low-frequency blotch that
+     * darkens by `depth` above `threshold`. Every value is below 1, so grime
+     * only darkens - and by more on screen than the texel says, since the
+     * texel is sRGB and the multiply is linear: concrete's mean texel of
+     * 0.94 took a fifth off a lit floor at 0.88, a tenth at this. `seed`
+     * feeds the hash, not the rng (Section 2).
+     */
+    finishes: {
+      fallback: 'concrete',
+      byPalette: {
+        concrete: 'concrete',
+        concreteDark: 'concrete',
+        ductMetal: 'paint',
+        wardenGunmetal: 'paint',
+        wardenSteel: 'paint',
+        hazardOrange: 'paint',
+        hazardStripe: 'paint',
+        glass: 'glass',
+        brokenGlass: 'glass',
+      },
+      concrete: {
+        ramp: [0.0, 0.2, 0.4, 0.55, 0.7, 0.8, 0.9, 1.0],
+        grime: {
+          size: 128, tile: 6.0, seed: 11, low: 0.86, high: 1.0,
+          layers: [{ cells: [4, 4], weight: 0.5 }, { cells: [9, 9], weight: 0.3 }, { cells: [23, 23], weight: 0.2 }],
+          stain: { cells: [3, 3], threshold: 0.62, depth: 0.1 },
+        },
+      },
+      paint: {
+        ramp: [0.0, 0.0, 0.45, 0.45, 0.45, 1.0, 1.0, 1.0],
+        grime: {
+          size: 128, tile: 3.0, seed: 23, low: 0.86, high: 1.0,
+          layers: [{ cells: [32, 3], weight: 0.6 }, { cells: [7, 7], weight: 0.4 }],
+        },
+      },
+      glass: {
+        ramp: [0.4, 0.4, 0.6, 0.6, 0.8, 0.8, 1.0, 1.0],
+        grime: {
+          size: 64, tile: 2.0, seed: 37, low: 0.9, high: 1.0,
+          layers: [{ cells: [3, 3], weight: 1.0 }],
+        },
+      },
+    },
+
+    /**
+     * Decals (E4): the marks a place picks up, as quads a centimetre proud
+     * of a face, drawn from a 2x2 atlas mapdecals.js paints in code (a
+     * stain, a drip, a wheel scuff, a hazard kerb). `lift` is that
+     * centimetre; `seed` feeds the atlas's noise. Where they go is each
+     * map's own list (`maps/plantdecals.js`), and Section 5 amended still
+     * holds: none of them marks a climb.
+     */
+    decals: {
+      atlasSize: 256,
+      lift: 0.012,
+      seed: 53,
+    },
+
+    /**
      * A box this wide AND this deep casts a shadow however thin it is. Roofs,
      * floor plates and decks are thin slabs; without this they sat out of the
      * shadow pass and the key light lit the building's interior as if it had

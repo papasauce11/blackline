@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after F7 (2026-09-20) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **165 passed, 1 failed, 6 not for this map (489s, 552s)**, yard **148 passed, 1 failed, 23 not for this map (237s, 222s)** (2026-09-20, after F7), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **E4** (M: map materials, `plant` - a concrete / painted metal / glass set with grime and decals, toon ramps tuned per material; pixel checks unchanged or better, frame budget unchanged), then E5, the yard's. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after E4 (2026-09-21) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **167 passed, 1 failed, 6 not for this map (573s, 643s)**, yard **148 passed, 1 failed, 25 not for this map (229s, 217s)** (2026-09-21, after E4), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **F8** (S: the key light's shadow stripes on a grazing wall, found by E4's probe), then **E5** (M: map materials, `yard` - corrugated containers, rust, painted numbers, wet ground, on E4's kit). **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -52,7 +52,63 @@ the regression set whole on every map, 2026-09-19 (below). **Block D is
 closed but for D3b** (waits on D38). Block E, styling, is open: E1, the
 Shade's figure, 2026-09-19, E2, the Warden's, and E3, animation,
 2026-09-20 (all below); F7, a look at a pose, the same day; E4, the
-plant's materials, is next.
+plant's materials, 2026-09-21 (below); E5, the yard's, is next after F8.
+
+---
+
+## The plant's materials - E4
+
+**A finish is what a surface is made of; the colour says which.**
+`src/mapmaterials.js` builds the set from `CONFIG.map.finishes`: for
+each of concrete, paint and glass a **ramp** (`createRamp(levels)`,
+eight texels a quarter of dotNL each - concrete matte `[0 .2 .4 .55 .7
+.8 .9 1]`, paint glossy `[0 0 .45 .45 .45 1 1 1]`, glass `[.4 … 1]`)
+and a **grime** (a tiling `DataTexture` from `hash2` / `valueNoise`, a
+hashed lattice: deterministic by coordinate, not a random call; sRGB,
+`repeat` = 1 / tile metres). `byPalette` names palette entries, so a
+retuned colour keeps its finish; anything unnamed is concrete. A map
+opts in with `new GameMap(gradientMap, id, name, { finishes })` - the
+plant does, the yard does not until E5 - and `createMaterialCache
+(gradientMap, finishes)` (mapbake.js) puts each colour on its finish's
+ramp and map, the lit variant too. `applyWorldUVs` in `addSolid` writes
+every box's UVs from world position by face normal, so a crate and its
+slab share one grain. Emissive is untouched by a map in three, so B7's
+step is exactly what it was.
+
+**Decals** are `src/mapdecals.js`: `bakeDecals(map, specs)` lays a
+`PlaneGeometry` per spec (`kind`, `at`, `face`, `w`, `h`, `along`) a
+centimetre proud of the face, UVs into one tile of a 2x2 atlas drawn in
+code (stain, drip, scuff, hazard), merged into two meshes on
+`map.root` - the grime kinds a `MeshBasicMaterial` multiply
+(**`premultipliedAlpha: true`, or r180 logs an error a frame and draws
+the quad opaque white**; fog off), the kerb a `MeshToonMaterial` cut
+out by `alphaTest` - and records each on `map.decals` for the checks.
+The plant's twenty are `src/maps/plantdecals.js`, none near a climb, a
+mouth or a ring. `mergeGeometries` carries uv now.
+
+**What the grime does to the numbers.** It only darkens, and more on
+screen than the texel says (sRGB texel, linear multiply): concrete's
+mean texel of 0.94 takes a seventh off a lit floor (site A 28.5 to
+24.5 luma). Every relation the pixel checks hold is unchanged or
+better; the absolute level is lower, which is D43's for Josh. The
+crates and the ducts read against concrete
+(`every-vent-mouth-reads-by-contrast-from-its-approach`, thinnest 0.26
+against 0.25; `every-route-reads-lit-from-its-foot`, stack-hall-low
+0.29), so concrete's mid-tones have a ceiling and paint's a floor: the
+first ramps (concrete 0.85 at mid angles, paint 0.55 at grazing) put
+the mouth at 0.25.
+
+**The checks** (tests/materials.js, plant): the finishes, the ramps,
+every material on its finish, then the grime by difference - the crop
+with the texture minus the same crop with it taken off every material
+of that finish, read under a lamp (the deck's underside over the north
+corridor at luma 101, the south duct's wall at 80), spread >= 1 and
+darkens >= 2; a first instrument read the crop's own spread on a wall
+at luma 20 and could not tell 1.48 from 1.30. And the decals: every
+kind, every quad on a solid's face (`isClear` either side of the
+surface point), clear of the sites, two draw calls, every floor stain
+a tenth darker and the deepest 3 luma, the kerb changing pixels. Spec
+20.27.
 
 ---
 
@@ -1433,6 +1489,26 @@ import); `node --check` cannot see it and only the code path that runs at
 boot reports it. After moving code between modules, grep the new file for
 every bare identifier the old module declared at top level.
 
+**`MultiplyBlending` needs `premultipliedAlpha: true` on the material in
+r180.** Without it three logs `THREE.WebGLState: MultiplyBlending
+requires material.premultipliedAlpha = true` once a frame and draws the
+mesh with normal blending - a white texel lands as opaque white. E4's
+first subset had 161 console errors and a stain reading brighter than
+the floor under it. The runner's `consoleErrors` count is where it
+shows first.
+
+**A dark surface hides its texture in a level or two.** A tenth of luma
+20 is two levels; the ramp's own bands spread more than that. Measure a
+texture under a lamp (a surface at luma 80-100), and by difference -
+the frame with the map minus the same frame with `material.map = null`
+(and `needsUpdate` both ways) - so the lighting's bands cancel and what
+is left is the texture.
+
+**An sRGB texture multiplies harder than its texel says.** A grey texel
+of 0.88 is 0.75 linear, and the surface it multiplies is lit in linear:
+E4's first grime took a fifth off a lit floor where the texel promised
+a tenth. Budget the darkening from the pixels, not the texel.
+
 ---
 
 ## The lesson that keeps repeating
@@ -1466,8 +1542,14 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D8, D25, D26, D27, D28, D30, D31, D38, D39, D40, D41, D42 and the Provisional section of `DECISIONS.md`; Josh answers there.
+These are D8, D25, D26, D27, D28, D30, D31, D38, D39, D40, D41, D42, D43 and the Provisional section of `DECISIONS.md`; Josh answers there.
 
+- **D43**: the plant's materials as built - three finishes by colour,
+  concrete matte and paint glossy on their own ramps, a generated grime
+  that takes a seventh off a lit floor, twenty decals. Provisional; the
+  numbers say the grime is on screen and every relation the pixel
+  checks hold is unchanged or better, not that concrete reads as
+  concrete or the whole is not darker than wanted.
 - **D42**: the animation as built - a pose for every state, eased over
   0.2s; the legs by the ground covered; the Warden's rifle raised to the
   aim. Provisional; the numbers say every pose is a quarter radian from

@@ -56,6 +56,7 @@ import { register as registerVisual } from './visual.js';
 import { register as registerFigure } from './figure.js';
 import { register as registerAnimation } from './animation.js';
 import { register as registerLook } from './look.js';
+import { register as registerMaterials } from './materials.js';
 import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
@@ -107,6 +108,7 @@ export function registerAutoTests(debugTools) {
   registerFigure(debugTools);
   registerAnimation(debugTools);
   registerLook(debugTools);
+  registerMaterials(debugTools);
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);

@@ -38,7 +38,19 @@ Placed here, after A and before B, on purpose: the suite is the instrument
 every later block is measured with, and a gate that answers differently on a
 busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
-F5 (2026-09-16) and F6 (2026-09-20); the next gate job, if one is found, goes here.
+F5 (2026-09-16), F6 and F7 (2026-09-20); the next gate job, if one is found, goes here.
+
+- [ ] **F8 (S)** The key light's shadow stripes on a grazing wall. E4's
+  probe photographed the east shell wall from inside the bay at a
+  grazing angle: fine diagonal stripes across the whole face, there with
+  the old ramp and gone with `map.keyLight.castShadow` off - the
+  1024-map's texels on a wall nearly parallel to the light, not a
+  material. `shadowBias` -0.0006 / `shadowNormalBias` 0.02 today.
+  *done-when:* a check in tests/visual.js reads a grazing wall's luma
+  along a line and holds the count of alternations under a ceiling with
+  the shadow on, and the fix is a bias or a slope-scaled bias, not the
+  shadow off; `exactly-one-shadow-caster` and `lit-pools-and-dark-gaps`
+  unchanged.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -108,19 +120,47 @@ Decided: D3 — the Shade and the Warden first, then the map. Provisional: D10
 (no post-processing until the characters are done), D40 (the Shade's
 figure as built). Draw-call and frame budget checks are the ceiling.
 
-(E1 done 2026-09-19; E2 and E3 done 2026-09-20.)
+(E1 done 2026-09-19; E2 and E3 done 2026-09-20; E4 2026-09-21.)
 
-- [ ] **E4 (M)** Map materials, `plant`. A concrete / painted metal / glass
-  set with grime and decals; toon ramps tuned per material. *done-when:*
-  pixel checks unchanged or better; frame budget unchanged.
 - [ ] **E5 (M)** Map materials, `yard`. Corrugated containers, rust, painted
-  numbers, wet ground. *done-when:* as E4 on `yard`.
+  numbers, wet ground. The kit is E4's: a finish is a ramp and a grime
+  spec under `CONFIG.map.finishes`, a map opts in with
+  `new GameMap(..., { finishes })` and its own `byPalette`, decals are a
+  list handed to `bakeDecals` (src/mapdecals.js) - the yard wants a
+  corrugation (a grime with cells [1, 40] across a container's 2.4m),
+  rust that pools at the ground, numbers (a bitmap stencil tile in the
+  atlas, or none), and a wet ground (a lower, glossier concrete).
+  *done-when:* as E4 on `yard`: the yard's checks (tests/yardlight.js,
+  walkway.js, yard.js) unchanged or better, a `maps: ['yard']` check in
+  tests/materials.js that would fail reverted, two draw calls for the
+  decals.
 - [ ] **E6 (S)** Post-processing — **blocked: D10.**
 
 ---
 
 ## Done
 
+- **E4** Map materials, `plant`. Three finishes by palette colour
+  (`src/mapmaterials.js`, `CONFIG.map.finishes`; a map opts in with
+  `new GameMap(..., { finishes })`, the plant does): concrete matte on
+  an eight-step ramp, paint glossy on three hard bands, glass never
+  black; a grime texture per finish generated from a hashed lattice
+  noise (no image, no rng), world-projected by `applyWorldUVs` so boxes
+  share a grain, multiplied into the colour. Decals (`src/mapdecals.js`,
+  `src/maps/plantdecals.js`): a 2x2 atlas drawn in code - stain, drip,
+  scuff, hazard kerb - twenty quads on the plant merged into two meshes,
+  the grime kinds a multiply (`premultipliedAlpha: true`, r180 insists),
+  the kerb toon-lit; none near a climb, a mouth or a ring.
+  `the-plant-is-dressed-in-three-finishes-and-the-grime-is-on-the-wall`
+  (every material on its finish's ramp and grime, ramps as configured,
+  the grime by difference under a lamp: concrete spread 4.1 / darkens
+  7.8, paint 2.0 / 6.5) and
+  `the-plant-wears-its-decals-on-its-faces-in-two-draw-calls` (every
+  decal on a face clear of the sites, every floor stain a tenth darker
+  and the deepest 4 luma, the kerb drawn, two calls). Pixel checks:
+  mouths 0.26-0.88 (0.26-0.81), routes 0.29-0.63 (0.30-0.61), lit pools
+  site A 24.5 (28.5) with hall over vault 2.40x (2.24x) - the grime
+  takes a seventh off a lit floor, D43. — 2026-09-21, scheduled run.
 - **F7** A look at a pose. `npm run shot -- --pose <names|all>`
   (scripts/shot.mjs) calls `photographPose(h, name)` (src/tests/look.js)
   per name: `strike(h, name)` (tests/animation.js, factored out of E3's
