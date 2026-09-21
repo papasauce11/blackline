@@ -376,10 +376,15 @@ now. What is not, and why:
 
 ## Known issues and open questions
 
-- **The Warden defuses through the floor** (D27, decided 2026-09-21:
-  no). Until B5d lands, the defuse reach is two distances and no line of
-  sight, so a charge on the north duct's roof under the deck is defused
-  by a Warden standing on the deck above it, through the slab.
+- **The Warden no longer defuses through the floor** (D27, decided
+  2026-09-21: no; B5d the same day). The defuse reach is two distances
+  and a clear line from the Warden's body to the charge, so the north
+  duct's roof under the deck is no longer a legal plant and a Warden on
+  the deck does nothing to a charge under it. What only eyes can judge:
+  whether a Warden beside a crate top reaching up to a charge on it
+  reads right, and whether anywhere you expect to be able to plant now
+  refuses - the HUD says "cannot plant here" (D6); tell the routine
+  where.
 - **The duct roofs are routes up** (D25, decided 2026-09-21: as built).
 - **The site ring says *plant here* and means *this room*** (D8, decided
   2026-09-21: a faint floor tint and a HUD line naming the site - C7).

@@ -23,7 +23,8 @@
 
 import { CONFIG, SETTINGS, rng } from '../config.js';
 import { createWardenIntent, WARDEN_STATE } from '../entities/enforcer.js';
-import { A, AI_STATE, angleDelta } from './aistate.js';
+import { A, AI_STATE, angleDelta, defuseSnapFor } from './aistate.js';
+import { withinDefuseReach } from './plantrule.js';
 import { PERCEPTION } from './aiperception.js';
 import { NAVIGATION } from './ainav.js';
 
@@ -79,6 +80,10 @@ export class WardenAI {
     this._repathTimer = 0;
     this._stuckAnchor = { x: 0, z: 0 };
     this._defendTarget = null;
+    /** Where DEFEND stands to work on the charge: a cell the reach accepts. */
+    this._defendStand = null;
+    this._defuseSnap = defuseSnapFor(map);
+    this._feet = { x: 0, y: 0, z: 0 };
     this._aimYaw = 0;
     this._aimPitch = 0;
     this._aim = { x: 0, y: 0, z: 0 };
@@ -159,6 +164,7 @@ export class WardenAI {
     this._alarmProbeTimer = 0;
     this._repathTimer = 0;
     this._defendTarget = null;
+    this._defendStand = null;
     this._aimYaw = 0;
     this._aimPitch = 0;
     this._stuckAnchor.x = this.warden.position.x;
@@ -173,13 +179,19 @@ export class WardenAI {
   /** Phase 10 hands the planted charge here; DEFEND takes over until it clears. */
   setDefendTarget(position) {
     this._defendTarget = position ? { x: position.x, y: position.y, z: position.z } : null;
+    // Where to work on it from (B5d): the nearest cell the defuse reach
+    // accepts, line and all. A charge on the floor is its own cell; one on
+    // a crate top is the cell beside the crate the hands reach over; one
+    // the reach refuses from everywhere is walked at as before.
+    const ground = this.map.wardenGround;
+    this._defendStand = this._defendTarget && ground ? ground.standAt(this._defendTarget, this._defuseSnap) : null;
     if (!this._defendTarget || this.state === AI_STATE.ENGAGE) return;
     this._enter(AI_STATE.DEFEND);
     // Section 11: "path directly to the charge". Entering the state is not the
     // same as going there — without this the Warden kept walking the patrol
     // route it happened to be on and only reached the charge by coincidence,
     // which is the same fault ENGAGE had before Phase 6 fixed it.
-    this._pathTo(this._defendTarget);
+    this._pathTo(this._defendStand || this._defendTarget);
   }
 
   // -------------------------------------------------------------------------
@@ -465,16 +477,20 @@ export class WardenAI {
 
     if (!this._followRoute(dt, false)) return;
 
-    // Arrived. If that is not actually the charge — a route can end at the
-    // nearest reachable node, and the Warden can be nudged off by a grenade or
-    // a body — go again rather than standing somewhere near it forever.
-    const dx = this._defendTarget.x - this.warden.position.x;
-    const dz = this._defendTarget.z - this.warden.position.z;
-    if (dx * dx + dz * dz > A.defendHoldRadius * A.defendHoldRadius) {
+    // Arrived. If the defuse cannot run from here - a route can end at the
+    // nearest reachable node, the Warden can be nudged off by a grenade or a
+    // body, and since B5d "here" has to have a clear line to the charge and
+    // not merely be near it - go again rather than standing somewhere near
+    // it forever. Asked of the reach itself, so arriving means the defuse
+    // in objective.js agrees.
+    this._feet.x = this.warden.position.x;
+    this._feet.y = this.warden.feetY;
+    this._feet.z = this.warden.position.z;
+    if (!withinDefuseReach(this._feet, this._defendTarget, this.map.collision)) {
       this._repathTimer -= dt;
       if (this._repathTimer <= 0) {
         this._repathTimer = A.defendRepathInterval;
-        this._pathTo(this._defendTarget);
+        this._pathTo(this._defendStand || this._defendTarget);
       }
       return;
     }

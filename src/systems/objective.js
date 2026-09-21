@@ -20,7 +20,7 @@ import { CONFIG, SETTINGS } from '../config.js';
 import { withinDefuseReach, canDefuseAt, hasHeadroomAt, canPlantAt } from './plantrule.js';
 import { CHARGE, ROUND, OUTCOME, createRoundState } from './roundstate.js';
 
-export { DEFUSE_REACH, PLANT_HEADROOM, withinDefuseReach } from './plantrule.js';
+export { DEFUSE_REACH, DEFUSE_LINE, PLANT_HEADROOM, withinDefuseReach } from './plantrule.js';
 export { CHARGE, ROUND, OUTCOME, createRoundState } from './roundstate.js';
 
 const R = CONFIG.round;
@@ -292,11 +292,12 @@ export class Objective {
     // radius was never a marking - it is how close you have to be to kneel
     // down and pull the thing apart - so it stays exactly as it was. It is
     // measured by `withinDefuseReach()` now rather than here, so that
-    // `canDefuseAt()` below can ask the identical question of the map.
+    // `canDefuseAt()` below can ask the identical question of the map - and
+    // since B5d it is a clear line through this world as well (D27).
     FOOT.x = warden.position.x;
     FOOT.y = warden.position.y - CONFIG.warden.standHeight / 2;
     FOOT.z = warden.position.z;
-    const atSite = withinDefuseReach(FOOT, at);
+    const atSite = withinDefuseReach(FOOT, at, this.map.collision);
 
     // Section 11 DEFEND: defuse if the Shade is not visible. A Warden that can
     // see you should be shooting, not kneeling.

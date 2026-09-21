@@ -43,6 +43,7 @@ import { register as registerGadgets } from './gadgets.js';
 import { register as registerObjective } from './objective.js';
 import { register as registerPlantRule } from './plantrule.js';
 import { register as registerPlantCensus } from './plantcensus.js';
+import { register as registerDefuseLine } from './defuseline.js';
 import { register as registerGroundView } from './groundview.js';
 import { register as registerFreeRoam } from './freeroam.js';
 import { register as registerSettings } from './settings.js';
@@ -96,6 +97,7 @@ export function registerAutoTests(debugTools) {
   registerObjective(debugTools);
   registerPlantRule(debugTools);
   registerPlantCensus(debugTools);
+  registerDefuseLine(debugTools);
   registerGroundView(debugTools);
   registerFreeRoam(debugTools);
   registerSettings(debugTools);

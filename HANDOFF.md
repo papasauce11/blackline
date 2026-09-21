@@ -30,17 +30,17 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after F9 (2026-09-21) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after F9), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **B5d** (S: the defuse reach is a clear line - D27 decided "no" 2026-09-21, a Warden may not defuse through a floor), then **C7** (M: the site ring becomes a faint floor tint and the HUD names the site - D8), then **E5** (M: map materials, `yard` - corrugated containers, rust, painted numbers, wet ground, on E4's kit). Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **F9 done** 2026-09-21: `npm run probe`, a question asked of the game headless (Running it). **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after B5d (2026-09-21) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after B5d), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **C7** (M: the site ring becomes a faint floor tint and the HUD names the site - D8), then **E5** (M: map materials, `yard` - corrugated containers, rust, painted numbers, wet ground, on E4's kit). Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **B5d done** 2026-09-21 (below): the defuse reach is a clear line - **Block B is closed**. **F9 done** 2026-09-21: `npm run probe`, a question asked of the game headless (Running it). **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) dropped on D25 and B5d (the defuse reach is a clear line) done on D27, both 2026-09-21. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
 | Map, yard | 132 boxes (71 before the walkway's 53, 124 before the masts' 8), 58 climbable, 5 lamps (four on masts, one under the walkway), Warden ground 15,332 cells in one component (the run and its stair included), 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up (the two arches and the nine upper tiers), every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
 
 Phases 1–49 of the original build are done and committed. The **redesign**
-(phases 1-50 of the plan below) is closed as of B9, 2026-09-14, but for two
-jobs that wait on Josh (B5b on D25, B5d on D27). One directive arrived
+(phases 1-50 of the plan below) is closed as of B9, 2026-09-14; the two
+jobs that waited on Josh went 2026-09-21 (B5b dropped on D25, B5d built on D27). One directive arrived
 outside it (the plant, below). **Block C is closed** (2026-09-16): C1,
 the playtest build, C2, the round-start briefing, and C3, hit and damage
 feedback, landed 2026-09-15; C4, the end screens, C5, the difficulty
@@ -55,6 +55,35 @@ Shade's figure, 2026-09-19, E2, the Warden's, and E3, animation,
 plant's materials, 2026-09-21 (below), and F8, the key light's shadow
 side, the same day (below); E5, the yard's materials, is after F9,
 B5d and C7.
+
+---
+
+## The defuse reach is a clear line - B5d
+
+D27 (Josh, 2026-09-21): a Warden may not defuse through a floor. The
+reach was two distances - `DEFUSE_REACH`, arm's length across and 2.5m
+up or down - and knew nothing of what lay between, so the north duct's
+roof under the deck was a legal plant defused from the deck through
+0.3m of slab. **`withinDefuseReach(foot, at, collision)`**
+(systems/plantrule.js) is the distances and then a line: from one of
+six points on the segment from the Warden's feet to its raised hands
+(`DEFUSE_LINE`: `samples` 6, `skin` 0.1 off the floor the Warden stands
+on and off the surface the charge rests on, so neither end starts inside
+the box it touches) to the charge, `collision.lineOfSight` with every
+solid box in the way - glass too; you cannot reach through a pane. The
+world is a required argument: a caller that measures the distances
+alone throws, so the two sides cannot drift. The defuse in objective.js
+passes `this.map.collision`; `canDefuseAt` passes `map.collision`
+through `someCellWithin`'s context (a reused module object, no
+allocation on the plant hold's step); the census's two call sites pass
+`h.map.collision`. A Warden beside a crate reaches the charge on top of
+it from its hands over the crate's edge; one over a floor does not; one
+behind a thin wall does not. **What moved**: the census went from 366 legal plant spots to 364 of 381: the north and south duct roofs under the deck (4 of 21 tops out of reach, 2 before), and nothing else. **The AI** (ai.js): DEFEND paths to `_defendStand`, the nearest cell the reach accepts (`defuseSnapFor(map)` in aistate.js hands `standAt` an `accepts` that is `withinDefuseReach` with the map's world - under a duct the nearest cell inside the distances is one the line through the duct floor refuses, and the Warden used to stand there and never kneel), and decides it has arrived by the reach itself, not a hold radius (`defendHoldRadius` is gone); the last-leg check plans with the same snap. The three-match soak: 9 rounds, all defused, 0 stuck re-paths. **The check**
+(tests/defuseline.js, plant): a charge on `vent-low-north-roof`, the
+Warden on the nearest deck cell over it inside the distances, a second
+of the round, no progress; beside a legal crate top from below, progress;
+the slab the line meets made non-solid, the reach accepts the deck cell,
+and refuses it again with the slab back. Spec 20.29.
 
 ---
 

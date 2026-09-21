@@ -885,10 +885,9 @@ export const CONFIG = {
     /** How often that sweep runs while searching or defending. */
     alarmPlacementInterval: 0.5,
     /**
-     * How close DEFEND has to be to the charge to stand and hold it. Inside
-     * the plant/defuse radius, so arriving means the defuse can actually run.
+     * How often DEFEND, arrived somewhere the defuse cannot run from (the
+     * reach itself says, line and all - B5d), plans its way again.
      */
-    defendHoldRadius: 1.4,
     defendRepathInterval: 1.5,
 
     /**

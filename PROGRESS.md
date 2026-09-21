@@ -7361,3 +7361,78 @@ source under src/ changed, so F8's four-run verify stands for the
 suite; B5d's verify, next, runs on this tree.
 
 **Left.** Nothing of F9's. Block F is closed again.
+
+## B5d — the defuse reach is a clear line (2026-09-21, scheduled run, Josh present)
+
+**Gate.** F8's verify at `84315c3` (F9 changed no source under src/):
+plant 168/1/6 twice, yard 148/1/26 twice, 0 red, 0 flaky, 0 console
+errors.
+
+**D27** (Josh, 2026-09-21): "no" - a Warden may not defuse through a
+floor. The reach was two distances and knew nothing of what lay between
+them, so the north duct's roof under the deck (3.6m up, the deck 2.4m
+over it) was a legal plant and the AI defused it from the deck through
+0.3m of slab.
+
+**The rule.** `withinDefuseReach(foot, at, collision)`
+(systems/plantrule.js) is the distances and then a line: `DEFUSE_LINE`
+= six points on the segment from the Warden's feet to its raised hands
+(`DEFUSE_REACH.dy` up), each a 0.1 skin off the floor it stands on, to
+the charge 0.1 off the surface it rests on - so neither end starts
+inside the box it touches; `collision.lineOfSight` from any one of them
+with every solid box in the way counts, glass too. The world is
+required: a caller that measures the distances alone throws, so the two
+sides cannot drift. The defuse in objective.js passes `this.map.
+collision`; `canDefuseAt` passes `map.collision` through
+`someCellWithin`'s context, a reused module object (nothing allocated
+on the plant hold's step); the census's two call sites pass
+`h.map.collision`. A Warden beside a crate reaches the charge on top of
+it from its hands over the crate's edge; one over a floor does not; one
+behind a thin wall does not.
+
+**What moved.** The census went from 366 legal plant spots to 364 of
+381: the north and south duct roofs under the deck (4 of 21 tops out of
+reach, 2 before), and nothing else - the prediction under D27, to the
+spot.
+
+**The AI had to move with it.** The first subset had two reds, both
+the same thing: the room-A sample of `every-legal-plant-has-a-warden-
+who-can-reach-it` became the south duct's lip, the Warden walked to
+1.0m of it and stood in DEFEND for 30s without kneeling, and the
+last-leg check's route ended "1.3m from the charge, outside the defuse
+reach". DEFEND walked to the charge's own XZ and held by a radius
+(`defendHoldRadius`, 1.4m), which under the duct is a cell the line
+through the duct's floor refuses. Now `standAt(position, snap)`
+(mapground.js) takes an optional `snap.accepts(cell, position)`;
+`defuseSnapFor(map)` (aistate.js) is the reach itself with the map's
+world; `setDefendTarget` finds `_defendStand`, the nearest cell the
+reach accepts, and paths there; `_stepDefend`, arrived, asks
+`withinDefuseReach` of its own feet and re-paths to the stand if the
+answer is no - so arriving means the defuse in objective.js agrees.
+`defendHoldRadius` is gone from config. The last-leg check plans with
+the same snap. The room-A sample now defuses the lip from beside it in
+8.2s (the roof through the deck took 11.8s); the three-match soak on
+the plant: 9 rounds, all defused, 0 stuck re-paths.
+
+**The check** is `the-warden-defuses-along-a-clear-line-never-through-
+a-floor` (`src/tests/defuseline.js`, plant; tests/plantrule.js is at
+532 lines): a charge put on `vent-low-north-roof` the way a plant leaves
+it, the Warden stood on the nearest deck cell over it inside the
+distances, a second of the round with no AI, no progress; the same
+beside the first legal crate top with Warden ground below it (the
+south lip, 2.3m below), 1.00s of progress; then the slab the line from
+the deck cell meets (`deck-7`) made non-solid, and the reach accepts
+the deck cell - asked of the predicate, since a Warden stood on a slab
+that is no longer solid falls through it - and refuses it again with
+the slab back.
+
+**Verified.** Subsets on the plant (8 checks in 45s after the DEFEND
+fix; 6 of 8 before it); then `npm run suite`, both maps twice:
+**169 passed, 1 failed, 6 not for this map**, **148 passed, 1 failed, 27 not for this map**, every outcome identical between
+runs, 0 red, 0 flaky, 0 console errors, 0
+context losses; the one failure on each is the frame-budget sweep,
+skipped headless.
+
+**Left.** Block B is closed. Whether a Warden reaching up beside a
+crate reads right, and whether anywhere refuses that should not, is
+eyes' work (PLAYTEST.md).

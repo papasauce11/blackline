@@ -1372,3 +1372,26 @@ reads-plain` (tests/keylight.js) reads three rows across that wall,
 holds their level-crossings against a smoothed copy under a ceiling
 with the shadow on, and strips the patch at runtime to prove the same
 instrument sees the stripes. F8, 2026-09-21.
+
+### 20.29 Section 10.1 - the defuse reach is a clear line
+
+B5d, on D27 (Josh, 2026-09-21: a Warden may not defuse through a
+floor). 20.3's "a plant is legal exactly where a Warden could stand and
+defuse it" stands; what "could defuse" means gains a clause. The
+defuse reach was two distances - arm's length across, 2.5m up or
+down - and knew nothing of what lay between, so a charge on the north
+duct's roof under the deck was defused by a Warden standing on the
+deck, through the slab. `withinDefuseReach(foot, at, collision)`
+(systems/plantrule.js) now also asks the collision world for a clear
+line: from some point of the segment from the Warden's feet to its
+raised hands, the charge must be in open air - no solid box on the
+way, glass included. A Warden beside a crate still reaches the charge
+on top of it over the crate's edge; one over a floor does not reach
+through it; one behind a thin wall does not reach round it. The same
+predicate on both sides as before: the defuse in objective.js asks it
+of the Warden, `canDefuseAt()` of every cell of Warden ground, so where
+the Shade may plant moves with it, and the census says what moved
+(the duct roofs under the deck). `the-warden-defuses-along-a-clear-
+line-never-through-a-floor` (tests/defuseline.js) holds the deck cell
+to no defuse, a cell beside a crate top to one, and the refusal to
+the slab. B5d, 2026-09-21.

@@ -7,6 +7,7 @@
  */
 
 import { CONFIG } from '../config.js';
+import { DEFUSE_REACH, withinDefuseReach } from './plantrule.js';
 
 export const A = CONFIG.ai;
 
@@ -15,9 +16,23 @@ export const A = CONFIG.ai;
  * it from the nearest cell within the defuse reach. The same two numbers the
  * plant rule reads (`DEFUSE_REACH` in systems/objective.js reads them from
  * config too), so where the AI walks to and where the defuse counts from
- * cannot drift apart.
+ * cannot drift apart. This is the snap every goal is planned with.
  */
 export const DEFUSE_SNAP = { radius: CONFIG.round.siteRadius, dy: CONFIG.round.defuseReachY };
+
+/**
+ * The snap DEFEND stands by (B5d, D27): the reach itself, asked of this
+ * map's world, so the cell the Warden walks to is one the defuse counts
+ * from - not the nearest cell inside the distances, which under a duct is
+ * a cell the line through the duct's floor refuses.
+ */
+export function defuseSnapFor(map) {
+  return {
+    radius: DEFUSE_REACH.radius,
+    dy: DEFUSE_REACH.dy,
+    accepts: (cell, at) => withinDefuseReach(cell, at, map.collision),
+  };
+}
 
 export const AI_STATE = {
   PATROL: 'patrol',

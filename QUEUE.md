@@ -46,6 +46,8 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
 there. The census is the contract; **never weaken it**.
 
+(**Block B is closed** 2026-09-21: B5b dropped on D25, B5d done on D27.)
+
 - [x] ~~**B5b (M)** Rail the deck's void edges except at the lips~~ —
   **dropped 2026-09-21: D25 decided option 1, as built.** The duct roofs
   are routes; nothing to build. Kept for the record:
@@ -58,21 +60,6 @@ there. The census is the contract; **never weaken it**.
   `every-stacked-climb-is-a-step-of-a-declared-route` green with those
   routes removed, the census's "need a leg up" at the number D25 predicts,
   `the-warden-never-climbs-to-reach-its-ground` and the AI soak unchanged.
-- [ ] **B5d (S)** The defuse reach is a clear line — **D27 decided 2026-09-21:
-  no, a Warden may not defuse through a floor (option 2). Unblocked; next.** `withinDefuseReach(foot, at, collision)`
-  in `systems/plantrule.js`: within the two distances *and* the charge in
-  open air from some point of the segment from the Warden's feet to its
-  raised hands (`DEFUSE_REACH.dy` up), asked of `map.collision`; the defuse
-  in `objective.js` and `canDefuseAt()` both pass the world, so the plant
-  rule moves with it. *done-when:* the census
-  (`every-plant-spot-in-a-site-room-answers-to-the-defuse-rule`, tests/plantcensus.js)
-  reports the duct roofs under the deck refused and says what else moved;
-  a new check plants on `vent-low-north-roof`, stands a Warden on the deck
-  over it and asserts no defuse starts, then stands one beside a crate top
-  and asserts it does; the room-A sample of
-  `every-legal-plant-has-a-warden-who-can-reach-it` is no longer defused
-  through the deck; suite twice with identical answers.
-
 ## Block C — playable and testable
 
 Decided: D4 (Josh tests what the routine cannot; do not halt for looks).
@@ -160,6 +147,25 @@ figure as built). Draw-call and frame budget checks are the ceiling.
 
 ## Done
 
+- **B5d** The defuse reach is a clear line (D27: no defusing through a
+  floor). `withinDefuseReach(foot, at, collision)` (systems/plantrule.js)
+  is the two distances and then a line: from one of six points on the
+  segment from the Warden's feet to its raised hands (`DEFUSE_LINE`,
+  each a 0.1 skin off the floor) to the charge 0.1 off its surface, no
+  solid box between, glass included. The world is required, so no
+  caller measures the distances alone; the defuse in objective.js and
+  `canDefuseAt` both pass it, and the census's two call sites do. The
+  census: 366 legal spots to 364 of 381, the two duct roofs under the
+  deck and nothing else; the AI's DEFEND stands where the reach accepts
+  (`defuseSnapFor`, `standAt`'s `accepts`), arrives by the reach, and
+  the room-A sample is the south duct's lip in 8.2s, not the roof
+  through the deck.
+  `the-warden-defuses-along-a-clear-line-never-through-a-floor`
+  (tests/defuseline.js, plant): a charge on `vent-low-north-roof`, the
+  Warden stood on the deck cell over it inside the distances, no defuse
+  in a second; beside a crate top from below, the defuse starts; the
+  slab the line meets made non-solid, the reach accepts the deck cell.
+  — 2026-09-21, scheduled run, Josh present, commit `B5D_HASH`.
 - **F9** A probe. `npm run probe -- [--map id] [--out dir] [--query q]
   <file.js> [...]` (scripts/probe.mjs): loads the page on one map, stops
   the loop, warms 60 frames, runs each file's text as an async function
@@ -172,7 +178,7 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   (`a-wall-the-key-lights-from-behind-reads-plain`'s readings, the PNG
   of the wall) and `a-look-at-both-figures-photographs-every-eye`
   through the shared launch. — 2026-09-21, scheduled run, Josh present,
-  commit `F9_HASH`.
+  commit `f503551`.
 - **F8** The key light gives nothing to a face it lights from behind.
   E4's stripes were the shadow term on a wall the key lights from
   behind: three's shadow pass draws back faces, so the depth stored for

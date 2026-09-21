@@ -121,7 +121,10 @@ export class WardenGround {
    * the nearest reachable cell within `snap` of it. Null if neither.
    *
    * @param {{x:number,y:number,z:number}} position a foot position
-   * @param {{radius:number, dy:number}} [snap]
+   * @param {{radius:number, dy:number, accepts?:Function}} [snap] `accepts
+   *   (cell, position)`, if given, is asked of every cell inside the two
+   *   distances - the defuse reach's own line (B5d), so the cell handed back
+   *   is one the reach agrees with
    * @returns {{x:number,y:number,z:number}|null} a foot position on the ground
    */
   standAt(position, snap = null) {
@@ -133,6 +136,7 @@ export class WardenGround {
     let found = null;
     for (let n = 0; n < cells.length; n++) {
       if (Math.abs(cells[n].y - position.y) >= snap.dy) continue;
+      if (snap.accepts && !snap.accepts(cells[n], position)) continue;
       const d = Math.hypot(cells[n].x - position.x, cells[n].z - position.z);
       if (d < best) {
         best = d;
