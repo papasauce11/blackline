@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after E4 (2026-09-21) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **167 passed, 1 failed, 6 not for this map (573s, 643s)**, yard **148 passed, 1 failed, 25 not for this map (229s, 217s)** (2026-09-21, after E4), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **B5d** (S: the defuse reach is a clear line - D27 decided "no" 2026-09-21, a Warden may not defuse through a floor; Block B comes first in block order), then **C7** (M: the site ring becomes a faint floor tint and the HUD names the site - D8), then **F8** (S: the key light's shadow stripes on a wall it lights from behind - the ramps' back-light times the shadow term; E4's probe found the cause and QUEUE.md has the three fixes to choose from), then **E5** (M: map materials, `yard` - corrugated containers, rust, painted numbers, wet ground, on E4's kit). **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after F8 (2026-09-21) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after F8), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **F9** (S: the probe script in the repo - `npm run probe`; Block F is before B in block order), then **B5d** (S: the defuse reach is a clear line - D27 decided "no" 2026-09-21, a Warden may not defuse through a floor), then **C7** (M: the site ring becomes a faint floor tint and the HUD names the site - D8), then **E5** (M: map materials, `yard` - corrugated containers, rust, painted numbers, wet ground, on E4's kit). Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) waits on D25; B5d (the defuse reach is a clear line) waits on D27. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -52,7 +52,38 @@ the regression set whole on every map, 2026-09-19 (below). **Block D is
 closed but for D3b** (waits on D38). Block E, styling, is open: E1, the
 Shade's figure, 2026-09-19, E2, the Warden's, and E3, animation,
 2026-09-20 (all below); F7, a look at a pose, the same day; E4, the
-plant's materials, 2026-09-21 (below); E5, the yard's, is next after F8.
+plant's materials, 2026-09-21 (below), and F8, the key light's shadow
+side, the same day (below); E5, the yard's materials, is after F9,
+B5d and C7.
+
+---
+
+## The key light gives nothing to a face it lights from behind - F8
+
+Three's shadow pass draws back faces, so the depth it stores for a
+surface the key lights from behind is that surface's own, and the
+shadow term there is a depth compared with itself: the 1024-map's
+texel staircase, fine diagonal stripes a level or two deep across the
+whole face. A Lambert never shows it (dotNL < 0 is black); the toon
+ramps light the back half of dotNL (the 4-step's 0.333, concrete's
+0.4), so every wall with the key behind it and nothing else shading
+it wore them - E4's probe found them on the east shell wall from
+inside the bay, and a normal bias cannot help because it is the wall's
+own depth whatever the bias. **`noKeyLightFromBehind(material)`**
+(src/mapbake.js) is an `onBeforeCompile` that resolves
+`lights_fragment_begin` and multiplies the shadow-casting
+directional's term by `step(0, n.L)`: a face behind itself is in its
+own shadow. Only the key; the fill, the hemisphere and the lamps wrap
+as before, and the ramps are E4's. Every material the cache makes
+takes it under one program key (`bl-no-key-from-behind`; the leak
+check reads one more program on the yard, 14, unchanged across its
+rounds); the actors keep theirs. The cost is that those faces are a
+third darker (the east wall 25 to 17 luma) - every other light reading
+on both maps is unchanged to the digit, one landing edge's contrast
+better. **The check** (tests/keylight.js, plant) reads three rows across
+the wall from E4's eye, counts crossings against a smoothed copy
+(ceiling 6; 2/0/1), and strips the patch at runtime to see the stripes
+(23/21/12) before restoring it. Spec 20.28.
 
 ---
 

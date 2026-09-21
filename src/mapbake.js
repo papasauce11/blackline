@@ -42,7 +42,7 @@ export const SWEEP_STEP = 0.15;
  * paint or glass - in place of the shared ramp; the lit variant keeps the
  * finish, so a route-lit crate is still a painted one. Without one (the
  * yard, until E5) every material is on `gradientMap` with no texture, as
- * before.
+ * before. Every material the cache makes takes `noKeyLightFromBehind` (F8).
  */
 export function createMaterialCache(gradientMap, finishes = null) {
   const cache = new Map();
@@ -55,7 +55,7 @@ export function createMaterialCache(gradientMap, finishes = null) {
       const key = lit ? `${color}:lit` : color;
       let material = cache.get(key);
       if (!material) {
-        material = new THREE.MeshToonMaterial({ color, ...dressing(color), vertexColors: true });
+        material = noKeyLightFromBehind(new THREE.MeshToonMaterial({ color, ...dressing(color), vertexColors: true }));
         if (lit) {
           material.emissive.set(color);
           material.emissiveIntensity = M.routeLighting.emissive;
@@ -74,10 +74,10 @@ export function createMaterialCache(gradientMap, finishes = null) {
       const key = `${color}:glass`;
       let material = cache.get(key);
       if (!material) {
-        material = new THREE.MeshToonMaterial({
+        material = noKeyLightFromBehind(new THREE.MeshToonMaterial({
           color, ...dressing(color), vertexColors: true,
           transparent: true, opacity: M.glassOpacity, depthWrite: false, side: THREE.DoubleSide,
-        });
+        }));
         cache.set(key, material);
       }
       return material;
@@ -94,6 +94,37 @@ export function createMaterialCache(gradientMap, finishes = null) {
       return cache.size;
     },
   };
+}
+
+/**
+ * The shadow-casting key light gives a face that faces away from it nothing
+ * (F8). Three's shadow pass draws back faces, so the depth it stores for a
+ * surface the key lights from behind is that surface's own, and the shadow
+ * term there is a comparison of a depth with itself: the 1024-map's texel
+ * staircase, fine diagonal stripes a level or two deep across the whole
+ * face. A Lambert never shows it (dotNL < 0 is black), but a toon ramp
+ * lights the back half of dotNL - the 4-step's texel for [-0.5, 0) is 0.333,
+ * the concrete finish's 0.4 - so every wall with the key behind it wore
+ * them (E4's probe found them on the east shell wall from inside the bay).
+ * A face behind itself is in its own shadow: this multiplies the key's
+ * shadow term by `step(0, n.L)`, which is the answer a map of infinite
+ * resolution would give. Only the key: the fill, the hemisphere and the
+ * lamps still wrap round to the shadow side of everything, which is what
+ * fills it today. Applied to every material the cache makes, so one program
+ * key covers them; the actors keep their own (agentmesh.js).
+ */
+export function noKeyLightFromBehind(material) {
+  material.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <lights_fragment_begin>',
+      THREE.ShaderChunk.lights_fragment_begin.replace(
+        'vDirectionalShadowCoord[ i ] ) : 1.0;',
+        'vDirectionalShadowCoord[ i ] ) * step( 0.0, dot( geometryNormal, directLight.direction ) ) : 1.0;'
+      )
+    );
+  };
+  material.customProgramCacheKey = () => 'bl-no-key-from-behind';
+  return material;
 }
 
 // ---------------------------------------------------------------------------

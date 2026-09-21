@@ -1351,3 +1351,24 @@ of the sites, a stain to darkening the floor under it, a kerb to being
 drawn, and the lot to two draw calls; the pixel checks that were green
 before read unchanged or better in every relation they hold. E4,
 2026-09-21.
+
+### 20.28 Section 4.1 - the key light gives nothing to a face it lights from behind
+
+F8. "Exactly one shadow-casting light" stands; what its shadow term
+means on a face that faces away from it is now stated. Three's shadow
+pass draws back faces, so for a surface the key lights from behind the
+depth it stores is that surface's own, and the shadow term there is a
+depth compared with itself - the 1024-map's texel staircase, fine
+diagonal stripes across the whole face. A Lambert never shows it; the
+Section 4 toon ramps light the back half of dotNL, and E4's probe found
+the stripes on the east shell wall from inside the loading bay. Every
+map material (`createMaterialCache`, src/mapbake.js) takes
+`noKeyLightFromBehind`: the key's shadow term is multiplied by
+`step(0, n.L)`, so a face behind itself is in its own shadow, which is
+what a shadow map of infinite resolution would say. Only the key: the
+fill, the hemisphere and the destructible lamps still reach the shadow
+side of everything, as before. `a-wall-the-key-lights-from-behind-
+reads-plain` (tests/keylight.js) reads three rows across that wall,
+holds their level-crossings against a smoothed copy under a ceiling
+with the shadow on, and strips the patch at runtime to prove the same
+instrument sees the stripes. F8, 2026-09-21.

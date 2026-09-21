@@ -40,31 +40,6 @@ busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
 F5 (2026-09-16), F6 and F7 (2026-09-20); the next gate job, if one is found, goes here.
 
-- [ ] **F8 (S)** The key light's shadow stripes on a wall it lights from
-  behind. E4's probe photographed the east shell wall from inside the
-  bay (eye (28.5, 1.6, -8) looking at (30, 1.2, -16)): fine diagonal
-  stripes a level or two deep across the whole face, there with the old
-  4-step ramp and gone with `map.keyLight.castShadow` off. What the
-  probe then found: the face is back-facing to the key (its normal is
-  -x, the key's direction (-0.39, -0.87, -0.30), n.L = -0.39), and every
-  ramp lights the back half of dotNL - the 4-step's texel for [-0.5, 0)
-  is 0.333, E4's concrete gives 0.4 there - so the wall takes a third
-  of the key from behind, times a shadow term that is the 1024-map's
-  texel staircase on a surface the map barely resolves. Zeroing the
-  ramp's four back texels removes the stripes entirely (the wall reads
-  plain); `shadowNormalBias` 0.15 and `shadowBias` -0.003 do not. The
-  fix is one of: no light from behind in the map's ramps (physically
-  right, and it darkens every face away from a lamp - the wrap light
-  is what fills the shadow side today, so measure `lit-pools` and the
-  route and mouth readings before and after), or a shadow term forced
-  to 0 where n.L < 0 (a `onBeforeCompile` line on the map's materials),
-  or a larger normal bias applied only when back-facing. *done-when:* a
-  check in tests/visual.js reads that wall's luma along a row from that
-  eye and holds the number of level-crossings against a smoothed copy
-  under a ceiling (the stripes are ~1 luma: an instrument at 1.5 counted
-  zero), red with the fix reverted; the fix is not the shadow off;
-  `exactly-one-shadow-caster`, `lit-pools-and-dark-gaps`, the mouths
-  and the routes unchanged or better.
 - [ ] **F9 (S)** A probe: `npm run probe -- --map plant <file.js>`. E4
   and its F8 diagnosis were done with a scratch script that serves the
   repo and launches Chrome as shot.mjs does, loads the page on a map,
@@ -202,6 +177,23 @@ figure as built). Draw-call and frame budget checks are the ceiling.
 
 ## Done
 
+- **F8** The key light gives nothing to a face it lights from behind.
+  E4's stripes were the shadow term on a wall the key lights from
+  behind: three's shadow pass draws back faces, so the depth stored for
+  the east shell wall's inner face was its own, and a toon ramp lights
+  the back half of dotNL where a Lambert would have hidden the
+  comparison of a depth with itself. `noKeyLightFromBehind(material)`
+  (src/mapbake.js, every material the cache makes, one program key)
+  resolves `lights_fragment_begin` and multiplies the key's shadow term
+  by `step(0, n.L)`; the fill, the hemisphere and the lamps still wrap.
+  `a-wall-the-key-lights-from-behind-reads-plain` (src/tests/keylight.js,
+  plant): three rows across the wall from E4's eye cross their smoothed
+  copy 2/0/1 times (ceiling 6), 23/21/12 with the patch stripped at
+  runtime and 2/0/1 again restored; the shadow on, the key behind the
+  wall, every map material patched. Every plant light reading unchanged
+  to the digit but one landing edge's surround, darker (contrast 0.83
+  from 0.80); the yard's the same. — 2026-09-21, scheduled run, Josh
+  present, commit `F8_HASH`.
 - **E4** Map materials, `plant`. Three finishes by palette colour
   (`src/mapmaterials.js`, `CONFIG.map.finishes`; a map opts in with
   `new GameMap(..., { finishes })`, the plant does): concrete matte on

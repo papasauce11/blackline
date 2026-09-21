@@ -7238,3 +7238,89 @@ failure on each is the frame-budget sweep, skipped headless.
 wet ground): the kit is there - a finish is a ramp and a grime spec, a
 map opts in with its own `byPalette`, and decals are a list. F8, the
 shadow stripes. Whether any of it reads is D43.
+
+## F8 — the key light gives nothing to a face it lights from behind (2026-09-21, scheduled run, Josh present)
+
+**Gate.** Yard 148 passed / 1 failed / 25 not for this map, 0 red, 0
+console errors. The plant's gate was E4's verify at `2c25f18`: the
+three commits since (`1702579`, `650b44f`, `44405da`) touch only
+QUEUE.md, HANDOFF.md, DECISIONS.md and PLAYTEST.md. Josh interrupted
+the plant run and said to run the next six jobs; his decision commit
+(`44405da`, D8, D13, D25, D27, D38) landed while F8 was under way.
+
+**What the stripes were.** E4's probe left the question at "the ramps'
+back-light times the shadow term". The first thing this run measured
+settled why the shadow term varies at all on a wall under a roof: it
+does not compare against the roof. The key comes in over the shell
+wall's top from +x (`shell-east-2`, x 30-30.4, the key travelling
+(-0.39, -0.87, -0.30)) and the only thing between the light and the
+wall's inner face is the wall itself - and three's shadow pass draws
+**back faces**, so the depth it stores for that texel is the inner
+face's own. The receiver compares its depth with itself: the 1024-map's
+texel staircase, ±half a texel of 10cm stretched to 26cm along a wall
+at 67° to the light, which is why a normal bias of 0.15 (6cm along the
+light) did nothing. A Lambert never shows it (dotNL < 0 is black); a
+toon ramp lights the back half of dotNL and shows all of it. Along
+row 300 from the probe's eye the wall read 22-28 luma in a sawtooth
+with the shadow on and a flat 29-31 with it off.
+
+**The fix** is option 2 of the three queued: `noKeyLightFromBehind
+(material)` in `src/mapbake.js`, an `onBeforeCompile` that resolves
+`lights_fragment_begin` and multiplies the shadow-casting directional's
+term by `step(0, n.L)` - a face behind itself is in its own shadow,
+which is the answer a map of infinite resolution would give. Only the
+key: the fill, the hemisphere and the lamps still wrap round to the
+shadow side of everything (the toon ramps are as E4 left them). The
+material cache applies it to every material it makes - toon, lit toon,
+glass - under one program key (`bl-no-key-from-behind`), so the program
+count moves by at most one per map (the map's toon program no longer
+shares with an unpatched toon material's: the yard's leak check reads
+14 programs, 13 before, unchanged across its five rounds). The actors
+keep their own materials. Not chosen: zeroing the ramps' back texels
+(it would take the lamps' wrap off every shadow side too) and a larger
+back-facing normal bias (it is the wall's own depth whatever the bias).
+
+**What it does to the numbers.** The east wall from the bay: rows
+200/300/400 at luma 24.2/25.0/25.9 with 23/21/12 level-crossings before,
+16.3/16.9/17.9 with 2/0/1 after - a third darker and plain. That
+darkening is exactly the key's noisy wrap on faces the key lights from
+behind that nothing else shadows: the shell walls' inner faces, the
+exterior's west and north faces. Every check that reads the plant's
+light is unchanged to the digit - `lit-pools` 24.5/17.5/10.2 over
+1.1/1.1/1.9, the sites 84.4/36.9/9.0, the nine mouths, the twenty lit
+stages - but one landing edge, `lip-hall-south` 224 against 20 (25
+before), contrast 0.83 (0.80): the surround was such a face. The yard's
+floodlights, pools, gaps and walkway read the same to the digit.
+
+**The check** is `a-wall-the-key-lights-from-behind-reads-plain`
+(`src/tests/keylight.js`, plant - the done-when said tests/visual.js,
+which is at 588 lines, so the check has its own module and index.js
+registers it after visual's). From E4's eye it reads three rows across
+the wall and counts the crossings of each against its own smoothed
+copy (a box mean 15 either side, a band of 0.5 luma before a side
+counts, so the ramp's own level steps do not), ceiling 6 a row; holds
+the key casting, the shadow map on, the key really travelling toward
+-x so the wall is behind it, and every map material on the patched
+program key. Then the second half: it strips the patch off every map
+material at runtime, requires all three rows over the ceiling, restores
+them and requires the plain readings back - a smoothness reading that
+cannot fail is not a reading. Read: 2/0/1 on, 23/21/12 off.
+
+**Also this run.** The suite runner from the 09-18 17:00 build (`node
+scripts/suite.mjs`, pid 4792) is still alive at 41+ hours; the audit
+could not end it and neither could this run (the auto-mode classifier
+refuses `Stop-Process`). It is Josh's to kill. `find /` from a Bash
+call ran past its cap looking for a local three build; there is none,
+the import map pins the CDN, and the shader chunk text came out of the
+page through the probe instead.
+
+**Verified.** Subsets while iterating (the F8 subset on the plant, 9
+checks in 138s; the yard's light and walkway checks, 9 in 22s); then
+`npm run suite`, both maps twice: **168 passed, 1 failed, 6 not for this map**, **148 passed, 1 failed, 26 not for this map**,
+every outcome identical between runs, 0 red, 0 flaky, 0
+console errors, 0 context losses; the one failure on each
+is the frame-budget sweep, skipped headless.
+
+**Left.** F9, the probe in the repo (this run used E4's scratch copy
+again). Whether a wall a third darker on its shadow side reads right is
+eyes' work, under D43.

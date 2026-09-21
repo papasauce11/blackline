@@ -118,6 +118,18 @@ lit-pools numbers moved a level or two). The numbers to turn are
 `CONFIG.map.finishes` and `CONFIG.map.decals` in `src/config.js`, the
 places in `src/maps/plantdecals.js`, argued under D43.
 
+Since F8 (the same day) the key light gives nothing to a face it lights
+from behind: the fine diagonal stripes E4's probe found on the east
+shell wall from inside the bay were the shadow map comparing that wall
+with itself, and they are gone; the price is that every face with the
+key behind it and nothing else shading it - the shell walls' inner
+faces, the exterior's west and north faces - is about a third darker
+(luma 25 to 17 on that wall), lit now only by the fill, the sky and
+the lamps. What only eyes can judge: whether those faces read as the
+shadow side of a wall or as a hole; look along the east and south
+walls from inside, and at the building's north-west corner from the
+apron. The check is `a-wall-the-key-lights-from-behind-reads-plain`.
+
 ### The bodies move (E3, 2026-09-20)
 
 Either map. As the Shade, in a competitive match or free roam: walk,
