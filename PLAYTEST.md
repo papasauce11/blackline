@@ -364,15 +364,13 @@ now. What is not, and why:
 
 ## Known issues and open questions
 
-- **The Warden defuses through the floor** (D27, blocking B5d). The
-  defuse reach is two distances and no line of sight, so a charge on the
-  north duct's roof under the deck is defused by a Warden standing on the
-  deck above it, through the slab. Rare in play (you would have to plant
-  there) but wrong when it happens. One line under D27 fixes it.
-- **The duct roofs are routes up** (D25, blocking B5b). The reach rule
-  makes the low ducts' roofs a way onto the deck beside the lips. Left as
-  built pending your call.
-- **The site ring says *plant here* and means *this room*** (D8).
+- **The Warden defuses through the floor** (D27, decided 2026-09-21:
+  no). Until B5d lands, the defuse reach is two distances and no line of
+  sight, so a charge on the north duct's roof under the deck is defused
+  by a Warden standing on the deck above it, through the slab.
+- **The duct roofs are routes up** (D25, decided 2026-09-21: as built).
+- **The site ring says *plant here* and means *this room*** (D8, decided
+  2026-09-21: a faint floor tint and a HUD line naming the site - C7).
 - **Hard is a machine at 8m** (D33): 32 of 32 rounds hit. Medium and hard
   separate by aim only at range.
 - **Difficulty and match length apply at the next match**, not
@@ -381,10 +379,9 @@ now. What is not, and why:
   check fires its own wall-clock guard on purpose. In play, that guard
   fires only if a death camera has been up 16.5s - which the end screen
   now prevents (C4).
-- **The Shade can walk up the Warden's stair** (D38, blocking D3b).
-  Nothing climbs to the walkway, but a stair is walked by anyone; the
-  booth is open to a Shade that takes the 24 treads. As built on
-  purpose - a door only one body passes is a new rule - and yours.
+- **The Shade can walk up the Warden's stair** (D38, decided 2026-09-21:
+  yes, and the Shade can do anything a human should easily be able to
+  do). As built; the booth is open to a Shade that takes the 24 treads.
 - **The yard is a blockout** (D2, D35): the shape is there and the
   checks hold it (`the-container-tops-are-one-connected-deck`,
   `one-high-is-a-jump-and-two-high-needs-a-stack`, and the census, the

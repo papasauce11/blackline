@@ -88,8 +88,10 @@ F5 (2026-09-16), F6 and F7 (2026-09-20); the next gate job, if one is found, goe
 The 50-phase plan is in `HANDOFF.md`. Decided: all of the interview table
 there. The census is the contract; **never weaken it**.
 
-- [ ] **B5b (M)** Rail the deck's void edges except at the lips — **blocked:
-  D25.** Only if Josh picks option 2 or 3 there. A 1.0m rail, thinner than
+- [x] ~~**B5b (M)** Rail the deck's void edges except at the lips~~ —
+  **dropped 2026-09-21: D25 decided option 1, as built.** The duct roofs
+  are routes; nothing to build. Kept for the record:
+  Only if Josh had picked option 2 or 3 there. A 1.0m rail, thinner than
   a body, set so the mantle's landing capsule meets it, along the hall void,
   the bay void and three sides of the vault hatch (option 2) or the hall
   void's duct crossings only (option 3); the duct-roof routes and the extra
@@ -98,8 +100,8 @@ there. The census is the contract; **never weaken it**.
   `every-stacked-climb-is-a-step-of-a-declared-route` green with those
   routes removed, the census's "need a leg up" at the number D25 predicts,
   `the-warden-never-climbs-to-reach-its-ground` and the AI soak unchanged.
-- [ ] **B5d (S)** The defuse reach is a clear line — **blocked: D27.**
-  Only if Josh picks option 2 there. `withinDefuseReach(foot, at, collision)`
+- [ ] **B5d (S)** The defuse reach is a clear line — **D27 decided 2026-09-21:
+  no, a Warden may not defuse through a floor (option 2). Unblocked; next.** `withinDefuseReach(foot, at, collision)`
   in `systems/plantrule.js`: within the two distances *and* the charge in
   open air from some point of the segment from the Warden's feet to its
   raised hands (`DEFUSE_REACH.dy` up), asked of `map.collision`; the defuse
@@ -120,8 +122,35 @@ Anything here that changes a **rule** is blocking — write the question.
 Anything that changes **presentation** is provisional — do it, log it under
 Provisional in `DECISIONS.md`, move on.
 
-(C1-C6 done; **Block C is closed** 2026-09-16. `PLAYTEST.md` is updated
-by every Block D and E job - the queue's own done-whens include it.)
+(C1-C6 done 2026-09-16; C7 reopened the block 2026-09-21 on D8's answer.
+`PLAYTEST.md` is updated by every Block C, D and E job - the queue's own
+done-whens include it.)
+
+- [ ] **C7 (M)** The site is a tinted floor, and the HUD names it — **D8
+  decided 2026-09-21.** Two halves. (1) The pulsing 2m ring goes; in its
+  place the site room's floor is tinted slightly orange over the whole
+  room (the plant is the room, 20.1): a `tint` decal kind in
+  `src/mapdecals.js` (a flat quad the size of the room's floor at
+  `M.decals.lift`, `hazardOrange` at a low opacity on the paint material
+  or its own, one draw call for all sites), laid by `addSite` from the
+  site's room rectangle on every map, so a site that moves takes its
+  tint with it. Keep it faint: `lit-pools-and-dark-gaps` reads the site
+  floors and must still find the pools over ambient and the hall over the
+  vault; the vent-mouth and route bands must not pick it up (the hall's
+  site A floor is in the hall-west route's frame - measure before and
+  after with `--details`). `M.marking.siteRing*` and the `ring` field on
+  a site go, with every check that reads them (`grep siteRing`,
+  `site.ring`). (2) The HUD says which site the player is in: a
+  `#bl-site` line ("SITE A - Turbine Hall") while `siteNear` returns
+  one, for both roles, next to the plant prompt; `gatherHudState`
+  already carries `site`; the briefing's A/B/C list (C2) is the
+  vocabulary. *done-when:* a check in tests/visual.js reads the site
+  floor with the tint on and off and finds it warmer (R over B up) by a
+  measured step and no darker than a tenth; a HUD check drives the
+  Shade into site A and reads "A" from the DOM, out of it and reads
+  nothing; `lit-pools-and-dark-gaps` and the legibility checks unchanged
+  or better; `PLAYTEST.md` and spec 20.x updated; D8's provisional
+  numbers (the tint's opacity, the line's place) under a new decision.
 
 ## Block D — the second map: the container yard
 
@@ -135,8 +164,11 @@ D37 (the walkway as built), D39 (the lighting as built).
 (D1-D7 done; **Block D is closed but for D3b** 2026-09-19, which waits
 on D38.)
 
-- [ ] **D3b (S)** A Warden-only door at the stair's mouth — **blocked:
-  D38.** Only if Josh picks option 2 or 3 there. A box the Warden's body
+- [x] ~~**D3b (S)** A Warden-only door at the stair's mouth~~ — **dropped
+  2026-09-21: D38 decided option 1, as built**, with a rule for every
+  question of this shape: the Shade can do anything a human should easily
+  be able to do. No role-gated geometry. Kept for the record:
+  Only if Josh had picked option 2 or 3 there. A box the Warden's body
   passes and the Shade's does not (the first role-gated collision:
   a flag on `CollisionBox`, a filter in the swept solver's move for the
   Shade, nothing else), across the door in `WALKWAY`; option 3 adds the

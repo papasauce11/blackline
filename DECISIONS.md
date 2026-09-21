@@ -812,7 +812,7 @@ The ring still looks like "plant here" while meaning "this room". Options:
 keep it as a room marker; shrink it to a floor decal at the room centre;
 tint the room's floor instead. Recommendation: look at it in play before
 deciding. Nothing is blocked on this yet.
-**decided:**
+**decided:** tint the floor slightly orange instead, and the HUD should name the site (A / B / C) so the player knows which one they are in. Josh, 2026-09-21. (Queued as C7.)
 
 ### D20 — Should a charge inside a duct be a legal plant?
 A5 measured what D5 actually allows, and the answer surprised the plan.
@@ -897,7 +897,7 @@ radius. Josh, 2026-09-12, in session. Built as B2b.
 B5 may want to move a site or a spawn, or merge two rooms, to make a stacked
 route work. The routine will not do that on its own. If it hits the case it
 writes the specific proposal here as D13a, D13b… and picks another job.
-**decided:**
+**decided:** yes - the routine may move a site or a spawn, or merge two rooms, when a route needs it; it writes what it moved and why in PROGRESS.md and the decision entry. Josh, 2026-09-21.
 
 ### D14 — The routine cannot start a dev server, so it cannot verify anything
 The 17:00 run of 2026-09-08 could not run its GATE. `preview_start` is refused
@@ -994,7 +994,7 @@ round; a rail is the fence's trick, and the fence is there to close the
 site, not to edit a route. If the lips should mean "only here", 2 is a
 one-session job (B5b) and the declared routes tell it exactly which slabs to
 stop.
-**decided:**
+**decided:** "that's fine going forward" - option 1, as built; the duct roofs are routes. Josh, 2026-09-21. (B5b dropped.)
 
 ### D27 — Can a Warden defuse through a floor?
 B5c's census red was a pathing bug (the planner pulled a line across the
@@ -1041,7 +1041,7 @@ all along, the change is one predicate, and the census proves what it
 buys before it is kept. This changes where the Shade may plant and where
 the Warden may defuse, so it waits for a line here; B5d in `QUEUE.md` is
 sized for it and blocked on this.
-**decided:**
+**decided:** no. Josh, 2026-09-21. (Option 2, a clear line; B5d unblocked.)
 
 ### D38 — May the Shade walk up the Warden's stairs into the booth?
 D3 built the walkway D12 asked for: nothing climbs to it, by the rule, and the
@@ -1072,4 +1072,4 @@ Options:
 Recommendation: 1, and play it before deciding - it is the option that adds
 no rule, and D4 says Josh tests what the routine cannot. If 2 or 3, a
 follow-up job (D3b in `QUEUE.md`) is sized S and blocked here.
-**decided:**
+**decided:** yes - the Shade can walk up the stairs, and can do anything a human should easily be able to do. Josh, 2026-09-21. (Option 1; D3b dropped. The second half is a design rule for every future question of this shape: no role-gated geometry where a person would simply walk, climb or step.)
