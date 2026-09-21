@@ -65,6 +65,22 @@ F5 (2026-09-16), F6 and F7 (2026-09-20); the next gate job, if one is found, goe
   zero), red with the fix reverted; the fix is not the shadow off;
   `exactly-one-shadow-caster`, `lit-pools-and-dark-gaps`, the mouths
   and the routes unchanged or better.
+- [ ] **F9 (S)** A probe: `npm run probe -- --map plant <file.js>`. E4
+  and its F8 diagnosis were done with a scratch script that serves the
+  repo and launches Chrome as shot.mjs does, loads the page on a map,
+  stops the loop, warms 60 frames, runs the JS in `<file.js>` inside the
+  page with `h` and `THREE` in scope (top-level await, `import('/src/
+  tests/pixels.js')` works) and prints what it returns as JSON, saving
+  any `{ pngs: [{ name, dataUrl }] }` it hands back to `shots/`. Every
+  "look at this view" and "what does this number read" question of a
+  scheduled run goes through it; it should be in the repo, not a
+  scratchpad. *done-when:* `scripts/probe.mjs` and the npm script; the
+  server and launch shared with shot.mjs (factor them into
+  `scripts/headless.mjs` and have both import it - suite.mjs runs on
+  import and stays as it is) or repeated with the same "keep in step"
+  note; HANDOFF.md's Running it says how; a check is not required (a
+  tool, like F6), but `a-look-at-both-figures-photographs-every-eye`
+  still passes through the shared launch.
 
 
 ## Block B — the traversal redesign, phases 12–50
