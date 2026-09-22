@@ -23,7 +23,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { createLens, difference, meanLumaIn, quiesce } from './pixels.js';
+import { createLens, difference, meanLumaIn, quiesce, SITE_SAMPLE_OFFSET } from './pixels.js';
 
 const P = CONFIG.palette;
 const F = CONFIG.map.finishes;
@@ -225,14 +225,14 @@ export function register(debugTools) {
 
       // Every kind is used; every decal sits on a solid's face - the surface
       // point is inside a solid, the lifted point is in clear air - and none
-      // is within reach of a site ring.
+      // is within reach of a site's centre.
       const kinds = new Set(decals.map((decal) => decal.kind));
       for (const kind of ['stain', 'drip', 'scuff', 'hazard']) {
         if (!kinds.has(kind)) problems.push(`no ${kind} on the map`);
       }
       const collision = h.map.collision;
       const tiny = { x: 0.01, y: 0.01, z: 0.01 };
-      const ringClear = CONFIG.map.marking.siteRingOuter + 2.5;
+      const ringClear = SITE_SAMPLE_OFFSET;
       for (const decal of decals) {
         const p = decal.position;
         const n = decal.normal;
@@ -243,7 +243,7 @@ export function register(debugTools) {
         for (const site of h.map.sites) {
           const reach = Math.hypot(p.x - site.position.x, p.z - site.position.z);
           if (Math.abs(p.y - site.position.y) < 1 && reach < ringClear + Math.max(decal.w, decal.h) / 2) {
-            problems.push(`${decal.tag} is ${reach.toFixed(1)}m from site ${site.id}, inside its ring's clearance`);
+            problems.push(`${decal.tag} is ${reach.toFixed(1)}m from site ${site.id}, inside its centre's clearance`);
           }
         }
       }

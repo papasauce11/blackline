@@ -14,7 +14,7 @@
  */
 
 import { CONFIG, DEBUG_KEYS } from '../config.js';
-import { createLens, difference, brightnessDelta, quiesce } from './pixels.js';
+import { createLens, difference, brightnessDelta, quiesce, SITE_SAMPLE_OFFSET } from './pixels.js';
 import { perchesInSiteRooms } from './plantspots.js';
 
 export function register(debugTools) {
@@ -95,7 +95,7 @@ export function register(debugTools) {
       // Looking down at the floor of site A, off the ring, the way the lighting
       // checks do: the ring pulses and would be read at different points in it.
       const site = h.map.sites[0];
-      const at = { x: site.position.x + CONFIG.map.marking.siteRingOuter + 2.5, y: site.position.y, z: site.position.z };
+      const at = { x: site.position.x + SITE_SAMPLE_OFFSET, y: site.position.y, z: site.position.z };
       lens.look({ x: at.x, y: at.y + 3.0, z: at.z + 0.01 }, at);
       h.shade.mesh.visible = false;
       h.warden.mesh.visible = false;

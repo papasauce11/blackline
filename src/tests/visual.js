@@ -14,7 +14,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { createLens, difference, meanLuma, meanLumaIn, brightnessDelta, erode, quiesce } from './pixels.js';
+import { createLens, difference, meanLuma, meanLumaIn, brightnessDelta, erode, quiesce, SITE_SAMPLE_OFFSET } from './pixels.js';
 
 /** Look at `target` from `distance` away, on a bearing, at eye height. */
 function eyeOn(target, distance, bearing, height = 1.4) {
@@ -41,13 +41,14 @@ export function register(debugTools) {
       // Measured looking DOWN at the floor from standing height, so the reading
       // is of the light landing in the room rather than of whatever wall
       // happens to be on the far side of it.
-      // Sampled OFF the site centre. A plant site carries a 2m hazard ring that
-      // pulses between 0.35 and 0.9 opacity, and it sits exactly under a camera
+      // Sampled OFF the site centre. A plant site carried a 2m hazard ring that
+      // pulsed between 0.35 and 0.9 opacity, and it sat exactly under a camera
       // pointed straight down at the site. In the dark rooms it dominated the
       // crop, and because the lit and unlit samples are taken at different
       // moments it was read at different points in its pulse — which is how an
       // "ambient floor" came out brighter than the same floor with the lights on.
-      const OFF_RING = CONFIG.map.marking.siteRingOuter + 2.5;
+      // The ring went with C7; the spot stays so the readings are comparable.
+      const OFF_RING = SITE_SAMPLE_OFFSET;
       const sample = (position) => {
         const at = { x: position.x + OFF_RING, y: position.y, z: position.z };
         lens.look({ x: at.x, y: at.y + 2.2, z: at.z + 0.01 }, at);

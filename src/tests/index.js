@@ -55,6 +55,7 @@ import { register as registerDeathCam } from './deathcam.js';
 import { register as registerPresentation } from './presentation.js';
 import { register as registerVisual } from './visual.js';
 import { register as registerKeyLight } from './keylight.js';
+import { register as registerSiteTint } from './sitetint.js';
 import { register as registerFigure } from './figure.js';
 import { register as registerAnimation } from './animation.js';
 import { register as registerLook } from './look.js';
@@ -109,6 +110,7 @@ export function registerAutoTests(debugTools) {
   registerPresentation(debugTools);
   registerVisual(debugTools);
   registerKeyLight(debugTools);
+  registerSiteTint(debugTools);
   registerFigure(debugTools);
   registerAnimation(debugTools);
   registerLook(debugTools);

@@ -26,6 +26,7 @@ import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { CollisionWorld } from './physics.js';
 import { createMaterialCache, applyContactTint, mergeGeometries } from './mapbake.js';
+import { bakeSiteTints } from './mapdecals.js';
 import { createFinishSet, applyWorldUVs } from './mapmaterials.js';
 import { GENERATORS } from './mapgen.js';
 import { deriveRoomEntries } from './maprooms.js';
@@ -108,7 +109,8 @@ export class GameMap {
     this.wardenGround = null;
 
     this.keyLight = null;
-    this._siteTime = 0;
+    /** The one mesh every site's floor tint is merged into (C7), or null. */
+    this.siteTintMesh = null;
     this._outlineGroup = new THREE.Group();
     this._outlineGroup.name = 'outlines';
     this.root.add(this._outlineGroup);
@@ -210,22 +212,6 @@ export class GameMap {
     this._outlineGroup.add(outline);
   }
 
-  /** A flat, unlit decal lying on a surface. Used for markings and site rings. */
-  addDecal(geometry, color, position, rotationX, opacity = 1) {
-    const material = new THREE.MeshBasicMaterial({
-      color,
-      transparent: opacity < 1,
-      opacity,
-      depthWrite: false,
-      fog: true,
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.copy(position);
-    mesh.rotation.x = rotationX;
-    this.root.add(mesh);
-    return mesh;
-  }
-
   // -------------------------------------------------------------------------
   // Sites and spawns
   // -------------------------------------------------------------------------
@@ -234,20 +220,15 @@ export class GameMap {
    * A plant site (Section 5). Its room is derived by containment rather than
    * declared, so a site that moves cannot end up pointing at the room it
    * used to be in - which is why the rooms must be declared first. The
-   * plant is allowed anywhere in that volume (Section 10.1, amended); the
-   * ring says which room, not which square metre of it.
+   * plant is allowed anywhere in that volume (Section 10.1, amended), and
+   * the marking says so (C7, D8): the room's floor is tinted, every floor
+   * plate inside its rectangle, one mesh for every site on the map
+   * (`bakeSiteTints`, mapdecals.js, rebuilt here so a site that moves takes
+   * its tint with it). The HUD names the site you stand in.
    *
    * @param {{id: string, name: string, x: number, y: number, z: number}} spec
    */
   addSite(spec) {
-    const ringGeometry = new THREE.RingGeometry(M.marking.siteRingInner, M.marking.siteRingOuter, 36);
-    const ring = this.addDecal(
-      ringGeometry,
-      P.hazardOrange,
-      new THREE.Vector3(spec.x, spec.y + 0.02, spec.z),
-      -Math.PI / 2,
-      M.marking.siteRingPulseMax
-    );
     const room = this.rooms.find((entry) => (
       spec.x >= entry.min.x && spec.x <= entry.max.x
       && spec.z >= entry.min.z && spec.z <= entry.max.z
@@ -259,9 +240,11 @@ export class GameMap {
       position: new THREE.Vector3(spec.x, spec.y, spec.z),
       radius: CONFIG.round.siteRadius,
       room,
-      ring,
+      /** The floor quads the tint covers, `{ x0, z0, x1, z1, y }` each (C7). */
+      tint: [],
     };
     this.sites.push(site);
+    bakeSiteTints(this);
     return site;
   }
 
@@ -539,19 +522,6 @@ export class GameMap {
     return bestLevel || best;
   }
 
-  // -------------------------------------------------------------------------
-  // Per-frame
-  // -------------------------------------------------------------------------
-
-  /** Section 5: plant site rings pulse slowly. */
-  update(dt) {
-    this._siteTime += dt;
-    const mark = M.marking;
-    const phase = (this._siteTime % mark.siteRingPulsePeriod) / mark.siteRingPulsePeriod;
-    const wave = 0.5 - 0.5 * Math.cos(phase * Math.PI * 2);
-    const opacity = mark.siteRingPulseMin + (mark.siteRingPulseMax - mark.siteRingPulseMin) * wave;
-    for (const site of this.sites) site.ring.material.opacity = opacity;
-  }
 }
 
 Object.assign(GameMap.prototype, GENERATORS);

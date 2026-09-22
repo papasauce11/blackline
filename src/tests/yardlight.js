@@ -31,7 +31,7 @@
 import { CONFIG } from '../config.js';
 import { MASTS, MAST, KEY_MAST } from '../maps/yarddata.js';
 import { YARD } from '../maps/yard.js';
-import { createLens, meanLumaIn, quiesce } from './pixels.js';
+import { createLens, meanLumaIn, quiesce, SITE_SAMPLE_OFFSET } from './pixels.js';
 
 const S = CONFIG.shade;
 const P = CONFIG.palette;
@@ -156,7 +156,7 @@ export function register(debugTools) {
       const lens = createLens(h);
       // As lit-pools reads: straight down at the floor from standing
       // height, off the site's pulsing ring.
-      const OFF_RING = CONFIG.map.marking.siteRingOuter + 2.5;
+      const OFF_RING = SITE_SAMPLE_OFFSET;
       const sample = (x, z) => {
         lens.look({ x, y: G + 2.2, z: z + 0.01 }, { x, y: G, z });
         return meanLumaIn(lens.grab(), lens.width, lens.height, 0.4);

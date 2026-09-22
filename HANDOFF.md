@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after B5d (2026-09-21) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after B5d), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **C7** (M: the site ring becomes a faint floor tint and the HUD names the site - D8), then **E5** (M: map materials, `yard` - corrugated containers, rust, painted numbers, wet ground, on E4's kit). Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **B5d done** 2026-09-21 (below): the defuse reach is a clear line - **Block B is closed**. **F9 done** 2026-09-21: `npm run probe`, a question asked of the game headless (Running it). **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) dropped on D25 and B5d (the defuse reach is a clear line) done on D27, both 2026-09-21. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after C7 (2026-09-21) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after C7), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **E5** (M: map materials, `yard` - corrugated containers, rust, painted numbers, wet ground, on E4's kit). Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **C7 done** 2026-09-21 (below): the site is a tinted floor and the HUD names it - Block C is closed again. **B5d done** 2026-09-21 (below): the defuse reach is a clear line - **Block B is closed**. **F9 done** 2026-09-21: `npm run probe`, a question asked of the game headless (Running it). **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) dropped on D25 and B5d (the defuse reach is a clear line) done on D27, both 2026-09-21. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -55,6 +55,50 @@ Shade's figure, 2026-09-19, E2, the Warden's, and E3, animation,
 plant's materials, 2026-09-21 (below), and F8, the key light's shadow
 side, the same day (below); E5, the yard's materials, is after F9,
 B5d and C7.
+
+---
+
+## The site is a tinted floor, and the HUD names it - C7
+
+D8 (Josh, 2026-09-21): the ring said "plant here" and meant "this
+room"; tint the floor slightly orange and have the HUD name the site.
+**The tint** is `bakeSiteTints(map)` (src/mapdecals.js), called by
+`addSite`: for every site with a room, one quad per solid whose top is
+the room's floor and whose footprint meets the room's rectangle,
+clipped to it, `M.decals.lift` proud - the plates rather than the
+rectangle, so the vault's hatch is a hole and not a tinted plane over
+the hall (nine quads there, one in the hall, one in the bay, one per
+yard bay) - merged into one mesh `site-tints` on `map.root`
+(`map.siteTintMesh`; each site's `tint` lists its quads). A multiply
+(`MeshBasicMaterial`, `MultiplyBlending`, `premultipliedAlpha`, fog off,
+as the grime decals), colour white lerped to `hazardOrange` by
+`M.marking.siteTintStrength` (0.28, D44): the floor's own lighting
+times a warmth, so the vault stays dark and a lit hall reads warm - a
+painted quad at any opacity would have lit the vault by itself. The
+ring, `siteRing*`, `site.ring`, `addDecal` and `map.update`'s pulse are
+gone; `SITE_SAMPLE_OFFSET` (tests/pixels.js, 3.5m) keeps the four floor
+checks on the spot they always read. **The HUD line** is `#bl-site` in
+the prompt panel: `gatherHudState` finds the site by the player's own
+role (`siteHere: { id, name }`, the Warden at its own stand height) and
+`promptInRange` is the Shade's alone - the Warden used to be shown "hold
+E to plant" for wherever the Shade stood; `hud._updateCommon` shows the
+line while there is a site and the prompt text and bar only while there
+is a prompt. **What it did to the numbers**: R/B up 1.14-1.17x and luma
+down 7-9% on every site floor of both maps (site A 24.5 to 22.7, the
+vault 10.2 to 9.4); lit-pools' every relation holds (the hall 2.42x the
+vault), the mouths and the routes are unchanged to the digit but one
+surround a level darker. The damage vignette's darkening over site A
+(C3's check, D31's 8 luma) fell from -9.0 to -7.6 with the floor darker
+and the ring gone from the band, so the vignette's red went deeper
+(`feedback.vignetteColor` 0x580d0a; -11.8 now), not the check.
+**The checks** (tests/sitetint.js, every map):
+one mesh, a multiply, no rings, every quad inside its room on a solid;
+the floor read tint-drawn against tint-hidden at the lit-pools spot on
+every site, warmer by 1.08x on the brightest and no darker than a tenth
+on any; the Shade walked from 1.5m outside a site room's lateral entry
+through W until `siteNear` answers, the DOM read "SITE A - Turbine
+Hall", walked out through S and read nothing, the Warden placed in
+another site read its own with no plant prompt. Spec 20.30.
 
 ---
 
@@ -1624,8 +1668,12 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D26, D28, D30, D31, D39, D40, D41, D42, D43 and the Provisional section of `DECISIONS.md`; Josh answers there. **2026-09-21 Josh decided D8, D13, D25, D27 and D38** (DECISIONS.md): the ring becomes a floor tint and the HUD names the site (C7); the routine may move a site or spawn when a route needs it; the duct roofs stay routes (B5b dropped); the Warden may not defuse through a floor (B5d unblocked); the Shade walks the stair and "can do anything a human should easily be able to do" (D3b dropped - and a rule for every future question of that shape).
+These are D26, D28, D30, D31, D39, D40, D41, D42, D43, D44 and the Provisional section of `DECISIONS.md`; Josh answers there. **2026-09-21 Josh decided D8, D13, D25, D27 and D38** (DECISIONS.md): the ring becomes a floor tint and the HUD names the site (C7); the routine may move a site or spawn when a route needs it; the duct roofs stay routes (B5b dropped); the Warden may not defuse through a floor (B5d unblocked); the Shade walks the stair and "can do anything a human should easily be able to do" (D3b dropped - and a rule for every future question of that shape).
 
+- **D44**: the site marking as built - a multiply tint at 0.28 over
+  every floor plate of a site's room, the HUD line above the plant
+  prompt. Provisional; the numbers say the floor is warmer by a sixth
+  and darker by a twelfth, not that it reads as the site from the door.
 - **D43**: the plant's materials as built - three finishes by colour,
   concrete matte and paint glossy on their own ramps, a generated grime
   that takes a seventh off a lit floor, twenty decals. Provisional; the

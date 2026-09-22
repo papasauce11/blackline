@@ -28,6 +28,14 @@
 import { CONFIG } from '../config.js';
 
 /**
+ * How far off a site's centre the floor checks sample, in metres. It was
+ * the pulsing ring's outer radius and a margin (C7 took the ring away and
+ * tinted the room instead); the spot stays, so every reading before and
+ * after C7 is of the same square metre.
+ */
+export const SITE_SAMPLE_OFFSET = 3.5;
+
+/**
  * Take the camera, point it at something, and hand back a reader.
  *
  * The camera is detached to the scene for the duration — the Shade and Warden

@@ -7436,3 +7436,104 @@ skipped headless.
 **Left.** Block B is closed. Whether a Warden reaching up beside a
 crate reads right, and whether anywhere refuses that should not, is
 eyes' work (PLAYTEST.md).
+
+## C7 — the site is a tinted floor, and the HUD names it (2026-09-21, scheduled run, Josh present)
+
+**Gate.** B5d's verify at `88d0813`: plant 169/1/6 twice, yard 148/1/27
+twice, 0 red, 0 flaky, 0 console errors.
+
+**D8** (Josh, 2026-09-21): "tint the floor slightly orange instead, and
+the HUD should name the site (A / B / C) so the player knows which one
+they are in." The 2m pulsing ring said "plant here" while the plant has
+been the room since 20.1.
+
+**The tint.** `bakeSiteTints(map)` (src/mapdecals.js), called by
+`addSite` so a site that moves takes its tint with it: for every site
+with a room, one quad per solid whose top is the room's floor (within
+5cm) and whose footprint meets the room's rectangle, clipped to it, a
+centimetre proud (`M.decals.lift`); the plates rather than the
+rectangle, so the vault's hatch is a hole and not a tinted plane
+hanging over the hall - nine quads in the vault, one in the hall, one
+in the bay, one per yard bay. Merged into one mesh (`site-tints`,
+`map.siteTintMesh`), each site's `tint` listing its quads for the
+checks. A multiply, as the grime decals: `MeshBasicMaterial`,
+`MultiplyBlending`, `premultipliedAlpha`, fog off, colour white lerped
+toward `hazardOrange` by `M.marking.siteTintStrength`. The first
+thought was a painted quad at a low opacity; the arithmetic killed it
+before it was drawn - an unlit orange at 12% adds ten luma to a vault
+floor at ten, a pool with no lamp, and `lit-pools` would have found the
+ambient floor brighter than the lamps' contribution. A multiply is as
+dark as the floor it lies on. The ring, `M.marking.siteRing*`,
+`site.ring`, `GameMap.addDecal` and the pulse in `map.update` (and its
+call in main.js's fixed step) are gone.
+
+**The number.** 0.35 first: R/B up 1.21x on every plant site floor,
+luma down 9.2-9.8% - at the done-when's tenth. 0.28: R/B 1.14-1.17x,
+luma down 7-9% (site A 24.5 to 22.7, B 17.5 to 15.9, the vault 10.2 to
+9.4; the yard's bays 26.9 to 24.7, 24.5 to 22.6, 21.0 to 19.4). Kept,
+under D44. Every relation the light checks hold is unchanged: the pools
+over ambient (1.1/1.1/1.9 with the lamps off, as before), the hall
+2.42x the vault, the sites 84.4/36.9/9.0 to the digit, the nine mouths
+to the digit, the twenty lit stages to the digit but one surround a
+level darker (contrast 0.62 from 0.61); the yard's floodlights, gaps
+and walkway to the digit, its pools two luma lower. The plant's decal
+check reads its floor stains a little darker, the tint being under
+them. The program count: the plant 16 to 15 (the ring's two basic
+materials went, the tint's one came), the yard 14 to 15.
+
+**The HUD line.** `#bl-site` in the prompt panel, "SITE A - Turbine
+Hall", hazard orange, small, above the plant prompt. `gatherHudState`
+(hudstate.js) finds the site by the player's own role - the Warden's
+position at the Warden's stand height - and hands `siteHere: { id,
+name }`; `promptInRange` is now the Shade's alone, where before the
+Warden was shown "hold E to plant" whenever the *Shade* stood in a
+site. `hud._updateCommon` shows the panel while there is a site or a
+prompt, the line while there is a site, the text and the bar while
+there is a prompt. The names are the sites' own, which are the
+briefing's (C2).
+
+**The ring's readers.** Four floor checks sampled "off the ring" at its
+outer radius plus 2.5m; `SITE_SAMPLE_OFFSET` (tests/pixels.js, 3.5m)
+keeps them on the same square metre, so every reading before and after
+C7 compares. The decal clearance check reads the same constant.
+
+**The checks** (tests/sitetint.js, every map; the done-when said
+tests/visual.js, which is at 588 lines):
+`the-site-floor-is-tinted-warm-and-the-ring-is-gone` - one `site-tints`
+mesh on the root, a premultiplied multiply, no site with a ring, every
+site with quads, every quad inside its room with a solid under it and
+air over it; the lit-pools spot on every site floor read with the mesh
+visible and hidden, R/B up 1.08x on the brightest site and no floor
+darker than a tenth (plant: A 1.169x / 7.3%, B 1.157x / 9.0%, C 1.135x
+/ 7.8%; yard: 1.143x / 8.4%, 1.159x / 7.6%, 1.174x / 7.8%).
+`the-hud-names-the-site-you-stand-in` - the Shade reset 1.5m outside a
+site room's first floor-level lateral entry, facing in, W held through
+`input.heldCodes` until `siteNear` answers (0.5s, site A's east entry
+on both maps), the frame drawn and `#bl-site` read off the DOM ("SITE
+A - Turbine Hall"; "SITE A - Bay A"), S held until it does not and the
+line hidden; then the Warden placed in site B, its line read and the
+plant prompt hidden.
+
+**The first full verify was red on one check**, and the subsets had
+not included it: `the-vignette-deepens-with-lost-health-and-leaves-the-
+centre-alone` (C3) reads the damage vignette's darkening over site A's
+frame and wants 8 luma at half health; it read -9.0/-9.2 before C7 and
+-7.6 after. A red vignette over a floor darker than the red reddens
+without darkening, and the band had lost the bright ring as well as a
+shade off the floor. The check is D31's number for that backdrop and
+stayed; the vignette went deeper: `feedback.vignetteColor` 0x6e100c to
+0x580d0a, -11.8 at half health and -21.2 at low, the centre untouched,
+the hit marker and the meter feedback unchanged. Recorded under D44.
+
+**Verified.** Subsets (the plant's light and HUD checks, 9 in 138s at
+0.35, the two at 0.28 in 52s; the yard's 8 in 20s; the three feedback
+checks after the vignette, 54s); the first `npm run suite` (plant 170
+passed / 2 failed twice with the vignette red, yard 150/1/27 twice,
+green); then again on both maps: **171 passed, 1 failed, 6 not for this map**, **150 passed, 1 failed, 27 not for this map**, every
+outcome identical between runs, 0 red, 0 flaky, 0 console
+errors, 0 context losses; the one failure on each is the
+frame-budget sweep, skipped headless.
+
+**Left.** Block C is closed again. Whether the tint reads as the site
+from the doorway, and whether the line is where you look, is D44's for
+Josh's eyes.

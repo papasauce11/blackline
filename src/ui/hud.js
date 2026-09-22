@@ -64,6 +64,7 @@ const CSS = `
 #bl-prompt .bar span { display: block; height: 100%; width: 0%; background: ${hex(P.hazardOrange)}; }
 #bl-prompt.refused .text { color: ${hex(P.hazardOrange)}; }
 #bl-prompt.refused .bar { display: none; }
+#bl-site { font-size: 11px; letter-spacing: 0.12em; color: ${hex(P.hazardOrange)}; opacity: 0.9; margin-bottom: 6px; display: none; }
 #bl-centre { left: 50%; top: 50%; transform: translate(-50%,-50%); text-align: center; display: none; }
 #bl-centre .big { font-size: 46px; letter-spacing: 0.1em; }
 #bl-feed { right: 26px; top: 70px; text-align: right; }
@@ -104,7 +105,7 @@ export class Hud {
       <div class="panel" id="bl-top"><div id="bl-timer">4:00</div><div id="bl-charge">charge carried</div></div>
       <div class="panel" id="bl-score">0 - 0</div>
       <div class="panel" id="bl-feed"></div>
-      <div class="panel" id="bl-prompt"><div class="text">hold E to plant</div><div class="bar"><span></span></div></div>
+      <div class="panel" id="bl-prompt"><div id="bl-site">SITE A - Turbine Hall</div><div class="text">hold E to plant</div><div class="bar"><span></span></div></div>
       <div class="panel" id="bl-centre"><div class="big">15</div><div class="sub">reinserting</div></div>
       <div class="panel" id="bl-crosshair"><i></i><i></i><i></i><i></i></div>
     `;
@@ -130,6 +131,7 @@ export class Hud {
       score: this.root.querySelector('#bl-score'),
       feed: this.root.querySelector('#bl-feed'),
       prompt: this.root.querySelector('#bl-prompt'),
+      site: this.root.querySelector('#bl-site'),
       promptText: this.root.querySelector('#bl-prompt .text'),
       promptBar: this.root.querySelector('#bl-prompt .bar span'),
       centre: this.root.querySelector('#bl-centre'),
@@ -300,16 +302,25 @@ export class Hud {
     // borrows the same line rather than opening a second one: it is the answer
     // to the prompt above it, and the bar goes away because there is no hold
     // in progress to describe.
+    // The site you are standing in, named (C7, D8): the room is the site
+    // since 20.1 and the floor tint says where it is; this says which. For
+    // either role, above the prompt, and the prompt's panel shows for it
+    // alone when there is no prompt to show.
+    const here = state.siteHere;
+    this.el.site.style.display = here ? 'block' : 'none';
+    if (here) this.el.site.textContent = `SITE ${here.id}${here.name ? ` - ${here.name}` : ''}`;
+
     const holding = state.plantProgress > 0 || state.defuseProgress > 0;
     const refused = !!state.plantRefused && !state.planted;
     const inRange = state.promptInRange && !state.planted;
-    if (inRange || holding || refused) {
-      this.el.prompt.style.display = 'block';
+    const promptShown = inRange || holding || refused;
+    this.el.prompt.style.display = promptShown || here ? 'block' : 'none';
+    this.el.promptText.style.display = promptShown ? 'block' : 'none';
+    this.el.promptBar.parentElement.style.display = promptShown ? 'block' : 'none';
+    if (promptShown) {
       this.el.promptText.textContent = state.planted ? 'defusing'
         : refused ? PLANT_REFUSED : 'hold E to plant';
       this.el.promptBar.style.width = `${Math.min(1, state.plantProgress || state.defuseProgress || 0) * 100}%`;
-    } else {
-      this.el.prompt.style.display = 'none';
     }
     this.el.prompt.classList.toggle('refused', refused);
 

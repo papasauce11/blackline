@@ -1395,3 +1395,27 @@ the Shade may plant moves with it, and the census says what moved
 line-never-through-a-floor` (tests/defuseline.js) holds the deck cell
 to no defuse, a cell beside a crate top to one, and the refusal to
 the slab. B5d, 2026-09-21.
+
+### 20.30 Sections 5 and 13 - the site is a tinted floor, and the HUD names it
+
+C7, on D8 (Josh, 2026-09-21: "tint the floor slightly orange instead,
+and the HUD should name the site"). Section 5's "the plant-site ring
+stays" is withdrawn: the plant is the room (20.1), and a 2m pulsing
+ring said "plant here". In its place every floor plate inside a site's
+room is tinted - a multiply quad a centimetre proud of the plate, white
+pulled toward hazard orange by `map.marking.siteTintStrength`, one mesh
+for every site on the map (`bakeSiteTints`, mapdecals.js, laid by
+`addSite`, so a site that moves takes its tint with it). A multiply,
+so the tint is as dark as the floor it lies on and a room's pool is
+still its lamps'. Section 13 gains a line: while the player stands in
+a site's room the HUD says which - "SITE A - Turbine Hall", in the
+prompt's panel above the plant prompt, for either role, the Warden by
+its own position. The plant prompt is the Shade's alone. `M.marking.
+siteRing*` and `site.ring` are gone; the floor checks sample where they
+always did (`SITE_SAMPLE_OFFSET`). `the-site-floor-is-tinted-warm-and-
+the-ring-is-gone` and `the-hud-names-the-site-you-stand-in`
+(tests/sitetint.js) hold it: one mesh, no rings, every quad on a floor
+plate inside its room, the floor warmer by a step and no darker than a
+tenth with the tint drawn against hidden, the line read off the DOM
+walking in through the keys and out again. D44 argues the numbers. C7,
+2026-09-21.

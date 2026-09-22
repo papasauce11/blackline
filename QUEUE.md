@@ -67,60 +67,10 @@ Anything here that changes a **rule** is blocking — write the question.
 Anything that changes **presentation** is provisional — do it, log it under
 Provisional in `DECISIONS.md`, move on.
 
-(C1-C6 done 2026-09-16; C7 reopened the block 2026-09-21 on D8's answer.
-`PLAYTEST.md` is updated by every Block C, D and E job - the queue's own
-done-whens include it.)
+(C1-C6 done 2026-09-16; C7 reopened the block 2026-09-21 on D8's answer
+and closed it the same day. `PLAYTEST.md` is updated by every Block C, D
+and E job - the queue's own done-whens include it.)
 
-- [ ] **C7 (M)** The site is a tinted floor, and the HUD names it — **D8
-  decided 2026-09-21.** Two halves. (1) The pulsing 2m ring goes; in its
-  place the site room's floor is tinted slightly orange over the whole
-  room (the plant is the room, 20.1): a `tint` decal kind in
-  `src/mapdecals.js` (a flat quad the size of the room's floor at
-  `M.decals.lift`, `hazardOrange` at a low opacity on the paint material
-  or its own, one draw call for all sites), laid by `addSite` from the
-  site's room rectangle on every map, so a site that moves takes its
-  tint with it. Keep it faint: `lit-pools-and-dark-gaps` reads the site
-  floors and must still find the pools over ambient and the hall over the
-  vault; the vent-mouth and route bands must not pick it up (the hall's
-  site A floor is in the hall-west route's frame - measure before and
-  after with `--details`). `M.marking.siteRing*` and the `ring` field on
-  a site go, with every check that reads them (`grep siteRing`,
-  `site.ring`). (2) The HUD says which site the player is in: a
-  `#bl-site` line ("SITE A - Turbine Hall") while `siteNear` returns
-  one, for both roles, next to the plant prompt; `gatherHudState`
-  already carries `site`; the briefing's A/B/C list (C2) is the
-  vocabulary. *done-when:* a check in tests/visual.js reads the site
-  floor with the tint on and off and finds it warmer (R over B up) by a
-  measured step and no darker than a tenth; a HUD check drives the
-  Shade into site A and reads "A" from the DOM, out of it and reads
-  nothing; `lit-pools-and-dark-gaps` and the legibility checks unchanged
-  or better; `PLAYTEST.md` and spec 20.x updated; D8's provisional
-  numbers (the tint's opacity, the line's place) under a new decision.
-
-## Block D — the second map: the container yard
-
-Decided: D2. Outdoors, similar size to the first. Container stacks give the
-Shade vertical advantage that is hard for the Warden to close. The Warden has
-a railed walkway reached by stairs with an overhead view, glazed, with only
-small apertures to shoot through. Provisional: D9 (night, floodlit), D11
-(three apertures ~0.4m), D12 (the walkway is out of the Shade's reach),
-D37 (the walkway as built), D39 (the lighting as built).
-
-(D1-D7 done; **Block D is closed but for D3b** 2026-09-19, which waits
-on D38.)
-
-- [x] ~~**D3b (S)** A Warden-only door at the stair's mouth~~ — **dropped
-  2026-09-21: D38 decided option 1, as built**, with a rule for every
-  question of this shape: the Shade can do anything a human should easily
-  be able to do. No role-gated geometry. Kept for the record:
-  Only if Josh had picked option 2 or 3 there. A box the Warden's body
-  passes and the Shade's does not (the first role-gated collision:
-  a flag on `CollisionBox`, a filter in the swept solver's move for the
-  Shade, nothing else), across the door in `WALKWAY`; option 3 adds the
-  interact key, a hold time and a noise event. *done-when:* a check
-  drives the Shade up the stair through `input.heldCodes` and asserts it
-  stops at the door while the Warden, driven the same way, walks through;
-  `nothing-climbs-to-the-walkway-and-the-warden-walks-up` unchanged.
 ## Block E — styling
 
 Decided: D3 — the Shade and the Warden first, then the map. Provisional: D10
@@ -147,6 +97,21 @@ figure as built). Draw-call and frame budget checks are the ceiling.
 
 ## Done
 
+- **C7** The site is a tinted floor, and the HUD names it (D8). The
+  ring, `M.marking.siteRing*`, `site.ring`, `addDecal` and the pulse in
+  `map.update` are gone; `bakeSiteTints` (src/mapdecals.js, laid by
+  `addSite`) tints every floor plate inside a site's room - one multiply
+  quad per plate, one mesh for every site - white pulled toward hazard
+  orange by `siteTintStrength` 0.28 (D44): R/B up 1.14-1.17x, luma down
+  7-9% on every site floor of both maps; lit-pools, the mouths and the
+  routes unchanged in every relation. `#bl-site` in the HUD's prompt
+  panel reads "SITE A - Turbine Hall" for either role by its own
+  position (`siteHere` in hudstate.js); the plant prompt is the Shade's
+  alone. `SITE_SAMPLE_OFFSET` (tests/pixels.js) keeps the floor checks
+  on the ring's old spot. `the-site-floor-is-tinted-warm-and-the-ring-
+  is-gone` and `the-hud-names-the-site-you-stand-in` (tests/sitetint.js,
+  every map; visual.js is at 588 lines). Spec 20.30. — 2026-09-21,
+  scheduled run, Josh present, commit `C7_HASH`.
 - **B5d** The defuse reach is a clear line (D27: no defusing through a
   floor). `withinDefuseReach(foot, at, collision)` (systems/plantrule.js)
   is the two distances and then a line: from one of six points on the
@@ -165,7 +130,7 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   Warden stood on the deck cell over it inside the distances, no defuse
   in a second; beside a crate top from below, the defuse starts; the
   slab the line meets made non-solid, the reach accepts the deck cell.
-  — 2026-09-21, scheduled run, Josh present, commit `B5D_HASH`.
+  — 2026-09-21, scheduled run, Josh present, commit `88d0813`.
 - **F9** A probe. `npm run probe -- [--map id] [--out dir] [--query q]
   <file.js> [...]` (scripts/probe.mjs): loads the page on one map, stops
   the loop, warms 60 frames, runs each file's text as an async function

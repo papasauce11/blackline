@@ -7,10 +7,16 @@
  * HUD presents the simulation rather than being part of it.
  */
 
+import { CONFIG } from './config.js';
+
 /** @returns {object} the state bag `hud.update()` takes */
 export function gatherHudState({ match, shade, warden, gadgets, detection, combat, objective }) {
   const objectiveHud = objective.hud;
-  const site = objective.siteNear(shade.position);
+  // The site the player is standing in (C7): named for either role; the
+  // plant prompt is the Shade's alone.
+  const site = match.role === 'warden'
+    ? objective.siteNear(warden.position, CONFIG.warden.standHeight)
+    : objective.siteNear(shade.position);
   return {
     role: match.role,
     freeroam: match.mode === 'freeroam',
@@ -32,7 +38,8 @@ export function gatherHudState({ match, shade, warden, gadgets, detection, comba
     plantProgress: objectiveHud.plantProgress,
     plantRefused: objectiveHud.plantRefused,
     defuseProgress: objectiveHud.defuseProgress,
-    promptInRange: !!site,
+    promptInRange: match.role !== 'warden' && !!site,
+    siteHere: site ? { id: site.id, name: site.name } : null,
     awaitingReinsert: objectiveHud.awaitingReinsert,
     reinsertIn: objectiveHud.reinsertIn,
     score: objectiveHud.score,

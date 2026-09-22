@@ -19,9 +19,15 @@
  *   cut out by `alphaTest`, so it needs no sorting and shadows fall on it.
  *
  * Section 5, amended, has no affordance markings: nothing here is laid on
- * or near a climb, a vent mouth or a site ring, and nothing here is read
- * by the collision world or the rule. Where they go is the map's list
+ * or near a climb, a vent mouth or a site, and nothing here is read by
+ * the collision world or the rule. Where they go is the map's list
  * (`maps/plantdecals.js`); this file only knows how to lay one.
+ *
+ * The site tint (C7, D8) is the one marking that is not a mark a place
+ * picked up: `bakeSiteTints` lays a multiply quad over every floor plate
+ * inside a site's room, white pulled toward hazard orange, so the whole
+ * room reads as the site - which since 20.1 it is - in place of the 2m
+ * ring that said "plant here". One mesh for every site on the map.
  *
  * Layering (Section 3.1): imports config, mapbake and mapmaterials. The map
  * is handed in.
@@ -258,4 +264,76 @@ export function bakeDecals(map, specs) {
   for (const mesh of meshes) map.root.add(mesh);
   map.decalMeshes = meshes;
   return { atlas, meshes };
+}
+
+// ---------------------------------------------------------------------------
+// The site tint
+// ---------------------------------------------------------------------------
+
+/** How close to a room's floor a solid's top has to be to be its floor. */
+const FLOOR_TOLERANCE = 0.05;
+
+/** The tint's colour: white pulled toward hazard orange by the strength. */
+export function siteTintColor(strength = CONFIG.map.marking.siteTintStrength) {
+  return new THREE.Color(0xffffff).lerp(new THREE.Color(P.hazardOrange), strength);
+}
+
+/**
+ * Tint the floor of every site's room (C7): one quad per floor plate
+ * inside the room's rectangle, clipped to it, `D.lift` proud of the
+ * plate - the plates rather than the rectangle, so a void in the deck (the
+ * vault's hatch) is not a tinted plane hanging over the hall below. Merged
+ * into one mesh, `map.siteTintMesh`, replacing the last; each site's
+ * `tint` lists its quads for the checks. A multiply (as the grime decals,
+ * `premultipliedAlpha` and all), so the tint is as dark as the floor it
+ * lies on and a room's pool is still its lamps'.
+ *
+ * @param {import('./mapkit.js').GameMap} map
+ */
+export function bakeSiteTints(map) {
+  if (map.siteTintMesh) {
+    map.root.remove(map.siteTintMesh);
+    map.siteTintMesh.geometry.dispose();
+    map.siteTintMesh.material.dispose();
+    map.siteTintMesh = null;
+  }
+  const parts = [];
+  for (const site of map.sites) {
+    site.tint = [];
+    const room = site.room;
+    if (!room) continue;
+    for (const box of map.collision.boxes) {
+      if (!box.solid || Math.abs(box.max.y - room.floorY) > FLOOR_TOLERANCE) continue;
+      const x0 = Math.max(box.min.x, room.min.x);
+      const x1 = Math.min(box.max.x, room.max.x);
+      const z0 = Math.max(box.min.z, room.min.z);
+      const z1 = Math.min(box.max.z, room.max.z);
+      if (x1 - x0 < 0.05 || z1 - z0 < 0.05) continue;
+      const quad = { x0, z0, x1, z1, y: box.max.y };
+      site.tint.push(quad);
+      const geometry = new THREE.PlaneGeometry(x1 - x0, z1 - z0);
+      geometry.rotateX(-Math.PI / 2);
+      geometry.translate((x0 + x1) / 2, box.max.y + D.lift, (z0 + z1) / 2);
+      parts.push(geometry);
+    }
+  }
+  if (!parts.length) return null;
+  const material = new THREE.MeshBasicMaterial({
+    color: siteTintColor(),
+    blending: THREE.MultiplyBlending,
+    premultipliedAlpha: true,
+    transparent: true,
+    depthWrite: false,
+    fog: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  });
+  const mesh = new THREE.Mesh(mergeGeometries(parts), material);
+  mesh.name = 'site-tints';
+  mesh.castShadow = false;
+  mesh.receiveShadow = false;
+  map.root.add(mesh);
+  map.siteTintMesh = mesh;
+  return mesh;
 }

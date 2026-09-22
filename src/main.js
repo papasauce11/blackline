@@ -240,7 +240,6 @@ function bootstrap() {
  */
 function fixedStep(dt) {
   clock.sim += dt;
-  map.update(dt);
 
   // Whichever intent actually drove the Warden this step is the one combat
   // reads. Section 12 requires free-roam to be a configuration rather than a

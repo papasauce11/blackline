@@ -1191,15 +1191,20 @@ export const CONFIG = {
        * reason. Painting a hint on a shape that does not read is treating the
        * symptom.
        *
-       * The plant-site ring stays. A bomb site is information about the
-       * objective, not a hint about traversal.
+       * The plant site is marked, because a bomb site is information about
+       * the objective, not a hint about traversal - but as the room (C7,
+       * D8): the 2m pulsing ring said "plant here" while the plant is
+       * anywhere in the room (20.1), so it went. The room's floor is tinted
+       * instead: a multiply quad over every floor plate inside the site's
+       * room (mapdecals.js, `bakeSiteTints`), white pulled toward
+       * `hazardOrange` by this much. A multiply, so the tint is as dark as
+       * the floor it is on - a dark vault stays dark, a lit hall reads
+       * warm - and the lit-pools numbers move by a few percent, not by a
+       * pool. 0.28 measured: R over B up 1.14-1.17x, luma down 7-9% on
+       * every site floor of both maps (0.35 read 1.21x and 9.2-9.8%, at
+       * the check's ceiling). Argued under D44.
        */
-      /** Plant site: flat ring decal, 2m diameter, hazard orange, pulsing. */
-      siteRingInner: 0.86,
-      siteRingOuter: 1.0,
-      siteRingPulsePeriod: 2.4,
-      siteRingPulseMin: 0.35,
-      siteRingPulseMax: 0.9,
+      siteTintStrength: 0.28,
     },
 
     /** Lighting rig (Section 4, Section 4.1). */
@@ -1341,11 +1346,20 @@ export const CONFIG = {
     /** Half the arc, radians. */
     indicatorArc: 0.38,
     indicatorColor: 0xf07a25,
-    /** The vignette: the screen edge, from `vignetteInner` out, at `vignetteMax` opacity when health is gone. */
+    /**
+     * The vignette: the screen edge, from `vignetteInner` out, at
+     * `vignetteMax` opacity when health is gone. The red is dark on
+     * purpose: it takes light away from what it covers, and over a floor
+     * darker than the red a vignette reddens without darkening. It went
+     * from 0x6e100c to this with C7 (D44) - the site floors are a shade
+     * darker and the bright ring left the frame, and the darkening the
+     * check measures over site A (-9.0 luma at half health) fell to -7.6
+     * against its 8; the vignette deepened rather than the check.
+     */
     vignetteInner: 0.55,
     vignetteOuter: 1.35,
     vignetteMax: 0.85,
-    vignetteColor: 0x6e100c,
+    vignetteColor: 0x580d0a,
   },
 
   // -------------------------------------------------------------------------

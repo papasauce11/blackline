@@ -386,8 +386,18 @@ now. What is not, and why:
   refuses - the HUD says "cannot plant here" (D6); tell the routine
   where.
 - **The duct roofs are routes up** (D25, decided 2026-09-21: as built).
-- **The site ring says *plant here* and means *this room*** (D8, decided
-  2026-09-21: a faint floor tint and a HUD line naming the site - C7).
+- **The site is a tinted floor, and the HUD names it** (D8, decided
+  2026-09-21; C7 the same day). The ring is gone; the site room's floor
+  is a shade orange (a multiply at 0.28 - a warmth, not a paint), and
+  while you stand in a site the HUD says "SITE A - Turbine Hall" above
+  the plant prompt, for either role. What only eyes can judge: whether
+  the tint reads as the site from the doorway or only underfoot (turn
+  `map.marking.siteTintStrength`; 0.5 reads as paint), whether the
+  vault's nine plates around the hatch read as one floor, whether the
+  line is where you look; and whether the damage vignette, a deeper red
+  since C7 (it darkened less over the darker floor, so the red went
+  darker rather than the check), is too heavy at low health. D44 has the
+  numbers.
 - **Hard is a machine at 8m** (D33): 32 of 32 rounds hit. Medium and hard
   separate by aim only at range.
 - **Difficulty and match length apply at the next match**, not

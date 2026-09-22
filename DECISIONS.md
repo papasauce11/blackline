@@ -95,6 +95,65 @@ had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
 ## Provisional — done as recommended, override any time
 
+### D44 — The site marking as built: a floor tint at 0.28, and the HUD line above the prompt
+C7 (2026-09-21), on D8's answer: the ring went, the room's floor is
+tinted slightly orange, and the HUD names the site. The numbers to
+argue:
+
+- **The tint is a multiply, not a paint.** `bakeSiteTints`
+  (mapdecals.js) lays one quad per floor plate inside the site's room,
+  a centimetre proud, in one mesh for every site, drawn as the grime
+  decals are: the floor's own colour times white pulled toward hazard
+  orange by `map.marking.siteTintStrength`. A painted (unlit) quad at
+  any opacity would have lit the vault's floor by itself - a constant
+  ten luma on a floor at ten - and `lit-pools` would have found a pool
+  where there is no lamp; a multiply is as dark as the floor it is on.
+- **0.28.** Measured on both maps: red over blue up by 1.14-1.17x on
+  every site floor, luma down 7-9% (site A 24.5 to 22.7, the vault 10.2
+  to 9.4; the yard's bays 26.9 to 24.7, 24.5 to 22.6, 21.0 to 19.4).
+  0.35 read 1.21x and 9.2-9.8% darker, at the done-when's tenth; 0.28
+  is the strength with margin under it. The check holds 1.08x and a
+  tenth. Every relation the light checks hold is unchanged: the pools
+  over ambient, the hall 2.42x the vault, the mouths and the routes to
+  the digit but one landing edge's surround (26 to 25, contrast 0.62
+  from 0.61).
+- **Faint is the choice.** At 0.28 the tint is a warmth, not a colour:
+  the floor reads concrete that is a shade orange, which is what "tinted
+  slightly" asked for. If it does not read as the site from the
+  doorway, the number to turn is `siteTintStrength` - 0.5 reads as
+  paint - and the check's tenth ceiling goes with it.
+- **The tint follows the plates, not the rectangle.** The vault's floor
+  is nine quads, one per deck plate around the hatch, so the hatch is a
+  hole and not a tinted plane hanging over the hall. A room whose floor
+  is one slab is one quad.
+- **The HUD line** is `#bl-site`, "SITE A - Turbine Hall", in the
+  prompt's panel above the plant prompt at the bottom third of the
+  screen, hazard orange, small, for either role while `siteNear`
+  returns a site - the Warden's own position for the Warden, and the
+  Warden never sees the plant prompt (it used to, for the Shade's
+  position). The names are the briefing's (C2). An alternative was the
+  top panel beside the timer; the prompt's place was chosen because
+  the line answers the question the prompt asks.
+- **The ring's readers** kept their spot: the floor checks sample 3.5m
+  off the site centre (`SITE_SAMPLE_OFFSET`, tests/pixels.js), which was
+  the ring's outer radius and a margin, so every reading before and
+  after C7 is of the same square metre.
+- **The damage vignette deepened with it.** `the-vignette-deepens-with-
+  lost-health` (C3, D31) measures the vignette's darkening over site A's
+  frame and wants 8 luma at half health; it read -9.0 before C7 and -7.6
+  after, the floor a shade darker and the bright ring gone from the
+  band - a red vignette over a floor darker than the red reddens without
+  darkening. The check is D31's number for that backdrop and was not
+  moved; the vignette was: `feedback.vignetteColor` 0x6e100c to
+  0x580d0a, a deeper red, reads -11.8 at half health and -21.2 at low.
+  Slightly stronger damage feedback than D31 built; the same shape.
+
+Override by changing `siteTintStrength` or the line's place in hud.js;
+`the-site-floor-is-tinted-warm-and-the-ring-is-gone` and
+`the-hud-names-the-site-you-stand-in` (tests/sitetint.js) hold whatever
+is there to a warmth step, a darkening ceiling and the DOM.
+**decided:**
+
 ### D43 — The plant's materials as built: three finishes, a grime, twenty decals
 E4 (2026-09-21). What the substation is made of, now that the bodies
 are figures (D40-D42) and Block E has reached the map. The numbers to
