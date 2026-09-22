@@ -39,6 +39,40 @@ every later block is measured with, and a gate that answers differently on a
 busy PC is a gate that will eventually wave something through. The letter is
 a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
 F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate job, if one is found, goes here.
+**Reopened 2026-09-22 by F10**, found by the build run of that date.
+
+- [ ] **F10 (M)** A hung gate must die, and say so. `blocked:`
+  The run that drives the suite is one `page.evaluate` (suite.mjs ~line
+  303). `page.evaluate` takes no `timeout` option and is *not* covered by
+  the `page.setDefaultTimeout(TIMEOUT)` above it, so it waits forever: a
+  check that hangs in the page (one awaiting `h.nextFrame()` where frames
+  never fire is the documented way) wedges the runner with no output, the
+  `finally` that closes the browser never runs, and node plus a
+  SwiftShader Chrome are left spinning. This is not hypothetical - the
+  09-18 17:00 build's runner was found alive on 2026-09-22, four days on,
+  its renderer 1,975 CPU-seconds in, still listening on 127.0.0.1:54315,
+  competing for the four pinned cores with every run timed since (the
+  plant run went 450s → 850s over that window). A routine cannot clear
+  one: the sandbox refuses `taskkill`. So the gate has to not make them.
+  Three parts: (1) **a deadline** - race the run's `page.evaluate`
+  against a timer and, when it wins, report `suite: crashed: run timed
+  out` naming the check in flight, and exit 2, the runner-crashed code;
+  (2) **a heartbeat**, so slow is never mistaken for hung - `runAutoTests`
+  publishes the count done and the id in flight on the harness, the
+  runner reads it from a second evaluate on an interval, and the deadline
+  is against *the heartbeat standing still*, not against wall-clock total
+  (a cold plant run is legitimately 850s); (3) **teardown on a signal** -
+  `process.on` for SIGINT and SIGTERM closing the browser and the server,
+  so stopping a backgrounded run stops the tree instead of orphaning it.
+  Also warn at startup when a node running `suite.mjs` older than this
+  process exists, since its Chrome invalidates every timing in the
+  report. *done-when:* a new check under `src/tests/` proves the
+  page-side half - the heartbeat advances across a subset run, names the
+  check in flight, and is monotonic - and would fail if the heartbeat
+  were reverted; a staged hang (a check registered behind a flag that
+  awaits a promise that never settles) makes the runner exit 2 within the
+  stall budget instead of hanging, demonstrated once and the flag left
+  off; `npm run suite` twice, unchanged answers, no new console error.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -80,6 +114,41 @@ figure as built). Draw-call and frame budget checks are the ceiling.
 (E1 done 2026-09-19; E2 and E3 done 2026-09-20; E4, E5 and E6 2026-09-21.
 **Block E is closed.** D10 was provisional and its condition - E1-E3
 landed - was met, so E6 was not blocked on a `decided:` line.)
+
+## Block G — the record
+
+Opened 2026-09-22. The documents the routine reads to orient itself are
+themselves work, and they have drifted. Nothing here touches the game;
+a job in this block may never change a file under `src/`.
+
+- [ ] **G1 (S)** `HANDOFF.md` back to one page. `blocked:`
+  Step 6 of the protocol says "keep it one page of orientation; history
+  belongs in PROGRESS.md". It is **1,831 lines / 118KB**, and the reason
+  is structural, not neglect: every Block C, D and E job appended its own
+  narrative section, so the file now carries ~30 per-job write-ups (E6,
+  E5, C7, B5d, F8, E4, E3, E2, E1, D7, D6, D5, D4, D3, D2, D1, C1-C5,
+  B5-B8 ...) that PROGRESS.md already holds in full. Every run pays to
+  read it, and it is the first thing every run reads. Drift of the kind
+  this costs was found the same day: three questions decided on 09-21
+  (D25, D27, D38) were still listed as open under "Still needs a human",
+  and the D3 section still said D3b was queued - all fixed in the
+  2026-09-22 commit, none of which would have rotted in a file short
+  enough to re-read whole. Keep, in this order: Last audit, Where things
+  stand, the redesign's rule, Where the suite runner lives, Running it,
+  Environment traps, The lesson that keeps repeating, Still needs a
+  human. Replace each per-job section with one line under a "What was
+  built, and where it is written up" index - job id, one clause, and the
+  PROGRESS.md entry title to read for the rest - **except** where a
+  section carries something found nowhere else (the plant-rule checks'
+  locations, F3's split, the census's climb rule); move those into the
+  section they belong to rather than deleting them. Verify nothing is
+  lost the cheap way: for each section removed, grep PROGRESS.md for its
+  job id and confirm an entry exists. *done-when:* HANDOFF.md under 400
+  lines, every removed section's job id present in PROGRESS.md and named
+  in the index, no statement in the file contradicted by DECISIONS.md or
+  QUEUE.md, and a run of `npm run suite` unchanged (this job touches no
+  code, so the suite is a witness, not a proof - the real check is that
+  the next run can orient from it).
 
 
 ---

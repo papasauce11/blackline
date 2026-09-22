@@ -10,7 +10,7 @@ be wrong - every Block C, D and E job updates it (C6).
 ## Last audit
 
 2026-09-20. HEAD `ae89df1`: plant 162 passed / 1 failed / 6 not for this map, yard 145 / 1 / 23, 0 red, 0 flaky, 0 console errors — matches this file; the one failure per map is the frame-budget check, skipped headless. The run takes 12 minutes with both maps, past the audit task's 10-minute Bash limit.
-Week: 53 commits, 29 jobs done (B3–B9, B8b, C1–C6, F5, F6, D1–D7, D36, E1, E2), 9 queued, 0 WIP at HEAD. Blocked on Josh: D8 and D13 (12 days, nothing waits), D25 (7 days, blocks B5b), D27 (6 days, blocks B5d), D38 (2 days, blocks D3b).
+Week: 53 commits, 29 jobs done (B3–B9, B8b, C1–C6, F5, F6, D1–D7, D36, E1, E2), 9 queued, 0 WIP at HEAD. Blocked on Josh: D8 and D13 (12 days, nothing waits), D25 (7 days, blocks B5b), D27 (6 days, blocks B5d), D38 (2 days, blocks D3b). *(All five went the next day, 2026-09-21; the nine queued jobs are all done. This paragraph is the 09-20 snapshot — "Where things stand" below is current.)*
 Checks: none deleted, no threshold loosened, the one skip unchanged. 23 checks scoped `maps: ['plant']` this week (D7's anymap checks hold their clauses on the yard); two "inside anything" preconditions widened to count crawl spaces (D2).
 Drift: config.js 1,465 lines (exempt), 0 TODO/FIXME, 1 Math.random (audio noise), 1 setTimeout (a performance check). Fresh seed 20260920: 14 checks green on both maps — but every fuzz and soak check pins its own seed, so `?seed=` never reaches them (the recommendation). A suite runner from the 09-18 17:00 build was still running 41 hours later; the audit could not end it.
 Full report: PROGRESS.md, "Audit — 2026-09-20".
@@ -30,10 +30,10 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after E6 (2026-09-21); unchanged by the 2026-09-22 02:00 build, which had no job |
+| Working tree | clean after E6 (2026-09-21); unchanged by the 2026-09-22 02:00 build, which had no job, or by the 17:00 one, which queued two and built neither |
 | AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after E6), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **none unblocked.** The 02:00 build of 2026-09-22 found the queue empty, ran the regression set as a smoke check (plant 29 passed in 114s, yard 29 in 73s, 0 red, 0 flaky, 0 console errors) and stopped without building. The queue is empty but for nothing: Blocks A, B, C, D, E and F are closed. What waits on Josh is D13's rule (may move a site), the Provisional entries D40-D46 (looks), and the frame-budget run on a GPU with the post on (PLAYTEST.md). The next work is whatever Josh queues. Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **E6 done** 2026-09-21 (below): post-processing - **Block E is closed**. **E5 done** 2026-09-21 (below): the yard's materials. **C7 done** 2026-09-21 (below): the site is a tinted floor and the HUD names it - Block C is closed again. **B5d done** 2026-09-21 (below): the defuse reach is a clear line - **Block B is closed**. **F9 done** 2026-09-21: `npm run probe`, a question asked of the game headless (Running it). **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) dropped on D25 and B5d (the defuse reach is a clear line) done on D27, both 2026-09-21. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
-| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
+| Next job | **F10 (M), a hung gate must die and say so** - queued by the 17:00 build of 2026-09-22, which found the queue empty and, rather than build nothing twice in a day, went looking for why the 09-18 runner was still alive (the 09-20 audit had flagged it and could not end it). The cause is in the gate: the one `page.evaluate` that drives a run takes no timeout and is not covered by `page.setDefaultTimeout`, so a check that hangs in the page wedges the runner with no output and the `finally` that closes Chrome never runs. F10 gives it a heartbeat, a deadline and a signal teardown; **G1 (S)** behind it puts this file back to one page. Both are unblocked - the 02:00 run can take F10. **Josh: two node processes need killing by hand** - see the orphaned-runner trap; the sandbox refuses `taskkill` to a scheduled session. Before then, the 02:00 build of 2026-09-22 found the queue empty, ran the regression set as a smoke check (plant 29 passed in 114s, yard 29 in 73s, 0 red, 0 flaky, 0 console errors) and stopped without building. Blocks A, B, C, D and E are closed; F reopened on F10, and G is new. What waits on Josh is D13's rule (may move a site), the Provisional entries D40-D46 (looks), and the frame-budget run on a GPU with the post on (PLAYTEST.md). Beyond F10 and G1, the next work is whatever Josh queues. Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **E6 done** 2026-09-21 (below): post-processing - **Block E is closed**. **E5 done** 2026-09-21 (below): the yard's materials. **C7 done** 2026-09-21 (below): the site is a tinted floor and the HUD names it - Block C is closed again. **B5d done** 2026-09-21 (below): the defuse reach is a clear line - **Block B is closed**. **F9 done** 2026-09-21: `npm run probe`, a question asked of the game headless (Running it). **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed** (D3b dropped on D38, 2026-09-21). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) was dropped 2026-09-21 when Josh decided D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) dropped on D25 and B5d (the defuse reach is a clear line) done on D27, both 2026-09-21. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, and now 1,648 lines against the audit's 1,465); the check `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) - the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both the documented exceptions |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
 | Map, yard | 132 boxes (71 before the walkway's 53, 124 before the masts' 8), 58 climbable, 5 lamps (four on masts, one under the walkway), Warden ground 15,332 cells in one component (the run and its stair included), 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up (the two arches and the nine upper tiers), every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
@@ -49,7 +49,7 @@ map, is under way: D1, the plumbing, and D2, the yard blocked out, both
 2026-09-17 (below); D3, the walkway, and D4, the night, 2026-09-18
 (below); D5, the AI on the yard, D6, both maps in the gate, and D7,
 the regression set whole on every map, 2026-09-19 (below). **Block D is
-closed but for D3b** (waits on D38). Block E, styling, is open: E1, the
+closed** (D3b dropped 2026-09-21 when Josh decided D38 option 1). Block E, styling: E1, the
 Shade's figure, 2026-09-19, E2, the Warden's, and E3, animation,
 2026-09-20 (all below); F7, a look at a pose, the same day; E4, the
 plant's materials, 2026-09-21 (below), and F8, the key light's shadow
@@ -637,9 +637,12 @@ staged perch (3m under the floor: nothing, the parapet; 3m under the
 roof: the roof, so the rule is reading the geometry), the Warden's
 ground, and the human Warden up the stair (3.9s) and along the run;
 and, on every map, a knife in a clear lane with and without a staged
-post, glass or not. **D38 (blocking): the Shade can walk up the stair.**
-A stair is walked by anyone and a door only one body passes is a new
-rule; D3b is queued behind it. Spec 20.19, D37.
+post, glass or not. **D38 (decided 2026-09-21, option 1): the Shade can
+walk up the stair, and may do anything a human should easily be able to
+do.** A stair is walked by anyone and a door only one body passes is a
+new rule; D3b (a Warden-only door) was dropped, not built. The second
+half of Josh's answer is a standing rule: no role-gated geometry where a
+person would simply walk, climb or step. Spec 20.19, D37.
 
 ## The yard is blocked out - D2
 
@@ -1537,6 +1540,30 @@ backgrounded run from the tool does not stop the runner: node and its
 headless Chrome carry on, still writing to the redirected file, and a
 second run started beside them fights for the four pinned cores.
 
+**And an orphaned runner never dies on its own — it has to be killed by
+hand, and a routine cannot do it.** The 09-18 17:00 build's runner was
+still alive on 2026-09-22, four days later: `npm run suite` (pid 9608)
+→ `node scripts/suite.mjs` (pid 4792, an in-process server still
+listening on 127.0.0.1:54315) → a headless Chrome tree whose renderer
+had burned **1,975 seconds of CPU** and a second process 429s more. That
+is not an idle zombie; it is a SwiftShader renderer spinning against the
+same four cores every later run is timed on, which is the likeliest
+reason a plant run went from 450s (D6) to 850s (E6) with no check added
+that could account for it. **Before trusting any timing in a report,
+check for one**:
+
+```powershell
+Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Select ProcessId,CreationDate,CommandLine
+```
+
+Anything older than the current run is a leak. End it with `taskkill /PID
+<suite.mjs pid> /T /F` — and note that Josh has to run this himself: a
+scheduled session's sandbox refuses `taskkill` (and a backgrounded
+`nohup ... &`) as interfering with a workload, so the routine can find
+these but never clear them. Be sure of the pid first: the ordinary
+`chrome.exe` tree on this machine is Josh's own browser, not the
+suite's.
+
 **Two sessions in this repo will collide on decision numbers.** A5 raised its
 question as D19 while, ten minutes earlier and unseen, another session had
 committed a different D19. Renumbered to D20 by hand; the A5 commit message
@@ -1793,24 +1820,9 @@ These are D26, D28, D30, D31, D39, D40, D41, D42, D43, D44, D45, D46 and the Pro
   key warm from bay C's mast. Provisional; the pixels say the pools
   out-light the sky and the gaps are dark, not that it reads as a yard
   at night rather than a black screen with four spots.
-- **D38**: whether the Shade may walk up the Warden's stair into the
-  booth. Today it can - nothing climbs to the walkway, but the stair is
-  walked by both bodies and there is no such thing as a door only one
-  passes. Recommendation is to play it as built; a Warden-only door
-  (D3b) is a new rule and sized S if wanted.
-
-- **D25**: whether the deck's void edges should carry a rail except at the
-  lips, so the duct roofs stop being routes up and a lit lip (B7) means
-  *the* way. Recommendation is to accept what the rule found; nothing is
-  blocked on it.
 - **D26**: what the ducts look like - galvanised sheet, one colour, no
   rim. Provisional; the pixels say it contrasts, not that it reads as a
   duct.
-- **D27**: whether a Warden may defuse through a floor. Today it may - the
-  reach is two distances - and the census's room-A sample is defused from
-  the deck above it. Recommendation is a clear-line reach (B5d, one
-  predicate); it removes the duct roofs under the deck from the legal
-  plants, so it is Josh's.
 - **D28**: how the routes are lit - emissive sides on every stage, a
   warm-white strip on every landing edge. Provisional; the pixels say it
   is a step brighter, not that it reads as a route.

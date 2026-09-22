@@ -7754,3 +7754,78 @@ the one failure on each is the frame-budget sweep, skipped headless.
 budget with the post on is Josh's GPU's to answer (PLAYTEST.md: F4
 then Y, and the row off if it is red). Whether the glow reads as light
 is D46's.
+
+## The gate can hang forever, and did — F10 and G1 queued (2026-09-22 17:00, scheduled run)
+
+**No job was built.** The queue was empty: Blocks A, B, C, D and E
+closed, F closed since 09-11, nothing `[ ]` anywhere. The 02:00 run of
+the same day had already found that, run the regression set and stopped.
+Rather than build nothing twice in one day, this run took the one thing
+the 09-20 audit had left open — "a suite runner from the 09-18 17:00
+build was still running 41 hours later; the audit could not end it" —
+and asked why.
+
+**It was still running.** Four days on: `npm run suite` (pid 9608) →
+`node scripts/suite.mjs` (pid 4792), an in-process server still
+listening on 127.0.0.1:54315, holding a headless Chrome tree (pid 8920)
+whose renderer had burned **1,975 CPU-seconds** and a second process 429
+more. Not an idle zombie — a SwiftShader renderer spinning against the
+same four cores every run since has been timed on. That is the likeliest
+explanation for a number recorded in E6's entry and read there as the
+post pipeline's cost: the plant's run went 450s → 850s. Some of that is
+seven passes on SwiftShader; some of it is this.
+
+**The cause is in the gate, not the machine.** suite.mjs drives a whole
+run through one `page.evaluate` (~line 303). `page.evaluate` takes no
+`timeout` option — its only option is `{ exposeFunctions }`, checked
+against `playwright-core/types/types.d.ts` — and `setDefaultTimeout`
+changes the default only for methods that *accept* one, so the call
+above it (`page.setDefaultTimeout(TIMEOUT)`, 600s) does not cover it. A
+check that hangs in the page therefore hangs the runner forever, with no
+output; the `finally { browser.close(); server.close(); }` never runs;
+and node and Chrome are orphaned. There is no signal handler either, so
+stopping a backgrounded run orphans the same tree. The documented trap
+"a check that awaits `h.nextFrame()` hangs where frames never fire" is
+exactly the shape that triggers it.
+
+**A routine cannot clear one.** The sandbox refuses `taskkill` (and a
+backgrounded `nohup … &`) to a scheduled session as interfering with a
+workload — tried, denied, not worked around. So the gate has to stop
+making them, which is **F10 (M)**, queued: a heartbeat (`runAutoTests`
+publishes checks-done and the id in flight, so slow is never mistaken
+for hung), a deadline against the heartbeat standing still rather than
+wall-clock total (a cold plant run is legitimately 850s), a signal
+teardown, and a startup warning when an older `suite.mjs` is alive,
+since its Chrome invalidates every timing in the report. Block F is
+reopened for it.
+
+**And the file the routine reads first has drifted.** HANDOFF.md is
+1,831 lines against step 6's "keep it one page"; ~30 per-job narrative
+sections that PROGRESS.md already holds in full. The cost is not just
+the reading: three questions Josh decided on 09-21 (D25, D27, D38) were
+still listed as open under "Still needs a human", the D3 section still
+said D3b was queued behind D38, and the same paragraph called Block E
+open and closed four lines apart. All fixed here by hand; **G1 (S)**,
+queued under a new Block G — the record, does the structural half, with
+a done-when that no statement in the file is contradicted by
+DECISIONS.md or QUEUE.md.
+
+**Also recorded.** `src/physics.js` is at *exactly* 600 lines, with
+movement.js 599, combat.js 593, visual.js 589 and plant.js 588 behind
+it: the next line added to any of them turns
+`no-source-file-outside-config-is-over-600-lines` red, so the job that
+touches one splits it first instead of finding out halfway through a
+verify. config.js is 1,648 (exempt), up from the audit's 1,465. 0
+TODO/FIXME; one `Math.random` and one `setTimeout` in `src/`, both the
+documented exceptions.
+
+**Verified.** Nothing under `src/` was touched, so there is nothing for
+a check to catch; the gate was run anyway as a witness that the base is
+sound, `npm run suite -- --runs 1`, both maps. Numbers in the commit
+that follows this one.
+
+**Left.** F10 and G1, both unblocked, for the 02:00 run. **Two node
+processes (9608, 4792) need Josh to kill them by hand** — `taskkill /PID
+4792 /T /F`, then 9608; the ordinary `chrome.exe` tree on this machine
+is Josh's own browser, not the suite's. Until they are gone every
+timing this gate reports is against three-quarters of a machine.
