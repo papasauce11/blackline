@@ -7770,10 +7770,18 @@ and asked why.
 listening on 127.0.0.1:54315, holding a headless Chrome tree (pid 8920)
 whose renderer had burned **1,975 CPU-seconds** and a second process 429
 more. Not an idle zombie — a SwiftShader renderer spinning against the
-same four cores every run since has been timed on. That is the likeliest
-explanation for a number recorded in E6's entry and read there as the
-post pipeline's cost: the plant's run went 450s → 850s. Some of that is
-seven passes on SwiftShader; some of it is this.
+same four cores every run since has been timed on.
+
+It is tempting to read it as the explanation for a number recorded in
+E6's entry as the post pipeline's cost — the plant's run going 450s →
+850s — and the first draft of this entry did. That is not supported:
+E6's 850s was itself measured with this same runner alive, and so was
+this run's 819s. Contention is a constant across every measurement we
+have, not a variable that separates them. **The clean test is a gate run
+after the processes are killed**; until someone does that, how much of
+the climb is seven SwiftShader passes and how much is a stolen core is
+unknown, and neither number in HANDOFF's Running it should be trusted to
+better than "about".
 
 **The cause is in the gate, not the machine.** suite.mjs drives a whole
 run through one `page.evaluate` (~line 303). `page.evaluate` takes no
@@ -7821,8 +7829,14 @@ documented exceptions.
 
 **Verified.** Nothing under `src/` was touched, so there is nothing for
 a check to catch; the gate was run anyway as a witness that the base is
-sound, `npm run suite -- --runs 1`, both maps. Numbers in the commit
-that follows this one.
+sound. `npm run suite -- --runs 1`, both maps, exit 0: **plant 172
+passed, 1 failed, 8 not for this map (819s); yard 153, 1, 27 (470s)**;
+0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames, and
+the `expectedRed` and `unexpectedGreen` lists both empty. The one
+failure on each map is the frame-budget check, skipped headless. Those
+counts match E6's verify exactly, so the base is where E6 left it and
+the docs commit before this one changed nothing that runs. Throttle:
+4 of 8 cores, 9 processes pinned, 45s cooldown.
 
 **Left.** F10 and G1, both unblocked, for the 02:00 run. **Two node
 processes (9608, 4792) need Josh to kill them by hand** — `taskkill /PID

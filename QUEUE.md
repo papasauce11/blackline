@@ -51,9 +51,11 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
   SwiftShader Chrome are left spinning. This is not hypothetical - the
   09-18 17:00 build's runner was found alive on 2026-09-22, four days on,
   its renderer 1,975 CPU-seconds in, still listening on 127.0.0.1:54315,
-  competing for the four pinned cores with every run timed since (the
-  plant run went 450s → 850s over that window). A routine cannot clear
-  one: the sandbox refuses `taskkill`. So the gate has to not make them.
+  competing for the four pinned cores with every run timed since - which
+  is not the same as saying it caused the plant run's 450s → 850s climb,
+  since every timing on record was taken with it alive. A routine cannot
+  clear one: the sandbox refuses `taskkill`. So the gate has to not make
+  them.
   Three parts: (1) **a deadline** - race the run's `page.evaluate`
   against a timer and, when it wins, report `suite: crashed: run timed
   out` naming the check in flight, and exit 2, the runner-crashed code;
