@@ -130,6 +130,26 @@ shadow side of a wall or as a hole; look along the east and south
 walls from inside, and at the building's north-west corner from the
 apron. The check is `a-wall-the-key-lights-from-behind-reads-plain`.
 
+### The frame is post-processed (E6, 2026-09-21)
+
+Either map. The lamps glow, the route-lit strips glow a little, the
+corners of the frame are a shade darker; the settings menu has a
+*post-processing* row, and off is the frame as it was. The checks prove:
+a lamp's halo (a ring ten pixels round a fixture reads three to four
+times brighter), the corners darker by a sixth and the centre untouched,
+the hit marker no bigger, seven passes a frame and none off, the row
+switching (`post-processing-blooms-the-emissives-darkens-the-corners-
+and-is-a-switch`). What only eyes and a GPU can judge: **the frame
+budget** - run F4 then Y in a real browser with the post on and read
+`the-frame-budget-holds-everywhere-not-just-at-site-a`; if it is red,
+turn the row off and run it again, and D10's "if the frame budget
+allows" has its answer; whether the glow reads as light or as haze
+(`render.post.bloomStrength`, 0.8; 0.4 is barely there, 1.5 flares);
+whether the vignette reads as a frame or as dirt on the lens
+(`vignetteStrength`, 0.3); whether the site tint, now multiplied in
+linear light and turned down to 0.13, still reads as the site. D46
+argues the numbers.
+
 ### The yard is dressed (E5, 2026-09-21)
 
 `?map=yard`, either role, a competitive round or free roam. Every

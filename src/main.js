@@ -45,6 +45,7 @@ import { createWardenIntent } from './entities/enforcer.js';
 // ---------------------------------------------------------------------------
 
 /** @type {THREE.WebGLRenderer} */ let renderer = null;
+/** @type {object} */ let post = null;
 /** @type {THREE.Scene} */ let scene = null;
 /** @type {THREE.PerspectiveCamera} */ let camera = null;
 /** @type {import('./input.js').Input} */ let input = null;
@@ -214,7 +215,7 @@ function bootstrap() {
   // Everything built is boot.js (C3); what runs it stays here. `match` is a
   // getter because the menu is built before the first match exists.
   ({
-    renderer, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
+    renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
     briefing, cameraOwner,
   } = bootWorld({
@@ -385,7 +386,7 @@ function renderFrame(wallDelta) {
   emitter.emit('frame:render', { alpha, wallDelta });
 
   const cpuStart = performance.now();
-  renderer.render(scene, camera);
+  post.render(scene, camera);
   recordFrameFields(debugState, {
     renderer, cpuMs: performance.now() - cpuStart, rng, shade, warden, camera, cameraOwner: cameraOwner.owner,
   });
@@ -402,6 +403,7 @@ const harness = createHarness({
   scene: () => scene,
   camera: () => camera,
   renderer: () => renderer,
+  post: () => post,
   input: () => input,
   debugTools: () => debugTools,
   match: () => match,

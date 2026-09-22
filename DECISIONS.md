@@ -95,6 +95,70 @@ had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
 ## Provisional — done as recommended, override any time
 
+### D46 — Post-processing as built: a bloom on the emissives, a vignette, a switch
+E6 (2026-09-21), on D10's recommendation now that E1-E3 have landed: a
+vignette and a light bloom on the emissives only, if the frame budget
+allows. The numbers to argue:
+
+- **Four passes, one file** (`src/post.js`): the scene into a
+  full-size half-float multisampled target, a bright pass at half size
+  keeping what is over 0.5 of linear luma (the route-lit stages and the
+  lamp fixtures read 0.75-0.8, a floor under a lamp 0.13 - so the
+  emissives and a flash bloom and a lit floor does not), two separable
+  Gaussian blurs at half size, and a composite that adds the blur back
+  at 0.8 and multiplies by an elliptical vignette falling from nothing
+  at 0.55 of the half-diagonal to 0.3 off at 1.25. Then the feedback
+  quad (C3) over the top on its own layer, so a white hit marker is not
+  a bloom. three's EffectComposer is in the addons bundle the import map
+  does not fetch; this is the sliver of it the game needs.
+- **A body is not an emissive.** The first full verify was red on the
+  two silhouette checks (E1, E2) on both maps: they stand the figure in
+  flat white to read its shape, and the bloom grew the white a halo ten
+  pixels wide - a 30px neck at 25m read 50. The Shade's rim at full
+  meter is brighter than any lamp and would have done the same in
+  play. So the bright pass reads the scene target's alpha as its mask:
+  an opaque material writes 1, a body writes 0 (`NO_BLOOM`, a line
+  after `opaque_fragment` on the Shade's rim material, the Warden's
+  body and the checks' flat stand-in; `withoutBloom` in agentmesh.js),
+  and the mask is a step at 0.999 rather than a multiply, because the
+  multisample resolve leaves a body's edge pixels half covered and
+  half bright. The canvas has no alpha channel, so with the post off
+  the alpha changes nothing.
+- **Half floats, because the game is dark.** The first targets were
+  8-bit and linear; a floor at sRGB 8 is linear 0.002, which rounds to
+  1/255 and comes back as 13 - every dark tone banded to grey. Half
+  floats carry the darks.
+- **"If the frame budget allows" is a GPU question**, and this machine
+  renders the suite in software; `the-frame-budget-holds-everywhere`
+  runs in a real browser (F4 then Y) with the post on, and answers it
+  there. So the post is a settings row - *post-processing*, on by
+  default - and off is the scene as drawn, one pass, no targets
+  touched. If the budget fails on Josh's GPU, off is the answer and the
+  default is one line.
+- **What ships is what is read.** pixels.js's lens renders through the
+  pipeline when it is on, so every pixel check reads the bloom and the
+  vignette. What moved: the routes' landing edges read 158-182 luma
+  against 224-227 (the emissive is spread by the blur, not clipped by
+  it) and their contrasts 0.75-0.78 from 0.79-0.83; a lamp's halo takes
+  a ceiling read under it from 101 to 105; the pools, the mouths and
+  the rim to the digit or a level. And the site tint (C7, D44) darkened
+  more for the same strength - the multiply is in linear light now, the
+  physically right one, 12% on the vault's floor at 0.28 - so
+  `siteTintStrength` went to 0.13: R/B up 1.09-1.13x, luma down 5-8%.
+  D44's numbers are superseded by these; its choices stand.
+- **The bloom is a glow, not a flare.** At 0.8 the ring ten pixels
+  round a lamp fixture goes from 22 to 78 luma on the plant, 35 to 112
+  on the yard; the lamps read as lamps in a frame (the probe's PNGs),
+  the route strips glow a little, nothing else does. 1.5 flares; 0.4
+  is barely there.
+
+Override in `CONFIG.render.post`, or turn it off in the settings menu;
+`post-processing-blooms-the-emissives-darkens-the-corners-and-is-a-
+switch` (tests/post.js) holds whatever is there to a halo, darker
+corners, an untouched centre, an unbloomed hit marker, the passes and
+the switch.
+**decided:**
+
 ### D45 — The yard's materials as built: corrugated containers, wet ground, rust, a box number
 E5 (2026-09-21). The container yard on E4's kit, with its own set
 (`CONFIG.map.yardFinishes`). The numbers to argue:

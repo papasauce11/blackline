@@ -24,11 +24,13 @@ const M = CONFIG.map;
 
 /**
  * The warmth step the tint has to make on a lit site floor: red over blue,
- * after against before. Measured 1.14-1.17x at strength 0.28 on every site floor
- * of both maps; the ceiling on the darkening is the done-when's tenth
- * (7-9% measured).
+ * after against before. Measured 1.14-1.17x at strength 0.28 through the
+ * plain renderer (C7); E6's post pipeline multiplies the tint in linear
+ * light, which darkens more and warms less for the same strength, so the
+ * strength went to 0.13 and the step measured 1.09-1.13x (D44); the
+ * ceiling on the darkening is the done-when's tenth (5-8% measured).
  */
-const MIN_WARMTH_STEP = 1.08;
+const MIN_WARMTH_STEP = 1.05;
 const MAX_DARKENING = 0.1;
 /** The crop read, as a fraction of the frame. */
 const CROP = 0.4;

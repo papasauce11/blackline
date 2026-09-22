@@ -188,6 +188,31 @@ export const CONFIG = {
     toonSteps: 4,
     /** Section 4: inverted-hull outline scale. */
     outlineScale: 1.03,
+    /**
+     * Post-processing (E6, D10): a bloom on the emissives and a vignette,
+     * `SETTINGS.post` the switch (post.js). The bright pass keeps what is
+     * over `bloomThreshold` of linear luma - the route-lit stages and the
+     * lamp fixtures read 0.75-0.8 linear, a floor under a lamp 0.13 - and
+     * the blur is `blurPasses` separable Gaussians at half size, added
+     * back at `bloomStrength`. The vignette falls from nothing at
+     * `vignetteInner` of the half-diagonal to `vignetteStrength` off at
+     * `vignetteOuter`. `samples` is the scene target's multisampling, the
+     * canvas's antialias carried over. Costs the same at every quality
+     * level (D10), so the switch is the player's; the frame-budget check
+     * on a real GPU is where the budget clause is answered. Argued under
+     * D46.
+     */
+    post: {
+      samples: 4,
+      bloomThreshold: 0.5,
+      bloomStrength: 0.8,
+      blurPasses: 2,
+      vignetteInner: 0.55,
+      vignetteOuter: 1.25,
+      vignetteStrength: 0.3,
+    },
+    /** The layer the feedback quad draws on, over the post-processed frame (E6). */
+    overlayLayer: 1,
   },
 
   // -------------------------------------------------------------------------
@@ -1260,11 +1285,13 @@ export const CONFIG = {
        * `hazardOrange` by this much. A multiply, so the tint is as dark as
        * the floor it is on - a dark vault stays dark, a lit hall reads
        * warm - and the lit-pools numbers move by a few percent, not by a
-       * pool. 0.28 measured: R over B up 1.14-1.17x, luma down 7-9% on
-       * every site floor of both maps (0.35 read 1.21x and 9.2-9.8%, at
-       * the check's ceiling). Argued under D44.
+       * pool. 0.28 measured through the plain renderer: R over B up
+       * 1.14-1.17x, luma down 7-9%. E6's post pipeline multiplies in linear
+       * light, which darkens more for the same strength (0.2 read 12% on
+       * the vault's floor), so 0.13: R over B up 1.09-1.13x, luma down
+       * 5-8% on the plant's site floors. Argued under D44.
        */
-      siteTintStrength: 0.28,
+      siteTintStrength: 0.13,
     },
 
     /** Lighting rig (Section 4, Section 4.1). */
@@ -1518,6 +1545,8 @@ export const CONFIG = {
        * the round until any key; off, the round starts on the click.
        */
       briefing: true,
+      /** Post-processing (E6): the bloom and the vignette. Off is the scene as drawn. */
+      post: true,
     },
   },
 };

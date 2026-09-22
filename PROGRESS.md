@@ -7640,3 +7640,117 @@ skipped headless.
 **Left.** E6, post-processing, is what remains of Block E. Whether
 corrugation reads as corrugation, wet as wet, and one number on four
 boxes as a yard's stencil, is D45's for Josh's eyes.
+
+## E6 — post-processing: a bloom on the emissives, a vignette, a switch (2026-09-21, scheduled run, Josh present)
+
+**Gate.** E5's verify at `02212df`: plant 171/1/8 twice, yard 152/1/27
+twice, 0 red, 0 flaky, 0 console errors.
+
+**Why it was unblocked.** QUEUE.md said `blocked: D10`; D10 is in the
+Provisional section, with the recommendation "none until E1-E3 land;
+then a vignette and a light bloom on the emissives only, if the frame
+budget allows". E1-E3 landed 2026-09-19/20, so its condition was met
+and no `decided:` line was wanted. The budget clause cannot be answered
+on this machine (SwiftShader draws a frame in 400-600ms), so it became
+a switch and a line in PLAYTEST.md.
+
+**What was built.** `src/post.js`, `createPost(renderer)`: four passes
+in one file, since three's EffectComposer is in the addons bundle the
+import map does not fetch. The scene into a full-size **half-float**
+multisampled target (the first targets were 8-bit linear, and every
+dark tone banded to grey: a floor at sRGB 8 is linear 0.002, rounds to
+1/255, and comes back as 13 - the probe read the wall at (13,13,13)
+against (8,9,9) raw); a **bright pass** at half size keeping what is
+over `bloomThreshold` 0.5 of linear luma with a 0.1 smoothstep - the
+route-lit stages and the lamp fixtures read 0.75-0.8, a floor under a
+lamp 0.13, so the emissives and a flash bloom and nothing else does;
+two separable **Gaussian blurs** at half size, ping-ponging; a
+**composite** to the canvas, the scene plus the blur at `bloomStrength`
+0.8 under an elliptical **vignette** from `vignetteInner` 0.55 to
+`vignetteOuter` 1.25 of the half-diagonal, `vignetteStrength` 0.3 off
+at the corner, `colorspace_fragment` applying the output transform
+once. Then **C3's feedback quad** over the composite on its own layer
+(`render.overlayLayer`, 1; `feedback.mesh.layers.set`, the camera
+`layers.enable`d so the one-pass path still draws it), with the camera's
+mask borrowed and given back and the scene's background lifted for the
+pass - the first composite came out as the clear colour everywhere,
+and the probe found why: a Color background makes three clear the
+canvas whatever `autoClear` says, and the overlay pass wiped the
+composite. `SETTINGS.post` is the switch (`settings.defaults.post`
+true; a *post-processing* row in the menu, live); off is
+`renderer.render`, one pass, no target touched. `post.render` resets
+`renderer.info` once a frame with `autoReset` off, so a frame's draw
+calls are the frame's: the checks that count calls by difference (the
+routes' strips, the decals) read as before once this was in - before
+it, the last render of a frame was the overlay pass and they read
+"0 -> 0".
+
+**What ships is what is read.** pixels.js's lens (`grab`, `renderOnly`)
+and tests/feedback.js's reader render through `h.post.render`. What
+moved: the routes' landing edges 158-182 luma from 224-227 (the
+emissive spread by the blur, not clipped), contrasts 0.75-0.78 from
+0.79-0.83, every one over its floor; the deck's underside under its
+lamp 105 from 101 (the halo); pools, mouths, the rim, the figures,
+the damage vignette (-11.0 from -11.8) to the digit or a level. And
+**the site tint darkened more**: the multiply now happens in linear
+light, which is the physically right one and harsher for the same
+strength - 0.28 read 12% off the vault's floor against C7's 7.8% -
+so `siteTintStrength` went to 0.13 (R/B up 1.09-1.13x, luma down 5-8%
+on the plant, 1.09-1.12x and 6-7% on the yard), the tint check's
+warmth floor from 1.08 to 1.05 with the re-measure recorded in it,
+and D44's numbers are superseded under D46. The suite is a good deal slower
+headless - every pixel check draws seven passes on SwiftShader: the
+plant's run 850-1000s from 590-660s, the yard's 490-660s from 290-310s;
+HANDOFF.md's Running it has the new times.
+
+**A body is not an emissive.** The first full verify was red on the
+two silhouette checks (`the-shade-reads-as-a-hooded-figure-at-8m-and-
+25m`, `the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`)
+on both maps: "at 8m the hood is 50px over a neck of 50px". They stand
+the figure in flat white to read its shape by difference, and the
+bloom grew the white a halo ten pixels wide - the probe's PNG showed
+the Shade glowing like a lamp, 6977 changed pixels against 2997 raw.
+The Shade's own rim at full meter is brighter than any lamp and would
+do the same in play. So the bright pass reads the scene target's alpha
+as its mask: an opaque material writes 1, a body writes 0 - `NO_BLOOM`,
+one line after `opaque_fragment`, on the Shade's rim material, the
+Warden's body (`withoutBloom`, agentmesh.js) and the checks' flat
+stand-in (figure.js's `flatten`). A step at 0.999 rather than a
+multiply: the multisample resolve leaves a body's edge pixels half
+covered and half bright, and a ring of those would bloom. The canvas
+has no alpha channel, so with the post off the alpha changes nothing;
+the rim and the dimming checks read as before. The silhouettes read as
+before E6: hood 28 over neck 12 at 8m, 10 over 6 at 25m.
+
+**The look** (the probe's PNGs): the lamps glow softly, the route
+strips glow a little, the corners are a shade darker; nothing flares.
+
+**The check** is `post-processing-blooms-the-emissives-darkens-the-
+corners-and-is-a-switch` (`src/tests/post.js`, every map): a lamp with
+an eye 3m off it in open air with sight of the glass; the frame raw
+(`SETTINGS.post` off, 0 passes) and with the post (7); the fixture's
+pixels over 200 luma dilated ten pixels, the ring round them brighter
+by 3 luma at least (22.5 to 77.6 on the plant's hall-1, 34.6 to 111.9
+on the yard's bay-a); the first site's floor from 2.2m, the four 6%
+corner squares' post/raw median at 0.9 or under (0.847 plant, 0.857
+yard - the first instrument read the whole outer band and got 0.89,
+because the vignette is elliptical and the top and bottom edges'
+middles sit inside its inner radius) and the centre 10% within 3%
+(2%); the hit marker's span within 3px raw against post (45/45);
+`#bl-post` in the settings menu switching `SETTINGS.post` off and on.
+
+**Verified.** Subsets (the plant's light, feedback and material checks,
+10 in 238s with four red on the draw-call count and the tint; 5 in
+188s with one red on the tint; 3 in 87s green; the yard's 8 in 84s
+green); the first `npm run suite` red on the two silhouette checks on
+both maps (plant 170/3/8 twice, yard 151/3/27 twice, 0 flaky); the
+figure, rim, dimming, smoke and alarm checks after the mask, 7 in
+111s green; then `npm run suite` again, both maps twice: **172 passed, 1 failed, 8 not for this map**,
+**153 passed, 1 failed, 27 not for this map**, every outcome identical between runs, 0 red, 0
+flaky, 0 console errors, 0 context losses;
+the one failure on each is the frame-budget sweep, skipped headless.
+
+**Left.** Block E is closed; the queue has no unblocked job. The frame
+budget with the post on is Josh's GPU's to answer (PLAYTEST.md: F4
+then Y, and the row off if it is red). Whether the glow reads as light
+is D46's.

@@ -27,6 +27,7 @@
  */
 
 import * as THREE from 'three';
+import { withoutBloom } from '../entities/agentmesh.js';
 import { createLens, difference, quiesce } from './pixels.js';
 import { clearLanes, alongLane, HEADINGS } from './lanes.js';
 
@@ -189,9 +190,14 @@ function structure(mesh, label) {
   return { problems, bodies, hulls, materials };
 }
 
-/** The body on a flat unlit white, its shadow off; returns the way back. */
+/**
+ * The body on a flat unlit white, its shadow off; returns the way back. The
+ * white is a stand-in for the geometry, not an emissive, so it is marked as
+ * a body is (E6): the post pipeline's bloom would otherwise grow it a halo
+ * ten pixels wide, and a 30px neck at 25m would read 50.
+ */
 function flatten(bodies, materials) {
-  const flat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+  const flat = withoutBloom(new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false }));
   for (const mesh of bodies) { mesh.material = flat; mesh.castShadow = false; }
   return () => {
     for (const mesh of bodies) { mesh.material = materials.body; mesh.castShadow = true; }

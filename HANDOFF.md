@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after E5 (2026-09-21) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after E5), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **E6** (S: post-processing - D10 is provisional and its condition, E1-E3 landed, is met: a vignette and a bloom on the emissives, if the frame budget allows - which is a GPU question for Josh). Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **E5 done** 2026-09-21 (below): the yard's materials. **C7 done** 2026-09-21 (below): the site is a tinted floor and the HUD names it - Block C is closed again. **B5d done** 2026-09-21 (below): the defuse reach is a clear line - **Block B is closed**. **F9 done** 2026-09-21: `npm run probe`, a question asked of the game headless (Running it). **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) dropped on D25 and B5d (the defuse reach is a clear line) done on D27, both 2026-09-21. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after E6 (2026-09-21) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after E6), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **none unblocked.** The queue is empty but for nothing: Blocks A, B, C, D, E and F are closed. What waits on Josh is D13's rule (may move a site), the Provisional entries D40-D46 (looks), and the frame-budget run on a GPU with the post on (PLAYTEST.md). The next work is whatever Josh queues. Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **E6 done** 2026-09-21 (below): post-processing - **Block E is closed**. **E5 done** 2026-09-21 (below): the yard's materials. **C7 done** 2026-09-21 (below): the site is a tinted floor and the HUD names it - Block C is closed again. **B5d done** 2026-09-21 (below): the defuse reach is a clear line - **Block B is closed**. **F9 done** 2026-09-21: `npm run probe`, a question asked of the game headless (Running it). **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed but for D3b** (waits on D38). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) waits on D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) dropped on D25 and B5d (the defuse reach is a clear line) done on D27, both 2026-09-21. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md); the check `no-source-file-outside-config-is-over-600-lines` holds it |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -53,8 +53,54 @@ closed but for D3b** (waits on D38). Block E, styling, is open: E1, the
 Shade's figure, 2026-09-19, E2, the Warden's, and E3, animation,
 2026-09-20 (all below); F7, a look at a pose, the same day; E4, the
 plant's materials, 2026-09-21 (below), and F8, the key light's shadow
-side, the same day (below); E5, the yard's materials, the same day
-(below). E6, post-processing, is what is left of Block E.
+side, the same day (below); E5, the yard's materials, and E6,
+post-processing, the same day (below). **Block E is closed.**
+
+---
+
+## Post-processing - E6
+
+`src/post.js`, `createPost(renderer)`; `post.render(scene, camera)` is
+what main.js's frame and pixels.js's lens call in place of
+`renderer.render`. On (`SETTINGS.post`, a settings row, the default):
+the scene into a full-size **half-float** multisampled target (8-bit
+linear banded every dark tone to grey - sRGB 8 is linear 0.002, which
+rounds to 1/255 and comes back as 13), a **bright pass** at half size
+keeping what is over `bloomThreshold` 0.5 of linear luma (the route-lit
+stages and the lamp fixtures read 0.75-0.8, a lit floor 0.13) **where
+the target's alpha is 1** - a body writes 0 (`NO_BLOOM` / `withoutBloom`,
+agentmesh.js; the Shade's rim, the Warden's body, the silhouette
+checks' flat white stand-in), so a body is not an emissive and grows no
+halo; a step at 0.999, since the multisample resolve leaves a body's
+edge pixels half covered - two
+separable **Gaussian blurs** at half size ping-ponging between two
+targets, a **composite** to the canvas - the scene plus the blur at
+`bloomStrength` 0.8, times an elliptical **vignette** from 0.55 to 1.25
+of the half-diagonal, 0.3 off at the corner - with
+`colorspace_fragment` applying the output transform once, and then
+**C3's feedback quad** over the top on `render.overlayLayer` (1), the
+camera's layers borrowed and given back and the scene's background
+lifted for the pass (a Color background clears the canvas whatever
+`autoClear` says, and took the composite with it the first time). Off:
+one pass to the canvas, the camera seeing both layers. `renderer.info`
+is reset once a frame in `post.render`, `autoReset` off, so a frame's
+draw calls are the frame's - the checks that count calls by difference
+are unchanged, the F3 overlay's number includes the passes. No
+EffectComposer: the addons bundle is not fetched (the import map pins
+one file). **What it did to the numbers**: the routes' landing edges
+158-182 luma from 224-227 (spread, not clipped), contrasts 0.75-0.78
+from 0.79-0.83; a lamp's halo takes the deck's underside read from 101
+to 105; pools, mouths, rim, figures to the digit or a level; and the
+site tint darkened more (the multiply is linear now), so
+`siteTintStrength` is 0.13 (D44's numbers superseded, D46). **The
+check** (tests/post.js, every map): a lamp with an eye 3m off it in
+open air - the ring ten pixels round its fixture brighter by 3 luma at
+least (22 to 78 plant, 35 to 112 yard); a floor view's four corner
+squares at 0.9x or under (0.85) and its centre within 3% (2%); the hit
+marker's span within 3px either way (45/45); `post.passes` 7 on and 0
+off; the settings row switching `SETTINGS.post` both ways. **The frame
+budget** is D10's clause and a GPU's question: PLAYTEST.md says how to
+answer it. Spec 20.32.
 
 ---
 
@@ -1362,10 +1408,12 @@ runs agree, judged per map. Each run in the report carries
 `contextLosses` and `rerun`, the checks re-run after the GPU was taken away
 and given back (F1); the summary prints them as `GL CONTEXT LOST`. Zero is
 the normal reading; a non-zero one is the machine, not the game, unless the
-same check is in the list every run. `--runs 1` is the gate (about 11
-minutes for both maps: 450s for the plant, 190s for the yard, a 45s
-cooldown between - see the traps; the full `npm run suite` is four runs,
-about 24 minutes); `--regression` the regression set per map instead (plant 29 checks in 58s headless, yard 29 in 25s);
+same check is in the list every run. `--runs 1` is the gate (about 25
+minutes for both maps since E6's post pipeline: 850s for the plant,
+490s for the yard, a 45s cooldown between - see the traps; the full
+`npm run suite` is four runs, about 50 minutes, and each map on its own
+is past the Bash tool's cap, so run it in the background and wait on
+the file); `--regression` the regression set per map instead (plant 29 checks in 58s headless, yard 29 in 25s);
 `--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
 the match; `--details <file>` (B8) writes every check's id, outcome and
 detail line per run - the readings a PROGRESS entry quotes, which the
@@ -1433,8 +1481,9 @@ launch are `scripts/headless.mjs`, shared with shot.mjs; suite.mjs
 keeps its own copy (it runs on import and adds a throttle token) with a
 note to keep the two in step.
 
-In a real browser, for what headless cannot prove (the frame budget on a GPU,
-how it looks, how it sounds):
+In a real browser, for what headless cannot prove (the frame budget on a GPU
+- with the post on, since E6, and off if it fails - how it looks, how it
+sounds):
 
 ```bash
 npx serve -l 5173 .
@@ -1706,13 +1755,19 @@ check that picks its own inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D26, D28, D30, D31, D39, D40, D41, D42, D43, D44, D45 and the Provisional section of `DECISIONS.md`; Josh answers there. **2026-09-21 Josh decided D8, D13, D25, D27 and D38** (DECISIONS.md): the ring becomes a floor tint and the HUD names the site (C7); the routine may move a site or spawn when a route needs it; the duct roofs stay routes (B5b dropped); the Warden may not defuse through a floor (B5d unblocked); the Shade walks the stair and "can do anything a human should easily be able to do" (D3b dropped - and a rule for every future question of that shape).
+These are D26, D28, D30, D31, D39, D40, D41, D42, D43, D44, D45, D46 and the Provisional section of `DECISIONS.md`; Josh answers there. **2026-09-21 Josh decided D8, D13, D25, D27 and D38** (DECISIONS.md): the ring becomes a floor tint and the HUD names the site (C7); the routine may move a site or spawn when a route needs it; the duct roofs stay routes (B5b dropped); the Warden may not defuse through a floor (B5d unblocked); the Shade walks the stair and "can do anything a human should easily be able to do" (D3b dropped - and a rule for every future question of that shape).
 
+- **D46**: post-processing as built - a bloom on the emissives at 0.8,
+  a vignette at 0.3, a settings row. Provisional; the numbers say a
+  lamp has a halo and the corners are darker, not that it reads as
+  light rather than haze - and the frame budget on a GPU is unmeasured
+  here (PLAYTEST.md says how).
 - **D45**: the yard's materials as built - corrugated containers on
   one finish, wet ground, rust bands and one box number as decals.
   Provisional; the numbers say the ridges and the puddles are on
   screen, not that corrugation reads as corrugation or wet as wet.
-- **D44**: the site marking as built - a multiply tint at 0.28 over
+- **D44**: the site marking as built - a multiply tint at 0.13 (0.28
+  before E6's linear multiply) over
   every floor plate of a site's room, the HUD line above the plant
   prompt. Provisional; the numbers say the floor is warmer by a sixth
   and darker by a twelfth, not that it reads as the site from the door.

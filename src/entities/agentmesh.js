@@ -93,12 +93,31 @@ function addRimLight(material, uniforms) {
         // everything. abs() so back faces do not go black.
         '\tfloat blRim = 1.0 - abs( dot( normalize( vBlRimNormal ), normalize( vBlRimView ) ) );\n'
         + '\toutgoingLight += uBlRimColor * pow( blRim, uBlRimPower ) * uBlRimStrength;\n'
-        + '#include <opaque_fragment>'
+        + '#include <opaque_fragment>\n'
+        + NO_BLOOM
       );
   };
   // Every body material gets the identical injection, so one constant key is
   // enough to keep them off the unmodified toon program.
   material.customProgramCacheKey = () => 'bl-rim';
+  return material;
+}
+
+/**
+ * A body is not an emissive (E6). The post pipeline's bright pass reads the
+ * scene target's alpha as its mask, and an opaque material writes 1 there;
+ * a body writes 0, so its rim - which at full meter is brighter than any
+ * lamp - grows no halo, and a silhouette at 25m is the body's own. The
+ * canvas has no alpha channel, so with the post off this changes nothing.
+ */
+export const NO_BLOOM = '\tgl_FragColor.a = 0.0;\n';
+
+/** Mark a body material as no emissive: alpha 0 into the scene target. */
+export function withoutBloom(material) {
+  material.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', '#include <opaque_fragment>\n' + NO_BLOOM);
+  };
+  material.customProgramCacheKey = () => 'bl-no-bloom';
   return material;
 }
 

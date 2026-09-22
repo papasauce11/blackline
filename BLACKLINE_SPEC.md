@@ -1444,3 +1444,25 @@ the decals to the faces clear of the sites, the rust and the stencil to
 pixels, a stain to darkening, the lot to two draw calls; the yard's
 light and walkway checks read unchanged or better in every relation.
 E5, 2026-09-21.
+
+### 20.32 Section 4 - post-processing: a bloom on the emissives, a vignette, a switch
+
+E6 (D10, D46). Section 4's toon look is the scene's and stays; over it,
+when `SETTINGS.post` is on (a settings row, on by default), the frame is
+drawn into a half-float target and composited back with a bloom - the
+pixels over a luma threshold, which is the emissives (route-lit stages,
+lamp fixtures, a flash) and never a lit floor nor a body - a body
+writes alpha 0 into the target, and the bright pass reads alpha as its
+mask - blurred at half size and
+added at `bloomStrength` - and an elliptical vignette from
+`vignetteInner` to `vignetteOuter` of the half-diagonal,
+`vignetteStrength` off at the corner (`src/post.js`,
+`CONFIG.render.post`). No tone mapping, no grade. C3's feedback quad
+draws over the composite on its own layer, unbloomed. Off, the frame is
+one pass, as before. Every pixel check reads through the pipeline when
+it is on. The frame-budget clause of D10 is answered where the budget
+is measured, in a real browser with the post on; the switch is the
+answer if it fails. `post-processing-blooms-the-emissives-darkens-the-
+corners-and-is-a-switch` (tests/post.js) holds a lamp's halo, the
+corners darker and the centre alone, the hit marker's size unchanged,
+the passes counted and the row switching. E6, 2026-09-21.

@@ -38,7 +38,7 @@ function createReader(h) {
     height,
     grab() {
       h.feedback.update(0);
-      renderer.render(h.scene, h.camera);
+      h.post.render(h.scene, h.camera);
       gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
       return buffer.slice();
     },

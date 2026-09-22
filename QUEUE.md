@@ -77,14 +77,33 @@ Decided: D3 — the Shade and the Warden first, then the map. Provisional: D10
 (no post-processing until the characters are done), D40 (the Shade's
 figure as built). Draw-call and frame budget checks are the ceiling.
 
-(E1 done 2026-09-19; E2 and E3 done 2026-09-20; E4 and E5 2026-09-21.)
+(E1 done 2026-09-19; E2 and E3 done 2026-09-20; E4, E5 and E6 2026-09-21.
+**Block E is closed.** D10 was provisional and its condition - E1-E3
+landed - was met, so E6 was not blocked on a `decided:` line.)
 
-- [ ] **E6 (S)** Post-processing — **blocked: D10.**
 
 ---
 
 ## Done
 
+- **E6** Post-processing (D10, D46). `src/post.js`: the scene into a
+  half-float multisampled target, a bright pass at half size over 0.5
+  linear luma (the emissives, never a lit floor), two Gaussian blurs,
+  a composite adding the blur at 0.8 under an elliptical vignette (0.55
+  to 1.25 of the half-diagonal, 0.3 off), then C3's feedback quad over
+  the top on its own layer. `SETTINGS.post` is a settings row, on by
+  default; off is one pass. pixels.js's lens reads through it, so every
+  pixel check reads what ships: the route edges 158-182 (224-227) with
+  contrasts 0.75-0.78 (0.79-0.83), the site tint down to 0.13 for the
+  linear multiply (D44 superseded). `renderer.info` is reset once a
+  frame in `post.render`, so a frame's draw calls count the passes.
+  `post-processing-blooms-the-emissives-darkens-the-corners-and-is-a-
+  switch` (tests/post.js, every map): the ring round a lamp fixture 22
+  to 78 luma (plant), 35 to 112 (yard); the corners of a floor view at
+  0.85x, the centre within 2%; the hit marker 45px either way; 7 passes
+  on, 0 off; the row switches. The frame-budget clause is Josh's GPU's
+  (PLAYTEST.md). Spec 20.32. — 2026-09-21, scheduled run, Josh present,
+  commit `E6_HASH`.
 - **E5** Map materials, `yard`. The yard opts into E4's kit with its own
   set (`CONFIG.map.yardFinishes`): every container `corrugated` (a
   glossy ramp, a grime with `ridges` - a cosine profile across the tile,
@@ -99,7 +118,7 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   as crossings, the puddles by difference) and `the-yard-wears-its-
   decals-on-its-faces-in-two-draw-calls` (tests/yardmaterials.js; the
   plant's helpers exported from materials.js). Container side: grime spread 2.61, darkens 5.8, ridges 19/19/23 crossings; wet ground spread 1.80, darkens 3.4 at luma 25; the pools 21.1/17.9/14.5 (24.7/22.6/19.4), every relation held; the plant's checks to the digit. — 2026-09-21,
-  scheduled run, Josh present, commit `E5_HASH`.
+  scheduled run, Josh present, commit `02212df`.
 - **C7** The site is a tinted floor, and the HUD names it (D8). The
   ring, `M.marking.siteRing*`, `site.ring`, `addDecal` and the pulse in
   `map.update` are gone; `bakeSiteTints` (src/mapdecals.js, laid by

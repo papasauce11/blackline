@@ -25,6 +25,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { part } from './parts.js';
+import { withoutBloom } from './agentmesh.js';
 
 const W = CONFIG.warden;
 const P = CONFIG.palette;
@@ -141,7 +142,8 @@ export function buildWardenMesh(gradientMap) {
 
   // One toon material for the six parts, coloured by vertex; one outline
   // material for the six hulls. No rim: Section 4.2's is the Shade's only.
-  const body = new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap });
+  // No rim on the Warden; no bloom either (E6): a body is not an emissive.
+  const body = withoutBloom(new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap }));
   const outline = new THREE.MeshBasicMaterial({ color: P.outline, side: THREE.BackSide, fog: true });
 
   const H = W.standHeight;

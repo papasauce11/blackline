@@ -201,6 +201,8 @@ export class Menu {
           <span class="value" id="bl-inv">${SETTINGS.invertY ? 'on' : 'off'}</span></div>
         <div class="row"><span>round briefing</span>
           <span class="value" id="bl-brief">${SETTINGS.briefing ? 'on' : 'off'}</span></div>
+        <div class="row"><span>post-processing</span>
+          <span class="value" id="bl-post">${SETTINGS.post ? 'on' : 'off'}</span></div>
         <div class="row"><span>debug tooling</span>
           <span class="value" id="bl-dbg">${SETTINGS.debug ? 'on' : 'off'}</span></div>
         <button class="back" data-action="back">Back</button>
@@ -238,6 +240,12 @@ export class Menu {
     brief.onclick = () => {
       SETTINGS.briefing = !SETTINGS.briefing;
       brief.textContent = SETTINGS.briefing ? 'on' : 'off';
+    };
+    // E6: the bloom and the vignette, live; off is the scene as drawn.
+    const postRow = this.root.querySelector('#bl-post');
+    postRow.onclick = () => {
+      SETTINGS.post = !SETTINGS.post;
+      postRow.textContent = SETTINGS.post ? 'on' : 'off';
     };
     // Section 17.1, amended (C1): the debug gate, off by default. On, F3
     // and F4 work; off, they and every test key are inert, and a frame

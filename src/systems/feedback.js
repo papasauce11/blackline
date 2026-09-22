@@ -128,6 +128,9 @@ export class Feedback {
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 1000;
     this.mesh.visible = false;
+    // E6: on the overlay layer, drawn over the post-processed frame, so a
+    // white hit marker is not a bloom. The camera sees the layer either way.
+    this.mesh.layers.set(CONFIG.render.overlayLayer);
     scene.add(this.mesh);
 
     /** Seconds left on the hit marker. */

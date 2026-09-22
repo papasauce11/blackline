@@ -68,9 +68,12 @@ export function createLens(h) {
       camera.updateMatrixWorld(true);
     },
 
-    /** Render and read the whole framebuffer back. */
+    /**
+     * Render and read the whole framebuffer back. Through the post
+     * pipeline (E6) when it is on: what ships is what is read.
+     */
     grab() {
-      renderer.render(h.scene, camera);
+      h.post.render(h.scene, camera);
       gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
       return buffer.slice();
     },
@@ -83,7 +86,7 @@ export function createLens(h) {
      * frame — it reported a 2ms frame as 14ms.
      */
     renderOnly() {
-      renderer.render(h.scene, camera);
+      h.post.render(h.scene, camera);
     },
 
     glError() {

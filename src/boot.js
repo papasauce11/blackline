@@ -21,6 +21,7 @@ import {
   createRenderer, createScene, createCamera, createToonGradient, resizeView, watchContextLoss,
 } from './view.js';
 import { createCameraOwnership } from './cameraowner.js';
+import { createPost } from './post.js';
 import { wireMatchEvents } from './wiring.js';
 import { Shade } from './entities/agent.js';
 import { Warden } from './entities/enforcer.js';
@@ -62,6 +63,10 @@ export function bootWorld({
   const scene = createScene();
   const camera = createCamera();
   scene.add(camera);
+  // E6: the bloom and the vignette. The camera sees the overlay layer too,
+  // so with the post off the feedback quad still draws in the one pass.
+  const post = createPost(renderer);
+  camera.layers.enable(CONFIG.render.overlayLayer);
 
   // Section 4: 4-step gradient map generated in code via DataTexture. Created
   // here in the composition root and passed down, because both the maps and
@@ -174,7 +179,10 @@ export function bootWorld({
 
   window.addEventListener('resize', () => {
     const size = resizeView(renderer, camera);
-    if (size) emitter.emit('view:resize', size);
+    if (size) {
+      post.setSize();
+      emitter.emit('view:resize', size);
+    }
   });
   watchContextLoss(canvas, debugState, emitter);
 
@@ -184,7 +192,7 @@ export function bootWorld({
   wireTestCommands({ harness });
 
   return {
-    renderer, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
+    renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
     briefing, cameraOwner,
   };
