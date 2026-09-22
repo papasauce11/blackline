@@ -110,6 +110,10 @@ export function valueNoise(u, v, cellsU, cellsV, seed) {
  * cells stretch the grain into streaks) and the sum is mapped onto
  * [`low`, `high`]. `stain`, if given, is a low-frequency noise that darkens
  * by `depth` where it exceeds `threshold` - the blotches on concrete.
+ * `ridges`, if given (E5), is a cosine profile along u - `count` ridges
+ * to the tile, the troughs `depth` darker than the crests - the
+ * corrugation of a container's side, which the world-projected UVs lay
+ * vertically on every face that stands up.
  */
 export function grimeAt(spec, u, v) {
   let sum = 0;
@@ -124,6 +128,9 @@ export function grimeAt(spec, u, v) {
     const s = spec.stain;
     const n = valueNoise(u, v, s.cells[0], s.cells[1], spec.seed + 97);
     if (n > s.threshold) value -= s.depth * ((n - s.threshold) / (1 - s.threshold));
+  }
+  if (spec.ridges) {
+    value *= 1 - spec.ridges.depth * (0.5 - 0.5 * Math.cos(u * spec.ridges.count * Math.PI * 2));
   }
   return Math.min(1, Math.max(0, value));
 }

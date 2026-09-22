@@ -7537,3 +7537,106 @@ frame-budget sweep, skipped headless.
 **Left.** Block C is closed again. Whether the tint reads as the site
 from the doorway, and whether the line is where you look, is D44's for
 Josh's eyes.
+
+## E5 — map materials, the yard: corrugated, wet, rust, a box number (2026-09-21, scheduled run, Josh present)
+
+**Gate.** C7's verify at `a1a8c40`: plant 171/1/6 twice, yard 150/1/27
+twice, 0 red, 0 flaky, 0 console errors.
+
+**The set.** `CONFIG.map.yardFinishes`, and `buildYardMap` opts in
+(`new GameMap(..., { finishes: M.yardFinishes })`). Four finishes:
+**corrugated** for every container whatever its tier colour (gunmetal,
+concrete, orange), a glossy ramp `[0 0 .4 .45 .5 1 1 1]` and a grime
+with **ridges** - `grimeAt` (mapmaterials.js) gained an optional
+`ridges: { count, depth }`, a cosine profile along u, `count` to the
+tile and the troughs `depth` darker (9 to 2.4m, a 27cm pitch, 0.22) -
+under fine vertical streaks (48 cells across, 2 down) and a broad
+stain; `applyWorldUVs` puts u along every standing face, so the ridges
+stand vertically on every box and run on across a row, and along x on
+the tops. **wet** for the ground and the fence (`concreteDark`): a
+concrete lower in its mid-tones `[0 .15 .3 .45 .6 .7 .8 1]` with the
+full face kept - the sheen of wet asphalt under a floodlight - and a
+grime of broad puddles: an 8m tile, three cells to it, a stain that
+takes 0.45 above 0.5. The first puddles (0.2 above 0.55) read a spread
+of 0.6-0.8 on a floor at luma 20 from any height; a texture on a dark
+floor hides in a level, as E4 found, and the ground here is dark by
+design (D9). Deeper puddles, and the read moved to the brightest
+ground in the yard, the lane under the gate mast (luma 25): spread
+1.80, darkens 3.4. **paint** and **glass** are the plant's, for the
+walkway's steel and its panes; the walkway's slab and parapet are
+`concrete` and so in the containers' sheet.
+
+**The atlas is 4x2.** `ATLAS_COLS`/`ATLAS_ROWS` in mapdecals.js, the
+tile still `D.atlasSize / 2`; the plant's four tiles are where they
+were and its checks read to the digit. Two paint kinds join: **rust**,
+a band up from the tile's foot with its top broken by noise and pitted
+within (`rustAt`, a brown-orange), and **stencil**, "BLKU 2607 1" in a
+3x5 bitmap font drawn in code across the tile's middle, worn through
+by noise (`stencilAt`, a pale grey; the first wear at 0.3 ate whole
+letters - "B LU 2607 1" in the probe's PNG - 0.18 now). Both on the
+paint finish's ramp where the map has one, so they shadow and dim with
+the night. Rust is a decal and not a finish because rust that pools at
+the ground is a fact about world height, and a tiling grime does not
+know where the ground is.
+
+**`src/maps/yarddecals.js`**, seventeen: six rust bands at the foot of
+the rows (the ring's north row west of bay A's stack, both lane rows
+on their bay side, the ring's east row across from the trailer, bay
+C's west row facing in, the ring's south row west of bay C), four
+stencils at eye height, tracks through both gates, a kerb inside the
+south one, oil where the trailer backs into bay B, in the west store
+and under the walkway's south edge, a drip down bay A's south row
+under its mast. The first oil was *under* the trailer bed, where the
+check's eye 2.2m up saw the bed's top and not the ground - moved
+beside it. Every container face on the yard is a climb (the tops are
+one deck), so Section 5's clause is kept the other way round: nothing
+on a declared route's first stage or the ground at its foot, nothing
+within `SITE_SAMPLE_OFFSET` plus half a decal of a site's centre, and
+nothing on the spots `the-yard-is-dark-between-its-pools` reads.
+
+**What the frames say** (`npm run probe`, F9's, on the yard): the
+container side reads as vertical ridges under streaks, the stencil as
+a stencil at 3m; the ground from 6m up is dark with a faint mottle
+of puddles and the container tops' ridges bright along the frame's
+edges.
+
+**What it did to the numbers.** The yard's pools 24.7/22.6/19.4 to
+21.1/17.9/14.5, the gaps 3.0/4.9/3.0 to 2.8/4.1/2.3, the sky alone
+7.3/2.9/7.3 to 5.8/2.3/5.0 - the wet ramp's mid-tones - and every
+relation the check holds (a gap under half the dimmest pool, the sky
+under a third of the brightest, nothing under 1) holds; the site meter
+57.9/58.2/41.8 as before, being the model's; the masts, the deck, the
+walkway's rays and the Warden's stair to the digit; the tint check's
+ratios 1.16-1.17x. Programs 15 to 18 on the yard (four finishes' toon,
+lit toon and glass in place of one ramp's), textures 2 to 11, all
+unchanged across the leak check's rounds.
+
+**The checks** (`src/tests/yardmaterials.js`, yard; `hideActors`,
+`rampLevels`, `readGrain` - with a `standOff` argument now - and the
+thresholds exported from materials.js):
+`the-yard-is-corrugated-wet-and-numbered` - the four finishes, the
+palette sorted into them, every ramp as configured, wet under concrete
+in two of three mid-tones, the corrugated grime with ridges, every
+material on its finish's ramp and grime (9 on 4); bay A's lane row on
+the bay side read by difference from 2.5m (spread 2.61, darkens 5.8 at
+luma 13.9) and as ridges - the difference row across the middle of the
+face, at three heights, crossing its own mean 19/19/23 times against a
+floor of 12; the lane under the gate mast from 6m (spread 1.80,
+darkens 3.4 at 24.9). `the-yard-wears-its-decals-on-its-faces-in-two-
+draw-calls` - 17 decals of six kinds on two meshes, every one on a
+solid's face clear of the sites, two draw calls from the lane, the
+rust changing 26,890 pixels and the stencil 6,877 from 2.5m off their
+faces, every ground stain a tenth darker (15.9 to 12.4, 5.5 to 3.9,
+20.0 to 16.0).
+
+**Verified.** Subsets on the yard (11 checks in 39s, the two material
+checks red on their instruments; 2 in 30s green after; the plant's
+three material checks in 67s); then `npm run suite`, both maps twice:
+**152 passed, 1 failed, 27 not for this map**, **171 passed, 1 failed, 8 not for this map**, every outcome identical between
+runs, 0 red, 0 flaky, 0 console errors, 0
+context losses; the one failure on each is the frame-budget sweep,
+skipped headless.
+
+**Left.** E6, post-processing, is what remains of Block E. Whether
+corrugation reads as corrugation, wet as wet, and one number on four
+boxes as a yard's stencil, is D45's for Josh's eyes.

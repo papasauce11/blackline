@@ -77,6 +77,7 @@
 import { CONFIG } from '../config.js';
 import { GameMap } from '../mapkit.js';
 import { CONTAINER, TIERS, placeSites, placeSpawns, placeLights, placeWaypoints, placeRoutes } from './yarddata.js';
+import { placeDecals } from './yarddecals.js';
 import { validateMap } from '../mapvalidate.js';
 import { lightRoutes } from '../maproutelight.js';
 
@@ -168,7 +169,8 @@ export const BAYS = {
  * @returns {GameMap}
  */
 export function buildYardMap({ id, name, gradientMap }) {
-  const map = new GameMap(gradientMap, id, name);
+  // Dressed in the corrugated / wet / paint / glass finishes (E5).
+  const map = new GameMap(gradientMap, id, name, { finishes: M.yardFinishes });
   map.shell = { ...YARD };
 
   // -------------------------------------------------------------------------
@@ -358,6 +360,9 @@ export function buildYardMap({ id, name, gradientMap }) {
   placeLights(map);
   placeWaypoints(map);
   placeRoutes(map);
+  // The marks (E5, yarddecals.js). Nothing collides with them and nothing
+  // derives from them, so they can go on last.
+  placeDecals(map);
 
   map.collision.build();
   map.deriveClimbableSurfaces();

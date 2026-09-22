@@ -15,8 +15,9 @@
  *   the mark and a stain in the dark vault is as dark as the vault. Fog
  *   is off on it - a fogged multiplier would darken the whole quad at a
  *   distance, mark or no mark.
- * - The paint kind (hazard) is toon-lit paint on the paint finish's ramp,
- *   cut out by `alphaTest`, so it needs no sorting and shadows fall on it.
+ * - The paint kinds (hazard; E5's rust and stencil, the yard's) are
+ *   toon-lit paint on the paint finish's ramp, cut out by `alphaTest`, so
+ *   they need no sorting and shadows fall on them.
  *
  * Section 5, amended, has no affordance markings: nothing here is laid on
  * or near a climb, a vent mouth or a site, and nothing here is read by
@@ -41,12 +42,17 @@ import { hash2, valueNoise } from './mapmaterials.js';
 const D = CONFIG.map.decals;
 const P = CONFIG.palette;
 
-/** Tile of the 2x2 atlas each kind draws from, as [column, row]. */
+/** The atlas is `ATLAS_COLS` x `ATLAS_ROWS` tiles. */
+export const ATLAS_COLS = 4;
+export const ATLAS_ROWS = 2;
+/** Tile of the atlas each kind draws from, as [column, row]. */
 export const DECAL_TILE = {
   stain: [0, 0],
   drip: [1, 0],
   scuff: [0, 1],
   hazard: [1, 1],
+  rust: [2, 0],
+  stencil: [2, 1],
 };
 /** Kinds drawn as a multiplier over the surface; the rest are paint. */
 export const GRIME_KINDS = new Set(['stain', 'drip', 'scuff']);
@@ -116,23 +122,81 @@ function hazardAt(u, v) {
   return [colour.r * age, colour.g * age, colour.b * age, 1];
 }
 
+/** Rust, brown-orange in linear light: what a container's foot goes when the rain sits at it. */
+const RUST = new THREE.Color(0x6a3414);
+
 /**
- * Draw the atlas: `D.atlasSize` square, four tiles. Grey multipliers with
- * full alpha for the grime kinds; colour and a cut-out alpha for the paint.
+ * The rust tile (E5): a band up from the bottom edge (v = 0), its top
+ * edge broken by noise, pitted within. Returns [r, g, b, a] 0..1.
+ */
+function rustAt(u, v) {
+  const margin = 0.04;
+  if (u < margin || u > 1 - margin) return [0, 0, 0, 0];
+  const top = 0.45 + (valueNoise(u, 0.5, 7, 1, D.seed + 5) - 0.5) * 0.5;
+  if (v > top) return [0, 0, 0, 0];
+  const pits = valueNoise(u, v, 12, 6, D.seed + 6);
+  if (v > top - 0.12 && pits < 0.55) return [0, 0, 0, 0];
+  const tone = 0.7 + 0.3 * pits;
+  return [RUST.r * tone, RUST.g * tone, RUST.b * tone, 1];
+}
+
+/** A 3x5 bitmap font for the stencil, rows top to bottom, 1 is paint. */
+const GLYPHS = {
+  0: ['111', '101', '101', '101', '111'], 1: ['010', '110', '010', '010', '111'], 2: ['111', '001', '111', '100', '111'],
+  3: ['111', '001', '111', '001', '111'], 4: ['101', '101', '111', '001', '001'], 5: ['111', '100', '111', '001', '111'],
+  6: ['111', '100', '111', '101', '111'], 7: ['111', '001', '001', '010', '010'], 8: ['111', '101', '111', '101', '111'],
+  9: ['111', '101', '111', '001', '111'], B: ['110', '101', '110', '101', '110'], L: ['100', '100', '100', '100', '111'],
+  K: ['101', '110', '100', '110', '101'], U: ['101', '101', '101', '101', '111'], ' ': ['000', '000', '000', '000', '000'],
+};
+/** What the stencil says: a box number, the way a yard paints one. */
+const STENCIL = 'BLKU 2607 1';
+/** The stencil's paint: a pale grey, worn. */
+const STENCIL_PAINT = new THREE.Color(0xd8d4c8);
+
+/**
+ * The stencil tile (E5): `STENCIL` in the 3x5 font across the tile's
+ * middle, each glyph a cell wide with a cell between, the paint worn
+ * through by noise. Returns [r, g, b, a] 0..1.
+ */
+function stencilAt(u, v) {
+  const cellsAcross = STENCIL.length * 4 + 1;
+  const cell = 1 / cellsAcross;
+  const rowHeight = cell * 1.2;
+  const top = 0.5 + 2.5 * rowHeight;
+  const row = Math.floor((top - v) / rowHeight);
+  if (row < 0 || row > 4) return [0, 0, 0, 0];
+  const column = Math.floor(u / cell) - 1;
+  const glyph = Math.floor(column / 4);
+  const within = column - glyph * 4;
+  if (column < 0 || glyph >= STENCIL.length || within > 2) return [0, 0, 0, 0];
+  const bits = GLYPHS[STENCIL[glyph]];
+  if (!bits || bits[row][within] !== '1') return [0, 0, 0, 0];
+  const wear = valueNoise(u, v, 9, 5, D.seed + 7);
+  if (wear < 0.18) return [0, 0, 0, 0];
+  const tone = 0.7 + 0.3 * wear;
+  return [STENCIL_PAINT.r * tone, STENCIL_PAINT.g * tone, STENCIL_PAINT.b * tone, 1];
+}
+
+/**
+ * Draw the atlas: `D.atlasSize` texels a tile, `ATLAS_COLS` x `ATLAS_ROWS`
+ * tiles. Grey multipliers with full alpha for the grime kinds; colour and
+ * a cut-out alpha for the paint.
  */
 export function createDecalAtlas() {
-  const size = D.atlasSize;
-  const tile = size / 2;
-  const data = new Uint8Array(size * size * 4);
+  const tile = D.atlasSize / 2;
+  const size = tile * ATLAS_COLS;
+  const height = tile * ATLAS_ROWS;
+  const data = new Uint8Array(size * height * 4);
   const painters = { stain: stainAt, drip: dripAt, scuff: scuffAt };
+  const painted = { hazard: hazardAt, rust: rustAt, stencil: stencilAt };
   for (const [kind, [column, row]] of Object.entries(DECAL_TILE)) {
     for (let y = 0; y < tile; y++) {
       for (let x = 0; x < tile; x++) {
         const u = (x + 0.5) / tile;
         const v = (y + 0.5) / tile;
         const i = ((row * tile + y) * size + column * tile + x) * 4;
-        if (kind === 'hazard') {
-          const [r, g, b, a] = hazardAt(u, v);
+        if (painted[kind]) {
+          const [r, g, b, a] = painted[kind](u, v);
           data[i] = Math.round(r * 255);
           data[i + 1] = Math.round(g * 255);
           data[i + 2] = Math.round(b * 255);
@@ -147,7 +211,7 @@ export function createDecalAtlas() {
       }
     }
   }
-  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  const texture = new THREE.DataTexture(data, size, height, THREE.RGBAFormat);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.magFilter = THREE.LinearFilter;
@@ -191,7 +255,7 @@ function quadFor(spec) {
   const [column, row] = DECAL_TILE[spec.kind];
   const uv = geometry.attributes.uv;
   for (let i = 0; i < uv.count; i++) {
-    uv.setXY(i, (column + uv.getX(i)) / 2, (row + uv.getY(i)) / 2);
+    uv.setXY(i, (column + uv.getX(i)) / ATLAS_COLS, (row + uv.getY(i)) / ATLAS_ROWS);
   }
   return geometry;
 }
@@ -249,7 +313,8 @@ export function bakeDecals(map, specs) {
     const material = new THREE.MeshToonMaterial({
       color: 0xffffff,
       map: atlas,
-      gradientMap: map.materials.toon(P.hazardOrange).gradientMap,
+      // The paint finish's ramp where the map has one (E4's plant, E5's yard).
+      gradientMap: map.finishes && map.finishes.get('paint') ? map.finishes.get('paint').ramp : map.materials.toon(P.hazardOrange).gradientMap,
       alphaTest: 0.5,
       polygonOffset: true,
       polygonOffsetFactor: -2,

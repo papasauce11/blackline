@@ -95,6 +95,60 @@ had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
 ## Provisional — done as recommended, override any time
 
+### D45 — The yard's materials as built: corrugated containers, wet ground, rust, a box number
+E5 (2026-09-21). The container yard on E4's kit, with its own set
+(`CONFIG.map.yardFinishes`). The numbers to argue:
+
+- **Every container is one finish, `corrugated`**, whatever tier colour
+  it is (gunmetal, concrete, orange): a glossy ramp like paint's with a
+  little more body in the flat, and a grime with `ridges` - a cosine
+  profile across the tile, nine to 2.4m (a 27cm pitch), the troughs 22%
+  darker - under fine vertical streaks and a broad stain. The
+  world-projected UVs put u along every standing face, so the ridges
+  are vertical on every box and continue across a row. The alternative
+  was a ridge in the geometry (a box per corrugation); the grime is one
+  texture and no draw calls.
+- **The ground and the fence are `wet`**: a concrete lower in its
+  mid-tones (0.45/0.6/0.7 against 0.55/0.7/0.8) with the full face kept,
+  the sheen of wet asphalt under a floodlight, and a grime of broad
+  puddles (an 8m tile, a stain that takes a fifth). The yard's light
+  checks read the ground's pools against its gaps and the sky, so
+  `wet` moves them together: the pools read 21.1/17.9/14.5 (24.7/22.6/19.4 before), the gaps 2.8/4.1/2.3 (3.0/4.9/3.0), the sky alone 5.8/2.3/5.0 - every relation the check holds (a gap under half the dimmest pool, the sky under a third of the brightest, nothing under 1) holds, and the site meter reads 57.9/58.2/41.8 as before, being the model's, not the pixels'.
+- **Rust is a decal, not a finish.** Rust that pools at the ground is a
+  fact about world height, and a tiling grime does not know where the
+  ground is; a `rust` tile in the atlas (a band up from the tile's
+  bottom, its top broken, pitted) laid at the foot of six rows does.
+  Toon-lit paint on the paint ramp, so it shadows and dims with the
+  night like everything else.
+- **One box number.** A `stencil` tile: "BLKU 2607 1" in a 3x5 bitmap
+  font drawn in code, worn through by noise, on four boxes at eye
+  height. One number on four boxes is a yard that reuses a stencil;
+  the alternative, a tile per number, is four tiles of a 4x2 atlas for
+  a detail seen from 3m. The atlas went from 2x2 to 4x2 for the two new
+  kinds; the plant's four tiles are where they were.
+- **Where the marks are** (`src/maps/yarddecals.js`, seventeen): rust on
+  the ring's north row west of bay A's stack, both lane rows on their
+  bay side, the ring's east row across from the trailer, bay C's west
+  row facing in, the ring's south row west of bay C; stencils on the
+  lane rows, the ring's north row east of the arch, bay C's east row;
+  tracks through both gates and a kerb inside the south one; oil under
+  the trailer, in the west store and under the walkway's south edge; a
+  drip down bay A's south row under its mast. Every container face on
+  the yard is a climb (the tops are one deck), so Section 5's clause is
+  kept the other way round: nothing on the first stage of a declared
+  route or the ground at its foot, nothing within reach of a site's
+  centre or the spots the light checks read.
+- **The walkway is corrugated too** - its slab and parapet are
+  `concrete`, which the yard's set maps to the container finish. A steel
+  walkway in the same sheet as the boxes; the panes are glass, the
+  masts and the rails paint.
+
+Override in `CONFIG.map.yardFinishes` and `src/maps/yarddecals.js`;
+`the-yard-is-corrugated-wet-and-numbered` and `the-yard-wears-its-
+decals-on-its-faces-in-two-draw-calls` (tests/yardmaterials.js) hold
+whatever is there.
+**decided:**
+
 ### D44 — The site marking as built: a floor tint at 0.28, and the HUD line above the prompt
 C7 (2026-09-21), on D8's answer: the ring went, the room's floor is
 tinted slightly orange, and the HUD names the site. The numbers to

@@ -130,6 +130,28 @@ shadow side of a wall or as a hole; look along the east and south
 walls from inside, and at the building's north-west corner from the
 apron. The check is `a-wall-the-key-lights-from-behind-reads-plain`.
 
+### The yard is dressed (E5, 2026-09-21)
+
+`?map=yard`, either role, a competitive round or free roam. Every
+container is corrugated - vertical ridges, 27cm apart, under streaks
+and a stain - the ground is wet concrete with puddles, the rows wear
+rust at the foot, four boxes carry a number, the trucks' tracks run
+through both gates with a kerb inside the south one, oil lies under
+the trailer and in the west store, a drip runs down bay A's south row.
+The checks prove: every material is on its finish, the ridges are on
+screen as ridges (the difference row across a container face crosses its mean 19-23 times, a dozen wanted), the puddles are on screen, every
+decal sits on a face clear of the sites, the rust and the stencil are
+drawn, the lot costs two draw calls, and the yard's pools, gaps, masts
+and walkway read as they did (`the-yard-is-corrugated-wet-and-
+numbered`, `the-yard-wears-its-decals-on-its-faces-in-two-draw-calls`).
+What only eyes can judge: whether the ridges read as corrugation or as
+stripes (the pitch and depth are `yardFinishes.corrugated.grime.ridges`);
+whether wet reads as wet or as dark; whether the rust reads as rust at
+3m and as a band at 20m; whether a number on four boxes reads as a
+yard's stencil or as a copy; whether the walkway in the containers'
+sheet reads as steel. D45 argues it; `CONFIG.map.yardFinishes` and
+`src/maps/yarddecals.js` are the places to turn.
+
 ### The bodies move (E3, 2026-09-20)
 
 Either map. As the Shade, in a competitive match or free roam: walk,

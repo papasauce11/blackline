@@ -1077,6 +1077,66 @@ export const CONFIG = {
     },
 
     /**
+     * The yard's finishes (E5, D45): the same kit, its own set. Every
+     * container is `corrugated` - a glossy ramp like paint's and a grime
+     * with `ridges`: a cosine profile across the tile (`count` ridges per
+     * `tile` metres, the troughs `depth` darker) under fine vertical
+     * streaks and a stain - so the world-projected UVs (u along the face)
+     * draw the same corrugation on every box, 2.4m a repeat, 9 ridges
+     * to it. The ground and the fence are `wet`: a concrete a step lower
+     * in its mid-tones with a hot band near square-on - the sheen of wet
+     * asphalt under a floodlight - and a grime of broad dark puddles.
+     * Glass and paint are the plant's. The yard's checks
+     * (tests/yardlight.js) read the ground's pools and gaps against each
+     * other and the sky, so `wet` moves them together.
+     */
+    yardFinishes: {
+      fallback: 'corrugated',
+      byPalette: {
+        wardenGunmetal: 'corrugated',
+        concrete: 'corrugated',
+        hazardOrange: 'corrugated',
+        concreteDark: 'wet',
+        wardenSteel: 'paint',
+        ductMetal: 'paint',
+        hazardStripe: 'paint',
+        glass: 'glass',
+        brokenGlass: 'glass',
+      },
+      corrugated: {
+        ramp: [0.0, 0.0, 0.4, 0.45, 0.5, 1.0, 1.0, 1.0],
+        grime: {
+          size: 128, tile: 2.4, seed: 41, low: 0.84, high: 1.0,
+          layers: [{ cells: [48, 2], weight: 0.5 }, { cells: [5, 5], weight: 0.5 }],
+          stain: { cells: [2, 2], threshold: 0.6, depth: 0.12 },
+          ridges: { count: 9, depth: 0.22 },
+        },
+      },
+      wet: {
+        ramp: [0.0, 0.15, 0.3, 0.45, 0.6, 0.7, 0.8, 1.0],
+        grime: {
+          size: 128, tile: 8.0, seed: 43, low: 0.78, high: 1.0,
+          layers: [{ cells: [3, 3], weight: 0.6 }, { cells: [11, 11], weight: 0.4 }],
+          stain: { cells: [2, 2], threshold: 0.5, depth: 0.45 },
+        },
+      },
+      paint: {
+        ramp: [0.0, 0.0, 0.45, 0.45, 0.45, 1.0, 1.0, 1.0],
+        grime: {
+          size: 128, tile: 3.0, seed: 23, low: 0.86, high: 1.0,
+          layers: [{ cells: [32, 3], weight: 0.6 }, { cells: [7, 7], weight: 0.4 }],
+        },
+      },
+      glass: {
+        ramp: [0.4, 0.4, 0.6, 0.6, 0.8, 0.8, 1.0, 1.0],
+        grime: {
+          size: 64, tile: 2.0, seed: 37, low: 0.9, high: 1.0,
+          layers: [{ cells: [3, 3], weight: 1.0 }],
+        },
+      },
+    },
+
+    /**
      * Decals (E4): the marks a place picks up, as quads a centimetre proud
      * of a face, drawn from a 2x2 atlas mapdecals.js paints in code (a
      * stain, a drip, a wheel scuff, a hazard kerb). `lift` is that

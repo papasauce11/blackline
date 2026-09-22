@@ -77,26 +77,29 @@ Decided: D3 — the Shade and the Warden first, then the map. Provisional: D10
 (no post-processing until the characters are done), D40 (the Shade's
 figure as built). Draw-call and frame budget checks are the ceiling.
 
-(E1 done 2026-09-19; E2 and E3 done 2026-09-20; E4 2026-09-21.)
+(E1 done 2026-09-19; E2 and E3 done 2026-09-20; E4 and E5 2026-09-21.)
 
-- [ ] **E5 (M)** Map materials, `yard`. Corrugated containers, rust, painted
-  numbers, wet ground. The kit is E4's: a finish is a ramp and a grime
-  spec under `CONFIG.map.finishes`, a map opts in with
-  `new GameMap(..., { finishes })` and its own `byPalette`, decals are a
-  list handed to `bakeDecals` (src/mapdecals.js) - the yard wants a
-  corrugation (a grime with cells [1, 40] across a container's 2.4m),
-  rust that pools at the ground, numbers (a bitmap stencil tile in the
-  atlas, or none), and a wet ground (a lower, glossier concrete).
-  *done-when:* as E4 on `yard`: the yard's checks (tests/yardlight.js,
-  walkway.js, yard.js) unchanged or better, a `maps: ['yard']` check in
-  tests/materials.js that would fail reverted, two draw calls for the
-  decals.
 - [ ] **E6 (S)** Post-processing — **blocked: D10.**
 
 ---
 
 ## Done
 
+- **E5** Map materials, `yard`. The yard opts into E4's kit with its own
+  set (`CONFIG.map.yardFinishes`): every container `corrugated` (a
+  glossy ramp, a grime with `ridges` - a cosine profile across the tile,
+  nine to 2.4m, the troughs 22% darker - `grimeAt` in mapmaterials.js),
+  the ground and the fence `wet` (a lower concrete with puddles), paint
+  and glass the plant's. The decal atlas is 4x2 with `rust` (a band up
+  from the foot, broken and pitted) and `stencil` ("BLKU 2607 1", a 3x5
+  font in code), both toon-lit paint; `src/maps/yarddecals.js` lays
+  seventeen: six rust bands, four stencils, tracks through both gates, a
+  kerb, three oil stains, a drip. `the-yard-is-corrugated-wet-and-
+  numbered` (every material on its finish, the ridges by difference and
+  as crossings, the puddles by difference) and `the-yard-wears-its-
+  decals-on-its-faces-in-two-draw-calls` (tests/yardmaterials.js; the
+  plant's helpers exported from materials.js). Container side: grime spread 2.61, darkens 5.8, ridges 19/19/23 crossings; wet ground spread 1.80, darkens 3.4 at luma 25; the pools 21.1/17.9/14.5 (24.7/22.6/19.4), every relation held; the plant's checks to the digit. — 2026-09-21,
+  scheduled run, Josh present, commit `E5_HASH`.
 - **C7** The site is a tinted floor, and the HUD names it (D8). The
   ring, `M.marking.siteRing*`, `site.ring`, `addDecal` and the pulse in
   `map.update` are gone; `bakeSiteTints` (src/mapdecals.js, laid by
@@ -111,7 +114,7 @@ figure as built). Draw-call and frame budget checks are the ceiling.
   on the ring's old spot. `the-site-floor-is-tinted-warm-and-the-ring-
   is-gone` and `the-hud-names-the-site-you-stand-in` (tests/sitetint.js,
   every map; visual.js is at 588 lines). Spec 20.30. — 2026-09-21,
-  scheduled run, Josh present, commit `C7_HASH`.
+  scheduled run, Josh present, commit `a1a8c40`.
 - **B5d** The defuse reach is a clear line (D27: no defusing through a
   floor). `withinDefuseReach(foot, at, collision)` (systems/plantrule.js)
   is the two distances and then a line: from one of six points on the

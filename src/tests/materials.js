@@ -19,6 +19,9 @@
  * every decal sits on the face of a solid, and that the lot costs two draw
  * calls. Whether it reads is D43.
  *
+ * The helpers and the thresholds are exported for tests/yardmaterials.js,
+ * the yard's copy of these two checks (E5).
+ *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
@@ -38,15 +41,15 @@ const STAND_OFF = 2.5;
  * do. It varies pixel to pixel by at least this (its standard deviation)
  * and darkens on average by at least this.
  */
-const GRAIN_SPREAD = 1.0;
-const GRAIN_DARKENS = 2.0;
+export const GRAIN_SPREAD = 1.0;
+export const GRAIN_DARKENS = 2.0;
 /** Every floor stain takes at least this fraction off the floor's luma under it, and the darkest at least this much. */
-const STAIN_DIMS = 0.1;
+export const STAIN_DIMS = 0.1;
 const STAIN_STEP = 3.0;
 /** A kerb changes at least this many pixels from 2.2m up. */
 const KERB_PIXELS = 200;
 /** A decal's surface point is this far into the solid, and its lifted point this far out of it. */
-const PROBE = 0.05;
+export const PROBE = 0.05;
 
 /** The per-pixel luma difference a minus b over the centred crop: its mean and its standard deviation. */
 function lumaDeltaIn(a, b, width, height, fraction) {
@@ -72,7 +75,7 @@ function lumaDeltaIn(a, b, width, height, fraction) {
 }
 
 /** Both actors out of every frame. Returns the undo. */
-function hideActors(h) {
+export function hideActors(h) {
   h.shade.mesh.visible = false;
   h.warden.mesh.visible = false;
   h.shade.groundBlob.visible = false;
@@ -86,19 +89,19 @@ function hideActors(h) {
 }
 
 /** The ramp's texels, 0..1. */
-function rampLevels(texture) {
+export function rampLevels(texture) {
   return Array.from(texture.image.data, (value) => value / 255);
 }
 
 /**
  * Read a face's grain: the crop with the finish's grime on, minus the same
  * crop with the grime taken off every material of that finish (and put
- * back). The eye stands `STAND_OFF` off the face along its normal, at
+ * back). The eye stands `standOff` (`STAND_OFF`) off the face along its normal, at
  * `at`, looking square at it; a tiny sideways offset keeps the look-at
  * defined when the normal is the up vector.
  */
-function readGrain(h, lens, finish, at, normal) {
-  const eye = { x: at.x + normal.x * STAND_OFF, y: at.y + normal.y * STAND_OFF, z: at.z + normal.z * STAND_OFF + 0.01 };
+export function readGrain(h, lens, finish, at, normal, standOff = STAND_OFF) {
+  const eye = { x: at.x + normal.x * standOff, y: at.y + normal.y * standOff, z: at.z + normal.z * standOff + 0.01 };
   lens.look(eye, at);
   const textured = lens.grab();
   const luma = meanLumaIn(textured, lens.width, lens.height, CROP);

@@ -1419,3 +1419,28 @@ plate inside its room, the floor warmer by a step and no darker than a
 tenth with the tint drawn against hidden, the line read off the DOM
 walking in through the keys and out again. D44 argues the numbers. C7,
 2026-09-21.
+
+### 20.31 Section 4 - the yard's materials: corrugated, wet, rust, a box number
+
+E5 (D45), on 20.27's kit. The container yard opts in with its own set
+(`CONFIG.map.yardFinishes`): every container `corrugated` - a glossy
+ramp and a grime with `ridges`, a cosine profile across the tile the
+world-projected UVs stand vertically on every face, nine to 2.4m - the
+ground and the fence `wet` - a concrete lower in its mid-tones with a
+grime of puddles - the walkway's steel paint, its panes glass. The
+decal atlas is 4x2 now: two kinds join the four, `rust` (a band up from
+the foot of a face, its top broken) and `stencil` (a box number in a
+3x5 font drawn in code), both toon-lit paint; the yard's seventeen are
+`src/maps/yarddecals.js`. Every container face on the yard is a climb,
+so Section 5 amended is kept the other way about: nothing is laid on
+the first stage of a declared route or the ground at its foot, nothing
+within reach of a site's centre or a spot a light check reads.
+`the-yard-is-corrugated-wet-and-numbered` and `the-yard-wears-its-
+decals-on-its-faces-in-two-draw-calls` (tests/yardmaterials.js) hold
+every yard material to its finish, the corrugation to the screen by
+difference and as ridges (the difference row across a container face
+crossing its mean once a trough), the wet ground's grime to the screen,
+the decals to the faces clear of the sites, the rust and the stencil to
+pixels, a stain to darkening, the lot to two draw calls; the yard's
+light and walkway checks read unchanged or better in every relation.
+E5, 2026-09-21.
