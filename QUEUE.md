@@ -103,7 +103,7 @@ landed - was met, so E6 was not blocked on a `decided:` line.)
   0.85x, the centre within 2%; the hit marker 45px either way; 7 passes
   on, 0 off; the row switches. The frame-budget clause is Josh's GPU's
   (PLAYTEST.md). Spec 20.32. — 2026-09-21, scheduled run, Josh present,
-  commit `E6_HASH`.
+  commit `07942d7`.
 - **E5** Map materials, `yard`. The yard opts into E4's kit with its own
   set (`CONFIG.map.yardFinishes`): every container `corrugated` (a
   glossy ramp, a grime with `ridges` - a cosine profile across the tile,
