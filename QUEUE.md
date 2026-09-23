@@ -151,7 +151,8 @@ a job in this block may never change a file under `src/`.
   open questions. **The under-400 target was not met** — 345 lines is
   everything but the traps, so 400 would leave them 55 lines for thirty
   traps, and they cannot move out because the routine's own SKILL.md names
-  that section. G2 and D47 carry the choice. Suite unchanged. 2026-09-23.
+  that section. G2 and D47 carry the choice. Suite unchanged. `3e129f2`,
+  2026-09-23.
 
 - **F10** A hung gate dies, and says which check hung. `src/ui/autosuite.js`:
   `beat()` publishes a monotonic `seq`, `done`, `total` and the id in
