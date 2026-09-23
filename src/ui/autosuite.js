@@ -148,6 +148,57 @@ export class AutoSuite {
   }
 
   /**
+   * Publish where a run has got to, on `debugState.suiteProgress`, so a
+   * watcher outside the page can tell a slow run from a hung one (F10).
+   *
+   * `seq` is the heartbeat: it only goes up, and one beat is published before
+   * every check and one after, so a run that is working advances it and a run
+   * wedged inside a check does not. The headless runner polls it from a
+   * second `page.evaluate` and kills a run whose beat stands still for the
+   * stall budget, naming `inFlight` as the check that stopped - which is why
+   * the id is published and not a bare counter. The budget is against the
+   * beat standing still rather than against wall-clock total, because a cold
+   * plant run is legitimately 850s.
+   *
+   * Mutated in place rather than replaced, so a reader copies the fields it
+   * wants rather than holding the object.
+   *
+   * @param {object} fields merged over the published beat
+   * @returns {object} the beat
+   */
+  beat(fields) {
+    const b = this.state.suiteProgress || (this.state.suiteProgress = { seq: 0 });
+    b.seq++;
+    b.at = Math.round(performance.now());
+    Object.assign(b, fields);
+    return b;
+  }
+
+  /**
+   * Give up a whole task, not just a microtask.
+   *
+   * Publishing the beat is not enough on its own. The watcher reads it with a
+   * second `page.evaluate`, which needs a task to run in, and a run of checks
+   * never lets the event loop turn: `await` on an already-settled promise is
+   * a microtask, so a stretch of synchronous checks holds the thread from the
+   * first of them to the last and nothing outside the page can see how far it
+   * has got. So the run gives up one task at every check boundary, just after
+   * publishing the beat that names what is about to run, and the headless
+   * runner's warm-up does the same between frames. A MessageChannel, because
+   * `setTimeout` is not allowed in src/ and animation frames do not fire
+   * everywhere this code runs.
+   *
+   * @returns {Promise<void>}
+   */
+  yieldTask() {
+    return new Promise((resolve) => {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => { channel.port1.close(); resolve(); };
+      channel.port2.postMessage(0);
+    });
+  }
+
+  /**
    * Run registered AUTO checks and print a pass/fail line each.
    * @param {object} [options]
    * @param {object[]} [options.subset] run only these, defaults to all
@@ -170,6 +221,7 @@ export class AutoSuite {
       'background:#2fd6c3;color:#08090b;font-weight:bold'
     );
 
+    this.beat({ label, map: mapId, total: tests.length, done: 0, inFlight: null, phase: 'start' });
     const lossesBefore = this.state.contextLosses || 0;
     const { results, staged } = await this.runChecks(tests);
     // Losses a check staged on purpose are its own business; the count that
@@ -191,6 +243,7 @@ export class AutoSuite {
       this._log(`gl context lost ${contextLosses}x during the run; re-ran ${rerun.length}`);
     }
 
+    this.beat({ label, map: mapId, total: tests.length, done: results.length, inFlight: null, phase: 'done' });
     this.running = false;
     return { passed, failed, results, contextLosses, map: mapId, notForMap };
   }
@@ -246,8 +299,14 @@ export class AutoSuite {
     const results = [];
     const retry = [];
     let staged = 0;
+    // Every beat carries the total of the run publishing it, so a check that
+    // drives `runChecks` itself does not leave its own count behind for the
+    // run around it to report (F10).
+    const total = tests.length;
 
     for (const test of tests) {
+      this.beat({ total, done: results.length, inFlight: test.id, phase: 'running' });
+      await this.yieldTask();
       const lossesBefore = this.state.contextLosses || 0;
       const lostBefore = lost();
       const result = await this._runOne(test);
@@ -260,12 +319,15 @@ export class AutoSuite {
       }
       results.push(result);
       this._printResult(result);
+      this.beat({ total, done: results.length, inFlight: null, last: test.id, phase: 'ran' });
     }
 
     if (retry.length) {
+      this.beat({ total, done: results.length, inFlight: null, phase: 'awaiting-context' });
       const restored = await this._awaitContextRestored();
       for (const index of retry) {
         const test = tests[index];
+        this.beat({ total, done: results.length, inFlight: test.id, phase: 'rerun' });
         if (!restored) {
           results[index].detail = `gl context lost and not restored: ${results[index].detail}`;
           continue;

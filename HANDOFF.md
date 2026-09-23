@@ -30,9 +30,9 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after E6 (2026-09-21); unchanged by the 2026-09-22 02:00 build, which had no job, or by the 17:00 one, which queued two and built neither |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after E6), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). **Re-run as a gate 2026-09-22 17:00 with no code change since: plant 172 / 1 / 8 (819s), yard 153 / 1 / 27 (470s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses** — identical counts, so the base is where E6 left it. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **F10 (M), a hung gate must die and say so** - queued by the 17:00 build of 2026-09-22, which found the queue empty and, rather than build nothing twice in a day, went looking for why the 09-18 runner was still alive (the 09-20 audit had flagged it and could not end it). The cause is in the gate: the one `page.evaluate` that drives a run takes no timeout and is not covered by `page.setDefaultTimeout`, so a check that hangs in the page wedges the runner with no output and the `finally` that closes Chrome never runs. F10 gives it a heartbeat, a deadline and a signal teardown; **G1 (S)** behind it puts this file back to one page. Both are unblocked - the 02:00 run can take F10. **Josh: two node processes need killing by hand** - see the orphaned-runner trap; the sandbox refuses `taskkill` to a scheduled session. Before then, the 02:00 build of 2026-09-22 found the queue empty, ran the regression set as a smoke check (plant 29 passed in 114s, yard 29 in 73s, 0 red, 0 flaky, 0 console errors) and stopped without building. Blocks A, B, C, D and E are closed; F reopened on F10, and G is new. What waits on Josh is D13's rule (may move a site), the Provisional entries D40-D46 (looks), and the frame-budget run on a GPU with the post on (PLAYTEST.md). Beyond F10 and G1, the next work is whatever Josh queues. Josh (2026-09-21, present): run the next six jobs - F8, F9, B5d, C7, E5, E6. **E6 done** 2026-09-21 (below): post-processing - **Block E is closed**. **E5 done** 2026-09-21 (below): the yard's materials. **C7 done** 2026-09-21 (below): the site is a tinted floor and the HUD names it - Block C is closed again. **B5d done** 2026-09-21 (below): the defuse reach is a clear line - **Block B is closed**. **F9 done** 2026-09-21: `npm run probe`, a question asked of the game headless (Running it). **F8 done** 2026-09-21 (below): the key light gives nothing to a face it lights from behind. **E4 done** 2026-09-21 (below): the plant's materials - three finishes, a grime, twenty decals. **F7 done** 2026-09-20: `npm run shot -- --pose <name|all>`, a look at a pose (Running it). **E3 done** 2026-09-20 (below): animation - a pose for every state, a stride for every step, the rifle raised to the aim. **F6 done** 2026-09-20: `npm run shot`, a look at the figures headless (Running it). **E2 done** 2026-09-20 (below): the Warden's figure. **E1 done** 2026-09-19 (below): the Shade's figure. **Block D is closed** (D3b dropped on D38, 2026-09-21). **D7 done** 2026-09-19 (below): the regression set whole on every map. **D6 done** 2026-09-19 (below): both maps in the gate. **D5 done** 2026-09-19 (below): the AI on the yard - a lit lane for the three hall-bound checks, a near goal planned over the ground, stuck means moving, a three-match soak on every map. **D4 done** 2026-09-18 (below): the yard at night. **D3 done** the same day (below): the Warden's walkway; D3b (a Warden-only door) was dropped 2026-09-21 when Josh decided D38. **D2 done** 2026-09-17 (below): the yard blockout. D1 the same day: the map registry, `?map=`, the suite per map. **Block C is closed** 2026-09-16. B5b (rails) dropped on D25 and B5d (the defuse reach is a clear line) done on D27, both 2026-09-21. B8 and B9 done 2026-09-14 (**the redesign is closed** - spec 20.11), B7 and B5c the same day, B6 2026-09-13 (**Blocks A and F are closed**) |
+| Working tree | clean after F10 (2026-09-23) |
+| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each. **2026-09-23, after F10: plant 173 passed, 1 failed, 8 not for this map (748s, 938s), yard 154 / 1 / 27 (467s, 613s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses** - one more pass per map than the gate before it, which is F10's own check. The gate that opened that run, on an unchanged tree, was plant 172 / 1 / 8 (823s), yard 153 / 1 / 27 (494s), matching the 09-22 gate exactly. A run whose heartbeat stands still for `--stall` seconds (600 by default) now dies naming the check in flight and exits 2, instead of hanging forever. Older readings: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after E6), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). **Re-run as a gate 2026-09-22 17:00 with no code change since: plant 172 / 1 / 8 (819s), yard 153 / 1 / 27 (470s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses** — identical counts, so the base is where E6 left it. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
+| Next job | **G1 (S)**, this file back to one page - unblocked, and the reason it is worth doing is in its queue entry. Behind it **F11 (S)**, queued by F10: `a-zero-size-viewport-does-not-blind-the-renderer` takes **269s on the plant**, a quarter of a whole run in one check, and it is the floor under the gate's `--stall` default. **F10 done 2026-09-23** (below): a hung run now dies in `--stall` seconds naming the check in flight, closes its browser, and exits 2; SIGINT/SIGTERM tear the tree down; an older `suite.mjs` is named at startup, in the report and in the summary. **Josh: the two 09-18 node processes still need killing by hand** - pids 9608 and 4792, and Chrome 8920 - see the orphaned-runner trap; the sandbox refuses `taskkill` to a scheduled session, and F10 stops the gate making new ones but cannot clear these. Every timing on record is still measured against them, which every run now prints. Blocks A, B, C, D and E are closed; F is open on F11, G on G1. What waits on Josh is D13's rule (may move a site), the Provisional entries D40-D46 (looks), and the frame-budget run on a GPU with the post on (PLAYTEST.md). Beyond G1 and F11, the next work is whatever Josh queues. |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, and now 1,648 lines against the audit's 1,465); the check `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) - the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both the documented exceptions |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
@@ -1418,9 +1418,28 @@ minutes for both maps since E6's post pipeline: 850s for the plant,
 is past the Bash tool's cap, so run it in the background and wait on
 the file); `--regression` the regression set per map instead (plant 29 checks in 58s headless, yard 29 in 25s);
 `--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
-the match; `--details <file>` (B8) writes every check's id, outcome and
-detail line per run - the readings a PROGRESS entry quotes, which the
-stdout report never carried for a green check.
+the match; `--details <file>` (B8) writes every check's id, outcome,
+detail line and **ms** per run - the readings a PROGRESS entry quotes,
+which the stdout report never carried for a green check.
+The ms is F10's: the slowest check across a four-run verify is
+`a-zero-size-viewport-does-not-blind-the-renderer` at **269s on the
+plant**, then `every-route-reads-lit-from-its-foot` at 76s, then
+`frame-budget-under-the-check-29-load` at 43s; only 6 of 658 check-runs
+pass 60s. That first number is F11, and it is the floor under `--stall`.
+**A hung run now dies (F10, 2026-09-23).** The run is raced against a
+heartbeat the page publishes (`beat()` in ui/autosuite.js:
+`debugState.suiteProgress`, a monotonic `seq` and the id of the check in
+flight); when it stands still for `--stall` seconds - **600 by default,
+because the slowest single check on record is 269s** - the run is
+abandoned with `suite: crashed: run timed out` naming that check, the
+browser and the server are closed, and the exit code is 2. Against the
+beat standing still, never against wall-clock total: a cold plant run is
+legitimately 850s. `--stall 0` disables it. `SIGINT`/`SIGTERM` close the
+same way, so stopping a backgrounded run stops the tree. And a
+`suite.mjs` older than this process is named at startup, in the report's
+`otherRunners` and in the summary's `OTHER RUNNERS ALIVE` - its Chrome
+is competing for the same cores, so every timing in that report is
+measured against it. `scripts/watchdog.mjs` holds all of it.
 `scripts/suite-skips.json` lists checks that cannot pass headless,
 with reasons (today: the frame-budget check; SwiftShader draws a frame in
 ~400ms). They are reported, never counted. Needs `npm install` once:
@@ -1541,7 +1560,12 @@ headless Chrome carry on, still writing to the redirected file, and a
 second run started beside them fights for the four pinned cores.
 
 **And an orphaned runner never dies on its own — it has to be killed by
-hand, and a routine cannot do it.** The 09-18 17:00 build's runner was
+hand, and a routine cannot do it.** *(Since F10, 2026-09-23, the gate no
+longer makes them: a run whose heartbeat stands still for `--stall`
+seconds dies naming the check, and SIGINT/SIGTERM tear the tree down.
+The two below predate that and are still alive; every run since names
+them at startup. The rest of this trap stands - read it before trusting
+any timing.)* The 09-18 17:00 build's runner was
 still alive on 2026-09-22, four days later: `npm run suite` (pid 9608)
 → `node scripts/suite.mjs` (pid 4792, an in-process server still
 listening on 127.0.0.1:54315) → a headless Chrome tree whose renderer

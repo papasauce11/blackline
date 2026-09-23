@@ -66,6 +66,7 @@ import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
 import { register as registerFuzz } from './fuzz.js';
+import { register as registerHeartbeat } from './heartbeat.js';
 import { register as registerTraversalFuzz } from './traversalfuzz.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
@@ -122,6 +123,7 @@ export function registerAutoTests(debugTools) {
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);
+  registerHeartbeat(debugTools);
   registerTraversalFuzz(debugTools);
   // Last: it is the heaviest check and it leaves the world in a known state.
   registerPerformance(debugTools);

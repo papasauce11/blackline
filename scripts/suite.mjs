@@ -18,6 +18,7 @@
 //                          [--pre "<js>"] [--map plant,yard]
 //                          [--channel chrome|msedge] [--timeout 600000]
 //                          [--cores N] [--cooldown SECONDS] [--details FILE]
+//                          [--stall SECONDS]
 //
 // --map names the registered maps to run on (src/maps/index.js), comma
 // separated; the page is loaded once per map with `?map=<id>` and the suite
@@ -31,9 +32,21 @@
 // redesign's checks by id, `runRegressionSet()` in the page) instead of the
 // whole suite: the quick gate, per map, with its time on the run line.
 // --pre runs in the page before the suite, e.g. to reseed the rng.
-// --details writes every check's id, outcome and detail line, per run, to
-// FILE as JSON - the readings a PROGRESS.md entry quotes (B8). The report on
-// stdout carries only what is red, flaky or skipped.
+// --details writes every check's id, outcome, detail line and ms, per run,
+// to FILE as JSON - the readings a PROGRESS.md entry quotes (B8). The report
+// on stdout carries only what is red, flaky or skipped.
+//
+// A hung run dies, and says so (F10, scripts/watchdog.mjs). The run below is
+// one `page.evaluate`; it takes no `timeout` option and `setDefaultTimeout`
+// does not cover it, so a check that hung in the page used to wedge this
+// script with no output and leave node and a SwiftShader Chrome spinning for
+// days. So the run is raced against the heartbeat the page publishes
+// (`beat()` in src/ui/autosuite.js): when it stands still for --stall
+// seconds the run is abandoned with `suite: crashed: run timed out` naming
+// the check in flight, and exit 2. Against the beat standing still, never
+// against wall-clock total: a cold plant run is legitimately 850s.
+// --stall 0 disables it. SIGINT and SIGTERM close the browser and the server
+// the same way, so stopping a backgrounded run stops the tree.
 //
 // Heat. This PC renders the suite with SwiftShader, so every pixel of every
 // rendered check is drawn on the CPU, and a run is a sustained all-core load
@@ -64,6 +77,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { createGuard, otherRunners } from './watchdog.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -83,6 +97,13 @@ const DETAILS = args.details ?? null;
 // run a browser and a compositor without the page timing out.
 const CORES = Number(args.cores ?? Math.max(2, Math.floor(os.cpus().length / 2)));
 const COOLDOWN_MS = Number(args.cooldown ?? 45) * 1000;
+// How long the page's heartbeat may stand still before the run is called
+// hung. Generous on purpose: a check runs to completion without yielding to
+// the watcher, so the gap between two beats is one whole check, and the
+// slowest single check is the floor under this number. Ten minutes bounds a
+// wedged run without ever calling a slow one hung; read the per-check ms in
+// --details before tightening it.
+const STALL_MS = Number(args.stall ?? 600) * 1000;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -227,11 +248,29 @@ function serve() {
   });
 }
 
+/**
+ * The deadline, the teardown and the signal handlers (F10). Made here rather
+ * than inside main() so its signal handlers are up before the browser is.
+ */
+const guard = createGuard({ stallMs: STALL_MS });
+
 /** What the page said before a crash, so a module that failed to load names itself. */
 const bootErrors = [];
 
 async function main() {
+  // Before anything is launched: an older runner's Chrome invalidates every
+  // timing below, and a routine cannot clear one (the sandbox refuses
+  // taskkill), so the report has to name it rather than leave the reader to
+  // infer why a run was slow.
+  const leaked = otherRunners();
+  for (const r of leaked) {
+    process.stderr.write(`suite: WARNING: another suite.mjs is still running (pid ${r.pid}, started ${r.started}).`
+      + ` Its headless Chrome competes for the same cores, so every timing below is measured against it.`
+      + ` End it with: taskkill /PID ${r.pid} /T /F\n`);
+  }
+
   const { server, port } = await serve();
+  guard.attach({ server });
   const consoleErrors = bootErrors;
   const browser = await chromium.launch({
     channel: CHANNEL,
@@ -245,6 +284,7 @@ async function main() {
       `--${TOKEN}`,
     ],
   });
+  guard.attach({ browser });
   let report;
   const runs = [];
   let pinned = null;
@@ -300,9 +340,16 @@ async function main() {
       for (let i = 0; i < RUNS; i++) {
         if (i > 0 && COOLDOWN_MS > 0) await sleep(COOLDOWN_MS);
         const t0 = Date.now();
-        const r = await page.evaluate(async ([subsetSource, regression]) => {
+        const r = await guard.withDeadline(page, page.evaluate(async ([subsetSource, regression]) => {
           const h = window.BLACKLINE;
-          for (let k = 0; k < 60; k++) h.renderFrame(1 / 60);
+          // The warm-up beats and yields too, so the deadline's first gap is
+          // one frame and not all sixty: the first draw of a cold map
+          // compiles shaders for tens of seconds (F5).
+          for (let k = 0; k < 60; k++) {
+            h.renderFrame(1 / 60);
+            h.debugTools.suite.beat({ total: 60, done: k + 1, inFlight: 'warm-up', phase: 'warming' });
+            await h.debugTools.suite.yieldTask();
+          }
           const loopFramesBefore = h.loop.frames;
           // runAutoTests takes `subset` as an array of registered checks.
           const opts = {};
@@ -335,15 +382,20 @@ async function main() {
             loopFrames: h.loop.frames - loopFramesBefore,
             results: res.results.map(x => ({
               id: x.id, pass: !!x.pass, detail: String(x.detail ?? '').slice(0, 400),
+              // What --details quotes, and the evidence the stall budget
+              // rests on: the slowest single check is the longest gap
+              // between two beats (F10).
+              ms: Math.round(x.ms),
             })),
           };
-        }, [SUBSET ? SUBSET.source : null, REGRESSION]);
+        }, [SUBSET ? SUBSET.source : null, REGRESSION]), `map ${mapId}, run ${i + 1}`);
         r.ms = Date.now() - t0;
         runs.push(r);
       }
     }
 
     report = judge(runs, renderer, consoleErrors);
+    report.otherRunners = leaked;
     report.throttle = {
       cores: CORES && CORES < os.cpus().length ? CORES : os.cpus().length,
       of: os.cpus().length,
@@ -351,8 +403,7 @@ async function main() {
       cooldownMs: COOLDOWN_MS,
     };
   } finally {
-    await browser.close();
-    server.close();
+    await guard.teardown();
   }
 
   if (DETAILS) {
@@ -433,6 +484,10 @@ function summary(r) {
   if (r.unexpectedGreen.length) lines.push(`  now GREEN, remove from QUEUE.md: ${r.unexpectedGreen.join(', ')}`);
   if (r.skipped.length) lines.push(`  skipped headless: ${r.skipped.map(x => `${tag(x)} (${x.outcome})`).join(', ')}`);
   if (r.consoleErrors.count) lines.push(`  console errors: ${r.consoleErrors.count}`);
+  if (r.otherRunners && r.otherRunners.length) {
+    lines.push(`  OTHER RUNNERS ALIVE: ${r.otherRunners.map(x => `pid ${x.pid} (${x.started})`).join(', ')}`
+      + ` - every timing above was measured against them`);
+  }
   if (r.throttle) {
     const t = r.throttle;
     lines.push(`  throttle: ${t.cores}/${t.of} cores`
@@ -442,8 +497,11 @@ function summary(r) {
   return lines.join('\n') + '\n';
 }
 
-main().catch(err => {
+main().catch(async err => {
   process.stderr.write(`suite: crashed: ${err && err.stack || err}\n`);
   for (const line of bootErrors.slice(0, 5)) process.stderr.write(`  page: ${line}\n`);
+  // main()'s own finally has usually run by now; this covers the path where
+  // it has not - a throw before the try, or a teardown itself cut short.
+  await guard.teardown();
   process.exit(2);
 });

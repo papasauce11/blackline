@@ -1466,3 +1466,23 @@ answer if it fails. `post-processing-blooms-the-emissives-darkens-the-
 corners-and-is-a-switch` (tests/post.js) holds a lamp's halo, the
 corners darker and the centre alone, the hit marker's size unchanged,
 the passes counted and the row switching. E6, 2026-09-21.
+
+### 20.33 Section 17.1 - the AUTO suite publishes a heartbeat, and a hung run dies
+
+F10. The suite publishes where a run has got to on
+`debugState.suiteProgress` (`AutoSuite.beat()`, `src/ui/autosuite.js`): a
+sequence that only goes up, the count done, the run's total and the id of
+the check in flight, one beat before every check and one after, and the
+run gives up a task at each boundary so something outside the page can
+read it. Nothing about what a check does or answers changes. The headless
+runner reads the beat every few seconds and abandons a run whose beat has
+stood still for the stall budget, reporting `run timed out` and naming
+the check in flight, exiting 2 with the browser and the server closed
+(`scripts/watchdog.mjs`); before this a check that hung in the page hung
+the runner forever and orphaned node and a headless Chrome, which
+happened for four days in September 2026. The budget is against the beat
+standing still, never against a run's wall-clock total.
+`the-suite-heartbeat-advances-and-names-the-check-in-flight`
+(tests/heartbeat.js) holds the beat a check runs under to that check's
+id, and three probes through the real runner to their ids, their counts
+and a strictly rising sequence. F10, 2026-09-23.

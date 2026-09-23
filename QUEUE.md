@@ -41,40 +41,26 @@ a name, not a rank. **Closed 2026-09-11** - F1 to F4 are under Done, and
 F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate job, if one is found, goes here.
 **Reopened 2026-09-22 by F10**, found by the build run of that date.
 
-- [ ] **F10 (M)** A hung gate must die, and say so. `blocked:`
-  The run that drives the suite is one `page.evaluate` (suite.mjs ~line
-  303). `page.evaluate` takes no `timeout` option and is *not* covered by
-  the `page.setDefaultTimeout(TIMEOUT)` above it, so it waits forever: a
-  check that hangs in the page (one awaiting `h.nextFrame()` where frames
-  never fire is the documented way) wedges the runner with no output, the
-  `finally` that closes the browser never runs, and node plus a
-  SwiftShader Chrome are left spinning. This is not hypothetical - the
-  09-18 17:00 build's runner was found alive on 2026-09-22, four days on,
-  its renderer 1,975 CPU-seconds in, still listening on 127.0.0.1:54315,
-  competing for the four pinned cores with every run timed since - which
-  is not the same as saying it caused the plant run's 450s → 850s climb,
-  since every timing on record was taken with it alive. A routine cannot
-  clear one: the sandbox refuses `taskkill`. So the gate has to not make
-  them.
-  Three parts: (1) **a deadline** - race the run's `page.evaluate`
-  against a timer and, when it wins, report `suite: crashed: run timed
-  out` naming the check in flight, and exit 2, the runner-crashed code;
-  (2) **a heartbeat**, so slow is never mistaken for hung - `runAutoTests`
-  publishes the count done and the id in flight on the harness, the
-  runner reads it from a second evaluate on an interval, and the deadline
-  is against *the heartbeat standing still*, not against wall-clock total
-  (a cold plant run is legitimately 850s); (3) **teardown on a signal** -
-  `process.on` for SIGINT and SIGTERM closing the browser and the server,
-  so stopping a backgrounded run stops the tree instead of orphaning it.
-  Also warn at startup when a node running `suite.mjs` older than this
-  process exists, since its Chrome invalidates every timing in the
-  report. *done-when:* a new check under `src/tests/` proves the
-  page-side half - the heartbeat advances across a subset run, names the
-  check in flight, and is monotonic - and would fail if the heartbeat
-  were reverted; a staged hang (a check registered behind a flag that
-  awaits a promise that never settles) makes the runner exit 2 within the
-  stall budget instead of hanging, demonstrated once and the flag left
-  off; `npm run suite` twice, unchanged answers, no new console error.
+- [x] **F10 (M)** A hung gate must die, and say so. — done 2026-09-23, under Done.
+
+- [ ] **F11 (S)** One check is a quarter of the plant run. `blocked:`
+  `a-zero-size-viewport-does-not-blind-the-renderer` took **268,927ms**
+  on the plant in F10's verify (252,906ms the second run; 168,993ms and
+  168,438ms on the yard) — a quarter of a whole run inside one check,
+  and next after it is 76,262ms. It is green and it has always been
+  green, so nothing has ever made anyone look at its clock; F10's
+  per-check `ms` in `--details` is the first time the suite reported
+  one for a passing check. Find where the time goes — a 0x0 drawing
+  buffer forces a resize and a full pipeline rebuild, and the check may
+  be paying that several times over, or waiting on frames it does not
+  need. It is also the floor under the gate's `--stall` default: the
+  budget cannot go below the slowest check, so halving this check
+  halves what a hung run costs before it is called hung.
+  *done-when:* the check's ms is at or under 60s on the plant with what
+  it proves unchanged (a 0x0 viewport still fails the old way when the
+  guard is removed), the `--stall` default reconsidered in the same
+  commit with the new number quoted, and `npm run suite` twice with the
+  answers unchanged.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -156,6 +142,31 @@ a job in this block may never change a file under `src/`.
 ---
 
 ## Done
+
+- **F10** A hung gate dies, and says which check hung. `src/ui/autosuite.js`:
+  `beat()` publishes a monotonic `seq`, `done`, `total` and the id in
+  flight on `debugState.suiteProgress`, one beat before every check and
+  one after; `yieldTask()` gives up a whole task at each boundary,
+  because a run of synchronous checks only ever yields microtasks and
+  the watcher's second `page.evaluate` needs a task to run in — without
+  it the heartbeat reads as standing still through a healthy run.
+  `scripts/watchdog.mjs` (new): `withDeadline` races the run against
+  the beat standing still and throws, naming the check in flight, for
+  `suite: crashed: run timed out` and exit 2; a bounded `teardown()` on
+  the `finally`, on the catch and on SIGINT/SIGTERM/SIGBREAK;
+  `otherRunners()` names an older `suite.mjs` at startup, in the report
+  and in the summary. `--stall SECONDS` (default 600), `--details` now
+  carries per-check `ms`. suite.mjs 507 lines after the split,
+  autosuite.js 404, watchdog.mjs 181.
+  `the-suite-heartbeat-advances-and-names-the-check-in-flight`
+  (tests/heartbeat.js, every map) holds the beat it is itself run under
+  to its own id and three probes through `runChecks` to their ids,
+  counts and a strictly rising sequence; red when `beat()` is stubbed.
+  The staged hang (`?hang=1`, off by default) made the runner exit 2 in
+  130s naming `a-staged-hang-never-returns`, leaving no orphan. Verify:
+  plant 173/1/8 (748s, 938s), yard 154/1/27 (467s, 613s), 0 red, 0
+  flaky, 0 console errors. Found: the slowest single check is 269s, so
+  the stall default is measured, not guessed — F11. 2026-09-23.
 
 - **E6** Post-processing (D10, D46). `src/post.js`: the scene into a
   half-float multisampled target, a bright pass at half size over 0.5

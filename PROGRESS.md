@@ -7843,3 +7843,130 @@ processes (9608, 4792) need Josh to kill them by hand** — `taskkill /PID
 4792 /T /F`, then 9608; the ordinary `chrome.exe` tree on this machine
 is Josh's own browser, not the suite's. Until they are gone every
 timing this gate reports is against three-quarters of a machine.
+
+## F10 — a hung gate dies, and says which check hung (2026-09-23 02:00, scheduled run)
+
+**What was built.** The three parts the queue asked for, plus the one
+that makes the first of them work at all.
+
+*The heartbeat* (`src/ui/autosuite.js`). `AutoSuite.beat(fields)` merges
+onto `debugState.suiteProgress` and bumps a `seq` that only ever goes
+up; `_runChecks` publishes one beat before every check, naming it in
+`inFlight` with `done`/`total`, and one after it, and `runAutoTests`
+brackets the run with a `start` and a `done` beat. The retry pass after
+a lost context beats too, so the one place that waits on an event rather
+than on work is not a silent gap. Every beat carries the `total` of the
+run that published it, because a check may drive `runChecks` itself
+(three do) and its count must not be left behind for the run around it
+to report.
+
+*The task yield* (same file). Publishing the beat is not enough on its
+own, and this is the part the queue's description did not anticipate: the
+watcher reads the beat with a second `page.evaluate`, which needs a
+**task** to run in, and a run of checks never lets the event loop turn.
+`await` on an already-settled promise is a microtask, so a stretch of
+synchronous checks holds the main thread from the first of them to the
+last and nothing outside the page can see how far it has got — the
+heartbeat would have read as standing still through a perfectly healthy
+run, and the deadline would have killed good runs. So `yieldTask()` gives
+up one whole task at every check boundary, just after the beat that names
+what is about to run, and the runner's 60-frame warm-up does the same
+between frames (a cold map's first draw compiles for tens of seconds,
+F5, and that would otherwise be one unreadable gap). A `MessageChannel`,
+because `setTimeout` is not allowed in `src/` and animation frames do not
+fire everywhere this code runs. Cost: 658 check-runs across the verify,
+none of it visible against run-to-run variance.
+
+*The deadline, the teardown and the warning* (`scripts/watchdog.mjs`,
+new). `withDeadline(page, work, where)` races the run's `page.evaluate`
+against a watcher that reads the beat every 5s — that read itself raced
+against the same interval, so a page too busy to answer counts as a beat
+that has not moved rather than hanging the watcher the way it hung the
+run — and throws when the beat stands still for `--stall` seconds. The
+throw reaches suite.mjs's catch, which prints `suite: crashed: …` and
+exits 2 after the teardown. `teardown()` closes the browser and the
+server once and **bounded** (a close that itself hung would reproduce the
+bug), and `closeAllConnections()` drops the keep-alive sockets that hold
+the port. `SIGINT`, `SIGTERM` and `SIGBREAK` run the same teardown and
+exit 2, so stopping a backgrounded run stops the tree. `otherRunners()`
+scans for an older `suite.mjs` at startup and prints its pid, its start
+time and the `taskkill` line; it is also in the report as
+`otherRunners`, and in the summary as `OTHER RUNNERS ALIVE`, because a
+timing taken beside one is measured against it and a report that does not
+say so invites the wrong conclusion.
+
+Its own module because folding it into suite.mjs put that file at 638
+lines, past the ~600 split guidance. suite.mjs is 507 after the split,
+autosuite.js 404, watchdog.mjs 181.
+
+*The check* (`src/tests/heartbeat.js`, new).
+`the-suite-heartbeat-advances-and-names-the-check-in-flight` first asks
+the beat it is **itself** running under to name it — nothing else proves
+that the id published is the id of the check actually running — then
+drives `suite.runChecks()` with three probes that each copy the beat they
+are run under, and holds every one to its own id, its own `done` index
+and the run's total, with the sequence strictly increasing throughout.
+Green: `seq 66 -> 72 across 3 probes, named
+heartbeat-probe-a/heartbeat-probe-b/heartbeat-probe-c, under a beat
+naming the-suite-heartbeat-advances-and-names-the-check-in-flight (1/2,
+map yard)`. Reverted (`beat()` stubbed to return null, the file restored
+byte-for-byte afterwards and the md5 checked), it goes red with `run 1
+(yard): 0 passed, 1 failed` and `RED (unexpected):
+the-suite-heartbeat-advances-and-names-the-check-in-flight`.
+
+**What was verified.** Gate before the job, on `71ef9da` with no change
+in the tree: exit 0, plant **172 passed / 1 failed / 8 not for this map
+(823,034ms)**, yard **153 / 1 / 27 (494,488ms)**, 0 red, 0 flaky, 0
+console errors, 0 context losses, 0 loop frames — the same counts as the
+09-22 gate, so the base was where E6 left it.
+
+Verify, `npm run suite` (four runs): exit 0, plant **173 / 1 / 8
+(748,004ms and 937,517ms)**, yard **154 / 1 / 27 (467,292ms and
+613,467ms)**, **0 red, 0 flaky, 0 console errors, 0 context losses, 0
+loop frames**. One more pass per map than the gate: the new check. The
+one failure on each map is the frame-budget check, skipped headless.
+
+The staged hang, demonstrated once and the flag left off:
+`npm run suite -- --runs 1 --map yard --query "hang=1" --subset
+"a-staged-hang" --stall 90` gave, in 130 seconds wall,
+
+```
+suite: crashed: Error: run timed out: the suite heartbeat stood still for 90s
+  on map yard, run 1; the check in flight was "a-staged-hang-never-returns"
+  (0/1, phase running). Raise --stall if the run was merely slow.
+```
+
+and exit 2. Afterwards the process table held **no new node and no new
+suite Chrome** — the only survivors were the 09-18 orphans (9608, 4792,
+Chrome 8920, token `blackline-suite-4792-…`). The check that hangs is
+registered only behind `?hang=1`, so no gate carries a check that cannot
+finish.
+
+**What was found.** Two things, both from the per-check `ms` this job
+added to `--details` (the report on stdout has never carried a time for a
+green check, and the stall budget is a claim about check times that
+nobody had ever measured).
+
+*The stall budget rests on one check.* The gap between two beats is one
+whole check, so the slowest single check is the floor under `--stall`.
+Across the verify's 658 check-runs it is
+`a-zero-size-viewport-does-not-blind-the-renderer` at **268,927ms on the
+plant** (252,906ms the second run; 168,993ms and 168,438ms on the yard) —
+**a quarter of a whole plant run inside one check**. Next is
+`every-route-reads-lit-from-its-foot` at 76,262ms, then
+`frame-budget-under-the-check-29-load` at 43,023ms; only **6 of 658**
+check-runs exceed 60s. So the default `--stall 600` is a 2.2x margin over
+the worst observed, and a tighter default that looked reasonable on the
+average — 300s, which was this job's first instinct — would have been a
+false positive waiting for a warm cache miss. The number is now measured
+rather than guessed, and `--stall` lowers it for a demonstration.
+
+*The 269s check is worth a job of its own.* F11 queued.
+
+**What was left.** The two orphans are still alive — this run tried
+`taskkill /PID 4792 /T /F` once and the sandbox refused it, as the trap
+says it would. F10 stops the gate making new ones; it cannot clear these.
+Every timing above was measured with them running, which is now printed
+on every run rather than left to be remembered. The clean comparison the
+09-22 entry asked for — a gate run with the machine to itself — still
+needs Josh's hand on those two pids first.
