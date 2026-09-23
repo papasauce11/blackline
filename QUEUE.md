@@ -166,7 +166,7 @@ a job in this block may never change a file under `src/`.
   130s naming `a-staged-hang-never-returns`, leaving no orphan. Verify:
   plant 173/1/8 (748s, 938s), yard 154/1/27 (467s, 613s), 0 red, 0
   flaky, 0 console errors. Found: the slowest single check is 269s, so
-  the stall default is measured, not guessed — F11. 2026-09-23.
+  the stall default is measured, not guessed — F11. `35f9d62`, 2026-09-23.
 
 - **E6** Post-processing (D10, D46). `src/post.js`: the scene into a
   half-float multisampled target, a bright pass at half size over 0.5
