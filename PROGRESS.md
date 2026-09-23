@@ -7970,3 +7970,84 @@ Every timing above was measured with them running, which is now printed
 on every run rather than left to be remembered. The clean comparison the
 09-22 entry asked for — a gate run with the machine to itself — still
 needs Josh's hand on those two pids first.
+
+## G1 — HANDOFF.md back to one page (2026-09-23 02:00, scheduled run)
+
+**What was built.** `HANDOFF.md` went from **1,846 lines / 118KB to 533**, a
+71% cut, with nothing dropped that is not written up in full somewhere else.
+
+The shape is the one the queue asked for. Kept, in order: Last audit, Where
+things stand, a new index, the redesign's rule, the census and the climb rule,
+the plant rule and where its checks live, F3's split, where the suite runner
+lives, Running it, Environment traps, The lesson that keeps repeating, Still
+needs a human. Removed: the ~30 per-job narrative sections (E6, E5, C7, B5d,
+F8, E4, E3, E2, E1, D7, D6, D5, D4, D3, D2, D1, C1–C5, B5, B6, B7, B8, B2, F4,
+Block A's phase tables, the 50-phase plan, "the plant is a room"), every one
+of which `PROGRESS.md` already held in full.
+
+**What was verified, before anything was deleted.** For each of the 27 job
+ids whose section was removed, that `PROGRESS.md` carries an entry titled with
+it — checked by script, 27 of 27 present, none missing. The index then names
+every one of them. Because every PROGRESS entry is titled with its job id, the
+index needed no second column: it says so once and a reader greps `^## E4`.
+
+The three sections the queue named as carrying something found nowhere else —
+the plant-rule checks' locations, F3's split, the census's climb rule — were
+kept rather than indexed, the first folded into the plant-rule section it
+belongs to. Every check id the file cites was confirmed registered in
+`src/tests/` (and `effects-drain-when-idle`, which is not, is named as what it
+is: a runtime assertion).
+
+**Drift found and fixed, which is the point of the job.** The old file said,
+two paragraphs apart, both that Josh decided D13 on 2026-09-21 and that "what
+waits on Josh is D13's rule (may move a site)". Reading `DECISIONS.md`
+properly: **every entry under its *Blocking* heading is decided** — D8, D13,
+D20, D23, D25, D27, D38 and the two runner ones — so nothing is blocking at
+all, and the new file says that instead of naming a phantom blocker. The old
+"Still needs a human" also listed D40–D46 as though they were open questions
+rather than Provisional entries Josh may override at leisure; the new one
+distinguishes the two. Two stale "Next job" sentences and a paragraph of
+09-20 audit snapshot that "Where things stand" already contradicted are gone.
+
+**What was verified.** `npm run suite`, four runs: exit 0, plant **173 passed / 1 failed / 8 not for this map (762,898ms and
+921,187ms)**, yard **154 / 1 / 27 (496,006ms and 597,669ms)**, 0 red, 0 flaky,
+0 console errors, 0 context losses, 0 loop frames — the same counts as F10's
+verify an hour earlier, which is what a documentation job should do. G1 touched
+no file under `src/` and no file the game loads, so the suite is a witness
+rather than a proof; the real check is that the next run can orient from the
+file. The one check that reads this file at all,
+`playtest-md-exists-is-linked-and-names-real-checks`, requires HANDOFF.md to
+mention `PLAYTEST.md`, and it does, three times.
+
+**What was found, and not done: the 400-line target is not reachable.** The
+queue's done-when asks for under 400 lines. It cannot be met together with the
+same done-when's other half — keep these named sections, and lose nothing —
+and the arithmetic says so plainly. Everything in the file *except* the
+Environment traps, with each section already rewritten as tightly as it can be
+stated, is **345 lines**: the index (50, and required by the done-when
+itself), Running it (69), the plant rule (39), the census (35), the redesign's
+interview table (29), F3's split (26), the lesson (22), Where things stand
+(20), Still needs a human (18), Last audit (13), where the runner lives (10),
+and the header. For the total to come under 400 the traps section would have
+to fit in **55 lines**, and there are about thirty traps in it — under two
+lines each, which is a list of titles with the hour-saving content deleted.
+
+The obvious escape — move the traps to a sibling `TRAPS.md` and link it, which
+would leave HANDOFF at 347 and lose nothing — is closed for a reason worth
+recording: **the scheduled task's own SKILL.md instructs each run to "read the
+'Environment traps' section of HANDOFF.md before you start"**, and that file
+lives outside the repo, in `~/.claude/scheduled-tasks/blackline-build/`, where
+a job in this repo cannot change it. Moving the section would break the
+routine's own instructions on the next run.
+
+So the file is delivered at its honest floor rather than gutted to hit a
+number, and **G2 is queued** with the three ways out for Josh to pick: accept
+533 and amend the target, split the traps and have Josh update SKILL.md in the
+same stroke, or decide which traps have earned retirement. The last is a real
+option — several are now historical ("a boot failure used to be a silent 60s
+timeout", "a check used to inherit the last check's menu") and survive only as
+the operative sentence already.
+
+**What was left.** The two orphaned node processes, still Josh's to kill; F10
+stopped the gate making new ones and this file now names them in *Where things
+stand*, in the traps section and in *Still needs a human*.

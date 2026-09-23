@@ -1250,3 +1250,45 @@ Recommendation: 1, and play it before deciding - it is the option that adds
 no rule, and D4 says Josh tests what the routine cannot. If 2 or 3, a
 follow-up job (D3b in `QUEUE.md`) is sized S and blocked here.
 **decided:** yes - the Shade can walk up the stairs, and can do anything a human should easily be able to do. Josh, 2026-09-21. (Option 1; D3b dropped. The second half is a design rule for every future question of this shape: no role-gated geometry where a person would simply walk, climb or step.)
+
+### D47 — What is `HANDOFF.md`'s traps section worth, in lines?
+G1 got the file from 1,846 lines to 533 and could not reach the under-400
+its own done-when asks for. The arithmetic, with every kept section already
+written as tightly as it can be stated: everything *except* Environment
+traps is **345 lines** — the index the done-when itself requires (50),
+Running it (69), the plant rule (39), the census (35), the redesign's
+interview table (29), F3's split (26), the lesson (22), Where things stand
+(20), Still needs a human (18), Last audit (13), where the runner lives
+(10), and the header. So under 400 leaves the traps **55 lines** against
+about thirty of them: under two lines each, which is a list of titles with
+the content that saves the hour deleted.
+
+The clean fix is closed to the routine. Moving the traps to a sibling
+`TRAPS.md` would leave HANDOFF at 347 and lose nothing — but the scheduled
+task's own `SKILL.md` tells every run to "read the 'Environment traps'
+section of HANDOFF.md before you start", and that file lives outside this
+repo in `~/.claude/scheduled-tasks/blackline-build/`. A job here cannot
+change it, so moving the section would break the routine's instructions on
+the next run.
+
+Options:
+1. **Accept 533 and amend the target.** The job's purpose was that a run
+   stops paying to read 1,846 lines; 533 is a 71% cut and every removed
+   section is indexed. Change G1's number in QUEUE.md to "under 550" and
+   close it.
+2. **Split the traps into `TRAPS.md`**, HANDOFF drops to 347, and **Josh
+   edits SKILL.md in the same stroke** to point the "before you start" line
+   at the new file. Nothing is lost, both files stay short, and the traps
+   get a home that can grow without taxing every orientation read.
+3. **Retire traps on purpose.** Several are now history rather than hazard
+   — "a boot failure used to be a silent 60s timeout", "a check used to
+   inherit the last check's menu", the flaky sound render — and survive
+   only as their operative sentence. Josh names the ones that have earned
+   retirement and the rest stay in full.
+
+Recommendation: **2**. It is the only option that costs nothing — 1 keeps
+a file bigger than the protocol wants, and 3 trades away hours already paid
+for. The one thing it needs is the one thing the routine cannot do, which
+is why this is here rather than decided. If 2, G2 in `QUEUE.md` is sized S
+and blocked on this.
+**decided:**

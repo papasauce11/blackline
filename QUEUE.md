@@ -109,39 +109,49 @@ Opened 2026-09-22. The documents the routine reads to orient itself are
 themselves work, and they have drifted. Nothing here touches the game;
 a job in this block may never change a file under `src/`.
 
-- [ ] **G1 (S)** `HANDOFF.md` back to one page. `blocked:`
-  Step 6 of the protocol says "keep it one page of orientation; history
-  belongs in PROGRESS.md". It is **1,831 lines / 118KB**, and the reason
-  is structural, not neglect: every Block C, D and E job appended its own
-  narrative section, so the file now carries ~30 per-job write-ups (E6,
-  E5, C7, B5d, F8, E4, E3, E2, E1, D7, D6, D5, D4, D3, D2, D1, C1-C5,
-  B5-B8 ...) that PROGRESS.md already holds in full. Every run pays to
-  read it, and it is the first thing every run reads. Drift of the kind
-  this costs was found the same day: three questions decided on 09-21
-  (D25, D27, D38) were still listed as open under "Still needs a human",
-  and the D3 section still said D3b was queued - all fixed in the
-  2026-09-22 commit, none of which would have rotted in a file short
-  enough to re-read whole. Keep, in this order: Last audit, Where things
-  stand, the redesign's rule, Where the suite runner lives, Running it,
-  Environment traps, The lesson that keeps repeating, Still needs a
-  human. Replace each per-job section with one line under a "What was
-  built, and where it is written up" index - job id, one clause, and the
-  PROGRESS.md entry title to read for the rest - **except** where a
-  section carries something found nowhere else (the plant-rule checks'
-  locations, F3's split, the census's climb rule); move those into the
-  section they belong to rather than deleting them. Verify nothing is
-  lost the cheap way: for each section removed, grep PROGRESS.md for its
-  job id and confirm an entry exists. *done-when:* HANDOFF.md under 400
-  lines, every removed section's job id present in PROGRESS.md and named
-  in the index, no statement in the file contradicted by DECISIONS.md or
-  QUEUE.md, and a run of `npm run suite` unchanged (this job touches no
-  code, so the suite is a witness, not a proof - the real check is that
-  the next run can orient from it).
+- [x] **G1 (S)** `HANDOFF.md` back to one page. — done 2026-09-23, under
+  Done. **The under-400 half of its done-when was not met and cannot be**:
+  see G2.
+
+- [ ] **G2 (S)** Decide what the traps section costs. `blocked: D47`
+  G1 got `HANDOFF.md` from 1,846 lines to **533** and stopped there, because
+  under 400 is unreachable alongside the rest of G1's own done-when. With
+  every kept section already written as tightly as it can be stated,
+  everything except *Environment traps* is **345 lines** — including the
+  index the done-when requires (50) and Running it (69). For the total to
+  come under 400 the traps would have to fit in **55 lines** against about
+  thirty traps: under two lines each, which is a list of titles with the
+  hour-saving content deleted. And they cannot simply move to a sibling
+  `TRAPS.md` (which would leave HANDOFF at 347, losing nothing): the
+  scheduled task's own `SKILL.md` tells every run to "read the 'Environment
+  traps' section of HANDOFF.md before you start", and that file is outside
+  this repo, in `~/.claude/scheduled-tasks/blackline-build/`, where a job
+  here cannot change it. So this is Josh's call — D47, three options.
+  *done-when:* whichever option D47 names is carried out, the line count it
+  implies is met, no trap loses its operative sentence without being
+  retired on purpose and named in `PROGRESS.md`, and `npm run suite` twice
+  with the answers unchanged.
 
 
 ---
 
 ## Done
+
+- **G1** `HANDOFF.md` back to one page. **1,846 lines to 533**, a 71% cut.
+  The ~30 per-job narrative sections are gone and replaced by an index
+  naming every one; because every `PROGRESS.md` entry is titled with its job
+  id, the index needs no second column. Before deleting, each of the 27
+  removed job ids was confirmed to have a PROGRESS entry — 27 of 27, by
+  script. The three sections carrying something found nowhere else (the
+  plant-rule checks' locations, F3's split, the census's climb rule) were
+  kept, the first folded into the plant rule. Drift fixed: the old file
+  claimed both that Josh decided D13 and that D13 still blocked; in fact
+  **every entry under DECISIONS.md's Blocking heading is decided**, so
+  nothing is blocking, and Provisional entries are no longer written up as
+  open questions. **The under-400 target was not met** — 345 lines is
+  everything but the traps, so 400 would leave them 55 lines for thirty
+  traps, and they cannot move out because the routine's own SKILL.md names
+  that section. G2 and D47 carry the choice. Suite unchanged. 2026-09-23.
 
 - **F10** A hung gate dies, and says which check hung. `src/ui/autosuite.js`:
   `beat()` publishes a monotonic `seq`, `done`, `total` and the id in

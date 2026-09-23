@@ -3,26 +3,27 @@
 **Read this first.** Then `QUEUE.md` (the work), `DECISIONS.md` (what waits
 on Josh, and what he has decided), `PLAN.md` (the protocol a session follows).
 `BLACKLINE_SPEC.md` is the contract; `PROGRESS.md` is the full append-only
-history (3,000 lines) — read only the last entry. `PLAYTEST.md` is Josh's:
-how to run it, what to look at, what only eyes can judge, what is known to
-be wrong - every Block C, D and E job updates it (C6).
+history — read the last entry, and the entry named in the index below for
+whatever you are about to touch. `PLAYTEST.md` is Josh's: how to run it, what
+to look at, what only eyes can judge, what is known to be wrong — every Block
+C, D and E job updates it (C6).
+
+This file is orientation, not history. It is kept to one page on purpose
+(G1): every run reads it, and a run pays for every line. A job's write-up
+goes in `PROGRESS.md` and gets one line in the index here.
 
 ## Last audit
 
-2026-09-20. HEAD `ae89df1`: plant 162 passed / 1 failed / 6 not for this map, yard 145 / 1 / 23, 0 red, 0 flaky, 0 console errors — matches this file; the one failure per map is the frame-budget check, skipped headless. The run takes 12 minutes with both maps, past the audit task's 10-minute Bash limit.
-Week: 53 commits, 29 jobs done (B3–B9, B8b, C1–C6, F5, F6, D1–D7, D36, E1, E2), 9 queued, 0 WIP at HEAD. Blocked on Josh: D8 and D13 (12 days, nothing waits), D25 (7 days, blocks B5b), D27 (6 days, blocks B5d), D38 (2 days, blocks D3b). *(All five went the next day, 2026-09-21; the nine queued jobs are all done. This paragraph is the 09-20 snapshot — "Where things stand" below is current.)*
-Checks: none deleted, no threshold loosened, the one skip unchanged. 23 checks scoped `maps: ['plant']` this week (D7's anymap checks hold their clauses on the yard); two "inside anything" preconditions widened to count crawl spaces (D2).
-Drift: config.js 1,465 lines (exempt), 0 TODO/FIXME, 1 Math.random (audio noise), 1 setTimeout (a performance check). Fresh seed 20260920: 14 checks green on both maps — but every fuzz and soak check pins its own seed, so `?seed=` never reaches them (the recommendation). A suite runner from the 09-18 17:00 build was still running 41 hours later; the audit could not end it.
-Full report: PROGRESS.md, "Audit — 2026-09-20".
-
-**The project now runs itself.** Two scheduled tasks — `blackline-build` at
-17:00 and 02:00, `blackline-audit` weekly — do up to three queue jobs per run,
-one at a time, under the protocol in `PLAN.md`. A human session is welcome to do the same: take the
-first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
-
----
-
-
+2026-09-20. HEAD `ae89df1`: plant 162 passed / 1 failed / 6 not for this map,
+yard 145 / 1 / 23, 0 red, 0 flaky, 0 console errors; the one failure per map
+is the frame-budget check, skipped headless. Week: 53 commits, 29 jobs done,
+0 WIP. Checks: none deleted, no threshold loosened, the one skip unchanged.
+Drift: 0 TODO/FIXME, 1 `Math.random` (audio noise), 1 `setTimeout` (a
+performance check). Fresh seed 20260920: 14 checks green on both maps — but
+every fuzz and soak check pins its own seed, so `?seed=` never reaches them
+(the recommendation). It also flagged a suite runner from 09-18 still alive
+41 hours on and could not end it; that became F10. Full report: PROGRESS.md,
+"Audit — 2026-09-20".
 
 ## Where things stand
 
@@ -30,841 +31,69 @@ first unblocked job in `QUEUE.md`, finish it, record it, leave the tree clean.
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after F10 (2026-09-23) |
-| AUTO suite | headless, `npm run suite` - **both maps since D6**, twice each. **2026-09-23, after F10: plant 173 passed, 1 failed, 8 not for this map (748s, 938s), yard 154 / 1 / 27 (467s, 613s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses** - one more pass per map than the gate before it, which is F10's own check. The gate that opened that run, on an unchanged tree, was plant 172 / 1 / 8 (823s), yard 153 / 1 / 27 (494s), matching the 09-22 gate exactly. A run whose heartbeat stands still for `--stall` seconds (600 by default) now dies naming the check in flight and exits 2, instead of hanging forever. Older readings: plant **168 passed, 1 failed, 6 not for this map (582s, 648s)**, yard **148 passed, 1 failed, 26 not for this map (229s, 225s)** (2026-09-21, after E6), 0 red, 0 flaky, 0 console errors; the one failure on each is the frame-budget check, skipped headless (see Running it). **Re-run as a gate 2026-09-22 17:00 with no code change since: plant 172 / 1 / 8 (819s), yard 153 / 1 / 27 (470s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses** — identical counts, so the base is where E6 left it. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is **whole on every map since D7**: plant 29 checks in 58s headless, yard 29 in 25s, 0 not for this map on either |
-| Next job | **G1 (S)**, this file back to one page - unblocked, and the reason it is worth doing is in its queue entry. Behind it **F11 (S)**, queued by F10: `a-zero-size-viewport-does-not-blind-the-renderer` takes **269s on the plant**, a quarter of a whole run in one check, and it is the floor under the gate's `--stall` default. **F10 done 2026-09-23** (below): a hung run now dies in `--stall` seconds naming the check in flight, closes its browser, and exits 2; SIGINT/SIGTERM tear the tree down; an older `suite.mjs` is named at startup, in the report and in the summary. **Josh: the two 09-18 node processes still need killing by hand** - pids 9608 and 4792, and Chrome 8920 - see the orphaned-runner trap; the sandbox refuses `taskkill` to a scheduled session, and F10 stops the gate making new ones but cannot clear these. Every timing on record is still measured against them, which every run now prints. Blocks A, B, C, D and E are closed; F is open on F11, G on G1. What waits on Josh is D13's rule (may move a site), the Provisional entries D40-D46 (looks), and the frame-budget run on a GPU with the post on (PLAYTEST.md). Beyond G1 and F11, the next work is whatever Josh queues. |
-| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, and now 1,648 lines against the audit's 1,465); the check `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) - the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both the documented exceptions |
+| Working tree | clean after G1 (2026-09-23) |
+| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-23, after F10: plant 173 passed, 1 failed, 8 not for this map (748s, 938s), yard 154 / 1 / 27 (467s, 613s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses.** The one failure on each map is the frame-budget check, skipped headless. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
+| Next job | **F11 (S)**: `a-zero-size-viewport-does-not-blind-the-renderer` takes **269s on the plant**, a quarter of a whole run inside one check, and it is the floor under the gate's `--stall` default. Beyond it, the next work is whatever Josh queues — Blocks A, B, C, D, E and G are closed, F is open on F11 |
+| Waiting on Josh | **Nothing is blocking** — every entry under DECISIONS.md's *Blocking* heading is decided (D8, D13, D20, D23, D25, D27, D38 and the two runner ones). What is open is the **Provisional** section, which Josh may override any time, and the things only eyes can settle — see *Still needs a human*. **And two orphaned node processes that need killing by hand**, see the orphaned-runner trap |
+| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,648 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. Outside `src/`, `scripts/suite.mjs` is 507 and `scripts/watchdog.mjs` 181. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions |
 | Runtime assertions | 8, zero failures |
-| Map, plant | 214 collision boxes, 57 climbable (58 until B5c took the north duct's west lip, which is walked into level from the crate stack), Warden ground one connected component, with a column of cells down each vault rack aisle since B4. **8 declared routes, 22 stages** (`map.routes`, B5, B5c), 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb (146 until B8 swept the way up: nine went, through a duct wall or the hall gantry) |
-| Map, yard | 132 boxes (71 before the walkway's 53, 124 before the masts' 8), 58 climbable, 5 lamps (four on masts, one under the walkway), Warden ground 15,332 cells in one component (the run and its stair included), 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up (the two arches and the nine upper tiers), every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
+| Map, plant | 214 collision boxes, 57 climbable, Warden ground one connected component with a column of cells down each vault rack aisle. **8 declared routes, 22 stages** (`map.routes`); 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb |
+| Map, yard | 132 boxes, 58 climbable, 5 lamps, Warden ground 15,332 cells in one component, 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up, every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
 
 Phases 1–49 of the original build are done and committed. The **redesign**
-(phases 1-50 of the plan below) is closed as of B9, 2026-09-14; the two
-jobs that waited on Josh went 2026-09-21 (B5b dropped on D25, B5d built on D27). One directive arrived
-outside it (the plant, below). **Block C is closed** (2026-09-16): C1,
-the playtest build, C2, the round-start briefing, and C3, hit and damage
-feedback, landed 2026-09-15; C4, the end screens, C5, the difficulty
-pass, and C6, `PLAYTEST.md`, 2026-09-16 (below). Block D, the second
-map, is under way: D1, the plumbing, and D2, the yard blocked out, both
-2026-09-17 (below); D3, the walkway, and D4, the night, 2026-09-18
-(below); D5, the AI on the yard, D6, both maps in the gate, and D7,
-the regression set whole on every map, 2026-09-19 (below). **Block D is
-closed** (D3b dropped 2026-09-21 when Josh decided D38 option 1). Block E, styling: E1, the
-Shade's figure, 2026-09-19, E2, the Warden's, and E3, animation,
-2026-09-20 (all below); F7, a look at a pose, the same day; E4, the
-plant's materials, 2026-09-21 (below), and F8, the key light's shadow
-side, the same day (below); E5, the yard's materials, and E6,
-post-processing, the same day (below). **Block E is closed.**
-
----
-
-## Post-processing - E6
-
-`src/post.js`, `createPost(renderer)`; `post.render(scene, camera)` is
-what main.js's frame and pixels.js's lens call in place of
-`renderer.render`. On (`SETTINGS.post`, a settings row, the default):
-the scene into a full-size **half-float** multisampled target (8-bit
-linear banded every dark tone to grey - sRGB 8 is linear 0.002, which
-rounds to 1/255 and comes back as 13), a **bright pass** at half size
-keeping what is over `bloomThreshold` 0.5 of linear luma (the route-lit
-stages and the lamp fixtures read 0.75-0.8, a lit floor 0.13) **where
-the target's alpha is 1** - a body writes 0 (`NO_BLOOM` / `withoutBloom`,
-agentmesh.js; the Shade's rim, the Warden's body, the silhouette
-checks' flat white stand-in), so a body is not an emissive and grows no
-halo; a step at 0.999, since the multisample resolve leaves a body's
-edge pixels half covered - two
-separable **Gaussian blurs** at half size ping-ponging between two
-targets, a **composite** to the canvas - the scene plus the blur at
-`bloomStrength` 0.8, times an elliptical **vignette** from 0.55 to 1.25
-of the half-diagonal, 0.3 off at the corner - with
-`colorspace_fragment` applying the output transform once, and then
-**C3's feedback quad** over the top on `render.overlayLayer` (1), the
-camera's layers borrowed and given back and the scene's background
-lifted for the pass (a Color background clears the canvas whatever
-`autoClear` says, and took the composite with it the first time). Off:
-one pass to the canvas, the camera seeing both layers. `renderer.info`
-is reset once a frame in `post.render`, `autoReset` off, so a frame's
-draw calls are the frame's - the checks that count calls by difference
-are unchanged, the F3 overlay's number includes the passes. No
-EffectComposer: the addons bundle is not fetched (the import map pins
-one file). **What it did to the numbers**: the routes' landing edges
-158-182 luma from 224-227 (spread, not clipped), contrasts 0.75-0.78
-from 0.79-0.83; a lamp's halo takes the deck's underside read from 101
-to 105; pools, mouths, rim, figures to the digit or a level; and the
-site tint darkened more (the multiply is linear now), so
-`siteTintStrength` is 0.13 (D44's numbers superseded, D46). **The
-check** (tests/post.js, every map): a lamp with an eye 3m off it in
-open air - the ring ten pixels round its fixture brighter by 3 luma at
-least (22 to 78 plant, 35 to 112 yard); a floor view's four corner
-squares at 0.9x or under (0.85) and its centre within 3% (2%); the hit
-marker's span within 3px either way (45/45); `post.passes` 7 on and 0
-off; the settings row switching `SETTINGS.post` both ways. **The frame
-budget** is D10's clause and a GPU's question: PLAYTEST.md says how to
-answer it. Spec 20.32.
-
----
-
-## The yard's materials - E5
-
-The yard on E4's kit with its own set, `CONFIG.map.yardFinishes`
-(`new GameMap(..., { finishes: M.yardFinishes })` in yard.js). **Every
-container is `corrugated`**, whatever its tier colour: a glossy ramp
-`[0 0 .4 .45 .5 1 1 1]` and a grime with `ridges` - `grimeAt`
-(mapmaterials.js) multiplies by a cosine profile along u, `count` to
-the tile and the troughs `depth` darker (9 to 2.4m, 0.22) - under fine
-vertical streaks and a broad stain; `applyWorldUVs` puts u along every
-standing face, so the ridges stand vertically on every box and run on
-across a row. **The ground and the fence are `wet`**: a concrete lower
-in its mid-tones `[0 .15 .3 .45 .6 .7 .8 1]` with a grime of broad
-puddles (an 8m tile, a stain that takes a fifth). Paint and glass are
-the plant's; the walkway's slab and parapet, being `concrete`, are in
-the containers' sheet. **Two decal kinds** join the atlas, now 4x2
-(`ATLAS_COLS`/`ATLAS_ROWS`; the plant's four tiles where they were):
-`rust`, a band up from the tile's foot with its top broken by noise and
-pitted, and `stencil`, "BLKU 2607 1" in a 3x5 bitmap font drawn in code
-and worn through - both paint kinds on the paint ramp, so they shadow
-and dim with the night. **`src/maps/yarddecals.js`** lays seventeen:
-six rust bands at the foot of the rows, four stencils at eye height,
-tracks through both gates, a kerb inside the south one, oil under the
-trailer, in the west store and under the walkway, a drip down bay A's
-south row under its mast; nothing on a declared route's first stage or
-the ground at its foot, nothing within reach of a site or a spot a
-light check reads. **The numbers**: a container side under a floodlight reads grime spread 2.61 and darkens 5.8 at luma 13.9, the difference row across it crossing its mean 19/19/23 times (a dozen wanted); the lane under the gate mast reads spread 1.80, darkens 3.4 at luma 24.9; the yard's pools 21.1/17.9/14.5 from 24.7/22.6/19.4 with the gaps and the sky down in step, every relation of `the-yard-is-dark-between-its-pools` held; the masts, the walkway, the deck and the plant's own material checks to the digit. **The checks**
-(tests/yardmaterials.js, yard; the helpers exported from
-materials.js): the set, the palette sorted into it, the ramps as
-configured and wet under concrete in its mid-tones, every material on
-its finish; a container side under bay A's mast read by difference
-(spread, darkens) and as ridges - the difference row across the face
-crossing its own mean at least 12 times; the ground by difference;
-every decal on a solid's face clear of the sites, two draw calls, the
-rust and the stencil changing pixels from 2.5m, every ground stain a
-tenth darker. Spec 20.31; D45 argues the choices.
-
----
-
-## The site is a tinted floor, and the HUD names it - C7
-
-D8 (Josh, 2026-09-21): the ring said "plant here" and meant "this
-room"; tint the floor slightly orange and have the HUD name the site.
-**The tint** is `bakeSiteTints(map)` (src/mapdecals.js), called by
-`addSite`: for every site with a room, one quad per solid whose top is
-the room's floor and whose footprint meets the room's rectangle,
-clipped to it, `M.decals.lift` proud - the plates rather than the
-rectangle, so the vault's hatch is a hole and not a tinted plane over
-the hall (nine quads there, one in the hall, one in the bay, one per
-yard bay) - merged into one mesh `site-tints` on `map.root`
-(`map.siteTintMesh`; each site's `tint` lists its quads). A multiply
-(`MeshBasicMaterial`, `MultiplyBlending`, `premultipliedAlpha`, fog off,
-as the grime decals), colour white lerped to `hazardOrange` by
-`M.marking.siteTintStrength` (0.28, D44): the floor's own lighting
-times a warmth, so the vault stays dark and a lit hall reads warm - a
-painted quad at any opacity would have lit the vault by itself. The
-ring, `siteRing*`, `site.ring`, `addDecal` and `map.update`'s pulse are
-gone; `SITE_SAMPLE_OFFSET` (tests/pixels.js, 3.5m) keeps the four floor
-checks on the spot they always read. **The HUD line** is `#bl-site` in
-the prompt panel: `gatherHudState` finds the site by the player's own
-role (`siteHere: { id, name }`, the Warden at its own stand height) and
-`promptInRange` is the Shade's alone - the Warden used to be shown "hold
-E to plant" for wherever the Shade stood; `hud._updateCommon` shows the
-line while there is a site and the prompt text and bar only while there
-is a prompt. **What it did to the numbers**: R/B up 1.14-1.17x and luma
-down 7-9% on every site floor of both maps (site A 24.5 to 22.7, the
-vault 10.2 to 9.4); lit-pools' every relation holds (the hall 2.42x the
-vault), the mouths and the routes are unchanged to the digit but one
-surround a level darker. The damage vignette's darkening over site A
-(C3's check, D31's 8 luma) fell from -9.0 to -7.6 with the floor darker
-and the ring gone from the band, so the vignette's red went deeper
-(`feedback.vignetteColor` 0x580d0a; -11.8 now), not the check.
-**The checks** (tests/sitetint.js, every map):
-one mesh, a multiply, no rings, every quad inside its room on a solid;
-the floor read tint-drawn against tint-hidden at the lit-pools spot on
-every site, warmer by 1.08x on the brightest and no darker than a tenth
-on any; the Shade walked from 1.5m outside a site room's lateral entry
-through W until `siteNear` answers, the DOM read "SITE A - Turbine
-Hall", walked out through S and read nothing, the Warden placed in
-another site read its own with no plant prompt. Spec 20.30.
-
----
-
-## The defuse reach is a clear line - B5d
-
-D27 (Josh, 2026-09-21): a Warden may not defuse through a floor. The
-reach was two distances - `DEFUSE_REACH`, arm's length across and 2.5m
-up or down - and knew nothing of what lay between, so the north duct's
-roof under the deck was a legal plant defused from the deck through
-0.3m of slab. **`withinDefuseReach(foot, at, collision)`**
-(systems/plantrule.js) is the distances and then a line: from one of
-six points on the segment from the Warden's feet to its raised hands
-(`DEFUSE_LINE`: `samples` 6, `skin` 0.1 off the floor the Warden stands
-on and off the surface the charge rests on, so neither end starts inside
-the box it touches) to the charge, `collision.lineOfSight` with every
-solid box in the way - glass too; you cannot reach through a pane. The
-world is a required argument: a caller that measures the distances
-alone throws, so the two sides cannot drift. The defuse in objective.js
-passes `this.map.collision`; `canDefuseAt` passes `map.collision`
-through `someCellWithin`'s context (a reused module object, no
-allocation on the plant hold's step); the census's two call sites pass
-`h.map.collision`. A Warden beside a crate reaches the charge on top of
-it from its hands over the crate's edge; one over a floor does not; one
-behind a thin wall does not. **What moved**: the census went from 366 legal plant spots to 364 of 381: the north and south duct roofs under the deck (4 of 21 tops out of reach, 2 before), and nothing else. **The AI** (ai.js): DEFEND paths to `_defendStand`, the nearest cell the reach accepts (`defuseSnapFor(map)` in aistate.js hands `standAt` an `accepts` that is `withinDefuseReach` with the map's world - under a duct the nearest cell inside the distances is one the line through the duct floor refuses, and the Warden used to stand there and never kneel), and decides it has arrived by the reach itself, not a hold radius (`defendHoldRadius` is gone); the last-leg check plans with the same snap. The three-match soak: 9 rounds, all defused, 0 stuck re-paths. **The check**
-(tests/defuseline.js, plant): a charge on `vent-low-north-roof`, the
-Warden on the nearest deck cell over it inside the distances, a second
-of the round, no progress; beside a legal crate top from below, progress;
-the slab the line meets made non-solid, the reach accepts the deck cell,
-and refuses it again with the slab back. Spec 20.29.
-
----
-
-## The key light gives nothing to a face it lights from behind - F8
-
-Three's shadow pass draws back faces, so the depth it stores for a
-surface the key lights from behind is that surface's own, and the
-shadow term there is a depth compared with itself: the 1024-map's
-texel staircase, fine diagonal stripes a level or two deep across the
-whole face. A Lambert never shows it (dotNL < 0 is black); the toon
-ramps light the back half of dotNL (the 4-step's 0.333, concrete's
-0.4), so every wall with the key behind it and nothing else shading
-it wore them - E4's probe found them on the east shell wall from
-inside the bay, and a normal bias cannot help because it is the wall's
-own depth whatever the bias. **`noKeyLightFromBehind(material)`**
-(src/mapbake.js) is an `onBeforeCompile` that resolves
-`lights_fragment_begin` and multiplies the shadow-casting
-directional's term by `step(0, n.L)`: a face behind itself is in its
-own shadow. Only the key; the fill, the hemisphere and the lamps wrap
-as before, and the ramps are E4's. Every material the cache makes
-takes it under one program key (`bl-no-key-from-behind`; the leak
-check reads one more program on the yard, 14, unchanged across its
-rounds); the actors keep theirs. The cost is that those faces are a
-third darker (the east wall 25 to 17 luma) - every other light reading
-on both maps is unchanged to the digit, one landing edge's contrast
-better. **The check** (tests/keylight.js, plant) reads three rows across
-the wall from E4's eye, counts crossings against a smoothed copy
-(ceiling 6; 2/0/1), and strips the patch at runtime to see the stripes
-(23/21/12) before restoring it. Spec 20.28.
-
----
-
-## The plant's materials - E4
-
-**A finish is what a surface is made of; the colour says which.**
-`src/mapmaterials.js` builds the set from `CONFIG.map.finishes`: for
-each of concrete, paint and glass a **ramp** (`createRamp(levels)`,
-eight texels a quarter of dotNL each - concrete matte `[0 .2 .4 .55 .7
-.8 .9 1]`, paint glossy `[0 0 .45 .45 .45 1 1 1]`, glass `[.4 … 1]`)
-and a **grime** (a tiling `DataTexture` from `hash2` / `valueNoise`, a
-hashed lattice: deterministic by coordinate, not a random call; sRGB,
-`repeat` = 1 / tile metres). `byPalette` names palette entries, so a
-retuned colour keeps its finish; anything unnamed is concrete. A map
-opts in with `new GameMap(gradientMap, id, name, { finishes })` - the
-plant does, the yard does not until E5 - and `createMaterialCache
-(gradientMap, finishes)` (mapbake.js) puts each colour on its finish's
-ramp and map, the lit variant too. `applyWorldUVs` in `addSolid` writes
-every box's UVs from world position by face normal, so a crate and its
-slab share one grain. Emissive is untouched by a map in three, so B7's
-step is exactly what it was.
-
-**Decals** are `src/mapdecals.js`: `bakeDecals(map, specs)` lays a
-`PlaneGeometry` per spec (`kind`, `at`, `face`, `w`, `h`, `along`) a
-centimetre proud of the face, UVs into one tile of a 2x2 atlas drawn in
-code (stain, drip, scuff, hazard), merged into two meshes on
-`map.root` - the grime kinds a `MeshBasicMaterial` multiply
-(**`premultipliedAlpha: true`, or r180 logs an error a frame and draws
-the quad opaque white**; fog off), the kerb a `MeshToonMaterial` cut
-out by `alphaTest` - and records each on `map.decals` for the checks.
-The plant's twenty are `src/maps/plantdecals.js`, none near a climb, a
-mouth or a ring. `mergeGeometries` carries uv now.
-
-**What the grime does to the numbers.** It only darkens, and more on
-screen than the texel says (sRGB texel, linear multiply): concrete's
-mean texel of 0.94 takes a seventh off a lit floor (site A 28.5 to
-24.5 luma). Every relation the pixel checks hold is unchanged or
-better; the absolute level is lower, which is D43's for Josh. The
-crates and the ducts read against concrete
-(`every-vent-mouth-reads-by-contrast-from-its-approach`, thinnest 0.26
-against 0.25; `every-route-reads-lit-from-its-foot`, stack-hall-low
-0.29), so concrete's mid-tones have a ceiling and paint's a floor: the
-first ramps (concrete 0.85 at mid angles, paint 0.55 at grazing) put
-the mouth at 0.25.
-
-**The checks** (tests/materials.js, plant): the finishes, the ramps,
-every material on its finish, then the grime by difference - the crop
-with the texture minus the same crop with it taken off every material
-of that finish, read under a lamp (the deck's underside over the north
-corridor at luma 101, the south duct's wall at 80), spread >= 1 and
-darkens >= 2; a first instrument read the crop's own spread on a wall
-at luma 20 and could not tell 1.48 from 1.30. And the decals: every
-kind, every quad on a solid's face (`isClear` either side of the
-surface point), clear of the sites, two draw calls, every floor stain
-a tenth darker and the deepest 3 luma, the kerb changing pixels. Spec
-20.27.
-
----
-
-## The bodies in motion - E3
-
-**`src/entities/pose.js`** is the mechanism: one target record per body
-(`createPoseTarget`, twelve fields - the body group's lean, roll and
-lift, the head's pitch, each limb's x and z), filled in place every
-frame by the state, and every group eased toward it by `easePose` the
-shortest way round over `POSE_BLEND` (0.2s; nine tenths in a third of
-it; all of it when `wallDt` is 0, which is what `reset()` passes, so a
-reset draws the pose it is given). A state change is a movement, not a
-replacement, and no frame allocates. The Shade's poses are `POSE` at
-the top of agentvisual.js and its `_posture` fills the record; the
-Warden's are `POSE` at the top of enforcer.js and its `_posture`. Both
-mesh builders put `userData.baseY` on the body group (the torso, the
-chest) for the lift.
-
-**The gait is by the ground covered.** `_animTime` is the phase, advanced
-by `speed * wallDt * pi / stride` on the ground - the band's footstep
-stride, so a foot plants about when the step sounds - and frozen
-otherwise, so a body that stops stops mid-stride and eases to rest;
-the amplitude is by speed (Shade 0.57 rad at a walk, 0.85 at a sprint;
-Warden 0.38 at a walk). The clock-driven phase it replaced slid the
-feet. The breath (`_breathTime`) is the one thing still on the clock.
-
-**The Shade**: the crouch (leant forward, thighs bent under the squash,
-hands ahead and out, the head up), the slide (leant back, legs out, the
-left hand trailing), the air rising (a stride held, arms back) and
-falling (legs together, arms out, by `-vy / fallSpeed`), the **reach**
-(`_climbArmed && _faceAhead`: both arms up and forward at 1.8, so the
-grab that follows comes up over the front - from the old air pose the
-short way to straight-up was through the back), the vault (hands
-planted at 0.9 through the first half, then to -0.4; legs tucked and
-the torso leant by a bell over `_moveProgress()`), the mantle (arms from
-2.4 to 0.8 over the move, the right knee up, the left trailing), the
-grab and the hang (B8's stretch, `HANG_ARM_ANGLE`), the **pull-up** (the
-arms' target walks from -3.05 the long way to 0.6 - down through -pi,
-which the ease normalises to +pi - so the hands come over the front;
-the ease follows because the target never moves far in a frame), the
-landing (a squat with the arms out by `_landRecovery / landing.recovery`,
-which is the weight while the recovery holds the speed down). The scuff
-and the knife arc still write their arms over the top, as timed tells;
-the ease takes the arm back when they end.
-
-**The Warden**: the roll, a bob, a sprint lean; the carry `REST` swung
-a little by the gait; the sights (`adsBlend`, the value the FOV and the
-speed already read) raise both arms by `-rifle.pitch` (0.35, so the
-barrel is level) plus the aim's pitch within a radian, so the rifle
-points where the Warden looks - it is a piece of the right arm's part
-(E2), so rotating the arm is aiming it - and the swing leaves the arms;
-the head takes 0.3 of the pitch at the carry and all of it plus a
-`cheek` drop with the sights up. The stun drops the arms as before and
-sags the chest and the head.
-
-**The checks** (tests/animation.js, every map): `the-shade-has-a-pose-
-for-every-state-and-a-stride-for-every-step` drives every state through
-the real keys on the first clear lane and the ledges `findGroundLedge`
-finds, reads the twelve fields after each, and requires every pose at
-least 0.25 rad from standing and from every other in some limb (the
-closest pair, rise and fall, 0.46), the leg across the vertical once a
-stride of the ground covered - crossings 2.10m apart walking against
-the 2.1m stride, 2.60 sprinting against 2.6, within 15% (a swing on
-the clock reads 2.5 and 3.4; counting crossings could not tell them
-apart, measuring the ground between them can) - further at a sprint,
-none standing, the hanging arms
-straight up, and the pull-up's left arm between 0.5 and pi half way
-(1.97: over the front). `the-warden-walks-heavy-and-raises-the-rifle-to-
-where-it-looks` (free roam as the Warden): the carry at `REST`, the
-leg once a stride (crossings 2.00m apart), the body rolling 0.05, Mouse2 raising both
-arms 0.35 and the right hand 0.15m in the world, `look(0, 0.6)` raising
-the arm 0.6 more and the head 0.6, the carry back within 0.000 rad a
-second after the release, the stun dropping the arm to 0.1. Spec 20.26;
-D42 argues the numbers.
-
-## The Warden's figure - E2
-
-`WARDEN_FIGURE` (entities/wardenmesh.js, split out of enforcer.js as
-agentmesh.js was out of agent.js) states it. A **domed helmet** with a
-brim and a `wardenSteel` visor sat on the shoulders over a **collar**,
-no neck showing: the chest's top is a hand under the brim, so the
-silhouette never steps in under the helmet - the Shade's hood over a
-neck in reverse. **Vest plates** proud of the orange chest front and
-back, a belt of **hips** over the tops of the legs (the old figure had
-25cm of nothing between chest and legs), **pauldrons** tilted down at
-the outer edge the widest row (1.2m), short legs at 0.22 splayed to
-boots at 0.30. **The rifle at the low ready**: both arms forward and
-pulled in to the centreline, the hands together at the grip in front
-of the belly, the rifle from the right hand ahead and 20 degrees down.
-It is a piece of the RIGHT ARM's merged part, built in that arm's
-frame from the rest pose (`riflePieces`: the hand from `handAt`, the
-direction from `rifle.pitch` / `yaw`, both taken into the arm's frame
-by the inverse of its rest quaternion), so it goes where the right
-hand goes - the stun drops it, E3's aim rotates the arm and raises it.
-`arm.rest` is the carry, read by enforcer.js `_animate`; **the old
-`-1.15` held the arms behind the back** (positive x is forward on this
-rig - the makeRotationX matrix, not a convention anyone had written
-down). Six merged parts on one toon material with vertex colours, six
-hulls grown 6mm (no rim to share the edge with): **12 draw calls, were
-16**. `part`, `grown`, `mergePieces`, `inward` moved to
-**entities/parts.js**, shared with the Shade; `part` takes the growth
-and a piece may carry a `quaternion`. `materials` is `{ body, outline }`
-as on the Shade. Spec 20.25; D41 argues the choices.
-
-The shoulder line is where it is for the check: at 25m the figure is
-forty rows and the "hood" band is the top seven (14%, rounded), so the
-pauldrons' top corners must sit below the seventh row (1.60m) or the
-helmet band reads the shoulders - it did, at 22px, until the chest and
-the pauldrons came down 5cm and 9cm. A figure's proportions are argued
-against the band it is measured in.
-
-`the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`
-(tests/figure.js, every map): the same stand and 25m eye as E1's check
-(`standAndEyes`), each figure turned to face the eye and then side-on,
-on the flat white with the other hidden, the Warden placed and drawn
-but never stepped (a stepped frame is the AI's). Front: the Shade
-narrow (3.3:1) with its hood 1.5x the neck and at least 0.9x anything
-in the band under it; the Warden broad (at most 2:1; 1.5) with its
-helmet at most 0.6x the widest row of the band under it (10 over 26);
-the Shade's aspect 1.5x the Warden's and the Warden's widest row 1.5x
-the Shade's (26 over 12). Side: the Warden's middle band (30-70% of
-the height) reaches at least 25% of the height ahead of its helmet
-(41%), the Shade's at most 10% ahead of its hood (-3%). Twelve draw
-calls at most. The readings lead the failure line too. `silhouette`,
-`band`, `structure`, `flatten` and `drawCalls` are the E1 check's
-pieces, now shared; E1's readings are unchanged to the pixel.
-
-A look, headless: the scratch script that served the repo, loaded the
-page and wrote `renderer.domElement.toDataURL()` after a `render` from
-a placed camera gave a PNG the session could read - what the pane did,
-without the pane. It is `npm run shot` since F6 (Running it, below).
-
-## The Shade's figure - E1
-
-`FIGURE` (entities/agentmesh.js) states it. A **hood** round the head -
-a sphere shell open at the face over a charcoal lining facing inward
-(`inward`) - and a short **cowl** over the shoulders, both the torso's
-teal and the torso's piece; the torso capsule narrowed to 0.14 with its
-top the **neck** just under the hood's rim, so the silhouette steps in
-there; the limbs thinner at the old length, pivots and
-reach (0.05 / 0.06), gloves and boots kept. **Six groups, six merged meshes, one
-material.** agentvisual.js poses the same six groups (torso, head,
-arms, legs) as before; each holds ONE merged geometry with vertex
-colours (`mergePieces`, `part`) on one `MeshToonMaterial` with the rim,
-plus one hull on one outline material - **12 draw calls, were 20**. Not
-a skinned mesh: Section 4 forbids a rigged skeleton, and that is how the
-queue's "merged geometry, one material" is read (D40). The hull is
-**grown 4mm per primitive** about its own centre (`grown`) before
-placement, not scaled about the part's pivot; the hull and the rim
-share the silhouette's outer pixels, and thicker (or thinner arms) the
-rim check reads a wash - it went flaky at 5mm on 4.5cm arms. `materials` is `{ body, outline }`; detection scales
-`body.color` from white. The last child of a limb group is an empty at
-the glove or boot (tests/hang.js reads it; E3 will want it).
-
-`the-shade-reads-as-a-hooded-figure-at-8m-and-25m` (tests/figure.js,
-every map): six parts on one material with colours, six hulls; the
-Shade at the near end of the first clear lane, an eye 8m down it and
-one 25m away with sight (`standAndEyes`), the body on a flat unlit
-white for the two frames (the yard's lamps left the charcoal limbs
-within eight levels of the containers), tall and narrow (3.4:1) with a
-hood wider than the neck under it (28px over 11 at 8m, 10 over 6 at
-25m, the same on both maps); 12 draw calls, at most 12. Spec 20.24;
-PLAYTEST.md says what only eyes can judge.
-
-## The regression set is whole on every map - D7
-
-`src/tests/anymap.js`: five checks with no `maps`, each the rule's
-clause of one of the set's plant-bound checks, asked of whatever map the
-page is on by **searching it**. `a-body-driven-into-any-solid-never-
-passes-through` (check 1) drives the Shade's body from every site and
-Warden spawn in four headings at 6.5 / 50 / 200 / 1000 m/s and sweeps
-every step's path by hand against every solid taller than a step
-(`segmentEnters`), so a tunnel that lands in open air on the far side
-is caught, not only one that ends inside a wall; 112 drives a map, 0
-breaches. `every-declared-route-is-driven-from-the-ground-to-its-
-landing` (check 3) climbs every route in `map.routes` stage by stage
-with the census's own drive (`attemptClimb`, now exported from
-tests/readability.js) and lets the body settle forty frames on each
-top: plant 8 routes / 31 climbs, yard 9 / 29. `no-climb-the-rule-names-
-rises-through-a-solid` is **`mantleClauses`** (tests/routes.js), the
-three map-generic clauses of the plant's mantle check factored out and
-shared with it; the yard has nothing the sweep refuses, and the check
-says so rather than failing the map. `a-lamp-lit-site-reads-lit-and-
-the-darkest-ground-reads-dark` (checks 8 and 9): the brightest site at
-least `LIT_METER` with headroom under the clamp, the darkest of a 2m
-grid over the Warden's ground under 25 (plant A 84 / darkest 3.0; yard
-B 58 / darkest 3.0). `a-round-stops-at-cover-and-reads-the-head-line`:
-the head line down `clearLane(h, 9)`, then three pieces of cover found
-among the solids with walking ground three metres either side.
-
-**The plant's five named checks are unchanged and out of the set**:
-their `spec` lines state the number in words (what `checksCovered`
-reads is "check N") and name the set's check; `regressionChecks` names
-`no-climb-...` in place of the plant's mantle id and adds the cover
-clause. **`the-regression-set-resolves-to-real-checks` is red on any
-map** where the set has a check for another map or a number nothing
-running there covers - what D6 reported, D7 fails. U on both maps: 29
-checks, 0 not for this map, every number covered. Spec 20.23.
-
-## Both maps in the gate - D6
-
-`npm run suite` runs **every map the registry lists**, read from
-`src/maps/index.js` by the runner (`registeredMapIds()`, scripts/
-suite.mjs - the module imports three.js through the page's import map,
-so it is read as text), so a third map is in the gate the day it is
-registered; `--map` still narrows it. `--regression` runs the page's
-own regression set (`runRegressionSet()`, F4 then U) per map instead
-of the whole suite and prints its time on the run line. **The set is
-asked per map** (`AutoSuite.regressionSet()`): the checks that cover
-Section 16's numbers or are named by id, split into the ones that run
-on this map and the ones registered for other maps only, and the
-numbers no check running *here* covers; `runRegressionSet` says both
-out loud, and `the-regression-set-resolves-to-real-checks` holds the
-page's split to its own count on every map. Today: the plant runs all
-29; **the yard runs 24, and 5 are the plant's** (`swept-collision-no-
-tunnelling`, `shade-reaches-level-2-without-stairs`, `a-mantle-never-
-passes-through-a-solid`, `visibility-reads-lit-and-dark-zones`,
-`hitscan-respects-cover-and-the-head-line` - each names the plant's
-geometry); the other four numbers are held on the yard by other
-checks, and Section 16's check 3 is held there by nothing. **D7 made
-the set whole** (above): 29 on both. Headless it is about a minute on
-the plant and half that on the yard - the queue's "under 20s" is a
-GPU-tab number nobody has read yet (PLAYTEST.md asks Josh for it).
-
-## The AI on the yard - D5
-
-**`litLane(h, length, stands)`** (tests/lanes.js) is `clearLane` with
-the map's lamps on it: the first clear run whose visibility meter reads
-at least `LIT_METER` (half the meter, 50) for a standing Shade at every
-distance in `stands`, read as a spawn seeds the meter (`meterAt`,
-through `detection.reset()`). The three AI checks that stood in the
-Turbine Hall by coordinate - `ai-state-machine-follows-section-11`,
-`each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`,
-`the-warden-fires-in-bursts-of-rounds-at-the-torso` - stand on it and
-run on every map. They hold the meter at its maximum; the lane is what
-makes "lit" true rather than a lie. On the plant the lane is from
-`hall-north` (site A has no 17m run) and **D33's table is unchanged**;
-on the yard it runs north from site C up the gate lane under the
-walkway's lamp (meter 63 / 80 at 8 / 16m) and the kills land within a
-third of a second of the plant's. `ai-perception-cone-and-accumulator`
-stays plant-only: its through-wall case names the hall's east wall.
-
-**Two AI fixes, on every map** (ainav.js; spec 20.21). A goal within
-**`ai.directRouteRange`** (10m, flat) is planned by
-`WardenGround.route()` from the Warden's own feet and the waypoint
-graph is not consulted - routed through the node nearest the goal,
-which on the yard stood beyond an 8m noise, the Warden walked past the
-Shade making it, out of its own cone. And **stuck means moving**
-(`_meansToMove`): Section 11's detector fires only while the AI has a
-route it has not reached the end of (ENGAGE, which closes with no
-route, always counts). Before, a Warden kneeling over a charge was
-"stuck" every 2s of its 8s defuse, re-pathed from the nearest graph
-node, stood up, walked there and came back - twelve re-paths in nine
-rounds of the soak, every one at the charge, four to eight seconds a
-round, in every playtest so far. `the-ai-walks-to-the-charge-and-
-defuses-it` got quicker on both maps by exactly that.
-
-**`the-warden-plays-three-matches-on-this-map-without-a-stall`**
-(tests/aisoak.js, every map): three best-of-fives, each round through
-`initMatch` with its round number and its own seed, the Warden from a
-different spawn, a patrol of 6 / 10 / 14s, the plant at A, B, C in turn
-(`plantAt`), the Shade to the farthest spawn, the defence on the
-detonation clock. Every round defused and the Warden's, the match over
-at 3-0, feet on `wardenGround` every step (`onGround`, now exported
-from tests/wardenground.js), a camera hung every match, at most three
-re-paths in all (0 on both maps). The rounds and every re-path (state,
-distance to the charge, defuse progress) go to the F4 log; the
-runner's detail line keeps 400 characters.
-
-## The yard at night - D4
-
-`RIG`, `MAST`, `MASTS` and `KEY_MAST` in `src/maps/yarddata.js` state
-it; `placeLights` builds it. **Four floodlight masts** - a pole 0.3m
-square on the ground against a wall or in a corner off every lane, an
-arm from its top, the lamp at the arm's end 6.5m up: bay A's against
-its south row with the arm out over the site, B's the mirror, C's
-against its east wall, the gate's in the open ground west of the lane
-north of the stair's foot - and a **fifth lamp under the walkway's
-floor** over the mid lane. Both mast parts are thinner than a body, so
-the climb rule finds nothing to stand on and nothing derives climbable
-(the rule still names *approaches* onto their faces - that is what an
-approach is; the top is what is too narrow). The lamps are **2.5x the
-plant's pendants** (`MAST.lift`; C's half that): a head at 6.5m over
-dark concrete needs it, and the meter under a mast reads in the
-fifties. **The sky lands a third of the day's** (a seventh in a shadow): `addLightRig(rig)` (mapkit)
-now takes a map's numbers over `CONFIG.map.lighting`'s - the yard's are
-hemisphere 0.2, a fill 0.14 from straight overhead in `lightCool` (the
-plant's fill colour `ambientSky` is too dark a blue to land anything;
-with it the shadows read 0.07), and the key 0.3, warm, **aimed from bay
-C's mast head at the yard's centre** (`aimKeyLight`), 28 degrees up. Bay
-C's is the mast that covers the most Warden ground inside the ring (2274
-cells to 1906 / 1731 / 1544), which is the job's rule for the one
-shadowed light; `the-yard-is-floodlit-from-masts-at-night` counts the
-cells and holds `KEY_MAST` to the count. Readings: pools A 26.9 / B
-24.5 / C 21.0; the sky alone 8.1 / 3.0 / 8.1 (B's site floor is in its
-south row's key shadow); a lane no lamp reaches 3.0, a stack's shadow
-3.0. `lit-pools-and-dark-gaps-are-actually-contrasty` is green on the
-yard for the first time; `the-yard-is-dark-between-its-pools` holds
-the gaps under half the dimmest pool and above black and the sky under a
-third of the brightest pool (0.30 - the tightest margin in the job; the
-lamps' lift is what moved it, not the key). `EXPECTS.lights` is 5.
-Spec 20.20, D39 (every number, and the alternatives).
-
-## The Warden's walkway - D3
-
-`WALKWAY` in `src/maps/yard.js` states it; `walkway(map)` builds it. A
-glazed run 12 x 2.4m, its **floor 7.2m up over the mid lane's north
-edge** (x -6..6, z -3.4..-1.0), between the bays: the end faces look
-down the mid lane into bays A and B's open corners, the south face over
-bay C's gap, and from the middle the Warden sees all three sites through
-the glass. One flight of **24 treads** (`addStaircase` takes `steps`)
-up the west side of the gate lane beside bay A's lane row, **rails both
-sides** (the west rail is load-bearing: without it the Warden's ground
-stepped off the ninth tread onto the row's top and walked the whole
-container deck), the door the stair's mouth in the north face. A metre
-of parapet, glass to a roof at 2.3m, and **three slots 0.4m wide from
-the parapet's top to 1.95m** (D37 says why they are tall: the eye is at
-1.755 and a square slot aims 19° down at most): west to bay A, east to
-bay B, the middle of the south face to bay C.
-
-**Glass** is `addSolid({ glass: true })`: `CollisionBox.glass`, solid to
-a body, a round and a blade, `blocksSight` false so the eye, the AI and
-the light model pass; `materials.glass()` (mapbake.js) at
-`map.glassOpacity` 0.3, double-sided, no depth write, no shadow. The
-rifle's raycast takes no filter, so a pane stops a round already. **The
-knife stops where a body does** now: `Combat.knifeReaches()` asks for
-open air torso to torso of every solid box (`lineOfSight` with a solid
-filter), a blocked swing is `combat:knife-miss { blocked: true }`, the
-alarm camera's knife listener asks the same. It had no world test at
-all before; the plant's walls are thicker than its reach.
-
-Checks, `tests/walkway.js`: the run's skin against 4 eyes x 40 points
-(stopped, or out through a slot or the door, nowhere else), the real gun
-through the west slot (19.5m, at site A) and at the pane (0.57m), the
-real knife at the slot (cuts) and at the pane (blocked); D12's sentence
-over every top within 4m, the rule on all 53 boxes with and without a
-staged perch (3m under the floor: nothing, the parapet; 3m under the
-roof: the roof, so the rule is reading the geometry), the Warden's
-ground, and the human Warden up the stair (3.9s) and along the run;
-and, on every map, a knife in a clear lane with and without a staged
-post, glass or not. **D38 (decided 2026-09-21, option 1): the Shade can
-walk up the stair, and may do anything a human should easily be able to
-do.** A stair is walked by anyone and a door only one body passes is a
-new rule; D3b (a Warden-only door) was dropped, not built. The second
-half of Josh's answer is a standing rule: no role-gated geometry where a
-person would simply walk, climb or step. Spec 20.19, D37.
-
-## The yard is blocked out - D2
-
-`src/maps/yard.js` (the geometry) and `src/maps/yarddata.js` (sites,
-spawns, lights, waypoints, routes, and `CONTAINER` / `TIERS`, which both
-read). Inside the site fence a **60 x 42 working yard walled by a ring of
-one-high containers**, a gate north and south, and a **40ft laid across
-each gate as an arch**: the Warden walks under, the Shade climbs it from
-the ring top either side and walks over, so the ring's tops stay one
-surface. Bays A and B either side of the gate lane, each walled by the
-ring and two 12m rows and open at the corner they leave (the Warden's
-way in); C across the south with the lane's gap and the rear gate; stacks
-in every bay and in the storage blocks either side of C. **Every row and
-stack touches the ring or a row that does, so the one-high tops are one
-connected deck** (v2 requirement 2, outdoors) -
-`the-container-tops-are-one-connected-deck` (tests/yard.js) floods them by
-touching and by the rule's climbs and names any island. **The container is
-2.9m, a high cube (D35)**: past `shade.reach.standing` (2.6), so one high
-is a jump and a grab; two high (5.8) is past the jump's 3.8 and needs the
-one below - `one-high-is-a-jump-and-two-high-needs-a-stack` holds the
-sentence and drives every upper tier from the tier below. Every route
-starts on **pallets** (1.0m: a vault from the ground, a 1.9m mantle onto
-the row beside them) because tests/routes.js wants a first step found on
-foot within a standing reach. What the checks need at ground level and
-where it is: the header comment of yard.js. **"Inside anything" on the
-yard is the crawl space under bay B's trailer** (bed 1.2-1.5m): the
-census (`plantableSpots`) enumerates crawl spaces on every map, kind
-`crawl`, and the inside-anything checks take ducts and crawl spaces
-alike; the plant has none, honestly.
-
-Under it, two things that were not the yard's: the **room-entry
-derivation merged runs of different sills** (a 9m gap and then a 12m row
-was one entry at the row's centre; `maprooms.js` splits a run where the
-sill changes - the plant's walls reach the ceiling, so it never showed),
-and **five checks stood at the Turbine Hall's coordinates** for open
-floor (speeds, the noise ladder, the taser, the knife) - `tests/lanes.js`,
-`clearLane(h, length)`, finds a straight clear run on whatever map the
-page is on; the hang-under-a-lid case searches for a lidded lip
-(`findLiddedLip`, tests/hang.js) instead of naming hall-container. Three
-AI checks that stand in the hall's LIT lane are `maps: ['plant']` until
-D5 gives them a lane the yard's lamps light. Not built: lighting (D4;
-`lit-pools` is red on the yard until then), the walkway (D3), the AI's
-tuning (D5), the yard in the default gate (D6). Spec 20.18, D35.
-
-## Two maps, one page load each - D1
-
-`src/maps/index.js` is the registry: `plant` ("Meridian Substation" -
-`maps/plant.js` and `maps/plantdata.js`, which were `src/map.js` and
-`src/mapdata.js`) and `yard` ("Container Yard" - `maps/yard.js` and
-`maps/yarddata.js`; an empty fenced plane under D1, blocked out by D2,
-above). `buildMap(id, { gradientMap })` is the only way a map is
-built, at boot, from `requestedMapId(location.search)` (`?map=yard`; an
-unknown id opens `plant` with a warning); **another map is another page
-load** (D34) - the main menu's *map* row calls `goToMap(id)`, which sets
-`location.search` to `mapUrl(search, id)`, keeping the seed and the
-gate. `GameMap` has `id` and `name`; `addSite`, `addShadeSpawn`,
-`addWardenSpawn` and `addLightRig` are the kit's now; `validateMap(map,
-expects)` takes each map's own counts (`EXPECTS` at the top of each
-builder). Spec 20.17.
-
-**The suite is parameterised over the map.** A check registered with
-`maps: ['plant']` runs there and is reported *not for this map*
-elsewhere - never run, never a pass; a check with no `maps` runs on
-every map and reads `h.map`. 23 checks are scoped today, each with its
-reason on the line: they name a tag, a coordinate, a Section 5 count or
-a structure (lips, ducts, staircases) the yard will never have. The
-rule for a new check: **name the map only if you name its geometry.** A
-check that searches the map for a feature (a ledge in the hang band, a
-wall near a waypoint) stays generic and is honestly red on a map with
-none - 21 were, on the empty yard, and D2 turned all but D4's one.
-`a-check-registered-for-another-map-is-reported-not-run` requires every
-`maps` entry to name a registered id. The runner: `npm run suite --
---map plant,yard` loads the page once per map, runs each `--runs` times,
-judges red and flaky **per map**, prints `run 1 (plant): ...` and tags
-ids `[map]`; the default is `plant` alone until D6 puts the yard in the
-gate. It refuses a page that booted a different map than it asked for.
-Checks: tests/maps.js (three), and the briefing check names the map.
-
----
-
-## The playtest build - C1
-
-What you get by opening the page is now the **playtest build**: no F3, no
-F4, every test key inert, no runtime assertions, no F3 fields recorded,
-`?mode=freeroam` ignored (the menu's Free roam button is the player's way
-in and is not gated). The gate is `SETTINGS.debug`, seeded `false` from
-`CONFIG.settings.defaults.debug`; `?debug=1` on the URL
-(`debugRequested()`, config.js, applied in main.js before `bootstrap()`) or
-the settings menu's *debug tooling* row turns it on, and off again with a
-panel up the next frame takes the panel down (`debugTools.hidePanels()`
-from `update()`). `DEBUG` no longer exists. Spec 20.12.
-
-`window.BLACKLINE` is set in **both** builds - it is the suite's way in -
-and `AutoSuite.runChecks()` holds the gate up for the length of a run and
-puts it back, the way it does the loop (F4). So `npm run suite` is
-unchanged, `BLACKLINE.debugTools.runAutoTests()` from the console works in
-a playtest tab, and a check that presses F4 through `pollKeys()` still
-finds it live. `resetSettings()` resets the gate too (it is a setting);
-the one check that calls it mid-suite snapshots and restores it. The
-check: `with-the-debug-gate-off-every-debug-key-does-nothing`
-(tests/debuggate.js) - on, F3, F4 and T do their thing; off, with the
-panel left open, all 15 debug keys through the real path change nothing.
-`panels.js` (the HUD, the scoreboard, the menu and their buttons) split
-from main.js for the 600-line guard.
-
-## The round opens on a briefing - C2
-
-Every route into a round the player has - the main menu's Play and Free
-roam, the intermission's Next round (`panels.js`, `brief()`) - raises
-`ui/briefing.js`: the round number (or *Free roam*), the role, the
-objective in one line with the round's own numbers (`CONFIG.round`,
-`CONFIG.shade.lives`), the three sites as `id name` from `map.sites`, and
-the controls for the role read from `input.bindings` (`keyLabel()` turns a
-code into what is on the key). It is **never raised by `initMatch`**, which
-every check calls, so the suite never sees it unless a check presses the
-button. It **holds the round**: the frame feeds the step planner nothing
-while it is up (`held = paused || briefing.open`, main.js), the HUD is not
-drawn behind it, and `resetPresentation()` takes it down before every
-check. **Any key or mouse button dismisses it**, read in the frame before
-the pause key from `input.pressedCodes`, and `briefing.dismiss(input)`
-spends the press: a Space is not a jump, an Esc is not a pause.
-`SETTINGS.briefing` (seeded true) and the settings row *round briefing*
-(`#bl-brief`) turn it off; off, the click starts the round. Spec 20.13,
-D30 (provisional: the hold, the wording, every round).
-
-Found under it: **Next round reset the round to 1.** The intermission goes
-through `initMatch` (Section 15, every actor rebuilt), which called
-`objective.resetRound(1)`; the HUD read `r1` all match and the scoreboard's
-round column never moved. `initMatch` takes `round` (default 1), the
-intermission passes `objective.round.number + 1`, and `match.roundNumber`
-follows. Checks: `a-round-opens-on-a-briefing-that-any-key-dismisses` and
-`the-briefing-follows-the-round-and-the-setting-skips-it`
-(tests/briefing.js), both driving the real buttons and the real key path.
-
-## Hit and damage feedback, in the frame - C3
-
-`systems/feedback.js` is one full-screen quad with a `ShaderMaterial`
-whose vertex shader passes clip coordinates straight through (no camera,
-no FOV, no aspect; `frustumCulled` off), drawn last (`renderOrder` 1000,
-no depth) over the scene. It is drawn by the **renderer**, not the DOM, so
-`gl.readPixels` sees it and the checks prove it; the HUD's flash overlay
-is DOM and no pixel check can see it. Three layers in one fragment shader,
-`over`-composited: the vignette (elliptical, `feedback.vignetteInner` to
-`vignetteOuter`, `vignetteMax` opacity times health lost), the direction
-arc (a ring at `indicatorRadius` in aspect-corrected half-heights, an arc
-`indicatorArc` either side of the bearing), the hit marker (four diagonal
-strokes, `hitMarkerInner` to `hitMarkerOuter`). It listens: `combat:damage`
-for the human's actor with an `at` sets the arc (the rifle now passes its
-muzzle as `from`; a frag's `gadget:damage` carries the blast `at` and
-wiring passes it to `combat.applyDamage(actor, amount, who, kind, from)`);
-`combat:knife-hit` and `gadget:taser` mark for the Shade, `combat:impact`
-on the Shade marks for a human Warden; `frame:render` runs the clocks and
-writes the uniforms (the arc's bearing is `atan2(x, -z)` of the source in
-camera space, recomputed every frame); `match:init` resets. `mesh.visible`
-is false whenever every layer is zero, so the idle cost is nothing, and
-`warm(renderer, scene)` compiles the program at boot because the soak
-counts programs before and after a match. **A check that reads pixels
-between two `renderer.render` calls with no step between them sees only
-the feedback change** - that is how tests/feedback.js isolates each layer
-(`feedback.update(0)` settles the uniforms without a frame; forcing
-`hitTimer`/`indicatorTimer` to 0 is the "without" frame). The vignette is
-measured at site A: a red over the dark apron reddens black, which is not
-darker, and the queue's `brightnessDelta` wants a darkening. D31.
-
-`boot.js` holds `bootWorld()`, the old `bootstrap()` body: main.js
-destructures its return into the singletons. main.js is 470.
-
-## The round closes on an end screen - C4
-
-A round ends with an **outcome** as well as a reason: `OUTCOME`
-(`systems/roundstate.js`, re-exported by objective.js: detonated /
-defused / eliminated / time), set by `_end(winner, reason, outcome)` on
-`round.outcome`, the round record and the `objective:round-end` event.
-The objective keeps a **timeline** of its own round (`round.timeline`,
-`{ t, text }` at `round.elapsed`: `round N begins`, `charge armed at A`,
-`life lost - 1 left`, `reinserted`, `warden down` / `warden taken down`,
-and the reason at the end), copied into the record. **The intermission
-is not raised on `round-end` any more.** `_end` sets `round.endTimer` to
-`CONFIG.round.roundEndDelay` (2.5s); `step()` on an ended round runs
-`_stepEnded()`, which counts it on the sim clock and emits
-`objective:intermission` once; the wiring shows the scoreboard and
-restores the death camera on that, and puts a HUD line up on
-`round-end`. A check that ends a round and wants the card steps
-`2 + ceil(roundEndDelay / dt)` first (tests/briefing.js does). The death
-camera now stays on the killer through the delay when the third life
-ended the round, and the card takes it down - it used to stay up under
-the card until the next `initMatch` or the wall-clock guard, because the
-objective hears `combat:death` before the wiring begins the camera.
-`ui/scoreboard.js` prints who and how (`sayOutcome(outcome, reason)`,
-one sentence per Section 10.4 row; the match screen tallies the
-winner's rounds), the timeline through `timelineLines()` (all of it up
-to `TIMELINE_LINES` = 5, else the first and the last four) and a *how*
-column. Play calls `objective().resetMatch()` itself (panels.js). Checks:
-tests/roundend.js. Spec 20.15, D32.
-
-## The Warden shoots straight, and the presets are measured - C5
-
-**The Warden is much deadlier than any playtest so far has had.** The
-difficulty pass changed no preset value (`ai.difficulty`: fill, aim cone,
-reaction delay - Section 11's numbers); its instrument found the gun.
-Until C5 ENGAGE aimed at `lastKnown.y`, the Shade's *feet* (the planner's
-floor point), so half of every burst met the floor first and, with the
-pitch bias drawn negative, all of it - 0 of 52 rounds hit at 8m on every
-preset; and a "burst" was `engageBurstMin`-`Max` *steps* - one round,
-sometimes two, then a 0.25-0.7s pause. Now `_stepEngage` aims `_aim` at
-the torso the eye sees (`torsoHeightRatio`), a burst is 3-7 rounds
-counted as the gun fires them (the AI subscribes to `combat:shot`, holds
-`intent.fire` until the burst is out, then starts the pause), and the aim
-error is a cone in yaw and pitch redrawn for every burst
-(`_drawAimError`, `_aimYaw`/`_aimPitch`, applied in `_face` when aiming)
-where it was a pitch-only bias held for the whole engagement. A lit,
-still Shade at 8m on medium: engaged 4.97s after it is first seen, dead
-0.51s after that; the table is in D33 and on the `difficulty` block in
-config.js. `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`
-(tests/difficulty.js) holds both times falling from preset to preset at
-8m and 16m, eight paired seeds; `the-warden-fires-in-bursts-of-rounds-at-the-torso`
-holds the burst, the aim point and god mode. **God mode covers the rifle
-now** (`Combat.isGodMode`, from boot.js; `_damage` refuses for the Shade
-while it is set) - since the test commands were wired it had guarded only
-the frag, which nobody noticed while the rifle hit the floor. Spec 20.16.
-
----
+(the 50-phase plan, below) closed at B9, 2026-09-14; its two remaining
+questions went 2026-09-21 (B5b dropped on D25, B5d built on D27). Blocks A,
+B, C, D, E and G are closed; F is open on F11.
+
+## What was built, and where it is written up
+
+Every `PROGRESS.md` entry is titled with its job id — `grep "^## E4"
+PROGRESS.md` — and holds the whole write-up: what was built, what was
+verified, what was found, what was left. Read the one for whatever you are
+about to touch. All of these are closed.
+
+**Block A — the plant must be defusable.** A1 the Warden's ground · A2 the
+reach · A3 the gate on every step · A4 the HUD refusal · A5 the census · A6
+no plant inside things (D20) · A7 the ground drawn, F4 then N · A8 the AI's
+last leg planned over it. The rule is kept below.
+
+**Block B — the traversal redesign, phases 12–50.** B1 hang as a held option ·
+B2 the bump-and-scuff, so a failed climb is never silent · B3, B4 the climb
+census goes green and the map answers it · B5, B5c the area pass measured
+honestly, routes declared · B5d the defuse reach is a clear line (D27) · B6
+the material language, the ducts galvanised · B7 the routes are lit · B8
+feel — momentum, weight, the buffer, the hanging body, the way up swept · B9
+closed, spec 20.11. B5b was dropped on D25.
+
+**Block C — playable and testable.** C1 the playtest build, the debug gate off
+by default · C2 the round opens on a briefing · C3 hit and damage feedback ·
+C4 the round and match end screens · C5 the difficulty pass, the Warden shoots
+straight · C6 `PLAYTEST.md` · C7 the site is a tinted floor and the HUD names
+it (D8).
+
+**Block D — the second map.** D1 the registry, `?map=`, the suite per map · D2
+the yard blocked out · D3 the Warden's walkway · D4 the yard at night · D5 the
+AI on the yard · D6 both maps in the gate · D7 the regression set whole on
+every map. D3b was dropped on D38.
+
+**Block E — styling.** E1 the Shade's figure · E2 the Warden's · E3 animation ·
+E4 the plant's materials · E5 the yard's · E6 post-processing.
+
+**Block F — the gate itself.** F1 a lost GL context is caught and the check
+re-run · F2 the presentation reset before every check · F3 eight modules split
+under the ~600 guidance (the map is kept below) · F4 the game does not play
+itself under the suite · F5 the headless runner · F6 `npm run shot` · F7 a
+look at a pose · F8 the key light gives nothing to a face it lights from
+behind · F9 `npm run probe` · F10 a hung gate dies and says which check hung.
+**F11 is open.**
+
+**Block G — the record.** G1 this file back to one page.
+
+Also on the record and not a numbered job: **the plant is a room, not a
+circle** (Josh, mid-session — *"able to plant the bomb anywhere in the room.
+not just in the circle"*). Spec 10.1 amended: a site knows its room by
+containment and the charge sits where it was planted (`round.chargeAt`). D8
+settled how that room is marked; C7 built it.
 
 ## The redesign — read this before touching traversal or the map
 
@@ -873,457 +102,117 @@ Josh, after phase 49:
 > *"endgame there should be no markings. should be able to do on a ledge what
 > you would expect to be able to."*
 
-This **amends the spec**. Section 5 mandated affordance markings and Section 6.1
-fixed three traversal bands; both are being replaced. The direction was settled
+This **amends the spec**. Section 5 mandated affordance markings and Section
+6.1 fixed three traversal bands; both are replaced. The direction was settled
 by interview and is binding:
 
 | Decision | Answer |
 |---|---|
-| Scope | All traversal aids gone: ledge stripes, chevrons, dashes, and the lit vent interiors. **Plant-site rings stay** — a bomb site is objective information, not an affordance |
+| Scope | All traversal aids gone: ledge stripes, chevrons, dashes, lit vent interiors. **Plant-site marking stays** — a bomb site is objective information, not an affordance |
 | Climb rule | **Reach-based, athletic**: ~2.6m standing, ~3.8m with a jump. **And only on a press of Space** — never a side effect of moving (D17, spec 20.2) |
-| Failed climb | A physical tell **plus audio**. Never silent. Built as B2: the bump-and-scuff (below) |
-| Hang | A **held option you choose**, never a failed mantle. Built as B1 (D21, D22, spec 20.4): a climb of a ledge at least **1.4 Shade-heights (2.59m)** above where it started — one you had to jump for — begins with a grab: **tap Space and you hang, hold Space and you go over**; from a hang Space pulls up, crouch drops, A/D shimmy. Lower ledges go straight over. Since B8 the hanging body is at **full stretch** - arms up, gloves on the lip, the capsule's top under it (`hangDrop` 2.05) - so a lip under a low gantry hangs and its pull-up scuffs |
+| Failed climb | A physical tell **plus audio**. Never silent (B2) |
+| Hang | A **held option you choose**, never a failed mantle (B1; D21, D22, spec 20.4). A climb of a ledge at least **1.4 Shade-heights (2.59m)** above where it started begins with a grab: **tap Space and you hang, hold Space and you go over**; from a hang Space pulls up, crouch drops, A/D shimmy. Lower ledges go straight over. Since B8 the hanging body is at **full stretch** (`hangDrop` 2.05), so a lip under a low gantry hangs and its pull-up scuffs |
 | Warden | **Stays grounded.** The asymmetry is the game |
 | The test | **Purely mechanical.** Standable top + within reach ⇒ climbable. No tags, no exceptions, no `noClimb`. The map obeys the rule |
 | Map freedom | Keep the five v2 requirements (Shade starts outside, level 2 is one connected deck, stairless routes up, every room 2+ entries, raised ceilings). Reshape everything else freely |
-| Vents | Read as passable by **material contrast** — metal against concrete. Built as B6 (D26, spec 20.7): `palette.ductMetal` on every piece of a run, and `every-vent-mouth-reads-by-contrast-from-its-approach` measures it from the pixels |
-| Spec | **Amended** — Section 20.11 (B9, 2026-09-14) is what Sections 5, 6.1, 16 and 18 now read as, pointing at 20.2-20.10 for the pieces. Nothing above Section 20 is ever edited |
+| Vents | Read as passable by **material contrast** — metal against concrete (B6; D26, spec 20.7) |
+| Spec | **Amended** — Section 20.11 (B9) is what Sections 5, 6.1, 16 and 18 now read as, pointing at 20.2–20.10 for the pieces. Nothing above Section 20 is ever edited |
 
----
-
-## The 50-phase plan
-
-| Phases | Block | Status |
-|---|---|---|
-| 1–7 | **Strip and measure** | ✅ done, committed |
-| 8–11 | **Reach-based traversal** — jump-extended reach, ground climbs, approach tolerance, input buffering | ✅ done, committed `5c6d571` |
-| 12–18 | **Hang as a held option, and the bump-and-scuff** | ✅ B1 (D21, D22) and B2 done 2026-09-10/11 |
-| 19–34 | **Area rebuild, lockstep** — geometry + controller together, worst area first | ✅ B5 done 2026-09-13: measured honestly, nothing to rebuild; two rule/controller bugs fixed, routes declared, D25 raised |
-| 35–41 | **Legibility without markings** — material language, edge profiles, metal ducts, route lighting, contrast measured from pixels | ✅ B6 (2026-09-13) and B7 (2026-09-14): the ducts are galvanised sheet, the routes are lit and their landing edges carry a strip, both held from the pixels |
-| 42–46 | **Feel** — camera, momentum, weight, timing, traversal fuzz | ✅ B8 (2026-09-14): momentum into a vault, landing weight, the camera dip, the buffer in every state, the hanging body, the 10k-step traversal fuzz; and the way up is swept (spec 20.10, D29) |
-| 47–50 | **Close** — amend the spec, re-sweep, Warden sanity, done-definition | ✅ B9 (2026-09-14): spec 20.11 amends Sections 5, 6.1, 16 and 18 by reference; the regression set carries the redesign's checks by id; `the-warden-never-leaves-its-ground` watches the AI on its ground and found it planning from its centre - it walked off the deck - fixed in `_pathTo()` |
-
-Outside that numbering, and **first** because it is a directive rather than a
-plan item: **the plant must be defusable** — Block A in `QUEUE.md`, reasoning
-below. Phases 12–50 are Block B there.
-
----
+The 50-phase plan that carried this out — strip and measure, reach-based
+traversal, hang and scuff, the area rebuild, legibility without markings,
+feel, close — is **closed at B9, every phase done**. The phase-by-phase table
+is in `PROGRESS.md`; the index above names the job for each band. Phases
+12–50 are Block B in `QUEUE.md`.
 
 ## The census is green, and what the climb rule now says
 
-```
-PASS  every-climbable-surface-can-actually-be-climbed
-      58 climbable surfaces, 226 approaches from every surface the rule
-      derives them from, 191 climbs; the controller got onto all 58
-      reachable surfaces (0 enclosed); 22 need a leg up first
-```
+`every-climbable-surface-can-actually-be-climbed` went green with B3
+(2026-09-12) and **must stay green**. It approaches every climbable face from
+every place the rule says a body can stand — three positions along the face at
+three distances back, and every spot the rule itself names — standing or
+crouched, and drives the real controller. Named failures go to the F4 panel
+(`debugTools._testLog`). **Do not "fix" a future red by weakening it.** The
+stable numbers are the per-approach check's **139 of 139** on the plant and
+**151 of 151** on the yard.
 
-(Those were B4's numbers. Since B5 the census counts "from the floor"
-honestly and stops trying a box once it climbs from the floor, so its
-approach and climb counts move with what succeeds first; the stable number
-is the per-approach check's **151 of 151**, below.)
-
-It went green with B3 (2026-09-12), and it must stay green: it approaches
-every climbable face from every place the rule says a body can stand —
-three positions along the face at three distances back, **and every spot
-the rule itself names** — standing or crouched, and drives the real
-controller. Named failures are logged to the F4 panel
-(`debugTools._testLog`). **Do not "fix" a future red by weakening it.**
-
-The rule, in `src/mapclimb.js`, is now the controller's sentence and not a
+The rule, in `src/mapclimb.js`, is the controller's sentence and not a
 footprint test. `supportApproaches(collision, box)`: for every wide solid
 lower than the box's top by at least `stepOver`, and every face of the box,
-the rectangle where a body's centre can be (footprint fully on the support,
-a body radius clear of the box, no further out than the probe reaches),
-sampled at its quarter points; at each, the body fits and the controller's
-own hand sweep — `PROBE_STEP` 0.12 up from the feet, stop where the hand is
-not in open air, keep sweeping past anything that is not this box — meets
-this box's face. A face above the ceiling over the only place you can
-stand is not climbable, and nothing has to say so. The old test ("any wide
-surface within `vaultReach` of the footprint is below") named a gantry
-touching a deck slab at one corner, a duct roof diagonally beside a
-container, and server racks three metres under the roof; the census stood
-where the rule said and found nothing in reach. Nine surfaces stopped
-deriving — six deck slabs (entered by their lips, which all still climb),
-`roof-1` (a corner), `roof-4` and `roof-5` (the ceiling) — and every
-designed route kept its move.
+the rectangle where a body's centre can be (footprint fully on the support, a
+body radius clear of the box, no further out than the probe reaches), sampled
+at its quarter points; at each, the body fits and the controller's own hand
+sweep — `PROBE_STEP` 0.12 up from the feet, stop where the hand is not in open
+air, keep sweeping past anything that is not this box — meets this box's face.
+A face above the ceiling over the only place you can stand is not climbable,
+and nothing has to say so. The old test ("any wide surface within `vaultReach`
+of the footprint is below") named a gantry touching a deck slab at one corner,
+a duct roof diagonally beside a container, and server racks three metres under
+the roof; nine surfaces stopped deriving and every designed route kept its
+move. `the-climb-rule-has-no-exceptions` recomputes "should climb" from the
+same approaches and passes, which is what makes the rule the single source of
+truth. `GameMap._supportApproaches(box)` is how a check reads the spots.
 
-Its sibling `the-climb-rule-has-no-exceptions` recomputes "should climb"
-from the same approaches and passes; it is what makes the rule the single
-source of truth. `GameMap._supportApproaches(box)` is how a check reads the
-spots; `_supportCandidates(box)` is still the heights.
+"Needs a leg up first" is reported, not failed — Josh's call; a surface you
+climb something else to reach is the point of a stacked route. Since B5 "from
+the floor" means *from ground a walking body reaches* — a stand spot within a
+metre of a `map.wardenGround` cell at its height — and not "from the lowest
+thing a short ray found under the spot", which counted the office desks and
+missed two fire-escape flights.
 
-"21 need a leg up first" is reported, not failed — Josh's call. A surface
-you climb something else to reach is the point of a stacked route. Since B5
-"from the floor" means *from ground a walking body reaches* — a stand spot
-within a metre of a `map.wardenGround` cell at its height — and not, as it
-did, "from the lowest thing a short ray found under the spot", which
-counted the office desks and missed two fire-escape flights. The 21 are the
-deck slabs and lips every route lands on, the intermediate stages only
-reachable from the stage below, and the roof strip and its lip; the full
-list is in the F4 log after the census runs.
+## The plant must be defusable — the rule, and where its checks live
 
-## The routes are declared, and the rule's every sentence is proven — B5
+Josh, straight after the room change: *"actually should only be plantable
+where the ward is able to defuse."*
 
-Three checks hold the stacked routes now (`tests/routes.js`, and one in
-`tests/readability.js`):
+> **A plant is legal exactly where a Warden could stand and defuse it.**
 
-- `every-approach-the-rule-names-is-a-climb-the-controller-makes` stands
-  at every spot the rule names, on the support it names, holds W and Space,
-  and requires the climb: **151 of 151**. The census needs one climb per box
-  and that hid two disagreements for four phases — the duct roofs are a
-  3.57m jump from the hall floor by the rule, and the controller scuffed
-  there because its sweep stopped at the duct *floor's* side (climbable by
-  its mouth, unclimbable from here) and never looked higher; and the rule
-  reached 1.44m ahead for every rise where the air probe reaches 1.29m.
-  `_climbAhead()` now sweeps past a refused climb; `handReach(rise)` in
-  mapclimb.js picks the controller's distance. Spec 20.6.
-- `every-stacked-climb-is-a-step-of-a-declared-route`: `map.routes`
-  (mapdata.js `placeRoutes`) is eight chains of stages — the five designed
-  routes, the two the duct roofs make (lip, roof, void edge), the fire
-  escape split at its deck landing — each first stage a standing climb from
-  walkable ground, each later stage climbable by the rule from the stage
-  below, each landing where it says; and every climbable surface with no
-  walkable approach is on one of them. Not a tag: nothing in the rule or the
-  controller reads it. `stairlessRouteMin` (5) is asserted at build.
-- `every-climbable-top-has-an-exit-that-is-not-the-way-you-came`: onward
-  climb, a surface at its level to walk onto, or a second clear edge to
-  drop from. No dead climbs today; a staged crate walled on three sides is
-  one.
-
-What B5 did **not** do is move geometry: measured honestly the map had no
-dead climb and no accident the rule does not read as a route. Whether the
-void edges should refuse anywhere but at a lip — which would make the lips
-mean what B7 assumes they mean — is **D25**, and B5b is queued behind it.
-
-Since B4b an approach also carries its **landing**: `landingSpot()` is
-where `Shade._ledgeDestination` puts the body (a radius and 0.3m past the
-face), and `landingFits()` asks whether the crouched capsule is clear there
-— the capsule `_commitMove()` validates. A spot the body cannot land from
-is not an approach, and the old "standable somewhere on the top" test at
-the box's quarter points is gone: on a 38m deck slab it could be 20m from
-the face. (B4 met exactly that — a void flush against `office-wall-s` made
-`deck-14` derive from the gantry with a wall for a landing — and closed it
-with geometry before B4b closed it in the rule.) The derivation resets
-`climbable` on every box before deciding; nothing declared on a box
-survives it, and `addSolid()` no longer takes a `climbable` option. The
-rule's sentence: *a surface is climbable when the body could reach its
-face from somewhere it can stand, get its hands over the top in open air
-(B5c), and fit on top where it lands.*
-
-## The material language, and what the pixels say - B6
-
-Concrete is what you do not pass through: walls, floors, the deck, the
-ground. Metal is what you pass through or climb: the ducts in galvanised
-sheet (`palette.ductMetal`, 0xc6d0d6 - D26, provisional), gantries, deck
-lips and the fire escape in gunmetal. The palette comment in `config.js`
-says so, and `addVentRun()` paints every piece of a run - floor, lips,
-walls, roof - the one metal; before B6 a duct was the floor's own dark
-concrete, and a duct on the floor was the floor.
-
-`every-vent-mouth-reads-by-contrast-from-its-approach`
-(`tests/legibility.js`) is the instrument: for each of the nine mouths
-(`vent.mouths` - a lip is climbed into, a grade run is walked into at both
-ends) it stands where a body arrives - for a lip, the lowest spot the climb
-rule names on that face; for a walk-in, level floor straight out, as far
-back as there is floor - renders, hides the run (`vent.boxes`) and renders
-again, and reads three regions from the difference: what is seen *through*
-the projected opening (the interior), everything the run draws (the body),
-and a band 0.6 openings wide around it (the surround). Both the interior
-and the body must be at least **0.25 Michelson** against the surround.
-Today: 0.27 to 0.81; the thinnest is the north duct's west mouth, walked
-into from the top of `stack-hall-mid` with orange crates as its surround.
-With concrete ducts, eight of nine read 0.01 to 0.23 - that is the check
-proving it measures the material. It costs ~30s a run on SwiftShader.
-
-## The way up is swept, and the feel - B8
-
-B8 (2026-09-14) built the plan's phases 42-46 - every one a number in
-`config.js` under `shade`, recorded as D29 with the line to turn:
-
-- **Momentum into a vault**: `vaultDurationAtSprint` 0.28 (from
-  `vaultDuration` 0.42 at a walk), `vaultCarry` 0.85 of the entry speed on
-  the exit, floored at `vaultExitSpeed`. A sprint leaves a crate at 5.5, a
-  walk at 4.2 as before.
-- **Landing weight**: `shade.landing` - nothing under `softFall` 1.2m, all
-  of it from `hardFall` 4m; `speedLoss` 0.5 cut on the landing step and the
-  ground speed held there for `recovery` 0.4s; the camera dips
-  `camera.landDip` and the body squashes `landing.squash`. The one item
-  that changes what a player can do by a hair (0.4s off a deck drop);
-  `speedLoss` 0 is a landing that is only seen.
-- **The camera dip**: `_dipKick` written by the step, `_settleDip()` in
-  agentvisual.js a critically damped spring (`camera.climbDip` 0.22,
-  `landDip` 0.3, `dipRecovery` 0.26). Not on a grab.
-- **The buffer in every state**: `jumpBuffer` counts down in `step()`, is
-  set by a press on the ground, in the air and through a vault or mantle
-  (not a grab), and is spent by the climb or the scuff it becomes.
-- **The hanging body at full stretch**: `hangDrop` 2.05, `HANG_ARM_ANGLE`,
-  `hangPullUpDuration` 0.65.
-
-**And the rule it found: the way up is swept.** The hang under `gantry-hall`
-worked and the pull-up went *through the gantry* - the landing is beyond
-the gantry's edge and valid, `handsOverTop` clears the column to the top of
-the face, and the body is taller than a hand. `riseIsClear()` in
-climbprobe.js sweeps the capsule along the move's own path (`movePath`,
-shared with `_stepTraversal` so the sweep and the drawing agree) against
-every solid whose top is above the landing's; `riseFits` (mapclimb.js) and
-`_climbOnto` (agenttraversal.js) both say it, the grab does not. Nine
-approaches went: the gantry one, and every low duct lip's two side faces
-from the ground beside the mouth, where `addVentRun()` stands a wall on the
-lip's edge and the mantle went through it. 146 -> 139; the same 22 stacked
-climbs; every top still climbed. The rule's sentence is now: *a surface is
-climbable when the body could reach its face from somewhere it can stand,
-get its hands over the top in open air, rise to the landing through
-nothing, and fit on top where it lands.* Spec 20.10. B8b (2026-09-15) holds
-the sweep to the geometry: `supportApproaches(collision, box, { sweep:
-false })` names what the rule named before B8, and
-`a-mantle-never-passes-through-a-solid` asks of every one of those 159
-whether the crouched body along `movePath` meets a solid above the landing
-- overlap written by hand, no call to `riseIsClear` - and requires the
-rule's answer to match exactly both ways (9 refused, 150 named), then
-drives the controller at each of the nine and requires a scuff with the
-feet never over the top. Turning either sweep off puts it red.
-
-Seven checks: tests/feel.js (four), tests/hang.js, and tests/traversalfuzz.js
-- `traversal-fuzz-ten-thousand-steps-never-sticks` starts every episode at
-a spot the rule names and drives twelve behaviours through real keys for
-10,000 steps with "stuck" defined (a move past 41 steps, a hang with no
-ledge, 3s airborne, at rest in a solid, below the floor, not finite), and
-`after-any-traversal-the-body-can-be-put-back-on-the-ground` asks, after one
-episode per approach, that nothing pressed (crouch from a hang) grounds the
-body within 3s. `agentslide.js` split from agent.js for the 600-line guard.
-
-## The routes are lit - B7
-
-`src/maproutelight.js`, after the climb rule and before validation. Every
-stage box of every declared route has its four sides painted with its own
-colour as emissive (`map.routeLighting.emissive`, 0.12; the material
-cache's `lit` variant; two material groups per box, so 20 more draw calls)
-- the sides, not the top, because the top is what you see standing on it
-and what B6's mouth check reads the north duct's west mouth against (the
-first cut lit the tops and put that check red at 0.21). And the edge each
-route goes over at the top - where the rule names an approach onto the
-landing from the last stage, a body's reach either side of the spots -
-carries a warm-white unlit strip, 15 of them in one mesh, one draw call.
-Paint, not lamps: the detection model reads point lights and there are
-still twelve. `every-route-reads-lit-from-its-foot` stands at each route's
-foot, reads the first stage against the same stage painted unlit in the
-same frame (a step of at least 10 luma; 16-27 today) and against its
-surround (0.25 Michelson; 0.30-0.61), then reads each strip from the last
-stage (0.5; 0.72-0.98). D28 is the look; the strips on `deck-7`, `deck-19`,
-`deck-21`, the bay slabs and the hatch are D25's routes drawn, and go if
-Josh picks option 2 there. Spec 20.9.
-
-**B5c closes the bug B6 found.** The rule named a climb onto
-`vent-low-north-lip-from` from the ground *under* the duct, by the lip's
-+x face exposed beneath the floor slab (1.4-2.1m), and the controller made
-it: W + Space at (-11.11, 0, -16) facing west mantled the body up through
-`vent-low-north-floor` into the mouth - five approaches, all under a duct
-floor. Now `handsOverTop()` in `src/climbprobe.js` - the hand sweep's
-constants and the one sentence the rule (`mapclimb.js`) and the controller
-(`agenttraversal.js`) share, since neither may import the other - asks
-that the column above the body be open air up to the top of the face the
-hands met; a face whose top edge is under a solid is a wall under a
-ceiling, and the press scuffs. `a-mantle-never-passes-through-a-solid`
-(tests/routes.js) asks the geometry (nothing over the spot and under the
-landing) and then drives the controller from under each low duct's floor
-without asking the rule. Spec 20.8. The rule's sentence is now: *a surface
-is climbable when the body could reach its face from somewhere it can
-stand, get its hands over the top in open air, and fit on top where it
-lands.*
-
-**And what finishing it found: the Warden walks off a pulled line.** B5c
-changed which top the plant census sends the Warden to in room A (the
-north duct's *roof*, 3.59m up, once its lip stopped being climbable), and
-the Warden fell off the deck on the way: `WardenGround.route()` pulled a
-straight segment across the hall void's corner because `walkable()` rests
-a body on any top face its footprint overlaps and this line had six
-millimetres of deck under it, and the follower cuts every bend from
-`ai.waypointArriveRadius` (0.9m) away on the inside. Now a pulled segment
-keeps ground under the two lines `ai.routeEdgeMargin` (0.6m) to either
-side of it (`groundUnder()` in mapground.js: support only - a wall beside
-the line is a slide, a void is a fall), the AI passes the margin from
-`_pathTo()`, and `the-last-leg-to-every-legal-plant-is-planned-and-short`
-asks the same of every pulled segment by ray; on the old routes it is red
-at the hall void *and* at three lines grazing the vault hatch. Cell steps
-are not held to the margin - they are flood-proven edges - so a rim cell
-(a centre up to 0.15m over an edge) is still somewhere the follower will
-aim; nothing has walked off one yet.
-
-**What the Warden then did is D27.** It stood on the deck directly above
-the roof plant - 2.41m up, inside `DEFUSE_REACH.dy` - and defused it
-through the slab in 11.8s, which is D5 as written and not as meant. The
-fix (the reach needs a clear line from the Warden's body to the charge)
-changes where the Shade may plant, so it waits: D27, and B5d behind it.
-
----
-
-## The plant is a room, not a circle
-
-Josh, mid-session: *"able to plant the bomb anywhere in the room. not just in
-the circle."* Spec amended — Section 10.1, recorded in the new Section 20.
-
-A site knows its room (derived by containment, never declared twice) and the
-plant is allowed anywhere in that volume, floor to ceiling. The room's own
-bounds do the vertical separation the old hardcoded 2.5m did: site C is on the
-deck directly above the Loading Bay.
-
-**The charge now sits where it was planted** — `round.chargeAt`. The site id is
-only which room. The beep, the AI defend target and the defuse proximity all
-read it. The defuse radius is untouched: it is arm's length, not a marking.
-
-Open, and Josh's call: the ring now says "this room" while looking exactly like
-it used to say "plant here". Whether a room-sized marking reads better is not
-settled.
-
----
-
-## The plant must be defusable — Block A
-
-Josh, straight after the room change:
-
-> *"actually should only be plantable where the ward is able to defuse."*
-
-**Phases 1 to 6 are built** (A1, `src/mapground.js`; A2, `canDefuseAt()` in
-`systems/objective.js`; A3, the gate inside `_stepPlant()`; A4, the HUD line;
-A5, the census; A6, `canPlantAt()` = defusable **and not inside anything**,
-D20; A7, the ground drawn — **F4 then N**; A8, the AI's last leg planned over
-that ground). **Block A is closed.**
-
-### What the rule actually excludes, measured
-
-A5 counted it, and it is not what this section assumed; A6 then changed it,
-and B4 changed the map. Of **377 places a charge can go inside a site
-room** — 347 floor cells on a 2m grid, 22 climbable tops, 8 vent interiors
-— the rule refuses **ten**: the 8 ducts by their lid (D20, below), and these
-two by the reach:
-
-| Refused | Why |
-|---|---|
-| `hall-container` (room A), 0.7m up | the middle of a wide top, >2m from any Warden ground — horizontal, not vertical |
-| `gantry-hall` (room A), 1.0m up | same |
-
-Two more were refused until B4: `server-rack-0`'s top, and the deck floor at
-(21, 17) — and behind that one cell, 150 spots at 0.1m in the two rack
-aisles, which took the 0.68m Shade and never a 0.84m Warden ground cell.
-The aisles are 1.5m now and `no-clear-floor-in-a-site-room-refuses-the-plant`
-(`tests/deck.js`) scans every site-room floor at 0.1m for the next one.
-
-So the reach reads "no plant in the middle of anything wider than four
-metres" far more than it reads "no plant up high" — the horizontal reach does
-almost all of that excluding, and the vertical one none. What it did not
-exclude was a charge inside a duct: the ducts run at y=2.3 against a 2.5m
-vertical reach, a Warden underneath reaches up, and A5 watched the AI do it in
-9.6s. Josh's answer (D20): *"can't plant inside things. only on top."* Built as
-A6: `canPlantAt()` is `canDefuseAt()` **and** `hasHeadroomAt()` — a standing
-body's worth of open air above the charge, `PLANT_HEADROOM`. A duct fails by
-its roof; a crate top passes by the air above it; nothing is named.
-
-The two questions at the end are **decided** — D5 and D6 in `DECISIONS.md`;
-the one A1 raised is D16.
-
-### Why the room rule alone is wrong
-
-The redesign put this hole here on purpose and then walked into it. The Warden
-**stays grounded** — that is the asymmetry, and it is binding. The Shade is not:
-it now climbs anything within 3.8m. So inside a site's room the Shade can get
-onto a gantry, a crate stack, a vent roof or a deck lip and plant where no
-Warden can ever kneel. That is an unloseable plant, and it is worse than a
-balance problem — `setDefendTarget(round.chargeAt)` sends the AI at a charge it
-cannot reach, so it paths as far as it can and stalls in DEFEND for the whole
-45s fuse.
-
-### The rule
-
-> A plant is legal exactly where a Warden could stand and defuse it.
-
-Not a second authored zone. It answers to the defuse check itself, so the two
+Not a second authored zone: it answers to the defuse check itself, so the two
 cannot drift — the same trick `classifyReach()` plays for the map and the
-controller. The room stays as the outer bound; this carves out of it.
+controller. The room stays as the outer bound; this carves out of it. **Block
+A is closed** (A1–A8). D20 added the second half — *"can't plant inside
+things. only on top."* — so `canPlantAt()` is `canDefuseAt()` **and**
+`hasHeadroomAt()`, a standing body's worth of open air above the charge. A
+duct fails by its roof, a crate top passes by the air above it, nothing is
+named.
 
-Worth knowing before starting: on a flat room floor this changes nothing at all.
-It excludes the climbs, the vents and the ledges, which is exactly the list the
-Warden cannot follow the Shade onto.
+Why the room alone is not enough: the Warden stays grounded and the Shade
+climbs anything within 3.8m, so the Shade could plant on a gantry or a vent
+roof where no Warden can kneel — an unloseable plant, and worse,
+`setDefendTarget(round.chargeAt)` would send the AI at a charge it cannot
+reach and stall it in DEFEND for the whole 45s fuse.
 
-### Phases
+What the rule actually excludes, measured (A5, after B4 changed the map): of
+**377 places a charge can go inside a site room** it refuses **ten** — the 8
+ducts by their lid, and two wide tops (`hall-container`, `gantry-hall`) whose
+middles are over 2m from any Warden ground. So it reads "no plant in the
+middle of anything wider than four metres" far more than "no plant up high":
+the horizontal reach does almost all of the excluding and the vertical one
+none, and on a flat room floor it changes nothing. The counts and what A8
+found are in `PROGRESS.md`.
 
-| # | Work |
-|---|---|
-| 1 | ✅ **done** — `src/mapground.js`, `map.wardenGround`. 0.5m column grid, flooded from the Warden spawns; 25,177 standable cells in 18,550 columns, 6,627 of them carrying two floors. The step limit is symmetric, so a one-way drop is not in it (D16). This is the file that *states* "the Warden stays grounded" |
-| 2 | ✅ **done** — `Objective.canDefuseAt(at)`. The reach is one exported object, `DEFUSE_REACH` (`radius`, from `round.siteRadius`, and `dy`), and one predicate, `withinDefuseReach(foot, at)`. The defuse asks it of the Warden; `canDefuseAt` asks it of every cell of `map.wardenGround` near the point. Legal at all three site centres. Conservative by up to half a cell — D18 |
-| 3 | ✅ **done** — `_stepPlant()` asks `canDefuseAt()` of the Shade's feet every step of the hold, under the site-and-interact gate and *above* the noise interval, so a refusal costs no progress and emits nothing (D6). `WardenGround.someCellWithin()` makes the per-step call allocation-free |
-| 4 | ✅ **done** — `round.plantRefused`, out through `objective.hud`, onto the prompt panel the plant already owns as `PLANT_REFUSED` (`ui/hud.js`) with the hold bar hidden. No sound, no noise event (D6). Not a latch: recomputed every step, so releasing interact clears it |
-| 5 | ✅ **done** — two checks in `tests/plantcensus.js`: the game against the rule at all 373 spots, and the rule against the map (ground exists, the waypoint graph reaches it, the AI arrives). `spotOffTheRing()` picks from the legal set. Old text: | For every climbable surface top and every vent interior inside a site room, try to plant and assert refusal. Then the inverse: sample legal plant positions and assert a Warden can stand and defuse at each. `spotOffTheRing()` in `tests/objective.js` must pick from the legal set or every objective check starts failing for the wrong reason |
-| 6 | ✅ **done** — D20 decided "not inside things"; `PLANT_HEADROOM` + `hasHeadroomAt()`, `canPlantAt()` the whole rule, `dy` kept at 2.5 with the reason as its comment, spec 20.3. Old text: re-examine `DEFUSE_REACH.dy` (was the literal `dy < 2.5`; A2 named it and gave it one home, but did not touch the value) in the defuse proximity test. It was written when plant and defuse were both pinned to a site centre and it is now load-bearing: it is what decides whether a charge on a 2m crate is legal. Today it is — a Warden standing beside the crate is 2.0m below the charge and that passes. Reaching up to a bomb on a crate seems right, but it should be a decision rather than a leftover |
-
-### Decided
-
-- **Beside, or on?** Josh: *"warden must always be able to defuse."* Read as
-  on **or** beside — legal exactly where the real defuse check would succeed
-  for a Warden on reachable ground. D5 records the interpretation and the
-  one-line override if he meant "on only".
-- **What does refusal look like?** A HUD line, **"cannot plant here"**. No
-  sound, no noise event. D6.
-
-### What A8 found under A1
-
-A1's ground was **two islands**. Treads rise 0.3m every 0.4m and the grid is
-0.5m, so two cell centres can sit two risers apart and the flood refused the
-edge; nothing climbed either staircase, and the deck was ground only because
-two spawns are on it. A1's check asserted coverage — every spawn, waypoint and
-site on the ground — and every one of them was on *some* island. The flood
-now walks a too-tall edge in quarter-cell sub-steps and proves it if the body
-arrives; the check walks the edges from spawn 0 and requires every cell. The
-edges are recorded (`WardenGround.edges`) and `route()` plans over them, which
-is what the AI's last leg uses.
-
-### The side benefit, now available
-
-Phase 1 built the set as map data rather than an objective-system private, so it
-is the honest answer to a question three other systems guess at: whether a
-waypoint is standable, whether a DEFEND path can complete, whether a patrol
-route is walkable end to end. `map.wardenGround.has(position)` answers all
-three. B9 wrote the check: `the-warden-never-leaves-its-ground`
-(tests/wardenground.js) plays 70s of AI patrol, hunt and a defended plant
-and requires the feet on the ground every step (airborne, within a metre
-over it - a stair walked down at 3 m/s is a series of short falls). Its
-first run caught the AI planning from its *centre*: `nearestWaypoint()`'s
-"own floor" is two steps of height, a centre is a metre up, so from the
-deck a corridor node six metres below won and the body walked off the
-deck edge. `_pathTo()` plans from the feet now.
-
-A7 draws it: **F4, then N** puts every cell on the floor as a teal quad at
-its own height, with an orange marker under the human's actor when it is
-standing on a reachable cell. `src/groundview.js`; off by default and off
-again on every `initMatch`.
-
-## Where the plant-rule checks live
-
-Block A's checks were one 1,382-line file and are now four, each under the ~600
-line guidance:
-
-| File | What |
-|---|---|
-| `tests/plantspots.js` | where a charge can go — `spotOffTheRing`, `plantAt`, `perchesInSiteRooms`, `plantableSpots`, `plantOutcomeAt`. All four files share these |
-| `tests/plantrule.js` | A2, A3, A4 — one reach, the gate every step, the refusal's HUD line |
-| `tests/plantcensus.js` | A5 — the whole map, both directions |
-| `tests/objective.js` | round flow: detonation, defuse retention, lives, reinsert, milestones, state not bleeding |
+Block A's checks were one 1,382-line file and are now four:
+`tests/plantspots.js` (where a charge can go — `spotOffTheRing`, `plantAt`,
+`perchesInSiteRooms`, `plantableSpots`, `plantOutcomeAt`, shared by all four),
+`tests/plantrule.js` (A2–A4: one reach, the gate every step, the refusal's HUD
+line), `tests/plantcensus.js` (A5, the whole map both directions) and
+`tests/objective.js` (round flow: detonation, defuse retention, lives,
+reinsert, milestones, state not bleeding).
 
 ## Where the code went — F3's split
 
-Eight modules were past the ~600 guidance; every one is under it now and a
-check keeps it so. Nothing moved changes an order or a name a check reaches:
+Eight modules were past the ~600 guidance; every one is under it and a check
+keeps it so. Nothing moved changes an order or a name a check reaches:
 
 | Was | Now |
 |---|---|
-| `main.js` (1,145) | `main.js` (597): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`, the rAF scheduler), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js` (whose rig the camera is on, mouse look, ADS FOV), `intents.js` (input → intent), `loadout.js` (the gadget slots), `wiring.js` (the emitter listeners between systems), `hudstate.js` (what the HUD is told), `debugfields.js` (what the F3 overlay is told), `harness.js` (`createHarness(live, loop)` — one getter per live object), `panels.js` (C1, C2: the HUD, the scoreboard, the menu and the briefing, and what their buttons do), `boot.js` (C3: `bootWorld()`, building the world) |
-| `entities/agent.js` (1,051) | `agent.js` (546): state machine, ground, air, the landing. `agentslide.js` (B8): the slide. `agenttraversal.js`: every climb. `agentvisual.js`: how it is drawn, and the camera's dip. `agentstate.js`: `SHADE_STATE` |
-| `systems/ai.js` (788) | `ai.js` (498): the state machine. `aiperception.js`, `ainav.js` (route, steering, stuck). `aistate.js`: `AI_STATE`, `angleDelta`, `DEFUSE_SNAP` |
-| `mapkit.js` (821) | `mapkit.js` (380): `GameMap`, `addSolid`, decals, rooms, lights, waypoints. `mapgen.js`: walls with openings, floor plates, staircases, vent runs. `mapclimb.js`: `deriveClimbableSurfaces`, `supportApproaches` (B3), `supportCandidates` |
-| `map.js` (810) | `maps/plant.js` (was `map.js`, 537): the geometry. `maps/plantdata.js` (was `mapdata.js`): sites, spawns, lights, waypoints, routes. `mapvalidate.js`. Since D1 `maps/index.js` is the registry and `maps/yard.js` the second map |
+| `main.js` (1,145) | `main.js` (470): singletons, `initMatch`, pause, bootstrap, `fixedStep`, `renderFrame` — the spec order untouched. Beside it: `loop.js` (`FrameLoop`), `timestep.js` (`computeStepPlan`), `matchstate.js` (options, `createMatchState`, `COMPETITIVE`/`FREEROAM`), `view.js` (renderer, scene, the one camera and its guard, toon ramp, resize, lost-context watch), `cameraowner.js`, `intents.js` (input → intent), `loadout.js`, `wiring.js` (the emitter listeners between systems), `hudstate.js`, `debugfields.js`, `harness.js` (`createHarness(live, loop)`), `panels.js` (C1, C2: HUD, scoreboard, menu, briefing), `boot.js` (C3: `bootWorld()`) |
+| `entities/agent.js` (1,051) | `agent.js` (546): state machine, ground, air, the landing. `agentslide.js`, `agenttraversal.js` (every climb), `agentvisual.js` (how it is drawn, the camera's dip), `agentstate.js` (`SHADE_STATE`) |
+| `systems/ai.js` (788) | `ai.js` (498): the state machine. `aiperception.js`, `ainav.js` (route, steering, stuck), `aistate.js` (`AI_STATE`, `angleDelta`, `DEFUSE_SNAP`) |
+| `mapkit.js` (821) | `mapkit.js` (380): `GameMap`, `addSolid`, decals, rooms, lights, waypoints. `mapgen.js` (walls with openings, floor plates, staircases, vent runs), `mapclimb.js` (`deriveClimbableSurfaces`, `supportApproaches`, `supportCandidates`) |
+| `map.js` (810) | `maps/plant.js` (537, the geometry), `maps/plantdata.js` (sites, spawns, lights, waypoints, routes), `mapvalidate.js`. Since D1 `maps/index.js` is the registry and `maps/yard.js` the second map |
 | `physics.js` (735) | `physics.js` (600): `CollisionWorld`, gravity, `classifyReach`. `collisionbox.js`: the box and the ray-slab test |
 | `systems/objective.js` (646) | `objective.js` (536). `plantrule.js`: `DEFUSE_REACH`, `PLANT_HEADROOM`, `withinDefuseReach`, `canDefuseAt(map, at)`, `hasHeadroomAt`, `canPlantAt` — re-exported and wrapped as methods, so every existing import and call still works |
-| `mapground.js` (628, after B5c) | `mapground.js` (539): `WardenGround`, `route()`, `deriveWardenGround`. `groundprobe.js`: the column probes the flood and the planner share — `standableFloors`, `walkable`, `groundUnder` |
+| `mapground.js` (628) | `mapground.js` (539): `WardenGround`, `route()`, `deriveWardenGround`. `groundprobe.js`: the column probes the flood and the planner share |
 | `systems/gadgets.js` (633) | `gadgets.js` (506). `gadgeteffects.js`: `EffectRegistry`, `Projectile` |
 
 The class splits (`agent`, `ai`, `mapkit`) are **prototype mixins**: the
@@ -1332,360 +221,227 @@ sibling file exports an object of methods and the class file ends with
 field keeps its name, and `shade._probeLedge`, `ai._pathTo`,
 `map._supportCandidates` still exist for the checks that call them. A method
 that needs a module constant imports it from the shared `*state.js`, never
-from the class file — that would be a cycle.
-
-Two things changed shape on purpose. God mode is `debugState.godMode` now —
-the `G` command toggles it in `testcommands.js` and `wiring.js` reads it —
-rather than a `let` in `main.js`. And `harness.cameraOwner` still returns the
-owner string; the object behind it is `cameraowner.js`.
-
-`main.js` is 470 (C3 moved `bootstrap()` out as `boot.js`'s `bootWorld()`,
-which returns every singleton for main.js to destructure) and `physics.js`
-is 600: the next job that touches physics.js splits it rather than adding
-to it.
-
-## A failed climb is never silent - B2
-
-A press of Space that carries the hands onto a face they cannot get over -
-too tall for the reach the body has right now, a lip with no room above it,
-a face with nothing standable on top - used to do nothing at all. Now
-`_probeLedge()` remembers the highest solid face the hands met
-(`Shade._faceAhead`), and when the air step's mantle finds nothing to get
-over with the climb armed and the body heading in, `_scuff()` pushes the
-body straight back off the face at `scuffBumpSpeed`, stops it rising, holds
-the hands-up pose for `scuffPoseTime` (agentvisual.js) and emits
-`shade:scuff`, which audio.js plays as `scuff` - a 90ms low-passed slap.
-One tell per press: the scuff spends the arm. A blocked pull-up from a hang
-gives the pose and the sound without the push, on the press and on the
-first step if Space was held through the grab, never repeating while held.
-D24 records the look and sound as provisional. D23 (decided 2026-09-12,
-built as B2b) makes it a noise the Warden hears: the controller records
-`scuffedAt` on the step, Detection emits a `scuff` event of
-`noise.radii.shadeScuff` there in the same fixed step, the way the landing
-works. Checks: tests/scuff.js, which stages a lid of real collision over a
-hangable lip to make a blocked pull-up, since no lip on this map has one;
-and `a-scuff-is-a-noise-the-warden-in-the-room-hears`, which stands a Warden
-along the wall inside and outside the radius, facing away.
-
-## The game does not play itself under the suite - F4
-
-Headless Chrome fires animation frames (`document.hidden` is false there),
-so until F4 the live rAF loop ran the real game between every `await` in a
-check and through the 45s cooldown between runs - ~135 frames of the AI
-hunting an idle Shade that the next check inherited. Now: `FrameLoop`
-(`loop.js`) is on the harness as `h.loop`; `AutoSuite.runChecks()` stops it
-for the length of the run and puts it back as found; `initMatch` does not
-start it (boot does, once); the runner stops it as soon as the harness
-appears and reports `loopFrames` per run, and any non-zero fails the run
-(`LOOP RAN N frame(s)` in the summary). `h.nextFrame()` is the browser's
-tick, not the loop's, and still resolves while the loop is stopped; it
-draws nothing - a check that needs a frame drawn calls `h.renderFrame()`,
-which counts itself in `debugState.harnessFrames`. In a real tab F4-then-Y
-stops the game while the suite runs and it resumes after.
+from the class file — that would be a cycle. God mode is `debugState.godMode`
+now, not a `let` in `main.js`.
 
 ## Where the suite runner lives
 
 `ui/autosuite.js` (`AutoSuite`): the registry, `runAutoTests`, the regression
-set, the lost-context tiebreak (F1) and the presentation reset before every
-check (F2). `ui/debug.js` composes it and forwards, so checks still reach it
-as `h.debugTools.runAutoTests()` / `_autoTests`; a check that must drive the
-runner directly uses `h.debugTools.suite.runChecks()`.
-
----
+set, the lost-context tiebreak (F1), the presentation reset before every check
+(F2), and the heartbeat (F10). `ui/debug.js` composes it and forwards, so
+checks still reach it as `h.debugTools.runAutoTests()` / `_autoTests`; a check
+that must drive the runner directly uses `h.debugTools.suite.runChecks()`.
+`scripts/suite.mjs` is the headless runner and `scripts/watchdog.mjs` its
+deadline, teardown and orphan warning.
 
 ## Running it
-
-The suite, headless. This is what the routine runs, and what any session runs
-before and after a job:
 
 ```bash
 npm run suite
 ```
 
 `scripts/suite.mjs` serves the repo in-process, drives the Chrome already on
-this PC headless with software WebGL, loads the page once per registered
-map (D6: every map in `src/maps/index.js`; `--map plant` to narrow), warms
-60 frames, runs the AUTO suite twice on each and prints a JSON report. Exit
-0 means nothing is red outside QUEUE.md's Deliberately-red list and the two
-runs agree, judged per map. Each run in the report carries
-`contextLosses` and `rerun`, the checks re-run after the GPU was taken away
-and given back (F1); the summary prints them as `GL CONTEXT LOST`. Zero is
-the normal reading; a non-zero one is the machine, not the game, unless the
-same check is in the list every run. `--runs 1` is the gate (about 25
-minutes for both maps since E6's post pipeline: 850s for the plant,
-490s for the yard, a 45s cooldown between - see the traps; the full
-`npm run suite` is four runs, about 50 minutes, and each map on its own
-is past the Bash tool's cap, so run it in the background and wait on
-the file); `--regression` the regression set per map instead (plant 29 checks in 58s headless, yard 29 in 25s);
-`--subset "<regex on check ids>"` while iterating; `--query "seed=N"` to reseed
-the match; `--details <file>` (B8) writes every check's id, outcome,
-detail line and **ms** per run - the readings a PROGRESS entry quotes,
-which the stdout report never carried for a green check.
-The ms is F10's: the slowest check across a four-run verify is
-`a-zero-size-viewport-does-not-blind-the-renderer` at **269s on the
-plant**, then `every-route-reads-lit-from-its-foot` at 76s, then
-`frame-budget-under-the-check-29-load` at 43s; only 6 of 658 check-runs
-pass 60s. That first number is F11, and it is the floor under `--stall`.
-**A hung run now dies (F10, 2026-09-23).** The run is raced against a
-heartbeat the page publishes (`beat()` in ui/autosuite.js:
-`debugState.suiteProgress`, a monotonic `seq` and the id of the check in
-flight); when it stands still for `--stall` seconds - **600 by default,
-because the slowest single check on record is 269s** - the run is
-abandoned with `suite: crashed: run timed out` naming that check, the
-browser and the server are closed, and the exit code is 2. Against the
-beat standing still, never against wall-clock total: a cold plant run is
-legitimately 850s. `--stall 0` disables it. `SIGINT`/`SIGTERM` close the
-same way, so stopping a backgrounded run stops the tree. And a
-`suite.mjs` older than this process is named at startup, in the report's
-`otherRunners` and in the summary's `OTHER RUNNERS ALIVE` - its Chrome
-is competing for the same cores, so every timing in that report is
-measured against it. `scripts/watchdog.mjs` holds all of it.
-`scripts/suite-skips.json` lists checks that cannot pass headless,
-with reasons (today: the frame-budget check; SwiftShader draws a frame in
-~400ms). They are reported, never counted. Needs `npm install` once:
-`playwright-core` only, no browser download.
+this PC headless with software WebGL, loads the page once per registered map
+(D6: every map in `src/maps/index.js`), warms 60 frames, runs the AUTO suite
+twice on each and prints a JSON report. Exit 0 means nothing is red outside
+QUEUE.md's Deliberately-red list and the two runs agree, judged per map. Each
+run carries `contextLosses` and `rerun` (F1), printed as `GL CONTEXT LOST`;
+zero is normal, and a non-zero one is the machine, not the game, unless the
+same check is in the list every run.
 
-A look at the figures, headless (F6):
+- `--runs 1` is the gate: about 22 minutes for both maps (823s plant, 494s
+  yard). The full `npm run suite` is four runs, about 50 minutes. **Each map
+  alone is past the Bash tool's 10-minute cap — background it.**
+- `--map plant` to narrow · `--regression` for the regression set per map
+  (plant 29 checks in 58s, yard 29 in 25s) · `--subset "<regex>"` while
+  iterating · `--query "seed=N"` to reseed · `--stall SECONDS`, below.
+- `--details <file>` writes every check's id, outcome, detail line and **ms**
+  per run — the readings a PROGRESS entry quotes, which the stdout report
+  never carried for a green check. The slowest is
+  `a-zero-size-viewport-does-not-blind-the-renderer` at **269s on the plant**,
+  then `every-route-reads-lit-from-its-foot` at 76s; only 6 of 658 check-runs
+  pass 60s. That first number is F11.
+- `scripts/suite-skips.json` lists checks that cannot pass headless with
+  reasons (today: the frame-budget check; SwiftShader draws a frame in
+  ~400ms). They are reported, never counted. Needs `npm install` once:
+  `playwright-core` only, no browser download.
+
+**A hung run dies (F10).** The run is raced against a heartbeat the page
+publishes (`beat()` in `ui/autosuite.js`, on `debugState.suiteProgress`: a
+monotonic sequence and the id of the check in flight). When it stands still
+for `--stall` seconds — **600 by default, because the slowest single check on
+record is 269s** — the run is abandoned with `suite: crashed: run timed out`
+naming that check, the browser and server are closed, and the exit code is 2.
+Against the beat standing still, never wall-clock total: a cold plant run is
+legitimately 850s. `--stall 0` disables it. `SIGINT`/`SIGTERM` close the same
+way. A `suite.mjs` older than this process is named at startup, in the
+report's `otherRunners` and in the summary's `OTHER RUNNERS ALIVE` — its
+Chrome competes for the same cores, so every timing beside it is measured
+against it.
+
+Three more headless tools, each with a PROGRESS entry:
 
 ```bash
-npm run shot -- --map plant
+npm run shot -- --map plant                  # F6: both figures from five eyes
+npm run shot -- --map plant --pose vault,aim # F7: one pose, or --pose all
+npm run probe -- --map plant probe.js        # F9: a question asked of the game
 ```
 
-`scripts/shot.mjs` serves and launches as the suite runner does, loads
-the page once per map (every registered map without `--map`), and calls
-`photograph()` (src/tests/look.js): both actors side by side on the
-figure checks' own stand, a frame from every eye in open air - front,
-side and three-quarter at 4.5m, down the lane at 8m and 25m - written
-to `shots/look-<map>-<eye>.png` (gitignored) in about 30s a map. A
-session reads the PNGs with the Read tool; that is the Browser pane's
-job done without the pane. `a-look-at-both-figures-photographs-every-
-eye` holds `photograph()` to a PNG from every eye with both bodies in it.
-
-A look at a pose (F7):
-
-```bash
-npm run shot -- --map plant --pose vault,aim     # or --pose all
-```
-
-`photographPose(h, name)` (src/tests/look.js) drives the Shade into the
-named state through the real keys (`strike`, tests/animation.js: walk,
-sprint, crouch, slide, rise, fall, landing, vault, mantle, grab, hang,
-pullup - the climbs part way through their move) or holds the Warden's
-sights up in free roam (`aim`), hides the other actor, and frames the
-body from the first of six eyes 4.5m off it in open air with sight of
-its middle, to `shots/look-<map>-pose-<name>.png`; one line per pose
-says the state the body was in. About 35s for all thirteen.
-`a-look-at-a-pose-photographs-the-state-named` holds every pose to its
-state and a PNG with the body on 3000 pixels. E3's poses were looked at
-this way before F7 was committed: the vault reads as a hurdle with the
-hands down, the mantle and the pull-up as climbs with the hands on the
-lip, the aim as a rifle held level at the chest.
-
-A probe (F9) - a question asked of the game, headless:
-
-```bash
-npm run probe -- --map plant probe.js         # any path; several files run in turn
-```
-
-`scripts/probe.mjs` loads the page on one map (the first registered
-without `--map`), stops the loop, warms 60 frames, and runs the file's
-text as the body of an async function with `h` (the harness) and `THREE`
-in scope, so top-level `await` and `await import('/src/tests/pixels.js')`
-work; it prints what the file returns as JSON, and writes any `pngs:
-[{ name, dataUrl }]` it returns to `shots/<name>.png` first (`--out` to
-put them elsewhere, `--query "seed=N"` to reseed). A throw prints the
-error and exits 1. E4 and F8 were diagnosed with a scratch copy of this
-(a `createLens` from pixels.js, a `lens.look`, a `lens.grab`, a
-`renderer.domElement.toDataURL` for the PNG); every "what does this
-read" and "look at this view" of a scheduled run goes through it, and a
-finding that should stay true becomes a check. The server and the
-launch are `scripts/headless.mjs`, shared with shot.mjs; suite.mjs
-keeps its own copy (it runs on import and adds a throttle token) with a
-note to keep the two in step.
+`shot.mjs` writes `shots/look-<map>-<eye>.png` (gitignored) in about 30s a
+map, which a session reads with the Read tool — the Browser pane's job done
+without the pane. `probe.mjs` runs a file's text as the body of an async
+function with `h` and `THREE` in scope, prints what it returns as JSON and
+writes any `pngs: [{ name, dataUrl }]`; every "what does this read" of a
+scheduled run goes through it, and a finding that should stay true becomes a
+check.
 
 In a real browser, for what headless cannot prove (the frame budget on a GPU
-- with the post on, since E6, and off if it fails - how it looks, how it
-sounds):
-
-```bash
-npx serve -l 5173 .
-```
-
-Open it with **`?debug=1`** for F3 and F4 (C1: the page without it is the
-playtest build, every debug key inert; the settings menu's *debug tooling*
-row also turns the gate on). `?map=yard` for the container yard (D2). In the browser console (`window.BLACKLINE` is
-the harness in both builds; the suite holds the gate up while it runs):
-
-```js
-await BLACKLINE.debugTools.runAutoTests();      // full suite (~6s)
-await BLACKLINE.debugTools.runRegressionSet();  // Section 16's set: 29 checks on either map (D7)
-```
-
-In-game: **F3** overlay · **F4** test mode · then **Y** full suite, **U**
-regression set, **N** the Warden's ground on the floor. Run the suite **twice** — a flaky check shows as a different
-answer, not a pass. Add **`?map=yard`** (or click the menu's *map* row)
-for the second map; Y there runs the checks that are not the
-substation's and the banner counts the rest as *not for this map* (D1);
-U runs the whole set there (D7).
-
----
+with the post on, how it looks, how it sounds): `npx serve -l 5173 .`, then
+**`?debug=1`** for F3 and F4 (C1: without it the page is the playtest build,
+every debug key inert) and `?map=yard` for the second map. `window.BLACKLINE`
+is the harness in both builds; in-game **F3** overlay · **F4** test mode ·
+**Y** full suite · **U** regression set · **N** the Warden's ground. Run it
+**twice** — a flaky check shows as a different answer, not a pass.
 
 ## Environment traps — these will cost you an hour each
 
-**A loaded machine can take the GPU away mid-suite.** One A2 verify run
-came back with *eight* pixel checks flaky at once (rim light, lit pools,
-the dim meter, the outline, smoke/flash, the alarm fixture, the death camera
-and the 0x0 viewport) and never reproduced. F1 found it: a **lost WebGL
-context**. Chrome kills a starved SwiftShader GPU process and hands the
-context back a moment later; in the window every draw is a no-op, every
+**A loaded machine can take the GPU away mid-suite.** One verify came back
+with *eight* pixel checks flaky at once and never reproduced. F1 found it: a
+**lost WebGL context**. Chrome kills a starved SwiftShader GPU process and
+hands it back a moment later; in the window every draw is a no-op, every
 `readPixels` reads black, and the drawing buffer reports 0x0 against a
-1280x720 canvas. Staging a loss fails exactly those eight and nothing else.
-Since F1 the suite counts losses (`debugState.contextLosses`, an F3 row),
-tags every check that ran in the window, waits for the restore and re-runs
-them once (`ui/autosuite.js`); the runner prints `GL CONTEXT LOST Nx` and
-lists the re-runs, so read that line before believing any red pixel check.
-If you ever see a 0x0 drawing buffer with the canvas still sized, it is
-this, not a resize. A check that needs to lose the context on purpose
-registers with `losesContext: true`.
+1280x720 canvas. The suite now counts losses, tags the checks that ran in the
+window and re-runs them once; the runner prints `GL CONTEXT LOST Nx`. Read
+that line before believing any red pixel check. A check that needs to lose the
+context on purpose registers `losesContext: true`.
 
-**A plant run can take 450s, and since D6 `npm run suite` is four runs -
-about 24 minutes - and even the gate (`--runs 1`, both maps) is 11.**
-Nothing of that fits the Bash tool's 10-minute cap. Start it with
-`run_in_background` writing to a file and wait on the file (`until grep
--q "suite: " <file>`, itself backgrounded or in a Monitor - a foreground
-wait hits the same cap), or split it into `--runs 1 --map <id>` runs with
-`--details` and compare the answers yourself. Stopping a
-backgrounded run from the tool does not stop the runner: node and its
-headless Chrome carry on, still writing to the redirected file, and a
-second run started beside them fights for the four pinned cores.
+**A plant run can take 850s, and `npm run suite` is four runs.** Nothing of
+that fits the Bash tool's 10-minute cap. Start it with `run_in_background`
+writing to a file and wait on the file (`until grep -q "suite: " <file>`,
+itself backgrounded or in a Monitor — a foreground wait hits the same cap).
+Stopping a backgrounded run from the tool does not stop the runner.
 
-**And an orphaned runner never dies on its own — it has to be killed by
-hand, and a routine cannot do it.** *(Since F10, 2026-09-23, the gate no
-longer makes them: a run whose heartbeat stands still for `--stall`
-seconds dies naming the check, and SIGINT/SIGTERM tear the tree down.
-The two below predate that and are still alive; every run since names
-them at startup. The rest of this trap stands - read it before trusting
-any timing.)* The 09-18 17:00 build's runner was
-still alive on 2026-09-22, four days later: `npm run suite` (pid 9608)
-→ `node scripts/suite.mjs` (pid 4792, an in-process server still
-listening on 127.0.0.1:54315) → a headless Chrome tree whose renderer
-had burned **1,975 seconds of CPU** and a second process 429s more. That
-is not an idle zombie; it is a SwiftShader renderer spinning against the
-same four cores every later run is timed on. Resist the obvious
-inference: it does *not* follow that this is why a plant run went from
-450s (D6) to 850s (E6), because E6's run and the 09-22 gate's 819s were
-both measured with it alive. Contention is a constant across every
-timing on record, not something that separates them. The clean test is a
-gate run once the processes are dead, and nobody has had one yet.
-**Before trusting any timing in a report, check for one**:
+**And an orphaned runner never dies on its own — it has to be killed by hand,
+and a routine cannot do it.** *(Since F10 the gate no longer makes them: a run
+whose heartbeat stands still dies naming the check, and SIGINT/SIGTERM tear
+the tree down. The two below predate that, are still alive, and are named at
+the start of every run since.)* The 09-18 17:00 build's runner was still alive
+on 2026-09-23: `npm run suite` (pid **9608**) → `node scripts/suite.mjs` (pid
+**4792**, a server still listening on 127.0.0.1:54315) → a headless Chrome
+tree (pid **8920**) whose renderer had burned 1,975 CPU-seconds. Resist the
+obvious inference: it does *not* follow that this is why a plant run went 450s
+→ 850s, because E6's run and every gate since were measured with it alive.
+Contention is a constant across every timing on record, not something that
+separates them. The clean test is a gate run once the processes are dead, and
+nobody has had one yet. Find them with
 
 ```powershell
 Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Select ProcessId,CreationDate,CommandLine
 ```
 
-Anything older than the current run is a leak. End it with `taskkill /PID
-<suite.mjs pid> /T /F` — and note that Josh has to run this himself: a
-scheduled session's sandbox refuses `taskkill` (and a backgrounded
-`nohup ... &`) as interfering with a workload, so the routine can find
-these but never clear them. Be sure of the pid first: the ordinary
-`chrome.exe` tree on this machine is Josh's own browser, not the
-suite's.
+and end one with `taskkill /PID <suite.mjs pid> /T /F` — **Josh has to run
+this himself**: a scheduled session's sandbox refuses `taskkill` as
+interfering with a workload. Be sure of the pid first; the ordinary
+`chrome.exe` tree is Josh's own browser.
 
 **Two sessions in this repo will collide on decision numbers.** A5 raised its
 question as D19 while, ten minutes earlier and unseen, another session had
-committed a different D19. Renumbered to D20 by hand; the A5 commit message
-still says D19. Before adding to `DECISIONS.md`, `git log --oneline -5` and
-re-read the file - the number you are about to use may have been taken since
-you loaded it.
+committed a different D19. Before adding to `DECISIONS.md`, `git log --oneline
+-5` and re-read the file — the number you are about to use may have been taken
+since you loaded it.
 
-**The routine may be running while you are.** `blackline-build` fires at
-17:00 and 02:00 and a run can last hours. Before you commit from a human
-session, look at `git status`: a file you did not touch is the routine's
-in-flight work. Never `git add -A` then — add your own files by name. (A
-`zzz-probe` check was swept into a docs commit this way on 2026-09-10 and had
-to be reset out.)
+**The routine may be running while you are.** `blackline-build` fires at 17:00
+and 02:00 and a run can last hours. Before you commit from a human session,
+look at `git status`: a file you did not touch is the routine's in-flight
+work. Never `git add -A` then — add your own files by name.
 
 **A scheduled run cannot use the Browser pane at all.** It refuses to start a
-dev server from an unattended session, by rule. `npm run suite` is the only
-gate a routine has; the pane is for humans. For a look, `npm run shot`
-(F6) writes PNGs of both figures from five eyes that the Read tool shows.
+dev server unattended, by rule. `npm run suite` is the only gate a routine
+has; for a look, `npm run shot`.
 
 **The browser pane never composites.** `document.hidden` is always true,
-`requestAnimationFrame` never fires, screenshots time out. So:
-- Drive frames with `h.renderFrame(1/60)`, never by waiting for rAF.
-- Verify anything visual with `gl.readPixels` — see `src/tests/pixels.js`.
-- The one time this bit hard: an emulated resize left the canvas 0×0 and *all
-  eight* pixel checks went black at once. The obvious reading (the last commit
-  broke rendering) was wrong.
+`requestAnimationFrame` never fires, screenshots time out. Drive frames with
+`h.renderFrame(1/60)`, never by waiting for rAF, and verify anything visual
+with `gl.readPixels` — see `src/tests/pixels.js`. The one time this bit hard:
+an emulated resize left the canvas 0×0 and *all eight* pixel checks went black
+at once, and the obvious reading (the last commit broke rendering) was wrong.
 
-**The runner keeps 400 characters of a check's detail, and the F4 log
-is not in the report.** A diagnostic that matters goes at the front of
-the failure line, compact; D5 lost two runs to a trace that was cut off
-before the interesting part. `debugTools.logResult()` reaches the F4
-panel in a tab, never the runner.
+**A check that awaits `h.nextFrame()` hangs where frames never fire**, and the
+browser pane is such a place. Read `document.hidden` first and fail with a
+reason instead. Since F10 the headless runner kills such a run rather than
+hanging with it, but the check is still wrong.
 
-**The working copy is mixed: some files CRLF, some LF.** A patch script
-that assumes one fails silently on the other (D5's first patch matched
-nothing in the CRLF `tests/difficulty.js`). Detect per file: read with
-`newline=""`, note whether `\r\n` is in it, work in LF, write back the
-way it was.
+**A run of checks never yields a task on its own.** `await` on an
+already-settled promise is a microtask, so a stretch of synchronous checks
+holds the main thread from the first to the last and nothing outside the page
+can see how far it has got. Hence `yieldTask()` at every check boundary (F10);
+anything observing a run from outside depends on it.
 
-**Bash heredocs fail on JS content** in this shell — `unexpected EOF`. Use the
-Write tool for new files and a `python - <<'PY'` block for edits.
+**The runner keeps 400 characters of a check's detail, and the F4 log is not
+in the report.** A diagnostic that matters goes at the front of the failure
+line, compact; D5 lost two runs to a trace cut off before the interesting
+part. `debugTools.logResult()` reaches the F4 panel in a tab, never the runner.
 
-**A coverage check cannot see a connectivity fault.** Three times now: the
-A1 constant that stayed green with the step at 2m, the HUD check that was
-green only because of who ran before it, and A1's ground that was two islands
-while every spawn, waypoint and site sat happily on one of them. Before
-believing a check on a *set*, ask whether it would notice the set being cut
-in half.
+**The working copy is mixed CRLF and LF**, with `core.autocrlf` true. A patch
+script that assumes one fails silently on the other. Detect per file: read with
+`newline=""`, note whether `\r\n` is in it, work in LF, write back the way it
+was. A byte-exact match against `\n` content fails silently on a CRLF file.
 
-**`renderFrame` and a lens do not mix.** The frame re-parents the camera to
-the actor's rig every time it runs, so a lens pointed at the floor is pointed
-at the floor no longer after one `h.renderFrame()`. Press debug keys with
-`debugTools.pollKeys()` while a lens is up (the same real path; it is the first
-thing the frame does), and do anything that needs the frame after
-`lens.restore()`. A7 lost twenty minutes to a 114-level "darkening" that was
-the camera moving.
+**Bash heredocs fail on JS content** in this shell — `unexpected EOF` — and
+sometimes even inside `python - <<'PY'`. Use the Write tool for new files, and
+write a patch script to the scratchpad with the Write tool and run `python
+<path>` rather than piping it in. **A patch script must take its root as an
+argument and refuse to run without one:** G1's own predecessor defaulted it to
+an empty string, which resolved to the current directory and patched the live
+tree in the middle of a gate run.
+
+**Python's default encoding here is cp1252.** A script that opens a markdown
+file containing an em dash without `encoding='utf-8'` reads a different string,
+and an `anchor in s` that should be true is false. Open with `encoding='utf-8'`
+both ways.
+
+**A coverage check cannot see a connectivity fault.** Three times now: the A1
+constant that stayed green with the step at 2m, the HUD check that was green
+only because of who ran before it, and A1's ground that was two islands while
+every spawn, waypoint and site sat happily on one of them. Before believing a
+check on a *set*, ask whether it would notice the set being cut in half.
+
+**`renderFrame` and a lens do not mix.** The frame re-parents the camera to the
+actor's rig every time it runs, so a lens pointed at the floor is pointed at it
+no longer after one `h.renderFrame()`. Press debug keys with
+`debugTools.pollKeys()` while a lens is up, and do anything needing the frame
+after `lens.restore()`.
 
 **Never time `readPixels`.** It blocks on a GPU sync and copies megabytes; it
 reported a 2ms frame as 14ms. Use `lens.renderOnly()`.
 
 **Warm up before measuring — the AUTO suite counts as measuring.** The first
-draw after a load compiles shaders. A suite run straight after a reload reported
-`hall-north` at 17.80ms against an 8.33ms ceiling; warmed, the same viewpoint is
-1.22ms. Drive 60 frames of `renderFrame(1/60)` before running the suite.
+draw after a load compiles shaders. A run straight after a reload reported
+`hall-north` at 17.80ms against an 8.33ms ceiling; warmed, the same viewpoint
+is 1.22ms. Drive 60 frames of `renderFrame(1/60)` first.
+
+**A wall-clock guard and a cold view do not mix.** The death camera's guard
+(16.5s) is measured on the wall clock by design; the first draw of a view the
+renderer has not seen compiles for tens of seconds headless (39s at site A),
+and `readPixels` blocks until it is done. Such a check gets the guard, not the
+picture — and red only when run alone, because in the full suite an earlier
+check paid the compile. Warm the view first, and listen for `deathcam:guard`.
 
 **Noise events come from a recycled pool of 48.** Copy the fields you need; a
 retained event gets overwritten (a landing read 8m instead of 10m because a
 Warden footstep reused the slot).
 
-**A check that awaits `h.nextFrame()` hangs where frames never fire.** The
-browser pane is such a place. F4's check reads `document.hidden` first and
-fails with a reason instead; do the same in any check that awaits a frame.
+**A check may leave anything behind except presentation.** Since F2 the runner
+calls `h.resetPresentation()` before every check, because one that rendered a
+frame behind a menu used to leave every HUD-reading check after it reading a
+stale DOM. Match state is still the check's own business, and `initMatch` at
+the top remains the way to start clean.
 
-**A check used to inherit the last check's menu, pause and HUD.**
-`hud.setVisible()` runs *inside* the frame, from `!menu.open`, and
-`hud.update()` draws nothing while hidden - so a check that rendered a frame
-behind a menu left every HUD-reading check after it reading a stale DOM, and
-at boot the menu is up, so the first HUD read in any subset was of a HUD
-nothing had drawn. `hud-reads-the-meter-it-is-shown-beside` was green in the
-full suite only because of who ran before it and red straight after
-`the-rim-light-is-really-on-screen`. Since F2 the runner calls
-`h.resetPresentation()` before every check (menu hidden, intermission
-hidden, unpaused, HUD shown), `hud.update()` returns whether it drew, and the
-HUD check asks. A check may still leave whatever it likes behind; the next
-one no longer cares. Presentation only - match state is still the check's
-own business, and `initMatch` at the top remains the way to start clean.
-
-**The pulsing site ring pollutes pixel samples.** It sits dead centre under a
-camera pointed at a site and swings 0.35–0.9 opacity. Sample off it.
+**The pulsing site marking pollutes pixel samples.** Sample off it.
 
 **Four rifle rounds kill the Shade, and since C5 the Warden lands them.**
 God-mode it (`h.debugState.godMode = true`) in any long test or the AI ends
-your measurement window - and put it back. Until C5 god mode guarded only
-the frag, so a check that set it and survived did so because the rifle was
-aimed at the floor.
+your measurement window — and put it back.
 
 **Smoke blocks AI sight entirely and a seen flashbang blinds it** — so the
 check-29 load only coexists with gunfire if the smoke is off the firing line.
@@ -1697,174 +453,81 @@ length controls for thirty phases.
 **One console warning during the suite is expected** — the death-camera check
 deliberately fires its own wall-clock guard.
 
-**`every-sound-renders-to-samples-that-match-section-14` used to be flaky**
-("the Warden's footstep peaks at 0.049 against the Shade's 0.050", then
-green). The cause was the instrument, not the threshold: `renderOffline()`
-drew its noise texture from `Math.random`, so two renders were two different
-signals. Since B2 it seeds a private `mulberry32` (`RENDER_NOISE_SEED` in
-audio.js) and a rendered sound is the same samples every time. If it ever
-answers differently between two runs again, something else is random.
+**A check that emits half an event leaves the other half behind.** The audio
+check emits a synthetic `gadget:detonate` for the sound; effects hears it too
+and spawns a cloud with no gadget behind it, which
+`effects-drain-when-idle` calls a leak. Pair the event with the registry
+effect, or clean up after it.
 
-**A wall-clock guard and a cold view do not mix.** The death camera's
-guard (`reinsert.wallClockGuard`, 16.5s) is measured on the wall clock
-by design; the first draw of a view the renderer has not seen compiles
-for tens of seconds headless (39s at site A, measured by F5), and
-`readPixels` blocks until it is done. A check that starts a guarded
-state and then reads pixels through it for the first time gets the
-guard, not the picture - and red only when run alone, because in the
-full suite an earlier check paid the compile. Warm the view (a
-`renderFrame` and a `readPixels`) before starting anything guarded,
-and listen for `deathcam:guard` so the check says so if it fires.
+**If a rendered sound ever answers differently between two runs, something is
+random.** `every-sound-renders-to-samples-that-match-section-14` was flaky
+until B2 found `renderOffline()` drawing its noise from `Math.random`; it
+seeds a private `mulberry32` now.
 
-**A check that emits half an event leaves the other half behind.** The
-audio check emits a synthetic `gadget:detonate` for the sound; effects hears
-it too and spawns a cloud with no gadget behind it, and the runtime
-assertion `effects-drain-when-idle` calls that a leak once its 10s idle
-window has passed - which, with the loop stopped under the suite (F4),
-depends only on what ran before. Pair the event with the registry effect
-(visual.js and performance.js do) or clean up after it (audio.js does now).
+**If the runner says `suite: crashed:` with no page error under it**, the
+harness never loaded for a reason the page did not report — look at
+index.html's import map first.
 
-**Python's default encoding on this machine is cp1252.** A patch script
-that opens a markdown file with an em dash in it without
-`encoding='utf-8'` reads a different string, and an `anchor in s` that
-should be true is false (E3 lost one run of a DECISIONS.md patch to it;
-the JS sources are ASCII and never showed it). Open with
-`encoding='utf-8'` both ways.
-
-**Bash heredocs fail on some JS content even inside `python - <<'PY'`.** One
-patch died with `unexpected EOF` for no visible reason. Write the patch script
-to the scratchpad with the Write tool and run `python <path>` instead.
-
-**The working copy is CRLF, the repo is LF** (`core.autocrlf=true`). A
-Python patch that reads in text mode and writes with `newline="
-"` is fine
-— git normalises on commit — but a byte-exact match against `
-` content
-fails silently, and `wc -l` on a file ending `}
-
-` is one more than
-the last `}`. F3 lost two script runs to each.
-
-**A boot failure used to be a silent 60s timeout.** The runner now prints
-the page's first errors under `suite: crashed:` (`  page: pageerror: P is
-not defined`). If it says nothing, the harness never loaded for a reason the
-page did not report — look at index.html's import map first.
-
-**A moved method can reference a module constant that did not move.** Both
-F3 boot failures were this (`P`, `THREE` used in `mapgen.js` without an
-import); `node --check` cannot see it and only the code path that runs at
-boot reports it. After moving code between modules, grep the new file for
-every bare identifier the old module declared at top level.
+**A moved method can reference a module constant that did not move.** Both F3
+boot failures were this (`P`, `THREE` used in `mapgen.js` without an import);
+`node --check` cannot see it and only the code path that runs at boot reports
+it. After moving code between modules, grep the new file for every bare
+identifier the old module declared at top level.
 
 **`MultiplyBlending` needs `premultipliedAlpha: true` on the material in
-r180.** Without it three logs `THREE.WebGLState: MultiplyBlending
-requires material.premultipliedAlpha = true` once a frame and draws the
-mesh with normal blending - a white texel lands as opaque white. E4's
-first subset had 161 console errors and a stain reading brighter than
-the floor under it. The runner's `consoleErrors` count is where it
-shows first.
+r180.** Without it three logs a warning once a frame and draws the mesh with
+normal blending — a white texel lands as opaque white. E4's first subset had
+161 console errors; the runner's `consoleErrors` count is where it shows first.
 
-**A dark surface hides its texture in a level or two.** A tenth of luma
-20 is two levels; the ramp's own bands spread more than that. Measure a
-texture under a lamp (a surface at luma 80-100), and by difference -
-the frame with the map minus the same frame with `material.map = null`
-(and `needsUpdate` both ways) - so the lighting's bands cancel and what
-is left is the texture.
+**A dark surface hides its texture in a level or two.** Measure a texture under
+a lamp (a surface at luma 80–100), and by difference — the frame with the map
+minus the same frame with `material.map = null` — so the lighting's bands
+cancel and what is left is the texture.
 
-**An sRGB texture multiplies harder than its texel says.** A grey texel
-of 0.88 is 0.75 linear, and the surface it multiplies is lit in linear:
-E4's first grime took a fifth off a lit floor where the texel promised
-a tenth. Budget the darkening from the pixels, not the texel.
-
----
+**An sRGB texture multiplies harder than its texel says.** A grey texel of 0.88
+is 0.75 linear, and the surface it multiplies is lit in linear: E4's first
+grime took a fifth off a lit floor where the texel promised a tenth. Budget the
+darkening from the pixels, not the texel.
 
 ## The lesson that keeps repeating
 
-Three separate bugs — the Phase 3 ledge hang, the Phase 21 slide, and the
-Phase 47 match score — were all **wired, tested, green, and impossible in play**.
-Every one came from a check that drove the game differently from how a player
-does.
-
-A held key and its press edge arrive on the **same step**. A test that sets
+Three separate bugs — the Phase 3 ledge hang, the Phase 21 slide, the Phase 47
+match score — were all **wired, tested, green, and impossible in play**. Every
+one came from a check that drove the game differently from how a player does.
+A held key and its press edge arrive on the **same step**; a test that sets
 `intent.crouchPressed` without `intent.crouch` is testing a machine nobody is
-sitting at. Drive `input.heldCodes` / `input.pressedCodes` — see
-`src/tests/fuzz.js`.
+sitting at. Drive `input.heldCodes` / `input.pressedCodes`.
 
-**And its cousin, from A1 and again in A3: a check that reads the constant the derivation read
-can only ever agree with it.** `the-warden-never-climbs-to-reach-its-ground`
-first asked whether a climbable top had ground beside it within
-`warden.stepHeight` — and stayed green with the step temporarily at 2.00m while
-the fill walked up crate stacks. It asks "is the ground beside it *level* with
-it" now, which is a fact about the geometry. Before believing a derived-data
-check, raise the constant it derives from and watch it go red.
-
-A3 hit the same shape: it *selects* the perches to try with `canDefuseAt` and
-then asserts `canDefuseAt` refused them, which on its own proves nothing. The
-way out was to open `DEFUSE_REACH.dy` a metre at a time until the same perch is
-legal and require that the identical hold then plants — the gate proved to be
-reading the live reach rather than carrying a private exclusion. Any Block A
-check that picks its own inputs owes the suite that second half.
-
----
+**And its cousin, from A1 and again in A3: a check that reads the constant the
+derivation read can only ever agree with it.**
+`the-warden-never-climbs-to-reach-its-ground` first asked whether a climbable
+top had ground beside it within `warden.stepHeight`, and stayed green with the
+step temporarily at 2.00m while the fill walked up crate stacks; it asks "is
+the ground beside it *level* with it" now, which is a fact about the geometry.
+Before believing a derived-data check, raise the constant it derives from and
+watch it go red. A3 was the same shape — it *selects* the perches to try with
+`canDefuseAt` then asserts `canDefuseAt` refused them, which proves nothing —
+and the way out was to open `DEFUSE_REACH.dy` until the same perch is legal
+and require that the identical hold then plants. Any check that picks its own
+inputs owes the suite that second half.
 
 ## Still needs a human
 
-These are D26, D28, D30, D31, D39, D40, D41, D42, D43, D44, D45, D46 and the Provisional section of `DECISIONS.md`; Josh answers there. **2026-09-21 Josh decided D8, D13, D25, D27 and D38** (DECISIONS.md): the ring becomes a floor tint and the HUD names the site (C7); the routine may move a site or spawn when a route needs it; the duct roofs stay routes (B5b dropped); the Warden may not defuse through a floor (B5d unblocked); the Shade walks the stair and "can do anything a human should easily be able to do" (D3b dropped - and a rule for every future question of that shape).
+Josh answers in `DECISIONS.md`, and its **Provisional** section is the live
+list and the authority — nothing is *blocking*, so no job is waiting on any
+of this. The ones a fresh pair of eyes would settle fastest: **D26** the
+ducts' material, **D28** how a route is lit, **D30** the briefing card,
+**D31** hit feedback, **D39** the yard's lighting, **D40–D46** the two
+figures, the animation, both maps' materials, the site tint and the post.
+Every one is the same shape: the pixels say a thing is drawn where it should
+be, not that it *reads*.
 
-- **D46**: post-processing as built - a bloom on the emissives at 0.8,
-  a vignette at 0.3, a settings row. Provisional; the numbers say a
-  lamp has a halo and the corners are darker, not that it reads as
-  light rather than haze - and the frame budget on a GPU is unmeasured
-  here (PLAYTEST.md says how).
-- **D45**: the yard's materials as built - corrugated containers on
-  one finish, wet ground, rust bands and one box number as decals.
-  Provisional; the numbers say the ridges and the puddles are on
-  screen, not that corrugation reads as corrugation or wet as wet.
-- **D44**: the site marking as built - a multiply tint at 0.13 (0.28
-  before E6's linear multiply) over
-  every floor plate of a site's room, the HUD line above the plant
-  prompt. Provisional; the numbers say the floor is warmer by a sixth
-  and darker by a twelfth, not that it reads as the site from the door.
-- **D43**: the plant's materials as built - three finishes by colour,
-  concrete matte and paint glossy on their own ramps, a generated grime
-  that takes a seventh off a lit floor, twenty decals. Provisional; the
-  numbers say the grime is on screen and every relation the pixel
-  checks hold is unchanged or better, not that concrete reads as
-  concrete or the whole is not darker than wanted.
-- **D42**: the animation as built - a pose for every state, eased over
-  0.2s; the legs by the ground covered; the Warden's rifle raised to the
-  aim. Provisional; the numbers say every pose is a quarter radian from
-  every other and the sights lift the hand, not that a vault reads as a
-  vault or the blend as a body moving.
-- **D41**: the Warden's figure as built - a helmet on the shoulders with
-  no neck, a vest, a rifle at the low ready in the right hand, a broad
-  stance, the arms brought round from behind the back. Provisional; the
-  pixels say broad, flat-topped and carrying at 25m, not that it reads
-  as a guard rather than a barrel with a gun.
+Standing beyond those:
 
-- **D39**: the yard's lighting as built - four masts, a fifth lamp under
-  the walkway, the lamps 2.5x the plant's, a dark sky, the one shadowed
-  key warm from bay C's mast. Provisional; the pixels say the pools
-  out-light the sky and the gaps are dark, not that it reads as a yard
-  at night rather than a black screen with four spots.
-- **D26**: what the ducts look like - galvanised sheet, one colour, no
-  rim. Provisional; the pixels say it contrasts, not that it reads as a
-  duct.
-- **D28**: how the routes are lit - emissive sides on every stage, a
-  warm-white strip on every landing edge. Provisional; the pixels say it
-  is a step brighter, not that it reads as a route.
-- **D30**: the round-start briefing - that it holds the round until a
-  key, what it says, that it shows every round. Provisional; the check
-  reads the words, nobody has read the card at a real screen size.
-- **D31**: the hit marker, the damage arc and the red vignette - sizes,
-  colours, times, and that the arc sits at 0.32 half-heights. Provisional;
-  the pixels say each is drawn where it should be, not that it reads.
-
-- Whether the **site ring** still reads correctly now that the plant is the
-  whole room. Nobody has looked at it since the meaning changed.
-- How any of it **looks**. Pixels prove things are drawn, not that they read.
-- How any of it **sounds**. Samples are the right length, level and register;
-  nobody has heard it.
-- The **vsync framerate** on integrated graphics. CPU 1.7ms mean / 5.4ms worst
-  across 92 viewpoints against a 16.67ms budget says there is room, not what a
-  real GPU does with it.
+- How any of it **looks**, and how any of it **sounds**. Samples are the right
+  length, level and register; nobody has heard it.
+- The **frame budget on a real GPU**, with the post on. CPU 1.7ms mean /
+  5.4ms worst across 92 viewpoints against a 16.67ms budget says there is
+  room, not what a real GPU does with it. `PLAYTEST.md` says how to answer it.
+- The **two orphaned node processes** above — pids 9608 and 4792, and Chrome
+  8920. The routine cannot kill them.
