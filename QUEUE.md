@@ -83,6 +83,34 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 
 - [x] **F13 (S)** The two bans the spec states, held by the gate. — done 2026-09-24, under Done.
 
+- [ ] **F14 (M)** The suite cannot tell that it has shrunk. Nothing asserts
+  the registry's size or its wiring, so a `registerX(debugTools);` line
+  dropped from `registerAutoTests()` in `tests/index.js` — while its import
+  stays and `node --check` passes — silently removes that module's checks
+  from every run, and the gate exits 0 on the smaller suite. This is the
+  lesson `HANDOFF.md` says keeps repeating, three times over: *"before
+  believing a check on a set, ask whether it would notice the set being cut
+  in half"*. It would not.
+  Measured this run, through `npm run probe`: `tests/index.js` imports **56**
+  modules and calls all 56; they declare **185** registrations in their own
+  text and **184** are live; the one gap is `a-staged-hang-never-returns`,
+  registered only under `?hang=1` because a check that cannot finish has no
+  business in a gate. Two edge cases a text census must handle and a naive
+  regex gets wrong: that conditional registration, and `heartbeat.js:63`'s
+  `id: SELF`, an id written as a file-local constant rather than a literal.
+  Only `src/tests/` registers checks.
+  *done-when:* a check — a new `src/tests/registry.js`, since `donedef.js` is
+  at 441 lines and this is its own concern — holds: every `register as NAME
+  from './FILE.js'` in `tests/index.js` is called exactly once in
+  `registerAutoTests` and nothing else is (order is **not** asserted;
+  `registerPerformance` is deliberately called last); every check id declared
+  in those modules' text is live, bar a named list of conditional
+  registrations that must each still be declared; every live id is declared
+  in one of them; and an id the census cannot read is **red with a reason**,
+  never skipped, because silence is the thing being fixed. Red proved by
+  deleting a `register` call, and by making an id unreadable. `npm run suite`
+  twice with the answers otherwise unchanged.
+
 
 ## Block B — the traversal redesign, phases 12–50
 
