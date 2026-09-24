@@ -184,7 +184,7 @@ a job in this block may never change a file under `src/`.
   word "deliberately" removed from over `audio.js:97`, and `audio.js`'s draw
   replaced so the allowance named nothing. 389ms a run, 0 flaky, and its green
   detail line is a census a later run can read without running anything.
-  Commit `PENDING`.
+  Commit `8ce149b`.
 
 - **F12** `?seed=` reaches the fuzz and soak checks. The 2026-09-20 audit's
   own recommendation, which had been written into `PROGRESS.md` and never
