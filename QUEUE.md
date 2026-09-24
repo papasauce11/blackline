@@ -179,7 +179,7 @@ a job in this block may never change a file under `src/`.
   (760,649ms, 942,528ms), yard 155 / 1 / 27 (468,644ms, 604,053ms), exit 0,
   0 red, 0 flaky, 0 console errors - one more check per map than the gate
   that opened the run, and the same run times. Full write-up in
-  `PROGRESS.md`, "F12". Commit `F12_HASH`.
+  `PROGRESS.md`, "F12". Commit `49c8f67`.
 
 - **G1** `HANDOFF.md` back to one page. **1,846 lines to 533**, a 71% cut.
   The ~30 per-job narrative sections are gone and replaced by an index
