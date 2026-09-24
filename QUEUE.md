@@ -83,33 +83,7 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 
 - [x] **F13 (S)** The two bans the spec states, held by the gate. — done 2026-09-24, under Done.
 
-- [ ] **F14 (M)** The suite cannot tell that it has shrunk. Nothing asserts
-  the registry's size or its wiring, so a `registerX(debugTools);` line
-  dropped from `registerAutoTests()` in `tests/index.js` — while its import
-  stays and `node --check` passes — silently removes that module's checks
-  from every run, and the gate exits 0 on the smaller suite. This is the
-  lesson `HANDOFF.md` says keeps repeating, three times over: *"before
-  believing a check on a set, ask whether it would notice the set being cut
-  in half"*. It would not.
-  Measured this run, through `npm run probe`: `tests/index.js` imports **56**
-  modules and calls all 56; they declare **185** registrations in their own
-  text and **184** are live; the one gap is `a-staged-hang-never-returns`,
-  registered only under `?hang=1` because a check that cannot finish has no
-  business in a gate. Two edge cases a text census must handle and a naive
-  regex gets wrong: that conditional registration, and `heartbeat.js:63`'s
-  `id: SELF`, an id written as a file-local constant rather than a literal.
-  Only `src/tests/` registers checks.
-  *done-when:* a check — a new `src/tests/registry.js`, since `donedef.js` is
-  at 441 lines and this is its own concern — holds: every `register as NAME
-  from './FILE.js'` in `tests/index.js` is called exactly once in
-  `registerAutoTests` and nothing else is (order is **not** asserted;
-  `registerPerformance` is deliberately called last); every check id declared
-  in those modules' text is live, bar a named list of conditional
-  registrations that must each still be declared; every live id is declared
-  in one of them; and an id the census cannot read is **red with a reason**,
-  never skipped, because silence is the thing being fixed. Red proved by
-  deleting a `register` call, and by making an id unreadable. `npm run suite`
-  twice with the answers otherwise unchanged.
+- [x] **F14 (M)** The suite cannot tell that it has shrunk. — done 2026-09-24, under Done.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -185,6 +159,33 @@ a job in this block may never change a file under `src/`.
 ---
 
 ## Done
+
+- **F14** The suite counts itself. Nothing asserted the AUTO registry's size
+  or its wiring: delete one `registerX(debugTools);` line from
+  `registerAutoTests()` in `tests/index.js`, leave the import alone, and
+  `node --check` passes, the page boots, that module's checks are registered
+  nowhere and the gate exits 0 on the smaller suite - nothing red not being
+  the same as everything run. Measured first through `npm run probe`, because
+  the arithmetic had to be a fact before a check could assert it: 56
+  registrars imported and all 56 called, 185 registrations declared in the
+  modules' text against 184 live. Both ends of that gap are real -
+  `a-staged-hang-never-returns` is registered only under `?hang=1` (F10), and
+  `heartbeat.js:63` writes its id as a file-local const, so the first probe
+  regex read 184 against 184 and **balanced by coincidence**, one miss
+  cancelling one conditional. New `src/tests/registry.js` (131 lines) holds
+  four things: every imported registrar called exactly once and nothing else
+  called (order deliberately not asserted - `registerPerformance` is last on
+  purpose); every declared check registered; every registered check declared;
+  and the conditional ones named with their reason and still declared, since
+  an entry for something that has gone is an entry the next missing check
+  hides behind. An id the census cannot read is red with its file and line,
+  never skipped - skipping is what a careful author does and it is wrong
+  here, because the failure being closed is a count that quietly falls. What
+  it cannot see is said plainly: a module dropped from both lists at once
+  leaves nothing in `index.js` to compare against, and `MIN_TEST_MODULES`
+  only catches the registrar collapsing. Red proved by deleting
+  `registerScuff` and by making `SELF` unreadable while keeping it valid.
+  892ms cold, 346ms warm, 0 flaky. Commit `PENDING14`.
 
 - **F13** The two bans the spec states, held by the gate at last. Section 18's
   definition of done carries "`Math.random()` appears nowhere in `src/`";

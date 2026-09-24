@@ -8379,3 +8379,110 @@ routine has run out of anything it is allowed to decide. F12 was a hole in the
 instrument and so is F13, and there will be more of those — but the instrument
 is not the game, and two runs running have now been spent sharpening it because
 there was nothing else the routine could take.
+
+## F14 — the suite counts itself (2026-09-24 17:00, scheduled run)
+
+The second job of the run, and it came out of writing up the first. F13 needed
+to know how many modules the page loads; asking that question made it obvious
+that nobody had ever asked the matching one about the checks.
+
+**The hole.** Delete one `registerX(debugTools);` line from
+`registerAutoTests()` in `src/tests/index.js` and leave its `import` where it
+is. `node --check` passes. The page boots. That module's checks are registered
+nowhere, every run from then on is smaller, and **the gate exits 0**, because
+nothing red is not the same as everything run. The runner prints a count, the
+summary quotes it and no check compares it to anything. `HANDOFF.md` names
+this as the lesson that keeps repeating — *"before believing a check on a set,
+ask whether it would notice the set being cut in half"* — and lists three
+times it has bitten. The set nothing was watching this time was the suite.
+
+It is not a hypothetical shape either: F3 split eight modules and both of its
+boot failures were code that moved without something that had to move with it.
+A `register` call is exactly that kind of line.
+
+**What was measured first.** Through `npm run probe`, because the arithmetic
+had to be a fact before a check could assert it: `tests/index.js` imported
+**56** registrars and called all 56; their source text declared **185**
+registrations while **184** were live. Both ends of that gap are real and a
+naive census gets both wrong:
+
+- `heartbeat.js` registers `a-staged-hang-never-returns` only under
+  `?hang=1` — a check that never returns has no business in a gate (F10). It
+  is declared and not live **on purpose**.
+- `heartbeat.js:63` writes its other check's id as `id: SELF`, a file-local
+  constant. The first probe regex only matched string literals, so it read 184
+  declared against 184 live and **balanced by coincidence** — one miss
+  cancelling one conditional. That is the kind of green this check exists to
+  stop, and it happened here in the measuring tool before it could happen in
+  the check.
+
+**What was built.** `src/tests/registry.js`, 131 lines, one check —
+`the-registry-holds-every-check-its-modules-declare` — registered from
+`tests/index.js` like every other, which makes it one of the registrations it
+counts. It holds four things:
+
+1. **The registrar's wiring.** Every `import { register as NAME } from
+   './FILE.js'` is called exactly once inside `registerAutoTests`, and nothing
+   is called that was not imported. Order is deliberately **not** asserted:
+   `registerPerformance` is called last, out of import order, with a comment
+   saying why ("it is the heaviest check and it leaves the world in a known
+   state"), and a check that forbade that would be inventing a rule.
+2. **Everything declared is registered.** Each imported module's text is
+   fetched and every `registerAutoTest({ id: ... })` read out of it, the id
+   either a literal or a file-local `const NAME = '...'` this resolves.
+3. **Everything registered was declared** — the other direction, which catches
+   a check appearing from somewhere that is not a module `index.js` names.
+4. **The conditional ones are named, and still declared.** `CONDITIONAL` holds
+   `a-staged-hang-never-returns` with its reason. Whether it is *live* is the
+   URL's business and is not asserted — under `?hang=1` it is, and that run is
+   the whole point of it — but it must still be declared somewhere, because an
+   entry for something that has gone is an entry the next missing check hides
+   behind. That is F13's allowance discipline, a day old and already the
+   house style.
+
+**An id the census cannot read is red, with its file and line**, never skipped.
+This is the one decision in the check worth arguing for: skipping is what a
+careful author does and it is wrong here, because the failure being closed is a
+count that quietly falls. A registration the census cannot read is a
+registration it cannot vouch for, and the fix — write the id as a literal or a
+file-local const — costs the next author nothing.
+
+**What it cannot see**, said plainly rather than left for the next run to
+discover: a module dropped from *both* the import list and the call list. It
+leaves no trace in `index.js` to compare against, and the page cannot list a
+directory. `MIN_TEST_MODULES` (50, against 57 today) catches the registrar
+having collapsed, not one line removed from it. The realistic slip — a call
+line lost while the import stays, or a module split without its registration
+following — is caught.
+
+**That it can fail was proved**, both directions the done-when named, each a
+real edit to the real tree and reverted after:
+
+| what was broken on purpose | what the check said |
+|---|---|
+| `registerScuff(debugTools);` deleted from `tests/index.js` | red: *"scuff.js: imported as registerScuff and never called - its checks are registered nowhere"*, then each of that module's checks named — *"scuff.js:24 declares "a-climb-beyond-reach-bumps-poses-and-sounds" and the registry does not hold it"* |
+| `const SELF` rewritten as a `join()` of two parts — still valid, still the same id at runtime | red: *"heartbeat.js:62: registers an id this census cannot read (SELF); write it as a literal or a file-local const"* |
+
+The wiring diagnostic comes first in the failure line on purpose: the runner
+keeps 400 characters and the per-check consequences ran off the end, which is
+the trap D5 lost two runs to.
+
+**Verified.** `npm run suite`, four runs: **plant 176 passed, 1 failed, 8 not for this map (769,937ms and 948,876ms), yard 157 / 1 / 27 (462,458ms and 608,664ms), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames**. One more passing
+check per map than F13's verify (plant 175, yard 156), which is this job's own
+and nothing else. The one failure on each map is the frame-budget check,
+skipped headless. The check costs **892ms then 346ms on the plant, 849ms then 335ms on the yard** — the first run of each map pays a cold fetch of 57 modules and the second reads them from cache. Not flaky: the answer and the detail line are identical across all four.
+
+Its green detail line, which is the census: *"57 registrars imported and each
+called once; 186 checks declared, 185 registered, the difference being
+a-staged-hang-never-returns (registered only under ?hang=1; it never returns
+by design (F10))"*.
+
+**What is left.** Nothing in F14. Two jobs this run, both of them the gate
+inspecting itself, and that is worth naming as a pattern rather than a
+coincidence: F12, F13 and F14 are all the same finding in different places —
+a number that reads like coverage and is not. The seam is real and it is also
+thinning, which is the honest thing to tell the next run. **The position is
+unchanged and D49 is still the question**: `PLAN.md`'s block table is finished,
+three runs running have now had nothing in the queue they could pick, and the
+routine has spent all three sharpening an instrument pointed at a game nobody
+has played.
