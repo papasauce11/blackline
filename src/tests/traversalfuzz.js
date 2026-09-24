@@ -25,6 +25,11 @@ import { CONFIG, rng } from '../config.js';
 import { SHADE_STATE } from '../entities/agent.js';
 import { classifyReach } from '../physics.js';
 import { MOVE_STATES } from './feel.js';
+import { exploreSeed } from './seeds.js';
+
+/** The two matches this module fuzzes in. `?seed=` moves both; see tests/seeds.js. */
+const FUZZ_SEED = exploreSeed('traversal-fuzz', 20260914);
+const SWEEP_SEED = exploreSeed('traversal-approach-sweep', 19770912);
 
 const S = CONFIG.shade;
 const DT = CONFIG.time.fixedDt;
@@ -214,7 +219,7 @@ export function register(debugTools) {
     spec: 'Section 6.1 / Section 17 (B8)',
     name: 'Ten thousand steps of real key input at the faces the rule names: no move outlives its duration, no hang from nothing, no endless fall, no body at rest in a solid',
     run: (h) => {
-      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false, seed: 20260914 });
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false, seed: FUZZ_SEED });
       h.menu.hide();
       h.setPaused(false);
       const approaches = everyApproach(h);
@@ -257,7 +262,7 @@ export function register(debugTools) {
     spec: 'Section 6.1 / Section 15 (B8: no stuck state)',
     name: 'After every kind of burst at every kind of face, nothing pressed - or crouch, from a hang - has the body on the ground within seconds',
     run: (h) => {
-      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false, seed: 19770912 });
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false, seed: SWEEP_SEED });
       h.menu.hide();
       h.setPaused(false);
       const approaches = everyApproach(h);

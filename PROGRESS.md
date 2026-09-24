@@ -8158,3 +8158,109 @@ flaky, 0 console errors, 0 context losses — the same counts as G1's verify
 and F10's before it. The one failure on each map is the frame-budget check,
 skipped headless. The check's own line now reads `[265944ms of this check is
 the pipeline drain, F11]` on the plant and `[174279ms ...]` on the yard.
+
+## F12 — `?seed=` reaches the fuzz and soak checks (2026-09-24 02:00, scheduled run)
+
+The 02:00 run found nothing it could take: F11 was `[~]` on D48, G2 blocked on
+D47, both still undecided, and Blocks A, B, C, D, E and G closed. The gate was
+run anyway and was green. Rather than stop on "everything is blocked", the run
+went looking for something the project had already decided it wanted and lost,
+and found one: **the 2026-09-20 audit's own recommendation, written into this
+file and never transcribed into `QUEUE.md`.** It sat in the history for four
+days while the queue emptied. Queued as F12 and built here.
+
+**The hole.** `--query "seed=N"` reached nothing. `initMatch` prefers an
+explicit seed over the URL's (`main.js:126`) and every exploratory check passed
+one, so the weekly fresh-seed run had been re-running the builder's own seeds
+under a new name since it started. Two audits' "14 checks green on a fresh
+seed" therefore said only that the pinned seeds were still green — a line that
+looked like coverage and was not. Seven modules, sixteen seeds:
+`tests/fuzz.js` 8675309 · `tests/traversalfuzz.js` 20260914 and 19770912 ·
+`tests/aisoak.js` `SEED + m * 16` from 0xd5a1 · `tests/shade.js`
+`reseed(0xf0f0f0)` · `tests/wardenground.js` 20260914 · `tests/difficulty.js`
+0xb0b5 and eight paired preset seeds · `tests/engine.js` `reseed(0xa11ce)`.
+
+**What was built.** `src/config.js` grew `seedInQuery(search)`, which returns
+the seed `?seed=` names or `null` when it names none; `deriveSeed` is written in
+terms of it, so one place parses the pattern and a caller can now tell "no seed"
+from "a seed of zero". A new `src/tests/seeds.js` (214 lines) owns
+`exploreSeed(label, fallback)`:
+
+- **No `?seed=` in the URL ⇒ the fallback, unchanged.** This is the clause that
+  matters most, because the gate never passes a seed: the default run is the run
+  it always was, and this change cannot make it flaky. It is asserted, not
+  assumed.
+- **A `?seed=N` ⇒ one mulberry32 draw from `N` mixed with a hash of the label.**
+
+The **label**, not the number, is the site's identity. Two modules had picked
+the same number — `tests/traversalfuzz.js` and `tests/wardenground.js` both on
+20260914 — so keying off the number would either have sent them to one fresh
+seed, exploring less than the pinned set did, or forced one of them to change
+what it runs by default. A bare `N ^ fallback` was rejected for a second
+reason: `?seed=0` would hand every fallback straight back and look like a URL
+that was ignored.
+
+Every exploratory seed is now taken at **module level**, as a named constant
+with a comment — `FUZZ_SEED`, `SWEEP_SEED`, `SEED`, `ENGAGEMENT_SEED`,
+`INPUT_SEED`, `SOAK_SEED`, `BOUNDS_SEED`, and `SEEDS` mapped over its eight.
+That was not tidiness: it means the whole census exists before any check runs,
+so the check below reads it without depending on which checks ran, in what
+order, or on which map.
+
+**What was deliberately not touched.** Three seeds whose *subject* is
+reproducibility: `tests/engine.js` 0x5eed1234, `tests/determinism.js` 20250814,
+`tests/ai.js` 0xa17ea5. A seed that moved under `?seed=` would change what "the
+same seed replays identically" was asked about, and a reported failure could no
+longer be reproduced from the number in the report. `tests/warden.js` passes
+`before.seed` from a live match and was already correct.
+
+**The check.** `the-url-seed-reaches-every-exploratory-check`, 1ms, both maps.
+It asserts seven clauses: every listed site went through `exploreSeed`; no
+unlisted site did; no reproducibility seed did; a URL without `?seed=` returns
+every fallback unchanged, over four quiet query strings; every site moves under
+each of five URL seeds including 0; no two sites collide on one; and the same
+URL seed reproduces its own seeds. It claims **no Section 16 number on
+purpose** — `checksCovered` parses "check <n>" out of the `spec` string, and a
+number there would both claim coverage this check does not provide (28 is the
+overlay and the patrol circuit, which `determinism.js` and `ai.js` assert) and
+pull this check into the regression set, whose size D7 holds equal on every map.
+
+**That the check can fail was proved, not assumed** — the A1/A3 lesson says a
+check that picks its own inputs owes the suite that second half. Both
+directions were driven:
+
+| what was broken on purpose | what the check said |
+|---|---|
+| `tests/fuzz.js` back to a bare `const FUZZ_SEED = 8675309` | red: *"1 exploratory site(s) never went through exploreSeed: shade-fuzz (tests/fuzz.js)"* |
+| a reproducibility seed routed through `exploreSeed` | red: *"exploreSeed was asked for 1 site(s) this module does not list: rng-reproducible … a seed whose subject is reproducibility was routed through exploreSeed: tests/engine.js"* |
+
+**What the fix actually buys, measured on the real game** rather than a replica,
+through `npm run probe`. On `?map=plant`, with no seed in the URL, all 16 sites
+return their own fallback (`liveEqualsFallback: true`) — `shade-fuzz=8675309`,
+`traversal-fuzz=20260914`, `ai-soak=54689`, `prng-range-bounds=659918`, and so
+on. Under `?seed=20260920` all 16 move, all 16 are distinct, and none is left on
+its fallback: `shade-fuzz=1683039948`, `traversal-fuzz=721918168`,
+`traversal-approach-sweep=2793789379`, `ai-soak=3751533347`. Under `?seed=0`,
+which a bare XOR would have made a no-op, they move too
+(`shade-fuzz=2039753067`). The three pinned seeds read back unchanged
+(1592594996, 20250814, 10583717). Wider than the check goes: a sweep of 5,000 URL seeds across
+all 16 sites, run against the same arithmetic offline before any of it was
+applied, found no collision and no site left on its fallback. The check itself
+asserts five seeds in the game, which is the assertion that will keep holding.
+
+**Verified.** `npm run suite`, four runs: **plant 174 passed, 1 failed, 8 not for this map (760,649ms and 942,528ms), yard 155 / 1 / 27 (468,644ms and 604,053ms), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames.** One more passing check per map than the gate that opened this run on `5eeacc5` (plant 173, yard 154), which is this job's own check and nothing else. The one failure on each map is the frame-budget check, skipped headless. The new check costs **1ms, 0ms** on the plant and **1ms, 0ms** on the yard. And the run times are the ones the gate had before the change - 760s against 769s on the plant, 468s against 450s on the yard - which is the measured half of "the default gate is unmoved"; the clause is asserted in the check as well, over four query strings that name no seed.
+
+**What is left.** Nothing in F12. But the thing to say plainly is that this
+job makes the weekly fresh-seed run *capable* of finding something and has not
+yet found anything: the next audit that runs `--query "seed=N"` will be the
+first one whose green means what the line has claimed for two weeks. If it comes
+back red, that is the job working, not a regression.
+
+**And the run's real finding is D49**, raised alongside F12: `PLAN.md`'s entire
+block table is done, every block, and the routine has run out of anything it is
+allowed to decide. F12 was a hole in the instrument, and there will be more of
+those, but the instrument is not the game. D49 lays out five directions and
+recommends playing it first — four of the five open Provisional questions would
+answer themselves in ten minutes of play — and merging `phases-14-45` in the
+same evening whatever else is chosen, since an unmerged branch is the one risk
+carried here that no check can see.

@@ -20,8 +20,9 @@ is the frame-budget check, skipped headless. Week: 53 commits, 29 jobs done,
 0 WIP. Checks: none deleted, no threshold loosened, the one skip unchanged.
 Drift: 0 TODO/FIXME, 1 `Math.random` (audio noise), 1 `setTimeout` (a
 performance check). Fresh seed 20260920: 14 checks green on both maps — but
-every fuzz and soak check pins its own seed, so `?seed=` never reaches them
-(the recommendation). It also flagged a suite runner from 09-18 still alive
+every fuzz and soak check pinned its own seed, so `?seed=` never reached them
+(the recommendation — **closed by F12**, 2026-09-24; the next fresh-seed
+run is the first whose green means anything). It also flagged a suite runner from 09-18 still alive
 41 hours on and could not end it; that became F10. Full report: PROGRESS.md,
 "Audit — 2026-09-20".
 
@@ -31,9 +32,9 @@ every fuzz and soak check pins its own seed, so `?seed=` never reaches them
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after F11 (2026-09-23) |
-| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-23, after F11: plant 173 passed, 1 failed, 8 not for this map (753s, 898s), yard 154 / 1 / 27 (481s, 637s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses.** The one failure on each map is the frame-budget check, skipped headless. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
-| Next job | **F12 (M)** — make `?seed=` mean something to the fuzz and soak checks. It is the 2026-09-20 audit's own recommendation, which no run had transcribed into `QUEUE.md`; the build run of 2026-09-24 found it there while looking for anything unblocked, and queued it. F11 is `[~]` on **D48** and G2 on **D47** and neither can move. Blocks A, B, C, D, E and G are closed |
+| Working tree | clean after F12 (2026-09-24) |
+| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-24, after F12: plant 174 passed, 1 failed, 8 not for this map (761s, 943s), yard 155 / 1 / 27 (469s, 604s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses.** One more check per map than F11's verify, which is F12's own and nothing else; the run times are unchanged, which is half of what "a URL without `?seed=` moves nothing" means. The one failure on each map is the frame-budget check, skipped headless. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
+| Next job | **Nothing is unblocked, and D49 is why it matters.** F12 is done; F11 is `[~]` on **D48** and G2 on **D47**, and those are the only open jobs. Blocks A, B, C, D, E and G are closed. A run that finds this again should do what the 2026-09-24 run did rather than stop at once: read `PROGRESS.md` for a recommendation an earlier run made and no run queued. That is where F12 came from, and the search is now cheap because both known ones are spent |
 | Waiting on Josh | **Three blocking answers, and D49 is the one that matters: PLAN.md's whole block table is finished and the routine has run out of anything it is allowed to decide** — D49 lays out the five directions and recommends playing it first. Then **D47** (what the traps section costs, G2) and **D48** (a third of every run is the GPU catching up; leave it, drop the assertion, or pay it where the gate names it — F11). Every older entry under DECISIONS.md's *Blocking* heading is decided (D8, D13, D20, D23, D25, D27, D38 and the two runner ones). The **Provisional** section is open for override any time, and the things only eyes can settle are under *Still needs a human*. **And two orphaned node processes still need killing by hand**, see the orphaned-runner trap |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,648 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. Outside `src/`, `scripts/suite.mjs` is 507 and `scripts/watchdog.mjs` 181. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions |
 | Runtime assertions | 8, zero failures |
@@ -87,7 +88,10 @@ look at a pose · F8 the key light gives nothing to a face it lights from
 behind · F9 `npm run probe` · F10 a hung gate dies and says which check hung.
 **F11 is `[~]` on D48** — it found that the quarter of a run inside one check
 is one `gl.getError()`, a wait and not work; what is left is whose clock it
-goes on.
+goes on. F12 `?seed=` reaches the fuzz and soak checks: `tests/seeds.js` owns
+`exploreSeed(label, fallback)`, the fallback when the URL names no seed so the
+gate is unmoved, a draw mixed from the URL seed and the label when it does, and
+three seeds stay pinned because reproducibility is their subject.
 
 **Block G — the record.** G1 this file back to one page. **G2 is on D47.**
 

@@ -19,6 +19,10 @@ import { CONFIG } from '../config.js';
 import { AI_STATE } from '../systems/ai.js';
 import { CHARGE } from '../systems/objective.js';
 import { plantAt } from './plantspots.js';
+import { exploreSeed } from './seeds.js';
+
+/** The match the Warden is driven through here. `?seed=` moves it; see tests/seeds.js. */
+const SOAK_SEED = exploreSeed('warden-ground-soak', 20260914);
 
 const W = CONFIG.warden;
 /** A cell centre is at most this far from a foot standing between cells. */
@@ -55,7 +59,7 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const dt = CONFIG.time.fixedDt;
-      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: 20260914 });
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: SOAK_SEED });
       h.menu.hide();
       h.setPaused(false);
       h.input.clearAll();

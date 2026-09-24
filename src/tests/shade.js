@@ -13,6 +13,10 @@ import { CONFIG, rng } from '../config.js';
 import { classifyReach } from '../physics.js';
 import { SHADE_STATE, createIntent } from '../entities/agent.js';
 import { clearLane } from './lanes.js';
+import { exploreSeed } from './seeds.js';
+
+/** The stream the random-input fuzz draws from. `?seed=` moves it; see tests/seeds.js. */
+const INPUT_SEED = exploreSeed('shade-random-input', 0xf0f0f0);
 
 /**
  * An intent that reads as deliberately approaching a ledge. The airborne
@@ -36,7 +40,7 @@ export function register(debugTools) {
     name: 'Seeded random input never produces NaN or puts the Shade below the floor',
     run: (h) => {
       const restoreSeed = rng.seed;
-      rng.reseed(0xf0f0f0);
+      rng.reseed(INPUT_SEED);
 
       const intent = createIntent();
       const dt = CONFIG.time.fixedDt;

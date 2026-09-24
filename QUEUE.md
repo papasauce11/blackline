@@ -79,42 +79,7 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
   implies is met and quoted, no assertion is lost without D48 naming it,
   and `npm run suite` twice with the answers unchanged.
 
-- [ ] **F12 (M)** Make `?seed=` mean something to the fuzz and soak checks.
-  **This is the 2026-09-20 audit's own recommendation** (`PROGRESS.md`,
-  "Audit — 2026-09-20", under *Fresh seeds*), which no run transcribed into
-  this queue; it sat in the history for four days while the queue emptied.
-  The audit measured the hole: `--query "seed=N"` reaches nothing, because
-  `initMatch` takes an explicit seed over the URL's (`main.js:126`) and every
-  exploratory check passes one — `tests/fuzz.js` 8675309,
-  `tests/traversalfuzz.js` 20260914 and 19770912, `tests/aisoak.js` `SEED + m
-  * 16`, `tests/shade.js` `reseed(0xf0f0f0)`, `tests/wardenground.js`
-  20260914, `tests/difficulty.js` 0xb0b5 and eight paired preset seeds,
-  `tests/engine.js` `reseed(0xa11ce)`. So **the weekly fresh-seed run has
-  been re-running the builder's own seeds under a new name since it
-  started**, and the "14 checks green on a fresh seed" line in two audits
-  means only that the pinned seeds are still green.
-  A new `src/tests/seeds.js` owns `exploreSeed(label, fallback)`: the
-  fallback when the URL names no seed — so the gate, which never passes one,
-  is unmoved and cannot become flaky — and a mulberry32 draw from the URL
-  seed mixed with a hash of the label when it does. The **label** and not the
-  number is the site's identity, because two modules had picked the same
-  number and keying off it would either collide them onto one fresh seed or
-  force one to change what it runs by default. Every exploratory seed is
-  taken at **module level**, so the census is complete before any check runs,
-  whatever the run was subset to or ordered as.
-  What must **not** move: the seeds whose *subject* is reproducibility —
-  `tests/engine.js` 0x5eed1234, `tests/determinism.js` 20250814,
-  `tests/ai.js` 0xa17ea5. A seed that moves under `?seed=` would change what
-  "the same seed replays identically" was asked about, and a reported failure
-  could no longer be reproduced from the number in the report. The new check
-  asserts both directions.
-  *done-when:* `the-url-seed-reaches-every-exploratory-check` is registered
-  and green on both maps; every exploratory site is routed through
-  `exploreSeed` and the three reproducibility seeds are not; a URL with no
-  `?seed=` returns every fallback unchanged, so **the default gate's answers
-  and timings are the ones it had before**; `--query "seed=N"` demonstrably
-  moves the seeds (quote the numbers for one N in `PROGRESS.md`); and
-  `npm run suite` twice with the answers unchanged.
+- [x] **F12 (M)** Make `?seed=` mean something to the fuzz and soak checks. — done 2026-09-24, under Done.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -190,6 +155,31 @@ a job in this block may never change a file under `src/`.
 ---
 
 ## Done
+
+- **F12** `?seed=` reaches the fuzz and soak checks. The 2026-09-20 audit's
+  own recommendation, which had been written into `PROGRESS.md` and never
+  transcribed into this queue; it sat there four days while the queue emptied.
+  `--query "seed=N"` reached nothing, because `initMatch` prefers an explicit
+  seed and all sixteen exploratory seeds across seven modules passed one - so
+  the weekly fresh-seed run had been re-running the builder's own seeds under
+  a new name since it started, and two audits' "14 checks green on a fresh
+  seed" meant only that the pinned seeds were still green. New
+  `src/tests/seeds.js` (214 lines) owns `exploreSeed(label, fallback)`: the
+  fallback when the URL names no seed, so the gate is unmoved and cannot
+  become flaky, and a mulberry32 draw from the URL seed mixed with a hash of
+  the **label** when it does - the label and not the number, because
+  `traversalfuzz.js` and `wardenground.js` had both picked 20260914. Every
+  exploratory seed is now a module-level named constant, so the census is
+  complete before any check runs whatever the run was subset to.
+  `src/config.js` grew `seedInQuery`, and `deriveSeed` is written in terms of
+  it. The three seeds whose *subject* is reproducibility (`engine.js`
+  0x5eed1234, `determinism.js` 20250814, `ai.js` 0xa17ea5) are untouched and
+  the check asserts they stay that way. **Both directions of the check were
+  driven red on purpose** before being believed. Verified: plant 174 / 1 / 8
+  (760,649ms, 942,528ms), yard 155 / 1 / 27 (468,644ms, 604,053ms), exit 0,
+  0 red, 0 flaky, 0 console errors - one more check per map than the gate
+  that opened the run, and the same run times. Full write-up in
+  `PROGRESS.md`, "F12". Commit `F12_HASH`.
 
 - **G1** `HANDOFF.md` back to one page. **1,846 lines to 533**, a 71% cut.
   The ~30 per-job narrative sections are gone and replaced by an index

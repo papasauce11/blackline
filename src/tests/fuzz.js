@@ -21,6 +21,10 @@
 import { CONFIG, rng } from '../config.js';
 import { SHADE_STATE } from '../entities/agent.js';
 import { ROUND } from '../systems/objective.js';
+import { exploreSeed } from './seeds.js';
+
+/** The match this fuzz is played in. `?seed=` moves it; see tests/seeds.js. */
+const FUZZ_SEED = exploreSeed('shade-fuzz', 8675309);
 
 /**
  * Everything that must be true after anything at all has happened. Returns a
@@ -66,7 +70,7 @@ export function register(debugTools) {
     name: 'Seeded random KEY PRESSES, not intents, for a simulated minute',
     run: (h) => {
       const problems = [];
-      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: 8675309 });
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: FUZZ_SEED });
       h.menu.hide();
       h.setPaused(false);
       h.input.clearAll();

@@ -15,6 +15,7 @@
 
 import { register as registerEngine } from './engine.js';
 import { register as registerDeterminism } from './determinism.js';
+import { register as registerSeeds } from './seeds.js';
 import { register as registerMap } from './map.js';
 import { register as registerMaps } from './maps.js';
 import { register as registerYard } from './yard.js';
@@ -73,6 +74,7 @@ import { register as registerTraversalFuzz } from './traversalfuzz.js';
 export function registerAutoTests(debugTools) {
   registerEngine(debugTools);
   registerDeterminism(debugTools);
+  registerSeeds(debugTools);
   registerMap(debugTools);
   registerMaps(debugTools);
   registerYard(debugTools);

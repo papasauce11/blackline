@@ -12,6 +12,14 @@
 
 import { CONFIG, rng } from '../config.js';
 import { FrameLoop } from '../loop.js';
+import { exploreSeed } from './seeds.js';
+
+/**
+ * The stream the bounds check samples. Its assertion holds for any seed, so
+ * `?seed=` moves it (tests/seeds.js). The reproducibility check below keeps
+ * its own pinned pair: there, the seed is the subject.
+ */
+const BOUNDS_SEED = exploreSeed('prng-range-bounds', 0xa11ce);
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
@@ -50,7 +58,7 @@ export function register(debugTools) {
     name: 'Seeded RNG helpers stay in bounds',
     run: () => {
       const restoreSeed = rng.seed;
-      rng.reseed(0xa11ce);
+      rng.reseed(BOUNDS_SEED);
       let bad = 0;
       const n = CONFIG.debug.prngCompareCount;
       for (let i = 0; i < n; i++) {

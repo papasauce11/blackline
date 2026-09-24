@@ -22,6 +22,7 @@
 import { CONFIG, SETTINGS } from '../config.js';
 import { AI_STATE } from '../systems/ai.js';
 import { LIT_METER, alongLane, litLane } from './lanes.js';
+import { exploreSeed } from './seeds.js';
 
 const A = CONFIG.ai;
 
@@ -42,8 +43,14 @@ const RANGES = [8, 16];
 const lane = (h) => litLane(h, RANGES[RANGES.length - 1] + 1, RANGES);
 /** The yaw that faces back down a lane: forward is (-sin yaw, -cos yaw). */
 const facingBack = (lane) => Math.atan2(lane.dx, lane.dz);
-/** Seeds every preset is measured with at every range: the comparison is paired. */
-const SEEDS = [0xd1f1, 0xd1f2, 0xd1f3, 0xd1f4, 0xd1f5, 0xd1f6, 0xd1f7, 0xd1f8];
+/**
+ * Seeds every preset is measured with at every range: the comparison is paired,
+ * so the eight move together or not at all. `?seed=` moves them (tests/seeds.js).
+ */
+const SEEDS = [0xd1f1, 0xd1f2, 0xd1f3, 0xd1f4, 0xd1f5, 0xd1f6, 0xd1f7, 0xd1f8]
+  .map((pinned, i) => exploreSeed(`difficulty-preset-${i}`, pinned));
+/** The one engagement the aim check is measured in. */
+const ENGAGEMENT_SEED = exploreSeed('difficulty-engagement', 0xb0b5);
 /** The longest a detection or a kill is allowed to take before it is a stall. */
 const DETECT_LIMIT = 40;
 const KILL_LIMIT = 30;
@@ -222,7 +229,7 @@ export function register(debugTools) {
       // where the gun was pointed.
       const names = Object.keys(A.difficulty);
       SETTINGS.difficulty = names[names.length - 1];
-      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: 0xb0b5 });
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: ENGAGEMENT_SEED });
       const { warden, shade, wardenAI, detection, combat, gadgets } = h;
       gadgets.loadout.frag = 0;
       warden.reset({ position: { x: LANE.x, y: LANE.y, z: LANE.z }, yaw: LANE.yaw });

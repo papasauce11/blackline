@@ -26,6 +26,7 @@ import { AI_STATE } from '../systems/ai.js';
 import { CHARGE, ROUND } from '../systems/objective.js';
 import { plantAt } from './plantspots.js';
 import { onGround } from './wardenground.js';
+import { exploreSeed } from './seeds.js';
 
 const R = CONFIG.round;
 /** Matches played, and the most rounds one may run to. */
@@ -33,8 +34,11 @@ const MATCHES = 3;
 const ROUND_CAP = 5;
 /** Seconds of patrol before the plant, per round of a match: the Warden is somewhere else each time. */
 const PATROL_SECONDS = [6, 10, 14, 8, 12];
-/** The seed the first match is played from; each round of each match draws its own. */
-const SEED = 0xd5a1;
+/**
+ * The seed the first match is played from; each round of each match draws its
+ * own from it. `?seed=` moves the base and every round with it (tests/seeds.js).
+ */
+const SEED = exploreSeed('ai-soak', 0xd5a1);
 /**
  * The most stuck re-paths (Section 11: 0.3m in 2s while meaning to move) the
  * whole soak may take. A re-path is the recovery, not the stall - the patrol

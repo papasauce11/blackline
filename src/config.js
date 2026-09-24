@@ -128,15 +128,24 @@ export const rng = {
 };
 
 /**
+ * The seed `?seed=<n>` names in a query string, or null when it names none.
+ * Split out of deriveSeed so tests/seeds.js can tell "no seed in the URL" from
+ * "a seed of zero" without keeping a second copy of the pattern.
+ */
+export function seedInQuery(search) {
+  const query = typeof search === 'string' ? search : '';
+  const match = /(?:^|[?&])seed=(\d+)/.exec(query);
+  return match ? parseInt(match[1], 10) >>> 0 : null;
+}
+
+/**
  * Derive a match seed. Prefers ?seed=<n> in the URL so a human can reproduce a
  * reported bug (Section 16 check 28), otherwise time-derived.
  * Deliberately not Math.random().
  */
 export function deriveSeed(search) {
-  const query = typeof search === 'string' ? search : '';
-  const match = /(?:^|[?&])seed=(\d+)/.exec(query);
-  if (match) return parseInt(match[1], 10) >>> 0;
-  return Date.now() >>> 0;
+  const named = seedInQuery(search);
+  return named === null ? Date.now() >>> 0 : named;
 }
 
 // ---------------------------------------------------------------------------
