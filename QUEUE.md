@@ -57,7 +57,7 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
   after every check, run **989s** and still a 251s check; `flush` after
   every check, 0ms every time and nothing changed. Full numbers in
   `PROGRESS.md`, "F11".
-  **Done this run** (commit below): the check drains and clears the error
+  **Done 2026-09-23 in `246bb93`**: the check drains and clears the error
   state *before* staging the resize, so its GL-error clause is about the
   resize and not about whatever ran before it — it was the shape the
   A1/A3 lesson warns about — and the drain's ms now leads its detail
