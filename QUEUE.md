@@ -185,7 +185,7 @@ a job in this block may never change a file under `src/`.
   leaves nothing in `index.js` to compare against, and `MIN_TEST_MODULES`
   only catches the registrar collapsing. Red proved by deleting
   `registerScuff` and by making `SELF` unreadable while keeping it valid.
-  892ms cold, 346ms warm, 0 flaky. Commit `PENDING14`.
+  892ms cold, 346ms warm, 0 flaky. Commit `be232ec`.
 
 - **F13** The two bans the spec states, held by the gate at last. Section 18's
   definition of done carries "`Math.random()` appears nowhere in `src/`";
