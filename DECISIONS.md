@@ -1339,3 +1339,58 @@ costs an assertion, which is why it is listed rather than taken.
 
 F11 in `QUEUE.md` is `[~]` on this.
 **decided:**
+
+### D49 — The planned arc is finished. What does Blackline get next?
+Raised by the build run of 2026-09-24, which found the queue with no
+unblocked job in it for the second run running.
+
+`PLAN.md`'s block table — 0 prerequisites, 1 finish what is open, 2 playable
+and testable, 3 a second map, 4 styling — is **done, every block**. Phases
+1–49 of the original build and all fifty of the redesign are committed.
+Blocks A, B, C, D, E and G of `QUEUE.md` are closed; F is the gate's own
+housekeeping and is down to F11, which waits on D48. The only other open job
+is G2, which waits on D47. Everything the routine can decide for itself, it
+has decided.
+
+`PLAN.md` says it plainly: *"an unanswered question costs nothing until it is
+the only thing left."* It is now the only thing left. The routine can keep
+sharpening the instrument — F12 in this queue is a real hole in it, and there
+will be more — but it cannot decide what the **game** should become, because
+every option below changes what a player sees, feels or can do, and
+`PLAN.md`'s "What is Josh's, and only Josh's" reserves exactly that.
+
+What the work so far suggests is available, none of it started:
+
+1. **Play it, then fix what playing finds.** The largest known gap is not in
+   the code: nothing has ever been *heard*, no frame has been timed on a real
+   GPU, and the twelve Provisional entries D26–D46 are all of the shape "the
+   pixels say it is drawn where it should be, not that it *reads*".
+   `PLAYTEST.md` is written and waiting. This costs Josh an evening and would
+   refill the queue from evidence rather than guesswork.
+2. **A third map, or a map the players make.** D1's registry and D6's
+   per-map gate mean a map is now additive, and the yard proved the census
+   travels. A third is a known quantity of work; a map *format* is not.
+3. **More game.** Nothing in the spec covers more than one Shade and one
+   Warden, a round timer beyond the 45s fuse, loadout choice, or anything
+   persistent between matches. Each is a rule change, and the asymmetry
+   (spec 20.11: the Warden stays grounded) is the thing to protect.
+4. **Ship what exists.** The branch `phases-14-45` has never been merged to
+   `main` — D2 reserved merging for Josh and no run has asked for it since.
+   If the game is to be played by anyone else, that is the first step, and it
+   is one line: `git checkout main && git merge --ff-only phases-14-45`.
+5. **Stop building and let it settle.** The audit runs weekly and would keep
+   reporting; the builder would stop finding work and say so, which is what
+   it is doing now.
+
+Recommendation: **1, then decide the rest from what it tells you.** Every
+other option spends sessions on a game nobody has played, and four of the
+five open Provisional questions would answer themselves in the first ten
+minutes of playing. 4 is worth doing in the same evening whatever else is
+chosen, because an unmerged branch is the one piece of risk carried here that
+no check can see.
+
+This blocks no single job — F12 is unblocked and the routine will take it —
+but it blocks every job after the gate's own, which is why it is here rather
+than under Provisional.
+**decided:**
+

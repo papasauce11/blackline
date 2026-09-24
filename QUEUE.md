@@ -79,6 +79,43 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
   implies is met and quoted, no assertion is lost without D48 naming it,
   and `npm run suite` twice with the answers unchanged.
 
+- [ ] **F12 (M)** Make `?seed=` mean something to the fuzz and soak checks.
+  **This is the 2026-09-20 audit's own recommendation** (`PROGRESS.md`,
+  "Audit — 2026-09-20", under *Fresh seeds*), which no run transcribed into
+  this queue; it sat in the history for four days while the queue emptied.
+  The audit measured the hole: `--query "seed=N"` reaches nothing, because
+  `initMatch` takes an explicit seed over the URL's (`main.js:126`) and every
+  exploratory check passes one — `tests/fuzz.js` 8675309,
+  `tests/traversalfuzz.js` 20260914 and 19770912, `tests/aisoak.js` `SEED + m
+  * 16`, `tests/shade.js` `reseed(0xf0f0f0)`, `tests/wardenground.js`
+  20260914, `tests/difficulty.js` 0xb0b5 and eight paired preset seeds,
+  `tests/engine.js` `reseed(0xa11ce)`. So **the weekly fresh-seed run has
+  been re-running the builder's own seeds under a new name since it
+  started**, and the "14 checks green on a fresh seed" line in two audits
+  means only that the pinned seeds are still green.
+  A new `src/tests/seeds.js` owns `exploreSeed(label, fallback)`: the
+  fallback when the URL names no seed — so the gate, which never passes one,
+  is unmoved and cannot become flaky — and a mulberry32 draw from the URL
+  seed mixed with a hash of the label when it does. The **label** and not the
+  number is the site's identity, because two modules had picked the same
+  number and keying off it would either collide them onto one fresh seed or
+  force one to change what it runs by default. Every exploratory seed is
+  taken at **module level**, so the census is complete before any check runs,
+  whatever the run was subset to or ordered as.
+  What must **not** move: the seeds whose *subject* is reproducibility —
+  `tests/engine.js` 0x5eed1234, `tests/determinism.js` 20250814,
+  `tests/ai.js` 0xa17ea5. A seed that moves under `?seed=` would change what
+  "the same seed replays identically" was asked about, and a reported failure
+  could no longer be reproduced from the number in the report. The new check
+  asserts both directions.
+  *done-when:* `the-url-seed-reaches-every-exploratory-check` is registered
+  and green on both maps; every exploratory site is routed through
+  `exploreSeed` and the three reproducibility seeds are not; a URL with no
+  `?seed=` returns every fallback unchanged, so **the default gate's answers
+  and timings are the ones it had before**; `--query "seed=N"` demonstrably
+  moves the seeds (quote the numbers for one N in `PROGRESS.md`); and
+  `npm run suite` twice with the answers unchanged.
+
 
 ## Block B — the traversal redesign, phases 12–50
 
