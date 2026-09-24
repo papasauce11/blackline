@@ -81,25 +81,7 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 
 - [x] **F12 (M)** Make `?seed=` mean something to the fuzz and soak checks. — done 2026-09-24, under Done.
 
-- [ ] **F13 (S)** Two lines of the spec are counted weekly and gated by
-  nothing. Section 18's own checklist has "`Math.random()` appears nowhere
-  in `src/`"; Section 9 and the Section 15 risk register have "no
-  `setTimeout` for any gameplay-affecting timer". The weekly audit greps for
-  both and reports a count — 1 and 1, the two documented exceptions — and
-  the gate says nothing at all, so a run that lands a third is green and the
-  drift surfaces up to seven days later in a report no job is blocked by.
-  That is the quiet rot `tests/donedef.js` was opened for, and these two
-  bans are the reason the seeded rng in `config.js` and the effect registry
-  in `gadgets.js` exist at all.
-  *done-when:* an AUTO check in `tests/donedef.js` reads every module the
-  page actually loaded — the Resource Timing list the two checks beside it
-  read; a file nothing imports never executes, so the loaded set is the set
-  the bans are about — and holds: no call to `Math.random(`, `setTimeout(`
-  or `setInterval(` outside the two the spec allows; each allowed call still
-  present, exactly once, and argued in a comment at its own line, so an
-  exemption cannot live only in a list; a mention in prose is not a call.
-  Red proved in both directions — a call added, and a documented exception
-  removed. `npm run suite` twice with the answers otherwise unchanged.
+- [x] **F13 (S)** The two bans the spec states, held by the gate. — done 2026-09-24, under Done.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -175,6 +157,34 @@ a job in this block may never change a file under `src/`.
 ---
 
 ## Done
+
+- **F13** The two bans the spec states, held by the gate at last. Section 18's
+  definition of done carries "`Math.random()` appears nowhere in `src/`";
+  Section 9 and the Section 15 risk register carry "no `setTimeout` for any
+  gameplay-affecting timer". Both are why the seeded rng and the ticked effect
+  registry exist, and both were gated by nothing - the weekly audit greps the
+  tree and reports a count, the suite never looked, so a run that landed a
+  third call passed green and the drift surfaced up to seven days later.
+  `no-source-file-calls-math-random-or-sets-a-timer` in `tests/donedef.js`
+  reads every module the page loaded - the Resource Timing list the two checks
+  beside it read, 135 of them; a file nothing imports never executes, so the
+  loaded set is the set the bans are about - and holds three things: no call
+  to `Math.random(`, `setTimeout(` or `setInterval(` outside the one file each
+  ban allows; each allowance still exactly one call, because an exemption for
+  something that has gone is one the next call inherits without arguing; and
+  each allowed call argued in a comment within eight lines above it, because
+  an exemption living only in a table is one nobody reading the code can see.
+  Prose is told from code line-locally - a banned word on a line starting `//`,
+  `/*` or `*` is a mention - rather than by a comment-and-string scanner, which
+  can desync, and desyncs read green. The check scans itself: the first version
+  spelled the three calls out beside their patterns and went red on its own
+  table, and the fix was to delete the field rather than exempt the file -
+  `callName()` reads each label back off its pattern's source. Red proved three
+  ways, each a real edit reverted after: a call added to `timestep.js`, the
+  word "deliberately" removed from over `audio.js:97`, and `audio.js`'s draw
+  replaced so the allowance named nothing. 389ms a run, 0 flaky, and its green
+  detail line is a census a later run can read without running anything.
+  Commit `PENDING`.
 
 - **F12** `?seed=` reaches the fuzz and soak checks. The 2026-09-20 audit's
   own recommendation, which had been written into `PROGRESS.md` and never

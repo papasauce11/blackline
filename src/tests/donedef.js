@@ -14,7 +14,9 @@
  *
  * and, since F3, Section 3.1's line guidance: a module that has grown past
  * ~600 lines is the kind of drift a weekly audit notices and a nightly build
- * does not.
+ * does not. Since F13 two more of the same kind, and these are Section 18's
+ * own words: "`Math.random()` appears nowhere in `src/`", and Section 9 and
+ * 15's ban on `setTimeout` for anything that ticks.
  *
  * A stray font, a favicon, an analytics beacon or a deprecation warning added
  * three phases from now would not fail any other check in the suite.
@@ -35,6 +37,47 @@ const ALLOWED_HOST = 'cdn.jsdelivr.net';
  */
 const SOURCE_LINE_GUIDANCE = 600;
 const EXEMPT_TABLE = 'src/config.js';
+
+/**
+ * Section 18's checklist carries "`Math.random()` appears nowhere in `src/`";
+ * Section 9 and the Section 15 risk register carry "no `setTimeout` for any
+ * gameplay-affecting timer". Both are the reason the seeded rng in config.js
+ * and the effect registry in gadgets.js exist, and until F13 both were counted
+ * once a week by the audit's drift grep and gated by nothing. `setInterval` is
+ * on the list because it is the same call with a repeat, and there has never
+ * been one.
+ *
+ * Each ban carries the one file allowed to make the call, or null for none.
+ * Those two are deliberate, touch no game state, and are argued in a comment
+ * at their own line — which is asserted, because an exemption that lives only
+ * in this table is one nobody reading the code can see.
+ */
+const BANNED = [
+  { find: /Math\s*\.\s*random\s*\(/g, allowed: 'src/systems/audio.js', why: 'the one-second noise texture' },
+  { find: /setTimeout\s*\(/g, allowed: 'src/tests/performance.js', why: 'a yield so a GPU fence can resolve' },
+  { find: /setInterval\s*\(/g, allowed: null, why: '' },
+];
+
+/**
+ * What a ban is called, read back off its own pattern rather than written
+ * beside it — so this file never spells the call out and is scanned by the
+ * check like every other. The same trick `checksCovered` plays with a spec
+ * string: a second field is one more thing to forget.
+ */
+function callName(ban) {
+  return ban.find.source.replace(/\\s\*/g, '').replace(/\\/g, '');
+}
+
+/** What an argument for a deliberate call reads like, and how far above it it may be written. */
+const ARGUED = /deliberate/i;
+const ARGUED_WITHIN = 8;
+
+/**
+ * 135 modules load today. The floor sits far above the line-count check's 40
+ * so that an import graph collapsed to a handful reads as a failure rather
+ * than as a clean sweep of nothing.
+ */
+const MIN_MODULES = 120;
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
@@ -127,6 +170,76 @@ export function register(debugTools) {
             + `${largest.lines} lines (guidance ${SOURCE_LINE_GUIDANCE}); ${EXEMPT_TABLE} is ${table ? table.lines : '?'} `
             + 'and is the table PLAN.md exempts'
           : `over ${SOURCE_LINE_GUIDANCE} lines: ${over.map((f) => `${f.path} (${f.lines})`).join(', ')}`,
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'no-source-file-calls-math-random-or-sets-a-timer',
+    spec: 'Section 18 (the seeded-rng line), Section 9 and Section 15 (no gameplay timer)',
+    name: 'No module the game loaded draws from the unseeded rng or arms a timer but for the two the spec allows, and each of those is argued at its own line',
+    run: async () => {
+      // The same Resource Timing list the two checks above read: the modules
+      // that actually ran, never a guess at the import graph. A file under
+      // src/ that nothing imports never executes, so a draw or a timer hiding
+      // in one cannot reach a match — the loaded set is the set the bans are
+      // about, and today it is the whole tree anyway.
+      const origin = location.origin;
+      const modules = new Set();
+      for (const entry of performance.getEntriesByType('resource')) {
+        const url = entry.name.split('?')[0];
+        if (!url.startsWith(origin) || !url.endsWith('.js') || url.indexOf('/src/') === -1) continue;
+        modules.add(url.slice(url.indexOf('/src/') + 1));
+      }
+      if (modules.size < MIN_MODULES) {
+        return { pass: false, detail: `Resource Timing lists ${modules.size} modules under src/; the whole game is ${MIN_MODULES}+` };
+      }
+
+      const problems = [];
+      const calls = [];
+      let prose = 0;
+      for (const path of [...modules].sort()) {
+        const lines = (await (await fetch(`${origin}/${path}`)).text()).split(/\r?\n/);
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          for (const ban of BANNED) {
+            const hits = (line.match(ban.find) || []).length;
+            if (!hits) continue;
+            // Prose or code, decided line-locally and never by parsing. A call
+            // cannot live on a line whose first character is a comment's, and
+            // a scanner that told a string from a regex literal could desync —
+            // on the code it then swallowed, this would read green.
+            if (/^\s*(\/\/|\/\*|\*)/.test(line)) { prose += hits; continue; }
+            const argued = ARGUED.test(lines.slice(Math.max(0, i - ARGUED_WITHIN), i).join('\n'));
+            calls.push({ path, line: i + 1, ban, hits, argued });
+          }
+        }
+      }
+
+      // Every call that ran is the one the spec allows, argued where it is made.
+      for (const call of calls) {
+        const name = callName(call.ban);
+        if (call.ban.allowed !== call.path) problems.push(`${call.path}:${call.line} calls ${name})`);
+        else if (!call.argued) problems.push(`${call.path}:${call.line}: ${name}) is allowed, but no comment within ${ARGUED_WITHIN} lines above it argues for it`);
+      }
+      // And every allowance is still one call. An exemption for something that
+      // has gone is an exemption the next call inherits without arguing.
+      for (const ban of BANNED) {
+        if (!ban.allowed) continue;
+        const hits = calls.filter((call) => call.ban === ban && call.path === ban.allowed);
+        const total = hits.reduce((sum, call) => sum + call.hits, 0);
+        const name = callName(ban);
+        if (total === 0) problems.push(`${ban.allowed} no longer calls ${name}) — ${ban.why}; drop it from the allowance`);
+        else if (total > 1) problems.push(`${ban.allowed} calls ${name}) ${total} times; the allowance is one (line ${hits.map((call) => call.line).join(', ')})`);
+      }
+
+      const allowances = BANNED.filter((ban) => ban.allowed);
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${modules.size} modules read; ${calls.length} calls to ${BANNED.map((ban) => `${callName(ban)})`).join(' / ')}, each the one allowance and argued at the line `
+            + `(${allowances.map((ban) => `${ban.allowed.slice(4)} ${ban.why}`).join('; ')}); ${prose} more named in prose`
+          : problems.join('; '),
       };
     },
   });

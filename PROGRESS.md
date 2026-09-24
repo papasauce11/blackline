@@ -8264,3 +8264,118 @@ recommends playing it first — four of the five open Provisional questions woul
 answer themselves in ten minutes of play — and merging `phases-14-45` in the
 same evening whatever else is chosen, since an unmerged branch is the one risk
 carried here that no check can see.
+
+## F13 — two of Section 18's own lines, held by the gate at last (2026-09-24 17:00, scheduled run)
+
+The 17:00 run found the queue where the 02:00 run left it: F11 `[~]` on D48,
+G2 on D47, both undecided, every other block closed, and nothing to pick. The
+02:00 run's advice was to go looking rather than stop at once, and it recorded
+that the two known unqueued recommendations were spent — so this run looked at
+the instrument instead of the history, and found a hole in it.
+
+**The hole.** `BLACKLINE_SPEC.md` Section 18, the definition of done, carries
+the line "`Math.random()` appears nowhere in `src/`". Section 9 carries "**Do
+not use `setTimeout` for any gameplay-affecting timer**" and the Section 15
+risk register repeats it. These are not stylistic: they are why the seeded rng
+in `config.js` and the single ticked effect registry in `gadgets.js` exist at
+all, and the whole reproducibility claim — a bug replayed from the seed in the
+overlay — rests on the first. **Both were gated by nothing.** The weekly audit
+greps the tree and reports a count (1 and 1, the two documented exceptions);
+the suite never looked. A run that landed a third call would pass the gate
+green and the drift would surface up to seven days later in a report no job is
+blocked by. That is the same shape as the two items `tests/donedef.js` was
+opened for — "the kind that rot quietly" — and the same shape as F12's finding
+a week earlier: a line that reads like coverage and is not.
+
+**What was built.** One check in `src/tests/donedef.js`,
+`no-source-file-calls-math-random-or-sets-a-timer`, no `maps` (it runs on
+both), claiming no Section 16 number on purpose — as F12's did, because
+`checksCovered` parses "check <n>" out of the `spec` string and a number
+there would pull this into the regression set, whose size D7 holds equal on
+every map.
+
+It reads **every module the page actually loaded**, from the same Resource
+Timing list the network and line-count checks beside it read — never a guess at
+the import graph. That is not only convenience: a file under `src/` that
+nothing imports never executes, so a draw or a timer hiding in one cannot reach
+a match. The loaded set is the set the bans are *about*. Today it is the whole
+tree regardless: 135 modules under `src/`, and the only one nothing imports is
+`main.js`, which `index.html` loads. The floor is `MIN_MODULES` 120, set far
+above the line-count check's 40 so an import graph collapsed to a handful reads
+as a failure rather than as a clean sweep of nothing.
+
+Three things are asserted, and the second and third are what make the first
+worth having:
+
+1. **No call to `Math.random(`, `setTimeout(` or `setInterval(`** outside the
+   one file each ban allows. `setInterval` is on the list because it is the
+   same call with a repeat; there has never been one, so it cost nothing to
+   close.
+2. **Each allowance is still exactly one call.** An exemption for something
+   that has gone is an exemption the next call inherits without arguing for
+   itself — the same reason F12 asserted "no unlisted site" as well as "every
+   listed site".
+3. **Each allowed call is argued in a comment at its own line**, within eight
+   lines above it and matching `/deliberate/i`. Both already were, in the words
+   `src/tests/performance.js` used: *"Called out at the line, as the audio
+   noise buffer's `Math.random` is."* An exemption that lives only in a table
+   in this file is one nobody reading the code can see.
+
+**Prose is not a call, and the rule for telling them apart is line-local.** A
+banned word on a line whose first non-space characters are `//`, `/*` or `*` is
+counted as a mention and skipped; anything else is a call. The obvious
+alternative — strip comments and strings properly, then match — needs a scanner
+that can tell a regex literal from a division, and a scanner that desyncs
+swallows real code and reads **green**. This rule cannot desync. Its cost is
+the opposite error: a banned word inside a string on a code line would read as
+a call, which is a red somebody rewords. There are none today, and a false red
+is the direction to fail in.
+
+**The check scans itself, which took a rewrite.** The first version spelled the
+three calls out in a `what:` field beside each pattern, and went red on its own
+table, naming six lines of `donedef.js` — the check working on its first run,
+against its author. The fix was not an exemption for the file (that would be a
+hole exactly where somebody would think to hide one) but to delete the field:
+`callName(ban)` reads the label back off the pattern's own source,
+`/Math\s*\.\s*random\s*\(/` → `Math.random(`, so the file never spells the call
+and is scanned like every other. That is the trick `checksCovered` already
+plays with a `spec` string, and for the same stated reason: a second field is
+one more thing to forget to update. The check's own `spec` and `name` strings
+had to lose the literal text too, which is the rule holding its author to
+itself.
+
+**That it can fail was proved, not assumed**, in all three directions, each a
+real edit to the real tree, reverted after:
+
+| what was broken on purpose | what the check said |
+|---|---|
+| `function __f13Probe() { return Math.random(); }` added to `src/timestep.js` | red: *"src/timestep.js:2 calls Math.random()"* |
+| the word "Deliberately" removed from the comment over `audio.js:97` | red: *"src/systems/audio.js:97: Math.random() is allowed, but no comment within 8 lines above it argues for it"* |
+| `audio.js`'s noise draw replaced with an alternating constant | red: *"src/systems/audio.js no longer calls Math.random() — the one-second noise texture; drop it from the allowance"* |
+
+**Verified.** `npm run suite`, four runs: **plant 175 passed, 1 failed, 8 not for this map (752,903ms and 928,579ms), yard 156 / 1 / 27 (462,613ms and 607,128ms), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames**. One more passing
+check per map than the gate that opened this run on `a23c39e` (plant 174, yard
+155), which is this job's own and nothing else. The one failure on each map is
+the frame-budget check, skipped headless. The new check costs **389ms and 389ms on the plant, 376ms and 368ms on the yard**, four readings that agree — it
+fetches 135 cached modules and reads them — against a plant run of three
+quarters of an hour.
+
+Its green detail line, which is the census a later run can read without running
+anything: *"135 modules read; 2 calls to Math.random() / setTimeout() /
+setInterval(), each the one allowance and argued at the line (systems/audio.js
+the one-second noise texture; tests/performance.js a yield so a GPU fence can
+resolve); 5 more named in prose"*.
+
+**What is left.** Nothing in F13, and one thing worth saying plainly: this
+closes the two Section 18 lines a machine can settle, and the drift the weekly
+audit reports is now a subset of what the gate holds — `TODO`/`FIXME` counts
+and files over 600 lines being the rest, the latter already held by F3's check.
+The audit's drift section still has a job, but it is no longer the only thing
+standing between a build run and an unseeded draw.
+
+**And the position has not changed.** D47, D48 and D49 are all still open, and
+D49 is the one that matters: `PLAN.md`'s whole block table is finished and the
+routine has run out of anything it is allowed to decide. F12 was a hole in the
+instrument and so is F13, and there will be more of those — but the instrument
+is not the game, and two runs running have now been spent sharpening it because
+there was nothing else the routine could take.
