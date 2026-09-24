@@ -43,24 +43,41 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 
 - [x] **F10 (M)** A hung gate must die, and say so. — done 2026-09-23, under Done.
 
-- [ ] **F11 (S)** One check is a quarter of the plant run. `blocked:`
-  `a-zero-size-viewport-does-not-blind-the-renderer` took **268,927ms**
-  on the plant in F10's verify (252,906ms the second run; 168,993ms and
-  168,438ms on the yard) — a quarter of a whole run inside one check,
-  and next after it is 76,262ms. It is green and it has always been
-  green, so nothing has ever made anyone look at its clock; F10's
-  per-check `ms` in `--details` is the first time the suite reported
-  one for a passing check. Find where the time goes — a 0x0 drawing
-  buffer forces a resize and a full pipeline rebuild, and the check may
-  be paying that several times over, or waiting on frames it does not
-  need. It is also the floor under the gate's `--stall` default: the
-  budget cannot go below the slowest check, so halving this check
-  halves what a hung run costs before it is called hung.
-  *done-when:* the check's ms is at or under 60s on the plant with what
-  it proves unchanged (a 0x0 viewport still fails the old way when the
-  guard is removed), the `--stall` default reconsidered in the same
-  commit with the new number quoted, and `npm run suite` twice with the
-  answers unchanged.
+- [~] **F11 (S)** One check is a quarter of the plant run. `blocked: D48`
+  **Found, measured, and it is not the check.** All 265s of
+  `a-zero-size-viewport-does-not-blind-the-renderer` are one
+  `gl.getError()`; the staged resize, a whole rendered frame and every
+  read the check makes come to under 50ms together. The call is the
+  suite's first GL synchronisation, and a synchronisation waits for the
+  software renderer to finish building pipelines the run has queued —
+  38.8s with only the warm-up behind it, 265s with 167 checks behind it,
+  and a third of the run however it is configured (plant 265s of 753s on
+  4 cores, 150s of 452s on 8; yard 149s of 448s). The same check run
+  alone is 5ms. Placements measured, each a full plant run: `getError`
+  after every check, run **989s** and still a 251s check; `flush` after
+  every check, 0ms every time and nothing changed. Full numbers in
+  `PROGRESS.md`, "F11".
+  **Done this run** (commit below): the check drains and clears the error
+  state *before* staging the resize, so its GL-error clause is about the
+  resize and not about whatever ran before it — it was the shape the
+  A1/A3 lesson warns about — and the drain's ms now leads its detail
+  line, so the report says what the wait is. `--stall` reconsidered: it
+  **stays 600s**, because the floor under it is this tail and not a slow
+  check, and the tail scales with the machine.
+  *resume from:* D48 names one of three — leave it, drop the GL-error
+  clause, or wait once in `AutoSuite.runAutoTests` after the last check
+  of a map and report it as the run's own number. If 3: the wait goes at
+  the end of `_runChecks` (`src/ui/autosuite.js`), beside the `done`
+  beat; `scripts/suite.mjs` carries it into the report next to `ms` and
+  the summary line; `--stall`'s default (line 106) comes down to about
+  240s, which is three times `every-route-reads-lit-from-its-foot` at
+  76s, the slowest check once the wait is out of one. If 2: delete the
+  `gl.getError()` clause and the drain from the check in
+  `src/tests/fuzz.js` and say in `PROGRESS.md` which assertion was
+  retired and on whose word.
+  *done-when:* whichever option D48 names is carried out, the number it
+  implies is met and quoted, no assertion is lost without D48 naming it,
+  and `npm run suite` twice with the answers unchanged.
 
 
 ## Block B — the traversal redesign, phases 12–50

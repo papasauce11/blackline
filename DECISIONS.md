@@ -1292,3 +1292,50 @@ for. The one thing it needs is the one thing the routine cannot do, which
 is why this is here rather than decided. If 2, G2 in `QUEUE.md` is sized S
 and blocked on this.
 **decided:**
+
+### D48 — A third of every run is the GPU catching up. Who pays it?
+F11 found that `a-zero-size-viewport-does-not-blind-the-renderer` spends
+265s on the plant and 149s on the yard inside one `gl.getError()`, while the
+rest of the check — the staged resize and a whole rendered frame — is under
+50ms. The call is the suite's first GL synchronisation, and a synchronisation
+waits for the software renderer to finish building pipelines the run has
+queued. It is 38.8s with only the runner's 60-frame warm-up behind it and
+265s with 167 checks behind it, and it is a third of the run however the run
+is configured (35% plant pinned to 4 cores, 33% plant on 8, 33% yard). The
+full measurement is in `PROGRESS.md`, "F11".
+
+The wait cannot be moved for free, and this was measured rather than
+reasoned: a `gl.getError()` after every check makes the plant run **989s
+against 753s** and still leaves a 251s check; a `gl.flush()` after every
+check costs 0ms and changes nothing. Waiting is the only way to know the
+pipeline work has finished, and whoever waits first pays for all of it.
+
+So the choice is what the gate should do about a third of its own clock:
+
+1. **Leave it, as it is now.** The check keeps its GL-error clause, the
+   report names the wait in its detail line, and `--stall` stays at 600s
+   because the floor under it is this tail. Costs nothing, changes nothing,
+   and every future reader has the number and the reason in front of them.
+2. **Drop the GL-error clause from that check.** Its other four assertions —
+   the canvas unchanged, the drawing buffer intact, the aspect finite, a
+   frame still drawn — are what the check is named for, and `gl.getError()`
+   is already asserted in `presentation.js` and in the lost-context check
+   next door. The plant run would lose most of the 265s, because the tail is
+   never paid if nothing waits for it and the page is torn down. What is
+   given up is one assertion, which is the thing the protocol says never to
+   give up, so it is Josh's to give and not the routine's.
+3. **Pay it where the gate names it.** The runner waits once, after the last
+   check of each map, and reports the number as the run's own rather than a
+   check's. No check is then over ~76s, `--stall` could come down from 600s
+   to about 240s, and nothing is given up — but the run's wall clock does not
+   improve, and it is honest bookkeeping rather than a saving.
+
+Recommendation: **3**, with 1 as the do-nothing. It is the only option that
+both takes the wait off a check that has nothing to do with it and buys the
+thing F11 was for — a `--stall` default that reflects the slowest *check*
+rather than the slowest *wait*, so a genuinely hung run is called hung in
+four minutes instead of ten. 2 buys the most wall clock and is the one that
+costs an assertion, which is why it is listed rather than taken.
+
+F11 in `QUEUE.md` is `[~]` on this.
+**decided:**

@@ -8051,3 +8051,110 @@ the operative sentence already.
 **What was left.** The two orphaned node processes, still Josh's to kill; F10
 stopped the gate making new ones and this file now names them in *Where things
 stand*, in the traps section and in *Still needs a human*.
+
+## F11 — the quarter of a run is a wait, not a check (2026-09-23 17:00, scheduled run)
+
+`a-zero-size-viewport-does-not-blind-the-renderer` takes 265s on the plant
+and 149s on the yard — a third of a whole run inside one check. F11 asked
+where the time goes. It goes into one call, `gl.getError()`, and everything
+else the check does — the staged resize, every read it makes, and a whole
+rendered frame — comes to under 50ms together.
+
+**What was measured.** The check was instrumented to put each of its own
+steps on its own clock, and the plant suite run with it, twice.
+
+| step | ms, two runs |
+|---|---|
+| `gl.getError()` | 268,911 · 274,693 |
+| `h.renderFrame(1/60)` | 9 · 6 |
+| the staged resize, the canvas reads, the aspect, the draw-call read | 0 each |
+| a second `getError`, a second frame, a third `getError`, a `gl.finish()` | 0 · 5 · 1 · 0 |
+
+Moving the `getError` to the check's first line moved the whole cost with it
+(`syncAtEntry=274,693`), which is what settles it: the check inherits the
+wait rather than causing it. The same body run alone through `npm run probe`
+on a freshly loaded page is **5ms**; in a 12-check subset ending on it,
+**10ms**.
+
+**What the wait is.** A probe asked the two candidates separately. The first
+`gl.getError()` after a page load, with nothing behind it but the runner's
+60-frame warm-up, costs **38,760ms**. After that: 3,600 fixed steps cost
+**0ms** of wait, 200 rendered frames whose pixels are never read cost
+**1ms**, 200 more cost **3ms**. So it is not proportional to simulation and
+not proportional to frames drawn. It is a tail of pipeline work the software
+renderer (SwiftShader through ANGLE-on-Vulkan) builds lazily, and a
+synchronisation is a wait for it to finish — 38.8s with the warm-up behind
+it, 265s with 167 checks behind it, which have between them asked for far
+more pipeline variants than the warm-up did. It is the trap already on the
+record — "the first draw of a view the renderer has not seen compiles for
+tens of seconds headless (39s at site A)" — read from the other end.
+
+**Why it cannot be moved for free.** Three placements, each a full plant run:
+
+| placement | slowest check | run |
+|---|---|---|
+| as found — one lazy `getError` at check 167 | 265s | 753s |
+| `gl.getError()` after **every** check | 251s | **989s** |
+| `gl.flush()` after every check | 271s | 765s |
+
+Synchronising after every check makes the run **236s longer** and does not
+even lower the slowest check: the cost lands on two unrelated ones instead —
+`a-whole-match-leaks-nothing` at 247s, which renders nothing at all, and
+`frame-budget-under-the-check-29-load` at 251s, which is the last check in
+the run and whose wait is normally never paid because the page is torn down
+first. Flushing is free (0ms every time) and changes nothing, so the work is
+not sitting unsubmitted; it is being built, and waiting is the only way to
+know it has finished. Unpinning the browser (`--cores 8` against the default
+4) halves everything in proportion — the wait 150s, the run 452s. The wait is
+35% of the plant run pinned, 33% unpinned, 33% of the yard run: the same
+third however the run is configured, which is what a tail looks like and not
+what contention looks like.
+
+**What was built.** The check keeps all five of its assertions and one of
+them gets honest. It now drains and clears the GL error state *before* it
+stages the resize, so the read at the end is about the resize and not about
+whatever ran before it. The check was exactly the shape the A1/A3 lesson
+warns about: it asserted `gl.getError() !== 0` without ever having cleared
+the state, so a green answer meant "nothing in the run so far raised an
+error", not "the resize did not". The drain is bounded at 64 reads and bails
+on a lost context, because a lost context answers `CONTEXT_LOST_WEBGL` to
+every call and an unbounded drain would spin on it forever (F1). Its ms now
+leads the detail line, so every report says what the 265s is instead of
+leaving the next reader to spend a session's worth of instrumentation finding
+out.
+
+**What was not built, and why F11 stays open.** The done-when asks for the
+check's ms at or under 60s. Nothing measured here gets it there without
+moving the wait onto a neighbour, which is bookkeeping and not a fix, and
+both placements tried made the run worse or left it unchanged. The wait is
+the suite's, not the check's, and the lever that would remove it is not
+inside this check. The `--stall` half of the done-when is answered and the
+answer is that the default **stays at 600s**: the floor under it is not a
+slow check that could be made fast but a tail that scales with the machine —
+265s on four cores, 150s on eight — so the budget has to clear a number that
+moves. 600s clears the worst reading on record a little better than twice
+over.
+
+D48 puts the remaining choice to Josh: leave it as it is with the number
+named in the report, drop the GL-error clause (the assertion is duplicated in
+`presentation.js` and in the lost-context check next door, and the plant run
+would lose most of the 265s because a tail nothing waits for is never paid),
+or wait once at the end of each map's run and report it as the run's own
+number, which puts no check over ~76s and would let `--stall` come down to
+about 240s. Recommendation 3, with 1 as the do-nothing; 2 is the one that
+costs an assertion, which is Josh's to give and not the routine's. F11 is
+`[~]` in `QUEUE.md` with the resume-from note.
+
+**Found along the way.** Stopping a backgrounded gate with the task tool
+kills the `npm` wrapper only: `suite.mjs` ran on to the end of its four runs,
+about forty minutes, before tearing its own tree down and exiting. F10's
+teardown held and nothing leaked, but a stopped gate keeps its cores until it
+finishes, so a run started beside one is measured beside one. That is now a
+line in the orphaned-runner trap.
+
+**Verified.** `npm run suite`, four runs: plant 173 passed / 1 failed / 8 not
+for this map (753s, 898s), yard 154 / 1 / 27 (481s, 637s), exit 0, 0 red, 0
+flaky, 0 console errors, 0 context losses — the same counts as G1's verify
+and F10's before it. The one failure on each map is the frame-budget check,
+skipped headless. The check's own line now reads `[265944ms of this check is
+the pipeline drain, F11]` on the plant and `[174279ms ...]` on the yard.

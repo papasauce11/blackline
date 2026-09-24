@@ -31,10 +31,10 @@ every fuzz and soak check pins its own seed, so `?seed=` never reaches them
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after G1 (2026-09-23) |
-| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-23, after F10: plant 173 passed, 1 failed, 8 not for this map (748s, 938s), yard 154 / 1 / 27 (467s, 613s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses.** The one failure on each map is the frame-budget check, skipped headless. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
-| Next job | **F11 (S)**: `a-zero-size-viewport-does-not-blind-the-renderer` takes **269s on the plant**, a quarter of a whole run inside one check, and it is the floor under the gate's `--stall` default. Beyond it, the next work is whatever Josh queues — Blocks A, B, C, D, E and G are closed, F is open on F11 |
-| Waiting on Josh | **Nothing is blocking** — every entry under DECISIONS.md's *Blocking* heading is decided (D8, D13, D20, D23, D25, D27, D38 and the two runner ones). What is open is the **Provisional** section, which Josh may override any time, and the things only eyes can settle — see *Still needs a human*. **And two orphaned node processes that need killing by hand**, see the orphaned-runner trap |
+| Working tree | clean after F11 (2026-09-23) |
+| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-23, after F11: plant 173 passed, 1 failed, 8 not for this map (753s, 898s), yard 154 / 1 / 27 (481s, 637s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses.** The one failure on each map is the frame-budget check, skipped headless. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
+| Next job | **Nothing is unblocked.** F11 is `[~]` on **D48** and G2 on **D47**, and they are the only open jobs — Blocks A, B, C, D, E are closed, F and G wait on those two answers. F11 found its answer and it was not the one expected: all 265s of `a-zero-size-viewport-does-not-blind-the-renderer` are one `gl.getError()`, a wait rather than work, and D48 asks who should pay it |
+| Waiting on Josh | **Two blocking answers: D47** (what the traps section costs, G2) and **D48** (a third of every run is the GPU catching up; leave it, drop the assertion, or pay it where the gate names it — F11). Every older entry under DECISIONS.md's *Blocking* heading is decided (D8, D13, D20, D23, D25, D27, D38 and the two runner ones). The **Provisional** section is open for override any time, and the things only eyes can settle are under *Still needs a human*. **And two orphaned node processes still need killing by hand**, see the orphaned-runner trap |
 | Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,648 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. Outside `src/`, `scripts/suite.mjs` is 507 and `scripts/watchdog.mjs` 181. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable, Warden ground one connected component with a column of cells down each vault rack aisle. **8 declared routes, 22 stages** (`map.routes`); 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb |
@@ -85,9 +85,11 @@ under the ~600 guidance (the map is kept below) · F4 the game does not play
 itself under the suite · F5 the headless runner · F6 `npm run shot` · F7 a
 look at a pose · F8 the key light gives nothing to a face it lights from
 behind · F9 `npm run probe` · F10 a hung gate dies and says which check hung.
-**F11 is open.**
+**F11 is `[~]` on D48** — it found that the quarter of a run inside one check
+is one `gl.getError()`, a wait and not work; what is left is whose clock it
+goes on.
 
-**Block G — the record.** G1 this file back to one page.
+**Block G — the record.** G1 this file back to one page. **G2 is on D47.**
 
 Also on the record and not a numbered job: **the plant is a room, not a
 circle** (Josh, mid-session — *"able to plant the bomb anywhere in the room.
@@ -258,9 +260,10 @@ same check is in the list every run.
 - `--details <file>` writes every check's id, outcome, detail line and **ms**
   per run — the readings a PROGRESS entry quotes, which the stdout report
   never carried for a green check. The slowest is
-  `a-zero-size-viewport-does-not-blind-the-renderer` at **269s on the plant**,
+  `a-zero-size-viewport-does-not-blind-the-renderer` at **265s on the plant**,
   then `every-route-reads-lit-from-its-foot` at 76s; only 6 of 658 check-runs
-  pass 60s. That first number is F11.
+  pass 60s. That first number is not a slow check but a wait — see the trap
+  below and F11.
 - `scripts/suite-skips.json` lists checks that cannot pass headless with
   reasons (today: the frame-budget check; SwiftShader draws a frame in
   ~400ms). They are reported, never counted. Needs `npm install` once:
@@ -269,8 +272,10 @@ same check is in the list every run.
 **A hung run dies (F10).** The run is raced against a heartbeat the page
 publishes (`beat()` in `ui/autosuite.js`, on `debugState.suiteProgress`: a
 monotonic sequence and the id of the check in flight). When it stands still
-for `--stall` seconds — **600 by default, because the slowest single check on
-record is 269s** — the run is abandoned with `suite: crashed: run timed out`
+for `--stall` seconds — **600 by default, and F11 re-examined it and left it
+there**: the floor under it is not the slowest check but the pipeline wait
+inside one, 265s on four cores and 150s on eight, so the budget has to clear
+a number that moves with the machine — the run is abandoned with `suite: crashed: run timed out`
 naming that check, the browser and server are closed, and the exit code is 2.
 Against the beat standing still, never wall-clock total: a cold plant run is
 legitimately 850s. `--stall 0` disables it. `SIGINT`/`SIGTERM` close the same
@@ -315,6 +320,18 @@ window and re-runs them once; the runner prints `GL CONTEXT LOST Nx`. Read
 that line before believing any red pixel check. A check that needs to lose the
 context on purpose registers `losesContext: true`.
 
+**A slow check may be a wait, not work — look before you optimise it.** All
+265s of `a-zero-size-viewport-does-not-blind-the-renderer` on the plant are
+one `gl.getError()`; the rest of the check is under 50ms and the same check
+run alone is 5ms. A GL synchronisation waits for SwiftShader to finish
+building pipelines the whole run has queued — 38.8s with only the warm-up
+behind it, 265s with 167 checks behind it, a third of every run however it is
+configured. It cannot be moved for free: `getError` after every check takes
+the plant run from 753s to 989s and still leaves a 251s check, and `flush`
+after every check costs 0ms and changes nothing (F11, D48). Before reading a
+check's ms as that check's cost, put the suspect call on its own clock —
+`--details` gives the total and nothing else.
+
 **A plant run can take 850s, and `npm run suite` is four runs.** Nothing of
 that fits the Bash tool's 10-minute cap. Start it with `run_in_background`
 writing to a file and wait on the file (`until grep -q "suite: " <file>`,
@@ -333,7 +350,14 @@ obvious inference: it does *not* follow that this is why a plant run went 450s
 → 850s, because E6's run and every gate since were measured with it alive.
 Contention is a constant across every timing on record, not something that
 separates them. The clean test is a gate run once the processes are dead, and
-nobody has had one yet. Find them with
+nobody has had one yet. F11's run stopped a verify from the tool and briefly
+had a second pair (pids 10316 and 11820, 2026-09-23 18:55): stopping kills
+the `npm` wrapper only, and `suite.mjs` carried on to the end of its four
+runs — about forty minutes — before tearing its own tree down and exiting.
+So **F10's teardown holds and nothing new leaked**, but a stopped gate is not
+a stopped gate: it keeps the cores it had, and the next run measured beside
+it is measured beside it. Let a backgrounded gate finish rather than stopping
+it. Find them with
 
 ```powershell
 Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Select ProcessId,CreationDate,CommandLine
