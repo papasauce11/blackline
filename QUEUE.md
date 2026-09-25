@@ -184,7 +184,7 @@ a job in this block may never change a file under `src/`.
   clauses at once), the real entry deleted, and the guard's own id added,
   which came back red *and* took its own skip away, the frame-budget check
   with it. What it cannot see is said plainly: whether a reason is true. 4ms
-  then 3ms a map, 0 flaky. Commit `@@HASH@@`.
+  then 3ms a map, 0 flaky. Commit `1c92f48`.
 
 - **F14** The suite counts itself. Nothing asserted the AUTO registry's size
   or its wiring: delete one `registerX(debugTools);` line from
