@@ -39,6 +39,10 @@ export class AutoSuite {
    *   a check that names the first map's geometry - a tag, a room, a
    *   coordinate - says `['plant']`; one that reads the map it is given
    *   through `h.map` says nothing and runs everywhere
+   * @param {boolean} [test.glSync] this check reads or asserts on
+   *   `gl.getError()`, so the runner drains the renderer's pipeline tail
+   *   before it and charges the wait to the run rather than to the check
+   *   (F11, D48; `drainPipeline` says why)
    * @param {(harness: object) => Promise<{pass: boolean, detail: string}>} test.run
    */
   registerAutoTest(test) {
@@ -199,6 +203,70 @@ export class AutoSuite {
   }
 
   /**
+   * Wait for the software renderer to finish the pipeline work the run has
+   * queued, and charge the ms to the run rather than to whichever check
+   * happened to synchronise first (F11, D48).
+   *
+   * A third of every headless run was inside one `gl.getError()` in
+   * `a-zero-size-viewport-does-not-blind-the-renderer` - 265s of 753s on the
+   * plant - because a GL synchronisation waits for everything queued before
+   * it, and that check was simply the first in the run to ask. The wait is
+   * real and cannot be avoided: F11 measured synchronising after every check
+   * at 236s of added run, and a flush at 0ms and no change at all. So D48's
+   * answer is not to remove it but to name it - the suite waits, here, and
+   * the report carries the number as the run's own.
+   *
+   * Two halves, and the first is what let `--stall` come down from 600s to
+   * 240s. A fence can be POLLED: `clientWaitSync` with a zero timeout answers
+   * at once, so the wait becomes a loop that yields a task and publishes the
+   * heartbeat, and a run waiting four minutes on the renderer no longer looks
+   * to the watcher exactly like a run wedged inside a check. The second half
+   * is the bounded `getError` drain - the call F11 measured, and the one that
+   * clears the error state, so a check that reads `getError` afterwards is
+   * reading about itself and not about the run before it (the A1/A3 lesson).
+   * Bounded at 64 reads and bailing on a lost context, because a lost context
+   * answers CONTEXT_LOST_WEBGL to every call and an unbounded drain would
+   * spin on it forever (F1).
+   *
+   * @param {string} inFlight what the wait is being paid for, for the beat
+   * @returns {Promise<number>} ms the wait took
+   */
+  async drainPipeline(inFlight) {
+    const gl = this.harness.renderer && this.harness.renderer.getContext();
+    if (!gl || gl.isContextLost()) return 0;
+    const started = performance.now();
+    this.beat({ inFlight, phase: 'pipeline-wait', waitMs: 0 });
+    if (typeof gl.fenceSync === 'function') {
+      // Free, and it only says "nothing more is coming" (F11: 0ms, every time).
+      gl.flush();
+      const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      if (sync) {
+        let announced = 0;
+        for (;;) {
+          if (gl.clientWaitSync(sync, 0, 0) !== gl.TIMEOUT_EXPIRED) break;
+          if (gl.isContextLost()) break;
+          const waited = performance.now() - started;
+          if (waited > CONFIG.debug.pipelineWaitBudgetMs) break;
+          // A beat four times a second rather than every poll: the watcher
+          // reads it every five, and a poll is an IPC round trip already.
+          if (waited - announced >= 250) {
+            announced = waited;
+            this.beat({ inFlight, phase: 'pipeline-wait', waitMs: Math.round(waited) });
+          }
+          await this.yieldTask();
+        }
+        gl.deleteSync(sync);
+      }
+    }
+    for (let i = 0; i < 64 && gl.getError() !== 0; i++) {
+      if (gl.isContextLost()) break;
+    }
+    const ms = performance.now() - started;
+    this.beat({ inFlight, phase: 'pipeline-waited', waitMs: Math.round(ms) });
+    return ms;
+  }
+
+  /**
    * Run registered AUTO checks and print a pass/fail line each.
    * @param {object} [options]
    * @param {object[]} [options.subset] run only these, defaults to all
@@ -223,7 +291,7 @@ export class AutoSuite {
 
     this.beat({ label, map: mapId, total: tests.length, done: 0, inFlight: null, phase: 'start' });
     const lossesBefore = this.state.contextLosses || 0;
-    const { results, staged } = await this.runChecks(tests);
+    const { results, staged, pipelineWaitMs } = await this.runChecks(tests);
     // Losses a check staged on purpose are its own business; the count that
     // matters is the ones the machine inflicted.
     const contextLosses = (this.state.contextLosses || 0) - lossesBefore - staged;
@@ -242,10 +310,18 @@ export class AutoSuite {
       const rerun = results.filter((r) => r.rerun).map((r) => r.id);
       this._log(`gl context lost ${contextLosses}x during the run; re-ran ${rerun.length}`);
     }
+    // The renderer's tail, as the run's own number and not a check's (D48).
+    // Said out loud rather than left in the report, because the reader of a
+    // long run in a tab has the same question the reader of the report has.
+    if (pipelineWaitMs >= 1000) {
+      const line = `${Math.round(pipelineWaitMs)}ms of this run was the renderer's pipeline tail, not a check (F11)`;
+      console.log(`%c[AUTO] ${line}`, 'color:#8a8f98');
+      this._log(line);
+    }
 
     this.beat({ label, map: mapId, total: tests.length, done: results.length, inFlight: null, phase: 'done' });
     this.running = false;
-    return { passed, failed, results, contextLosses, map: mapId, notForMap };
+    return { passed, failed, results, contextLosses, pipelineWaitMs, map: mapId, notForMap };
   }
 
   /**
@@ -267,7 +343,7 @@ export class AutoSuite {
    * it causes is its own, counted as `staged` and never a reason to re-run it.
    *
    * @param {object[]} tests registered checks, or inline `{ id, spec, run }`
-   * @returns {Promise<{results: object[], staged: number}>}
+   * @returns {Promise<{results: object[], staged: number, pipelineWaitMs: number}>}
    */
   async runChecks(tests) {
     // The game must not play itself underneath the checks (F4). In a tab
@@ -285,15 +361,22 @@ export class AutoSuite {
     // from the console is a playtest tab after.
     const gateWasUp = SETTINGS.debug;
     SETTINGS.debug = true;
+    // Whether this is the run or a run inside a check. Only the outer one
+    // pays the tail after its last check: a check that drives `runChecks`
+    // itself would otherwise pay, inside its own clock, the very wait D48
+    // moved off a check (the lost-context check next door does this, and so
+    // does the check that holds this arrangement).
+    const top = (this._depth = (this._depth || 0) + 1) === 1;
     try {
-      return await this._runChecks(tests);
+      return await this._runChecks(tests, top);
     } finally {
+      this._depth--;
       SETTINGS.debug = gateWasUp;
       if (loopWasRunning) loop.start();
     }
   }
 
-  async _runChecks(tests) {
+  async _runChecks(tests, top = true) {
     const gl = this.harness.renderer && this.harness.renderer.getContext();
     const lost = () => !!(gl && gl.isContextLost()) || !!this.state.contextLost;
     const results = [];
@@ -303,10 +386,16 @@ export class AutoSuite {
     // drives `runChecks` itself does not leave its own count behind for the
     // run around it to report (F10).
     const total = tests.length;
+    let pipelineWaitMs = 0;
 
     for (const test of tests) {
       this.beat({ total, done: results.length, inFlight: test.id, phase: 'running' });
       await this.yieldTask();
+      // A check that reads `gl.getError()` is drained for here, before its own
+      // clock starts, so the renderer's tail is the run's number and not its
+      // (F11, D48). Only the checks that ask: F11 measured draining before
+      // every check at 236s of added run for nothing.
+      if (test.glSync) pipelineWaitMs += await this.drainPipeline(test.id);
       const lossesBefore = this.state.contextLosses || 0;
       const lostBefore = lost();
       const result = await this._runOne(test);
@@ -340,7 +429,13 @@ export class AutoSuite {
         this._printResult(again);
       }
     }
-    return { results, staged };
+
+    // And the tail the run leaves behind. Nothing normally waits for it - the
+    // page is torn down first - so it has never appeared in a number at all;
+    // paid here, once, after the last check, so what the run asked the
+    // renderer for is what the run is reported to have cost (D48).
+    if (top) pipelineWaitMs += await this.drainPipeline('after the last check');
+    return { results, staged, pipelineWaitMs };
   }
 
   /**

@@ -20,7 +20,7 @@
 //                          [--pre "<js>"] [--map plant,yard]
 //                          [--channel chrome|msedge] [--timeout 600000]
 //                          [--cores N] [--cooldown SECONDS] [--details FILE]
-//                          [--stall SECONDS]
+//                          [--stall SECONDS] [--stall-wait SECONDS]
 //
 // --map names the registered maps to run on (src/maps/index.js), comma
 // separated; the page is loaded once per map with `?map=<id>` and the suite
@@ -49,6 +49,10 @@
 // against wall-clock total: a cold plant run is legitimately 850s.
 // --stall 0 disables it. SIGINT and SIGTERM close the browser and the server
 // the same way, so stopping a backgrounded run stops the tree.
+// --stall is 240s since D48 (it was 600s): the floor under it used to be the
+// renderer's pipeline tail waited for inside one check, and that wait is the
+// suite's own now, beats while it waits, and gets --stall-wait (600s) instead.
+// Every run line carries how much of it was that wait.
 //
 // Heat. This PC renders the suite with SwiftShader, so every pixel of every
 // rendered check is drawn on the CPU, and a run is a sustained all-core load
@@ -100,12 +104,21 @@ const DETAILS = args.details ?? null;
 const CORES = Number(args.cores ?? Math.max(2, Math.floor(os.cpus().length / 2)));
 const COOLDOWN_MS = Number(args.cooldown ?? 45) * 1000;
 // How long the page's heartbeat may stand still before the run is called
-// hung. Generous on purpose: a check runs to completion without yielding to
-// the watcher, so the gap between two beats is one whole check, and the
-// slowest single check is the floor under this number. Ten minutes bounds a
-// wedged run without ever calling a slow one hung; read the per-check ms in
-// --details before tightening it.
-const STALL_MS = Number(args.stall ?? 600) * 1000;
+// hung. A check runs to completion without yielding to the watcher, so the
+// gap between two beats is one whole check, and the slowest single check is
+// the floor under this number: `every-route-reads-lit-from-its-foot` at 76s,
+// which four minutes clears three times over. It was ten minutes until D48,
+// because the real floor was not a check at all but the renderer's pipeline
+// tail waited for inside one - 265s, and rising with the run. That wait is
+// the suite's own now (F11), it polls a fence so it beats while it waits, and
+// it carries its own budget below. Read the per-check ms in --details before
+// tightening this.
+const STALL_MS = Number(args.stall ?? 240) * 1000;
+// And the budget while the beat says the suite is waiting on the renderer
+// rather than running a check. Separate because the two are different things:
+// this one is a wait that is allowed to be minutes long and says so, and it
+// is still bounded, so a GL call that never returns is still called hung.
+const WAIT_STALL_MS = Number(args['stall-wait'] ?? 600) * 1000;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -261,7 +274,7 @@ function serve() {
  * The deadline, the teardown and the signal handlers (F10). Made here rather
  * than inside main() so its signal handlers are up before the browser is.
  */
-const guard = createGuard({ stallMs: STALL_MS });
+const guard = createGuard({ stallMs: STALL_MS, waitStallMs: WAIT_STALL_MS });
 
 /** What the page said before a crash, so a module that failed to load names itself. */
 const bootErrors = [];
@@ -384,6 +397,11 @@ async function main() {
             // in that window was re-run once the context came back; those are
             // listed so a green run that needed the tiebreak is never silent.
             contextLosses: res.contextLosses,
+            // The software renderer's pipeline tail, waited for by the suite
+            // and charged to the run rather than to whichever check
+            // synchronised first (F11, D48). A third of a headless run, and
+            // until now it appeared only as one check's ms.
+            pipelineWaitMs: Math.round(res.pipelineWaitMs || 0),
             rerun: res.results.filter(x => x.rerun).map(x => x.id),
             // Frames the rAF loop drove while the suite ran. Zero is the only
             // right answer (F4); a check that drives frames does so through
@@ -471,6 +489,7 @@ function judge(runs, renderer, consoleErrors) {
     maps,
     runs: runs.map(r => ({
       map: r.map, regression: r.regression, passed: r.passed, failed: r.failed, notForMap: r.notForMap, ms: r.ms,
+      pipelineWaitMs: r.pipelineWaitMs,
       contextLosses: r.contextLosses, rerun: r.rerun, loopFrames: r.loopFrames,
     })),
     red,
@@ -489,7 +508,8 @@ function summary(r) {
   const tag = x => (r.maps.length > 1 ? `${x.id} [${x.map}]` : x.id);
   for (const [i, run] of r.runs.entries()) {
     lines.push(`  run ${i + 1} (${run.map}${run.regression ? ', regression set' : ''}): ${run.passed} passed, ${run.failed} failed`
-      + `${run.notForMap ? `, ${run.notForMap} not for this map` : ''}, ${run.ms}ms`);
+      + `${run.notForMap ? `, ${run.notForMap} not for this map` : ''}, ${run.ms}ms`
+      + `${run.pipelineWaitMs ? ` (${run.pipelineWaitMs}ms of it the renderer's pipeline tail, F11)` : ''}`);
     if (run.contextLosses) {
       lines.push(`    GL CONTEXT LOST ${run.contextLosses}x during run ${i + 1}; re-ran after restore: ${run.rerun.join(', ') || 'nothing'}`);
     }

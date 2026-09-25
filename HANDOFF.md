@@ -32,11 +32,11 @@ run is the first whose green means anything). It also flagged a suite runner fro
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after F15 (2026-09-25) |
-| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-25, after F15: plant 177 passed, 1 failed, 8 not for this map (757s, 935s), yard 158 / 1 / 27 (466s, 600s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 skips withheld.** One more check per map than the gate that opened the run (plant 176, yard 157), which is F15's and nothing else. The one failure on each map is the frame-budget check, skipped headless — and since F15 that skip is honoured only where `the-headless-skip-list-holds-only-the-check-it-declares` is green. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
-| Next job | **The second arc is queued** (2026-09-25, D50): Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, sixty jobs, in that order. F11 (D48: option 3) and G2 (D47: option 2 — the traps move to `TRAPS.md`; the routine's prompt already reads it) are unblocked and come first. H1 and H2 wait on **D51**, the GitHub repo; every other H job proceeds |
+| Working tree | clean after F11 (2026-09-25) |
+| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-25, after F11: plant 178 passed, 1 failed, 8 not for this map (963s, 957s), yard 159 / 1 / 27 (646s, 653s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 skips withheld.** Each run line now names how much of it was the renderer's pipeline tail (plant 463s and 461s, yard 339s and 349s) rather than leaving it inside one check (F11). The two runs of a map now agree within 10s; before F11 the second was 130-180s the slower, because it paid the first's unpaid tail. One more check per map than the gate that opened the run (plant 177, yard 158), which is F11's and nothing else. The one failure on each map is the frame-budget check, skipped headless — and since F15 that skip is honoured only where `the-headless-skip-list-holds-only-the-check-it-declares` is green. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
+| Next job | **The second arc is queued** (2026-09-25, D50): Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, sixty jobs, in that order. F11 closed 2026-09-25 (D48, option 3). **G2** (D47: option 2 — the traps move to `TRAPS.md`; the routine's prompt already reads it) is next, then **F16** (the historical run-pairs F11 found leaning on an invisible wait), then Block H. H1 and H2 wait on **D51**, the GitHub repo; every other H job proceeds |
 | Waiting on Josh | **D51** — the GitHub repo URL and its Pages setting (H1, H2). Nothing else blocks: D47, D48 and D49 were answered 2026-09-25 (D47, D48 as infrastructure by the session that runs the routine; D49 by Josh's interview, D50). The Provisional section stays open for override, and the things only eyes can settle are under *Still needs a human* |
-| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,648 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. Outside `src/`, `scripts/suite.mjs` is 507 and `scripts/watchdog.mjs` 181. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions — and since F13 the gate holds that census rather than the weekly audit: a third call, or either of these two losing the comment that argues for it, is red |
+| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,648 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. Outside `src/`, `scripts/suite.mjs` is 549 and `scripts/watchdog.mjs` 205. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions — and since F13 the gate holds that census rather than the weekly audit: a third call, or either of these two losing the comment that argues for it, is red |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable, Warden ground one connected component with a column of cells down each vault rack aisle. **8 declared routes, 22 stages** (`map.routes`); 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb |
 | Map, yard | 132 boxes, 58 climbable, 5 lamps, Warden ground 15,332 cells in one component, 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up, every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
@@ -86,9 +86,16 @@ under the ~600 guidance (the map is kept below) · F4 the game does not play
 itself under the suite · F5 the headless runner · F6 `npm run shot` · F7 a
 look at a pose · F8 the key light gives nothing to a face it lights from
 behind · F9 `npm run probe` · F10 a hung gate dies and says which check hung.
-**F11 is `[~]` on D48** — it found that the quarter of a run inside one check
-is one `gl.getError()`, a wait and not work; what is left is whose clock it
-goes on. F12 `?seed=` reaches the fuzz and soak checks: `tests/seeds.js` owns
+**F11** the quarter of a run inside one check was one `gl.getError()`, a wait
+and not work, and D48 put it on the run's clock: `AutoSuite.drainPipeline()`
+polls a fence so the wait beats while it waits, a check declaring
+`glSync: true` is drained for before its own clock starts, a top-level
+`runChecks` drains once more after its last check, and the run line prints
+the total. 265,944ms became 24ms, the slowest check is now 77s, `--stall`
+came down 600s → 240s (`--stall-wait` 600s holds the declared wait). It also
+found that two runs of a map share a page, so run 1's unpaid tail was being
+paid by run 2 — which is why the second run of a map was always the slower
+one (F16). F12 `?seed=` reaches the fuzz and soak checks: `tests/seeds.js` owns
 `exploreSeed(label, fallback)`, the fallback when the URL names no seed so the
 gate is unmoved, a draw mixed from the URL seed and the label when it does, and
 three seeds stay pinned because reproducibility is their subject. F13 the gate holds the two bans the spec states: `no-source-file-calls-math-random-or-sets-a-timer` reads all 135 loaded modules and allows one `Math.random(` (the audio noise texture) and one `setTimeout(` (a fence yield in `tests/performance.js`), each still present, exactly once, and argued in a comment at its own line. F14 the suite counts itself: `tests/registry.js` holds every registrar `tests/index.js` imports to exactly one call, every check a module declares to being registered and back, and names the one conditional registration (`a-staged-hang-never-returns`, `?hang=1` only) — a `register` call dropped while its import stayed used to shrink every run silently and still exit 0. F15 the gate's own exemptions are a census: `scripts/suite-skips.json` took any red check out of a run in one line — measured, `"ok": false` to `"ok": true` with nothing else changed — and `tests/skiplist.js` now holds it and its own `ALLOWED` list to the same set both ways, every skipped id to being a registered check, every reason to naming hardware, and its own id to being absent; the runner honours a skip only on a map where that check passed, so the policeman cannot be exempted.
@@ -255,19 +262,22 @@ run carries `contextLosses` and `rerun` (F1), printed as `GL CONTEXT LOST`;
 zero is normal, and a non-zero one is the machine, not the game, unless the
 same check is in the list every run.
 
-- `--runs 1` is the gate: about 22 minutes for both maps (823s plant, 494s
-  yard). The full `npm run suite` is four runs, about 50 minutes. **Each map
-  alone is past the Bash tool's 10-minute cap — background it.**
+- `--runs 1` is the gate: about 25 minutes for both maps (963s plant, 646s
+  yard, both since F11 — it pays a tail per map that used to be dropped at
+  teardown or charged to the next run). The full `npm run suite` is four runs,
+  about 55 minutes. **Each map alone is past the Bash tool's 10-minute cap —
+  background it.**
 - `--map plant` to narrow · `--regression` for the regression set per map
   (plant 29 checks in 58s, yard 29 in 25s) · `--subset "<regex>"` while
-  iterating · `--query "seed=N"` to reseed · `--stall SECONDS`, below.
+  iterating · `--query "seed=N"` to reseed · `--stall SECONDS` and `--stall-wait SECONDS`, below.
 - `--details <file>` writes every check's id, outcome, detail line and **ms**
   per run — the readings a PROGRESS entry quotes, which the stdout report
-  never carried for a green check. The slowest is
-  `a-zero-size-viewport-does-not-blind-the-renderer` at **265s on the plant**,
-  then `every-route-reads-lit-from-its-foot` at 76s; only 6 of 658 check-runs
-  pass 60s. That first number is not a slow check but a wait — see the trap
-  below and F11.
+  never carried for a green check. Since F11 the slowest is
+  `every-route-reads-lit-from-its-foot` at **77s on the plant**, then this
+  job's own `the-pipeline-wait-is-the-runs-number-and-not-a-checks` at 30s;
+  `a-zero-size-viewport-does-not-blind-the-renderer` was 265s and is 24s,
+  because the wait it was inheriting is the run's number now and appears on
+  the run line instead.
 - `scripts/suite-skips.json` lists checks that cannot pass headless with
   reasons (today: the frame-budget check; SwiftShader draws a frame in
   ~400ms). They are reported, never counted. **Since F15 it is a census, not
@@ -282,13 +292,13 @@ same check is in the list every run.
 **A hung run dies (F10).** The run is raced against a heartbeat the page
 publishes (`beat()` in `ui/autosuite.js`, on `debugState.suiteProgress`: a
 monotonic sequence and the id of the check in flight). When it stands still
-for `--stall` seconds — **600 by default, and F11 re-examined it and left it
-there**: the floor under it is not the slowest check but the pipeline wait
-inside one, 265s on four cores and 150s on eight, so the budget has to clear
-a number that moves with the machine — the run is abandoned with `suite: crashed: run timed out`
+for `--stall` seconds — **240 by default since F11/D48**, because the floor
+under it is now the slowest *check* (77s) and no longer a pipeline wait inside
+one; the suite's own wait publishes the beat while it waits and carries
+`--stall-wait` (600s) instead — the run is abandoned with `suite: crashed: run timed out`
 naming that check, the browser and server are closed, and the exit code is 2.
 Against the beat standing still, never wall-clock total: a cold plant run is
-legitimately 850s. `--stall 0` disables it. `SIGINT`/`SIGTERM` close the same
+legitimately 960s. `--stall 0` disables it. `SIGINT`/`SIGTERM` close the same
 way. A `suite.mjs` older than this process is named at startup, in the
 report's `otherRunners` and in the summary's `OTHER RUNNERS ALIVE` — its
 Chrome competes for the same cores, so every timing beside it is measured
@@ -330,19 +340,20 @@ window and re-runs them once; the runner prints `GL CONTEXT LOST Nx`. Read
 that line before believing any red pixel check. A check that needs to lose the
 context on purpose registers `losesContext: true`.
 
-**A slow check may be a wait, not work — look before you optimise it.** All
-265s of `a-zero-size-viewport-does-not-blind-the-renderer` on the plant are
-one `gl.getError()`; the rest of the check is under 50ms and the same check
-run alone is 5ms. A GL synchronisation waits for SwiftShader to finish
-building pipelines the whole run has queued — 38.8s with only the warm-up
-behind it, 265s with 167 checks behind it, a third of every run however it is
-configured. It cannot be moved for free: `getError` after every check takes
-the plant run from 753s to 989s and still leaves a 251s check, and `flush`
-after every check costs 0ms and changes nothing (F11, D48). Before reading a
-check's ms as that check's cost, put the suspect call on its own clock —
-`--details` gives the total and nothing else.
+**A slow check may be a wait, not work — look before you optimise it.** A GL
+synchronisation waits for SwiftShader to finish building the pipelines the
+whole run has queued, so whichever check calls one first pays for all of it:
+`a-zero-size-viewport-does-not-blind-the-renderer` read 265s on the plant and
+5ms run alone. It cannot be moved for free — `getError` after every check
+takes the plant run 753s → 989s and `flush` after every check costs 0ms and
+changes nothing — so F11/D48 named it instead: the suite waits, a check
+declares `glSync: true` to be waited for, and the ms is on the run line. That
+one is handled; the lesson is not. Before reading a check's ms as that
+check's cost, put the suspect call on its own clock — `--details` gives the
+total and nothing else. And two runs of a map share a page, so a tail one run
+leaves behind is a tail the next one pays (F16).
 
-**A plant run can take 850s, and `npm run suite` is four runs.** Nothing of
+**A plant run can take 960s, and `npm run suite` is four runs.** Nothing of
 that fits the Bash tool's 10-minute cap. Start it with `run_in_background`
 writing to a file and wait on the file (`until grep -q "suite: " <file>`,
 itself backgrounded or in a Monitor — a foreground wait hits the same cap).

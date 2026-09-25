@@ -67,6 +67,7 @@ import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
 import { register as registerFuzz } from './fuzz.js';
+import { register as registerPipelineWait } from './pipelinewait.js';
 import { register as registerHeartbeat } from './heartbeat.js';
 import { register as registerTraversalFuzz } from './traversalfuzz.js';
 import { register as registerRegistry } from './registry.js';
@@ -127,6 +128,9 @@ export function registerAutoTests(debugTools) {
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);
+  // After fuzz.js on purpose: by then the run's pipeline tail has been paid
+  // once, so this one's own drains answer in milliseconds (F11, D48).
+  registerPipelineWait(debugTools);
   registerHeartbeat(debugTools);
   registerTraversalFuzz(debugTools);
   registerRegistry(debugTools);

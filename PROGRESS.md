@@ -8638,3 +8638,100 @@ wait once per map and names it (F11, option 3), no assertion retired.
 **Waiting on Josh.** D51 only: an empty GitHub repository with Pages set to
 GitHub Actions, and its URL. H1 and H2 wait on it; nothing else does.
 
+
+## F11, closed — the wait is the suite's, and it beats while it waits (2026-09-25 17:00, scheduled run)
+
+D48 answered F11's remaining choice with option 3: the runner waits, the
+runner reports the number, and no check carries a wait it did not cause. This
+carried it out, and in doing so found what the wait had actually been costing.
+
+**What was built.** `AutoSuite.drainPipeline(inFlight)` (`src/ui/autosuite.js`)
+is the suite's own synchronisation, in two halves:
+
+- A **polled fence**, which is the half that matters. `gl.fenceSync` plus
+  `clientWaitSync(sync, 0, 0)` answers at once, so the wait becomes a loop
+  that yields a task and publishes the heartbeat four times a second. A wait
+  that stands still is a wait `--stall` cannot tell from a hang; a wait that
+  beats is one it can. Bounded by `CONFIG.debug.pipelineWaitBudgetMs` (600s)
+  so a fence that never signals cannot wait forever.
+- The **bounded `getError` drain** behind it — the call F11 measured, and the
+  one that clears the error state, 64 reads and bailing on a lost context (F1).
+
+A check declares `glSync: true` and the runner drains for it *before its own
+clock starts*; a top-level `runChecks` drains once more after its last check;
+both totals come back as `pipelineWaitMs`, which `runAutoTests` says out loud
+in a tab and `scripts/suite.mjs` prints on the run line. A **nested**
+`runChecks` deliberately does not drain at the end — a check that drives the
+runner itself would otherwise pay, inside its own clock, the very wait this
+moves off a check.
+
+`a-zero-size-viewport-does-not-blind-the-renderer` keeps all five assertions
+and loses its drain to the one word `glSync: true`. `--stall` comes down from
+**600s to 240s**, with `--stall-wait` (600s) for the declared wait phase:
+two budgets, because a check that has stopped answering and a suite waiting on
+the renderer are different things, and the first is now called hung in four
+minutes rather than ten.
+
+**The fence does reflect the tail, and it polls.** This was the risk in the
+design and it is settled by measurement: the new check's own drain answered in
+**30,306ms across 61 beats** on the plant and 27,109ms across 63 on the yard.
+Sixty-one beats over thirty seconds is one every 250ms, exactly as written —
+so the wait is real, the fence sees it, and the heartbeat advanced all the way
+through it. A 265s wait would publish ~1,060 beats and never come near 240s of
+standing still.
+
+**The check's ms, before and after.** 265,944ms → **24ms** on the plant (26ms
+on the second run), 174,279ms → **19ms** on the yard (18ms). The slowest check
+in the suite is now `every-route-reads-lit-from-its-foot` at **77,294ms**,
+which is the number D48 predicted and which 240s clears three times over.
+
+**What it cost, and the thing that was hiding.** The plant run went 755s → 963s
+and the yard 473s → 646s, which looks like the bookkeeping charging 200s a run
+for nothing. It is not. Compare the *pairs*, because two runs of a map share
+one page:
+
+| | run 1 | run 2 | difference |
+|---|---|---|---|
+| plant, before (F15's verify) | 757s | 935s | **+178s** |
+| plant, after | 963s | 957s | -6s |
+| yard, before | 466s | 600s | **+134s** |
+| yard, after | 646s | 653s | +7s |
+
+F11 wrote that the last check's tail "is normally never paid because the page
+is torn down first". That is true of the *last* run on a page and false of
+every other one: run 1 left its tail behind and **run 2 paid it**, inside run
+2's own first synchronisation, which is why the second run of a map had always
+been the slower one. The pipeline wait per run is now 463s and 461s on the
+plant, 339s and 349s on the yard — the same number twice, where before it was
+one run's 265s and the next run's 265s plus its predecessor's leftovers. The
+real added cost is one tail per map per suite (plant 1,692s → 1,920s, yard
+1,066s → 1,299s, about +230s each), and what is bought for it is two runs that
+are measured the same way. A gate whose two runs differ by 178s of invisible
+wait is a gate comparing two different things.
+
+**What was not built.** Nothing was retired: the check has its five
+assertions and the GL-error clause is one of them. The run's wall clock did not
+improve, which D48 said in advance and is the honest half of option 3.
+
+**The check.** `src/tests/pipelinewait.js` (119 lines),
+`the-pipeline-wait-is-the-runs-number-and-not-a-checks`: `drainPipeline` exists,
+answers with its own ms, leaves the error state clear and publishes at least
+two beats; an inline check declaring `glSync` is entered under phase
+`pipeline-waited` and one declaring nothing under `running` — both halves, because
+the first alone would also pass if the runner drained before every check, which
+F11 measured at 236s of added run; `runChecks` returns `pipelineWaitMs`; and
+`a-zero-size-viewport-does-not-blind-the-renderer` still declares `glSync`.
+Registered straight after `fuzz.js`, where the run's tail has been paid once,
+so its own drains are seconds rather than minutes. It costs 30s on the plant
+and 27s on the yard, which is the tail of the two checks between it and the
+one that drained last, and it says so in its own detail line.
+
+**Verified.** `npm run suite`, four runs: plant 178 passed / 1 failed / 8 not
+for this map (963,216ms, 463,324ms of it the wait; 957,125ms, 461,237ms), yard
+159 / 1 / 27 (645,687ms, 338,878ms; 652,848ms, 348,650ms), exit 0, 0 red, 0
+flaky, 0 console errors, 0 context losses, 0 loop frames, 0 skips withheld.
+One more check per map than the gate that opened the run (plant 177, yard 158),
+which is this job's and nothing else. The one failure on each map is the
+frame-budget check, skipped headless. Gate at the head of the run, on
+`3f19d03`: plant 177 / 1 / 8 in 755,052ms, yard 158 / 1 / 27 in 473,233ms,
+exit 0.

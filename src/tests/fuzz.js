@@ -179,6 +179,10 @@ export function register(debugTools) {
     id: 'a-zero-size-viewport-does-not-blind-the-renderer',
     spec: 'Section 15',
     name: 'A resize reporting 0x0 is ignored rather than latched',
+    // The runner drains the renderer's pipeline tail before this check and
+    // charges the wait to the run (F11, D48). One word, and it is the whole of
+    // what keeps 265s of waiting off this check's clock.
+    glSync: true,
     run: (h) => {
       const problems = [];
       const gl = h.renderer.getContext();
@@ -188,26 +192,14 @@ export function register(debugTools) {
         return { pass: false, detail: `the canvas is already ${before.w}x${before.h}` };
       }
 
-      // Clear the error state before staging anything, so the read at the end
-      // is about the resize and not about whatever ran before this check -
-      // the A1/A3 lesson, and this check was the shape it warns about.
-      //
-      // The drain is also where this check's clock goes, and it is not this
-      // check's cost (F11). `getError` is the suite's first GL
-      // synchronisation, and a synchronisation waits for the software
-      // renderer to finish building pipelines the run has queued: 38.8s with
-      // only the 60-frame warm-up behind it, 265s with 167 checks behind it,
-      // while the whole rest of this check is under 50ms. It is reported
-      // rather than asserted on: the number belongs to the run, and the
-      // reader of a 265s line needs to know it is a wait, not work.
-      // Bounded, because a lost context answers `CONTEXT_LOST_WEBGL` to every
-      // call and an unbounded drain would spin on it forever (F1: the machine
-      // can take the GPU away mid-suite).
-      const drainStarted = performance.now();
-      for (let i = 0; i < 64 && gl.getError() !== 0; i++) {
-        if (gl.isContextLost()) break;
-      }
-      const drainMs = Math.round(performance.now() - drainStarted);
+      // The GL error state is already clear on the way in: this check declares
+      // `glSync`, so the runner drained for it (F11, D48). That matters twice
+      // over. It is what makes the read at the end about the resize rather
+      // than about whatever ran before this check - the A1/A3 lesson, and this
+      // check was exactly the shape it warns about. And the drain is a wait for
+      // the software renderer's pipeline tail, a third of a headless run: while
+      // it was this check's own first line the report read 265s against this
+      // check's name, and it is now the run's own number. Nothing here waits.
 
       // A viewport reports zero transiently: a minimised window, a tab moved
       // between displays, devtools resizing an emulated frame. Taking it at
@@ -245,10 +237,11 @@ export function register(debugTools) {
 
       return {
         pass: problems.length === 0,
-        detail: `[${drainMs}ms of this check is the pipeline drain, F11] ` + (problems.length === 0
+        detail: problems.length === 0
           ? `a resize reporting a 0 width left the canvas at ${after.w}x${after.h}, the aspect at `
             + `${h.camera.aspect.toFixed(3)} and ${h.debugState.drawCalls} draw calls on the next frame`
-          : problems.join('; ')),
+            + ` (the pipeline wait this check used to be charged is the run's, F11/D48)`
+          : problems.join('; '),
       };
     },
   });

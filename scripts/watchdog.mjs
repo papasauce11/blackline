@@ -85,10 +85,13 @@ export function otherRunners() {
  * @param {object} options
  * @param {number} options.stallMs how long the page's heartbeat may stand
  *   still before the run is called hung. 0 disables the deadline.
+ * @param {number} [options.waitStallMs] the same, while the beat says the
+ *   suite is waiting on the renderer rather than running a check
+ *   (`phase: 'pipeline-wait'`, F11/D48). Defaults to `stallMs`.
  * @param {number} [options.heartbeatMs] how often the heartbeat is read
  * @param {(line: string) => void} [options.warn] where notices go
  */
-export function createGuard({ stallMs, heartbeatMs = 5000, warn = line => process.stderr.write(line) }) {
+export function createGuard({ stallMs, waitStallMs = stallMs, heartbeatMs = 5000, warn = line => process.stderr.write(line) }) {
   let browser = null;
   let server = null;
   let tearingDown = false;
@@ -163,7 +166,14 @@ export function createGuard({ stallMs, heartbeatMs = 5000, warn = line => proces
         if (settled) return null;
         if (beat && beat.seq !== seq) { seq = beat.seq; seen = beat; movedAt = Date.now(); continue; }
         const still = Date.now() - movedAt;
-        if (still >= stallMs) return { still, beat: seen };
+        // Two budgets, because two things are being told apart (D48). A check
+        // that has stopped answering is a hang within four minutes. The suite
+        // waiting on the software renderer's pipeline tail says so on the beat
+        // (`phase: 'pipeline-wait'`, F11) and is allowed the old ten minutes -
+        // it is a wait that can legitimately be 265s and rises with the run.
+        // Still bounded: a GL call that never returns is still called hung.
+        const budget = seen && seen.phase === 'pipeline-wait' ? waitStallMs : stallMs;
+        if (still >= budget) return { still, beat: seen, budget };
       }
       return null;
     })();
@@ -174,8 +184,9 @@ export function createGuard({ stallMs, heartbeatMs = 5000, warn = line => proces
       const at = b
         ? `the check in flight was "${b.inFlight || b.last || '?'}" (${b.done}/${b.total}, phase ${b.phase})`
         : 'the page never published a heartbeat at all';
+      const which = stall.budget === waitStallMs && waitStallMs !== stallMs ? '--stall-wait' : '--stall';
       throw new Error(`run timed out: the suite heartbeat stood still for ${Math.round(stall.still / 1000)}s`
-        + ` on ${where}; ${at}. Raise --stall if the run was merely slow.`);
+        + ` on ${where}; ${at}. Raise ${which} if the run was merely slow.`);
     }
     return done;
   }

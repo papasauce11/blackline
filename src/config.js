@@ -1482,6 +1482,14 @@ export const CONFIG = {
      * restores in well under a second once its GPU process is up again.
      */
     contextRestoreFrames: 600,
+    /**
+     * Wall-clock bound on the suite's pipeline drain (F11, D48). The drain
+     * polls a fence so it can publish the heartbeat while it waits, and the
+     * bound is only there so a fence that never signals cannot wait forever;
+     * the blocking `getError` behind it finishes the job either way. Ten
+     * minutes, which is twice the worst reading on record (265s).
+     */
+    pipelineWaitBudgetMs: 600000,
     /** Number of PRNG values compared in the determinism check. */
     prngCompareCount: 2000,
     /**

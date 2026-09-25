@@ -73,7 +73,7 @@ const ARGUED = /deliberate/i;
 const ARGUED_WITHIN = 8;
 
 /**
- * 135 modules load today. The floor sits far above the line-count check's 40
+ * 136 modules load today. The floor sits far above the line-count check's 40
  * so that an import graph collapsed to a handful reads as a failure rather
  * than as a clean sweep of nothing.
  */

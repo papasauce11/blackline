@@ -43,41 +43,7 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 
 - [x] **F10 (M)** A hung gate must die, and say so. — done 2026-09-23, under Done.
 
-- [~] **F11 (S)** One check is a quarter of the plant run. `blocked: D48`
-  **Found, measured, and it is not the check.** All 265s of
-  `a-zero-size-viewport-does-not-blind-the-renderer` are one
-  `gl.getError()`; the staged resize, a whole rendered frame and every
-  read the check makes come to under 50ms together. The call is the
-  suite's first GL synchronisation, and a synchronisation waits for the
-  software renderer to finish building pipelines the run has queued —
-  38.8s with only the warm-up behind it, 265s with 167 checks behind it,
-  and a third of the run however it is configured (plant 265s of 753s on
-  4 cores, 150s of 452s on 8; yard 149s of 448s). The same check run
-  alone is 5ms. Placements measured, each a full plant run: `getError`
-  after every check, run **989s** and still a 251s check; `flush` after
-  every check, 0ms every time and nothing changed. Full numbers in
-  `PROGRESS.md`, "F11".
-  **Done 2026-09-23 in `246bb93`**: the check drains and clears the error
-  state *before* staging the resize, so its GL-error clause is about the
-  resize and not about whatever ran before it — it was the shape the
-  A1/A3 lesson warns about — and the drain's ms now leads its detail
-  line, so the report says what the wait is. `--stall` reconsidered: it
-  **stays 600s**, because the floor under it is this tail and not a slow
-  check, and the tail scales with the machine.
-  *resume from:* D48 names one of three — leave it, drop the GL-error
-  clause, or wait once in `AutoSuite.runAutoTests` after the last check
-  of a map and report it as the run's own number. If 3: the wait goes at
-  the end of `_runChecks` (`src/ui/autosuite.js`), beside the `done`
-  beat; `scripts/suite.mjs` carries it into the report next to `ms` and
-  the summary line; `--stall`'s default (line 106) comes down to about
-  240s, which is three times `every-route-reads-lit-from-its-foot` at
-  76s, the slowest check once the wait is out of one. If 2: delete the
-  `gl.getError()` clause and the drain from the check in
-  `src/tests/fuzz.js` and say in `PROGRESS.md` which assertion was
-  retired and on whose word.
-  *done-when:* whichever option D48 names is carried out, the number it
-  implies is met and quoted, no assertion is lost without D48 naming it,
-  and `npm run suite` twice with the answers unchanged.
+- [x] **F11 (S)** One check is a quarter of the plant run, and the quarter is a wait. — done 2026-09-25, under Done.
 
 - [x] **F12 (M)** Make `?seed=` mean something to the fuzz and soak checks. — done 2026-09-24, under Done.
 
@@ -86,6 +52,22 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 - [x] **F14 (M)** The suite cannot tell that it has shrunk. — done 2026-09-24, under Done.
 
 - [x] **F15 (S)** The one documented way past a red gate, closed. — done 2026-09-25, under Done.
+
+- [ ] **F16 (S)** The second run of a map is the first run's bill. F11 found
+  it and closed half of it: two runs of a map share one page, and until the
+  suite drained after its last check, run 1 left its renderer tail behind and
+  run 2 paid it inside its own first synchronisation - which is why the second
+  run of a map had always been 130-180s the slower one, on every reading in
+  `PROGRESS.md`. The pairs now agree (plant 963s/957s, yard 646s/653s), so the
+  gate compares two runs measured the same way. What is still unexamined is
+  every *historical* pair quoted in this repo: every "run 1 / run 2" number
+  before 2026-09-25 has run 1 understated by its own tail and run 2 overstated
+  by it, and several PROGRESS entries reason from the difference. Read the
+  pairs on record, say which conclusions rest on that gap, and correct the ones
+  that do - in a new PROGRESS entry, never by editing an old one.
+  *done-when:* every run-pair reading in `PROGRESS.md` since F5 is listed with
+  its gap, each conclusion drawn from a gap is named as standing or falling,
+  and `HANDOFF.md`'s Running it section says what a pair of run times means now.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -418,6 +400,29 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **F11** One check was a quarter of the plant run, and the quarter was a
+  wait. D48 chose option 3 and this carried it out.
+  `AutoSuite.drainPipeline()` is the suite's own synchronisation in two halves:
+  a **polled fence** (`fenceSync` plus `clientWaitSync(sync, 0, 0)`, which
+  answers at once) that yields a task and beats four times a second while it
+  waits, and the bounded `getError` drain behind it that clears the error
+  state. A check declaring `glSync: true` is drained for by the runner before
+  its own clock starts; a top-level `runChecks` drains once more after its last
+  check; the total comes back as `pipelineWaitMs` and the run line prints it. A
+  nested `runChecks` does not drain at the end, or a check driving the runner
+  would pay the very wait this moves off a check.
+  `a-zero-size-viewport-does-not-blind-the-renderer` keeps all five assertions
+  and 265,944ms became **24ms** (yard 174,279ms → 19ms); the slowest check in
+  the suite is now `every-route-reads-lit-from-its-foot` at 77s, so `--stall`
+  came down 600s → **240s**, with `--stall-wait` (600s) for the declared wait.
+  The fence does see the tail and does poll: the new check's own drain answered
+  in 30,306ms across **61 beats**, one every 250ms as written. And it found
+  what the wait had been costing - two runs of a map share a page, so run 1's
+  unpaid tail was being paid by run 2, which is why the second run of a map had
+  always been ~180s slower. The pairs now agree (963s/957s, 646s/653s) for one
+  tail per map per suite. New `src/tests/pipelinewait.js` (119 lines) holds all
+  of it, including both halves of who is drained for. Commit `%%HASH%%`.
 
 - **F15** The one documented way past a red gate, closed. `judge()` in
   `scripts/suite.mjs` dropped every id in `scripts/suite-skips.json` before it
