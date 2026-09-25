@@ -5,7 +5,9 @@
 // runs the AUTO suite N times (default 2), and prints one JSON report.
 // Exit 0 only if nothing is red outside QUEUE.md's "Deliberately red" list
 // and every run agrees. Checks listed in scripts/suite-skips.json are
-// reported but never counted, either way.
+// reported but never counted, either way - but only on a map where
+// SKIP_GUARD below ran and passed (F15), so the one line of JSON that drops
+// a check cannot be used to drop the check that polices the list.
 //
 // One tiebreak, and it is the page's, not this script's: a check that ran
 // while the WebGL context was lost (Chrome kills a starved GPU process on a
@@ -172,6 +174,13 @@ function expectedRedIds() {
   }
   return ids;
 }
+
+// The page-side check that holds scripts/suite-skips.json to what it
+// declares (F15, src/tests/skiplist.js). A skip is an exemption, and an
+// exemption is honoured only while the thing that polices exemptions has run
+// and passed on that map: otherwise skipping this one check would take every
+// other skip with it, which is the hole the pair was written to close.
+const SKIP_GUARD = 'the-headless-skip-list-holds-only-the-check-it-declares';
 
 function skipsById() {
   const p = path.join(ROOT, 'scripts', 'suite-skips.json');
@@ -422,19 +431,28 @@ function judge(runs, renderer, consoleErrors) {
   const skips = skipsById();
   const maps = [...new Set(runs.map(r => r.map))];
 
-  const red = [], expectedRed = [], flaky = [], skipped = [], unexpectedGreen = [];
+  const red = [], expectedRed = [], flaky = [], skipped = [], unexpectedGreen = [], skipsWithheld = [];
   for (const map of maps) {
     const own = runs.filter(r => r.map === map);
     const ids = [...new Set(own.flatMap(r => r.results.map(x => x.id)))];
     const byRun = own.map(r => new Map(r.results.map(x => [x.id, x])));
+    // Green on every run of this map, or no skip is honoured here. Absent
+    // counts as not green - a --subset that names a skipped check and not
+    // this one judges that check like any other, which is the rule working.
+    const guardGreen = byRun.every(m => m.get(SKIP_GUARD)?.pass === true);
     for (const id of ids) {
       const outcomes = byRun.map(m => m.get(id)?.pass);
       const allPass = outcomes.every(p => p === true);
       const allFail = outcomes.every(p => p === false);
       const detail = byRun.map(m => m.get(id)?.detail).find(Boolean) ?? '';
       if (skips.has(id)) {
-        skipped.push({ id, map, reason: skips.get(id), outcome: allPass ? 'pass' : allFail ? 'fail' : 'mixed' });
-        continue;
+        if (guardGreen) {
+          skipped.push({ id, map, reason: skips.get(id), outcome: allPass ? 'pass' : allFail ? 'fail' : 'mixed' });
+          continue;
+        }
+        // Withheld, and then judged like anything else, which is what makes
+        // this fail closed: the skipped check goes red and the run says why.
+        skipsWithheld.push({ id, map });
       }
       if (!allPass && !allFail) { flaky.push({ id, map, outcomes, detail }); continue; }
       if (allFail) {
@@ -460,6 +478,7 @@ function judge(runs, renderer, consoleErrors) {
     expectedRed,
     unexpectedGreen,
     skipped,
+    skipsWithheld,
     consoleErrors: { count: consoleErrors.length, first: consoleErrors.slice(0, 5) },
   };
 }
@@ -483,6 +502,9 @@ function summary(r) {
   if (r.expectedRed.length) lines.push(`  expected red: ${r.expectedRed.map(tag).join(', ')}`);
   if (r.unexpectedGreen.length) lines.push(`  now GREEN, remove from QUEUE.md: ${r.unexpectedGreen.join(', ')}`);
   if (r.skipped.length) lines.push(`  skipped headless: ${r.skipped.map(x => `${tag(x)} (${x.outcome})`).join(', ')}`);
+  if (r.skipsWithheld && r.skipsWithheld.length) {
+    lines.push(`  SKIPS WITHHELD: ${r.skipsWithheld.map(tag).join(', ')} - ${SKIP_GUARD} did not pass there, so nothing is skipped and each was judged`);
+  }
   if (r.consoleErrors.count) lines.push(`  console errors: ${r.consoleErrors.count}`);
   if (r.otherRunners && r.otherRunners.length) {
     lines.push(`  OTHER RUNNERS ALIVE: ${r.otherRunners.map(x => `pid ${x.pid} (${x.started})`).join(', ')}`

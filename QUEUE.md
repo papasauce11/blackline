@@ -85,46 +85,7 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 
 - [x] **F14 (M)** The suite cannot tell that it has shrunk. — done 2026-09-24, under Done.
 
-- [ ] **F15 (S)** The one documented way past a red gate is held by nothing.
-  `judge()` in `scripts/suite.mjs` drops every id in
-  `scripts/suite-skips.json` *before* it computes red or flaky —
-  `skipped.push`, `continue` — so the run exits 0 whatever that check
-  answered. That is right for the one entry in the file (a frame budget
-  measured against SwiftShader says nothing about a real GPU) and it is also,
-  in one line of JSON, a way to make any red check disappear. The routine's
-  own instructions say what may go there — *"only a check that measures this
-  machine's GPU or audio hardware belongs there"* — and that adding one is
-  *"never a way past a red gate"*. Nothing in the repo holds either sentence:
-  no module under `src/tests/` so much as names the file, and the only reader
-  besides the runner is the weekly audit, which greps it and reports it
-  unchanged. That is the shape F13 closed for the two spec bans — a grep is
-  not a gate, and the drift surfaces up to seven days later.
-  **Measured this run, not argued.** Two runs of the same command, a
-  deliberately-failing check registered through `--pre` and `--subset` to it
-  alone: without the entry `"ok": false`, `RED (unexpected)`, exit 1; with
-  two lines of JSON added, `"ok": true`, `skipped headless: ... (fail)`,
-  exit 0. Nothing else differed. This run's own gate log shows the live case
-  of the same thing — the frame-budget check's outcome is `fail` on both maps
-  and the gate is green.
-  Two smaller holes in the same file: a skip whose id no module registers any
-  more is a dead exemption nothing reports, and a `reason` is free text
-  nothing reads back.
-  *done-when:* a check — a new `src/tests/skiplist.js`, since `donedef.js` is
-  at 441 lines and this is its own concern — reads
-  `/scripts/suite-skips.json` from the origin and holds: the file and the
-  check's own declared list are the same set **both ways** (an entry the
-  check does not declare is red and named; a declaration the file no longer
-  carries is red too, because an exemption for something that has gone is one
-  the next skip inherits without arguing); every skipped id is a check the
-  registry actually holds; every reason is present, a sentence rather than a
-  label, and names the hardware that is the only ground the rule allows; and
-  the check's own id is not in the file. The runner carries the other half: a
-  skip is honoured on a map only while that check ran and passed there, so
-  skipping the check that polices the list cannot take every other skip with
-  it, and a withheld skip is named in the report and the summary. Red proved
-  in both directions, and the runner's half proved by a run where the guard
-  is red and the skipped check is judged instead of dropped. `npm run suite`
-  twice with the answers otherwise unchanged.
+- [x] **F15 (S)** The one documented way past a red gate, closed. — done 2026-09-25, under Done.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -200,6 +161,30 @@ a job in this block may never change a file under `src/`.
 ---
 
 ## Done
+
+- **F15** The one documented way past a red gate, closed. `judge()` in
+  `scripts/suite.mjs` dropped every id in `scripts/suite-skips.json` before it
+  computed red or flaky - `skipped.push`, `continue` - so a check named there
+  left the run green whatever it answered. Right for the one entry in it, and
+  also a one-line way to make any red check vanish; the rule about what may go
+  there lives in the scheduled task's `SKILL.md`, outside this repo, and
+  nothing held it. Proved before it was fixed, two runs of one command with a
+  deliberately-failing check registered through `--pre`: untouched file
+  `"ok": false` and exit 1, two lines of JSON added `"ok": true` and exit 0.
+  Two halves built, because either alone can be walked around. New
+  `src/tests/skiplist.js` (143 lines) holds the file and its own `ALLOWED`
+  list to the same set **both ways**, every skipped id to being a check the
+  registry actually holds, every reason to being present, 40+ characters and
+  naming the hardware that is the only ground the rule allows, and its own id
+  to being absent from the file. `scripts/suite.mjs` honours a skip on a map
+  only while that check ran and passed there: `guardGreen` per map, absent
+  counting as not green, a withheld skip judged like anything else and named
+  in `skipsWithheld` and in a `SKIPS WITHHELD` summary line. Red proved four
+  ways, each a real edit reverted after - an undeclared entry (all three
+  clauses at once), the real entry deleted, and the guard's own id added,
+  which came back red *and* took its own skip away, the frame-budget check
+  with it. What it cannot see is said plainly: whether a reason is true. 4ms
+  then 3ms a map, 0 flaky. Commit `@@HASH@@`.
 
 - **F14** The suite counts itself. Nothing asserted the AUTO registry's size
   or its wiring: delete one `registerX(debugTools);` line from

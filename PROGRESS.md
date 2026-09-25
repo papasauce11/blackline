@@ -8486,3 +8486,131 @@ unchanged and D49 is still the question**: `PLAN.md`'s block table is finished,
 three runs running have now had nothing in the queue they could pick, and the
 routine has spent all three sharpening an instrument pointed at a game nobody
 has played.
+
+## F15 — the way past a red gate, closed (2026-09-25 02:00, scheduled run)
+
+The fourth run in a row to find the queue with nothing unblocked in it, and
+`HANDOFF.md` had told it what to expect: *"a fourth run should expect that
+seam thinner again and should say so rather than manufacture a job."* So the
+search was for a hole and not for a feature, and there was one, in the last
+place the gate had never been pointed — at its own exemptions.
+
+**The hole.** `judge()` in `scripts/suite.mjs` reads
+`scripts/suite-skips.json`, and the first thing it does with a skipped id is
+drop it:
+
+```js
+if (skips.has(id)) {
+  skipped.push({ id, map, reason: skips.get(id), outcome: ... });
+  continue;
+}
+```
+
+`continue` — before red, before flaky, before the deliberately-red list is
+consulted. The check is reported with its outcome and counted nowhere. That
+is the right behaviour for the one entry in the file, a frame budget measured
+against SwiftShader at ~400ms a frame, and it is also, in one line of JSON, a
+way to make **any** red check disappear.
+
+The rule about it exists and lives entirely outside the repo. The scheduled
+task's own `SKILL.md` says *"only a check that measures this machine's GPU or
+audio hardware belongs there, and adding one is a change to record in
+PROGRESS.md with the reason, never a way past a red gate."* Nothing held
+either half. No module under `src/tests/` so much as named the file — the
+only readers were the runner and the weekly audit, which greps it and reports
+it unchanged, which is precisely the shape F13 closed for the two spec bans a
+day earlier: a grep is not a gate, and the drift surfaces up to seven days
+later.
+
+**Measured rather than argued**, the way F14's arithmetic was. Two runs of
+one command, a deliberately-failing check registered through `--pre` and
+`--subset` narrowed to it alone:
+
+| `scripts/suite-skips.json` | report |
+|---|---|
+| untouched | `"ok": false`, `RED (unexpected): a-deliberate-red-for-f15`, exit 1 |
+| two lines added | `"ok": true`, `skipped headless: a-deliberate-red-for-f15 (fail)`, exit 0 |
+
+Nothing else differed between the two. And this run's own gate log carries the
+live case of the same mechanism working as intended, which is what makes it
+hard to see: the frame-budget check's outcome is `fail` on both maps and the
+gate is green.
+
+Two smaller holes in the same file, both the discipline F13 and F14 had
+already settled elsewhere: a skip whose id no module registers any more is a
+dead exemption nothing reports, and a `reason` was free text nothing read
+back.
+
+**What was built.** Two halves, because one of them alone can be walked
+around.
+
+`src/tests/skiplist.js`, 143 lines, one check —
+`the-headless-skip-list-holds-only-the-check-it-declares` — which fetches
+`/scripts/suite-skips.json` from the origin the way `donedef.js` and
+`registry.js` read source, and holds four things:
+
+1. **The file and the check's declared list are the same set, both ways.**
+   `ALLOWED` carries one entry with the hardware reading that is the whole of
+   the argument for it. An id the file has and `ALLOWED` does not is red and
+   named; an id `ALLOWED` has and the file no longer carries is red too,
+   because an exemption for something that has gone is one the next skip
+   inherits without arguing — F13's allowance discipline, now three jobs old
+   and the house style.
+2. **Every skipped id is a check the registry holds.** Read against
+   `_autoTests` rather than against this run's results, so a `--subset`
+   cannot make a real id look like a stale one.
+3. **Every reason is an argument about hardware.** Present, 40 characters or
+   more, and naming GPU / SwiftShader / a software renderer / hardware /
+   audio — the only ground the rule allows. This is the weakest of the four
+   and it is here to keep the file's own sentence honest; the set equality in
+   (1) is what actually gates.
+4. **The check's own id is not in the file.** The policeman is not
+   exemptible.
+
+And `scripts/suite.mjs` carries the other half, which is what makes (4) mean
+something: a skip is honoured on a map **only while that check ran and passed
+there**. `guardGreen` is computed per map before the id loop, absent counts as
+not green, and a withheld skip falls through to be judged like anything else
+and is named in the report (`skipsWithheld`) and in the summary
+(`SKIPS WITHHELD`). Without this, adding one line of JSON naming the guard
+would have taken every other skip with it — the hole closing itself.
+
+**That it can fail was proved four ways**, each a real edit to the real tree,
+reverted after, and each run against the real runner:
+
+| what was broken on purpose | what the run said |
+|---|---|
+| an entry added for `a-check-that-does-not-exist-anywhere`, reason `"too short"` | red on all three clauses at once: *"skipped headless and this check does not declare it"*, *"no module registers it; the exemption names nothing"*, *"the reason is 9 characters; 40+ is..."* |
+| the real entry deleted, the file left `[]` | red: *"`the-frame-budget-holds-everywhere-not-just-at-site-a` is declared skippable (...) and the file does not skip it; drop it from ALLOWED"* |
+| the guard's own id added to the file, with a long reason naming GPU and audio | red: *"skips the check that holds the skip list; the runner withholds every skip on a map where this one did not pass"* |
+| (the same run) | `SKIPS WITHHELD: the-frame-budget..., the-headless-skip-list...` and `RED (unexpected)` naming both — the runner refused to drop either, including the one that had asked to be dropped |
+
+The third and fourth rows are the same run and are the point of the pair: the
+attempt to exempt the guard is the attempt that fails loudest.
+
+**What it cannot see**, said plainly rather than left for the next run to
+find: whether a reason is *true*. It holds that a reason is there, is a
+sentence rather than a label, and appeals to hardware. Whether SwiftShader
+really draws in 400ms is a measurement, and the check that measures it is the
+one being skipped. Nor does it stop a determined edit that changes `ALLOWED`
+and the file together — nothing can, and nothing should; what it removes is
+the *quiet* version, where a red goes away in one line that reads like
+configuration.
+
+**Verified.** `npm run suite`, four runs: **plant 177 passed, 1 failed, 8 not for this map (757,383ms and 934,598ms), yard 158 / 1 / 27 (466,425ms and 600,348ms), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames, and `skipsWithheld` empty**. One more passing check
+per map than the gate that opened this run (plant 176, yard 157), which is
+this job's own and nothing else. The one failure on each map is the
+frame-budget check, skipped headless. The check costs **4ms then 3ms on the plant, 4ms then 3ms on the yard** - one fetch of a file the page has already been served, and the only check in the suite that reads the runner's own configuration. Not flaky: the
+answer and the detail line are identical across all four runs.
+
+Its green detail line, which is the census: *"1 check skipped headless, each declared here, registered, and argued from hardware (the-frame-budget-holds-everywhere-not-just-at-site-a measures this machine's GPU against an 8.33ms ceiling, and headless draws with SwiftShader in ~400ms); the runner honours a skip only where this check is green"*.
+
+**What is left.** Nothing in F15. And the seam is now visibly thin: F12, F13,
+F14 and F15 are four versions of one finding — a number that reads like
+coverage and is not — and this one was the last structural place left to look,
+the gate's own exemptions. **D49 is still the question, and it is now the
+whole of it.** `PLAN.md`'s block table is finished; four runs running have had
+nothing in the queue they could pick; the routine has spent all four
+sharpening an instrument pointed at a game nobody has played. A fifth run
+should not expect to find a fifth hole of this kind, and should say so rather
+than invent one.
