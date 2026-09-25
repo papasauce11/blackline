@@ -422,7 +422,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   unpaid tail was being paid by run 2, which is why the second run of a map had
   always been ~180s slower. The pairs now agree (963s/957s, 646s/653s) for one
   tail per map per suite. New `src/tests/pipelinewait.js` (119 lines) holds all
-  of it, including both halves of who is drained for. Commit `%%HASH%%`.
+  of it, including both halves of who is drained for. Commit `645370a`.
 
 - **F15** The one documented way past a red gate, closed. `judge()` in
   `scripts/suite.mjs` dropped every id in `scripts/suite-skips.json` before it
