@@ -142,9 +142,27 @@ Detail is in `QUEUE.md`. The shape:
 | 3 | **A second map.** First the plumbing: `buildMap(id)`, a registry, menu selection, every check parameterised over every map. Then the map itself, to the same five requirements, through the same census, into the same regression set | 6–9 |
 | 4 | **Styling.** Whatever Josh decides "more styling" means — the options are in `DECISIONS.md` — within the draw-call and frame budgets the checks already enforce | 4–8 |
 
+**The second arc** — Josh, interviewed 2026-09-25 (D50), after the table
+above was finished (D49):
+
+| Block | What | Sessions (est.) |
+|---|---|---|
+| H | **Friends can play it.** GitHub Pages, a version stamp, boot and loading, the main menu, a first-run tutorial, settings that persist, rebinding, camera settings, quality presets, `npm run bench` on the real GPU, a bug report, replays, a crash guard, the pause menu, release notes | 8–10 |
+| K | **The Warden as an opponent.** Search like a person, hearing with memory, the torch on the night map, alarm response, giving up, difficulty at range, patrol variety | 4–5 |
+| M | **Vision.** The Shade's night vision and x-ray through thin things (a mechanical rule, never a tag), the alarm camera's live feed, the camera seen | 4–5 |
+| J | **Feel and juice.** Camera collision, hit-stop and shake, ragdoll, an event feed, the killing shot replayed, dust and light, reactions, idle life | 4–5 |
+| I | **Audio, ambience only.** Beds per map, footstep materials, room acoustics, a mixer, spatial polish, menu and round sounds | 3 |
+| L | **Gamepad, no aim assist.** Input, glyphs, menus, rebinding | 2 |
+| N | **Voice lines, synthesised.** A radio voice, the barks, heard by the Shade, never a chatterbox | 2 |
+| O | **A skeleton under the figures.** A rig, poses on bones, locomotion, climb IK, ragdoll, galleries, cost | 4–5 |
+
 Roughly thirty to forty sessions. Nightly, that is five to eight weeks; twice
 a day halves it, if the app is open that long. The audit reports weekly either
 way.
+
+The second arc is another thirty to forty sessions — three to four weeks at
+two runs a day. Blocks H and K first: the game should be in friends' hands
+with a Warden worth hiding from before the rest is layered on.
 
 Blocks 1 and 2 interleave: the game should be handed to a tester as early as
 the second block allows, and the census work continues alongside.

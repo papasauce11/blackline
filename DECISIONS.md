@@ -91,6 +91,21 @@ than 1.4x the height of the shade from the vault position."* With D21 alone a
 the climb started on; those ledges go straight over. A hang is for a ledge you
 had to jump for. `hangMinHeightRatio` in `config.js`; spec 20.4, amended.
 
+### D50 — The second arc (Josh, interviewed 2026-09-25)
+The first arc's block table was finished and the routine had run out of
+anything it may decide (D49). Josh answered eight questions in two rounds:
+
+| | |
+|---|---|
+| Target for the next sixty | **Friends can play it** — hosted, a tutorial, a gamepad, rebinding, settings that persist, quality presets, a real-GPU performance pass, a bug report with its seed |
+| Also | **Audio** — *ambience only, no music*; **feel and juice**; a **third-sized Warden pass** |
+| Section 19, now in | **Gamepad** (aim assist: *none*); vision modes — *"give shade night vision and xray vision that works through thin walls like vents, crates and such, not real regular walls"*, the **alarm camera's live feed**, the **Warden's torch on the night map** (not Warden night vision, not a motion tracker); **voice lines**, synthesised; **skeletal animation** |
+| Hosting | **GitHub Pages** (D51 for the URL) |
+| Looks | *"I'll decide as I play"* — D39–D46 stay provisional; the routine builds on them |
+
+**decided:** as the table. Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, in
+that order; spec 20.34 amends Section 19.
+
 ---
 
 ## Provisional — done as recommended, override any time
@@ -1291,7 +1306,11 @@ a file bigger than the protocol wants, and 3 trades away hours already paid
 for. The one thing it needs is the one thing the routine cannot do, which
 is why this is here rather than decided. If 2, G2 in `QUEUE.md` is sized S
 and blocked on this.
-**decided:**
+**decided:** option 2. The traps move to `TRAPS.md`; the routine's
+prompt (`~/.claude/scheduled-tasks/blackline-build/SKILL.md`) was edited in
+the same stroke to read `TRAPS.md` first and fall back to the section while
+it still exists. Infrastructure, decided by the session that runs the
+routine, 2026-09-25. G2 unblocked.
 
 ### D48 — A third of every run is the GPU catching up. Who pays it?
 F11 found that `a-zero-size-viewport-does-not-blind-the-renderer` spends
@@ -1338,7 +1357,10 @@ four minutes instead of ten. 2 buys the most wall clock and is the one that
 costs an assertion, which is why it is listed rather than taken.
 
 F11 in `QUEUE.md` is `[~]` on this.
-**decided:**
+**decided:** option 3. The runner waits once after the last check of
+each map and reports it as the run's own number; `--stall` comes down to
+about 240s; no assertion retired. Infrastructure, decided by the session that
+runs the routine, 2026-09-25. F11 unblocked.
 
 ### D49 — The planned arc is finished. What does Blackline get next?
 Raised by the build run of 2026-09-24, which found the queue with no
@@ -1392,5 +1414,13 @@ no check can see.
 This blocks no single job — F12 is unblocked and the routine will take it —
 but it blocks every job after the gate's own, which is why it is here rather
 than under Provisional.
-**decided:**
+**decided:** Josh, interviewed 2026-09-25 — D50. The second arc is
+Blocks H to O in `QUEUE.md`, sixty jobs.
 
+### D51 — The GitHub repo
+H1 and H2 need a remote the routine cannot create. Josh: make an **empty**
+repository on GitHub (any name, no README, public if friends are to play from
+it), and in its *Settings → Pages* set **Source: GitHub Actions**. Then paste
+the HTTPS URL here. The first push may ask for your GitHub login once in the
+session that runs H1; after that the credential manager holds it.
+**decided:**

@@ -1486,3 +1486,21 @@ standing still, never against a run's wall-clock total.
 (tests/heartbeat.js) holds the beat a check runs under to that check's
 id, and three probes through the real runner to their ids, their counts
 and a strictly rising sequence. F10, 2026-09-23.
+
+### 20.34 Section 19 - what the second arc admits
+
+Josh, interviewed 2026-09-25 (D50), after the first arc's block table was
+finished (D49). Section 19's list stood for v1; these come off it:
+
+| Was out of scope | Now | Where |
+|---|---|---|
+| Gamepad support | in, with **no aim assist** | Block L |
+| Vision modes | in, for the **Shade**: night vision, and an x-ray that sees through thin things - vents, crates, containers - and never through a room wall or the shell. The rule is mechanical (a solid whose top is below its room's ceiling, or under the sky, up to a total thickness), never a tag. The **Warden** gets a torch on the night map, not night vision, and no motion tracker | Blocks M, K |
+| Live camera feeds | in: the alarm camera shows what it sees, picture-in-picture on the Warden's HUD | Block M |
+| Voice lines | in, **synthesised** - a radio voice, no recordings | Block N |
+| Skeletal animation | in, last, with galleries for Josh at every step | Block O |
+
+Still out: online multiplayer, a human Warden in competitive play,
+progression and loadouts, wall-running, prone. Multiple maps came in with
+D1 (20.21). Music is out by choice (D50: ambience only).
+

@@ -158,6 +158,263 @@ a job in this block may never change a file under `src/`.
   with the answers unchanged.
 
 
+## The second arc — 2026-09-25
+
+The first arc is done (D49). Josh, interviewed 2026-09-25 (D50): **friends
+can play it** is the target; audio as ambience only; feel and juice; a
+third-sized pass on the Warden; and four things Section 19 refused are now
+in — gamepad (no aim assist), vision modes for the *Shade* (night vision and
+an x-ray through thin things), the alarm camera's live feed, the Warden's
+torch on the night map, synthesised voice lines, and a skeleton under the
+figures. Looks stay provisional; Josh decides as he plays. Eight blocks, in
+this order: H, K, M, J, I, L, N, O. Every job still ends with a check that
+would fail if it were reverted, a `PROGRESS.md` entry, and a `PLAYTEST.md`
+line where a player would notice it.
+
+## Block H — friends can play it
+
+Hosting is GitHub Pages (D50). Two jobs wait on **D51** — the repo's URL and
+one setting only Josh can click; everything else here proceeds.
+
+- [ ] **H1 (S)** The remote. `blocked: D51` `git remote add origin <D51>`;
+  push `main` and `phases-14-45`; the first push may need Josh's credentials
+  once, after which the credential manager holds them and the routine's
+  step 7 pushes. *done-when:* `git remote -v` shows origin, both branches
+  are on it, and `HANDOFF.md`'s Merge row says where the game is hosted.
+- [ ] **H2 (M)** GitHub Pages from the working branch. `blocked: D51` A
+  workflow (`.github/workflows/pages.yml`, `actions/deploy-pages`) that
+  deploys the repo root on every push of `phases-14-45`; the import map's
+  CDN and same-origin modules need nothing else. `scripts/suite.mjs` gains
+  `--url <origin>` so the gate can be pointed at the live site.
+  *done-when:* the Pages URL loads the game, `npm run suite -- --url <pages>
+  --regression` is green on both maps against the live site, and
+  `PLAYTEST.md`'s Run it section leads with the URL.
+- [ ] **H3 (S)** A version you can see. A `version.json` at the root written
+  by the deploy workflow (commit, date) and by `npm run suite` locally as
+  `dev`; the main menu's footer shows it; the bug report (H12) includes it.
+  *done-when:* a check reads the footer; the workflow writes the file.
+- [ ] **H4 (M)** Boot. A loading screen while the map bakes — the bake
+  yielded to the frame in slices so the page paints — a plain message when
+  WebGL2 is missing, and one for touch devices. *done-when:* a check boots
+  with a stubbed `getContext` returning null and reads the message; the bake
+  yields at least once on the plant (a check counts frames during boot).
+- [ ] **H5 (M)** The main menu. Title, a card per map with a thumbnail
+  rendered at boot from a fixed eye (no asset files), role, settings, how to
+  play, credits; the last-played map and role remembered (H7). *done-when:*
+  pixel checks for the thumbnails and the title; every row reachable by
+  keyboard (L3 adds the pad).
+- [ ] **H6 (M)** The first-run tutorial. Free-roam on the plant with a
+  prompt chain — move, sprint, crouch, slide into the vent, jump, climb,
+  tap-to-hang, plant — each completing on the act, skippable, once per
+  browser (H7). *done-when:* a check drives every prompt to completion with
+  real key events; a second boot does not show it.
+- [ ] **H7 (S)** Settings persist. `localStorage`, versioned, a reset row;
+  wrapped so a blocked store degrades to defaults. *done-when:* a check sets,
+  reloads the settings object from the store, and reads the same values.
+- [ ] **H8 (M)** Rebinding in the settings menu. Every action, press-to-bind,
+  conflicts shown, defaults restored per row; the briefing's controls card
+  already reads live bindings. *done-when:* a check rebinds jump to `KeyJ`,
+  drives a climb with it, and the card shows `J`.
+- [ ] **H9 (S)** Look and camera settings: sensitivity per axis, invert Y,
+  FOV (third-person boom and the Warden's), head-bob on/off. *done-when:* a
+  check reads each through the live camera.
+- [ ] **H10 (M)** Quality presets. Low / medium / high / auto — shadow map
+  size, post on/off, resolution scale, particle caps, the outline pass; auto
+  runs a two-second frame-time probe on first boot and picks. *done-when:*
+  each preset changes the measured draw cost in a check; auto's pick is
+  recorded in the report.
+- [ ] **H11 (M)** `npm run bench`: the real GPU. Headed Chrome (the window
+  placed off-screen), the frame-budget check and the 92-viewpoint sweep on
+  both maps, results to `bench/<date>.json`; the frame-budget check leaves
+  `suite-skips.json` for a `bench-only` list it is honest about.
+  *done-when:* a bench run on this PC produces numbers the HANDOFF quotes,
+  and `PLAYTEST.md` stops asking Josh to run it by hand.
+- [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
+  settings, the last thirty seconds of input, the last twenty log lines, to
+  the clipboard as text. *done-when:* a check reads the produced text.
+- [ ] **H13 (M)** Replays. Record the per-step input codes with map and
+  seed; `?replay=` or a dropped file replays deterministically; files under
+  `tests/replays/` are run by the suite as checks that assert their recorded
+  outcome. *done-when:* a recorded match replays to the same end state, and
+  one replay ships in `tests/replays/`.
+- [ ] **H14 (S)** A crash guard. `window.onerror` and unhandled rejections
+  pause the sim and show a panel with the seed and *Copy report*; runtime
+  assertion failures are counted into the report. *done-when:* a check
+  throws from inside a step and reads the panel.
+- [ ] **H15 (S)** The pause menu: restart round, restart match, change map,
+  quit to menu, with a confirm mid-round. *done-when:* a check drives each.
+- [ ] **H16 (S)** `npm run notes`: release notes from `PROGRESS.md` since
+  the last tag into `RELEASES.md`; Josh tags when he merges. *done-when:*
+  the script runs and the file reads.
+
+## Block K — the Warden as an opponent
+
+A third-sized pass (D50). The rule to protect: the Warden stays grounded.
+
+- [ ] **K1 (M)** Search like a person. From the last-known position, a
+  sweep of the room's hiding spots ranked by distance and cover — behind
+  crates, under the deck — and a look *up*: it aims at climbable tops it
+  cannot reach and fires on a Shade it sees there. *done-when:* a check
+  hides the Shade behind a crate and on a top; the Warden checks both
+  within a bounded time; the AI soak unchanged.
+- [ ] **K2 (M)** Hearing with memory. Noise raises an attention level per
+  room that decays; a heard noise sends it to the room, not the point;
+  metal footsteps louder (I2). *done-when:* attention curves in a check;
+  the detection checks unchanged.
+- [ ] **K3 (M)** The torch, on the night map. A rifle-mounted spot, no
+  shadows (spec 4.1 keeps the one shadowed light), a visible cone; the
+  Shade inside it counts as lit for detection; the AI sweeps it where it
+  looks; a key for the human Warden; off on the plant. *done-when:* a pixel
+  check sees the cone; a detection check catches a Shade in it that the dark
+  hid; frame budget unchanged.
+- [ ] **K4 (S)** Alarm response. A trip sends it along the route past the
+  camera, and it places the camera on the likeliest approach. *done-when:*
+  the placement is on a declared route in a check.
+- [ ] **K5 (S)** Giving up. A search timer by difficulty; back to patrol
+  with a bark (N2); faster to re-alert the second time. *done-when:* a check
+  times both.
+- [ ] **K6 (M)** Difficulty at range. Aim error grows with distance and the
+  target's speed and shrinks with time on target, so medium and hard part
+  at 8m (D33 found hard a machine there). *done-when:* time-to-kill per
+  distance per preset is monotonic and separated in the existing checks.
+- [ ] **K7 (S)** Patrol variety. Route order and pauses from the seed; a
+  site room checked when the round clock is low. *done-when:* two seeds
+  give two orders in a check; determinism check unchanged.
+
+## Block M — vision
+
+Josh (D50): the *Shade* gets night vision and an x-ray "that works through
+thin walls like vents, crates and such, not real regular walls"; the alarm
+camera gets a live feed; the Warden a torch (K3). Parameters are
+provisional; the rule for "thin" is mechanical, never a tag.
+
+- [ ] **M1 (M)** The Shade's night vision. `V` toggles; a post effect on the
+  Shade's view — exposure lift, a green cast, grain — no cost to the body
+  (provisional; the Shade's problem is being seen, not seeing); the HUD
+  shows it; off in menus. *done-when:* a pixel check measures the lift on
+  the yard; detection of the Shade unchanged.
+- [ ] **M2 (M)** The x-ray rule. `seeThroughAlong(from, to)` in the map: a
+  solid is see-through if its top is below its room's ceiling by a body's
+  height (or it stands under the sky), and the sightline's total thickness
+  in such solids is under `xray.maxThickness`; a room wall or the shell
+  never is. *done-when:* a check proves ducts, crates and containers pass
+  and every shell and room wall does not, on both maps.
+- [ ] **M3 (M)** The x-ray, drawn. `X` toggles; the Warden, its camera and
+  the charge drawn as silhouettes where M2 says yes, within a range; draw
+  calls counted. *done-when:* a pixel check sees the Warden through a crate
+  and not through the west wall; frame budget unchanged.
+- [ ] **M4 (S)** Vision-mode bookkeeping. Keys in the controls card and the
+  tutorial (H6), HUD state, spec 20.x, a provisional entry for every number.
+  *done-when:* the card and the spec say it; the check for the card reads it.
+- [ ] **M5 (M)** The alarm camera's live feed. A second low-res render — no
+  shadows, no post — into a texture, picture-in-picture on the Warden's HUD
+  while a camera stands; dark when the taser kills it. *done-when:* a pixel
+  check reads the feed; the frame budget with a feed up is measured and
+  within the ceiling.
+- [ ] **M6 (S)** What the feed means. Seeing the Shade on the feed is the
+  human Warden's to notice; the AI trips on proximity as before. *done-when:*
+  the AI checks unchanged; `PLAYTEST.md` says so.
+- [ ] **M7 (S)** The camera seen. A placed camera is visible and has a
+  small lens light, so a Shade can find and taser it. *done-when:* a pixel
+  check from 6m.
+
+## Block J — feel and juice
+
+- [ ] **J1 (S)** Camera collision. The third-person boom sphere-casts to the
+  wall and eases back. *done-when:* a check backs the Shade into a wall and
+  the camera never enters geometry.
+- [ ] **J2 (S)** Hit-stop and shake. 70ms of wall-clock stop on a knife or
+  finisher; shake on a grenade by distance; both under a setting.
+  *done-when:* the fixed step count is unchanged by hit-stop in a check.
+- [ ] **J3 (M)** Ragdoll polish. Limb flail from the hit direction, a
+  settle, no jitter, the death cam framing the body. *done-when:* a check
+  measures settle time and zero post-settle motion.
+- [ ] **J4 (S)** An event feed. Planted, defusing, alarm tripped, reinsert,
+  the round's outcome — timed lines top-right. *done-when:* a check reads
+  each line on its event.
+- [ ] **J5 (M)** The killing shot, replayed. On death, two seconds from the
+  Warden's eye via the input log (H13), then the ragdoll; skippable.
+  *done-when:* a check dies and reads the replay's frames.
+- [ ] **J6 (S)** Dust and light. Landing dust by fall height, a muzzle
+  flash light (unshadowed, one frame), sparks on a metal hand-plant, the
+  scuff's puff. *done-when:* pixel checks; particle caps hold.
+- [ ] **J7 (S)** Reactions. The Warden flinches on damage and staggers on a
+  taser; the Shade flinches in third person. *done-when:* pose checks.
+- [ ] **J8 (S)** Idle life. Breathing sway; the Warden's head turns before
+  its body; the Shade's hood moves in the yard's wind. *done-when:* a check
+  sees motion at rest and none in a menu.
+- [ ] **J9 (S)** Sprint FOV kick and the crouch camera's easing, under H9's
+  toggles. *done-when:* a check reads the FOV over a sprint.
+
+## Block I — audio, ambience only
+
+Josh (D50): no music. The map's own sound carries it.
+
+- [ ] **I1 (M)** Ambience beds. The plant: transformer hum, drips,
+  ventilation; the yard: wind, a distant port, rain on steel when D9's
+  night wants it. Synthesised, seeded, looping without a seam; louder in
+  bigger rooms. *done-when:* `renderOffline` proves each bed and the seam.
+- [ ] **I2 (S)** Footstep materials. Concrete, metal, grate, wet from the
+  finish under the feet (E4/E5). *done-when:* a check walks each and
+  compares the samples.
+- [ ] **I3 (S)** Room acoustics. A delay sized by the room's volume;
+  outdoors dry with a slap off the ring. *done-when:* the tail length per
+  room in a check.
+- [ ] **I4 (S)** The mixer. Master, effects, ambience, voice; persists (H7);
+  mute on blur. *done-when:* a check reads each gain through the graph.
+- [ ] **I5 (S)** Spatial polish. The beep occluded by walls, the Warden's
+  reload and torch click positional, the alarm's trip. *done-when:* a check
+  measures occlusion from the next room.
+- [ ] **I6 (S)** Menu and round sounds. Clicks, round start and end stings,
+  the last ten seconds' beep quickening. *done-when:* samples proved.
+
+## Block L — gamepad, no aim assist
+
+- [ ] **L1 (M)** The pad. Gamepad API, deadzones and curves, hot-plug,
+  buttons to actions, a synthetic pad for the suite. *done-when:* a check
+  drives a climb and a plant from a synthetic pad.
+- [ ] **L2 (S)** Glyphs. Prompts, the briefing and the controls card show
+  pad glyphs after the last input was a pad. *done-when:* a check flips it.
+- [ ] **L3 (S)** Menus on the pad. Stick and d-pad, A/B, the settings rows.
+  *done-when:* a check walks the menu.
+- [ ] **L4 (S)** Pad rebinding and stick sensitivity in H8's UI.
+  *done-when:* a check rebinds a button.
+
+## Block N — voice lines, synthesised
+
+- [ ] **N1 (M)** A radio voice. Formant bursts with a squelch, one recipe
+  per line, seeded within the recipe so it never repeats exactly; rendered
+  offline for the checks. *done-when:* samples proved distinct per line.
+- [ ] **N2 (S)** Barks wired. Contact, lost him, heard something, the site
+  called by name on the beep, back on duty; subtitles on the Warden's HUD;
+  positional for the Shade. *done-when:* each event produces its bark once.
+- [ ] **N3 (S)** The Shade hears it. A bark is a positional cue at the
+  Warden's position; a subtitles setting. *done-when:* a check reads the
+  panner.
+- [ ] **N4 (S)** Never a chatterbox. Cooldowns and priority; a check holds
+  the maximum rate. *done-when:* the rate check.
+
+## Block O — a skeleton under the figures
+
+Last, on purpose: the routine cannot judge the result, so every job here
+ends with a gallery Josh looks at (`npm run shot -- --pose all`).
+
+- [ ] **O1 (L)** The rig. A `SkinnedMesh` per figure, about fourteen bones,
+  the existing merged parts skinned to the nearest bone; one material; the
+  outline pass and the draw-call count unchanged. *done-when:* the E1/E2
+  silhouette checks pass on the rig.
+- [ ] **O2 (M)** Poses on bones. E3's pose library as bone rotations, the
+  0.2s blend kept. *done-when:* every E3 pose check passes.
+- [ ] **O3 (M)** Locomotion. The stride from ground covered on the legs,
+  arms counter-swinging, a crouch walk. *done-when:* a check sees the cycle.
+- [ ] **O4 (M)** Climb IK. Hands on the lip through grab, hang and pull-up;
+  feet on the treads. *done-when:* a check measures hand-to-lip distance.
+- [ ] **O5 (S)** Ragdoll on the rig (J3 bone-driven). *done-when:* J3's check.
+- [ ] **O6 (S)** Galleries. `npm run shot -- --pose all` per figure, linked
+  from `PLAYTEST.md`. *done-when:* the images exist per commit.
+- [ ] **O7 (S)** Skinning cost within budget, and a check that holds it.
+  *done-when:* the frame-budget check unchanged; a skin-time number quoted.
+
 ---
 
 ## Done

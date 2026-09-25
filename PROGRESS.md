@@ -8614,3 +8614,27 @@ nothing in the queue they could pick; the routine has spent all four
 sharpening an instrument pointed at a game nobody has played. A fifth run
 should not expect to find a fifth hole of this kind, and should say so rather
 than invent one.
+
+## The second arc — 2026-09-25
+
+The first arc ran out: every block in `PLAN.md`'s table done, the queue
+empty for four runs, D49 asking what next. Josh answered in two rounds of
+interview (D50): friends can play it; ambience, not music; feel; a
+third-sized Warden pass; and five things Section 19 refused are now in -
+gamepad without aim assist, night vision and a thin-wall x-ray for the
+Shade, the alarm camera's feed and the Warden's torch, synthesised voice
+lines, a skeleton. Looks stay provisional; he decides as he plays.
+
+**Queued.** Sixty jobs in eight blocks - H, K, M, J, I, L, N, O - each with
+a size and a done-when, ordered so the game reaches friends with a Warden
+worth hiding from before the rest is layered on. Spec 20.34 amends Section
+19. `PLAN.md` carries the second table.
+
+**Decided by the session, as infrastructure.** D47: the traps move to
+`TRAPS.md` (G2), and the routine's own prompt was edited to read it - the
+one thing the routine said it could not do. D48: the runner pays the GPU
+wait once per map and names it (F11, option 3), no assertion retired.
+
+**Waiting on Josh.** D51 only: an empty GitHub repository with Pages set to
+GitHub Actions, and its URL. H1 and H2 wait on it; nothing else does.
+
