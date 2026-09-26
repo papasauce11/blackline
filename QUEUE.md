@@ -403,7 +403,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   Nothing was retired. New check `traps-md-holds-the-traps-and-handoff-points-at-it`
   in `src/tests/donedef.js` holds both ways it could be undone - TRAPS.md gone
   or emptied below a floor of 25 traps, and HANDOFF.md back over 400 - and
-  proved red with the file moved aside. Commit `%%HASH%%`.
+  proved red with the file moved aside. Commit `3d355be`.
 
 - **F11** One check was a quarter of the plant run, and the quarter was a
   wait. D48 chose option 3 and this carried it out.
