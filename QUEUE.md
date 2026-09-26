@@ -401,7 +401,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   gained the two clauses this rests on and F11 left unheld: a **top-level** run
   drains after its last check (through `_runChecks(tests, true)`, the only way
   a check inside a run can be one), and the runner still computes the spread.
-  Commit `%%HASH%%`.
+  Commit `ac96f2b`.
 
 - **G2** The traps got a home, and this page got under 400 lines. D47 chose
   option 2: `HANDOFF.md`'s Environment traps - 203 lines of its 578, two thirds
