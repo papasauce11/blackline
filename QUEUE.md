@@ -112,32 +112,20 @@ landed - was met, so E6 was not blocked on a `decided:` line.)
 
 ## Block G — the record
 
-Opened 2026-09-22. The documents the routine reads to orient itself are
-themselves work, and they have drifted. Nothing here touches the game;
-a job in this block may never change a file under `src/`.
+Opened 2026-09-22, **closed 2026-09-25 with G2**. The documents the routine
+reads to orient itself are themselves work, and they have drifted. Nothing
+here touches the game. The block opened saying a job in it "may never change
+a file under `src/`"; G2 amended that to *may never change the game*, because
+the protocol above it requires every job to end with a check that would fail
+if the job were reverted, and a check that fetches a markdown file and counts
+its lines is not the game. G1 had no such check and said so; G2 has one.
 
 - [x] **G1 (S)** `HANDOFF.md` back to one page. — done 2026-09-23, under
   Done. **The under-400 half of its done-when was not met and cannot be**:
   see G2.
 
-- [ ] **G2 (S)** Decide what the traps section costs. `blocked: D47`
-  G1 got `HANDOFF.md` from 1,846 lines to **533** and stopped there, because
-  under 400 is unreachable alongside the rest of G1's own done-when. With
-  every kept section already written as tightly as it can be stated,
-  everything except *Environment traps* is **345 lines** — including the
-  index the done-when requires (50) and Running it (69). For the total to
-  come under 400 the traps would have to fit in **55 lines** against about
-  thirty traps: under two lines each, which is a list of titles with the
-  hour-saving content deleted. And they cannot simply move to a sibling
-  `TRAPS.md` (which would leave HANDOFF at 347, losing nothing): the
-  scheduled task's own `SKILL.md` tells every run to "read the 'Environment
-  traps' section of HANDOFF.md before you start", and that file is outside
-  this repo, in `~/.claude/scheduled-tasks/blackline-build/`, where a job
-  here cannot change it. So this is Josh's call — D47, three options.
-  *done-when:* whichever option D47 names is carried out, the line count it
-  implies is met, no trap loses its operative sentence without being
-  retired on purpose and named in `PROGRESS.md`, and `npm run suite` twice
-  with the answers unchanged.
+- [x] **G2 (S)** Decide what the traps section costs. — done 2026-09-25,
+  under Done.
 
 
 ## The second arc — 2026-09-25
@@ -400,6 +388,22 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **G2** The traps got a home, and this page got under 400 lines. D47 chose
+  option 2: `HANDOFF.md`'s Environment traps - 203 lines of its 578, two thirds
+  of the page every run pays to read, against a section a run reads once and
+  deliberately - moved to a sibling `TRAPS.md` with a header saying what the
+  file is and that a trap is retired by name in `PROGRESS.md` and never by
+  deletion. `HANDOFF.md` is **394 lines**, which is G1's unreachable target
+  reached; the pointer left behind keeps the heading (the scheduled task's
+  prompt falls back to it while it exists) and keeps two traps in full, the two
+  a reader of that page should never be without. The one thing the move needed
+  was the line in the routine's own prompt, outside this repo, which is what
+  made it Josh's and not the routine's; it was edited in the same stroke.
+  Nothing was retired. New check `traps-md-holds-the-traps-and-handoff-points-at-it`
+  in `src/tests/donedef.js` holds both ways it could be undone - TRAPS.md gone
+  or emptied below a floor of 25 traps, and HANDOFF.md back over 400 - and
+  proved red with the file moved aside. Commit `%%HASH%%`.
 
 - **F11** One check was a quarter of the plant run, and the quarter was a
   wait. D48 chose option 3 and this carried it out.

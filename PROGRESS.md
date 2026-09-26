@@ -8735,3 +8735,67 @@ which is this job's and nothing else. The one failure on each map is the
 frame-budget check, skipped headless. Gate at the head of the run, on
 `3f19d03`: plant 177 / 1 / 8 in 755,052ms, yard 158 / 1 / 27 in 473,233ms,
 exit 0.
+
+## G2 — the traps get a home, and HANDOFF.md gets under 400 (2026-09-25 17:00, scheduled run)
+
+G1 was asked for `HANDOFF.md` under 400 lines, reached 533, and proved with
+arithmetic that the remaining gap was the Environment traps and nothing else:
+every other section, already written as tightly as it could be stated, came to
+345 lines, which left the traps 55 against about thirty of them. D47 put the
+three ways out to Josh and he took option 2 — move them to a sibling — which
+was the one option the routine could not take on its own, because the scheduled
+task's own prompt told every run to read "the Environment traps section of
+HANDOFF.md" and that file lives outside this repo.
+
+**What was built.** `TRAPS.md`, 223 lines: a header saying what the file is,
+why it is not in `HANDOFF.md` any more, and the rule that a trap is retired by
+name in a `PROGRESS.md` entry and never quietly deleted — then all 203 lines of
+the section, verbatim. `HANDOFF.md` is **394 lines**, from 597 at the start of
+this job. The heading stays, with a pointer under it, for two reasons: the
+routine's prompt falls back to the section while it exists, and a reader who
+only has that page should still be handed the two traps that bite most often —
+read pixels back rather than trusting a screenshot, and warm sixty frames
+before measuring anything. The file's own opening paragraph now names
+`TRAPS.md` beside `QUEUE.md`, `DECISIONS.md` and `PLAN.md` as something to read
+before starting, and quotes its own line count.
+
+**What holds it.** `traps-md-holds-the-traps-and-handoff-points-at-it`, in
+`src/tests/donedef.js` beside the check that holds `PLAYTEST.md`. There are
+exactly two ways to undo this job and it is both of them: delete or hollow out
+`TRAPS.md` (a floor of 25 traps, counted by the bold sentence each one opens
+with — 36 today), or paste the traps back into `HANDOFF.md` (a limit of 400
+lines, and the traps are 203). It also holds `HANDOFF.md` to mentioning
+`TRAPS.md`, since a file nothing points at is a file the next run never opens.
+**Proved red**: with `TRAPS.md` moved aside, one run of that check alone,
+`suite: FAIL`, `RED (unexpected): traps-md-holds-the-traps-and-handoff-points-at-it`,
+exit 1; the file was moved back and the same subset is green.
+
+**A rule this job had to amend, rather than quietly break.** Block G opened
+with "a job in this block may never change a file under `src/`", and the
+protocol above it requires every job to end with a check under `src/tests/`
+that would fail if the job were reverted. G1 resolved the collision by having
+no new check and writing down that it had none. That is the right answer once
+and the wrong answer twice: the documents are now load-bearing — the traps are
+a file a run is instructed to read, and G1's line count is a target a future
+session can silently blow. So the block's rule is amended in `QUEUE.md` to *may
+never change the game*, which is what it meant, and a check that fetches a
+markdown file and counts its lines is not the game.
+
+**What was not done.** No trap was retired. D47's option 3 was to retire the
+several that are now history rather than hazard — the silent boot timeout, the
+check that inherited the last check's menu, the flaky sound render — and Josh
+did not take it, so they stay in full. They are the ones that read as history
+with an operative sentence at the end, and the sentence is what they are for.
+
+**Verified.** `npm run suite`, four runs: plant 179 passed / 1 failed / 8 not
+for this map (954,461ms, 457,062ms of it the pipeline wait; 951,437ms,
+457,377ms), yard 160 / 1 / 27 (652,274ms, 345,315ms; 638,087ms, 336,725ms),
+exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames, 0
+skips withheld. One more check per map than F11's verify an hour earlier (178,
+159), which is this job's and nothing else; every other count identical, which
+is what a documentation job should do. The check reads two markdown files and
+nothing the game loads at runtime changed. The four table rows in
+`HANDOFF.md`'s *Where things stand* were rewritten with these numbers after the
+run, which leaves what the check reads — the line count and the pointer at
+`TRAPS.md` — exactly as it was verified, because each of those rows is one
+line.

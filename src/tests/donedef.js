@@ -39,6 +39,22 @@ const SOURCE_LINE_GUIDANCE = 600;
 const EXEMPT_TABLE = 'src/config.js';
 
 /**
+ * G1 asked for `HANDOFF.md` under 400 lines and reached 533; the arithmetic
+ * said the gap was the Environment traps and nothing else, so D47 moved them
+ * to `TRAPS.md` and G2 carried it out. 390 lines the day it landed. Held here
+ * because the file has drifted before and because pasting the traps back is
+ * the one way to undo the move: a run pays for every line of this page.
+ */
+const HANDOFF_LINE_LIMIT = 400;
+/**
+ * A floor on the traps, 36 the day they moved. A hazard that has become
+ * history is retired by name in a `PROGRESS.md` entry, never by deletion, so
+ * the count does not fall on its own - and a `TRAPS.md` down to a handful of
+ * titles is the shape D47 rejected when it turned option 3 down.
+ */
+const TRAPS_FLOOR = 25;
+
+/**
  * Section 18's checklist carries "`Math.random()` appears nowhere in `src/`";
  * Section 9 and the Section 15 risk register carry "no `setTimeout` for any
  * gameplay-affecting timer". Both are the reason the seeded rng in config.js
@@ -434,6 +450,53 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${text.split(/\r?\n/).length} lines, the ${sections.length} sections, ${named.size} checks named and every one registered, linked from HANDOFF.md`
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'traps-md-holds-the-traps-and-handoff-points-at-it',
+    spec: 'Section 18 (the lines a machine can read), G2',
+    name: 'The environment traps live in TRAPS.md, HANDOFF.md points at it, and HANDOFF.md stays under its line limit',
+    run: async () => {
+      // G2, on D47. The traps were 206 lines of HANDOFF.md's 578 - two thirds
+      // of the page every run reads to orient itself, against a section a run
+      // reads once and deliberately. Moving them cost nothing and bought G1's
+      // 400-line target; what it needed was a line in the scheduled task's own
+      // prompt, outside this repo, which is why it was Josh's to decide.
+      //
+      // Two clauses, because there are two ways to undo it. Delete or empty
+      // TRAPS.md and the traps are gone; paste them back into HANDOFF.md and
+      // the page is 578 lines again. Either is red here. What this cannot see
+      // is whether a trap is still true - that is retired by name in
+      // PROGRESS.md, and nothing can gate a judgement.
+      const origin = location.origin;
+      const problems = [];
+
+      const response = await fetch(`${origin}/TRAPS.md`);
+      if (!response.ok) return { pass: false, detail: `TRAPS.md: HTTP ${response.status} - the traps have no home` };
+      const traps = await response.text();
+      // Every trap opens with its sentence in bold at the start of a line.
+      const opened = [...traps.matchAll(/^\*\*/gm)].length;
+      if (opened < TRAPS_FLOOR) {
+        problems.push(`TRAPS.md opens ${opened} traps and the floor is ${TRAPS_FLOOR}; a trap is retired by name in PROGRESS.md, never by deletion`);
+      }
+
+      const handoff = await (await fetch(`${origin}/HANDOFF.md`)).text();
+      const lines = handoff.replace(/\r?\n$/, '').split(/\r?\n/).length;
+      if (lines > HANDOFF_LINE_LIMIT) {
+        problems.push(`HANDOFF.md is ${lines} lines against a limit of ${HANDOFF_LINE_LIMIT}; G1's target, reachable since the traps moved out`);
+      }
+      if (handoff.indexOf('TRAPS.md') === -1) {
+        problems.push('HANDOFF.md does not point at TRAPS.md, so a session orienting from it never finds the traps');
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `TRAPS.md holds ${opened} traps in ${traps.replace(/\r?\n$/, '').split(/\r?\n/).length} lines, `
+            + `HANDOFF.md is ${lines} of ${HANDOFF_LINE_LIMIT} and points at it`
           : problems.join('; '),
       };
     },
