@@ -8799,3 +8799,107 @@ nothing the game loads at runtime changed. The four table rows in
 run, which leaves what the check reads — the line count and the pointer at
 `TRAPS.md` — exactly as it was verified, because each of those rows is one
 line.
+
+## F16 — every run-pair on record, and a correction to F11 (2026-09-25 17:00, scheduled run)
+
+F11 closed earlier in this run with a finding attached: two runs of a map share
+one page, so the renderer tail F11 had called "never paid, because the page is
+torn down first" was in fact carried by the next run. That makes every pair of
+run times in this repo two measurements of different things, and several entries
+reason from the difference between them. F16 read the pairs.
+
+**Every pair since F5 put the headless runner in charge.** Plant then yard, run
+1 → run 2, the gap in the last column of each half.
+
+| entry | plant 1 | plant 2 | gap | yard 1 | yard 2 | gap |
+|---|---|---|---|---|---|---|
+| F10 | 748,004 | 937,517 | **+189,513** | 467,292 | 613,467 | **+146,175** |
+| G1 | 762,898 | 921,187 | +158,289 | 496,006 | 597,669 | +101,663 |
+| F11, first half | 753s | 898s | +145s | 481s | 637s | +156s |
+| F12 | 760,649 | 942,528 | +181,879 | 468,644 | 604,053 | +135,409 |
+| F13 | 752,903 | 928,579 | +175,676 | 462,613 | 607,128 | +144,515 |
+| F14 | 769,937 | 948,876 | +178,939 | 462,458 | 608,664 | +146,206 |
+| F15 | 757,383 | 934,598 | +177,215 | 466,425 | 600,348 | +133,923 |
+| **F11, closed** | 963,216 | 957,125 | **−6,091** | 645,687 | 652,848 | **+7,161** |
+| **G2** | 954,461 | 951,437 | −3,024 | 652,274 | 638,087 | −14,187 |
+
+Before F5, when the suite was smaller and run from the page: plant +65s, +55s,
++32s, +98s, +54s, +30s, +54s, +63s; yard −4s, +5s, +7s, −15s. So the second run
+of the plant has been the slower one in **every pair on record**, by an amount
+that grew with the suite — 30-98s at 130-160 checks, 145-190s at 172-177 — and
+the yard's gap was smaller and sometimes negative. It is now ±14s on both maps,
+and the spread is printed on every run.
+
+**The arithmetic of the close, which is what makes the reading solid.** From
+F15's verify to F11's: plant run 1 went 757s → 963s, **+206s**, which is the
+end-of-run drain F11 added and nothing else. Run 2 went 935s → 957s, **+22s**.
+If run 2 also pays a ~206s drain of its own — and it does, its reported wait is
+461s against run 1's 463s — then run 2's actual *checking* got about 184s
+faster. That 184s is the burden it had been carrying, and paying it at the end
+of run 1 is what removed it.
+
+**What falls: F11's account of where run 2 paid.** F11's entry, its QUEUE line,
+its HANDOFF line and its commit message all said run 2 paid the inherited tail
+"inside its own first synchronisation". The record already refuted that and this
+session did not look: F5's own verify reported
+`a-zero-size-viewport-does-not-blind-the-renderer` — run 2's first
+synchronisation — at **268,927ms in run 1 and 252,906ms in run 2**, sixteen
+seconds *cheaper*, while run 2's total was 189s longer. The burden is real and
+the arithmetic above sizes it, but it is spread through run 2 and its mechanism
+is not established by anything on record. Candidates the data does not separate:
+pipeline work still being built while run 2's checks compete for four cores, a
+page that has run the suite once, and heat. Naming one would be the same mistake
+twice, so F16 names none. The corrected sentence, everywhere it appears: *run 1
+left its tail behind and run 2 carried it, ~184s of it, spread through the run.*
+
+**What is flagged, and cannot be settled from the record.** F11's three-placement
+table — as found 753s, `getError` after every check 989s, `flush` after every
+check 765s, "each a full plant run" — does not say which run of a pair each came
+from, and the pair gap is 178s against a 236s effect. The conclusion survives on
+other evidence in the same paragraph: that experiment also moved the cost onto
+two named unrelated checks, 247s and 251s, which is a within-run observation the
+gap cannot manufacture. The same caution applies to every per-check ms quoted
+from `--details` without saying which run it came from: a check's ms in a second
+run carried its share of up to 190s, so prefer the first run of a map.
+
+**What stands.** Every "the same counts as the previous verify" (pass/fail
+counts, not times). The orphaned-runner trap's refusal to blame contention for
+450s → 850s, which reasons from absolute times all measured with the orphan
+alive. F5's `--stall` margin, which used the run-1 number and would reach the
+same verdict with the run-2 one — and which F11 has since made moot.
+
+**Corrected in the living documents.** `HANDOFF.md`'s "a cold plant run is
+legitimately 850s" was the middle of a contaminated pair; it reads 960s and both
+runs now agree. Its F11 index line and `QUEUE.md`'s F11 Done entry lose the
+"inside its own first synchronisation" clause. `PROGRESS.md` is append-only, so
+F11's entry keeps its text and this entry is the correction.
+
+**What was built.** `judge()` in `scripts/suite.mjs` computes a `spreads` entry
+per map — `spreadMs`, `waitSpreadMs`, `runs`, `longestMs` — and the summary
+prints one line per map: the spread in ms, as a share of the longest run, and
+the spread in the pipeline wait. Reported and never judged: a spread is a
+reading about the machine, and a red would be a threshold nobody has grounds for
+yet. `the-pipeline-wait-is-the-runs-number-and-not-a-checks` gains the two
+clauses F16 depends on and F11 left unheld — that a **top-level** run drains
+after its last check (driven through `_runChecks(tests, true)`, the only way a
+check running inside a run can be a top-level run; a nested run skips the drain
+by design, so `runChecks` could not show it), and that the runner still computes
+the spread.
+
+**Verified.** `npm run suite`, four runs: plant 179 passed / 1 failed / 8 not
+for this map (957,174ms, 460,768ms of it the wait; 948,218ms, 456,839ms), yard
+160 / 1 / 27 (641,760ms, 335,845ms; 643,604ms, 339,704ms), exit 0, 0 red, 0
+flaky, 0 console errors, 0 context losses, 0 loop frames, 0 skips withheld. The
+check counts are G2's exactly, because F16 extended a check rather than adding
+one. And the new lines say the thing the job is about: **plant, 2 runs spread
+8,956ms (1% of the longest), pipeline wait spread 3,929ms** · **yard, 1,844ms
+(0%), 3,859ms**. Against the last pair measured before F11 — plant 757s and
+935s, a 177,215ms spread, 23% of the longest — that is the whole finding in one
+line of output.
+
+**Left.** `HANDOFF.md` is 399 lines of the 400 its own check allows, and the
+Source row says so: the next job to add a paragraph takes one out, which is what
+G1 and G2 were for. The mechanism behind the ~184s is open and deliberately
+unnamed; if it is ever worth knowing, the experiment is a pair of runs on a
+fresh page each versus a shared one, and the orphaned 09-18 runner should be
+dead first.

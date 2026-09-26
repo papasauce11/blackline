@@ -101,7 +101,34 @@ export function register(debugTools) {
       if (!Number.isFinite(nested.pipelineWaitMs)) problems.push(`runChecks answered pipelineWaitMs ${nested.pipelineWaitMs}`);
       if (nested.results.length !== 2) problems.push(`the nested run returned ${nested.results.length} results for 2 checks`);
 
-      // 3. And the check the wait was found in still asks.
+      // 3. The drain after the last check of a run - the one clause the whole
+      // of F16 rests on, and the one `runChecks` above cannot show, because a
+      // nested run deliberately skips it. Driven through the private method
+      // with `top` forced, which is the only way a check running inside a run
+      // can be a top-level run. Cheap here: clause 1 drained a moment ago.
+      const tail = {
+        id: 'inline-the-last-check-of-a-top-level-run',
+        spec: 'F16',
+        run: () => ({ pass: true, detail: 'entered' }),
+      };
+      const top = await suite._runChecks([tail], true);
+      const closing = state.suiteProgress || {};
+      if (closing.phase !== 'pipeline-waited') {
+        problems.push(`a top-level run ended under phase "${closing.phase}"; nothing was drained after its last check, so the run leaves its tail for the next run of this map to carry (F16)`);
+      }
+      if (!Number.isFinite(top.pipelineWaitMs)) problems.push(`a top-level runChecks answered pipelineWaitMs ${top.pipelineWaitMs}`);
+
+      // 4. And the runner says how far apart the runs of a map are. Read as
+      // text, the way `tests/registry.js` reads the registrar: the number is
+      // computed in node and never reaches the page, so the contract is all a
+      // check here can hold - and it is worth holding, because the pairs on
+      // record from F5 to F11 differed by 100-190s and nothing ever said so.
+      const runner = await (await fetch(`${location.origin}/scripts/suite.mjs`)).text();
+      for (const wanted of ['spreadMs', 'waitSpreadMs', 'spreads']) {
+        if (runner.indexOf(wanted) === -1) problems.push(`scripts/suite.mjs no longer computes ${wanted}: the report stops saying how far apart the runs of a map are (F16)`);
+      }
+
+      // 5. And the check the wait was found in still asks.
       const found = h.debugTools._autoTests.find((test) => test.id === 'a-zero-size-viewport-does-not-blind-the-renderer');
       if (!found) problems.push('a-zero-size-viewport-does-not-blind-the-renderer is not registered');
       else if (!found.glSync) problems.push('a-zero-size-viewport-does-not-blind-the-renderer no longer declares glSync: the renderer tail is back on its own clock, and the report calls a 265s wait a 265s check');
@@ -110,8 +137,9 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `the drain answered in ${Math.round(ms)}ms across ${beats} beats and left the error state clear, `
-            + `a glSync check is entered after one and a plain check is not, and the run carries `
-            + `${Math.round(nested.pipelineWaitMs)}ms of wait for the two`
+            + `a glSync check is entered after one and a plain check is not, a top-level run drains `
+            + `after its last check, and the run carries ${Math.round(nested.pipelineWaitMs)}ms of wait `
+            + `for the two`
           : problems.join('; '),
       };
     },

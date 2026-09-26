@@ -481,6 +481,25 @@ function judge(runs, renderer, consoleErrors) {
       }
     }
   }
+  // How far apart the runs of one map are (F16). Two runs of a map share one
+  // page, and until F11 the first left its renderer tail behind for the second
+  // to carry: across every pair on record since F5 the second run was 100-190s
+  // the slower, which made "the same suite, twice" two different measurements
+  // and quietly contaminated any comparison drawn between them. Reported, not
+  // judged - a spread is a reading about the machine, and a red would be a
+  // threshold nobody has grounds for yet.
+  const spreads = maps.map(map => {
+    const own = runs.filter(r => r.map === map);
+    const ms = own.map(r => r.ms);
+    const waits = own.map(r => r.pipelineWaitMs || 0);
+    return {
+      map,
+      runs: own.length,
+      spreadMs: Math.max(...ms) - Math.min(...ms),
+      waitSpreadMs: Math.max(...waits) - Math.min(...waits),
+      longestMs: Math.max(...ms),
+    };
+  });
   const loopRan = runs.some(r => r.loopFrames > 0);
   const ok = red.length === 0 && flaky.length === 0 && !loopRan;
   return {
@@ -492,6 +511,7 @@ function judge(runs, renderer, consoleErrors) {
       pipelineWaitMs: r.pipelineWaitMs,
       contextLosses: r.contextLosses, rerun: r.rerun, loopFrames: r.loopFrames,
     })),
+    spreads,
     red,
     flaky,
     expectedRed,
@@ -516,6 +536,12 @@ function summary(r) {
     if (run.loopFrames) {
       lines.push(`    LOOP RAN ${run.loopFrames} frame(s) under run ${i + 1}: the game played itself underneath the checks (F4)`);
     }
+  }
+  for (const s of r.spreads ?? []) {
+    if (s.runs < 2) continue;
+    const share = s.longestMs ? Math.round((100 * s.spreadMs) / s.longestMs) : 0;
+    lines.push(`    ${s.map}: ${s.runs} runs spread ${s.spreadMs}ms (${share}% of the longest),`
+      + ` pipeline wait spread ${s.waitSpreadMs}ms - two runs of a map are comparable only while this is small (F16)`);
   }
   if (r.red.length) lines.push(`  RED (unexpected): ${r.red.map(tag).join(', ')}`);
   if (r.flaky.length) lines.push(`  FLAKY: ${r.flaky.map(tag).join(', ')}`);

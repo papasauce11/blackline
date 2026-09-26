@@ -33,11 +33,11 @@ is alive still — see `TRAPS.md`). Full report: PROGRESS.md, "Audit —
 |---|---|
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45` |
-| Working tree | clean after G2 (2026-09-25) |
-| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-25, after G2: plant 179 passed, 1 failed, 8 not for this map (954s, 951s), yard 160 / 1 / 27 (652s, 638s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 skips withheld.** Each run line names how much of it was the renderer's pipeline tail (plant 457s twice, yard 345s and 337s) rather than leaving it inside one check (F11), and the two runs of a map now agree within 15s — before F11 the second was 130-180s the slower, because it paid the first's unpaid tail (F16). Two more checks per map than the gate that opened the run (plant 177, yard 158): F11's and G2's, and nothing else. The one failure on each map is the frame-budget check, skipped headless — and since F15 that skip is honoured only where `the-headless-skip-list-holds-only-the-check-it-declares` is green. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
-| Next job | **The second arc** (2026-09-25, D50): Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, sixty jobs, in that order. Block F's own housekeeping is down to **F16** (the historical run-pairs F11 found leaning on an invisible wait, S) and Block G is closed; F16 comes first, then **H3** — H1 and H2 wait on **D51**, the GitHub repo, and every other H job proceeds |
+| Working tree | clean after F16 (2026-09-25) |
+| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-25, after F16: plant 179 passed, 1 failed, 8 not for this map (957s, 948s), yard 160 / 1 / 27 (642s, 644s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 skips withheld.** Two more checks per map than the gate that opened the run (plant 177, yard 158): F11's and G2's. Every run line names how much of it was the renderer's pipeline tail (plant 461s and 457s, yard 336s and 340s) instead of leaving it inside one check (F11), and a line per map names the spread between its runs — **plant 8,956ms, 1% of the longest; yard 1,844ms, 0%**, against 177,215ms and 23% in the last pair before F11 (F16). The one failure on each map is the frame-budget check, skipped headless, and since F15 that skip is honoured only where `the-headless-skip-list-holds-only-the-check-it-declares` is green. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
+| Next job | **The second arc** (2026-09-25, D50): Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, sixty jobs, in that order. Blocks A-G are all closed, F included, so the next job is **H3** (a version you can see, S) — H1 and H2 wait on **D51**, the GitHub repo, and H3 writes the file H2's workflow will fill, so read H2 before starting it. Every other H job proceeds |
 | Waiting on Josh | **D51** — the GitHub repo URL and its Pages setting (H1, H2). Nothing else blocks: D47, D48 and D49 were answered 2026-09-25 (D47, D48 as infrastructure by the session that runs the routine; D49 by Josh's interview, D50). The Provisional section stays open for override, and the things only eyes can settle are under *Still needs a human* |
-| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,665 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. `src/ui/autosuite.js` is 499 since F11 and `src/tests/donedef.js` 504 since G2. Outside `src/`, `scripts/suite.mjs` is 549 and `scripts/watchdog.mjs` 205. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions — and since F13 the gate holds that census rather than the weekly audit: a third call, or either of these two losing the comment that argues for it, is red |
+| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,665 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. `src/ui/autosuite.js` is 499 since F11 and `src/tests/donedef.js` 504 since G2. Outside `src/`, `scripts/suite.mjs` is 549 and `scripts/watchdog.mjs` 205. **This page is 399 lines of the 400 `traps-md-holds-the-traps-and-handoff-points-at-it` allows** — a job that adds to it takes something out, which is the point of G1 and G2. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions — and since F13 the gate holds that census rather than the weekly audit: a third call, or either of these two losing the comment that argues for it, is red |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable, Warden ground one connected component with a column of cells down each vault rack aisle. **8 declared routes, 22 stages** (`map.routes`); 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb |
 | Map, yard | 132 boxes, 58 climbable, 5 lamps, Warden ground 15,332 cells in one component, 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up, every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
@@ -87,16 +87,17 @@ under the ~600 guidance (the map is kept below) · F4 the game does not play
 itself under the suite · F5 the headless runner · F6 `npm run shot` · F7 a
 look at a pose · F8 the key light gives nothing to a face it lights from
 behind · F9 `npm run probe` · F10 a hung gate dies and says which check hung.
-**F11** the quarter of a run inside one check was one `gl.getError()`, a wait
-and not work, and D48 put it on the run's clock: `AutoSuite.drainPipeline()`
-polls a fence so the wait beats while it waits, a check declaring
-`glSync: true` is drained for before its own clock starts, a top-level
-`runChecks` drains once more after its last check, and the run line prints
-the total. 265,944ms became 24ms, the slowest check is now 77s, `--stall`
-came down 600s → 240s (`--stall-wait` 600s holds the declared wait). It also
-found that two runs of a map share a page, so run 1's unpaid tail was being
-paid by run 2 — which is why the second run of a map was always the slower
-one (F16). F12 `?seed=` reaches the fuzz and soak checks: `tests/seeds.js` owns
+**F11** the quarter of a run inside one check was one `gl.getError()` — a wait,
+not work — and D48 put it on the run's clock: `AutoSuite.drainPipeline()` polls
+a fence so the wait beats, a check declaring `glSync: true` is drained for
+before its own clock starts, a top-level `runChecks` drains again after its last
+check, and the run line prints the total. 265,944ms became 24ms, the slowest
+check is 77s, `--stall` came down 600s → 240s (`--stall-wait` 600s holds the
+wait). **F16** read every run-pair on record: the second run of a map carried
+~184s of the first's tail, the pairs agree since F11, the runner prints the
+spread per map — and F11's account of *where* run 2 paid it is withdrawn, since
+F5's own readings already showed that call getting cheaper in run 2, not dearer.
+F12 `?seed=` reaches the fuzz and soak checks: `tests/seeds.js` owns
 `exploreSeed(label, fallback)`, the fallback when the URL names no seed so the
 gate is unmoved, a draw mixed from the URL seed and the label when it does, and
 three seeds stay pinned because reproducibility is their subject. F13 the gate holds the two bans the spec states: `no-source-file-calls-math-random-or-sets-a-timer` reads all 135 loaded modules and allows one `Math.random(` (the audio noise texture) and one `setTimeout(` (a fence yield in `tests/performance.js`), each still present, exactly once, and argued in a comment at its own line. F14 the suite counts itself: `tests/registry.js` holds every registrar `tests/index.js` imports to exactly one call, every check a module declares to being registered and back, and names the one conditional registration (`a-staged-hang-never-returns`, `?hang=1` only) — a `register` call dropped while its import stayed used to shrink every run silently and still exit 0. F15 the gate's own exemptions are a census: `scripts/suite-skips.json` took any red check out of a run in one line — measured, `"ok": false` to `"ok": true` with nothing else changed — and `tests/skiplist.js` now holds it and its own `ALLOWED` list to the same set both ways, every skipped id to being a registered check, every reason to naming hardware, and its own id to being absent; the runner honours a skip only on a map where that check passed, so the policeman cannot be exempted.
@@ -245,11 +246,11 @@ now, not a `let` in `main.js`.
 
 `ui/autosuite.js` (`AutoSuite`): the registry, `runAutoTests`, the regression
 set, the lost-context tiebreak (F1), the presentation reset before every check
-(F2), and the heartbeat (F10). `ui/debug.js` composes it and forwards, so
-checks still reach it as `h.debugTools.runAutoTests()` / `_autoTests`; a check
-that must drive the runner directly uses `h.debugTools.suite.runChecks()`.
-`scripts/suite.mjs` is the headless runner and `scripts/watchdog.mjs` its
-deadline, teardown and orphan warning.
+(F2), the heartbeat (F10) and the pipeline drain (F11). `ui/debug.js` composes
+it and forwards, so checks reach it as `h.debugTools.runAutoTests()` /
+`_autoTests`; one that must drive the runner uses `suite.runChecks()`.
+`scripts/suite.mjs` is the headless runner, `scripts/watchdog.mjs` its deadline,
+teardown and orphan warning.
 
 ## Running it
 
@@ -266,22 +267,29 @@ run carries `contextLosses` and `rerun` (F1), printed as `GL CONTEXT LOST`;
 zero is normal, and a non-zero one is the machine, not the game, unless the
 same check is in the list every run.
 
-- `--runs 1` is the gate: about 25 minutes for both maps (963s plant, 646s
-  yard, both since F11 — it pays a tail per map that used to be dropped at
-  teardown or charged to the next run). The full `npm run suite` is four runs,
-  about 55 minutes. **Each map alone is past the Bash tool's 10-minute cap —
-  background it.**
+**What a pair of run times means (F16).** The two runs of a map share one page,
+and until F11 the first left its renderer tail for the second to carry — the
+second run of the plant is the slower one in *every* pair on record, by 30-98s
+at 130 checks and 145-190s at 177. So two run times from before 2026-09-25 are
+comparable only if both sat in the same position in a pair, and no entry says
+which. They agree within 14s now and the summary prints the spread per map:
+read it before comparing anything to a `PROGRESS.md` number, and prefer a first.
+
+- `--runs 1` is the gate: about 25 minutes for both maps (963s plant, 646s yard
+  since F11, which pays a tail per map that used to be dropped at teardown or
+  charged to the next run). The full `npm run suite` is four runs, about 55
+  minutes. **Each map alone is past the Bash tool's 10-minute cap — background
+  it.**
 - `--map plant` to narrow · `--regression` for the regression set per map
   (plant 29 checks in 58s, yard 29 in 25s) · `--subset "<regex>"` while
   iterating · `--query "seed=N"` to reseed · `--stall SECONDS` and `--stall-wait SECONDS`, below.
 - `--details <file>` writes every check's id, outcome, detail line and **ms**
   per run — the readings a PROGRESS entry quotes, which the stdout report
   never carried for a green check. Since F11 the slowest is
-  `every-route-reads-lit-from-its-foot` at **77s on the plant**, then this
-  job's own `the-pipeline-wait-is-the-runs-number-and-not-a-checks` at 30s;
+  `every-route-reads-lit-from-its-foot` at **77s on the plant**, then
+  `the-pipeline-wait-is-the-runs-number-and-not-a-checks` at 30s;
   `a-zero-size-viewport-does-not-blind-the-renderer` was 265s and is 24s,
-  because the wait it was inheriting is the run's number now and appears on
-  the run line instead.
+  because the wait it inherited is the run's number now and on the run line.
 - `scripts/suite-skips.json` lists checks that cannot pass headless with
   reasons (today: the frame-budget check; SwiftShader draws a frame in
   ~400ms). They are reported, never counted. **Since F15 it is a census, not
@@ -303,10 +311,9 @@ one; the suite's own wait publishes the beat while it waits and carries
 naming that check, the browser and server are closed, and the exit code is 2.
 Against the beat standing still, never wall-clock total: a cold plant run is
 legitimately 960s. `--stall 0` disables it. `SIGINT`/`SIGTERM` close the same
-way. A `suite.mjs` older than this process is named at startup, in the
-report's `otherRunners` and in the summary's `OTHER RUNNERS ALIVE` — its
-Chrome competes for the same cores, so every timing beside it is measured
-against it.
+way. A `suite.mjs` older than this process is named at startup, in `otherRunners`
+and in the summary's `OTHER RUNNERS ALIVE` — its Chrome competes for the same
+cores, so every timing beside it is measured against it.
 
 Three more headless tools, each with a PROGRESS entry:
 
@@ -316,13 +323,12 @@ npm run shot -- --map plant --pose vault,aim # F7: one pose, or --pose all
 npm run probe -- --map plant probe.js        # F9: a question asked of the game
 ```
 
-`shot.mjs` writes `shots/look-<map>-<eye>.png` (gitignored) in about 30s a
-map, which a session reads with the Read tool — the Browser pane's job done
-without the pane. `probe.mjs` runs a file's text as the body of an async
-function with `h` and `THREE` in scope, prints what it returns as JSON and
-writes any `pngs: [{ name, dataUrl }]`; every "what does this read" of a
-scheduled run goes through it, and a finding that should stay true becomes a
-check.
+`shot.mjs` writes `shots/look-<map>-<eye>.png` (gitignored) in about 30s a map,
+read with the Read tool — the Browser pane's job without the pane. `probe.mjs`
+runs a file's text as the body of an async function with `h` and `THREE` in
+scope, prints what it returns as JSON and writes any `pngs: [{ name, dataUrl }]`;
+every "what does this read" goes through it, and a finding that should stay true
+becomes a check.
 
 In a real browser, for what headless cannot prove (the frame budget on a GPU
 with the post on, how it looks, how it sounds): `npx serve -l 5173 .`, then
@@ -335,26 +341,25 @@ is the harness in both builds; in-game **F3** overlay · **F4** test mode ·
 ## Environment traps
 
 **They live in `TRAPS.md` now** — about thirty of them, each one an hour
-somebody has already paid. Read that file before you start; the scheduled
-task's prompt reads it first and falls back to this heading while it exists,
-which is why the heading stays (G2, D47). Nothing was retired in the move, and
-`traps-md-holds-the-traps-and-handoff-points-at-it` holds both ends of it: the
-file is there with its traps in it, and this page stays under the 400 lines
-G1's done-when asked for and could not reach while the traps were in it.
+somebody has already paid. Read that file before you start; the heading stays
+here because the scheduled task's prompt falls back to it (G2, D47). Nothing
+was retired in the move, and
+`traps-md-holds-the-traps-and-handoff-points-at-it` holds both ends: the file
+is there with its traps in it, and this page stays under the 400 lines G1 could
+not reach while they were in it.
 
-Two of them anyway, because a reader of this page should not be without them:
-**verify anything visual by reading pixels back** (`src/tests/pixels.js`) —
+Two of them anyway, because a reader of this page should not be without them.
+**Verify anything visual by reading pixels back** (`src/tests/pixels.js`):
 `document.hidden` is always true in the Browser pane, a scheduled run may not
-use the pane at all, and a screenshot is not available to either. And **warm
-60 frames of `renderFrame(1/60)` before measuring anything**, because the
-first draw of a view the renderer has not seen compiles for tens of seconds
-headless and will read as the thing you are measuring.
+use the pane at all, and a screenshot is available to neither. And **warm 60
+frames of `renderFrame(1/60)` before measuring anything**, or the first draw of
+an unseen view compiles for tens of seconds and reads as what you measured.
 
 ## The lesson that keeps repeating
 
 Three separate bugs — the Phase 3 ledge hang, the Phase 21 slide, the Phase 47
-match score — were all **wired, tested, green, and impossible in play**. Every
-one came from a check that drove the game differently from how a player does.
+match score — were **wired, tested, green, and impossible in play**, every one
+from a check that drove the game differently from how a player does.
 A held key and its press edge arrive on the **same step**; a test that sets
 `intent.crouchPressed` without `intent.crouch` is testing a machine nobody is
 sitting at. Drive `input.heldCodes` / `input.pressedCodes`.

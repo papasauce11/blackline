@@ -53,21 +53,8 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 
 - [x] **F15 (S)** The one documented way past a red gate, closed. — done 2026-09-25, under Done.
 
-- [ ] **F16 (S)** The second run of a map is the first run's bill. F11 found
-  it and closed half of it: two runs of a map share one page, and until the
-  suite drained after its last check, run 1 left its renderer tail behind and
-  run 2 paid it inside its own first synchronisation - which is why the second
-  run of a map had always been 130-180s the slower one, on every reading in
-  `PROGRESS.md`. The pairs now agree (plant 963s/957s, yard 646s/653s), so the
-  gate compares two runs measured the same way. What is still unexamined is
-  every *historical* pair quoted in this repo: every "run 1 / run 2" number
-  before 2026-09-25 has run 1 understated by its own tail and run 2 overstated
-  by it, and several PROGRESS entries reason from the difference. Read the
-  pairs on record, say which conclusions rest on that gap, and correct the ones
-  that do - in a new PROGRESS entry, never by editing an old one.
-  *done-when:* every run-pair reading in `PROGRESS.md` since F5 is listed with
-  its gap, each conclusion drawn from a gap is named as standing or falling,
-  and `HANDOFF.md`'s Running it section says what a pair of run times means now.
+- [x] **F16 (S)** The second run of a map is the first run's bill. — done
+  2026-09-25, under Done.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -389,6 +376,33 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **F16** Every run-pair on record, and a correction to F11. F11 closed earlier
+  the same run with a finding attached - two runs of a map share one page, so
+  the renderer tail it had called "never paid, because the page is torn down
+  first" was carried by the next run - which makes every pair of run times in
+  this repo two measurements of different things. Read: the second run of the
+  plant is the slower one in **every pair on record**, by 30-98s at 130 checks
+  and 145-190s at 177, and the yard's gap is smaller and sometimes negative.
+  The arithmetic of the close: plant run 1 went 757s → 963s (+206s, the drain
+  F11 added) while run 2 went 935s → 957s (+22s), so run 2's actual checking
+  got ~184s faster - that 184s was the burden, and paying it at the end of run 1
+  removed it. **What falls is F11's account of where run 2 paid it**: F5's own
+  verify already had `a-zero-size-viewport-does-not-blind-the-renderer` -
+  run 2's first synchronisation - at 268,927ms in run 1 and **252,906ms** in
+  run 2, sixteen seconds cheaper while run 2 was 189s longer. The burden is
+  real and sized; where it lands is not established, and F16 names no mechanism
+  rather than name a second wrong one. Flagged and unsettleable from the
+  record: F11's three-placement table (753s / 989s / 765s, "each a full plant
+  run") never says which run of a pair each came from, against a 178s gap - the
+  conclusion survives on the within-run half of the same evidence. `judge()` in
+  `scripts/suite.mjs` now reports `spreads` per map and the summary prints the
+  spread in ms, as a share of the longest run, and in the pipeline wait;
+  reported, never judged. `the-pipeline-wait-is-the-runs-number-and-not-a-checks`
+  gained the two clauses this rests on and F11 left unheld: a **top-level** run
+  drains after its last check (through `_runChecks(tests, true)`, the only way
+  a check inside a run can be one), and the runner still computes the spread.
+  Commit `%%HASH%%`.
+
 - **G2** The traps got a home, and this page got under 400 lines. D47 chose
   option 2: `HANDOFF.md`'s Environment traps - 203 lines of its 578, two thirds
   of the page every run pays to read, against a section a run reads once and
@@ -422,11 +436,14 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   came down 600s → **240s**, with `--stall-wait` (600s) for the declared wait.
   The fence does see the tail and does poll: the new check's own drain answered
   in 30,306ms across **61 beats**, one every 250ms as written. And it found
-  what the wait had been costing - two runs of a map share a page, so run 1's
-  unpaid tail was being paid by run 2, which is why the second run of a map had
+  what the wait had been costing - two runs of a map share a page, so run 1 left
+  its tail behind and run 2 carried it, which is why the second run of a map had
   always been ~180s slower. The pairs now agree (963s/957s, 646s/653s) for one
-  tail per map per suite. New `src/tests/pipelinewait.js` (119 lines) holds all
-  of it, including both halves of who is drained for. Commit `645370a`.
+  tail per map per suite. New `src/tests/pipelinewait.js` holds all of it,
+  including both halves of who is drained for. Commit `645370a`. **F16 corrected
+  one clause of this**: the burden is ~184s and real, but it is spread through
+  run 2 and not paid in its first synchronisation, which F5's own readings
+  already showed.
 
 - **F15** The one documented way past a red gate, closed. `judge()` in
   `scripts/suite.mjs` dropped every id in `scripts/suite-skips.json` before it
