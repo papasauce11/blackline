@@ -147,6 +147,16 @@ one setting only Josh can click; everything else here proceeds.
   play, credits; the last-played map and role remembered (H7). *done-when:*
   pixel checks for the thumbnails and the title; every row reachable by
   keyboard (L3 adds the pad).
+  **Read this before starting**: a map is built once per page load and another
+  map is another page load (`maps/index.js`), so *there is no yard in memory
+  while you are on the plant* — a thumbnail per map means either baking every
+  registered map at boot (H4 measured that at 827ms for the plant and 439 for
+  the yard, so two maps roughly doubles a boot that now has a loading screen to
+  put it behind) or drawing the card from something cheaper than the map. That
+  is a real choice with a cost, it is presentation rather than a rule, so take
+  it and record it under Provisional — but price it first with `bakeMap` and the
+  existing `debugState.bootBake` numbers rather than discovering it halfway.
+  H4's loading screen and H3's footer both live on this menu; read them too.
 - [ ] **H6 (M)** The first-run tutorial. Free-roam on the plant with a
   prompt chain — move, sprint, crouch, slide into the vent, jump, climb,
   tap-to-hang, plant — each completing on the act, skippable, once per

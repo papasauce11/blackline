@@ -41,6 +41,30 @@ check's cost, put the suspect call on its own clock — `--details` gives the
 total and nothing else. And two runs of a map share a page, so a tail one run
 leaves behind is a tail the next one pays (F16).
 
+**A second WebGL context costs sixteen seconds here, and `getContext` will not
+give you a first one twice.** H4 needed to know whether this browser has WebGL2
+and probed a throwaway canvas for it. That probe measured **16,240ms**: under
+SwiftShader a context is a whole software device, and the cost is paid again for
+every one. The real boot would have paid it and then the renderer would have
+paid it again, on every page load, inside the runner's 60s harness timeout. And
+the obvious fix is worse than the bug: probing the *real* canvas hands three
+back the context that canvas already has, because `canvas.getContext('webgl2',
+attributes)` **ignores its second argument once a context exists** — so
+`antialias`, `powerPreference` and `stencil: false` vanish from `createRenderer`
+silently, and nothing fails. The way out was to stop asking separately:
+`createRenderer()` returns null when three's own constructor throws, which costs
+nothing and cannot disagree with itself. Before adding any WebGL query to this
+project, ask whether the renderer already answers it.
+
+**A batch of queued tasks is one turn of the event loop, not many.** H4's first
+measurement of "the bake lets go of the main thread between slices" posted ten
+`MessageChannel` messages up front and counted how many had arrived at each
+slice. Messages queued together are *delivered* together, so one turn read as
+five and the check reported "the page got a turn in 2 of the 5 gaps" — a real
+number measuring the wrong thing. Queue one marker per gap and require that at
+slice N exactly N have run. The same caution applies to any "did something else
+get a chance" test: what you are counting is turns, and a batch is one.
+
 **A plant run can take 960s, and `npm run suite` is four runs.** Nothing of
 that fits the Bash tool's 10-minute cap. Start it with `run_in_background`
 writing to a file and wait on the file (`until grep -q "suite: " <file>`,
