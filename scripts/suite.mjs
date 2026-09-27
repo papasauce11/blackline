@@ -21,6 +21,12 @@
 //                          [--channel chrome|msedge] [--timeout 600000]
 //                          [--cores N] [--cooldown SECONDS] [--details FILE]
 //                          [--stall SECONDS] [--stall-wait SECONDS]
+//                          [--url https://papasauce11.github.io/blackline/]
+//
+// --url points the run at a deployed copy instead of serving this checkout:
+// no local server is started and every map is loaded from that origin (H2).
+// The Deliberately-red list and the skip census are still read from this
+// checkout, so the live site is judged by the rules of the commit you are on.
 //
 // --map names the registered maps to run on (src/maps/index.js), comma
 // separated; the page is loaded once per map with `?map=<id>` and the suite
@@ -94,6 +100,8 @@ const TIMEOUT = Number(args.timeout ?? 600000);
 const SUBSET = args.subset ? new RegExp(args.subset) : null;
 const PRE = args.pre ?? null;
 const QUERY = args.query ?? null; // e.g. "seed=20260908", appended to the page URL
+/** A deployed origin to test instead of this checkout, always ending in a slash. */
+const BASE_URL = args.url ? String(args.url).replace(/\/*$/, '/') : null;
 const REGRESSION = !!args.regression;
 const MAPS = args.map
   ? String(args.map).split(',').map(s => s.trim()).filter(Boolean)
@@ -291,8 +299,9 @@ async function main() {
       + ` End it with: taskkill /PID ${r.pid} /T /F\n`);
   }
 
-  const { server, port } = await serve();
-  guard.attach({ server });
+  const { server, port } = BASE_URL ? { server: null, port: null } : await serve();
+  if (server) guard.attach({ server });
+  const origin = BASE_URL ?? `http://127.0.0.1:${port}/`;
   const consoleErrors = bootErrors;
   const browser = await chromium.launch({
     channel: CHANNEL,
@@ -331,7 +340,7 @@ async function main() {
     for (const [m, mapId] of MAPS.entries()) {
       if (m > 0 && COOLDOWN_MS > 0) await sleep(COOLDOWN_MS);
       const query = [QUERY, `map=${mapId}`].filter(Boolean).join('&');
-      await page.goto(`http://127.0.0.1:${port}/?${query}`, { waitUntil: 'load' });
+      await page.goto(`${origin}?${query}`, { waitUntil: 'load' });
       await page.waitForFunction(() => !!window.BLACKLINE, null, { timeout: 60000 });
       // The live loop plays the game between runs and under any check that
       // yields (F4 measured ~135 frames of the AI hunting an idle Shade in one
