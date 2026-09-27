@@ -139,11 +139,9 @@ one setting only Josh can click; everything else here proceeds.
   is no deploy workflow and cannot be one from here** (H2: the CLI token has no
   `workflow` scope), so the commit carries the stamp and the *host* decides
   `dev`: **D52**.
-- [ ] **H4 (M)** Boot. A loading screen while the map bakes — the bake
-  yielded to the frame in slices so the page paints — a plain message when
-  WebGL2 is missing, and one for touch devices. *done-when:* a check boots
-  with a stubbed `getContext` returning null and reads the message; the bake
-  yields at least once on the plant (a check counts frames during boot).
+- [x] **H4 (M)** Boot. — done 2026-09-27, under Done. Both halves of the
+  done-when met; the WebGL2 test is `createRenderer()` returning null rather
+  than a `getContext` probe, and why is **D53**.
 - [ ] **H5 (M)** The main menu. Title, a card per map with a thumbnail
   rendered at boot from a fixed eye (no asset files), role, settings, how to
   play, credits; the last-played map and role remembered (H7). *done-when:*
@@ -367,6 +365,20 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H4** Boot — a loading screen in `index.html` (markup, so it is up from the
+  first paint) naming each of the **six bake slices**; the bake is a generator
+  per map with the shared tail in `mapfinish.js`, driven straight through by
+  `buildMap` and a slice at a time by `bakeMap`, so there is one build path and
+  two drivers; a `MessageChannel` yield between slices, because `setTimeout` is
+  banned and `requestAnimationFrame` never fires in a hidden document; boot is
+  a promise and `window.BLACKLINE` is published at the end, so the runner's own
+  wait needed no change. No WebGL2 is `createRenderer()` returning null and a
+  fatal panel — **that took 16s off every headless page load** against the
+  `getContext` probe it replaced; a touch device is told and boots behind a
+  dismissible one. `a-browser-without-webgl2-is-told-so-plainly`,
+  `a-touch-device-is-told-and-the-game-boots-behind-it`,
+  `the-bake-yields-the-page-a-frame-to-paint` — `PENDING`, 2026-09-27,
+  scheduled run.
 - **H3** A version you can see — `version.json` at the root (commit, short,
   committer date, branch), written by `scripts/version.mjs` / `npm run stamp`
   and **only from a clean tree**, so `npm run suite` stamps HEAD at the gate

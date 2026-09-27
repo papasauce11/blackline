@@ -37,6 +37,7 @@ import { useShadeGadget, useWardenGadget } from './loadout.js';
 import { gatherHudState } from './hudstate.js';
 import { recordStepFields, recordFrameFields } from './debugfields.js';
 import { createHarness } from './harness.js';
+import { bootGate, bootStage, bootDone, showNotice, yieldToPaint } from './bootscreen.js';
 import { createIntent } from './entities/agent.js';
 import { createWardenIntent } from './entities/enforcer.js';
 
@@ -211,23 +212,39 @@ function togglePause() {
 // Boot
 // ---------------------------------------------------------------------------
 
-function bootstrap() {
+/**
+ * @returns {Promise<string|null>} the reason this browser was refused (H4), or
+ *   null when the world is up and every singleton above is set.
+ */
+async function bootstrap() {
   // Everything built is boot.js (C3); what runs it stays here. `match` is a
   // getter because the menu is built before the first match exists.
-  ({
-    renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
-    combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner,
-  } = bootWorld({
+  const built = await bootWorld({
     emitter, debugState, harness, initMatch, setPaused, setTimeScale, match: () => match,
     // D1: the map is the URL's for this page load; the menu's map row
     // reloads with another, keeping the seed and the debug gate.
     mapId: requestedMapId(location.search),
     goToMap: (id) => { location.search = mapUrl(location.search, id); },
-  }));
+    // H4: the loading screen's line, and a real task boundary after it, so the
+    // browser draws what it was just told before the next slice locks the
+    // thread again.
+    onSlice: async (label, done, of) => {
+      bootStage(label, done, of);
+      await yieldToPaint();
+    },
+  });
+
+  if (built.unsupported) return built.unsupported;
+
+  ({
+    renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
+    combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
+    briefing, cameraOwner,
+  } = built);
 
   setTimeScale(1);
   debugState.stepsPerFrame = 0;
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -453,23 +470,45 @@ const harness = createHarness({
 // for this page load (C1). Off, the page is the playtest build.
 if (debugRequested(location.search)) SETTINGS.debug = true;
 
-bootstrap();
+// H4: what can be read off the device before anything is built. Recorded in the
+// shared bag so a check can see that the real boot asked, rather than only that
+// the asking works (bootscreen.js). A touch device is told and boots anyway,
+// behind a dismissible panel: the game runs, there is simply nothing to drive it
+// with. Whether WebGL2 is there is not knowable without trying, so that one is
+// the renderer's own answer, below.
+debugState.bootGate = bootGate();
+if (debugState.bootGate.touchOnly) showNotice('touch');
 
-initMatch(bootMatchOptions(location.search));
-loop.start();
+// Boot is a promise now, because the bake yields to the frame between slices.
+// Nothing waits on it but this: `window.BLACKLINE` is published at the end, so
+// every way in — the headless runner's `waitForFunction(() => !!window.BLACKLINE)`,
+// the console, `npm run shot` — already waited for a finished world and needed no
+// change. A throw still lands on the index.html error panel.
+bootstrap().then((unsupported) => {
+  if (unsupported) {
+    // No renderer, so there is no game to start and no harness to publish: the
+    // page is one sentence saying why.
+    showNotice(unsupported);
+    return;
+  }
 
-// Console handle so a seed can be reproduced by hand (Section 16, check 28),
-// and the AUTO suite's way in whether or not the gate is up: the headless
-// runner reaches the game through it and the suite turns the gate on for
-// the length of a run.
-window.BLACKLINE = harness;
-if (SETTINGS.debug) {
-  console.log(
-    `%c BLACKLINE %c three r${THREE.REVISION}  seed ${rng.seed}  F3 debug  F4 test mode `,
-    'background:#2fd6c3;color:#08090b;font-weight:bold',
-    'color:#7e8f95'
-  );
-}
+  initMatch(bootMatchOptions(location.search));
+  loop.start();
+  bootDone();
+
+  // Console handle so a seed can be reproduced by hand (Section 16, check 28),
+  // and the AUTO suite's way in whether or not the gate is up: the headless
+  // runner reaches the game through it and the suite turns the gate on for
+  // the length of a run.
+  window.BLACKLINE = harness;
+  if (SETTINGS.debug) {
+    console.log(
+      `%c BLACKLINE %c three r${THREE.REVISION}  seed ${rng.seed}  F3 debug  F4 test mode `,
+      'background:#2fd6c3;color:#08090b;font-weight:bold',
+      'color:#7e8f95'
+    );
+  }
+});
 
 // Nothing may import main.js (Section 3.1), so the only exports are the ones
 // the AUTO suite reaches through the harness. `stop` is kept for teardown.

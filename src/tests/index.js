@@ -14,6 +14,7 @@
  */
 
 import { register as registerEngine } from './engine.js';
+import { register as registerBoot } from './boot.js';
 import { register as registerDeterminism } from './determinism.js';
 import { register as registerSeeds } from './seeds.js';
 import { register as registerMap } from './map.js';
@@ -77,6 +78,8 @@ import { register as registerSkipList } from './skiplist.js';
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
   registerEngine(debugTools);
+  // Before the world: what the page does when there is no game to show (H4).
+  registerBoot(debugTools);
   registerDeterminism(debugTools);
   registerSeeds(debugTools);
   registerMap(debugTools);

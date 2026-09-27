@@ -42,11 +42,50 @@
     margin: 0 0 16px; font-size: 15px; letter-spacing: 0.14em;
     text-transform: uppercase; color: #2fd6c3;
   }
+
+  /*
+    H4: the loading screen and the two refusals. Markup, not a module, and
+    visible from the first paint: the map bake costs ~900ms on the plant and
+    the first draw of an unseen view costs much more, and a module that draws
+    this would itself be waiting on the network. So the page says Blackline
+    before anything else happens, and src/bootscreen.js only writes the stage
+    line into it and takes it down at the end.
+  */
+  #bl-boot, #bl-notice {
+    position: fixed; inset: 0; z-index: 60; display: flex;
+    align-items: center; justify-content: center; background: #0a0d10;
+    font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #2fd6c3; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  #bl-notice { z-index: 70; background: rgba(10,13,16,0.97); }
+  #bl-boot[hidden], #bl-notice[hidden] { display: none; }
+  #bl-boot .card, #bl-notice .card { min-width: 340px; max-width: 460px; }
+  #bl-boot h1, #bl-notice h1 { font-size: 30px; letter-spacing: 0.42em; margin: 0 0 4px; }
+  #bl-notice h1 { font-size: 20px; letter-spacing: 0.24em; }
+  #bl-boot p, #bl-notice p {
+    margin: 0; opacity: 0.55; font-size: 11px; letter-spacing: 0.2em;
+  }
+  #bl-notice p { text-transform: none; letter-spacing: 0.08em; line-height: 1.8; opacity: 0.75; }
+  #bl-notice button {
+    display: block; margin: 22px 0 0; padding: 12px 16px; cursor: pointer;
+    background: transparent; color: inherit; font: inherit; letter-spacing: 0.14em;
+    text-transform: uppercase; border: 1px solid rgba(47,214,195,0.35);
+  }
+  #bl-notice button:hover { background: rgba(47,214,195,0.12); border-color: #2fd6c3; }
+  #bl-notice button[hidden] { display: none; }
 </style>
 </head>
 <body>
 
 <canvas id="bl-canvas" tabindex="0"></canvas>
+
+<div id="bl-boot"><div class="card"><h1>Blackline</h1><p id="bl-boot-stage">starting</p></div></div>
+
+<div id="bl-notice" hidden><div class="card">
+  <h1 id="bl-notice-title"></h1>
+  <p id="bl-notice-body"></p>
+  <button id="bl-notice-ok" hidden>Continue anyway</button>
+</div></div>
 
 <div id="bl-boot-error"><h1>Blackline failed to start</h1><pre id="bl-boot-error-body"></pre></div>
 

@@ -110,6 +110,42 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D53 — What boot says, and what it refuses
+H4 as built. Nothing here changes a rule — a player who can run the game sees
+the same game — so it is provisional, and all of it is wording and timing you
+can overrule by looking at it.
+
+- **The loading screen is markup, not a module** (`index.html`, `#bl-boot`),
+  visible from the first paint. A module that drew it would itself be waiting
+  on the network, which is the one moment a loading screen is for.
+- **It names the slice, not a percentage**: `geometry · 1 of 6`, then
+  collision, the climb rule, rooms, the Warden's ground, checking the map.
+  Six, because that is where the bake's time measurably is — declaration is
+  112ms on the plant against 762 for the tail (`mapfinish.js`). A bar would
+  have to lie about the sizes; a label does not.
+- **The bake yields with a `MessageChannel` message.** Not `setTimeout`, which
+  Section 9 and 15 ban and F13's gate holds; not `requestAnimationFrame`,
+  which never fires in a hidden document, so a boot that waited on one would
+  never finish in the Browser pane.
+- **No WebGL2 is a fatal panel with no way out**, and it takes the loading
+  screen down with it, because "starting" behind a message saying nothing is
+  starting is a lie. The test is `createRenderer()` returning null and there
+  is deliberately no second one: a separate `getContext('webgl2')` probe
+  either clobbers the real canvas's attributes (`getContext` ignores its
+  second argument once a context exists) or costs a second SwiftShader
+  device, measured at **16 seconds** headless, on every page load.
+- **A touch device is told and boots anyway**, behind a *Continue anyway*
+  button. The classifier is a coarse pointer *and* no hover, so a touchscreen
+  laptop — which plays the game perfectly — is not caught by it.
+- The two messages' text is in `NOTICES` (`src/bootscreen.js`) and the checks
+  compare against that object, so rewording one is a one-line change and the
+  checks follow it.
+
+The thing only eyes can settle: whether the loading screen reads as
+deliberate or as a flicker on a real GPU, and whether either message says the
+right thing to somebody who just wanted to play.
+**decided:**
+
 ### D52 — The build stamp with no workflow to write it
 H3 asked for `version.json` to be written "by the deploy workflow (commit,
 date) and by `npm run suite` locally as `dev`". H2 found there is no workflow

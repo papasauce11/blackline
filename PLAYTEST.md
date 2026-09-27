@@ -82,6 +82,30 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The page says Blackline before the game exists (H4, 2026-09-27)
+
+Reload and watch the first second. You should see the title and a line
+naming what is being built — `geometry · 1 of 6`, then collision, the climb
+rule, rooms, the Warden's ground, checking the map — and then the menu. The
+map bake is 827ms on the plant and 336 on the yard, and until H4 it held the
+main thread for all of it, so a loading screen would have been correct and
+never once drawn; it hands the browser a turn between the six slices now.
+`the-bake-yields-the-page-a-frame-to-paint` proves the turn is real.
+
+Two refusals you should not see and might want to provoke. A browser without
+WebGL2 gets *WebGL2 required* and a sentence, instead of a black page and a
+stack trace — in Chrome you can produce it with `chrome://settings` →
+hardware acceleration off, or `--disable-gpu --disable-software-rasterizer`.
+A phone or tablet gets *Keyboard and mouse* with a **Continue anyway**
+button, and the game does boot behind it; there are no touch controls, so
+you can look at it and not play it.
+`a-browser-without-webgl2-is-told-so-plainly` and
+`a-touch-device-is-told-and-the-game-boots-behind-it` hold both.
+
+**What is left for you:** whether the loading screen is long enough to read
+or a flicker on a real GPU, and whether the two messages say the right
+thing — the wording is provisional (D53) and changing it changes no rule.
+
 ### The menu says which build you are on (H3, 2026-09-27)
 
 Bottom of the main menu, under the *map* row, small and dim. On

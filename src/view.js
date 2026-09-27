@@ -13,14 +13,43 @@ import { CONFIG } from './config.js';
 /** Guard for the risk-register rule: exactly one camera object, ever. */
 let camerasCreated = 0;
 
-/** The renderer, configured as Section 4 asks: saturated, high contrast. */
+/**
+ * The renderer, configured as Section 4 asks: saturated, high contrast — or
+ * **null where there is no WebGL2** (H4).
+ *
+ * three throws `Error creating WebGL context` from its own constructor when the
+ * canvas hands back no context, and until H4 that reached the page as the
+ * index.html error panel: a stack trace, to a player whose browser simply
+ * cannot run this. Caught here and turned into null, so the composition root can
+ * put a sentence on the screen instead.
+ *
+ * **This is the whole WebGL2 test, and there is deliberately no second one.** A
+ * separate `getContext('webgl2')` probe was the first shape of this and had two
+ * faults, each worse than the last: probing the *real* canvas hands three back
+ * the context that canvas already has and silently drops every attribute below,
+ * because `getContext` ignores its second argument once a context exists; and
+ * probing a throwaway canvas creates a second SwiftShader device, which measured
+ * **16 seconds** headless and would have been paid on every page load, before
+ * the renderer then paid it again. Asking whether the renderer can be built
+ * costs nothing, cannot disagree with itself, and is the question that matters.
+ * A check drives it with a canvas whose `getContext` returns null
+ * (`a-browser-without-webgl2-is-told-so-plainly`).
+ *
+ * @param {HTMLCanvasElement} canvas
+ * @returns {THREE.WebGLRenderer|null}
+ */
 export function createRenderer(canvas) {
-  const renderer = new THREE.WebGLRenderer({
-    canvas,
-    antialias: CONFIG.render.antialias,
-    powerPreference: 'high-performance',
-    stencil: false,
-  });
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: CONFIG.render.antialias,
+      powerPreference: 'high-performance',
+      stencil: false,
+    });
+  } catch {
+    return null;
+  }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.render.maxPixelRatio));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace;

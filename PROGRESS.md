@@ -9052,3 +9052,128 @@ alive and every timing above was measured against it.
 token to `workflow` scope would let an Actions deploy write the stamp at deploy
 time, making it exact rather than one commit behind. Nothing needs it; H3's
 script becomes four lines of a workflow if he wants it.
+
+## H4 — boot: a page that says Blackline before the game exists (2026-09-27 02:00, scheduled run)
+
+**Measured first, and the reading changed the design.** A probe
+(`scripts/probe.mjs`) rebuilt each map with the four `GameMap` derivations
+instrumented. The bake is **827/905ms on the plant and 439/336 on the yard**,
+and almost none of it is the geometry:
+
+| | plant | yard |
+|---|---|---|
+| declaration (214 / 132 `addSolid`) | 112ms | 83ms |
+| `collision.build()` | 11ms | ~0ms |
+| `deriveClimbableSurfaces()` | 86ms | 6ms |
+| `deriveRoomEntries()` | 332ms | 104ms |
+| `deriveWardenGround()` | 333ms | 263ms |
+
+So the slice boundaries belong in the six-line "Finish" block both map builders
+already ended with, and nowhere else. Sub-slicing the two 330ms derivations
+would mean opening `mapground.js` and `maprooms.js` for no player-visible gain;
+three paints during a sub-second bake is what "the page paints" needs.
+
+**One build path, two drivers.** Both builders are generators now
+(`function* buildPlantMap`, `function* buildYardMap`), and the tail they shared
+is `src/mapfinish.js` — `finishSteps(map, expects)`, yielding a label after
+each of the five steps, in the order both maps already had and for the reasons
+both already carried (the routes are lit after the climb rule and before
+validation, B7). `maps/index.js` gains `bakeMap(id)`, which drives it a slice at
+a time and exposes `.step()`, `.slices` and `.map`; **`buildMap` is now that
+same generator run to the end**, so every check that wants a map sees exactly
+what it always saw and there is no "loading" build beside a real one to drift
+from it. `BAKE_SLICES` is 6 and a check holds a real bake to it.
+
+**The yield is a `MessageChannel` message.** Not `setTimeout` — Section 9 and
+15 ban it and F13's `no-source-file-calls-math-random-or-sets-a-timer` would go
+red on a second one. Not `requestAnimationFrame` — it never fires in a hidden
+document, and the Browser pane is one, so a boot that waited for a frame there
+would never finish. A posted message is a real task boundary that always
+arrives.
+
+**Boot is a promise, and nothing needed to know.** `bootWorld` is `async` and
+takes `onSlice`; `bootstrap()` awaits it and returns a refusal or null;
+`window.BLACKLINE` is published at the *end* of the `.then`. Every way into the
+game already waited for that object — the runner's
+`waitForFunction(() => !!window.BLACKLINE)`, `headless.mjs`'s `loadMap`, the
+console — so `scripts/` needed no change at all, which was the thing most
+likely to have gone wrong here.
+
+**The loading screen is markup.** `#bl-boot` in `index.html`, visible from the
+first paint, because a module that drew it would itself be waiting on the
+network at the one moment a loading screen is for. `src/bootscreen.js` only
+writes the stage line into it (`geometry · 1 of 6`, …) and takes it down.
+
+**The WebGL2 refusal cost 16 seconds and now costs nothing.** The first shape
+was `webgl2Supported(canvas)` in bootscreen.js, probing a throwaway canvas —
+throwaway because `canvas.getContext('webgl2', attributes)` hands back the
+context a canvas already has and *ignores the second argument*, so probing
+`#bl-canvas` would have silently dropped `antialias`, `powerPreference` and
+`stencil: false` from `createRenderer`. It worked, and the check measured
+**16,240ms**: a second SwiftShader device. Worse, the real boot would have paid
+it and then the renderer would have paid it again, on every page load, inside
+the runner's 60s harness timeout.
+
+So the WebGL2 test is now `createRenderer()` in `view.js` returning **null**
+instead of letting three's `Error creating WebGL context` reach the page as a
+stack trace. It costs nothing, it cannot disagree with itself, and it is the
+question that actually matters. `boot.js` hands `{ unsupported: 'webgl2' }` up
+and `main.js` shows the panel and publishes no harness. The same check now
+reads **19ms**.
+
+**Two messages, in one place.** `NOTICES` in `bootscreen.js` carries the title,
+body and whether it is fatal. WebGL2 is fatal: no button, and it takes the
+loading screen down with it, because "starting" behind a message saying nothing
+is starting is a lie. Touch is a warning with *Continue anyway*, and the game
+boots behind it. The classifier is a coarse pointer **and** no hover, so a
+touchscreen laptop — which plays this perfectly — is not caught.
+
+**Three new checks**, `src/tests/boot.js`, registered second, before the world:
+
+- `a-browser-without-webgl2-is-told-so-plainly` drives `createRenderer` with a
+  canvas returning null and one that throws, and asserts the *live* renderer is
+  what that same function built on `#bl-canvas` — so the refusal is on the path
+  the boot takes and not beside it. Then the panel: the text against `NOTICES`,
+  no way out, the loading screen down behind it, a box over 1x1. three logs
+  before it throws, so the two deliberate errors are **captured and asserted**
+  rather than silenced (the `tests/donedef.js` idiom) — they were 4 console
+  errors in a two-run subset before that, which is a defect even when every
+  check passes.
+- `a-touch-device-is-told-and-the-game-boots-behind-it` classifies a phone, a
+  touchscreen laptop and a desktop through a stubbed `matchMedia`, reads what
+  the real boot recorded in `debugState.bootGate`, then shows the notice, steps
+  the sim behind it, clicks the button and steps again.
+- `the-bake-yields-the-page-a-frame-to-paint` reads what the boot recorded
+  (`debugState.bootBake`: 6 slices, 6 yields, 578-614ms) *and* drives a fresh
+  bake, because a recording alone could be written by code that slices nothing.
+  It queues one marker per gap and requires that at slice N exactly N have run —
+  which is "count the frames during boot" in the only form a page can honour
+  after its own boot is history. **The first version of this measurement was
+  wrong**: it queued ten markers up front, and port messages queued together are
+  delivered together, so one turn read as five and the check said "2 of 5". One
+  marker per gap is the honest form. It also asserts `bakeMap` and `buildMap`
+  agree on boxes, ledges, rooms, routes and ground cells, which is what keeps
+  the two drivers one path.
+
+**Verified.** Both maps twice, exit 0, 0 red, 0 flaky, 0 console errors, 0
+context losses, 0 skips withheld. **Plant 184 passed / 1 failed / 8 not for this
+map (986,020ms and 980,584ms), yard 165 / 1 / 27 (658,688ms and 658,562ms)** —
+three more per map than H3's gate (181 and 162), which are these three. The
+pairs agree to 5,436ms on the plant (1%) and 126ms on the yard, and the one
+failure per map is the frame-budget check, skipped headless. Per check:
+`a-browser-without-webgl2-is-told-so-plainly` **4-16ms** (16,240 before the
+redesign), the touch one 1-3ms, and the bake one 1.0-1.9s — it drives two extra
+bakes on purpose. The real boot reports **6 slices and 6 yields over 630ms on
+the plant and 407ms on the yard**, which is the bake measured from inside the
+page rather than from a probe, and agrees with the probe's 827/905 and 439/336
+once the probe's own instrumentation is taken off.
+
+**Found.** Two things worth keeping. The bake is under a second on both maps,
+so **the loading screen is mostly for the first draw, not the bake** — headless,
+the first draw of an unseen view compiles for tens of seconds (TRAPS); on a real
+GPU both are fast, and which of the two a player actually waits on is a question
+only H11's bench can answer. And creating a second WebGL context under
+SwiftShader costs 16 seconds, which is worth knowing before anything else here
+reaches for one.
+
+**Left.** D53, all of it wording and timing Josh can overrule by looking.

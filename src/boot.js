@@ -15,7 +15,7 @@
 import { CONFIG } from './config.js';
 import { Freefly } from './freefly.js';
 import { Input } from './input.js';
-import { buildMap, listMaps } from './maps/index.js';
+import { bakeMap, listMaps, BAKE_SLICES } from './maps/index.js';
 import { createWardenGroundView } from './groundview.js';
 import {
   createRenderer, createScene, createCamera, createToonGradient, resizeView, watchContextLoss,
@@ -51,15 +51,25 @@ import { wireTestCommands } from './testcommands.js';
  * @param {() => object} root.match the current match record, read live
  * @param {string} root.mapId which registered map to build (D1); the URL's, or the default
  * @param {(id: string) => void} root.goToMap reload the page on another map, for the menu's map row
- * @returns {object} every singleton, by the name main.js keeps it under
+ * @param {(label: string, done: number, of: number) => Promise<void>} [root.onSlice]
+ *   awaited between bake slices (H4), so the loading screen gets drawn. Absent,
+ *   the bake runs straight through and this function still resolves.
+ * @returns {Promise<object>} every singleton, by the name main.js keeps it
+ *   under — or `{ unsupported: 'webgl2' }` when this browser cannot draw at all
+ *   (H4), in which case nothing was built and nothing was added to a scene.
  */
-export function bootWorld({
-  emitter, debugState, harness, initMatch, setPaused, setTimeScale, match, mapId, goToMap,
+export async function bootWorld({
+  emitter, debugState, harness, initMatch, setPaused, setTimeScale, match, mapId, goToMap, onSlice,
 }) {
   const canvas = document.getElementById('bl-canvas');
   if (!canvas) throw new Error('bootstrap: #bl-canvas not found');
 
+  // H4: no WebGL2, no renderer, and nothing below this line can be built. The
+  // refusal goes back up rather than throwing: main.js has a sentence for it,
+  // and a stack trace on the index.html error panel is not one.
   const renderer = createRenderer(canvas);
+  if (!renderer) return { unsupported: 'webgl2' };
+
   const scene = createScene();
   const camera = createCamera();
   scene.add(camera);
@@ -75,7 +85,26 @@ export function bootWorld({
 
   // D1: one map per page load, from the registry. Every system below takes
   // it at construction; another map is another page load (maps/index.js).
-  const map = buildMap(mapId, { gradientMap });
+  //
+  // H4: a slice at a time, awaiting `onSlice` between them, because the bake is
+  // ~900ms on the plant and a locked main thread means the loading screen the
+  // page has been told to draw is never drawn. The slice count is recorded so
+  // `the-bake-yields-the-page-a-frame-to-paint` can read what the real boot did
+  // rather than only what a bake it drove itself does.
+  const bake = bakeMap(mapId, { gradientMap });
+  const bakeStart = performance.now();
+  let label;
+  let yields = 0;
+  while ((label = bake.step()) !== null) {
+    if (onSlice) {
+      await onSlice(label, bake.slices, BAKE_SLICES);
+      yields++;
+    }
+  }
+  const map = bake.map;
+  debugState.bootBake = {
+    map: mapId, slices: bake.slices, yields, ms: Math.round(performance.now() - bakeStart),
+  };
   scene.add(map.root);
   // Block A7: the Warden's reachable ground, drawable from the F4 panel.
   // Hidden by default; `test:toggle-warden-ground` shows it.

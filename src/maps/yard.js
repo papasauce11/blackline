@@ -78,8 +78,7 @@ import { CONFIG } from '../config.js';
 import { GameMap } from '../mapkit.js';
 import { CONTAINER, TIERS, placeSites, placeSpawns, placeLights, placeWaypoints, placeRoutes } from './yarddata.js';
 import { placeDecals } from './yarddecals.js';
-import { validateMap } from '../mapvalidate.js';
-import { lightRoutes } from '../maproutelight.js';
+import { finishSteps } from '../mapfinish.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
@@ -166,9 +165,11 @@ export const BAYS = {
  * @param {string} options.id the registry's id for this map (`yard`)
  * @param {string} options.name what the menu and the briefing call it
  * @param {THREE.DataTexture} options.gradientMap 4-step toon ramp from main.js
+ * @yields {{label: string}} one slice of the bake, so a caller can hand the
+ *   browser a frame between them (H4); `buildMap` drives it straight through.
  * @returns {GameMap}
  */
-export function buildYardMap({ id, name, gradientMap }) {
+export function* buildYardMap({ id, name, gradientMap }) {
   // Dressed in the corrugated / wet / paint / glass finishes (E5).
   const map = new GameMap(gradientMap, id, name, { finishes: M.yardFinishes });
   map.shell = { ...YARD };
@@ -364,12 +365,10 @@ export function buildYardMap({ id, name, gradientMap }) {
   // derives from them, so they can go on last.
   placeDecals(map);
 
-  map.collision.build();
-  map.deriveClimbableSurfaces();
-  lightRoutes(map);
-  map.deriveRoomEntries();
-  map.deriveWardenGround();
-  validateMap(map, EXPECTS);
+  // Declaration costs 83ms and the tail below costs 373, so the tail is where
+  // a bake lets go of the main thread (H4, mapfinish.js).
+  yield { label: 'geometry' };
+  yield* finishSteps(map, EXPECTS);
 
   return map;
 }

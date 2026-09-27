@@ -37,8 +37,7 @@ import { CONFIG } from '../config.js';
 import { GameMap } from '../mapkit.js';
 import { placeSites, placeSpawns, placeLights, placeWaypoints, placeRoutes } from './plantdata.js';
 import { placeDecals } from './plantdecals.js';
-import { validateMap } from '../mapvalidate.js';
-import { lightRoutes } from '../maproutelight.js';
+import { finishSteps } from '../mapfinish.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
@@ -107,9 +106,11 @@ const EXPECTS = {
  * @param {string} options.id the registry's id for this map (`plant`)
  * @param {string} options.name what the menu and the briefing call it
  * @param {THREE.DataTexture} options.gradientMap 4-step toon ramp from main.js
+ * @yields {{label: string}} one slice of the bake, so a caller can hand the
+ *   browser a frame between them (H4); `buildMap` drives it straight through.
  * @returns {GameMap}
  */
-export function buildPlantMap({ id, name, gradientMap }) {
+export function* buildPlantMap({ id, name, gradientMap }) {
   // Dressed in the concrete / paint / glass finishes (E4); the yard is E5's.
   const map = new GameMap(gradientMap, id, name, { finishes: M.finishes });
   map.shell = { x0: -HALF_W - WALL, x1: HALF_W + WALL, z0: -HALF_D - WALL, z1: HALF_D + WALL };
@@ -528,17 +529,13 @@ export function buildPlantMap({ id, name, gradientMap }) {
   placeDecals(map);
 
   // -------------------------------------------------------------------------
-  // Finish
+  // Finish. Everything above is declaration and costs 112ms; the six steps
+  // below cost 762, so they are where a bake has to be able to let go of the
+  // main thread (H4, mapfinish.js).
   // -------------------------------------------------------------------------
 
-  map.collision.build();
-  map.deriveClimbableSurfaces();
-  // After the rule, because the routes are lit where the rule says a body
-  // arrives (B7), and before validation, which counts what was lit.
-  lightRoutes(map);
-  map.deriveRoomEntries();
-  map.deriveWardenGround();
-  validateMap(map, EXPECTS);
+  yield { label: 'geometry' };
+  yield* finishSteps(map, EXPECTS);
 
   return map;
 }
