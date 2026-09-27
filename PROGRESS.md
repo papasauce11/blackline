@@ -9168,6 +9168,15 @@ the plant and 407ms on the yard**, which is the bake measured from inside the
 page rather than from a probe, and agrees with the probe's 827/905 and 439/336
 once the probe's own instrumentation is taken off.
 
+**And verified on the deploy.** Pages rebuilt at `d191a9b` and
+`npm run suite -- --runs 1 --regression --url https://papasauce11.github.io/blackline/`
+ran **29/29 on the plant and 29/29 on the yard, exit 0, 0 console errors**. That
+is worth more than a repeat of the local gate: the runner reaches the game
+through `waitForFunction(() => !!window.BLACKLINE)`, so a green regression set
+against the live copy is proof that the *async* boot publishes the harness
+properly over a real network, on the build a friend will open — the one thing
+about H4 that could have been fine locally and broken in the place it matters.
+
 **Found.** Two things worth keeping. The bake is under a second on both maps,
 so **the loading screen is mostly for the first draw, not the bake** — headless,
 the first draw of an unseen view compiles for tens of seconds (TRAPS); on a real
