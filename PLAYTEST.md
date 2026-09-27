@@ -82,6 +82,23 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The menu says which build you are on (H3, 2026-09-27)
+
+Bottom of the main menu, under the *map* row, small and dim. On
+https://papasauce11.github.io/blackline/ it reads a short commit and a
+date — `97354db · 2026-09-27` — and that is the line to ask a friend for
+when they report something, because it says exactly which push they were
+playing. Run it from this PC and it opens with `dev` instead, because the
+host decides that, not a field in the file (D52). `build unknown` means
+`version.json` did not load; that also shows as a console error, on
+purpose. `the-build-stamp-is-a-real-commit-the-site-serves` proves the
+file is served and well formed and that the page loaded it;
+`the-main-menu-footer-names-the-build-it-is-running` proves the footer
+draws it, at a size and opacity a check measures. **What is left for
+you:** whether it is legible at that size, and whether you would rather
+it were on the pause overlay too (H12's *Copy report* will carry the
+commit either way).
+
 ### The plant is concrete, paint and glass (E4, 2026-09-21)
 
 The plant only (`?map=plant`, the default); the yard is still flat until

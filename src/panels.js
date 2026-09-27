@@ -15,6 +15,7 @@
 
 import { rng, SETTINGS } from './config.js';
 import { COMPETITIVE, FREEROAM } from './matchstate.js';
+import { loadVersion, versionLabel } from './version.js';
 import { createHud } from './ui/hud.js';
 import { createMenu } from './ui/menu.js';
 import { createScoreboard } from './ui/scoreboard.js';
@@ -65,6 +66,8 @@ export function createPanels({ initMatch, setPaused, objective, audio, match, ma
   // picks a configuration rather than a code path.
   const menu = createMenu({
     maps,
+    // H3: which build this is, in the main menu's footer.
+    version: () => versionLabel(),
     mapId: () => map().id,
     onMap: (id) => goToMap(id),
     onFirstGesture: () => audio().unlock(),
@@ -86,6 +89,11 @@ export function createPanels({ initMatch, setPaused, objective, audio, match, ma
       objective().resetMatch();
     },
   });
+
+  // H3: the stamp is a fetch, and the menu is drawn before it lands. Re-draw
+  // the main page when it does, and only that page: a settings page open at
+  // the time would be thrown away, and a check mid-run would lose its DOM.
+  loadVersion().then(() => { if (menu.page === 'main') menu.render(); });
 
   return { hud, scoreboard, menu, briefing };
 }

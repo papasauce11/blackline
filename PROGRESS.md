@@ -8938,3 +8938,106 @@ served, docs included; it was public on GitHub already.
 **Found.** The orphaned runner from 2026-09-18 (pid 4792) is still alive and
 was measured against in every run tonight; HANDOFF's trap stands.
 
+
+## H3 — a version you can see, with no workflow to write it (2026-09-27 02:00, scheduled run)
+
+**The job.** "A `version.json` at the root written by the deploy workflow
+(commit, date) and by `npm run suite` locally as `dev`; the main menu's footer
+shows it; the bug report (H12) includes it." Written before H2 discovered there
+is no deploy workflow and cannot be one from this machine: the CLI token has
+`repo` and not `workflow` scope, so Pages is a **branch deploy** of
+`phases-14-45` and the only thing that reaches the deployed root is a commit.
+Both halves of the done-when were therefore built differently, and the
+difference is D52 rather than a quiet substitution.
+
+**The commit carries the stamp.** `scripts/version.mjs` (`npm run stamp`, 116
+lines) writes `version.json` at the root from git — `commit`, `short`, the
+committer date, `branch` — and **refuses to write while the working tree is
+dirty**. That refusal is the whole design, not a safety net: it is what makes
+the script safe to call at the top of `scripts/suite.mjs`, which it now is. A
+gate run on a clean tree stamps HEAD; a verify in the middle of a job leaves the
+file alone rather than dirtying the tree it is judging, and rather than writing
+the commit *before* the work and calling it the build. The suite says which on
+stderr (`suite: version.json: already current (97354db on phases-14-45)`, or
+`the working tree is dirty`). The exact stamp for a job's own commit comes from
+`npm run stamp` in the `Record <job>` commit, exactly the way that commit
+already writes the job's hash into QUEUE.md — so the idiom is one the routine
+already runs, and both routine prompts now say so.
+
+It writes the same bytes for the same HEAD, so it is idempotent: there is no
+`stampedAt`, deliberately, because a timestamp would make every gate run dirty
+the tree. A checkout with no `.git` gets no file and no error.
+
+**"dev" is the host's answer, not a field.** `src/version.js` (108 lines,
+importing nothing) fetches the file once — `new URL('../version.json',
+import.meta.url)`, so it resolves against the module and not the document, and
+`cache: 'no-store'`, because a cached stamp on the deploy is a footer naming
+last week's build. It exports `VERSION` (mutated in place, so H12's report never
+holds a stale copy), `loadVersion()` (memoised), `isDevHost()` and
+`versionLabel(version, host)`. A `channel` baked in at stamp time would be
+whatever the last person to stamp happened to have and would say `build` on a
+local server serving the same bytes; `location.hostname` cannot be wrong.
+localhost, `127.0.0.1`, `file://`, `.localhost` and `.test` are a working copy
+and the label opens with `dev`; anything else is the deploy. So the footer reads
+`dev · 97354db · 2026-09-27` from `npx serve` and the suite, and
+`97354db · 2026-09-27` on Pages — which satisfies the "locally as `dev`" half
+without the suite having to write anything.
+
+`versionLabel` takes its version and host as arguments so a check can read every
+branch of it, including the unstamped one. It cannot be staged by fetching a path
+that is not there: that 404 is a browser console error and the runner counts them
+(the same reason index.html carries an empty favicon, H2). A missing stamp being
+loud is the point — better than a quiet "unknown" in a corner — so the fallback
+is tested by argument and never by taking the file away.
+
+**The footer.** `ui/menu.js` gains one `.footer` div in `_renderMain()` and
+`_version()`, which reads `handlers.version()`. A getter and not a value because
+the stamp arrives over the network after the menu is first drawn: `panels.js`
+passes `version: () => versionLabel()` and re-renders on `loadVersion()`,
+guarded to `menu.page === 'main'` so a settings page open at the time is not
+thrown away and a check mid-run does not lose its DOM. `ui/` keeps its one
+import (Section 3.1) — the label comes down from the root, the module does not
+go up.
+
+**Two new checks**, `src/tests/version.js`, registered after `registerSettings`:
+
+- `the-build-stamp-is-a-real-commit-the-site-serves` fetches `version.json`
+  relative to the page — so under `--url` it is the **deployed** file being
+  judged, which is as close as this gets to the workflow half of the done-when —
+  and holds it to a 40-hex commit, a `short` that is its first seven, a date
+  that parses and is not in the future, and a named branch; then that the page
+  loaded that file (`VERSION.source === 'stamp'`, every field equal); then every
+  branch of `versionLabel` and both directions of `isDevHost`. 33ms.
+- `the-main-menu-footer-names-the-build-it-is-running` opens the real menu,
+  reads `#bl-version`, and requires it to equal `versionLabel()` and to contain
+  the commit; then that it is *drawn* — a bounding box over 1x1, computed opacity
+  over 0.2, not `display: none`, inside the card's own width — because a footer
+  nobody reporting a bug can read is not a version you can see. Then a trip
+  through the settings page and back, since the stamp lands after boot and only
+  a re-render shows it; and that neither the settings page nor the pause overlay
+  (the same surface, `menu.js`) has gained it. 9ms.
+
+Neither asserts the stamp names HEAD. A page cannot know HEAD, and by design it
+sometimes does not: between a job's commit and the record commit that re-stamps
+it, the file names the commit before the work. What is asserted is that it is a
+real, well-formed commit of a named branch.
+
+**Verified.** Both maps twice, exit 0, 0 red, 0 flaky, 0 console errors, 0
+context losses, 0 skips withheld. **Plant 181 passed / 1 failed / 8 not for
+this map (977,468ms and 978,010ms), yard 162 / 1 / 27 (654,280ms and
+655,418ms)** — two more per map than the gate that opened the run (179 and
+160), which are these two. The pairs agree to 542ms on the plant (0% of the
+longest) and 1,138ms on the yard, and the one failure per map is the
+frame-budget check, skipped headless. The new checks read **8-9ms and 2-3ms**
+on the plant and 58ms and 3ms on the yard (the 58 is the first fetch of the
+run paying for the connection, not the check). The suite printed
+`version.json: the working tree is dirty` on every run and left the file
+alone, which is the refusal working.
+
+**Found.** Nothing new. The orphaned runner from 2026-09-18 (pid 4792) is still
+alive and every timing above was measured against it.
+
+**Left.** D52's alternative, one line for Josh: a browser login widening the
+token to `workflow` scope would let an Actions deploy write the stamp at deploy
+time, making it exact rather than one commit behind. Nothing needs it; H3's
+script becomes four lines of a workflow if he wants it.

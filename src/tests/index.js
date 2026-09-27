@@ -48,6 +48,7 @@ import { register as registerDefuseLine } from './defuseline.js';
 import { register as registerGroundView } from './groundview.js';
 import { register as registerFreeRoam } from './freeroam.js';
 import { register as registerSettings } from './settings.js';
+import { register as registerVersion } from './version.js';
 import { register as registerDebugGate } from './debuggate.js';
 import { register as registerBriefing } from './briefing.js';
 import { register as registerRoundEnd } from './roundend.js';
@@ -110,6 +111,7 @@ export function registerAutoTests(debugTools) {
   registerGroundView(debugTools);
   registerFreeRoam(debugTools);
   registerSettings(debugTools);
+  registerVersion(debugTools);
   registerDebugGate(debugTools);
   registerBriefing(debugTools);
   registerRoundEnd(debugTools);

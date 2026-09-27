@@ -42,6 +42,7 @@ const CSS = `
 #bl-menu .row .value { opacity: 1; color: ${hex(P.hazardOrange)}; cursor: pointer; }
 #bl-menu input[type=range] { width: 150px; accent-color: ${hex(P.shadeTeal)}; }
 #bl-menu .back { margin-top: 20px; opacity: 0.6; }
+#bl-menu .footer { margin-top: 22px; font-size: 10px; letter-spacing: 0.18em; opacity: 0.4; }
 `;
 
 export class Menu {
@@ -53,6 +54,7 @@ export class Menu {
    * @param {{id:string,name:string}[]} [handlers.maps] every map the registry offers (D1)
    * @param {()=>string} [handlers.mapId] the map this page is on
    * @param {(id:string)=>void} [handlers.onMap] the map row's click: the next map in the list
+   * @param {()=>string} [handlers.version] the build this page is (H3), for the footer
    */
   constructor(handlers) {
     this.handlers = handlers || {};
@@ -144,6 +146,17 @@ export class Menu {
     return { maps, current };
   }
 
+  /**
+   * The build stamp for the footer (H3). A string the root hands down rather
+   * than a module this imports, so `ui/` keeps its one import (Section 3.1),
+   * and a getter rather than a value because the stamp arrives over the network
+   * after the menu is first drawn — `panels.js` re-renders when it lands.
+   */
+  _version() {
+    if (!this.handlers.version) return '';
+    return String(this.handlers.version() || '');
+  }
+
   _renderMain() {
     const { maps, current } = this._maps();
     this.root.innerHTML = `
@@ -155,6 +168,7 @@ export class Menu {
         <button data-action="settings">Settings</button>
         <div class="row"><span>map</span>
           <span class="value" id="bl-map" title="${maps.map((entry) => entry.name).join(' / ')}">${current.name}</span></div>
+        <div class="footer" id="bl-version">${this._version()}</div>
       </div>`;
     // D1: the map row cycles the registry. Another map is another page
     // load (maps/index.js), so the click hands the id up and the page goes;

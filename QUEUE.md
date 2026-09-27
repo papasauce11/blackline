@@ -135,10 +135,10 @@ one setting only Josh can click; everything else here proceeds.
 
 - [x] **H1 (S)** The remote. — done 2026-09-27, under Done.
 - [x] **H2 (M)** GitHub Pages from the working branch. — done 2026-09-27, under Done.
-- [ ] **H3 (S)** A version you can see. A `version.json` at the root written
-  by the deploy workflow (commit, date) and by `npm run suite` locally as
-  `dev`; the main menu's footer shows it; the bug report (H12) includes it.
-  *done-when:* a check reads the footer; the workflow writes the file.
+- [x] **H3 (S)** A version you can see. — done 2026-09-27, under Done. **There
+  is no deploy workflow and cannot be one from here** (H2: the CLI token has no
+  `workflow` scope), so the commit carries the stamp and the *host* decides
+  `dev`: **D52**.
 - [ ] **H4 (M)** Boot. A loading screen while the map bakes — the bake
   yielded to the frame in slices so the page paints — a plain message when
   WebGL2 is missing, and one for touch devices. *done-when:* a check boots
@@ -177,7 +177,9 @@ one setting only Josh can click; everything else here proceeds.
   and `PLAYTEST.md` stops asking Josh to run it by hand.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
-  the clipboard as text. *done-when:* a check reads the produced text.
+  the clipboard as text. The version is `VERSION` / `versionLabel()` in
+  `src/version.js` (H3) — quote the commit, not just the label.
+  *done-when:* a check reads the produced text.
 - [ ] **H13 (M)** Replays. Record the per-step input codes with map and
   seed; `?replay=` or a dropped file replays deterministically; files under
   `tests/replays/` are run by the suite as checks that assert their recorded
@@ -365,6 +367,16 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H3** A version you can see — `version.json` at the root (commit, short,
+  committer date, branch), written by `scripts/version.mjs` / `npm run stamp`
+  and **only from a clean tree**, so `npm run suite` stamps HEAD at the gate
+  and leaves the file alone mid-job; the main menu's footer reads
+  `dev · 97354db · 2026-09-27` locally and `97354db · 2026-09-27` on Pages,
+  because the *host* decides dev, not a field. No deploy workflow exists
+  (H2), so the `Record <job>` commit runs `npm run stamp` alongside writing
+  the job's hash — D52. `the-build-stamp-is-a-real-commit-the-site-serves`
+  and `the-main-menu-footer-names-the-build-it-is-running` — `PENDING`,
+  2026-09-27, scheduled run.
 - **H2** GitHub Pages from the working branch — a branch deploy of
   `phases-14-45` (`.nojekyll`, the branch allowed in the `github-pages`
   environment; an Actions workflow was built and refused: the CLI token has

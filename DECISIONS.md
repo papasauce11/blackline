@@ -110,6 +110,45 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D52 — The build stamp with no workflow to write it
+H3 asked for `version.json` to be written "by the deploy workflow (commit,
+date) and by `npm run suite` locally as `dev`". H2 found there is no workflow
+and cannot be one from this machine: the CLI token has `repo` and not
+`workflow` scope, so Pages is a **branch deploy** of `phases-14-45` and the
+only thing that reaches the deployed root is a commit. So both halves were
+built differently, and this records it rather than quietly doing something
+else:
+
+- **The commit carries the stamp.** `scripts/version.mjs` (`npm run stamp`)
+  writes `version.json` from git — commit, short, the committer date, branch —
+  and **refuses to write while the working tree is dirty**. That is what makes
+  it safe to call at the top of `npm run suite`, which it now is: a gate stamps
+  HEAD, and a verify in the middle of a job leaves the file alone rather than
+  dirtying the tree it is judging. The stamp for a job's *own* commit comes
+  from `npm run stamp` in the `Record <job>` commit, exactly the way that
+  commit already writes the job's hash into QUEUE.md. Between the two, the
+  deployed stamp names the commit before the work — stated, and the reason the
+  checks assert the stamp is *well formed* and never that it is HEAD, which a
+  page cannot know anyway.
+- **"dev" is the host's answer, not a field.** A `channel` baked in at stamp
+  time is whatever the last person to stamp happened to have, and would say
+  `build` on a local server serving the same bytes. So `src/version.js` decides
+  from `location.hostname`: localhost, `127.0.0.1`, `file://`, a `.localhost`
+  or `.test` name are a working copy and the footer opens with `dev`; anywhere
+  else is the deploy. Locally the footer reads `dev · 97354db · 2026-09-27`,
+  on Pages `97354db · 2026-09-27`, and with no stamp `build unknown`.
+- **A missing stamp is loud.** The fetch of an absent `version.json` is a
+  browser console error, which the runner counts — the same reason index.html
+  carries an empty favicon (H2). Better than a quiet "unknown" in a corner.
+
+Alternative not taken: ask Josh for a browser login so the token gains
+`workflow` scope and an Actions deploy can write the file at deploy time. It
+is one click and would make the stamp exact rather than one commit behind, but
+it is a change to what the deploy *is* — H2 already moved it to a branch
+deploy — and nothing here needs it. Say the word and H3's script becomes four
+lines of a workflow.
+**decided:**
+
 ### D46 — Post-processing as built: a bloom on the emissives, a vignette, a switch
 E6 (2026-09-21), on D10's recommendation now that E1-E3 have landed: a
 vignette and a light bloom on the emissives only, if the frame budget

@@ -23,6 +23,10 @@
 //                          [--stall SECONDS] [--stall-wait SECONDS]
 //                          [--url https://papasauce11.github.io/blackline/]
 //
+// It stamps `version.json` first (H3, scripts/version.mjs) and says what it
+// did on stderr. That only ever writes from a clean tree, so a gate stamps
+// HEAD and a verify in the middle of a job leaves the file alone.
+//
 // --url points the run at a deployed copy instead of serving this checkout:
 // no local server is started and every map is loaded from that origin (H2).
 // The Deliberately-red list and the skip census are still read from this
@@ -90,6 +94,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { createGuard, otherRunners } from './watchdog.mjs';
+import { stampVersion, VERSION_FILE } from './version.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -298,6 +303,16 @@ async function main() {
       + ` Its headless Chrome competes for the same cores, so every timing below is measured against it.`
       + ` End it with: taskkill /PID ${r.pid} /T /F\n`);
   }
+
+  // H3: the build stamp the page's footer reads. It writes only from a clean
+  // tree, so a gate at the top of a run stamps HEAD and a verify in the middle
+  // of a job leaves the file alone rather than dirtying the tree it is judging
+  // - the stamp for the work itself comes from `npm run stamp` in the record
+  // commit, where HEAD is the job. Never fatal: a checkout without git still
+  // runs the suite, and the footer says so.
+  const stamp = stampVersion(ROOT);
+  process.stderr.write(`suite: ${VERSION_FILE}: ${stamp.reason}`
+    + `${stamp.version ? ` (${stamp.version.short} on ${stamp.version.branch})` : ''}\n`);
 
   const { server, port } = BASE_URL ? { server: null, port: null } : await serve();
   if (server) guard.attach({ server });
