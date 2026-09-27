@@ -9034,6 +9034,17 @@ run paying for the connection, not the check). The suite printed
 `version.json: the working tree is dirty` on every run and left the file
 alone, which is the refusal working.
 
+**And verified on the deploy**, which is the half only the live site can
+answer. After the record commit stamped `2af44b2` — the H3 commit itself, so
+the design worked end to end — Pages rebuilt and
+`npm run suite -- --runs 1 --url https://papasauce11.github.io/blackline/`
+ran both new checks against it: **2/2 on the plant and 2/2 on the yard, 0
+console errors**, reading `/blackline/version.json: 2af44b2 on phases-14-45`
+with the footer at `2af44b2 · 2026-09-27` — no `dev`, because the host is not
+local. So the served root carries the stamp, the relative URL resolves under
+the `/blackline/` base, and the host test does the job a `channel` field would
+have got wrong.
+
 **Found.** Nothing new. The orphaned runner from 2026-09-18 (pid 4792) is still
 alive and every timing above was measured against it.
 
