@@ -1423,4 +1423,4 @@ repository on GitHub (any name, no README, public if friends are to play from
 it), and in its *Settings → Pages* set **Source: GitHub Actions**. Then paste
 the HTTPS URL here. The first push may ask for your GitHub login once in the
 session that runs H1; after that the credential manager holds it.
-**decided:**
+**decided:** https://github.com/papasauce11/blackline - Josh, 2026-09-26. Pages was already set up; the session made it a **branch deploy** of `phases-14-45` (the CLI token cannot push workflow files, so an Actions deploy would have needed Josh to re-authorise it) and added the branch to the `github-pages` environment. The game is at https://papasauce11.github.io/blackline/.

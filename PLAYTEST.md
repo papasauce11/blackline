@@ -8,6 +8,12 @@ suite`) - they hold the mechanics; you hold the rest.
 
 ## Run it
 
+**Play it at https://papasauce11.github.io/blackline/** — the working branch, rebuilt on
+every push the routine makes (H2, 2026-09-27), so it is always the last
+green commit. Send that link to anyone; it needs a desktop browser with
+WebGL2 and a keyboard and mouse. The rest of this section is for running
+it from this PC:
+
 ```bash
 npx serve -l 5173 .
 ```

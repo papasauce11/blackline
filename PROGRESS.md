@@ -8903,3 +8903,38 @@ G1 and G2 were for. The mechanism behind the ~184s is open and deliberately
 unnamed; if it is ever worth knowing, the experiment is a pair of runs on a
 fresh page each versus a shared one, and the orphaned 09-18 runner should be
 dead first.
+
+## H1, H2 — on GitHub, and live (2026-09-26/27)
+
+Josh made the repo and pasted its URL (D51); Pages was already set to
+GitHub Actions.
+
+**H1.** `origin` is https://github.com/papasauce11/blackline; `main` pushed
+first (the default branch), then `phases-14-45`. The GitHub CLI was already
+logged in, so a repo-local credential helper (`credential.https://github.com.
+helper = !gh auth git-credential`, `.git/config` only) lets an unattended run
+push without the Windows credential manager's window. Both routine prompts
+now push after every commit, never `main`, never force.
+
+**H2.** Built as an Actions workflow first — stage `index.html` and `src/`,
+deploy — and GitHub refused the push: *refusing to allow an OAuth App to
+create or update workflow without `workflow` scope*. The CLI token has
+`repo`, not `workflow`, and widening it is a browser login only Josh can do.
+The rejected commit had never left this machine, so it was rebuilt without
+the workflow, and Pages switched to a **branch deploy** of `phases-14-45`:
+GitHub rebuilds on every push, no file of ours involved. `.nojekyll` keeps
+the build from treating the repo as a Jekyll site. The `github-pages`
+environment allowed only `main` to deploy; the working branch is added.
+`index.html` gains an empty favicon — the suite's server answers
+`/favicon.ico` with 204, every other host with a 404 that is a console error.
+`scripts/suite.mjs --url <origin>` runs the gate against a deployed copy.
+
+**Verified.** Local, both maps twice: plant 179 passed / 1 failed / 8 not for
+this map, yard 160 / 1 / 27, identical, 0 console errors. Live, the first
+build (`ab9cc59`, *built*, no error): the regression set 29/29 on plant and
+29/29 on yard against the Pages URL, 0 console errors. The whole repo is
+served, docs included; it was public on GitHub already.
+
+**Found.** The orphaned runner from 2026-09-18 (pid 4792) is still alive and
+was measured against in every run tonight; HANDOFF's trap stands.
+

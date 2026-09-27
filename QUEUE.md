@@ -133,19 +133,8 @@ line where a player would notice it.
 Hosting is GitHub Pages (D50). Two jobs wait on **D51** — the repo's URL and
 one setting only Josh can click; everything else here proceeds.
 
-- [ ] **H1 (S)** The remote. `blocked: D51` `git remote add origin <D51>`;
-  push `main` and `phases-14-45`; the first push may need Josh's credentials
-  once, after which the credential manager holds them and the routine's
-  step 7 pushes. *done-when:* `git remote -v` shows origin, both branches
-  are on it, and `HANDOFF.md`'s Merge row says where the game is hosted.
-- [ ] **H2 (M)** GitHub Pages from the working branch. `blocked: D51` A
-  workflow (`.github/workflows/pages.yml`, `actions/deploy-pages`) that
-  deploys the repo root on every push of `phases-14-45`; the import map's
-  CDN and same-origin modules need nothing else. `scripts/suite.mjs` gains
-  `--url <origin>` so the gate can be pointed at the live site.
-  *done-when:* the Pages URL loads the game, `npm run suite -- --url <pages>
-  --regression` is green on both maps against the live site, and
-  `PLAYTEST.md`'s Run it section leads with the URL.
+- [x] **H1 (S)** The remote. — done 2026-09-27, under Done.
+- [x] **H2 (M)** GitHub Pages from the working branch. — done 2026-09-27, under Done.
 - [ ] **H3 (S)** A version you can see. A `version.json` at the root written
   by the deploy workflow (commit, date) and by `npm run suite` locally as
   `dev`; the main menu's footer shows it; the bug report (H12) includes it.
@@ -376,6 +365,17 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H2** GitHub Pages from the working branch — a branch deploy of
+  `phases-14-45` (`.nojekyll`, the branch allowed in the `github-pages`
+  environment; an Actions workflow was built and refused: the CLI token has
+  no `workflow` scope), an empty favicon so no host 404s, and `npm run suite
+  -- --url <origin>`. Live: plant 29/29 and yard 29/29 of the regression set
+  against https://papasauce11.github.io/blackline/, 0 console errors — `ab9cc59`, 2026-09-27, Josh's
+  session.
+- **H1** The remote — https://github.com/papasauce11/blackline, `main` and
+  `phases-14-45` pushed, a repo-local credential helper (`gh auth
+  git-credential`) so the routine pushes unattended; both routine prompts push
+  after every commit — 2026-09-26, Josh's session.
 - **F16** Every run-pair on record, and a correction to F11. F11 closed earlier
   the same run with a finding attached - two runs of a map share one page, so
   the renderer tail it had called "never paid, because the page is torn down

@@ -16,6 +16,8 @@ Built to `BLACKLINE_SPEC.md`, which is the contract for this repo.
 
 ## Running it
 
+**Play it: https://papasauce11.github.io/blackline/** — the working branch, redeployed on every push.
+
 Playing it rather than building it? `PLAYTEST.md` is the short version:
 what to look at, what only eyes can judge, what is known to be wrong.
 
@@ -27,7 +29,7 @@ npx serve
 
 Then open the URL it prints (usually `http://localhost:3000`).
 
-It is a static site, so it deploys to Vercel with no configuration.
+It is a static site: GitHub Pages serves the `phases-14-45` branch as it is (a `.nojekyll` at the root, nothing else).
 
 ### The playtest build, and the debug build
 
