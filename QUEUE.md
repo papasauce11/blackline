@@ -377,7 +377,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   `getContext` probe it replaced; a touch device is told and boots behind a
   dismissible one. `a-browser-without-webgl2-is-told-so-plainly`,
   `a-touch-device-is-told-and-the-game-boots-behind-it`,
-  `the-bake-yields-the-page-a-frame-to-paint` — `PENDING`, 2026-09-27,
+  `the-bake-yields-the-page-a-frame-to-paint` — `d191a9b`, 2026-09-27,
   scheduled run.
 - **H3** A version you can see — `version.json` at the root (commit, short,
   committer date, branch), written by `scripts/version.mjs` / `npm run stamp`
