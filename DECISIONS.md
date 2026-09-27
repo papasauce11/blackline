@@ -110,6 +110,47 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D54 — Easy's aim cone is 4.0 degrees, not 5.0
+F17. A fresh seed turned the difficulty check red on the yard: easy at 16m,
+119 rounds, 2 hits, the Shade alive after 30s of being shot at in the open.
+Reading the shots, it is the cone and nothing else — at 16m the Shade's box
+subtends ±1.22 degrees against a ±5 degree draw, the draw is held for a
+whole burst of 3–7 rounds, so **one burst in six is on the body and a fight
+is a run of coins**. Mean 6.3s, and about one engagement in sixty past 30s;
+the check runs 48 of them a run, so roughly one fresh-seed audit in four
+should have found this.
+
+**Taken:** `ai.difficulty.easy.aimErrorDegrees` **5.0 → 4.0**, nothing else
+touched. Over 40 seeds that is hit fraction 0.148 → 0.232, mean kill at 16m
+6.29s → 3.51s, worst 26.05s → 13.8s, and easy is still plainly the slowest
+preset at both ranges (16m: 3.88s against medium's 1.40 and hard's 0.93 on
+the plant).
+
+This is a number, not a rule — a player can do exactly what they could
+before — so it is provisional and one line reverses it. What to weigh if you
+want easy easier again: 5.0 is not "easy", it is "the Warden cannot reliably
+kill you at range at all", which is a different and worse thing; and the
+tail, not the average, is what a player actually meets.
+
+**Two alternatives were measured and rejected, and both are worth knowing
+about:**
+
+- **3.5 degrees** shortens the tail further (worst 11.9s) but takes easy's
+  kill at 8m to 0.71s against medium's 0.51s. The presets already separate
+  by aim only at range (D33); 3.5 spends most of what is left up close.
+- **Drawing the hold once per round instead of once per burst** is the
+  better idea on paper and was built and then reverted. It kills the tail at
+  *unchanged* accuracy — same cone, same hit fraction, same mean, just no
+  clustering — which is exactly C5's argument one wavelength down. But once
+  a bad round is no longer followed by five more bad ones, **medium and hard
+  both saturate at 8m**: 32 of 32 hits, 0.39s each, a dead heat, because the
+  body is wider than either cone at that range and the kill becomes four
+  rounds at 600rpm. The check caught it. Separating those two up close is
+  **K6**, and if K6 finds a way to do it that is not accuracy, the per-round
+  draw becomes available again and is probably right.
+
+**decided:**
+
 ### D53 — What boot says, and what it refuses
 H4 as built. Nothing here changes a rule — a player who can run the game sees
 the same game — so it is provisional, and all of it is wording and timing you

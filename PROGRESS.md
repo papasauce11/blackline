@@ -9308,3 +9308,131 @@ footer and a loading screen as of today, open
 https://papasauce11.github.io/blackline/ once on the real GPU: D53's
 wording is the first thing a friend reads, and whether the wait is the
 bake or the first draw is the question H4 left for eyes.
+
+---
+
+## F17 — a fresh seed turned the yard's difficulty check red, and the cone was the reason (2026-09-27 17:00, scheduled run)
+
+**Reproduced first, exactly.** The 2026-09-27 audit's red was
+`each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` on the **yard**
+under `--query "seed=20260927"`: *"easy at 16m: seed 0: not dead after 30s of
+ENGAGE (2 of 120 shots hit, state engage)"*. Seed 0 there is
+`exploreSeed('difficulty-preset-0', 0xd1f1)` under that URL seed, which is
+**1637054825**; a probe drove that one engagement and read every round it
+fired. It reproduces to the round: 13.63s to engage, then **23 bursts, 119
+rounds, 2 hits, alive at 30s**.
+
+**What the shots said.** Of the 119 rounds, measured as the offset where each
+ray passes the Shade's range: 30 were off across the lane only, 24 off
+vertically only, 65 off in both, and **not one** came within 0.35m across and
+0.4m up of the torso. Seven struck the ground at **11.5–14.9m**, short of a
+16m target — which is exactly where a 5-degree-low round from an eye at 1.6m
+aiming at a torso at 1.17m meets the floor (14.0m). So nothing on the yard ate
+the rounds and no geometry is involved: the misses are the aim cone and only
+the aim cone.
+
+**The mechanism, and why the mean hid it.** The Shade's box subtends
+**±1.22 degrees** across and spans −4.18 to +2.25 degrees vertically at 16m.
+Against easy's ±5 degree draw that is 0.243 × 0.644 = **0.157** of draws on
+the body, and the measured hit fraction was 0.148–0.151 — the model is the
+game. The draw is held for the burst's 3–7 rounds, so **a burst is one trial,
+not seven**, bursts come about 1.1s apart, and the time-to-kill is geometric:
+mean 6.3s, and `(1 − 0.15)^26 = 1.6%` of engagements past 30s. The check runs
+eight engagements per preset per range per map, so **about one fresh-seed run
+in four** should have drawn one. It is not the limit being short; it is a
+preset whose worth was published as a mean over a distribution with a tail
+that crosses it.
+
+**Two fixes were measured, and the one that looked better lost.** Over 40
+seeds on the yard, easy at 16m:
+
+| | hit fraction | mean | p90 | worst |
+|---|---|---|---|---|
+| 5.0 degrees, one draw per burst (as built) | 0.151 | 6.29s | 15.3s | **26.05s** |
+| 4.0 degrees | 0.232 | 3.51s | 9.6s | 13.8s |
+| 3.5 degrees | 0.292 | 2.80s | 5.6s | 11.9s |
+| 5.0 degrees, **one draw per round** | 0.157 | 5.99s | 10.7s | 16.2s |
+
+Drawing the hold **per round instead of per burst** was the better-looking
+answer and was built: it is C5's own argument one wavelength down (C5 moved
+the draw from per-engagement to per-burst because "one draw decided a fight"),
+and it removes the tail at *unchanged* accuracy — the hit fraction and the
+mean do not move, only the variance. Measured on both maps, the scatter inside
+a burst went from 0.675 / 0.614 of the overall scatter to 0.896 / 0.926.
+
+**It was reverted, because the check caught what it cost.** With the hold drawn
+per round, medium and hard both went to **32 of 32 hits at 8m and 0.39s each**
+— a dead heat, and `each-difficulty-...` went red on the yard: *"at 8m hard
+kills in 0.39s, not sooner than medium's 0.39s"*. The reason is the same
+geometry read the other way: at 8m the body subtends ±2.43 degrees, which is
+wider than medium's 2.5-degree cone and hard's 1.2, so once a bad round is no
+longer followed by five more bad ones **both presets saturate at the gun's
+rate of fire** and no aim model can separate them. D33 had already written
+that hard is "a machine at 8m ... and medium is close behind it there"; per-
+round drawing spends the last of that margin. Separating medium and hard up
+close is **K6**, and this is an S job, so the change came out.
+
+**What shipped is one number.** `ai.difficulty.easy.aimErrorDegrees` **5.0 →
+4.0** (D54), with the measurement written into `config.js` beside it. It is
+the only preset whose cone is wider than the body at the range the check
+measures, so it is the only one with a tail, and 4.0 does not touch medium or
+hard at all. 3.5 was rejected on the same grounds as per-round drawing: it
+takes easy's kill at 8m to 0.71s against medium's 0.51s, and two presets a
+metre apart on the clock are not two presets.
+
+**The check.** `the-widest-cone-kills-at-range-and-not-once-in-a-while`
+(`tests/difficulty.js`) drives the widest preset at the longer range through
+**twelve pinned engagements** and asserts that not one of them is a stall. It
+never averages — the sibling check averages eight seeds and compares the
+presets, and averaging is precisely what hid this. Two of the twelve are the
+regression itself, one per map, each a 30s engagement at 5.0 degrees and a
+kill at 4.0: **1637054825** is the yard's, the audit's own; **4196849476** is
+the plant's, found by walking 82 seeds through the same engagement at the old
+cone — 3 of 119 at 5.0, dead in 12.40s at 4.0. Without the second one a revert
+would be red on the yard only, and the plant would wave it through.
+
+**A trap the seed census set.** The yard's seed was first added to
+`PINNED_SEEDS` in `tests/seeds.js`, which is where a seed that must not move
+is written down. That would have been red on the one run this job exists to
+pass: clause (b) of `the-url-seed-reaches-every-exploratory-check` compares
+**values**, and 1637054825 is by construction the value
+`exploreSeed('difficulty-preset-0', 0xd1f1)` hands back under `?seed=20260927`
+— so the census would have called a pinned seed wrongly explored. A pinned
+seed that a URL seed can also produce is outside what that clause can police;
+the entry came back out and the argument is written beside `PINNED_SEEDS` and
+beside `STALL_SEEDS`.
+
+**Verified.** Gate at `db50935`, before any change: plant 184 passed / 1
+failed / 8 not for this map, yard 165 / 1 / 27, red [], flaky [], exit 0.
+After, `--runs 2 --subset "difficulty|widest-cone|url-seed"`, both maps, twice
+each, **unseeded and under `--query "seed=20260927"`**: 4 passed, 0 failed
+every run, red [], flaky [], 0 console errors, exit 0 both times — which is
+F17's done-when, with `KILL_LIMIT` and `DETECT_LIMIT` untouched at 30 and 40.
+Full suite, two runs a map: plant **185 passed, 1 failed, 8 not for this map** (979,051ms and 980,627ms, 468s and 473s of it the pipeline tail), yard **166 / 1 / 27** (663,687ms and 665,012ms, 348s and 349s); red [], flaky [], expectedRed [], unexpectedGreen [], skipsWithheld [], consoleErrors 0, contextLosses 0, exit 0. One more check a map than the gate that opened the run, and the one failure on each is the frame-budget check, skipped headless as always. Run spreads 1,576ms on the plant and 1,325ms on the yard, both 0% of the longest (F16).
+
+The presets as they now read (`--details`, one run, 8 seeds each):
+
+| | 8m detect | 8m kill | 16m detect | 16m kill |
+|---|---|---|---|---|
+| easy, plant | 7.35s | 0.82s | 13.64s | **3.88s** (was 7.2) |
+| medium, plant | 4.97s | 0.51s | 9.27s | 1.40s |
+| hard, plant | 3.60s | 0.35s | 6.74s | 0.93s |
+| easy, yard | 7.35s | 0.75s | 13.63s | **4.43s** |
+| medium, yard | 4.97s | 0.43s | 9.27s | 1.25s |
+| hard, yard | 3.60s | 0.41s | 6.73s | 0.82s |
+
+The new check reads: plant worst **12.40s** of 30s, median 3.88s, 54 of 281
+rounds landed; yard worst **9.72s**, median 5.43s, 54 of 307.
+
+**Left.** Two things this turned up and did not fix, both queued. **F18**: an
+earlier version of the new check asserted a floor under the hit fraction and
+was red at 0.181 against a line set at 0.19 from a 40-seed reading of 0.232 —
+the fraction over twelve engagements carries about five points of noise
+because the rounds are clustered by burst, so it is reported now and not
+asserted; a check that wants to hold a rate needs to count bursts, not rounds.
+**K6 should read this entry first**, and in particular: medium and hard are
+0.02s apart at 8m on the yard (0.43 against 0.41) and 0.16s on the plant, both
+of them within a frame or two of the gun's floor of four rounds at 600rpm. The
+check passes there on pinned seeds and is one small change away from not, and
+no aim model fixes it — separating them up close has to come from something
+other than accuracy.

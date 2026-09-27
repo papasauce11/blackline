@@ -935,9 +935,22 @@ export const CONFIG = {
      * 9.3 / 6.7s and 7.2 / 1.4 / 0.9s.
      * `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`
      * holds the order.
+     *
+     * **Easy's cone was 5.0 until F17** (D54), and 5.0 at 16m is wider than
+     * the body is: the Shade's box subtends 1.22 degrees either way there
+     * against a 5 degree draw, so one burst in six was on it, and because
+     * the draw is held for the burst's 3-7 rounds a burst is one trial and
+     * not seven. That makes the time-to-kill geometric - mean 6.3s, and a
+     * 30s engagement about once in sixty - and the 2026-09-27 audit drew
+     * one: 23 bursts, 119 rounds, 2 hits, alive. At 4.0 the same measure
+     * over 40 seeds reads hit fraction 0.148 -> 0.232 and worst 26.1s ->
+     * 13.8s, while easy stays clearly the slowest preset at both ranges.
+     * Narrowing it further buys a shorter tail with the thing this preset
+     * is for: at 3.5 easy kills at 8m in 0.71s against medium's 0.51s, and
+     * the two are no longer telling a player much apart.
      */
     difficulty: {
-      easy: { fillRate: 26, aimErrorDegrees: 5.0, reactionDelay: 0.28 },
+      easy: { fillRate: 26, aimErrorDegrees: 4.0, reactionDelay: 0.28 },
       medium: { fillRate: 38, aimErrorDegrees: 2.5, reactionDelay: 0.12 },
       hard: { fillRate: 52, aimErrorDegrees: 1.2, reactionDelay: 0.05 },
     },

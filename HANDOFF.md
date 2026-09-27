@@ -20,10 +20,10 @@ point.
 2026-09-27, HEAD `c5856f8`: plant 184 / 1 / 8, yard 165 / 1 / 27, 0 red, 0
 flaky, 0 console errors; live site 29/29 per map, Pages built at HEAD, stamp
 one behind (normal); 62 commits and 26 jobs that week, 0 WIP, 0 blocked on
-Josh; no check deleted, no threshold loosened; 0 TODO/FIXME. One finding: the
-fresh seed `20260927` turns the yard's difficulty check red (easy at 16m, not
-dead after 30s) — queued as **F17**. The 09-18 orphan runner is 9 days old
-and still competes with every run. Full report: PROGRESS.md, "Audit — 2026-09-27".
+Josh; no check deleted, no threshold loosened; 0 TODO/FIXME. Its one finding —
+`20260927` turning the yard's difficulty check red — was **F17, done the same
+day**: easy's aim cone, wider at 16m than a body is. The 09-18 orphan runner
+is 9 days old and still competes with every run. Full report: PROGRESS.md.
 
 ## Where things stand
 
@@ -32,11 +32,11 @@ and still competes with every run. Full report: PROGRESS.md, "Audit — 2026-09-
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45`, then `git push origin main` |
 | Hosted | **https://papasauce11.github.io/blackline/** — a branch deploy of `phases-14-45`, rebuilt on every push (H2). Remote https://github.com/papasauce11/blackline; every commit is pushed (H1). `npm run suite -- --url https://papasauce11.github.io/blackline/ --regression` checks the live copy. **Which build a friend is on** is the main menu's footer, from `version.json` (H3) — live and reading `2af44b2 · 2026-09-27`, both H3 checks 2/2 per map against the Pages URL: `npm run stamp` writes it from git and only from a clean tree, so `npm run suite` stamps HEAD at the gate and leaves it alone mid-job — **and the `Record <job>` commit runs `npm run stamp`** so the deployed stamp names the job rather than the commit before it (D52; there is no deploy workflow and cannot be one from here) |
-| Working tree | clean after H4 (2026-09-27) |
-| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-27, after H4: plant 184 passed, 1 failed, 8 not for this map (986s, 981s), yard 165 / 1 / 27 (659s, 659s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 skips withheld.** Five more checks per map than the gate that opened the run (plant 179, yard 160): H3's two and H4's three. Every run line names how much of it was the renderer's pipeline tail (plant 466s and 474s, yard 345s each) instead of leaving it inside one check (F11), and a line per map names the spread between its runs — **plant 5,436ms (1% of the longest) and yard 126ms (0%)**, against 177,215ms and 23% in the last pair before F11 (F16). The one failure on each map is the frame-budget check, skipped headless, and since F15 that skip is honoured only where `the-headless-skip-list-holds-only-the-check-it-declares` is green. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
-| Next job | **The second arc** (2026-09-25, D50): Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, sixty jobs, in that order. Blocks A-G are all closed and H1-H4 are done, so the next job is **H5** (the main menu: a card per map with a thumbnail rendered at boot, role, settings, how to play, credits, M) - and H5 lands on the menu H3 put a footer on and the boot H4 rebuilt, so read both first. Every H job proceeds; nothing in the block is blocked |
-| Waiting on Josh | nothing blocking. D51 answered 2026-09-26 (the repo); H1-H4 done. **D52** (the build stamp) and **D53** (what boot says and refuses) are Provisional and worth a glance: D52 because one browser login would let the token push a workflow and make the stamp exact rather than one commit behind, D53 because it is the first thing a friend sees. The Provisional section stays open for override, and the things only eyes can settle are under *Still needs a human* |
-| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,665 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. `src/ui/autosuite.js` is 499 since F11 and `src/tests/donedef.js` 504 since G2; `src/main.js` is 506 and `src/maps/plant.js` 585 after H4. Outside `src/`, `scripts/suite.mjs` is 549 and `scripts/watchdog.mjs` 205. **This page is 399 lines of the 400 `traps-md-holds-the-traps-and-handoff-points-at-it` allows** — a job that adds to it takes something out, which is the point of G1 and G2. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions — and since F13 the gate holds that census rather than the weekly audit: a third call, or either of these two losing the comment that argues for it, is red |
+| Working tree | clean after F17 (2026-09-27) |
+| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-27, after F17: plant 185 passed, 1 failed, 8 not for this map, yard 166 / 1 / 27, exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 skips withheld.** One more check per map than the gate that opened the run (plant 184, yard 165): F17's. Every run line names how much of it was the renderer's pipeline tail (plant 466s and 474s, yard 345s each) instead of leaving it inside one check (F11), and a line per map names the spread between its runs — **plant 5,436ms (1% of the longest) and yard 126ms (0%)**, against 177,215ms and 23% in the last pair before F11 (F16). The one failure on each map is the frame-budget check, skipped headless, and since F15 that skip is honoured only where `the-headless-skip-list-holds-only-the-check-it-declares` is green. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
+| Next job | **The second arc** (2026-09-25, D50): Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, in that order. F17 closed and reopened Block F with **F18** (an S job: the hit-fraction floor F17 could not calibrate, because rounds cluster by burst and the effective sample is ~65 bursts, not ~300 rounds), which comes first; after it the next job is **H5** (the main menu: a card per map with a thumbnail rendered at boot, role, settings, how to play, credits, M) - and H5 lands on the menu H3 put a footer on and the boot H4 rebuilt, so read both first. Every H job proceeds; nothing in the block is blocked |
+| Waiting on Josh | nothing blocking. D51 answered 2026-09-26 (the repo). **D54** (F17: easy's aim cone 5.0 → 4.0, the only preset whose cone is wider than a body at 16m) is the newest Provisional and the one a player can feel — PLAYTEST asks whether easy still reads as easy at range. **D52** (the build stamp) and **D53** (what boot says and refuses) are also Provisional and worth a glance: D52 because one browser login would let the token push a workflow and make the stamp exact rather than one commit behind, D53 because it is the first thing a friend sees. The Provisional section stays open for override, and the things only eyes can settle are under *Still needs a human* |
+| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,665 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. `src/ui/autosuite.js` is 499 since F11 and `src/tests/donedef.js` 504 since G2; `src/main.js` is 506 and `src/maps/plant.js` 585; `tests/difficulty.js` is 409 after F17. Outside `src/`, `scripts/suite.mjs` is 549 and `scripts/watchdog.mjs` 205. **This page is 400 lines of the 400 `traps-md-holds-the-traps-and-handoff-points-at-it` allows** — a job that adds to it takes something out, which is the point of G1 and G2. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions — and since F13 the gate holds that census rather than the weekly audit: a third call, or either of these two losing the comment that argues for it, is red |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable, Warden ground one connected component with a column of cells down each vault rack aisle. **8 declared routes, 22 stages** (`map.routes`); 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb |
 | Map, yard | 132 boxes, 58 climbable, 5 lamps, Warden ground 15,332 cells in one component, 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up, every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
@@ -58,9 +58,8 @@ it. The rule is kept below.
 **Block B — the traversal redesign, phases 12–50.** B1 hang as a held option · B2
 the bump-and-scuff, so a failed climb is never silent · B3, B4 the climb census goes
 green and the map answers it · B5, B5c the area pass measured honestly, routes
-declared · B5d the defuse reach is a clear line (D27) · B6 the material language,
-the ducts galvanised · B7 the routes are lit · B8 feel — momentum, weight, the
-buffer, the hanging body, the way up swept · B9 closed, spec 20.11. B5b dropped, D25.
+declared · B5d the defuse reach is a clear line (D27) · B6 the material language ·
+B7 the routes are lit · B8 feel · B9 closed, spec 20.11. B5b dropped, D25.
 
 **Block C — playable and testable.** C1 the playtest build, the debug gate off by
 default · C2 the round opens on a briefing · C3 hit and damage feedback · C4 the
@@ -80,21 +79,29 @@ re-run · F2 the presentation reset before every check · F3 eight modules split
 under the ~600 guidance (the map is kept below) · F4 the game does not play
 itself under the suite · F5 the headless runner · F6 `npm run shot` · F7 a
 look at a pose · F8 the key light gives nothing to a face it lights from
-behind · F9 `npm run probe` · F10 a hung gate dies and says which check hung.
-**F11** the quarter of a run inside one check was one `gl.getError()` — a wait,
-not work — and D48 put it on the run's clock: `AutoSuite.drainPipeline()` polls
-a fence so the wait beats, a check declaring `glSync: true` is drained for
-before its own clock starts, a top-level `runChecks` drains again after its last
-check, and the run line prints the total. 265,944ms became 24ms, the slowest
-check is 77s, `--stall` came down 600s → 240s (`--stall-wait` 600s holds the
-wait). **F16** read every run-pair on record: the second run of a map carried
-~184s of the first's tail, the pairs agree since F11, the runner prints the
-spread per map — and F11's account of *where* run 2 paid it is withdrawn, since
-F5's own readings already showed that call getting cheaper in run 2, not dearer.
-F12 `?seed=` reaches the fuzz and soak checks: `tests/seeds.js` owns
-`exploreSeed(label, fallback)`, the fallback when the URL names no seed so the
-gate is unmoved, a draw mixed from the URL seed and the label when it does, and
-three seeds stay pinned because reproducibility is their subject. F13 the gate holds the two bans the spec states: `no-source-file-calls-math-random-or-sets-a-timer` reads all 143 loaded modules and allows one `Math.random(` (the audio noise texture) and one `setTimeout(` (a fence yield in `tests/performance.js`), each still present, exactly once, and argued in a comment at its own line. F14 the suite counts itself: `tests/registry.js` holds every registrar `tests/index.js` imports to exactly one call, every check a module declares to being registered and back, and names the one conditional registration (`a-staged-hang-never-returns`, `?hang=1` only) — a `register` call dropped while its import stayed used to shrink every run silently and still exit 0. F15 the gate's own exemptions are a census: `scripts/suite-skips.json` took any red check out of a run in one line — measured, `"ok": false` to `"ok": true` with nothing else changed — and `tests/skiplist.js` now holds it and its own `ALLOWED` list to the same set both ways, every skipped id to being a registered check, every reason to naming hardware, and its own id to being absent; the runner honours a skip only on a map where that check passed, so the policeman cannot be exempted.
+behind · F9 `npm run probe` · F10 a hung gate dies and says which check hung ·
+F11 a quarter of a run was one `gl.getError()` waiting, and D48 put that wait
+on the run's clock rather than inside a check (`glSync: true`; `--stall` 600s
+→ 240s) · F12 `?seed=` reaches every fuzz and soak site through
+`exploreSeed(label, fallback)`, the fallback keeping the gate unmoved · F13
+the gate holds the spec's two bans, one `Math.random(` and one `setTimeout(`,
+each argued at its own line · F14 the suite counts itself, so a dropped
+`register` call cannot shrink every run silently · F15 the skip list is a
+census and not a lever — the runner honours a skip only on a map where that
+check passed, so the policeman cannot be exempted · F16 read every run-pair on
+record: the pairs agree since F11 and the runner prints the spread per map.
+**Each has a PROGRESS entry; that is where the argument is.**
+
+**F17** a fresh seed turned the yard's difficulty check red, and the cone was
+why. At 16m the Shade subtends ±1.22 degrees against easy's ±5 degree draw,
+held for the burst's 3-7 rounds, so **a burst is one trial** and the kill is
+geometric: mean 6.3s, 1.6% of engagements past the 30s limit, about one
+fresh-seed run in four. The shots said so and nothing else did — of the red
+engagement's 119 rounds none came near the body and seven hit the floor at
+11.5-14.9m, where a 5-degree-low round meets it. Fix: `easy.aimErrorDegrees`
+5.0 → **4.0** (D54). **3.5 degrees and the per-round draw were both measured
+and rejected** for spending the separation between presets; the per-round draw
+is right in principle and ties medium and hard at 8m, which is **K6**'s.
 
 **Block G — the record.** G1 this file back to one page, 1,846 lines to 533 · G2
 the last 200 of them out to `TRAPS.md` (D47, option 2), which put this file under
@@ -117,10 +124,9 @@ WebGL2 is `createRenderer()` returning null**, never a `getContext` probe — th
 cost a second SwiftShader device, 16s per page load. D53 is the wording.
 
 Also on the record and not a numbered job: **the plant is a room, not a circle**
-(Josh, mid-session — *"able to plant the bomb anywhere in the room. not just in
-the circle"*). Spec 10.1 amended: a site knows its room by containment and the
-charge sits where it was planted (`round.chargeAt`); D8 settled the marking, C7
-built it.
+(Josh — *"able to plant the bomb anywhere in the room. not just in the circle"*).
+Spec 10.1 amended: a site knows its room by containment and the charge sits where
+it was planted (`round.chargeAt`); D8 settled the marking, C7 built it.
 
 ## The redesign — read this before touching traversal or the map
 
@@ -286,32 +292,28 @@ to a `PROGRESS.md` number, and prefer a first run.
 - `--details <file>` writes every check's id, outcome, detail line and **ms** per
   run — the readings a PROGRESS entry quotes, which the stdout report never
   carried for a green check. Since F11 the slowest is
-  `every-route-reads-lit-from-its-foot` at **77s on the plant**, then
-  `the-pipeline-wait-is-the-runs-number-and-not-a-checks` at 30s;
-  `a-zero-size-viewport-does-not-blind-the-renderer` was 265s and is 24s.
+  `every-route-reads-lit-from-its-foot` at **77s on the plant**, then the
+  pipeline-wait check at 30s.
 - `scripts/suite-skips.json` lists checks that cannot pass headless with
   reasons (today: the frame-budget check; SwiftShader draws a frame in
   ~400ms). They are reported, never counted. **Since F15 it is a census, not
   a lever**: `the-headless-skip-list-holds-only-the-check-it-declares` holds
-  the file and its own `ALLOWED` list to the same set both ways, so adding a
-  skip means editing a check as well, and the runner honours a skip on a map
-  only where that check passed — skipping the guard withholds every skip and
-  prints `SKIPS WITHHELD`. A `--subset` naming a skipped check should name
-  the guard too. Needs `npm install` once: `playwright-core` only, no browser
-  download.
+  the file and its `ALLOWED` list to the same set both ways, and the runner
+  honours a skip only on a map where that check passed — skipping the guard
+  withholds every skip and prints `SKIPS WITHHELD`, so a `--subset` naming a
+  skipped check names the guard too. Needs `npm install` once
+  (`playwright-core`, no browser download).
 
 **A hung run dies (F10).** The run is raced against a heartbeat the page
-publishes (`beat()` in `ui/autosuite.js`, on `debugState.suiteProgress`: a
-monotonic sequence and the id of the check in flight). When it stands still for
-`--stall` seconds — **240 since F11/D48**, the floor under it now being the
-slowest *check* (77s) rather than a pipeline wait inside one; that wait beats
-while it waits and carries `--stall-wait` (600s) — the run is abandoned with
-`suite: crashed: run timed out` naming that check, the browser and server are
-closed, and the exit code is 2. Against the beat standing still, never
-wall-clock total: a cold plant run is legitimately 960s. `--stall 0` disables
-it; `SIGINT`/`SIGTERM` close the same way. A `suite.mjs` older than this process
-is named at startup, in `otherRunners` and in `OTHER RUNNERS ALIVE` — its Chrome
-competes for the same cores, so every timing beside it is measured against it.
+publishes (`beat()` in `ui/autosuite.js`, on `debugState.suiteProgress`). When
+it stands still for `--stall` seconds — **240 since F11/D48**, the floor being
+the slowest *check* (77s); a pipeline wait beats while it waits and carries
+`--stall-wait` (600s) — the run is abandoned with `suite: crashed: run timed
+out` naming that check, browser and server are closed, exit code 2. Against
+the beat standing still, never wall-clock total: a cold plant run is
+legitimately 960s. `--stall 0` disables it; `SIGINT`/`SIGTERM` close the same
+way. A `suite.mjs` older than this process is named at startup and in `OTHER
+RUNNERS ALIVE` — its Chrome competes for the same cores.
 
 Four more headless tools, each with a PROGRESS entry:
 
@@ -325,9 +327,9 @@ npm run stamp                                # H3: version.json, from a clean tr
 `shot.mjs` writes `shots/look-<map>-<eye>.png` (gitignored) in about 30s a map,
 read with the Read tool — the Browser pane's job without the pane. `probe.mjs`
 runs a file's text as the body of an async function with `h` and `THREE` in
-scope, prints what it returns as JSON and writes any `pngs: [{ name, dataUrl }]`;
-every "what does this read" goes through it, and a finding that should stay true
-becomes a check. `version.mjs` is H3's, and refuses a dirty tree.
+scope and prints what it returns as JSON (and writes any `pngs`); every "what
+does this read" goes through it, and a finding that should stay true becomes a
+check — F17 is the worked example. `version.mjs` is H3's, and refuses a dirty tree.
 
 In a real browser, for what headless cannot prove (the frame budget on a GPU
 with the post on, how it looks, how it sounds): `npx serve -l 5173 .`, then
@@ -341,9 +343,9 @@ is the harness in both builds; in-game **F3** overlay · **F4** test mode ·
 
 **They live in `TRAPS.md` now** — about thirty of them, each one an hour somebody
 has already paid. Read that file before you start; the heading stays here because
-the scheduled task's prompt falls back to it (G2, D47). Nothing was retired in the
-move, and `traps-md-holds-the-traps-and-handoff-points-at-it` holds both ends: the
-traps are there, and this page stays under 400 lines.
+the scheduled task's prompt falls back to it (G2, D47).
+`traps-md-holds-the-traps-and-handoff-points-at-it` holds both ends: the traps
+are there, and this page stays under 400 lines.
 
 Two of them in one line each, because a reader of this page should not be without
 them; the argument for both is in `TRAPS.md`. **Verify anything visual by reading

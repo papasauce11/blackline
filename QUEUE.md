@@ -56,21 +56,25 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 - [x] **F16 (S)** The second run of a map is the first run's bill. — done
   2026-09-25, under Done.
 
-- [ ] **F17 (S)** A fresh seed turns the yard's difficulty check red. The
-  2026-09-27 audit ran `npm run suite -- --runs 1 --subset difficulty
-  --query "seed=20260927"` and `each-difficulty-is-quicker-to-see-you-and-
-  quicker-to-kill-you` failed on the **yard** only: *"easy at 16m: seed 0:
-  not dead after 30s of ENGAGE (2 of 120 shots hit, state engage)"* — lit,
-  still, from site C, meter 63/80 at 8/16m; the plant passed under the same
-  URL seed (easy at 16m 5.71s, 37/222), and the builder's pinned seeds are
-  green on both maps. Two of 120 shots landing in 30s on a lit, still target
-  is either easy's aim at range being a coin the seed can lose (K6's
-  subject: aim error by distance), or `KILL_LIMIT` 30s being shorter than
-  easy's worst case. Find which by reading the shots, not by raising the
-  limit; if it is the preset, the fix is in `config.js`, and K6 should read
-  this entry first. *done-when:* the check passes on both maps under
-  `--query "seed=20260927"` and under no seed, twice each, with `KILL_LIMIT`
-  and `DETECT_LIMIT` unchanged; PROGRESS.md names the cause.
+- [x] **F17 (S)** A fresh seed turns the yard's difficulty check red. — done
+  2026-09-27, under Done.
+
+- [ ] **F18 (S)** A rate held by a check that counts bursts, not rounds.
+  F17 wanted a second assertion beside "no engagement stalls": a floor under
+  what a round is worth at range, so a widened cone is caught on both maps
+  and not only where a pinned seed happens to stall. It was built, read
+  0.181 against a line of 0.19 set from a 40-seed reading of 0.232, and came
+  out — **the rounds are not independent**, they are clustered by the burst
+  that shares one aim draw, so a fraction over twelve engagements carries
+  about five points of noise, which is most of the distance between the old
+  cone (0.148) and the new one (0.232). The effective sample is bursts, of
+  which there are ~65, not rounds, of which there are ~300. Count bursts
+  that put at least one round on the body and the same statistic has a
+  quarter of the noise. *done-when:* `the-widest-cone-kills-at-range-and-
+  not-once-in-a-while` asserts a per-burst rate as well as the stalls, the
+  line is set from a measured pair on **both** maps with at least three
+  standard errors either side, and widening easy's cone back to 5.0 turns
+  it red on both maps with the stall clause removed.
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -247,8 +251,18 @@ A third-sized pass (D50). The rule to protect: the Warden stays grounded.
   times both.
 - [ ] **K6 (M)** Difficulty at range. Aim error grows with distance and the
   target's speed and shrinks with time on target, so medium and hard part
-  at 8m (D33 found hard a machine there). *done-when:* time-to-kill per
-  distance per preset is monotonic and separated in the existing checks.
+  at 8m (D33 found hard a machine there). **Read F17's PROGRESS entry
+  first**: medium and hard are 0.02s apart at 8m on the yard and 0.16s on
+  the plant, both within a frame or two of the gun's own floor of four
+  rounds at 600rpm, so *no aim model separates them there* — at 8m the body
+  is wider than either cone and both presets already hit with everything
+  they fire. Whatever parts them up close has to be something other than
+  accuracy. F17 also measured, built and reverted the **per-round aim
+  draw** (D54): it removes the time-to-kill's tail at unchanged accuracy and
+  is probably right, but it is what tips medium and hard into a dead heat at
+  8m, so it becomes available again the moment this job separates them.
+  *done-when:* time-to-kill per distance per preset is monotonic and
+  separated in the existing checks.
 - [ ] **K7 (S)** Patrol variety. Route order and pauses from the seed; a
   site room checked when the round clock is low. *done-when:* two seeds
   give two orders in a check; determinism check unchanged.
@@ -390,6 +404,25 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **F17** A fresh seed turned the yard's difficulty check red, and the cone
+  was the reason — reproduced to the round (yard, easy, 16m, seed
+  `1637054825`: 23 bursts, 119 rounds, 2 hits, alive at 30s), then read shot
+  by shot: **not one of the 119 came near the body**, and seven hit the
+  ground at 11.5–14.9m, exactly where a 5-degree-low round from the eye
+  meets the floor. No geometry, just the cone: at 16m the Shade subtends
+  ±1.22 degrees against a ±5 degree draw held for the burst's 3–7 rounds, so
+  a burst is **one trial** and the kill is geometric — mean 6.3s, 1.6% of
+  engagements past the 30s limit, about one fresh-seed run in four.
+  `easy.aimErrorDegrees` **5.0 → 4.0** (D54) and nothing else; 3.5 and the
+  per-round draw were both measured and both rejected for spending the
+  separation between presets (the per-round draw ties medium and hard at 8m
+  at the gun's rate-of-fire floor — that is K6's).
+  `the-widest-cone-kills-at-range-and-not-once-in-a-while` drives twelve
+  pinned engagements and asserts none is a stall, two of them the regression
+  itself, one per map (`1637054825` the yard's, `4196849476` the plant's,
+  hunted through 82 seeds at the old cone). `KILL_LIMIT` and `DETECT_LIMIT`
+  untouched. — F17_HASH
 
 - **H4** Boot — a loading screen in `index.html` (markup, so it is up from the
   first paint) naming each of the **six bake slices**; the bake is a generator

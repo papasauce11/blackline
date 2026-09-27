@@ -84,6 +84,19 @@ export const PINNED_SEEDS = [
   { fallback: 0xa17ea5, where: 'tests/ai.js', why: 'the same seed reproduces the same patrol circuit' },
 ];
 
+/**
+ * And one that is pinned and deliberately **not** listed above: F17's
+ * `STALL_SEEDS[0]` in `tests/difficulty.js`, the engagement the 2026-09-27
+ * audit turned red. It must stay a literal for the same reason as the three
+ * above - a seed that moved would take the regression with it - but it
+ * cannot go in the list, because the number *is*
+ * `exploreSeed('difficulty-preset-0', 0xd1f1)` under `?seed=20260927`, which
+ * is how the audit found it. Clause (b) compares numbers, so listing it
+ * would make this check red on exactly the run F17 has to pass. A pinned
+ * seed that a URL seed can also produce is outside what (b) can police, and
+ * saying so here is better than a false red once a week.
+ */
+
 /** FNV-1a over the label, so a site's fresh seed is its own and is stable. */
 function hashLabel(label) {
   let h = 0x811c9dc5;

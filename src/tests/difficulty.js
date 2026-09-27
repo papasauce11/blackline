@@ -19,7 +19,7 @@
  * harness `h`; nothing here imports main.js, which Section 3.1 forbids.
  */
 
-import { CONFIG, SETTINGS } from '../config.js';
+import { CONFIG, SETTINGS, mulberry32 } from '../config.js';
 import { AI_STATE } from '../systems/ai.js';
 import { LIT_METER, alongLane, litLane } from './lanes.js';
 import { exploreSeed } from './seeds.js';
@@ -54,6 +54,33 @@ const ENGAGEMENT_SEED = exploreSeed('difficulty-engagement', 0xb0b5);
 /** The longest a detection or a kill is allowed to take before it is a stall. */
 const DETECT_LIMIT = 40;
 const KILL_LIMIT = 30;
+
+/**
+ * F17's twelve engagements, and they stay pinned. The first two are the
+ * regression itself, one per map, each of them a 30s engagement at the old
+ * 5.0 degree cone and a kill at 4.0:
+ *
+ *   - `1637054825` is the yard's, and is what the 2026-09-27 audit drew -
+ *     23 bursts, 119 rounds, 2 hits, alive. It is also exactly what
+ *     `exploreSeed('difficulty-preset-0', 0xd1f1)` returns under
+ *     `?seed=20260927`, which is how the audit reached it.
+ *   - `4196849476` is the plant's - 3 of 119 at 5.0, dead in 12.40s at 4.0 -
+ *     found by walking seeds through this same engagement at the old cone.
+ *     Without it a revert would be red on the yard only, and a check that
+ *     catches a regression on one map of two is half a check.
+ *
+ * The other ten are one mulberry32 walk from 0xf17, so ten engagements cost
+ * one number to write down. All twelve are literals rather than
+ * `exploreSeed` sites, for the reason the other reproducibility seeds are
+ * (`tests/seeds.js`), and the first is deliberately not in PINNED_SEEDS:
+ * that census compares by value, and this value is one a URL seed produces,
+ * so listing it would be red on the one run this job exists to pass. The
+ * argument is written out beside PINNED_SEEDS.
+ */
+const STALL_SEEDS = [1637054825, 4196849476, ...(() => {
+  const next = mulberry32(0xf17);
+  return Array.from({ length: 10 }, () => (next() * 0x100000000) >>> 0);
+})()];
 
 /**
  * One engagement on one preset from one seed: the Warden held on its spot
@@ -326,6 +353,56 @@ export function register(debugTools) {
             + `[${pauses.map((p) => p.toFixed(2)).join(' ')}]s; ${impacts.length} hit at a mean height of `
             + `${meanY.toFixed(2)}m (torso ${torso.toFixed(2)}m); health stayed ${lowest} under god mode`
           : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'the-widest-cone-kills-at-range-and-not-once-in-a-while',
+    spec: 'Section 11 (difficulty), F17',
+    name: 'Every one of twelve pinned engagements on the widest preset at the longer range kills inside the limit, the two that the old cone could not among them',
+    run: (h) => {
+      const problems = [];
+      const was = SETTINGS.difficulty;
+      const LANE = lane(h);
+      if (!LANE) {
+        return { pass: false, detail: `no clear lane of ${RANGES[RANGES.length - 1] + 1}m the lamps light to ${LIT_METER} at ${RANGES.join('m and ')}m on this map` };
+      }
+      // The widest cone at the longer range: the only pairing where the cone
+      // is wider than the body is, and so the only one whose time-to-kill
+      // has a tail worth holding.
+      const name = Object.keys(A.difficulty)[0];
+      const range = RANGES[RANGES.length - 1];
+
+      const kills = [];
+      let shots = 0;
+      let hits = 0;
+      for (const seed of STALL_SEEDS) {
+        const run = engage(h, name, seed, range, LANE);
+        kills.push(run.kill);
+        shots += run.shots;
+        hits += run.hits;
+        if (run.stalled) problems.push(`seed ${seed}: ${run.stalled}`);
+      }
+      SETTINGS.difficulty = was;
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+
+      // The sibling check averages eight seeds and compares the presets; this
+      // one never averages. Twelve engagements, and the assertion is that not
+      // one of them is a stall - which is the shape of the thing F17 found,
+      // since the mean was 6.3s all along and it was the worst case that had
+      // gone past the limit. The hit fraction is reported and not asserted:
+      // over twelve engagements it carries about five points of noise, which
+      // is most of the distance between the old cone and this one.
+      const sorted = kills.slice().sort((a, b) => a - b);
+      const landed = shots ? hits / shots : 0;
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${name} at ${range}m from ${LANE.from}, ${STALL_SEEDS.length} pinned seeds: every engagement killed, `
+            + `worst ${sorted[sorted.length - 1].toFixed(2)}s of ${KILL_LIMIT}s, median `
+            + `${sorted[sorted.length >> 1].toFixed(2)}s; ${hits} of ${shots} rounds landed (${landed.toFixed(3)})`
+          : `${problems.join('; ')} - kills [${kills.map((k) => k.toFixed(1)).join(' ')}]s, ${hits}/${shots} landed`,
       };
     },
   });

@@ -386,12 +386,21 @@ burst - it could barely kill you. Now it aims at your chest, fires bursts
 of 3-7 at 600rpm, and the difficulty presets mean what they say
 (`each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`): a lit,
 still Shade at 8m is engaged 7.4 / 5.0 / 3.6s after it is first seen on
-easy / medium / hard and dead 0.9 / 0.5 / 0.35s after that; at 16m, 13.6 /
-9.3 / 6.7s and 7.2 / 1.4 / 0.9s. **This is much deadlier than any
+easy / medium / hard and dead 0.8 / 0.5 / 0.35s after that; at 16m, 13.6 /
+9.3 / 6.7s and 3.9 / 1.4 / 0.9s. **This is much deadlier than any
 playtest before it.** Look at: whether a fight at close range is over too
 fast to read on medium; whether easy is easy; whether the difference
 between medium and hard is felt at all up close (it is only in the fill
 there). The levers are in D33 (`DECISIONS.md`).
+
+**Easy's number at range moved on 2026-09-27** (F17, D54): its aim cone was
+5.0 degrees and is 4.0, which took the 16m kill from 7.2s to 3.9s. At 5.0
+the cone was wider than a body is at 16m, so a whole burst went the same
+wrong way and one fight in sixty never ended at all — a fresh seed drew one
+where the Shade stood lit and still in the open, took 119 rounds and lived.
+**What to look at: whether easy still feels easy at range.** It should feel
+like a Warden who misses a lot, not like one that cannot hurt you; if it now
+feels sharp, the one line to turn is in D54.
 
 ### The round has a beginning and an end (C2, C4, 2026-09-15/16)
 
