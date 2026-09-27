@@ -375,7 +375,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   because the *host* decides dev, not a field. No deploy workflow exists
   (H2), so the `Record <job>` commit runs `npm run stamp` alongside writing
   the job's hash — D52. `the-build-stamp-is-a-real-commit-the-site-serves`
-  and `the-main-menu-footer-names-the-build-it-is-running` — `PENDING`,
+  and `the-main-menu-footer-names-the-build-it-is-running` — `2af44b2`,
   2026-09-27, scheduled run.
 - **H2** GitHub Pages from the working branch — a branch deploy of
   `phases-14-45` (`.nojekyll`, the branch allowed in the `github-pages`
