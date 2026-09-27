@@ -57,7 +57,7 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
   2026-09-25, under Done.
 
 - [x] **F17 (S)** A fresh seed turns the yard's difficulty check red. — done
-  2026-09-27, under Done.
+  2026-09-27, under Done (`3316d07`).
 
 - [ ] **F18 (S)** A rate held by a check that counts bursts, not rounds.
   F17 wanted a second assertion beside "no engagement stalls": a floor under
@@ -422,7 +422,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   pinned engagements and asserts none is a stall, two of them the regression
   itself, one per map (`1637054825` the yard's, `4196849476` the plant's,
   hunted through 82 seeds at the old cone). `KILL_LIMIT` and `DETECT_LIMIT`
-  untouched. — F17_HASH
+  untouched. — `3316d07`
 
 - **H4** Boot — a loading screen in `index.html` (markup, so it is up from the
   first paint) naming each of the **six bake slices**; the bake is a generator
