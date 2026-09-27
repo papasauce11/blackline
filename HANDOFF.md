@@ -17,13 +17,13 @@ point.
 
 ## Last audit
 
-2026-09-20, HEAD `ae89df1`: plant 162 / 1 / 6, yard 145 / 1 / 23, 0 red, 0
-flaky, 0 console errors; 53 commits and 29 jobs that week, 0 WIP; no check
-deleted, no threshold loosened; 0 TODO/FIXME. Both findings are closed — the
-fuzz and soak checks could not be reseeded (**F12**, so the next fresh-seed run
-is the first whose green means anything) and a 09-18 runner outlived its
-routine (**F10**; it is alive still — `TRAPS.md`). Full report: PROGRESS.md,
-"Audit — 2026-09-20".
+2026-09-27, HEAD `c5856f8`: plant 184 / 1 / 8, yard 165 / 1 / 27, 0 red, 0
+flaky, 0 console errors; live site 29/29 per map, Pages built at HEAD, stamp
+one behind (normal); 62 commits and 26 jobs that week, 0 WIP, 0 blocked on
+Josh; no check deleted, no threshold loosened; 0 TODO/FIXME. One finding: the
+fresh seed `20260927` turns the yard's difficulty check red (easy at 16m, not
+dead after 30s) — queued as **F17**. The 09-18 orphan runner is 9 days old
+and still competes with every run. Full report: PROGRESS.md, "Audit — 2026-09-27".
 
 ## Where things stand
 

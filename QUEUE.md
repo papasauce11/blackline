@@ -56,6 +56,22 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 - [x] **F16 (S)** The second run of a map is the first run's bill. — done
   2026-09-25, under Done.
 
+- [ ] **F17 (S)** A fresh seed turns the yard's difficulty check red. The
+  2026-09-27 audit ran `npm run suite -- --runs 1 --subset difficulty
+  --query "seed=20260927"` and `each-difficulty-is-quicker-to-see-you-and-
+  quicker-to-kill-you` failed on the **yard** only: *"easy at 16m: seed 0:
+  not dead after 30s of ENGAGE (2 of 120 shots hit, state engage)"* — lit,
+  still, from site C, meter 63/80 at 8/16m; the plant passed under the same
+  URL seed (easy at 16m 5.71s, 37/222), and the builder's pinned seeds are
+  green on both maps. Two of 120 shots landing in 30s on a lit, still target
+  is either easy's aim at range being a coin the seed can lose (K6's
+  subject: aim error by distance), or `KILL_LIMIT` 30s being shorter than
+  easy's worst case. Find which by reading the shots, not by raising the
+  limit; if it is the preset, the fix is in `config.js`, and K6 should read
+  this entry first. *done-when:* the check passes on both maps under
+  `--query "seed=20260927"` and under no seed, twice each, with `KILL_LIMIT`
+  and `DETECT_LIMIT` unchanged; PROGRESS.md names the cause.
+
 
 ## Block B — the traversal redesign, phases 12–50
 

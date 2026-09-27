@@ -9186,3 +9186,125 @@ SwiftShader costs 16 seconds, which is worth knowing before anything else here
 reaches for one.
 
 **Left.** D53, all of it wording and timing Josh can overrule by looking.
+
+## Audit — 2026-09-27
+
+**Landed.** Week 2026-09-19 → 09-27; oldest commit `83ec7fc` (D7,
+2026-09-19). 62 commits, 54 of them since the last audit (`7c71c70`,
+09-20). The Done section of QUEUE.md grew from 43 entries at `83ec7fc` to
+68: **26 jobs in the window** — D7, E1, E2, F6, E3, F7, E4, F8, F9, B5d,
+C7, E5, E6, F10, G1, F11, F12, F13, F14, F15, G2, F16, H1, H2, H3, H4 —
+22 of them since the last audit. Blocks B, C, D, E, F and G all closed
+this week (B5d on D27, C7 on D8, D3b dropped on D38); the first arc
+finished (D49) and the second was interviewed and queued (D50, 09-25);
+H is open at H5 with 4 of 16 done. Queued during the week, by id, against
+the queue at `83ec7fc`: **69** — F10–F16, G1, G2 (all nine already done)
+and the second arc's sixty (H1–H16, K1–K7, M1–M7, J1–J9, I1–I6, L1–L4,
+N1–N4, O1–O7), four of them done. At HEAD: 56 `[ ]` open, **0 `[~]`
+WIP**, 0 blocked. No job has been WIP at any audit since B5c (09-13).
+
+**Blocked on Josh.** **None.** Every entry under the Blocking heading
+carries a `decided:` line (D8, D13, D14, D15, D20, D23, D25, D27, D38,
+D47, D48, D49, D51 — the last two answered 09-25 and 09-26). Provisional
+and undecided, not blocking: D52 (the build stamp) and D53 (what boot says
+and refuses), both 09-27, 0 days, and the D9–D46 looks set from earlier
+weeks; HANDOFF names D52 and D53 as the two worth a glance.
+
+**Suite health.** HEAD `c5856f8`, `npm run suite -- --runs 1`, both maps:
+plant **184 passed, 1 failed, 8 not for this map** (985,528ms, 471,700 of
+it the pipeline tail); yard **165 passed, 1 failed, 27 not for this map**
+(680,792ms, 358,829 tail); red [], flaky [], expectedRed [],
+unexpectedGreen [], skipped 2 (the frame-budget check, once per map,
+outcome fail), skipsWithheld [], consoleErrors 0, contextLosses 0, exit 0.
+Matches HANDOFF.md (184/1/8, 165/1/27) and the empty Deliberately-red
+list: **pass**. Against the last audit that is +22 checks on the plant and
++20 on the yard. Diff `83ec7fc..HEAD -- src/tests scripts/suite-skips.json`:
+33 files, +4,045 / −30; `scripts/suite-skips.json` unchanged (the one
+frame-budget entry). Every one of the 30 removed lines read:
+- **No check deleted, none added to the skip list, no threshold loosened.**
+  Sixteen new test modules registered in `tests/index.js` (boot, seeds,
+  defuseline, version, keylight, sitetint, post, figure, animation, look,
+  materials, yardmaterials, pipelinewait, heartbeat, registry, skiplist);
+  `donedef.js` grew by 178 lines and two new limits, `HANDOFF_LINE_LIMIT =
+  400` and `MIN_MODULES = 120`, both new assertions.
+- Seeds re-plumbed, not moved (F12): nine pinned constants became
+  `exploreSeed('<label>', <the same value>)` — e.g. `tests/fuzz.js` `- seed:
+  8675309` → `+ seed: FUZZ_SEED` with `FUZZ_SEED = exploreSeed('shade-fuzz',
+  8675309)`; likewise aisoak `0xd5a1`, difficulty's eight `0xd1f1…` and
+  `0xb0b5`, engine `0xa11ce`, shade `0xf0f0f0`, traversalfuzz `20260914` /
+  `19770912`, wardenground `20260914`. The fallback is the old value, so the
+  gate is unmoved, and `the-url-seed-reaches-every-exploratory-check` holds
+  that a URL without `?seed=` returns every fallback unchanged.
+- Same spot, new name (C7): `- const OFF_RING = CONFIG.map.marking.siteRingOuter
+  + 2.5;` → `+ const OFF_RING = SITE_SAMPLE_OFFSET;` in visual.js, yardlight.js
+  and groundview.js; `siteRingOuter` was 1.0 at `83ec7fc` and
+  `SITE_SAMPLE_OFFSET` is 3.5, the same square metre.
+- Tighter (B5d): `tests/plantcensus.js` `- if (!withinDefuseReach(cell,
+  spot.at)) continue;` → `+ if (!withinDefuseReach(cell, spot.at,
+  h.map.collision)) continue;` (three sites) — the reach now needs a clear
+  line, and the AI's snap accepts a cell only through the same predicate.
+- Moved, not loosened (F11/D48): `tests/fuzz.js`
+  `a-zero-size-viewport-does-not-blind-the-renderer` gained `+ glSync: true,`;
+  the 265s pipeline wait is charged to the run, the assertion is the same.
+- Reads what ships (E6): `tests/pixels.js` and `tests/feedback.js`
+  `- renderer.render(h.scene, camera);` → `+ h.post.render(h.scene, camera);`.
+  E1's rename: `tests/detection.js` `materials.teal` → `materials.body`.
+
+**Drift.** Over 600 lines: `src/config.js` 1,665 (was 1,465; exempt).
+`src/physics.js` sits at exactly 600, `tests/movement.js` 599,
+`systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 585 — as
+HANDOFF says, the next line in any of them is a split first. TODO/FIXME:
+0. `Math.random`: 1 real use, `systems/audio.js:97`, the noise buffer.
+`setTimeout`: 1 real use, `tests/performance.js:82`, in a check. Both as
+documented, and since F13 `no-source-file-calls-math-random-or-sets-a-timer`
+holds that census in the gate (143 modules read, one of each, each argued
+at its own line).
+
+**The live site** (H2, H3). `npm run suite -- --runs 1 --regression --url
+https://papasauce11.github.io/blackline/`: plant **29 passed, 0 failed**
+(99,376ms), yard **29 passed, 0 failed** (65,978ms), 0 console errors,
+exit 0 — the deploy agrees with this checkout's rules on both maps. Pages
+`builds/latest`: status `built`, commit `c5856f8` = HEAD, 20.9s, finished
+2026-09-27T09:28:50Z, error null. Live `version.json` reads `8411f9d`
+against HEAD `c5856f8`: **one behind**, which is what D52 says a `Record`
+stamp does (the committed `version.json` at HEAD is `8411f9d` too, so the
+live copy is exactly what is committed; nothing skipped `npm run stamp`).
+
+**Fresh seeds.** `--subset "fuzz|soak" --query "seed=20260927"`: 2 checks
+per map (`shade-invariants-under-fuzz`, `traversal-fuzz-ten-thousand-steps-
+never-sticks`), **4 passed, 0 failed**, 0 console errors — and this time
+the seed reached them: F12's `the-url-seed-reaches-every-exploratory-check`
+reports 16 exploratory sites all moved and distinct under every URL seed
+tried, so this is the first fresh-seed green on record that means anything.
+Widened, as last week, to `fuzz|soak|stall|stuck|leaks-nothing|random-real-
+input|never-climbs|difficulty|seed` with the same seed: 12 checks per map,
+plant **12 passed**, yard **11 passed, 1 failed**, exit 1. The red:
+`each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` on the
+**yard**, detail: *"easy at 16m: seed 0: not dead after 30s of ENGAGE (2 of
+120 shots hit, state engage)"* — lit, still, from site C, meter 63/80 at
+8/16m; the same check under the same URL seed passed on the plant (easy at
+16m 5.71s, 37/222), and the yard's other rows read 8m easy 2.52s 28/102,
+medium 0.50s, hard 0.49s; 16m medium 2.79s 36/113, hard 0.82s 40/44. One
+run, so not established as deterministic for the seed; not fixed. **Queued
+as F17** in QUEUE.md with the seed in its done-when. Under the builder's
+pinned seeds this check is green on both maps (the gate above).
+
+**Broken base.** No. No `BROKEN BASE` heading in HANDOFF.md; the last two
+build commits (`c5856f8` H4 verified on the deploy, `8411f9d` two traps H4
+paid for) are neither WIP nor stop notes; 0 `[~]`.
+
+**Environment.** The `npm run suite` from the 2026-09-18 17:00 build is
+still alive at **9 days**: node 9608 and 4792 (started 17:40:19–20) and
+Chrome 8920. Every one of this audit's four runs printed `OTHER RUNNERS
+ALIVE: pid 4792`, so every timing above — and every timing in HANDOFF.md
+since 09-18 — was measured against it. The routine cannot end it (the
+permission classifier refused last week); it is one Task Manager action
+or `taskkill /PID 4792 /T /F` and the same for 9608.
+
+**Recommendation.** End the three 09-18 orphans (above): every run-time
+on record for the second arc will be measured beside them until someone
+does, and H11's bench will be too. Then, since the game is live with a
+footer and a loading screen as of today, open
+https://papasauce11.github.io/blackline/ once on the real GPU: D53's
+wording is the first thing a friend reads, and whether the wait is the
+bake or the first draw is the question H4 left for eyes.
