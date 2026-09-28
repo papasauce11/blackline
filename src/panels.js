@@ -30,11 +30,15 @@ import { createBriefing } from './ui/briefing.js';
  * @param {() => object} root.match the current match record
  * @param {() => object} root.map the map, for the sites the briefing names
  * @param {() => object} root.input the Input, for the bindings it shows
- * @param {{id: string, name: string}[]} root.maps every registered map, for the menu's map row (D1)
- * @param {(id: string) => void} root.goToMap what the map row does: another page load
+ * @param {{id: string, name: string}[]} root.maps every registered map, for the menu's cards (D1, H5)
+ * @param {(id: string) => void} root.goToMap what a card does: another page load
+ * @param {object} root.thumbnails the map pictures (H5, thumbnails.js): `get(id)`
+ *   and a `ready` promise the menu is re-rendered on
  * @returns {{ hud: object, scoreboard: object, menu: object, briefing: object }}
  */
-export function createPanels({ initMatch, setPaused, objective, audio, match, map, input, maps, goToMap }) {
+export function createPanels({
+  initMatch, setPaused, objective, audio, match, map, input, maps, goToMap, thumbnails,
+}) {
   const hud = createHud();
   const briefing = createBriefing();
 
@@ -68,6 +72,11 @@ export function createPanels({ initMatch, setPaused, objective, audio, match, ma
     maps,
     // H3: which build this is, in the main menu's footer.
     version: () => versionLabel(),
+    // H5: a card's picture, null until it has been rendered. A getter, like
+    // the stamp, so the menu can be drawn before they exist.
+    thumbnail: (id) => (thumbnails ? thumbnails.get(id) : null),
+    // H5: the live bindings, so How to play names the keys a rebind left.
+    bindings: () => (input() ? input().bindings : null),
     mapId: () => map().id,
     onMap: (id) => goToMap(id),
     onFirstGesture: () => audio().unlock(),
@@ -76,6 +85,8 @@ export function createPanels({ initMatch, setPaused, objective, audio, match, ma
       // A fresh match is Play's own business (C4): the score and the round
       // records go here, not on whichever route brought the menu up.
       objective().resetMatch();
+      // H5: the map this page is on is the one the next page load opens on.
+      SETTINGS.lastMap = map().id;
       initMatch(COMPETITIVE);
       brief();
     },
@@ -94,6 +105,11 @@ export function createPanels({ initMatch, setPaused, objective, audio, match, ma
   // the main page when it does, and only that page: a settings page open at
   // the time would be thrown away, and a check mid-run would lose its DOM.
   loadVersion().then(() => { if (menu.page === 'main') menu.render(); });
+
+  // H5, the same shape: the cards are rendered after the harness is published
+  // and arrive a moment after the menu is first drawn. Re-draw the main page
+  // when they land, and only that page, for the reason above.
+  if (thumbnails) thumbnails.ready.then(() => { if (menu.page === 'main') menu.render(); });
 
   return { hud, scoreboard, menu, briefing };
 }

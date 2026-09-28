@@ -1577,6 +1577,53 @@ export const CONFIG = {
       briefing: true,
       /** Post-processing (E6): the bloom and the vignette. Off is the scene as drawn. */
       post: true,
+      /**
+       * Which role Play starts you in (H5). `shade` is the competitive
+       * match; `warden` is free roam, because a competitive Warden would
+       * need a Shade AI and there is none - D56 asks whether there should
+       * be. The menu's role row sets this and Play reads it.
+       */
+      role: 'shade',
+      /**
+       * The map the menu opens on when the URL names none (H5). A map is a
+       * page load, so this is read by `requestedMapId` as the fallback
+       * rather than applied to a map already built. It survives a reload
+       * only once H7 puts SETTINGS in a store; until then it is the
+       * last map of this page load, which is what the card highlights.
+       */
+      lastMap: null,
+    },
+  },
+
+  // -------------------------------------------------------------------------
+  // The main menu (Section 13, H5). Numbers for the card thumbnails, which are
+  // rendered from the game's own geometry at boot - there are no asset files
+  // in this project and a card does not add one.
+  //
+  // Every one of these is look rather than rule (D55) and was measured before
+  // it was chosen: see `thumbnails.js` and the H5 entry in PROGRESS.md.
+  // -------------------------------------------------------------------------
+  menu: {
+    thumbnail: {
+      /** 16:9, big enough to read a container stack and small enough to be a card. */
+      width: 480,
+      height: 270,
+      /**
+       * The eye, as fractions of the map's own longest horizontal extent: out
+       * along a corner and up. These frame the whole site with a margin - out
+       * at 0.95 left it in the middle third of the card and the rest black,
+       * and much closer than this clips the far corner off a square site.
+       */
+      out: 0.72,
+      up: 0.28,
+      fov: 34,
+      /**
+       * The card's own light, on top of the map's rig. The maps are lit for a
+       * dark stealth interior: unlit, the plant's roof at 100m reads at luma 1
+       * and the whole card is black.
+       */
+      keyIntensity: 12,
+      hemisphereIntensity: 5,
     },
   },
 };

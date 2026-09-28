@@ -110,6 +110,75 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D55 — The main menu as built: a card per map, rendered from the map
+H5. Nothing here changes a rule — every button does what a button already did
+— so it is provisional, and all of it is look you can overrule by opening the
+menu.
+
+**The card's picture is the map, rendered at boot.** There are no asset files
+in this project (Section 2) and this adds none: each card is a 480x270 PNG
+data URL drawn out of the map's own geometry with the live renderer, so a card
+cannot go stale against a map that moved and costs nothing on the wire.
+
+**What it cost, and what was refused.** A map is built once per page load and
+another map is another page load, so there is no yard in memory while you are
+on the plant: a card per map means building every registered map. Baking each
+one *whole* is 632ms on the plant and 200 on the yard, which is what the queue
+warned would roughly double a boot. Stopping at the slices that put something
+in a scene (`DRAWN_SLICES`, three of six) is 145ms and 80 — the three slices
+skipped derive rooms, the Warden's ground and validation, and put nothing in
+the scene, which `the-drawn-slices-are-every-slice-that-puts-anything-in-the-scene`
+pins from both sides. And none of it is on the boot a player waits on:
+`thumbnails.start()` is called after `window.BLACKLINE` is published, the menu
+draws its cards empty and fills them in the way the footer fills in when the
+stamp lands (H3). Total **5.0s headless on this PC, 4.0s of it a SwiftShader
+readback that is milliseconds on a real GPU** — H11's bench is what will say
+how long a friend actually sees an empty card.
+
+**Two eyes were built and thrown away before this one, and both came back
+black.** The first framed the whole site from a corner: the scene's `FogExp2`
+is 0.018 in the clear colour, so at the 110m that frames an 81m site the
+picture is 96% fog. Fog is off in a card. The second was the same eye with the
+fog off, and that one is the maps themselves — they are lit for a dark stealth
+interior, and an unlit roof at 100m reads at **luma 1**. So a card carries its
+own key and hemisphere on top of the map's rig, which stays, because the
+yard's floodlights are what the yard looks like. A third eye, at the Shade's
+own spawn looking at the first site, was tried and dropped: **the plant is a
+sealed shell and every exterior eye gives it a slab**, and an eye 12m back
+from site A is outside the wall looking at it.
+
+So the plant's card is a lit building in a fenced compound and the yard's is
+plainly a container yard. That is enough to tell them apart, which is a card's
+job, and it is honest about what the plant is. **If you want the plant's
+inside on its card, that is the change to ask for** — it needs the roof
+hidden for the render, and there is no generic rule for "the roof" that would
+not also delete half the yard.
+
+**The rest of the menu.** The title is the largest type on the card and sits
+above the strip. The **role row** is new and picks what Play starts: `shade`
+is the competitive match, `warden` is free roam — those are the two the game
+actually has, and **D56** asks whether a competitive Warden should exist. The
+*Free Roam* button stays as the shortcut it has always been and deliberately
+does not move the role row. **How to play** and **Credits** are new pages; How
+to play reads its objective and its controls from `ui/briefing.js` and the
+live bindings, so it and the round-start card are one set of sentences and a
+rebind (H8) moves both.
+
+**The map row under the cards is now redundant** — the cards pick a map and
+the row cycles to the next one. It was kept because it is what D1 built and
+`the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one` drives it;
+say the word and it becomes a plain label.
+
+**Every row is reachable from the keyboard**, on all five pages. That is not
+decoration: `Tab` is in `SUPPRESSED_KEYS`, so the browser's own focus
+traversal is off inside this game and without this there is no keyboard path
+into the menu at all. Arrows walk and wrap, left and right change a value or
+nudge a slider, **Enter** activates. Enter and not Space, because Space is the
+jump key and a menu that swallowed it would still leave it held for the first
+step after the menu closes.
+
+**decided:**
+
 ### D54 — Easy's aim cone is 4.0 degrees, not 5.0
 F17. A fresh seed turned the difficulty check red on the yard: easy at 16m,
 119 rounds, 2 hits, the Shade alive after 30s of being shot at in the open.
@@ -1114,6 +1183,39 @@ number changed to make the sentence true:
 **decided:**
 
 ## Blocking — waiting on Josh
+
+### D56 — Should the Warden be playable competitively?
+H5 put a role row on the main menu and found there are only two things the
+game can do with it: the Shade in a competitive round, and the Warden in free
+roam. There is no third, because **the AI is a Warden AI** — there is no Shade
+AI to play a competitive Warden against, and `matchstate.js`'s `FREEROAM` is
+`role: 'warden', ai: false, objective: false` for exactly that reason.
+
+So the row as built is honest about the game and slightly odd to read: you
+pick "warden" and Play gives you a map with nobody in it.
+
+The options, in the order they cost:
+
+1. **Leave it.** The row says what each role gets (`free roam - no opponent,
+   no clock`) and nothing pretends otherwise. Costs nothing; a friend who
+   picks Warden gets a walk around the level, which is a real thing to want.
+2. **Take the Warden off the row** and leave free roam as its own button.
+   Simpler, and gives up the one line that tells a new player the game has two
+   sides at all.
+3. **Build a Shade AI** and make the Warden a real side to play. That is a
+   block, not a job: it needs an attacker that routes to a site, climbs the
+   way the rule allows, plants, and then hides — most of Block K again, from
+   the other end, and against the census rather than the Warden's ground.
+4. **A competitive Warden against a scripted Shade** — a recorded run (H13's
+   replays) played back as the opponent. Much cheaper than 3, deterministic,
+   and it is the same round every time, which is either a tutorial or a
+   disappointment depending on how it is framed.
+
+**Recommendation: 1 for now, and 3 as a block after K if you want it.** This
+changes what a player can *do*, so it is yours; nothing is blocked on it,
+because the menu as built already offers both of the things that exist.
+
+**decided:**
 
 ### D8 — Does the site ring still read, now the plant is the whole room?
 The ring still looks like "plant here" while meaning "this room". Options:

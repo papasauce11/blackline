@@ -148,21 +148,9 @@ one setting only Josh can click; everything else here proceeds.
 - [x] **H4 (M)** Boot. — done 2026-09-27, under Done. Both halves of the
   done-when met; the WebGL2 test is `createRenderer()` returning null rather
   than a `getContext` probe, and why is **D53**.
-- [ ] **H5 (M)** The main menu. Title, a card per map with a thumbnail
-  rendered at boot from a fixed eye (no asset files), role, settings, how to
-  play, credits; the last-played map and role remembered (H7). *done-when:*
-  pixel checks for the thumbnails and the title; every row reachable by
-  keyboard (L3 adds the pad).
-  **Read this before starting**: a map is built once per page load and another
-  map is another page load (`maps/index.js`), so *there is no yard in memory
-  while you are on the plant* — a thumbnail per map means either baking every
-  registered map at boot (H4 measured that at 827ms for the plant and 439 for
-  the yard, so two maps roughly doubles a boot that now has a loading screen to
-  put it behind) or drawing the card from something cheaper than the map. That
-  is a real choice with a cost, it is presentation rather than a rule, so take
-  it and record it under Provisional — but price it first with `bakeMap` and the
-  existing `debugState.bootBake` numbers rather than discovering it halfway.
-  H4's loading screen and H3's footer both live on this menu; read them too.
+- [x] **H5 (M)** The main menu. — done 2026-09-28, under Done. The card
+  per map is rendered from the map at boot and the bake has a cut in it
+  (`DRAWN_SLICES`); the look is **D55** and the role row raised **D56**.
 - [ ] **H6 (M)** The first-run tutorial. Free-roam on the plant with a
   prompt chain — move, sprint, crouch, slide into the vent, jump, climb,
   tap-to-hang, plant — each completing on the act, skippable, once per
@@ -208,6 +196,23 @@ one setting only Josh can click; everything else here proceeds.
 - [ ] **H16 (S)** `npm run notes`: release notes from `PROGRESS.md` since
   the last tag into `RELEASES.md`; Josh tags when he merges. *done-when:*
   the script runs and the file reads.
+- [ ] **H17 (S)** The plant's card shows a slab, because the plant is a
+  sealed shell and every exterior eye gives one (H5, D55). If Josh asks for
+  its inside: hide the roof for the thumbnail render only. There is no
+  generic "the roof" rule — a height cut deletes half the yard's containers —
+  so it wants a per-map hint on the registry entry (`thumbHide: ['roof']`, a
+  tag prefix) rather than a clever derivation. *done-when:* the plant's card
+  is measurably more than the roof (a lit-pixel floor raised, and a check that
+  the yard's card is unchanged by the same code path).
+  **blocked: D55** — only worth doing if he wants it.
+- [ ] **H18 (S)** The map row under the cards does the same job the cards do
+  (H5). Make it a plain label, or drop it. It is kept today because
+  `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one` drives it
+  and `BLACKLINE_SPEC.md` names that check by id, so this job rewrites the
+  check to drive the cards instead — same assertions plus per-map
+  reachability, which is strictly stronger, and the id stays. *done-when:*
+  the check drives a named card rather than a cycle and the menu has one way
+  to pick a map. **blocked: D55.**
 
 ## Block K — the Warden as an opponent
 
@@ -390,6 +395,23 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H5** The main menu: a card per map, rendered from the map. The fork the
+  job named — bake every registered map, or draw a card from something
+  cheaper — was priced with four probes before a line was written. Each bake
+  slice on its own clock says the last three (rooms, the Warden's ground,
+  validation) are 408ms of the plant's 632 and **put nothing in a scene**, so
+  the bake gained a cut: `DRAWN_SLICES` 3 of 6, `buildDrawnMap`, every slice's
+  yield carrying the map so a half-built one is reachable, and a check that
+  pins the cut from both sides (266 meshes at 3 slices, 265 at 2). Two eyes
+  came back black — the fog is 96% of the picture at 110m, and the maps are
+  lit for a dark interior — and a third, at the Shade's spawn and then at the
+  site, found that **there is no exterior eye that shows the plant's inside**.
+  `start()` is called after `window.BLACKLINE` is published, so nothing of the
+  5.0s (4.0s of it a SwiftShader readback that is 4ms of work) is on the boot
+  H4 measured. Plus the role row, How to play, Credits, and a keyboard that
+  walks all five pages, which the game had no path to at all because `Tab` is
+  suppressed. Five checks. — `HASH`
 
 - **F18** A rate held by a check that counts bursts, not rounds — F17's
   second clause, done properly. Its first form was a floor under the *hit

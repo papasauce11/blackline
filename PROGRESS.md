@@ -9517,3 +9517,191 @@ twelve real engagements for the tail and forty artificial windows for the rate
 the presets themselves; **K6 still owns medium and hard at 8m**, where they are
 0.02s apart on the yard and both at the gun's rate-of-fire floor, and F17's
 entry says why no aim model fixes that.
+
+## H5 — the main menu: a card per map, rendered from the map (2026-09-28 02:00, scheduled run)
+
+**The job named the fork and asked for it to be priced first.** "A map is
+built once per page load and another map is another page load, so *there is no
+yard in memory while you are on the plant* — a thumbnail per map means either
+baking every registered map at boot or drawing the card from something cheaper
+than the map." Four probes answered it, and three of the four eyes they tried
+came back unusable.
+
+**What each bake slice costs, measured as the bake yields them** (`npm run
+probe`, against the 09-18 orphan runner as everything here is):
+
+| | plant | yard |
+|---|---|---|
+| geometry (the solids, the lights, the site tints, the decals) | 179ms | 52ms |
+| collision | 1ms | 1ms |
+| the climb rule, and B7's route lighting | 166ms | 21ms |
+| rooms | 118ms | 60ms |
+| the Warden's ground | 286ms | 77ms |
+| checking the map | 4ms | 0ms |
+| **whole** | **632ms** | **200ms** |
+
+The last three derive facts and put **nothing in a scene**, and they are 408ms
+of the plant's 632. So the bake has a cut in it: `DRAWN_SLICES` (3 of
+`BAKE_SLICES`' 6) and `buildDrawnMap(id)`, which is what a card is rendered
+from. Getting at a half-built map needed one small change to make it reachable
+— every slice's yield carries the map now (`{ label, map }`, in both builders
+and `mapfinish.js`) and `bakeMap` hands it out as `partial`. It is the same
+object the bake finishes with, not a copy, and a clause of the new check says
+so.
+
+**The constant is pinned from both sides, not asserted.**
+`the-drawn-slices-are-every-slice-that-puts-anything-in-the-scene` censuses
+meshes, lights and triangles of a whole map, a map at `DRAWN_SLICES`, and one
+at `DRAWN_SLICES - 1`, and requires the first two to be equal and the third to
+differ. On the plant that is **266 meshes / 15 lights / 5,258 triangles at 3
+slices and 265 / 15 / 5,078 at 2** — the one mesh is B7's merged route
+lighting; the yard is 170 / 8 / 2,920 against 169 / 8 / 2,812. So if a later
+slice ever starts adding geometry the cards do not quietly lose it, and if the
+cut could be earlier the check says that too.
+
+**Two eyes came back black before one worked, and for different reasons.** The
+first framed the whole site from a corner and read **mean luma 1.4, peak 208,
+3.7% of the frame anything at all**. The scene's `FogExp2` is 0.018 in the
+clear colour: at the 110m that frames an 81m site, fog is 96% of the picture.
+Fog is off in a card. The second was the same eye with fog off and read mean
+luma 1.4 as well — that one is the maps, which are lit for a dark stealth
+interior, and an unlit roof at 100m is luma 1 whatever the fog does. So a card
+carries **its own key (12) and hemisphere (5)** on top of the map's rig; the
+rig stays, because the yard's floodlights are what the yard looks like. With
+both fixed the plant reads **18.6% lit, mean luma 11.1** and the yard **8.0%
+lit, mean luma 6.6**.
+
+**A third eye was built and dropped, and it is the one worth recording.** An
+aerial of the plant is a grey slab, because the plant is a sealed shell — that
+is the map. So the eye was moved to somewhere the map itself declares: the
+Shade's own spawn, looking at the first site. Still a slab, because the spawn
+is outside the shell. Then to the site itself, pulled back along the line to
+the spawn — and 12m back from site A is **outside the wall, looking at the
+wall**. There is no exterior eye that shows the plant's inside, and no generic
+rule for "the roof" that would not also delete half the yard's containers. The
+plant's card is a lit building in a fenced compound and the yard's is
+unmistakably a container yard; that is enough to tell them apart, which is
+what a card is for. D55 says what to ask for if the inside is wanted.
+
+**None of it is on the boot a player waits on.** `createThumbnails` is built in
+`boot.js` and **`start()` is called from `main.js` after `window.BLACKLINE =
+harness`**, fire and forget; the menu draws its cards with an empty frame at
+the right aspect and re-renders when they land, which is exactly the shape H3
+gave the build stamp. A real task boundary (`yieldToPaint`, H4's posted
+message — `await` on a settled promise is a microtask and would not yield at
+all) goes between maps and never inside one, because the render borrows **the
+one camera** and `renderFrame` re-parents it every frame. It is borrowed and
+put back inside a single synchronous task, the way `tests/pixels.js` borrows
+it; no second camera is made and no second WebGL context, which TRAPS.md
+prices at 16 seconds here.
+
+The whole thing is **5.0s headless, 4.0s of it the `readRenderTargetPixels`
+waiting on SwiftShader** (plant 145ms build + 2.9s draw, yard 80ms + 1.0s).
+The probe's own warm draw of the same scene was **4ms**, so that 4s is the
+software rasteriser and not the work; how long a friend actually sees an empty
+card is a question only H11's bench can answer.
+
+**The menu itself.** Title, a card per registered map with `aria-current` on
+the one this page is on, a role row, Play, Free Roam, Settings, How to play,
+Credits, the map row D1 built, and H3's footer. Three files, because one would
+have been past the guidance: `ui/menucss.js` (the stylesheet),
+`ui/menupages.js` (pause, settings, how to play, credits, installed on
+`Menu.prototype` as F3's mixins are) and `ui/menu.js` (the class, the main
+page, the keyboard). How to play reads `objectiveLine` and `controlRows` out
+of `ui/briefing.js` rather than retyping them, so the menu page and the
+round-start card are one set of sentences and H8's rebinding will move both.
+
+**The role row is the one thing here a player could call a rule, and it is
+not one.** `shade` is the competitive match and `warden` is free roam, which
+are the two things the game has; Play reads the row. The *Free Roam* button
+stays exactly as it was and **deliberately does not move the row** — a check
+clicks it, and a button that wrote `SETTINGS.role` would have left the role
+behind for every check after it, which is the one thing a check may not leave
+(F2). Whether a competitive Warden should exist at all is **D56**; it needs a
+Shade AI, which is most of Block K again from the other end.
+
+**The keyboard is not decoration.** `Tab` is in `SUPPRESSED_KEYS`, so the
+browser's own focus traversal is switched off inside this game on purpose, and
+before this there was no keyboard path into the menu at all. Every page
+declares its focusable rows through `_rows()`; arrows walk and wrap, left and
+right change a value or nudge a slider (so sensitivity and volume are
+reachable without a mouse), **Enter** activates. Enter and not Space: Space is
+the jump key, and a menu that swallowed it would still leave it held for the
+first step after the menu closes.
+
+**Five new checks**, `src/tests/menu.js`, registered after `registerVersion`:
+
+- `the-main-menu-draws-a-rendered-thumbnail-for-every-map` **decodes what the
+  card is showing** — `img.decode()` into a 2D canvas — and measures it: the
+  right size, a `data:image/png` src and not a file, at least 4.5% of it lit
+  geometry, a mean luma over 2, something brighter than 60 in it, a laid-out
+  box, and **at least 5% of its pixels different from the next card's**, which
+  is the clause that catches one picture wired to every card.
+  **Its first version was wrong and is worth recording**: it measured "not the
+  clear colour" and called a card that is 60% black margin *100% drawn*,
+  because a render target clears to black and black differs from `0x0a0d10`
+  in every channel. A metric that cannot fail is worse than no metric. It
+  measures lit pixels now.
+- `the-drawn-slices-are-every-slice-that-puts-anything-in-the-scene`, above.
+- `the-main-menu-title-is-drawn-above-the-cards`: the word, the box, the
+  computed opacity, that it is the **largest type on the card**, that its ink
+  has luma over 60 against a near-black menu, and that the card strip starts
+  below it. It says in its own header that this is layout and not pixels —
+  the menu is a DOM overlay in front of the GL canvas and `gl.readPixels`
+  cannot see it — which is the standard H3's footer check already set.
+- `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard` walks
+  **all five pages**, counts the elements that have a click handler and
+  requires the same number to be declared reachable (so a page cannot gain a
+  control the keyboard cannot get to), drives the ring with real
+  `KeyboardEvent`s at the window, checks it wraps both ways and is *drawn*,
+  then sets the role row with the right key and presses Enter on Play as each
+  role and reads which of the two started.
+- `the-menu-remembers-the-map-and-role-it-last-played`: `bootMapId('')` comes
+  from `SETTINGS.lastMap`, an explicit `?map=` still beats it, a remembered
+  map the registry has dropped falls back, `requestedMapId` stays a pure
+  question about the URL, the other map's card records the choice and asks for
+  the page load, and the card for this page's own map asks for nothing and is
+  marked `aria-current`. A map is a page load, so "remembered" is a default a
+  later load picks up; it survives the browser once **H7** puts SETTINGS in a
+  store, and the wiring is what is testable now.
+
+**Verified.** Both maps twice, exit 0, 0 red, 0 flaky, 0
+console errors, 0 context losses, 0 skips withheld. **Plant 190 passed / 1
+failed / 8 not for this map (999,588ms and 997,377ms), yard 171 / 1 / 27
+(672,654ms and 672,969ms)** - five more per map than the gate that opened the
+run (185 and 166), which are these five. The pairs agree to **2,211ms on the
+plant (0% of the longest) and 315ms on the yard**, and the one failure per map
+is the frame-budget check, skipped headless. Per check: the thumbnail one
+**7,445ms on its first run of a page and 59-68ms on the second** (the first
+waits for the cards, the second finds them made), the drawn-slices one
+**520-955ms** (it builds four maps on purpose), and the title, keyboard and
+remembered-map ones **2-9ms**. The cards read **identically on both maps and
+in all four runs** - plant 18.6% lit at mean luma 11.1, yard 8.0% at 6.6 -
+which is the point of building every map's picture the same way rather than
+taking the current one off the live scene.
+
+**The verify caught a regression this job had introduced, and it is the most
+useful thing in the entry.** "Remembered map" went into `requestedMapId` as
+the no-query fallback, which is the obvious place and is wrong:
+`every-registered-map-builds-and-the-page-is-on-the-one-its-url-asked-for`
+asserts that an empty query gives the default, and **any check that clicks the
+real Play writes `SETTINGS.lastMap`** (`panels.js`, `onPlay`). So the yard's
+first run read "plant" for an empty query and its second read "yard", and the
+report said `FLAKY` rather than red - the two runs of a map share a page, and
+the leak only exists on the second. Which map a *URL* asks for and which map a
+*browser* opens with are two questions: `requestedMapId` is pure and answers
+the first, `bootMapId` answers the second and is what `main.js` boots from. A
+clause of the new check now holds `requestedMapId` to being pure, so the same
+mistake cannot be made again quietly.
+
+**Found.** Two more things worth keeping. **A render target clears to black,
+not to `scene.background`** — the margin of a thumbnail is `#000`, not the clear
+colour, which is what made the first coverage metric meaningless. And the
+`readRenderTargetPixels` behind a card is F11's wait in miniature: 4ms of work
+billed as 4 seconds, because it blocks until SwiftShader has drained
+everything queued behind it.
+
+**Left.** D55 is all look, with one real question inside it — whether the
+plant's card should show its inside, which needs the roof hidden and has no
+generic rule. D56 is the rule-shaped one: there is no Shade AI, so "play the
+Warden" can only mean free roam today.

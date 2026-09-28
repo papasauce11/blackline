@@ -65,8 +65,13 @@ function keys(bindings, action, firstOnly = false) {
   return (firstOnly ? codes.slice(0, 1) : codes).map(keyLabel).join(' / ');
 }
 
-/** The one line that says what this round is for. */
-function objectiveLine(match, bindings) {
+/**
+ * The one line that says what this round is for. Exported because the main
+ * menu's *How to play* page says the same thing and must not say it twice in
+ * two places (H5): the card and the page are one sentence, read from the same
+ * live bindings.
+ */
+export function objectiveLine(match, bindings) {
   const interact = keys(bindings, 'interact', true);
   if (!match.objectiveEnabled) {
     return 'Free roam: no opponent, no clock, no score. Learn the map, feel the gun, try the gadgets.';
@@ -80,8 +85,8 @@ function objectiveLine(match, bindings) {
     + `${Math.round(R.duration / 60)} minutes to plant.`;
 }
 
-/** The rows of the controls table for a role: `[keys, what it does]`. */
-function controlRows(match, bindings) {
+/** The rows of the controls table for a role: `[keys, what it does]`. Shared with the menu's How to play page (H5). */
+export function controlRows(match, bindings) {
   const b = bindings;
   const move = ['forward', 'left', 'back', 'right'].map((a) => keys(b, a, true)).join(' ');
   const rows = [

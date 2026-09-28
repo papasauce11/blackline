@@ -49,24 +49,26 @@ export const FINISH_SLICES = 5;
  *
  * @param {import('./mapkit.js').GameMap} map
  * @param {object} expects the counts this map promises, for `validateMap`
- * @yields {{label: string}} what has just been done
+ * @yields {{label: string, map: object}} what has just been done, and the map
+ *   as far as it has got - `bakeMap` hands that out as `partial`, which is what
+ *   lets a caller take the map at a cut short of the whole bake (H5).
  */
 export function* finishSteps(map, expects) {
   map.collision.build();
-  yield { label: 'collision' };
+  yield { label: 'collision', map };
 
   map.deriveClimbableSurfaces();
   // After the rule, because the routes are lit where the rule says a body
   // arrives (B7), and before validation, which counts what was lit.
   lightRoutes(map);
-  yield { label: 'the climb rule' };
+  yield { label: 'the climb rule', map };
 
   map.deriveRoomEntries();
-  yield { label: 'rooms' };
+  yield { label: 'rooms', map };
 
   map.deriveWardenGround();
-  yield { label: "the Warden's ground" };
+  yield { label: "the Warden's ground", map };
 
   validateMap(map, expects);
-  yield { label: 'checking the map' };
+  yield { label: 'checking the map', map };
 }

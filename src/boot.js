@@ -35,6 +35,7 @@ import { createEffects } from './systems/effects.js';
 import { createDeathCam } from './systems/deathcam.js';
 import { createFeedback } from './systems/feedback.js';
 import { createPanels } from './panels.js';
+import { createThumbnails } from './thumbnails.js';
 import { DebugTools } from './ui/debug.js';
 import { registerAutoTests } from './tests/index.js';
 import { registerAssertions } from './tests/assertions.js';
@@ -182,10 +183,16 @@ export async function bootWorld({
 
   // The HUD, the scoreboard, the menu and the briefing, and what their
   // buttons do (panels.js); the handlers read the live objects through getters.
+  // H5: a picture of every registered map for the menu's cards, rendered from
+  // the game's own geometry with the live renderer and the one camera. Built
+  // here and *started* by the composition root after `window.BLACKLINE` is
+  // published, so none of it is inside the boot a player waits on.
+  const thumbnails = createThumbnails({ renderer, camera, gradientMap });
+
   let input = null;
   const { hud, scoreboard, menu, briefing } = createPanels({
     initMatch, setPaused, objective: () => objective, audio: () => audio, match,
-    map: () => map, input: () => input, maps: listMaps(), goToMap,
+    map: () => map, input: () => input, maps: listMaps(), goToMap, thumbnails,
   });
 
   wireMatchEvents({
@@ -223,6 +230,6 @@ export async function bootWorld({
   return {
     renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner,
+    briefing, cameraOwner, thumbnails,
   };
 }

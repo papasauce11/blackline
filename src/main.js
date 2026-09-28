@@ -27,7 +27,7 @@ import * as THREE from 'three';
 import { CONFIG, SETTINGS, rng, deriveSeed, debugRequested } from './config.js';
 import { Emitter } from './emitter.js';
 import { bootWorld } from './boot.js';
-import { requestedMapId, mapUrl } from './maps/index.js';
+import { bootMapId, mapUrl } from './maps/index.js';
 import { FrameLoop } from './loop.js';
 import { computeStepPlan } from './timestep.js';
 import { resolveMatchOptions, createMatchState, bootMatchOptions } from './matchstate.js';
@@ -67,6 +67,7 @@ import { createWardenIntent } from './entities/enforcer.js';
 /** @type {import('./ui/hud.js').Hud} */ let hud = null;
 /** @type {import('./groundview.js').WardenGroundView} */ let groundView = null;
 /** @type {import('./ui/menu.js').Menu} */ let menu = null;
+/** @type {import('./thumbnails.js').createThumbnails} */ let thumbnails = null;
 /** @type {import('./ui/scoreboard.js').Scoreboard} */ let scoreboard = null;
 /** @type {import('./ui/briefing.js').Briefing} */ let briefing = null;
 const shadeIntent = createIntent();
@@ -223,7 +224,7 @@ async function bootstrap() {
     emitter, debugState, harness, initMatch, setPaused, setTimeScale, match: () => match,
     // D1: the map is the URL's for this page load; the menu's map row
     // reloads with another, keeping the seed and the debug gate.
-    mapId: requestedMapId(location.search),
+    mapId: bootMapId(location.search),
     goToMap: (id) => { location.search = mapUrl(location.search, id); },
     // H4: the loading screen's line, and a real task boundary after it, so the
     // browser draws what it was just told before the next slice locks the
@@ -239,7 +240,7 @@ async function bootstrap() {
   ({
     renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner,
+    briefing, cameraOwner, thumbnails,
   } = built);
 
   setTimeScale(1);
@@ -439,6 +440,7 @@ const harness = createHarness({
   hud: () => hud,
   groundView: () => groundView,
   menu: () => menu,
+  thumbnails: () => thumbnails,
   scoreboard: () => scoreboard,
   briefing: () => briefing,
   paused: () => paused,
@@ -501,6 +503,11 @@ bootstrap().then((unsupported) => {
   // runner reaches the game through it and the suite turns the gate on for
   // the length of a run.
   window.BLACKLINE = harness;
+
+  // H5: the menu's cards, after the harness is published and not before. Each
+  // is a bake and a draw, and putting them here is what keeps them off the
+  // boot H4 measured: the menu is already up, and the pictures land in it.
+  thumbnails.start();
   if (SETTINGS.debug) {
     console.log(
       `%c BLACKLINE %c three r${THREE.REVISION}  seed ${rng.seed}  F3 debug  F4 test mode `,

@@ -367,7 +367,7 @@ export function* buildYardMap({ id, name, gradientMap }) {
 
   // Declaration costs 83ms and the tail below costs 373, so the tail is where
   // a bake lets go of the main thread (H4, mapfinish.js).
-  yield { label: 'geometry' };
+  yield { label: 'geometry', map };
   yield* finishSteps(map, EXPECTS);
 
   return map;

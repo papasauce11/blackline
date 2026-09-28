@@ -82,6 +82,43 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The main menu has a card per map (H5, 2026-09-28)
+
+Open the menu and wait a second. Two cards fill in, each a picture of that
+map rendered out of its own geometry at boot — there are no image files in
+this project and these are not an exception; they are drawn with the game's
+renderer and handed to the page as data. The plant's card is a lit building
+in a fenced compound, the yard's is plainly a container yard. Click the other
+one to switch (still a page load, by design); the one you are on is outlined
+and says *selected*.
+
+Also new: a **role** row, which is what Play starts — `shade` is the
+competitive match and `warden` is free roam, because those are the two the
+game has (D56 asks whether a competitive Warden should exist). **How to play**
+and **Credits** pages. And the whole menu is **driven by the keyboard**:
+arrows walk the rows and wrap, left and right change a value or nudge a
+slider, Enter activates. That is worth a minute of your time because there was
+no keyboard path into this menu at all before — `Tab` is switched off
+game-wide on purpose.
+
+`the-main-menu-draws-a-rendered-thumbnail-for-every-map` decodes what each
+card is actually showing and proves it is a picture of that map and not of
+the other one or of nothing; `the-main-menu-title-is-drawn-above-the-cards`,
+`every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`,
+`the-menu-remembers-the-map-and-role-it-last-played` and
+`the-drawn-slices-are-every-slice-that-puts-anything-in-the-scene` hold the
+rest.
+
+**What is left for you:** whether the plant's card reads as a place or as a
+grey box. It is a sealed shell from outside and every exterior eye gives you
+its roof — three were tried. Showing its *inside* needs the roof hidden for
+the render, which is **H17** and waits on your word (D55). Also: whether the
+cards are bright enough (they carry their own key light, because the maps are
+lit for a dark interior and an unlit roof reads as black), whether the map
+row under the cards should stay now the cards do its job (**H18**), and how
+long the cards take to appear on a real GPU — 4 of the 5 seconds here is the
+software rasteriser.
+
 ### The page says Blackline before the game exists (H4, 2026-09-27)
 
 Reload and watch the first second. You should see the title and a line

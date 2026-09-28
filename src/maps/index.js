@@ -24,12 +24,16 @@
  * Layering (Section 3.1): as the maps it lists - mapkit, physics, config.
  */
 
+import { SETTINGS } from '../config.js';
 import { buildPlantMap } from './plant.js';
 import { buildYardMap } from './yard.js';
 import { FINISH_SLICES } from '../mapfinish.js';
 
-/** The map the page opens on when the URL names none. */
+/** The map the page opens on when the URL names none and none is remembered. */
 export const DEFAULT_MAP_ID = 'plant';
+
+/** `?map=<id>`, the one place the query is parsed. */
+const MAP_QUERY = /(?:^|[?&])map=([a-z0-9-]+)(?:&|$)/i;
 
 /**
  * In the order the menu offers them.
@@ -62,17 +66,46 @@ export function mapEntry(id) {
  * runner checks `map.id` against what it asked for, so a fallback there is
  * never a silent pass on the wrong map.
  *
+ * **A pure function of the query**, deliberately. H5 first put the remembered
+ * map (`SETTINGS.lastMap`) in here as the no-query fallback, and the verify
+ * caught it: `every-registered-map-builds-and-the-page-is-on-the-one-its-url-asked-for`
+ * asserts that an empty query gives the default, and any check that clicks the
+ * real Play writes `lastMap`, so the second run of a map read "yard" where the
+ * first read "plant". Which map a *URL* asks for and which map a *browser*
+ * opens with are two questions; this one answers the first and `bootMapId`
+ * answers the second.
+ *
  * @param {string} search `location.search`, or any query string
  * @returns {string} a registered id
  */
 export function requestedMapId(search) {
   const query = typeof search === 'string' ? search : '';
-  const match = /(?:^|[?&])map=([a-z0-9-]+)(?:&|$)/i.exec(query);
+  const match = MAP_QUERY.exec(query);
   if (!match) return DEFAULT_MAP_ID;
   const id = match[1].toLowerCase();
   if (mapEntry(id)) return id;
   console.warn(`[maps] no map "${id}"; opening ${DEFAULT_MAP_ID}`);
   return DEFAULT_MAP_ID;
+}
+
+/**
+ * Which map this page load opens on (H5): the one the URL names, or the one
+ * last chosen from the menu, or the default.
+ *
+ * This is the whole of "the last map is remembered". A map is a page load, so
+ * there is nothing to switch - only a default to pick when the URL names
+ * none. An explicit `?map=` always wins, because a link a friend was sent
+ * must not be overruled by what this browser did last. It lasts beyond the
+ * browser session once H7 puts SETTINGS in a store; until then it is this
+ * page load's own memory.
+ *
+ * @param {string} search `location.search`
+ * @returns {string} a registered id
+ */
+export function bootMapId(search) {
+  const query = typeof search === 'string' ? search : '';
+  if (MAP_QUERY.test(query)) return requestedMapId(query);
+  return mapEntry(SETTINGS.lastMap) ? SETTINGS.lastMap : DEFAULT_MAP_ID;
 }
 
 /**
@@ -121,10 +154,17 @@ export function bakeMap(id, { gradientMap }) {
   if (!entry) throw new Error(`bakeMap: no map "${id}" (have ${mapIds().join(', ')})`);
   const steps = entry.build({ id: entry.id, name: entry.name, gradientMap });
   let map = null;
+  let partial = null;
   let slices = 0;
   return {
     /** The map, once the bake has finished; null until then. */
     get map() { return map; },
+    /**
+     * The map as far as the bake has got: every slice yields it (H5). Whole
+     * once the bake is done, and never a second object - `map` and `partial`
+     * are the same one, finished or not.
+     */
+    get partial() { return partial; },
     /** How many slices have run. */
     get slices() { return slices; },
     /**
@@ -135,13 +175,53 @@ export function bakeMap(id, { gradientMap }) {
       const { value, done } = steps.next();
       if (!done) {
         slices++;
+        partial = value.map;
         return value.label;
       }
       map = value;
+      partial = value;
       if (map.id !== entry.id) throw new Error(`bakeMap: "${entry.id}" built a map calling itself "${map.id}"`);
       return null;
     },
   };
+}
+
+/**
+ * How many slices a bake has to run before everything the map *draws* exists:
+ * the declaration (the geometry, the lights, the site tints, the decals), the
+ * collision tree, and the climb rule with the route lighting B7 lays on top of
+ * it. The three after it - rooms, the Warden's ground, validation - derive
+ * facts nothing puts in the scene, and on the plant they are 408ms of a 632ms
+ * bake (H5, measured).
+ *
+ * The constant is pinned from both sides by
+ * `the-drawn-slices-are-every-slice-that-puts-anything-in-the-scene`: at this
+ * cut a map holds exactly the meshes and lights a finished one holds, and one
+ * slice earlier it does not. So it is a reading of the bake rather than a
+ * number someone believed.
+ */
+export const DRAWN_SLICES = 3;
+
+/**
+ * Build a map as far as it is drawn, and no further (H5). This is what the
+ * main menu's thumbnails are rendered from: a picture needs the scene and
+ * none of the derivations, and paying for the derivations twice a page load
+ * would put the cost of every registered map into the boot the loading screen
+ * was built to shorten.
+ *
+ * The result is a real map object mid-bake: it has `root`, `collision` and
+ * `ledges`, and it has no `wardenGround`, no room entries and no validation.
+ * Nothing but a picture should take one.
+ *
+ * @param {string} id
+ * @param {object} options
+ * @param {THREE.DataTexture} options.gradientMap
+ * @returns {import('../mapkit.js').GameMap}
+ */
+export function buildDrawnMap(id, options) {
+  const bake = bakeMap(id, options);
+  for (let i = 0; i < DRAWN_SLICES; i++) bake.step();
+  return bake.partial;
 }
 
 /**

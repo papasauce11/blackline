@@ -534,7 +534,7 @@ export function* buildPlantMap({ id, name, gradientMap }) {
   // main thread (H4, mapfinish.js).
   // -------------------------------------------------------------------------
 
-  yield { label: 'geometry' };
+  yield { label: 'geometry', map };
   yield* finishSteps(map, EXPECTS);
 
   return map;
