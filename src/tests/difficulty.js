@@ -83,6 +83,46 @@ const STALL_SEEDS = [1637054825, 4196849476, ...(() => {
 })()];
 
 /**
+ * The rate half's windows (F18), one mulberry32 walk from 0xf18, pinned for
+ * the same reason as `STALL_SEEDS`: the line below is set from what these
+ * exact windows measured, so a seed that moved would move the measurement
+ * out from under its own threshold.
+ */
+const RATE_SEEDS = (() => {
+  const next = mulberry32(0xf18);
+  return Array.from({ length: 40 }, () => (next() * 0x100000000) >>> 0);
+})();
+/** Seconds of ENGAGE each window is measured over. */
+const RATE_SECONDS = 30;
+/**
+ * A floor under how many bursts those windows are allowed to produce, so a
+ * rate computed from a handful cannot pass by being too small to fail. The
+ * forty windows measure 1,069 on the plant and 1,092 on the yard.
+ */
+const RATE_MIN_BURSTS = 800;
+/**
+ * **How often a burst must put a round on the body**, at the longer range on
+ * the widest cone. This is F17's statistic done properly: the rounds of a
+ * burst share one aim draw, so a *round* is not an independent trial and a
+ * fraction over rounds carries far less information than its count suggests.
+ * A burst is the trial. Measured over forty god-moded windows, ~1,070 bursts,
+ * standard error 0.015:
+ *
+ * | | cone 5.0 (F17's) | cone 4.0 (D54) |
+ * |---|---|---|
+ * | plant | 0.400, 3se band 0.355-0.445 | 0.541, band 0.495-0.586 |
+ * | yard | 0.432, band 0.387-0.477 | 0.579, band 0.534-0.624 |
+ *
+ * The bands leave [0.477, 0.495] for a line, and 0.486 is the middle of it:
+ * **3.6 standard errors above the worst old reading and 3.6 below the worst
+ * new one**, on both maps. That margin is the whole point of the job - the
+ * first attempt at this check read a per-round fraction over twelve
+ * engagements, where the same two cones are 0.18 and 0.23 with five points
+ * of noise on each, and it was red on the day it was written.
+ */
+const MIN_BURST_LANDING_RATE = 0.486;
+
+/**
  * One engagement on one preset from one seed: the Warden held on its spot
  * facing up the lane, the Shade standing lit and still `range` metres ahead.
  * The AI is live and unmodified; the Warden's position is held so the
@@ -170,6 +210,84 @@ function engage(h, name, seed, range, LANE) {
       ? `not dead after ${KILL_LIMIT}s of ENGAGE (${hits} of ${shots} shots hit, state ${wardenAI.state})`
       : null,
   };
+}
+
+/**
+ * One measuring window: the Warden held on its spot, in ENGAGE, firing at a
+ * Shade that cannot die, for `RATE_SECONDS`. God mode is what makes the
+ * measurement unbiased (F18) - an engagement that ends at its first landing
+ * burst stops sampling exactly when the cone succeeds, and the fraction it
+ * reports is then a function of how long the check let it run. Here every
+ * burst is an independent draw of the cone and the sample size is bursts.
+ *
+ * The fill is skipped (`accumulator = engageThreshold`, as the burst check
+ * does) because it is the sibling check's subject and costs 14s of
+ * simulation a window.
+ *
+ * @returns {{ bursts: number, landed: number, rounds: number, hits: number,
+ *   engaged: boolean, unhurt: boolean }} bursts that fired, bursts that put
+ *   at least one round on the body, and the two facts that say the window
+ *   measured what it meant to
+ */
+function burstWindow(h, name, seed, range, LANE) {
+  const dt = CONFIG.time.fixedDt;
+  SETTINGS.difficulty = name;
+  h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed });
+  const { warden, shade, wardenAI, detection, gadgets } = h;
+  gadgets.loadout.frag = 0;
+  warden.reset({ position: { x: LANE.x, y: LANE.y, z: LANE.z }, yaw: LANE.yaw });
+  shade.reset({ position: alongLane(LANE, range), yaw: facingBack(LANE) });
+  h.stepFrames(2);
+  const held = warden.position.clone();
+  wardenAI.reset();
+  wardenAI.accumulator = A.engageThreshold;
+  h.input.clearAll();
+  h.debugState.godMode = true;
+  const lit = () => { detection.smoothed = CONFIG.detection.meterMax; };
+  lit();
+
+  // A round more than the gun's own interval after the last one opens a new
+  // burst - the same rule the burst check reads pauses with.
+  const gap = 60 / CONFIG.combat.gun.roundsPerMinute + dt * 1.5;
+  let bursts = 0;
+  let landed = 0;
+  let open = false;
+  let rounds = 0;
+  let hits = 0;
+  let now = 0;
+  let last = -Infinity;
+  const offs = [
+    h.emitter.on('combat:shot', (event) => {
+      if (event.actor !== 'warden') return;
+      rounds++;
+      if (now - last > gap) {
+        bursts++;
+        open = false;
+      }
+      last = now;
+    }),
+    h.emitter.on('combat:impact', (event) => {
+      if (event.target !== 'shade') return;
+      hits++;
+      if (!open) {
+        open = true;
+        landed++;
+      }
+    }),
+  ];
+
+  for (let i = 0; i < Math.round(RATE_SECONDS / dt); i++) {
+    warden.position.copy(held);
+    warden.velocity.set(0, 0, 0);
+    h.stepFrames(1);
+    now += dt;
+    lit();
+  }
+  for (const off of offs) off();
+  const engaged = wardenAI.state === AI_STATE.ENGAGE;
+  const unhurt = shade.health >= CONFIG.shade.health;
+  h.debugState.godMode = false;
+  return { bursts, landed, rounds, hits, engaged, unhurt };
 }
 
 export function register(debugTools) {
@@ -359,8 +477,8 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'the-widest-cone-kills-at-range-and-not-once-in-a-while',
-    spec: 'Section 11 (difficulty), F17',
-    name: 'Every one of twelve pinned engagements on the widest preset at the longer range kills inside the limit, the two that the old cone could not among them',
+    spec: 'Section 11 (difficulty), F17, F18',
+    name: 'On the widest preset at the longer range: twelve pinned engagements all kill inside the limit, the two the old cone could not among them, and a burst puts a round on the body often enough that the kill is a rate',
     run: (h) => {
       const problems = [];
       const was = SETTINGS.difficulty;
@@ -384,25 +502,52 @@ export function register(debugTools) {
         hits += run.hits;
         if (run.stalled) problems.push(`seed ${seed}: ${run.stalled}`);
       }
+      // Second half (F18): the rate, measured rather than inferred from the
+      // stalls. Twelve engagements cannot carry a threshold - the rounds are
+      // clustered by the burst that shares one aim draw, so the sample is
+      // ~65 bursts and a fraction over it moves five points for nothing.
+      // Forty windows is ~1,070 bursts and a standard error of 0.015.
+      const windows = RATE_SEEDS.map((seed) => burstWindow(h, name, seed, range, LANE));
       SETTINGS.difficulty = was;
       h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
 
-      // The sibling check averages eight seeds and compares the presets; this
-      // one never averages. Twelve engagements, and the assertion is that not
-      // one of them is a stall - which is the shape of the thing F17 found,
-      // since the mean was 6.3s all along and it was the worst case that had
-      // gone past the limit. The hit fraction is reported and not asserted:
-      // over twelve engagements it carries about five points of noise, which
-      // is most of the distance between the old cone and this one.
+      // The half a check that picks its own inputs owes the suite: the
+      // windows measured a Warden that was actually shooting at a Shade that
+      // was actually protected. Without these two, a god mode that stopped
+      // working or an AI that wandered out of ENGAGE would both read as a
+      // cone that had got worse.
+      const adrift = windows.filter((w) => !w.engaged).length;
+      const hurt = windows.filter((w) => !w.unhurt).length;
+      if (adrift) problems.push(`${adrift} of ${windows.length} windows did not end in ENGAGE`);
+      if (hurt) problems.push(`${hurt} of ${windows.length} windows let the rifle through god mode`);
+
+      const bursts = windows.reduce((sum, w) => sum + w.bursts, 0);
+      const landedBursts = windows.reduce((sum, w) => sum + w.landed, 0);
+      const fired = windows.reduce((sum, w) => sum + w.rounds, 0);
+      const onBody = windows.reduce((sum, w) => sum + w.hits, 0);
+      const rate = bursts ? landedBursts / bursts : 0;
+      const se = bursts ? Math.sqrt((rate * (1 - rate)) / bursts) : 1;
+      if (bursts < RATE_MIN_BURSTS) {
+        problems.push(`only ${bursts} bursts across ${windows.length} windows; the rate needs ${RATE_MIN_BURSTS}`);
+      }
+      if (!(rate >= MIN_BURST_LANDING_RATE)) {
+        problems.push(`${landedBursts} of ${bursts} bursts put a round on the body - ${rate.toFixed(3)}, under `
+          + `${MIN_BURST_LANDING_RATE} (${((MIN_BURST_LANDING_RATE - rate) / se).toFixed(1)} standard errors): the cone `
+          + 'is wide enough at this range that a burst is a coin, and the kill inherits its tail');
+      }
+
       const sorted = kills.slice().sort((a, b) => a - b);
-      const landed = shots ? hits / shots : 0;
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${name} at ${range}m from ${LANE.from}, ${STALL_SEEDS.length} pinned seeds: every engagement killed, `
+          ? `${name} at ${range}m from ${LANE.from}. ${STALL_SEEDS.length} pinned engagements: every one killed, `
             + `worst ${sorted[sorted.length - 1].toFixed(2)}s of ${KILL_LIMIT}s, median `
-            + `${sorted[sorted.length >> 1].toFixed(2)}s; ${hits} of ${shots} rounds landed (${landed.toFixed(3)})`
-          : `${problems.join('; ')} - kills [${kills.map((k) => k.toFixed(1)).join(' ')}]s, ${hits}/${shots} landed`,
+            + `${sorted[sorted.length >> 1].toFixed(2)}s, ${hits} of ${shots} rounds landed. `
+            + `${windows.length} god-moded ${RATE_SECONDS}s windows: ${landedBursts} of ${bursts} bursts landed - `
+            + `${rate.toFixed(3)} +- ${se.toFixed(3)}, at least ${MIN_BURST_LANDING_RATE} `
+            + `(${((rate - MIN_BURST_LANDING_RATE) / se).toFixed(1)} se clear); ${onBody}/${fired} rounds`
+          : `${problems.join('; ')} - kills [${kills.map((k) => k.toFixed(1)).join(' ')}]s, `
+            + `${landedBursts}/${bursts} bursts landed`,
       };
     },
   });

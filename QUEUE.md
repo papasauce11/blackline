@@ -59,22 +59,8 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
 - [x] **F17 (S)** A fresh seed turns the yard's difficulty check red. — done
   2026-09-27, under Done (`3316d07`).
 
-- [ ] **F18 (S)** A rate held by a check that counts bursts, not rounds.
-  F17 wanted a second assertion beside "no engagement stalls": a floor under
-  what a round is worth at range, so a widened cone is caught on both maps
-  and not only where a pinned seed happens to stall. It was built, read
-  0.181 against a line of 0.19 set from a 40-seed reading of 0.232, and came
-  out — **the rounds are not independent**, they are clustered by the burst
-  that shares one aim draw, so a fraction over twelve engagements carries
-  about five points of noise, which is most of the distance between the old
-  cone (0.148) and the new one (0.232). The effective sample is bursts, of
-  which there are ~65, not rounds, of which there are ~300. Count bursts
-  that put at least one round on the body and the same statistic has a
-  quarter of the noise. *done-when:* `the-widest-cone-kills-at-range-and-
-  not-once-in-a-while` asserts a per-burst rate as well as the stalls, the
-  line is set from a measured pair on **both** maps with at least three
-  standard errors either side, and widening easy's cone back to 5.0 turns
-  it red on both maps with the stall clause removed.
+- [x] **F18 (S)** A rate held by a check that counts bursts, not rounds. —
+  done 2026-09-27, under Done (F18_HASH).
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -404,6 +390,23 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **F18** A rate held by a check that counts bursts, not rounds — F17's
+  second clause, done properly. Its first form was a floor under the *hit
+  fraction* and was red the day it was written (0.181 against a line of 0.19),
+  because **the rounds of a burst share one aim draw**: twelve engagements are
+  ~300 rounds but only ~65 trials, and a fraction over 65 moves five points
+  for nothing. Counting bursts fixes the unit; **god mode** fixes the bias
+  that mattered more — an engagement ends at its first landing burst, so the
+  sampler stops exactly when the cone succeeds. Forty 30s windows on a Shade
+  that cannot die is ~1,070 independent bursts at a standard error of 0.015,
+  which reads 0.400/0.432 at the old cone and 0.541/0.579 at the new one and
+  leaves [0.477, 0.495] for a line; `MIN_BURST_LANDING_RATE` is **0.486**,
+  3.6 standard errors clear on both sides on both maps. A window also asserts
+  it ended in ENGAGE and that the Shade came out unhurt, so a broken god mode
+  cannot read as a worse cone. Proved by putting the cone back to 5.0: red on
+  both maps on the rate clause alone. Costs 15s a plant run and 9s a yard run,
+  1.5% of each. — F18_HASH
 
 - **F17** A fresh seed turned the yard's difficulty check red, and the cone
   was the reason — reproduced to the round (yard, easy, 16m, seed

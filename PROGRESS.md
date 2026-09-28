@@ -9436,3 +9436,84 @@ of them within a frame or two of the gun's floor of four rounds at 600rpm. The
 check passes there on pinned seeds and is one small change away from not, and
 no aim model fixes it — separating them up close has to come from something
 other than accuracy.
+
+---
+
+## F18 — a rate held by a check that counts bursts, not rounds (2026-09-27 17:00, scheduled run)
+
+**The hole F17 left.** F17's check asserts that none of twelve pinned
+engagements is a stall. That catches a widened cone only where a pinned seed
+happens to draw badly, so it needed a second clause measuring the cone's worth
+directly. F17 wrote one — a floor under the **hit fraction**, rounds on the
+body over rounds fired — set at 0.19 from a 40-seed reading of 0.232. It was
+red on the day it was written, at **0.181**, and the reason is the whole of
+this job: **the rounds of a burst share one aim draw, so a round is not an
+independent trial.** Twelve engagements are ~300 rounds but only ~65 bursts,
+and a fraction over 65 trials carries about five points of noise — most of the
+distance between the old cone (0.148) and the new one (0.232). The statistic
+was not wrong, it was being counted in the wrong unit.
+
+**Count bursts.** The trial is the burst, and the question a burst answers is
+*did it put a round on the body*. Two things had to change to make that
+measurable:
+
+- **Sample size.** At 60 engagements the bands still overlapped: plant 0.399
+  ±0.025 at 5.0 against 0.573 ±0.031 at 4.0, yard 0.402 ±0.024 against 0.527
+  ±0.029 — a gap of 0.12 against a combined three-sigma width of 0.16. No line
+  exists there.
+- **Bias.** Worse than the noise: an engagement **ends at its first landing
+  burst**, so the sampler stops exactly when the cone succeeds and the
+  fraction it reports depends on how long the check let it run. That is not a
+  measurement of the cone at all.
+
+Both go away with **god mode**. The Shade cannot die, so a window runs its full
+30s, every burst in it is an independent draw, and the sample is bursts rather
+than engagements. Forty windows is **~1,070 bursts and a standard error of
+0.015**:
+
+| | cone 5.0 (F17's) | cone 4.0 (D54) |
+|---|---|---|
+| plant | 0.400, 3se band 0.355–0.445 | 0.541, band 0.495–0.586 |
+| yard | 0.432, band 0.387–0.477 | 0.579, band 0.534–0.624 |
+
+The bands leave **[0.477, 0.495]** for a threshold and `MIN_BURST_LANDING_RATE`
+is **0.486**, the middle of it — 3.6 standard errors above the worst old
+reading and 3.6 below the worst new one, on both maps. The fill is skipped
+(`accumulator = engageThreshold`, as the burst check already does) because it
+is the sibling check's subject and costs 14s of simulation a window. **It is
+not free even so**: `--details` puts the whole check at 16.6-17.0s on the plant
+and 10.2-10.6s on the yard against 1.55s and 1.05s for the stall half alone, so
+the rate half is ~15s and ~9s — 1.5% of a plant run. Estimated at 2.6s from the
+difference between two run totals before it was measured properly, which is the
+smaller version of the mistake this whole job is about.
+
+**And the half a check that picks its own inputs owes the suite.** A window
+asserts it ended in ENGAGE and that the Shade came out unhurt. Without those,
+a god mode that stopped working or an AI that wandered off would both read as
+a cone that had got worse — the check would go red for the right number and
+the wrong reason, which is the failure mode HANDOFF's "lesson that keeps
+repeating" is about.
+
+**Proved by breaking it.** `easy.aimErrorDegrees` was put back to 5.0 and the
+subset run: red on **both** maps, and on the rate clause independently of the
+stall clause — plant *"428 of 1069 bursts put a round on the body — 0.400,
+under 0.486 (5.7 standard errors)"*, yard *"472 of 1092 — 0.432 (3.6 standard
+errors)"*. The cone was restored and the tree checked before anything else.
+That is F18's done-when, clause for clause.
+
+**Verified.** `--runs 2 --subset "difficulty|widest-cone|url-seed"`, both maps,
+twice each: 4 passed, 0 failed every run, exit 0, red [], flaky [], 0 console
+errors. Full suite, two runs a map: plant **185 passed, 1 failed, 8 not for this map**
+(993,949ms and 996,396ms), yard **166 / 1 / 27** (676,491ms and 672,546ms); red
+[], flaky [], expectedRed [], unexpectedGreen [], skipsWithheld [],
+consoleErrors 0, contextLosses 0, exit 0. The check's own detail line is
+**identical in both runs of each map** — plant 578 of 1069 bursts, 0.541, 3.6 se
+clear; yard 632 of 1092, 0.579, 6.2 se clear — which is what a pinned-seed
+measurement should look like.
+
+**Left.** The check now reads two things about the same preset in two ways —
+twelve real engagements for the tail and forty artificial windows for the rate
+— and the second is the one that will catch a regression. Nothing here touches
+the presets themselves; **K6 still owns medium and hard at 8m**, where they are
+0.02s apart on the yard and both at the gun's rate-of-fire floor, and F17's
+entry says why no aim model fixes that.

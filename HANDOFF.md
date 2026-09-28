@@ -36,7 +36,7 @@ is 9 days old and still competes with every run. Full report: PROGRESS.md.
 | AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-09-27, after F17: plant 185 passed, 1 failed, 8 not for this map, yard 166 / 1 / 27, exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 skips withheld.** One more check per map than the gate that opened the run (plant 184, yard 165): F17's. Every run line names how much of it was the renderer's pipeline tail (plant 466s and 474s, yard 345s each) instead of leaving it inside one check (F11), and a line per map names the spread between its runs — **plant 5,436ms (1% of the longest) and yard 126ms (0%)**, against 177,215ms and 23% in the last pair before F11 (F16). The one failure on each map is the frame-budget check, skipped headless, and since F15 that skip is honoured only where `the-headless-skip-list-holds-only-the-check-it-declares` is green. The Deliberately-red list in `QUEUE.md` is empty. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s |
 | Next job | **The second arc** (2026-09-25, D50): Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, in that order. F17 closed and reopened Block F with **F18** (an S job: the hit-fraction floor F17 could not calibrate, because rounds cluster by burst and the effective sample is ~65 bursts, not ~300 rounds), which comes first; after it the next job is **H5** (the main menu: a card per map with a thumbnail rendered at boot, role, settings, how to play, credits, M) - and H5 lands on the menu H3 put a footer on and the boot H4 rebuilt, so read both first. Every H job proceeds; nothing in the block is blocked |
 | Waiting on Josh | nothing blocking. D51 answered 2026-09-26 (the repo). **D54** (F17: easy's aim cone 5.0 → 4.0, the only preset whose cone is wider than a body at 16m) is the newest Provisional and the one a player can feel — PLAYTEST asks whether easy still reads as easy at range. **D52** (the build stamp) and **D53** (what boot says and refuses) are also Provisional and worth a glance: D52 because one browser login would let the token push a workflow and make the stamp exact rather than one commit behind, D53 because it is the first thing a friend sees. The Provisional section stays open for override, and the things only eyes can settle are under *Still needs a human* |
-| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,665 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. `src/ui/autosuite.js` is 499 since F11 and `src/tests/donedef.js` 504 since G2; `src/main.js` is 506 and `src/maps/plant.js` 585; `tests/difficulty.js` is 409 after F17. Outside `src/`, `scripts/suite.mjs` is 549 and `scripts/watchdog.mjs` 205. **This page is 400 lines of the 400 `traps-md-holds-the-traps-and-handoff-points-at-it` allows** — a job that adds to it takes something out, which is the point of G1 and G2. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions — and since F13 the gate holds that census rather than the weekly audit: a third call, or either of these two losing the comment that argues for it, is red |
+| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,665 lines); `no-source-file-outside-config-is-over-600-lines` holds it. **`src/physics.js` is at exactly 600** (then `tests/movement.js` 599, `systems/combat.js` 593, `tests/visual.js` 589, `maps/plant.js` 588) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. `src/ui/autosuite.js` is 499 since F11 and `src/tests/donedef.js` 504 since G2; `src/main.js` is 506 and `src/maps/plant.js` 585; `tests/difficulty.js` is 554 after F17 and F18. Outside `src/`, `scripts/suite.mjs` is 549 and `scripts/watchdog.mjs` 205. **This page is 400 lines of the 400 `traps-md-holds-the-traps-and-handoff-points-at-it` allows** — a job that adds to it takes something out, which is the point of G1 and G2. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions — and since F13 the gate holds that census rather than the weekly audit: a third call, or either of these two losing the comment that argues for it, is red |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable, Warden ground one connected component with a column of cells down each vault rack aisle. **8 declared routes, 22 stages** (`map.routes`); 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb |
 | Map, yard | 132 boxes, 58 climbable, 5 lamps, Warden ground 15,332 cells in one component, 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up, every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
@@ -52,8 +52,8 @@ Every `PROGRESS.md` entry is titled with its job id — `grep "^## E4" PROGRESS.
 
 **Block A — the plant must be defusable.** A1 the Warden's ground · A2 the reach ·
 A3 the gate on every step · A4 the HUD refusal · A5 the census · A6 no plant inside
-things (D20) · A7 the ground drawn, F4 then N · A8 the AI's last leg planned over
-it. The rule is kept below.
+things (D20) · A7 the ground drawn · A8 the AI's last leg planned over it. The
+rule is kept below.
 
 **Block B — the traversal redesign, phases 12–50.** B1 hang as a held option · B2
 the bump-and-scuff, so a failed climb is never silent · B3, B4 the climb census goes
@@ -62,14 +62,14 @@ declared · B5d the defuse reach is a clear line (D27) · B6 the material langua
 B7 the routes are lit · B8 feel · B9 closed, spec 20.11. B5b dropped, D25.
 
 **Block C — playable and testable.** C1 the playtest build, the debug gate off by
-default · C2 the round opens on a briefing · C3 hit and damage feedback · C4 the
-round and match end screens · C5 the difficulty pass, the Warden shoots straight ·
-C6 `PLAYTEST.md` · C7 the site is a tinted floor and the HUD names it (D8).
+default · C2 the briefing · C3 hit and damage feedback · C4 the round and match
+end screens · C5 the difficulty pass · C6 `PLAYTEST.md` · C7 the site is a
+tinted floor and the HUD names it (D8).
 
 **Block D — the second map.** D1 the registry, `?map=`, the suite per map · D2 the
-yard blocked out · D3 the Warden's walkway · D4 the yard at night · D5 the AI on the
-yard · D6 both maps in the gate · D7 the regression set whole on every map. D3b was
-dropped on D38.
+yard blocked out · D3 the Warden's walkway · D4 the yard at night · D5 the AI on
+the yard · D6 both maps in the gate · D7 the regression set whole on every map.
+D3b dropped, D38.
 
 **Block E — styling.** E1 the Shade's figure · E2 the Warden's · E3 animation ·
 E4 the plant's materials · E5 the yard's · E6 post-processing.
@@ -92,16 +92,22 @@ check passed, so the policeman cannot be exempted · F16 read every run-pair on
 record: the pairs agree since F11 and the runner prints the spread per map.
 **Each has a PROGRESS entry; that is where the argument is.**
 
-**F17** a fresh seed turned the yard's difficulty check red, and the cone was
-why. At 16m the Shade subtends ±1.22 degrees against easy's ±5 degree draw,
-held for the burst's 3-7 rounds, so **a burst is one trial** and the kill is
-geometric: mean 6.3s, 1.6% of engagements past the 30s limit, about one
-fresh-seed run in four. The shots said so and nothing else did — of the red
-engagement's 119 rounds none came near the body and seven hit the floor at
-11.5-14.9m, where a 5-degree-low round meets it. Fix: `easy.aimErrorDegrees`
-5.0 → **4.0** (D54). **3.5 degrees and the per-round draw were both measured
-and rejected** for spending the separation between presets; the per-round draw
-is right in principle and ties medium and hard at 8m, which is **K6**'s.
+**F17 / F18** a fresh seed turned the yard's difficulty check red, and the
+cone was why. At 16m the Shade subtends ±1.22 degrees against easy's ±5 degree
+draw, held for the burst's 3-7 rounds, so **a burst is one trial** and the
+kill is geometric: mean 6.3s, 1.6% of engagements past the 30s limit, about
+one fresh-seed run in four. The shots said so — of the red engagement's 119
+rounds none came near the body and seven hit the floor at 11.5-14.9m, where a
+5-degree-low round meets it. Fix: `easy.aimErrorDegrees` 5.0 → **4.0** (D54).
+**3.5 degrees and the per-round draw were both measured and rejected** for
+spending the separation between presets; the per-round draw is right in
+principle and ties medium and hard at 8m, which is **K6**'s. F18 then gave the
+check the clause F17 could not calibrate: **count bursts, not rounds** — the
+rounds of a burst share one draw, so twelve engagements are ~65 trials, not
+~300 — and god-mode the Shade, since an engagement that ends at its first
+landing burst stops sampling exactly when the cone succeeds. Forty 30s windows
+are ~1,070 independent bursts at se 0.015: 0.400/0.432 at the old cone,
+0.541/0.579 at the new, line at **0.486**, 3.6 se clear both ways on both maps.
 
 **Block G — the record.** G1 this file back to one page, 1,846 lines to 533 · G2
 the last 200 of them out to `TRAPS.md` (D47, option 2), which put this file under
@@ -147,11 +153,8 @@ are replaced. The direction was settled by interview and is binding:
 | Vents | Read as passable by **material contrast** — metal against concrete (B6; D26, spec 20.7) |
 | Spec | **Amended** — Section 20.11 (B9) is what Sections 5, 6.1, 16 and 18 now read as, pointing at 20.2–20.10 for the pieces. Nothing above Section 20 is ever edited |
 
-The 50-phase plan that carried this out — strip and measure, reach-based
-traversal, hang and scuff, the area rebuild, legibility without markings, feel,
-close — is **closed at B9, every phase done**; the phase-by-phase table is in
-`PROGRESS.md`, the index above names the job for each band, and phases 12–50
-are Block B in `QUEUE.md`.
+The 50-phase plan that carried this out is **closed at B9, every phase done**;
+the table is in `PROGRESS.md` and phases 12–50 are Block B in `QUEUE.md`.
 
 ## The census is green, and what the climb rule now says
 
@@ -207,13 +210,11 @@ no Warden can kneel — an unloseable plant, and worse,
 `setDefendTarget(round.chargeAt)` would send the AI at a charge it cannot reach
 and stall it in DEFEND for the whole 45s fuse.
 
-What it actually excludes, measured (A5, after B4 changed the map): of **377
-places a charge can go inside a site room** it refuses **ten** — the 8 ducts by
-their lid, and two wide tops (`hall-container`, `gantry-hall`) whose middles are
-over 2m from any Warden ground. So it reads "no plant in the middle of anything
-wider than four metres" far more than "no plant up high": the horizontal reach
-does almost all of the excluding, the vertical one none, and on a flat room floor
-it changes nothing. The counts and what A8 found are in `PROGRESS.md`.
+What it actually excludes, measured (A5, after B4): of **377 places a charge can
+go inside a site room** it refuses **ten** — the 8 ducts by their lid, and two
+wide tops whose middles are over 2m from any Warden ground. So it reads "no plant
+in the middle of anything wider than four metres" far more than "no plant up
+high", and on a flat room floor it changes nothing. Detail in `PROGRESS.md`.
 
 Block A's checks were one 1,382-line file and are now four: `tests/plantspots.js`
 (where a charge can go — `spotOffTheRing`, `plantAt`, `perchesInSiteRooms`,
@@ -344,8 +345,7 @@ is the harness in both builds; in-game **F3** overlay · **F4** test mode ·
 **They live in `TRAPS.md` now** — about thirty of them, each one an hour somebody
 has already paid. Read that file before you start; the heading stays here because
 the scheduled task's prompt falls back to it (G2, D47).
-`traps-md-holds-the-traps-and-handoff-points-at-it` holds both ends: the traps
-are there, and this page stays under 400 lines.
+`traps-md-holds-the-traps-and-handoff-points-at-it` holds both ends.
 
 Two of them in one line each, because a reader of this page should not be without
 them; the argument for both is in `TRAPS.md`. **Verify anything visual by reading
