@@ -423,7 +423,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   the bind to the keyup (`swallowPress()`). Two checks, plus a third in
   H7's file for a gap this found there: the keyboard sliders moved a setting
   and never reported it, so a keyboard-only player's sensitivity and volume
-  were the two a reload forgot. — `HASH8`
+  were the two a reload forgot. — `77fdad0`
 
 - **H7** Settings that survive a reload, which is what three jobs in a row
   had been writing "until H7" about: the role row and the last map (H5) and
