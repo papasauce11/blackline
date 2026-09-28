@@ -23,6 +23,7 @@
  */
 
 import { CONFIG, SETTINGS } from '../config.js';
+import { saveSettings } from '../settingsstore.js';
 import { SHADE_STATE } from '../entities/agentstate.js';
 
 const S = CONFIG.shade;
@@ -189,6 +190,9 @@ export function createTutorial({ emitter, shade, map }) {
       done = true;
       reading = null;
       SETTINGS.tutorialSeen = true;
+      // H7: "once per browser" is this line plus the store. A blocked store
+      // makes it once per page load, which is the honest degradation.
+      saveSettings();
       emitter.emit('tutorial:end', { why });
       return true;
     },

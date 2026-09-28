@@ -101,6 +101,19 @@ this himself**: a scheduled session's sandbox refuses `taskkill` as
 interfering with a workload. Be sure of the pid first; the ordinary
 `chrome.exe` tree is Josh's own browser.
 
+**A setting outlives the page now.** Since H7, `SETTINGS` is written to
+`localStorage` whenever a player makes a decision - a settings row, the role
+row, a map card, the end of the tutorial - and read once at boot. A check that
+clicks one of those rows has made that decision: put the setting back in a
+`finally` *and* save, or the next page load in the same browser context starts
+somewhere nobody chose. The headless runner gives each map its own context
+(`browser.newPage()` is a new context in Playwright, not a new tab), so the
+blast radius today is one page and the two runs that share it - and the two
+runs do not reload, so they never read it back. A check that ever reloads a
+page widens this to everything after it. The list of what is kept is
+`NOT_PERSISTED` in `settingsstore.js`, and the debug gate is deliberately
+outside it.
+
 **Two sessions in this repo will collide on decision numbers.** A5 raised its
 question as D19 while, ten minutes earlier and unseen, another session had
 committed a different D19. Before adding to `DECISIONS.md`, `git log --oneline

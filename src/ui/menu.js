@@ -163,6 +163,15 @@ export class Menu {
     return { el, activate: () => {}, less: () => nudge(-1), more: () => nudge(1) };
   }
 
+  /**
+   * A decision was made (H7). Every row that changes a setting ends here, so
+   * a row added later cannot forget to persist - and it is one call site
+   * rather than a dozen, which is what makes that true.
+   */
+  _changed() {
+    if (this.handlers.onSettingChanged) this.handlers.onSettingChanged();
+  }
+
   /** Put the ring where `this.focus` says. */
   _paint() {
     for (let i = 0; i < this.rows.length; i++) {
@@ -269,6 +278,9 @@ export class Menu {
         const id = card.dataset.map;
         if (id === current.id) return;
         SETTINGS.lastMap = id;
+        // Before the navigation, not after: `onMap` is a page load (H5) and
+        // nothing after it runs.
+        this._changed();
         if (this.handlers.onMap) this.handlers.onMap(id);
       };
     }
@@ -281,6 +293,7 @@ export class Menu {
       if (maps.length < 2) return;
       const next = maps[(maps.findIndex((entry) => entry.id === current.id) + 1) % maps.length];
       SETTINGS.lastMap = next.id;
+      this._changed();
       if (this.handlers.onMap) this.handlers.onMap(next.id);
     };
 
@@ -294,6 +307,7 @@ export class Menu {
       SETTINGS.role = picked.id;
       roleRow.textContent = picked.id;
       note.textContent = picked.note;
+      this._changed();
     };
 
     const play = this.root.querySelector('[data-action=play]');

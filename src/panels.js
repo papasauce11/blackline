@@ -16,6 +16,7 @@
 import { rng, SETTINGS } from './config.js';
 import { COMPETITIVE, FREEROAM, TUTORIAL } from './matchstate.js';
 import { loadVersion, versionLabel } from './version.js';
+import { saveSettings, clearSettings } from './settingsstore.js';
 import { createHud } from './ui/hud.js';
 import { createMenu } from './ui/menu.js';
 import { createScoreboard } from './ui/scoreboard.js';
@@ -77,6 +78,10 @@ export function createPanels({
     maps,
     // H3: which build this is, in the main menu's footer.
     version: () => versionLabel(),
+    // H7: a decision was made. Every settings row and the role row end here,
+    // and a blocked store is a `{ saved: false }` nobody has to handle.
+    onSettingChanged: () => saveSettings(),
+    onResetSettings: () => clearSettings(),
     // H5: a card's picture, null until it has been rendered. A getter, like
     // the stamp, so the menu can be drawn before they exist.
     thumbnail: (id) => (thumbnails ? thumbnails.get(id) : null),
@@ -92,6 +97,7 @@ export function createPanels({
       objective().resetMatch();
       // H5: the map this page is on is the one the next page load opens on.
       SETTINGS.lastMap = map().id;
+      saveSettings();
       // H6: the first time anyone presses Play, the eight moves first. It is
       // the same `initMatch` with a different configuration (Section 12), and
       // no briefing - the tutorial is the briefing, and the round's own one

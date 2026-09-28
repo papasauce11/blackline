@@ -110,6 +110,44 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D57 — What a browser keeps, and the one thing it does not
+H7. Nothing here changes a rule; it changes what the game remembers, which is
+a judgement you can overturn in one line.
+
+**Kept**, in `localStorage` under `blackline.settings.v1`: mouse sensitivity,
+invert Y, master volume, match length, difficulty, the round briefing,
+post-processing, the **role** row and the **last map** (H5), and whether this
+browser has been offered the **tutorial** (H6). Those last three are the
+reason this job exists — three jobs in a row put a decision in `SETTINGS` and
+had to write "until H7".
+
+**Not kept: the debug gate**, and it is the only one. The gate is a property
+of a page load and the URL owns it (`?debug=1`, C1); the AUTO suite turns it
+on for the length of a run. Persisting it would mean one visit to the settings
+page turns a friend's playtest build into a debug build for good, with the
+test keys live and nothing on screen to say why. The list is a census
+(`NOT_PERSISTED`), held against the defaults by a check in F15's shape, so a
+setting added later is kept unless somebody writes down that it is not.
+
+**A store that will not work is not an error.** `localStorage` throws rather
+than returning null when site data is blocked, in some private windows and
+inside a sandboxed frame. Every access is wrapped and every failure carries a
+reason; the game runs on defaults. A game that will not start because it could
+not remember a volume slider is a worse game than one that forgets.
+
+**A version it does not know is ignored, not migrated**, and a record edited
+by hand can only set a key the defaults have, at the type the defaults have.
+What is stored is a handful of preferences: the cost of losing them on a
+format change is one trip through the settings page, and the cost of a
+migration path nobody exercises is a bug that only ever appears on somebody
+else's machine.
+
+**The reset row clears the record** rather than writing the defaults into it,
+so a build that later changes a default gives that new default to whoever
+asked to be reset.
+
+**decided:**
+
 ### D55 — The main menu as built: a card per map, rendered from the map
 H5. Nothing here changes a rule — every button does what a button already did
 — so it is provisional, and all of it is look you can overrule by opening the

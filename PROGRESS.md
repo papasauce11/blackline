@@ -9830,3 +9830,115 @@ D5 lost two runs to one.
 **Left.** The "once per browser" half is a flag, not a store: `SETTINGS`
 does not survive a reload until **H7**, which is the next job and is what
 makes it true. Nothing about the chain changes when it does.
+
+## H7 — settings that survive a reload (2026-09-28 02:00, scheduled run)
+
+**Three jobs in a row had written "until H7".** H5 put the role row and the
+last map chosen into `SETTINGS`; H6 put `tutorialSeen` there and had to say in
+`PLAYTEST.md` that the tutorial comes back if you refresh. `settingsstore.js`
+is what makes those three sentences true, and it is the smallest module in the
+project that has to think about failure.
+
+**Everything degrades, and that is the design rather than a safety net.**
+`localStorage` **throws** rather than returning null in a browser with site
+data blocked, in some private windows and inside a sandboxed frame — reading
+the property itself throws in the last case, which is why even
+`defaultStorage()` is wrapped. Every access returns a reason instead of
+raising one, and the boot records it in `debugState.settingsStore` for H12's
+report. A game that will not start because it could not remember a volume
+slider is a worse game than one that forgets.
+
+**Versioned, and a version it does not know is ignored rather than migrated.**
+The version is in the key *and* in the record: the key catches a change this
+code knows about, the field catches a record written by something that did
+not. What is stored is a handful of preferences, so the cost of losing them on
+a format change is one trip through the settings page, against the cost of a
+migration path nobody exercises — a bug that only ever appears on somebody
+else's machine.
+
+**It stores a declared list, not "whatever is in `SETTINGS`".** A value is
+applied only when the defaults have that key *and* the type matches, so a
+record edited by hand cannot put a string where the game reads a number. The
+one default that is `null` is `lastMap`, whose type is "a registry id or
+nothing", and it is spelled out rather than inferred.
+
+**One setting is deliberately not kept, and it is the point of the list.**
+`NOT_PERSISTED` is `['debug']`. The gate belongs to a page load and the URL
+owns it (`?debug=1`, C1); the suite turns it on for the length of a run.
+Persisting it would mean one visit to the settings page turns a friend's
+playtest build into a debug build for good, with the test keys live and
+nothing on screen to say why. `persistedKeys()` is the defaults minus that
+list, so **a setting added later is kept by existing** and the only way to
+leave one out is to write it down — F15's shape, applied to settings.
+
+**Saved on a decision, never on a timer.** There is no timer to save on
+(Section 9 and 15 ban `setTimeout`, F13 holds the ban), and there should not
+be one anyway. Every settings row and the role row end at `Menu._changed()`,
+which is one call site rather than a dozen — which is what makes "a row added
+later cannot forget to persist" true rather than hopeful. The map card and the
+map row save *before* they navigate, because `onMap` is a page load and
+nothing after it runs. The tutorial saves inside its own `_end`.
+
+**The reset row clears the record** rather than writing the defaults into it,
+so a build that later changes a default gives it to whoever asked to be reset.
+It also puts the debug gate back to whatever this page load had, so resetting
+the stored settings does not close the tooling under a session that opened it
+with `?debug=1`.
+
+**Three new checks**, `src/tests/settingsstore.js`, registered before the
+version ones:
+
+- `a-setting-changed-now-is-the-setting-a-reload-reads` is the done-when. A
+  page cannot reload itself inside a check, so what is driven is what a reload
+  actually does: set every persisted key to something that is *not* its
+  default, save, `resetSettings()` to throw the live values away, load again,
+  and require every one back. Then: an empty store leaves the shipped
+  defaults; a record stamped one version ahead applies **nothing** rather than
+  half of it; a hand-edited record with `masterVolume: 'loud'`,
+  `difficulty: 7`, `invertY: 'yes'` and an invented key applies **only** the
+  one good value and reports the rest; and reset leaves no readable record.
+  Every store it touches is a scratch `Storage`-shaped object it owns — the
+  page's own record belongs to whoever is playing.
+- `a-blocked-store-degrades-to-defaults-and-never-throws` drives a store that
+  throws on `getItem`, `setItem` and `removeItem` through all four entry
+  points, because the one that throws is the one nobody wrapped. Then with no
+  store at all. Then it reads what the **real boot** recorded, so the check
+  sees that the live page went through this and not only that the functions
+  work — H4's debt, paid the same way.
+- `the-persisted-settings-are-a-census-and-name-what-they-leave-out` holds
+  `persistedKeys()` + `NOT_PERSISTED` to exactly the defaults, both ways;
+  requires the debug gate to be in the second list; requires `role`, `lastMap`
+  and `tutorialSeen` to be in the first, since they are why this job exists;
+  and checks the reset row is on the settings page, does something, is drawn,
+  and is reachable from the keyboard like every other row (H5).
+
+**Verified.** `npm run suite`, both maps twice, 2026-09-28: plant **195
+passed, 1 failed, 8 not for this map** (1,078s and 1,019s), yard **175 / 1 /
+28** (690s, 685s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses,
+0 skips withheld. Three more checks per map than the gate H6 left (plant 192,
+yard 172) — this job's three, and all three are simulation with nothing
+rendered, so they cost single-digit milliseconds. The one failure on each map
+is the frame-budget check, skipped headless as always.
+
+The run *times* are 9% and 1% above H6's pair and none of that is this job:
+the runner reported `throttle: 4/8 cores (9 processes pinned)` and the 09-18
+orphan runner is still alive, so the machine had less of itself to give than
+it did on 09-27. Worth one line for whoever reads the numbers next: the
+plant's two runs spread **59,792ms (6% of the longer)**, of which 36,980ms is
+the pipeline wait, against the 1,173ms F16 recorded — the yard's is 5,652ms
+(1%). The *answers* agree exactly (0 flaky); what moved is how long the same
+work took, which is what F16 says to expect from a contended machine and why
+it prints the spread rather than burying it.
+
+**Found.** One thing, and it is now a trap in `TRAPS.md`: **a setting outlives
+the page now.** A check that clicks a settings row has made a player's
+decision and written it, so it has to put the setting back *and* save, or the
+next page load in that browser context starts somewhere nobody chose. Today
+the blast radius is one page — Playwright's `browser.newPage()` is a new
+*context*, not a tab, so each map gets its own storage, and the two runs that
+share a page never reload and so never read it back. A check that ever reloads
+a page widens it to everything after it.
+
+**Left.** Nothing this job set out to do. D57 is the one judgement worth a
+look: difficulty is the setting most likely to have been changed for one
+evening rather than for good, and it follows you around now.

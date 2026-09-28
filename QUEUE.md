@@ -154,9 +154,8 @@ one setting only Josh can click; everything else here proceeds.
 - [x] **H6 (M)** The first-run tutorial. — done 2026-09-28, under Done. The
   "once per browser" half is a flag `SETTINGS.tutorialSeen`; **H7** is what
   makes it survive a reload, and nothing about the chain changes when it does.
-- [ ] **H7 (S)** Settings persist. `localStorage`, versioned, a reset row;
-  wrapped so a blocked store degrades to defaults. *done-when:* a check sets,
-  reloads the settings object from the store, and reads the same values.
+- [x] **H7 (S)** Settings persist. — done 2026-09-28, under Done. What is
+  kept and the one thing that is not are **D57**.
 - [ ] **H8 (M)** Rebinding in the settings menu. Every action, press-to-bind,
   conflicts shown, defaults restored per row; the briefing's controls card
   already reads live bindings. *done-when:* a check rebinds jump to `KeyJ`,
@@ -393,6 +392,20 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H7** Settings that survive a reload, which is what three jobs in a row
+  had been writing "until H7" about: the role row and the last map (H5) and
+  whether this browser has been offered the tutorial (H6). A versioned record
+  under one key; a version it does not know is ignored rather than migrated;
+  a record edited by hand can only set a key the defaults have at the type
+  the defaults have. **Every access is wrapped** — `localStorage` throws
+  rather than returning null when site data is blocked — and a failure
+  carries a reason instead of stopping the boot. The one setting deliberately
+  not kept is the **debug gate**, named in `NOT_PERSISTED` and held against
+  the defaults by a check in F15's shape, so a setting added later is kept
+  unless somebody writes down that it is not. A reset row on the settings
+  page clears the record rather than filling it with defaults. Three checks.
+  — `HASH7`
 
 - **H6** The first-run tutorial: eight moves, each cleared by doing it. The
   design is one sentence — a prompt clears on the **act**, not on the key —

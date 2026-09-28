@@ -84,21 +84,25 @@ export const MENU_PAGES = {
           <span class="value" id="bl-post">${SETTINGS.post ? 'on' : 'off'}</span></div>
         <div class="row"><span>debug tooling</span>
           <span class="value" id="bl-dbg">${SETTINGS.debug ? 'on' : 'off'}</span></div>
+        <div class="row"><span>settings</span>
+          <span class="value" id="bl-reset">reset to defaults</span></div>
         <button class="back" data-action="back">Back</button>
       </div>`;
 
     const sens = this.root.querySelector('#bl-sens');
-    sens.oninput = () => { SETTINGS.mouseSensitivity = parseFloat(sens.value); };
+    sens.oninput = () => { SETTINGS.mouseSensitivity = parseFloat(sens.value); this._changed(); };
     const vol = this.root.querySelector('#bl-vol');
     vol.oninput = () => {
       SETTINGS.masterVolume = parseFloat(vol.value);
       if (this.handlers.onVolume) this.handlers.onVolume(SETTINGS.masterVolume);
+      this._changed();
     };
     const len = this.root.querySelector('#bl-len');
     len.onclick = () => {
       const index = lengths.indexOf(String(SETTINGS.matchLength));
       SETTINGS.matchLength = Number(lengths[(index + 1) % lengths.length]);
       len.textContent = `best of ${SETTINGS.matchLength}`;
+      this._changed();
     };
     const diff = this.root.querySelector('#bl-diff');
     // The AI re-reads SETTINGS.difficulty on every reset(), so a change here
@@ -107,11 +111,13 @@ export const MENU_PAGES = {
     diff.onclick = () => {
       SETTINGS.difficulty = names[(names.indexOf(SETTINGS.difficulty) + 1) % names.length];
       diff.textContent = SETTINGS.difficulty;
+      this._changed();
     };
     const inv = this.root.querySelector('#bl-inv');
     inv.onclick = () => {
       SETTINGS.invertY = !SETTINGS.invertY;
       inv.textContent = SETTINGS.invertY ? 'on' : 'off';
+      this._changed();
     };
     // C2: the round-start briefing and controls card. Off, Play and Next
     // round start the round on the click.
@@ -119,12 +125,14 @@ export const MENU_PAGES = {
     brief.onclick = () => {
       SETTINGS.briefing = !SETTINGS.briefing;
       brief.textContent = SETTINGS.briefing ? 'on' : 'off';
+      this._changed();
     };
     // E6: the bloom and the vignette, live; off is the scene as drawn.
     const postRow = this.root.querySelector('#bl-post');
     postRow.onclick = () => {
       SETTINGS.post = !SETTINGS.post;
       postRow.textContent = SETTINGS.post ? 'on' : 'off';
+      this._changed();
     };
     // Section 17.1, amended (C1): the debug gate, off by default. On, F3
     // and F4 work; off, they and every test key are inert, and a frame
@@ -133,7 +141,24 @@ export const MENU_PAGES = {
     dbg.onclick = () => {
       SETTINGS.debug = !SETTINGS.debug;
       dbg.textContent = SETTINGS.debug ? 'on' : 'off';
+      // Deliberately no `_changed()`: the debug gate is the one setting H7
+      // does not keep across a reload (`NOT_PERSISTED`, settingsstore.js).
     };
+    // H7: back to what the game shipped with, and forget what was stored -
+    // the record is cleared rather than written full of defaults, so a build
+    // that later changes one gives it to whoever asked for the defaults.
+    const reset = this.root.querySelector('#bl-reset');
+    reset.onclick = () => {
+      const wasDebug = SETTINGS.debug;
+      if (this.handlers.onResetSettings) this.handlers.onResetSettings();
+      // The debug gate belongs to this page load, not to the store, so a
+      // reset of the *stored* settings does not close the tooling under a
+      // session that opened it with `?debug=1`.
+      SETTINGS.debug = wasDebug;
+      if (this.handlers.onVolume) this.handlers.onVolume(SETTINGS.masterVolume);
+      this.render();
+    };
+
     const back = this.root.querySelector('[data-action=back]');
     back.onclick = () => this.show(this._settingsReturn || 'main');
     // The two sliders answer the left and right keys with a step of their own,
@@ -144,7 +169,7 @@ export const MENU_PAGES = {
         SETTINGS.masterVolume = parseFloat(vol.value);
         if (this.handlers.onVolume) this.handlers.onVolume(SETTINGS.masterVolume);
       }),
-      len, diff, inv, brief, postRow, dbg, back,
+      len, diff, inv, brief, postRow, dbg, reset, back,
     ]);
   },
 

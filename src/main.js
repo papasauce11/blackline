@@ -28,6 +28,7 @@ import { CONFIG, SETTINGS, rng, deriveSeed, debugRequested } from './config.js';
 import { Emitter } from './emitter.js';
 import { bootWorld } from './boot.js';
 import { bootMapId, mapUrl } from './maps/index.js';
+import { loadSettings } from './settingsstore.js';
 import { FrameLoop } from './loop.js';
 import { computeStepPlan } from './timestep.js';
 import { resolveMatchOptions, createMatchState, bootMatchOptions } from './matchstate.js';
@@ -472,8 +473,17 @@ const harness = createHarness({
 // Go
 // ---------------------------------------------------------------------------
 
+// H7: what this browser remembered, before anything reads a setting - the
+// map the page opens on (H5) is the first thing to ask, and it asks through
+// `bootMapId`. A blocked or empty store leaves the defaults and says why; it
+// never throws, because a game that will not start over a volume slider is a
+// worse game than one that forgets.
+debugState.settingsStore = loadSettings();
+
 // The debug gate, before anything reads it: `?debug=1` opens the tooling
-// for this page load (C1). Off, the page is the playtest build.
+// for this page load (C1). Off, the page is the playtest build. It is the
+// one setting H7 does not keep: the URL owns it, and a persisted debug flag
+// would turn a friend's playtest build into a debug build for good.
 if (debugRequested(location.search)) SETTINGS.debug = true;
 
 // H4: what can be read off the device before anything is built. Recorded in the

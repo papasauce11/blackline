@@ -82,6 +82,35 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The game remembers you now (H7, 2026-09-28)
+
+Change anything in Settings, reload, and it is still there: sensitivity,
+volume, match length, difficulty, invert Y, the briefing, post-processing —
+and the three from the last two jobs, the **role** row, the **map** you last
+picked (a URL with no `?map=` opens on it) and whether you have been offered
+the **tutorial**. So H6's "once per browser" is now actually once per browser,
+and the tutorial will not come back when you refresh.
+
+There is a new **reset to defaults** row at the bottom of Settings. It clears
+the stored record rather than writing today's defaults into it, so if a later
+build changes one you get the new one.
+
+The **debug gate is deliberately not kept** — it is the only setting that is
+not. `?debug=1` is a property of the page load, and a persisted debug flag
+would quietly turn your friends' builds into debug builds with the test keys
+live.
+
+`a-setting-changed-now-is-the-setting-a-reload-reads`,
+`a-blocked-store-degrades-to-defaults-and-never-throws` and
+`the-persisted-settings-are-a-census-and-name-what-they-leave-out` hold it.
+
+**What is left for you:** whether anything in that list should *not* follow
+you around — difficulty is the one to think about, since it is the setting
+most likely to have been changed for one evening rather than for good (D57).
+And if you play in a private window or with site data blocked, the game should
+run exactly as it always did and simply forget; that path is checked but has
+never been walked by a person.
+
 ### The first time you press Play, eight moves (H6, 2026-09-28)
 
 On the plant, with a fresh browser, Play does not start a round — it drops you
