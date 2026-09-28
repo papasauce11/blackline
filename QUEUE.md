@@ -60,7 +60,7 @@ F5 (2026-09-16), F6 and F7 (2026-09-20), F8 and F9 (2026-09-21); the next gate j
   2026-09-27, under Done (`3316d07`).
 
 - [x] **F18 (S)** A rate held by a check that counts bursts, not rounds. —
-  done 2026-09-27, under Done (F18_HASH).
+  done 2026-09-27, under Done (`443a4a7`).
 
 
 ## Block B — the traversal redesign, phases 12–50
@@ -406,7 +406,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   it ended in ENGAGE and that the Shade came out unhurt, so a broken god mode
   cannot read as a worse cone. Proved by putting the cone back to 5.0: red on
   both maps on the rate clause alone. Costs 15s a plant run and 9s a yard run,
-  1.5% of each. — F18_HASH
+  1.5% of each. — `443a4a7`
 
 - **F17** A fresh seed turned the yard's difficulty check red, and the cone
   was the reason — reproduced to the round (yard, easy, 16m, seed
