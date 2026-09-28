@@ -411,7 +411,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   5.0s (4.0s of it a SwiftShader readback that is 4ms of work) is on the boot
   H4 measured. Plus the role row, How to play, Credits, and a keyboard that
   walks all five pages, which the game had no path to at all because `Tab` is
-  suppressed. Five checks. — `HASH`
+  suppressed. Five checks. — `841c66c`
 
 - **F18** A rate held by a check that counts bursts, not rounds — F17's
   second clause, done properly. Its first form was a floor under the *hit
