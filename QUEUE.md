@@ -405,7 +405,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   the defaults by a check in F15's shape, so a setting added later is kept
   unless somebody writes down that it is not. A reset row on the settings
   page clears the record rather than filling it with defaults. Three checks.
-  — `HASH7`
+  — `de878a6`
 
 - **H6** The first-run tutorial: eight moves, each cleared by doing it. The
   design is one sentence — a prompt clears on the **act**, not on the key —
