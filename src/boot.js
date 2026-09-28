@@ -36,6 +36,7 @@ import { createDeathCam } from './systems/deathcam.js';
 import { createFeedback } from './systems/feedback.js';
 import { createPanels } from './panels.js';
 import { createThumbnails } from './thumbnails.js';
+import { createTutorial } from './systems/tutorial.js';
 import { DebugTools } from './ui/debug.js';
 import { registerAutoTests } from './tests/index.js';
 import { registerAssertions } from './tests/assertions.js';
@@ -189,10 +190,15 @@ export async function bootWorld({
   // published, so none of it is inside the boot a player waits on.
   const thumbnails = createThumbnails({ renderer, camera, gradientMap });
 
+  // H6: the first-run chain. It watches `sim:step` and writes nothing on the
+  // Shade, so it is built after the actors and before the panels that draw it.
+  const tutorial = createTutorial({ emitter, shade: () => shade, map: () => map });
+
   let input = null;
-  const { hud, scoreboard, menu, briefing } = createPanels({
+  const { hud, scoreboard, menu, briefing, tutorialPanel } = createPanels({
     initMatch, setPaused, objective: () => objective, audio: () => audio, match,
     map: () => map, input: () => input, maps: listMaps(), goToMap, thumbnails,
+    emitter, tutorial,
   });
 
   wireMatchEvents({
@@ -230,6 +236,6 @@ export async function bootWorld({
   return {
     renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner, thumbnails,
+    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel,
   };
 }

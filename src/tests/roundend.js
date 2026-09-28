@@ -232,6 +232,12 @@ export function register(debugTools) {
       const problems = [];
       const objective = h.objective;
       const was = SETTINGS.briefing;
+      // H6: Play offers the eight-move tutorial on a browser that has not
+      // seen it. This check is about what Play does to the score, so it says
+      // which branch it means rather than inheriting whatever a check before
+      // it left the flag at.
+      const wasSeen = SETTINGS.tutorialSeen;
+      SETTINGS.tutorialSeen = true;
       try {
         SETTINGS.briefing = false;
         h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
@@ -256,6 +262,7 @@ export function register(debugTools) {
         if (objective.matchOver) problems.push('Play started with the match over');
       } finally {
         SETTINGS.briefing = was;
+        SETTINGS.tutorialSeen = wasSeen;
         h.menu.hide();
         h.briefing.hide();
         h.scoreboard.hide();

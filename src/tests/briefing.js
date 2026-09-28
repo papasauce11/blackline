@@ -102,6 +102,14 @@ export function register(debugTools) {
       const problems = [];
       const was = SETTINGS.briefing;
       SETTINGS.briefing = true;
+      // H6: on a browser that has not seen it, Play offers the eight-move
+      // tutorial before the round. This check is about the round's briefing,
+      // so it states its precondition rather than depending on whatever a
+      // check before it left `tutorialSeen` at (`tests/settings.js` calls
+      // `resetSettings`). `the-first-run-tutorial-...` is what proves the
+      // other branch.
+      const wasSeen = SETTINGS.tutorialSeen;
+      SETTINGS.tutorialSeen = true;
       try {
         // The Shade, from the main menu's Play button.
         h.menu.show('main');
@@ -131,6 +139,7 @@ export function register(debugTools) {
         dismiss(h, 'Escape', 'esc', problems);
       } finally {
         SETTINGS.briefing = was;
+        SETTINGS.tutorialSeen = wasSeen;
         h.briefing.hide();
         h.input.clearAll();
         h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
@@ -153,6 +162,10 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const was = SETTINGS.briefing;
+      // H6: Play offers the tutorial on a browser that has not seen it; this
+      // check is about the round, so it says so rather than inheriting it.
+      const wasSeen = SETTINGS.tutorialSeen;
+      SETTINGS.tutorialSeen = true;
       try {
         // Round 1 from Play, ended on the clock through the real step, then
         // the intermission's Next round.
@@ -200,6 +213,7 @@ export function register(debugTools) {
         }
       } finally {
         SETTINGS.briefing = was;
+        SETTINGS.tutorialSeen = wasSeen;
         h.menu.hide();
         h.scoreboard.hide();
         h.briefing.hide();

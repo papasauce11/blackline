@@ -14,12 +14,14 @@
  */
 
 import { rng, SETTINGS } from './config.js';
-import { COMPETITIVE, FREEROAM } from './matchstate.js';
+import { COMPETITIVE, FREEROAM, TUTORIAL } from './matchstate.js';
 import { loadVersion, versionLabel } from './version.js';
 import { createHud } from './ui/hud.js';
 import { createMenu } from './ui/menu.js';
 import { createScoreboard } from './ui/scoreboard.js';
-import { createBriefing } from './ui/briefing.js';
+import { createBriefing, keyLabel } from './ui/briefing.js';
+import { createTutorialPanel } from './ui/tutorial.js';
+import { tutorialSeen, tutorialFits } from './systems/tutorial.js';
 
 /**
  * @param {object} root
@@ -34,13 +36,16 @@ import { createBriefing } from './ui/briefing.js';
  * @param {(id: string) => void} root.goToMap what a card does: another page load
  * @param {object} root.thumbnails the map pictures (H5, thumbnails.js): `get(id)`
  *   and a `ready` promise the menu is re-rendered on
+ * @param {object} root.emitter the one emitter, for the tutorial's own events (H6)
+ * @param {object} root.tutorial the first-run chain (H6, systems/tutorial.js)
  * @returns {{ hud: object, scoreboard: object, menu: object, briefing: object }}
  */
 export function createPanels({
-  initMatch, setPaused, objective, audio, match, map, input, maps, goToMap, thumbnails,
+  initMatch, setPaused, objective, audio, match, map, input, maps, goToMap, thumbnails, emitter, tutorial,
 }) {
   const hud = createHud();
   const briefing = createBriefing();
+  const tutorialPanel = createTutorialPanel({ onSkip: () => tutorial && tutorial.skip() });
 
   // C2: the briefing goes up on the player's routes into a round - Play,
   // Free roam, Next round - and never from `initMatch`, which every AUTO
@@ -87,6 +92,15 @@ export function createPanels({
       objective().resetMatch();
       // H5: the map this page is on is the one the next page load opens on.
       SETTINGS.lastMap = map().id;
+      // H6: the first time anyone presses Play, the eight moves first. It is
+      // the same `initMatch` with a different configuration (Section 12), and
+      // no briefing - the tutorial is the briefing, and the round's own one
+      // goes up when the chain ends.
+      if (tutorial && !tutorialSeen() && tutorialFits(map())) {
+        initMatch(TUTORIAL);
+        tutorial.start();
+        return;
+      }
       initMatch(COMPETITIVE);
       brief();
     },
@@ -111,5 +125,27 @@ export function createPanels({
   // when they land, and only that page, for the reason above.
   if (thumbnails) thumbnails.ready.then(() => { if (menu.page === 'main') menu.render(); });
 
-  return { hud, scoreboard, menu, briefing };
+  // H6: the chain's one line on screen, and what happens when it ends. The
+  // panel never decides anything - it draws the step the system is on.
+  if (emitter) {
+    // `[W]` rather than `W`, so the panel can pick the keys out of the
+    // sentence; the labels are the live bindings, as the briefing card's are.
+    const key = (action) => {
+      const codes = (input() && input().bindings[action]) || [];
+      return codes.length ? `[${keyLabel(codes[0])}]` : '[unbound]';
+    };
+    emitter.on('tutorial:step', ({ index, of }) => {
+      tutorialPanel.show({ text: tutorial.steps[index].text(key), index, of });
+    });
+    emitter.on('tutorial:end', () => {
+      tutorialPanel.hide();
+      // Into the match they asked for when they pressed Play. The briefing
+      // holds the round until a key, which is the beat between the two.
+      objective().resetMatch();
+      initMatch(COMPETITIVE);
+      brief();
+    });
+  }
+
+  return { hud, scoreboard, menu, briefing, tutorialPanel };
 }

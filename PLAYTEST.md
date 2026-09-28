@@ -82,6 +82,33 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The first time you press Play, eight moves (H6, 2026-09-28)
+
+On the plant, with a fresh browser, Play does not start a round — it drops you
+into free roam as the Shade with one line at the bottom of the screen, and
+eight of them in a row: move, sprint, crouch, slide into a duct, jump, climb,
+tap to hang, plant. Each clears when you **do the thing**, never when you press
+the key, which is the whole point: `C` standing still is a crouch, not a slide,
+and a slide that stops at the duct's mouth has not got you in. There is a
+*Skip the tutorial* button under the line. Finish it or skip it and you go
+straight into the round you pressed Play for, with the usual briefing.
+
+The yard does not offer it, and that is deliberate rather than unfinished: the
+chain needs a duct a crouched body fits into and a standing one does not, the
+plant has two at grade and the yard has none, so it would be a prompt you
+could never clear.
+
+`the-first-run-tutorial-clears-every-prompt-on-the-act` drives all eight
+through the real controller and
+`the-tutorial-is-offered-once-and-can-be-skipped` holds the offer, the Skip
+button and the second time.
+
+**What is left for you:** whether the order is the right order, whether eight
+is too many before someone just wants to play, and whether the line at the
+bottom of the screen is where your eyes are. Also, right now it is offered
+once per **page load**, not once per browser — `SETTINGS` does not survive a
+reload until **H7**, the next job — so it will come back if you refresh.
+
 ### The main menu has a card per map (H5, 2026-09-28)
 
 Open the menu and wait a second. Two cards fill in, each a picture of that

@@ -44,6 +44,9 @@ export function createHarness(live, root) {
      */
     resetPresentation() {
       live.menu().hide();
+      // H6: the tutorial's line is presentation like any other panel, and a
+      // check that left it up would hand it to every check after it.
+      if (live.tutorialPanel) live.tutorialPanel().hide();
       live.scoreboard().hide();
       live.briefing().hide();
       setPaused(false);

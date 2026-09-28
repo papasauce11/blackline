@@ -67,6 +67,8 @@ import { createWardenIntent } from './entities/enforcer.js';
 /** @type {import('./ui/hud.js').Hud} */ let hud = null;
 /** @type {import('./groundview.js').WardenGroundView} */ let groundView = null;
 /** @type {import('./ui/menu.js').Menu} */ let menu = null;
+/** @type {ReturnType<import('./systems/tutorial.js').createTutorial>} */ let tutorial = null;
+/** @type {import('./ui/tutorial.js').Tutorial} */ let tutorialPanel = null;
 /** @type {import('./thumbnails.js').createThumbnails} */ let thumbnails = null;
 /** @type {import('./ui/scoreboard.js').Scoreboard} */ let scoreboard = null;
 /** @type {import('./ui/briefing.js').Briefing} */ let briefing = null;
@@ -240,7 +242,7 @@ async function bootstrap() {
   ({
     renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner, thumbnails,
+    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel,
   } = built);
 
   setTimeScale(1);
@@ -441,6 +443,8 @@ const harness = createHarness({
   groundView: () => groundView,
   menu: () => menu,
   thumbnails: () => thumbnails,
+  tutorial: () => tutorial,
+  tutorialPanel: () => tutorialPanel,
   scoreboard: () => scoreboard,
   briefing: () => briefing,
   paused: () => paused,

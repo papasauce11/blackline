@@ -1592,7 +1592,39 @@ export const CONFIG = {
        * last map of this page load, which is what the card highlights.
        */
       lastMap: null,
+      /**
+       * Whether this browser has been offered the first-run tutorial (H6).
+       * Set when it is finished *or* skipped, because what it records is
+       * "offered", not "passed". It survives a reload once H7 puts SETTINGS
+       * in a store; until then the tutorial is offered once per page load.
+       */
+      tutorialSeen: false,
     },
+  },
+
+  // -------------------------------------------------------------------------
+  // The first-run tutorial (H6). Thresholds for "the move happened", not for
+  // what the move is - every one of these is read by `systems/tutorial.js`
+  // against the controller's own state, never against a key press.
+  // -------------------------------------------------------------------------
+  tutorial: {
+    /** Metres walked on the ground before the move prompt is satisfied. */
+    walkDistance: 4,
+    /** Of `shade.sprintSpeed`, so the prompt clears at a real sprint and not a brisk walk. */
+    sprintFraction: 0.95,
+    /**
+     * Seconds after the last slide step that being inside a duct still counts
+     * as having slid into it. A slide is about a second and a duct run is
+     * several metres, so the body is usually still sliding when it is inside -
+     * but a slide that ends a step after the mouth taught the move all the
+     * same, and failing it would be a lie about what the player just did.
+     */
+    slideGrace: 1.5,
+    /**
+     * Metres the feet must end above where a climb began. A climb you fall out
+     * of has taught nothing, and touching a ledge is not climbing it.
+     */
+    climbRise: 0.4,
   },
 
   // -------------------------------------------------------------------------

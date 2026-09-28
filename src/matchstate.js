@@ -11,6 +11,15 @@ import { CONFIG, SETTINGS } from './config.js';
 export const COMPETITIVE = Object.freeze({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
 /** Section 12: free-roam, the human on the Warden, nothing to fight. */
 export const FREEROAM = Object.freeze({ mode: 'freeroam', role: 'warden', ai: false, objective: false });
+/**
+ * H6: what the first-run tutorial plays in. Free-roam, so there is nobody to
+ * be shot by and no clock; the **Shade**, because every move the chain teaches
+ * is the Shade's; and the objective **on**, because the last thing it teaches
+ * is the plant. A configuration of the same `initMatch`, like the other two -
+ * Section 12 allows no second code path, and a tutorial is the most tempting
+ * place to write one.
+ */
+export const TUTORIAL = Object.freeze({ mode: 'freeroam', role: 'shade', ai: false, objective: true });
 
 /**
  * What the page boots into. Section 12: free-roam is a configuration of

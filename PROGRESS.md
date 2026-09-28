@@ -9705,3 +9705,128 @@ everything queued behind it.
 plant's card should show its inside, which needs the roof hidden and has no
 generic rule. D56 is the rule-shaped one: there is no Shade AI, so "play the
 Warden" can only mean free roam today.
+
+## H6 — the first-run tutorial: eight moves, each cleared by doing it (2026-09-28 02:00, scheduled run)
+
+**The whole design is in one sentence: a prompt clears on the act, not on the
+key.** A chain that advanced when you pressed the bound key would teach
+nothing and would lie — the key is bound, the move may not have happened. So
+`systems/tutorial.js` watches the controller's own state after each fixed step
+and never reads the input at all. `slide into the vent` is the case that
+proves it: `KeyC` standing still is a crouch, a slide that stops at the mouth
+never gets in, and neither is the move being taught.
+
+**It watches and never drives.** The system has no intent, writes nothing on
+the Shade, and its only output is which prompt is up. A tutorial is the most
+tempting place in a codebase to write a second control path; this one cannot
+make the game unplayable if it breaks, and `initMatch` is still the one entry
+point (Section 12).
+
+**What it runs in.** `TUTORIAL` in `matchstate.js`:
+`{ mode: 'freeroam', role: 'shade', ai: false, objective: true }` — free roam
+so there is nobody to be shot by and no clock, the **Shade** because every
+move the chain teaches is the Shade's, and the objective **on** because the
+last thing it teaches is the plant. A third configuration of the same call,
+not a third code path.
+
+**The chain, and what clears each one:**
+
+| | prompt | cleared by |
+|---|---|---|
+| 1 | move | 4m walked on the ground |
+| 2 | sprint | grounded at 95% of `sprintSpeed` |
+| 3 | crouch | `shade.crouching`, grounded |
+| 4 | slide into a duct | the body's centre inside a declared duct run, within 1.5s of a `SLIDE` step |
+| 5 | jump | off the ground with upward velocity |
+| 6 | climb | the feet end **0.4m above where the climb began** |
+| 7 | tap to hang | `SHADE_STATE.HANG` |
+| 8 | plant | `objective:planted` |
+
+Two of those are worth the argument. **Six is not "a climb started"**: a climb
+you fall out of has taught nothing and touching a ledge is not climbing it, so
+the reading banks the rise only once the body is grounded again. **Four is two
+conditions with a grace on one of them** — a duct run is several metres and a
+slide is about a second, so the body is usually still sliding when it is
+inside, but a slide that ends one step past the mouth taught the move all the
+same and failing it would be a lie about what the player just did.
+
+**Where it is offered is derived, not named.** `tutorialFits(map)` asks
+whether the map has a duct at grade that a crouched body fits in and a
+standing one does not — which is what step 4 needs. The plant has two
+(`vent-grade-west`, `vent-grade-south`, floors at ground, 1.15m against a
+1.05m crouch and a 1.85m stand, measured by probe before any of this was
+written); **the yard has none, so the chain is not offered there** and Play
+goes straight to the round. A third map gets the tutorial or not by its own
+geometry, which is D1's rule.
+
+**One line on screen, and no closing line.** `ui/tutorial.js` draws the step,
+`3 of 8`, and a Skip button. The keys in the sentence are the live bindings
+(`[W]`, bolded by the panel), so H8's rebinding will move them, as it will the
+briefing card's. There is no "well done" held up for two seconds because there
+is no timer to hold one up with — Section 9 and 15 ban `setTimeout` and F13's
+check holds the ban. What follows the chain is the round briefing (C2), which
+holds until a key, and that is the beat.
+
+**The hazard this job had to solve, and it is the same one as H5's.**
+`SETTINGS.tutorialSeen` starts false, so **the first check in the suite that
+clicks the real Play would get the tutorial instead of a round** — and
+`tests/settings.js` calls `resetSettings()` partway through every run, so it
+would come back false again afterwards. The fix is not a test-only path: the
+three checks that click Play (`briefing.js` ×2, `roundend.js`) now **state
+their precondition** — `SETTINGS.tutorialSeen = true`, restored in their own
+`finally` — which makes each of them say which branch it means instead of
+inheriting whatever ran before it. They assert exactly what they asserted
+before. The other branch is a check of its own.
+
+**Two new checks**, `src/tests/tutorial.js`, registered after the menu's:
+
+- `the-first-run-tutorial-clears-every-prompt-on-the-act` drives all eight
+  through `input.heldCodes` / `input.pressedCodes` and the real fixed step,
+  which is where `sim:step` reaches the watcher. It reuses the traversal
+  checks' own machinery — `findGroundLedge`, `driveAtLedge` — and a
+  `findVentRunUp` that derives a clear run-up outside a duct mouth from the
+  map. What it does **not** drive is the walk between features: the body is
+  placed at each ledge, lip and duct the way every traversal check places it,
+  because the chain is about the moves and not about crossing the map. Reads,
+  on the plant: sprint **6.3m/s of 6.5**, the duct entered at **6.5m/s** and
+  slid, `stack-hall-low` climbed through `ground,vault`, `hall-container`
+  hung. 80ms. Plant only, because that is where `tutorialFits` is true today.
+- `the-tutorial-is-offered-once-and-can-be-skipped`: Play raises it on a
+  browser that has not seen it and in the right match configuration, the
+  prompt says `1 of 8` and names the movement key from the live bindings, the
+  **Skip button a player would click** ends it into the round and marks the
+  browser, and a second Play goes straight to the round. On a map
+  `tutorialFits` refuses it asserts the opposite — not offered, and Play still
+  starts the round — so the yard tests the other half rather than being
+  skipped. 853ms on the plant, 16ms on the yard.
+
+`resetPresentation()` (F2) now takes the prompt down too: it is presentation
+like any other panel, and a check that left it up would hand it to every check
+after it.
+
+**Verified.** Both maps twice, exit 0, 0 red, 0 flaky, 0
+console errors, 0 context losses, 0 skips withheld. **Plant 192 passed / 1
+failed / 8 not for this map (991,824ms and 992,997ms), yard 172 / 1 / 28
+(684,109ms and 677,969ms)** - two more per map than the gate that opened the
+job (190 and 171), which are these two; the yard's "not for this map" went
+from 27 to 28, which is the plant-only one being reported rather than passing
+somewhere it cannot run. The pairs agree to **1,173ms on the plant (0% of the
+longest) and 6,140ms on the yard (1%)**, and the one failure per map is the
+frame-budget check, skipped headless. Per check: driving all eight prompts is
+**27-29ms** and the offer-and-skip one **3-4ms** - the chain is simulation
+with nothing rendered, so eight moves cost less than a single frame does
+here.
+
+**Found.** Two things, both about driving a check rather than about the game.
+**A run-up that ends at a wall never reaches a sprint** — the first version
+walked 3 seconds from the spawn and then asked for 95% of `sprintSpeed`, and
+read 5.1m/s because the body was against the shell; each step now starts from
+the spawn's clear apron. And **a detail line must not read the watcher after
+the step it describes has cleared**: by then `tutorial.reading` is the *next*
+step's, freshly zeroed, so the first version printed `rise 0.00` for a climb
+that plainly happened. A wrong number in a detail line is worse than none —
+D5 lost two runs to one.
+
+**Left.** The "once per browser" half is a flag, not a store: `SETTINGS`
+does not survive a reload until **H7**, which is the next job and is what
+makes it true. Nothing about the chain changes when it does.

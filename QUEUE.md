@@ -151,11 +151,9 @@ one setting only Josh can click; everything else here proceeds.
 - [x] **H5 (M)** The main menu. — done 2026-09-28, under Done. The card
   per map is rendered from the map at boot and the bake has a cut in it
   (`DRAWN_SLICES`); the look is **D55** and the role row raised **D56**.
-- [ ] **H6 (M)** The first-run tutorial. Free-roam on the plant with a
-  prompt chain — move, sprint, crouch, slide into the vent, jump, climb,
-  tap-to-hang, plant — each completing on the act, skippable, once per
-  browser (H7). *done-when:* a check drives every prompt to completion with
-  real key events; a second boot does not show it.
+- [x] **H6 (M)** The first-run tutorial. — done 2026-09-28, under Done. The
+  "once per browser" half is a flag `SETTINGS.tutorialSeen`; **H7** is what
+  makes it survive a reload, and nothing about the chain changes when it does.
 - [ ] **H7 (S)** Settings persist. `localStorage`, versioned, a reset row;
   wrapped so a blocked store degrades to defaults. *done-when:* a check sets,
   reloads the settings object from the store, and reads the same values.
@@ -395,6 +393,22 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H6** The first-run tutorial: eight moves, each cleared by doing it. The
+  design is one sentence — a prompt clears on the **act**, not on the key —
+  so `systems/tutorial.js` watches the controller's state after each fixed
+  step and never reads the input. Two of the eight carry the argument: a
+  climb counts only when the feet end 0.4m above where it began, and "slide
+  into a duct" is being inside one within 1.5s of a slide step, because a
+  slide that ends one step past the mouth taught the move all the same. Where
+  it is offered is derived (`tutorialFits`: a duct a crouched body fits and a
+  standing one does not) — the plant has two at grade, the yard none, so the
+  yard asserts the opposite rather than skipping. `TUTORIAL` is a third
+  configuration of `initMatch`, never a third code path. The hazard was the
+  same shape as H5's: `tutorialSeen` starts false, so the three checks that
+  click the real Play now state their precondition instead of inheriting it.
+  Two checks, one of which drives all eight prompts through the real
+  controller. — `HASH6`
 
 - **H5** The main menu: a card per map, rendered from the map. The fork the
   job named — bake every registered map, or draw a card from something
