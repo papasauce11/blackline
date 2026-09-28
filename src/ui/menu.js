@@ -59,6 +59,10 @@ export class Menu {
    * @param {(id:string)=>string|null} [handlers.thumbnail] the picture for a map (H5),
    *   null until it has been rendered; the root re-renders the menu when they land
    * @param {()=>object} [handlers.bindings] the live key bindings, for How to play
+   * @param {()=>Map<string,string[]>} [handlers.conflicts] codes bound to more than one
+   *   action (H8), which the controls page shows rather than refuses
+   * @param {(action:string, code:string)=>void} [handlers.onRebind] press-to-bind (H8)
+   * @param {(action:string)=>void} [handlers.onResetBinding] one row back to its shipped keys
    */
   constructor(handlers) {
     this.handlers = handlers || {};
@@ -76,6 +80,12 @@ export class Menu {
     this.rows = [];
     /** Which of them the ring is on. */
     this.focus = 0;
+    /**
+     * The action the controls page is waiting for a key for (H8), or null.
+     * Public, because press-to-bind is a mode the whole keyboard is in and a
+     * check has to be able to see that it started and that it ended.
+     */
+    this.binding = null;
 
     this._onKeyDown = (event) => this._key(event);
     window.addEventListener('keydown', this._onKeyDown);
@@ -96,6 +106,10 @@ export class Menu {
 
   show(page) {
     this.page = page || 'main';
+    // A capture belongs to the page that started it (H8): leaving the
+    // controls page with a row still waiting would swallow the first key
+    // pressed anywhere else in the menu.
+    this.binding = null;
     this.root.classList.remove('hidden');
     this.render();
   }
@@ -116,6 +130,7 @@ export class Menu {
 
   render() {
     if (this.page === 'settings') return this._renderSettings();
+    if (this.page === 'controls') return this._renderControls();
     if (this.page === 'pause') return this._renderPause();
     if (this.page === 'howto') return this._renderHowTo();
     if (this.page === 'credits') return this._renderCredits();
@@ -172,6 +187,21 @@ export class Menu {
     if (this.handlers.onSettingChanged) this.handlers.onSettingChanged();
   }
 
+  /**
+   * The key (or mouse button) a waiting row was given (H8). Escape cancels
+   * and binds nothing, which is why Escape is the one code no action can be
+   * moved onto - a capture you cannot leave is worse than a pause key nobody
+   * rebinds. Everything else goes to the root, which owns the input map.
+   *
+   * @param {string} code `KeyboardEvent.code`, or `Mouse0`/`Mouse1`/`Mouse2`
+   */
+  _bindCaptured(code) {
+    const action = this.binding;
+    this.binding = null;
+    if (code !== 'Escape' && this.handlers.onRebind) this.handlers.onRebind(action, code);
+    this.render();
+  }
+
   /** Put the ring where `this.focus` says. */
   _paint() {
     for (let i = 0; i < this.rows.length; i++) {
@@ -187,7 +217,17 @@ export class Menu {
   }
 
   _key(event) {
-    if (!this.open || !this.rows.length) return;
+    if (!this.open) return;
+    // H8: a row is waiting for the key it should carry, and every key is
+    // bindable - including the arrows this menu walks on and the modifiers
+    // the guard below drops. So a capture is read before any of that, and
+    // the only key it spends on itself is Escape, the way out.
+    if (this.binding) {
+      event.preventDefault();
+      this._bindCaptured(event.code);
+      return;
+    }
+    if (!this.rows.length) return;
     if (event.ctrlKey || event.altKey || event.metaKey) return;
     const code = event.code;
     const row = this.rows[this.focus];

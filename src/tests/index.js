@@ -50,6 +50,7 @@ import { register as registerGroundView } from './groundview.js';
 import { register as registerFreeRoam } from './freeroam.js';
 import { register as registerSettings } from './settings.js';
 import { register as registerSettingsStore } from './settingsstore.js';
+import { register as registerBindings } from './bindings.js';
 import { register as registerVersion } from './version.js';
 import { register as registerMenu } from './menu.js';
 import { register as registerTutorial } from './tutorial.js';
@@ -118,6 +119,7 @@ export function registerAutoTests(debugTools) {
   registerFreeRoam(debugTools);
   registerSettings(debugTools);
   registerSettingsStore(debugTools);
+  registerBindings(debugTools);
   registerVersion(debugTools);
   registerMenu(debugTools);
   registerTutorial(debugTools);

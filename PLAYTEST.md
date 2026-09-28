@@ -82,13 +82,49 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### You can rebind every key (H8, 2026-09-28)
+
+Settings → **Controls**. Seventeen rows, one per action. Click a row (or put
+the ring on it and press Enter), then press the key you want: that key
+becomes the action's first binding. Six actions ship with two keys — forward
+is `W / Up` — and a rebind replaces the first and leaves the second, so
+forward becomes `T / Up`. **Escape** backs out of a capture without binding
+anything, which is also why Escape is the one key nothing can be moved onto.
+For a mouse button, press it *on the cell that is waiting* — that is how
+`fire` goes back to Mouse0 by hand.
+
+Every row has its own **reset**, which puts that action's shipped keys back
+and touches nothing else.
+
+**A key on two actions is shown, not refused.** Put melee on Space and both
+rows say `also jump` / `also melee`, and the game will genuinely do both. If
+you would rather it refused the second bind, that is one line — **D58**.
+
+The controls card at round start and the *How to play* page both read the
+live keys, so a rebind moves them with it; that was already true before this
+job and is checked.
+
+**A rebind does not survive a reload yet** — that is **H19**, the next
+settings job. Everything else in Settings does (H7).
+
+`a-rebound-key-is-the-key-that-climbs-and-the-card-says-so` rebinds jump to J
+from the page the way you would, then climbs a ledge on J and requires Space
+*not* to;
+`a-key-bound-twice-is-shown-on-both-rows-and-a-row-restores-its-own-default`
+does the conflict and the per-row reset.
+
+**What is left for you:** thirty-five rows is a long flat list and it wants
+grouping (**H20**) — tell me if it reads badly at your window size. And
+whether the *also jump* note is loud enough to be a warning, or should be.
+
 ### The game remembers you now (H7, 2026-09-28)
 
 Change anything in Settings, reload, and it is still there: sensitivity,
 volume, match length, difficulty, invert Y, the briefing, post-processing —
 and the three from the last two jobs, the **role** row, the **map** you last
 picked (a URL with no `?map=` opens on it) and whether you have been offered
-the **tutorial**. So H6's "once per browser" is now actually once per browser,
+the **tutorial**. Since H8 the two sliders keep their value when you set them
+with the arrow keys too, which they did not: that was the one gap in this. So H6's "once per browser" is now actually once per browser,
 and the tutorial will not come back when you refresh.
 
 There is a new **reset to defaults** row at the bottom of Settings. It clears

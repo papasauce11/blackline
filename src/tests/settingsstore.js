@@ -67,6 +67,12 @@ function changedValues() {
   return { values, missing: null };
 }
 
+/** A real key press at the window, the way a player's arrives. */
+function press(code) {
+  window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true }));
+  window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true, cancelable: true }));
+}
+
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'a-setting-changed-now-is-the-setting-a-reload-reads',
@@ -308,6 +314,84 @@ export function register(debugTools) {
         detail: problems.length === 0
           ? `${kept.length} settings kept, ${NOT_PERSISTED.length} named as deliberately not (${NOT_PERSISTED.join(', ')}); `
             + 'the settings page has a reset row and the keyboard reaches it'
+          : problems.join('; '),
+      };
+    },
+  });
+  debugTools.registerAutoTest({
+    id: 'every-settings-row-that-moves-a-setting-reports-it-for-saving',
+    spec: 'Section 13, H7',
+    name: 'Driving each settings row from the keyboard: any row that changes a persisted setting calls the save handler, and the one that changes an unpersisted one need not',
+    run: (h) => {
+      // Found by H8, which was rewriting `_rows()` on the settings page: the
+      // two sliders applied their value on the left and right keys and never
+      // called `_changed()`, so a keyboard-only player's sensitivity and
+      // volume were the two settings a reload forgot. A census rather than
+      // two more lines of assertion, because the same omission is available
+      // to every row added after this one: drive each row, see whether a
+      // setting moved, and require the save when it did.
+      const problems = [];
+      const menu = h.menu;
+      const wasHandlers = menu.handlers;
+      const before = { ...SETTINGS };
+      const moved = [];
+      let saves = 0;
+      let resets = 0;
+      try {
+        // The real handlers write the player's own record (TRAPS.md: a
+        // setting outlives the page now), so this counts calls instead.
+        menu.handlers = {
+          ...wasHandlers,
+          onSettingChanged: () => { saves += 1; },
+          onResetSettings: () => { resets += 1; },
+          onVolume: () => {},
+        };
+        menu.show('settings');
+        const count = menu.rows.length;
+        for (let i = 0; i < count; i++) {
+          menu.show('settings');
+          const row = menu.rows[i];
+          const name = row.el.id || row.el.textContent.trim().slice(0, 16) || `row ${i}`;
+          const was = { ...SETTINGS };
+          saves = 0;
+          menu.focus = i;
+          // A slider answers the sideways keys; everything else answers Enter.
+          const sideways = Boolean(row.more);
+          press(sideways ? 'ArrowRight' : 'Enter');
+          // A slider already at its maximum does not move, and a row that
+          // does not move is a row this check cannot judge - so try the
+          // other way rather than passing it silently.
+          if (sideways && Object.keys(CONFIG.settings.defaults).every((key) => SETTINGS[key] === was[key])) {
+            saves = 0;
+            press('ArrowLeft');
+          }
+          const changed = Object.keys(CONFIG.settings.defaults).filter((key) => SETTINGS[key] !== was[key]);
+          const kept = changed.filter((key) => NOT_PERSISTED.indexOf(key) === -1);
+          if (kept.length) {
+            moved.push(`${name} -> ${kept.join(', ')}`);
+            if (saves === 0) problems.push(`"${name}" changed ${kept.join(', ')} and reported no save`);
+          }
+          Object.assign(SETTINGS, was);
+        }
+        if (!moved.length) problems.push('no settings row changed a persisted setting at all');
+        // And the reset row, which clears the record rather than saving one.
+        menu.show('settings');
+        const reset = menu.root.querySelector('#bl-reset');
+        resets = 0;
+        if (!reset) problems.push('the settings page has no reset row');
+        else {
+          reset.click();
+          if (resets !== 1) problems.push(`the reset row called the clear handler ${resets} times`);
+        }
+      } finally {
+        menu.handlers = wasHandlers;
+        Object.assign(SETTINGS, before);
+        menu.hide();
+      }
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${moved.length} rows move a persisted setting and every one reports it (${moved.join('; ')})`
           : problems.join('; '),
       };
     },

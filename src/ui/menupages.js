@@ -17,7 +17,7 @@
  */
 
 import { CONFIG, DEFAULT_BINDINGS, SETTINGS } from '../config.js';
-import { controlRows, objectiveLine } from './briefing.js';
+import { controlRows, keyLabel, objectiveLine } from './briefing.js';
 
 /** What the how-to-play page describes: the two roles, as the game has them. */
 const HOW_TO_ROLES = [
@@ -86,6 +86,7 @@ export const MENU_PAGES = {
           <span class="value" id="bl-dbg">${SETTINGS.debug ? 'on' : 'off'}</span></div>
         <div class="row"><span>settings</span>
           <span class="value" id="bl-reset">reset to defaults</span></div>
+        <button data-action="controls">Controls</button>
         <button class="back" data-action="back">Back</button>
       </div>`;
 
@@ -159,18 +160,117 @@ export const MENU_PAGES = {
       this.render();
     };
 
+    // H8: rebinding is a page of its own - seventeen actions do not fit
+    // beside eight settings - and it returns here rather than to the main
+    // menu, so a rebind mid-match does not abandon the match either.
+    const controls = this.root.querySelector('[data-action=controls]');
+    controls.onclick = () => this.show('controls');
     const back = this.root.querySelector('[data-action=back]');
     back.onclick = () => this.show(this._settingsReturn || 'main');
     // The two sliders answer the left and right keys with a step of their own,
-    // so a keyboard can set sensitivity and volume without a mouse (H5).
+    // so a keyboard can set sensitivity and volume without a mouse (H5). Both
+    // paths end at `_changed()`, or a keyboard-only player's slider is the one
+    // setting a reload forgets (H7).
     this._rows([
-      this._slider(sens, () => { SETTINGS.mouseSensitivity = parseFloat(sens.value); }),
+      this._slider(sens, () => { SETTINGS.mouseSensitivity = parseFloat(sens.value); this._changed(); }),
       this._slider(vol, () => {
         SETTINGS.masterVolume = parseFloat(vol.value);
         if (this.handlers.onVolume) this.handlers.onVolume(SETTINGS.masterVolume);
+        this._changed();
       }),
-      len, diff, inv, brief, postRow, dbg, reset, back,
+      len, diff, inv, brief, postRow, dbg, reset, controls, back,
     ]);
+  },
+
+  /**
+   * Controls (H8). One row per action in the order `DEFAULT_BINDINGS`
+   * declares them, showing every key bound to it; activating the row waits
+   * for a key and the key you press becomes that action's **first** binding,
+   * leaving any alternate alone - so rebinding forward to T reads `T / Up`
+   * and the arrow keys a player never touched are still there. A second cell
+   * restores that one row's shipped keys, which is what makes the alternate
+   * you did replace recoverable without resetting the lot.
+   *
+   * **A key bound to two actions is shown, not refused.** The game will fire
+   * both, and a player who wants crouch and slide on one key is entitled to
+   * it; what the page owes them is knowing, so both rows say whose key they
+   * are sharing. The rule is `bindingConflicts()` in `input.js`, handed down
+   * like every other live reading, so it is a fact about the input map rather
+   * than about this page.
+   *
+   * **Escape is the way out of a capture**, and so the one key nothing can be
+   * bound to: a page you can walk into and not out of is worse than a pause
+   * key nobody rebinds. A mouse button is bound by clicking the waiting cell
+   * with it, which is also why `fire` can be put back on Mouse0 by hand and
+   * not only by the row's reset.
+   */
+  _renderControls() {
+    // The live map when the root has wired one, the defaults otherwise: this
+    // page, like How to play, is reachable before a match exists.
+    const bindings = (this.handlers.bindings && this.handlers.bindings()) || DEFAULT_BINDINGS;
+    const clashes = (this.handlers.conflicts && this.handlers.conflicts()) || new Map();
+    const actions = Object.keys(DEFAULT_BINDINGS);
+    const rows = actions.map((action) => {
+      const codes = bindings[action] || [];
+      const also = [];
+      for (const code of codes) {
+        for (const other of clashes.get(code) || []) {
+          if (other !== action && also.indexOf(other) === -1) also.push(other);
+        }
+      }
+      const waiting = this.binding === action;
+      const keys = codes.length ? codes.map(keyLabel).join(' / ') : 'unbound';
+      return `<div class="row bindrow">
+        <span class="what">${action}</span>
+        <span class="clash" id="bl-clash-${action}">${also.length ? `also ${also.join(', ')}` : ''}</span>
+        <span class="value${waiting ? ' waiting' : ''}" id="bl-bind-${action}">${waiting ? 'press a key' : keys}</span>
+        <span class="value small" id="bl-bindreset-${action}">reset</span>
+      </div>`;
+    }).join('');
+
+    this.root.innerHTML = `
+      <div class="card">
+        <h1 style="font-size:20px">Controls</h1>
+        <div class="tag">${this.binding ? 'press a key, or esc to cancel' : 'pick a row, then press the key'}</div>
+        ${rows}
+        <button class="back" data-action="back">Back</button>
+      </div>`;
+
+    const declared = [];
+    for (const action of actions) {
+      const key = this.root.querySelector(`#bl-bind-${action}`);
+      key.onclick = () => {
+        // The click that ended a mouse capture is not also the click that
+        // starts the next one (input.js plays the same trick with pointer
+        // lock): mousedown, mouseup and click all arrive from one press.
+        if (this._swallowBindClick) { this._swallowBindClick = false; return; }
+        this.binding = action;
+        this.render();
+      };
+      // A mouse button is bound by pressing it on the cell that is waiting.
+      // A press anywhere else is that row's click and cancels this one, so
+      // there is no way to bind a button by accident.
+      key.onmousedown = (event) => {
+        if (this.binding !== action) return;
+        event.preventDefault();
+        this._swallowBindClick = true;
+        this._bindCaptured(`Mouse${event.button}`);
+      };
+      key.oncontextmenu = (event) => { if (this.binding === action) event.preventDefault(); };
+      const reset = this.root.querySelector(`#bl-bindreset-${action}`);
+      reset.onclick = () => {
+        this.binding = null;
+        if (this.handlers.onResetBinding) this.handlers.onResetBinding(action);
+        this.render();
+      };
+      declared.push(key, reset);
+    }
+    const back = this.root.querySelector('[data-action=back]');
+    back.onclick = () => {
+      this.binding = null;
+      this.show('settings');
+    };
+    this._rows([...declared, back]);
   },
 
   /**

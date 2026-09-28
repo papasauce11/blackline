@@ -330,7 +330,7 @@ export function register(debugTools) {
         // Every page, including the ones only the pause overlay reaches. Tab
         // is suppressed game-wide (config.js SUPPRESSED_KEYS), so a control
         // the menu did not declare is a control no keyboard can reach at all.
-        for (const page of ['main', 'settings', 'howto', 'credits', 'pause']) {
+        for (const page of ['main', 'settings', 'controls', 'howto', 'credits', 'pause']) {
           menu.show(page);
           const drew = controlsOn(menu.root);
           const declared = menu.rows.map((row) => row.el);

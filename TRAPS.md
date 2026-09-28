@@ -238,6 +238,28 @@ seeds a private `mulberry32` now.
 harness never loaded for a reason the page did not report — look at
 index.html's import map first.
 
+**A backtick inside a CSS template literal is valid JavaScript**, so
+`node --check` says nothing and the page dies at load. `menucss.js` and
+`briefing.js` hold their stylesheets in template literals; H8 wrote a CSS
+comment mentioning two class names in backticks, the way every other comment
+in the project names an identifier, and the first of them closed the literal.
+What followed became a tagged template, and the browser reported
+`hex(...)hex(...).value is not a function` from a file with no such call in
+it — a minute of staring at the interpolations before the comment. **Never
+put a backtick in a comment inside a template literal**, and read any
+`is not a function` naming a helper twice over as a literal that ended early.
+
+**Which of two `window` listeners runs first is not yours to choose, and
+`preventDefault` does not unsend an event.** `Input` and `Menu` both listen
+for `keydown` on `window`; whichever was constructed first runs first, and an
+event dispatched straight at `window` — which is how a check presses a key —
+runs both of them whatever phase they asked for, so `stopPropagation` does
+not help either. H8's press-to-bind hit this: the key that bound jump was
+also *pressed* as jump, and a `clearAll()` at the moment of the bind was
+undone by the very event that caused it. The fix that works whichever way
+round they run is a gate held open to the keyup (`Input.swallowPress()`).
+Before writing "the menu swallows this key", check who else is listening.
+
 **A moved method can reference a module constant that did not move.** Both F3
 boot failures were this (`P`, `THREE` used in `mapgen.js` without an import);
 `node --check` cannot see it and only the code path that runs at boot reports

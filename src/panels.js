@@ -14,6 +14,7 @@
  */
 
 import { rng, SETTINGS } from './config.js';
+import { bindingConflicts } from './input.js';
 import { COMPETITIVE, FREEROAM, TUTORIAL } from './matchstate.js';
 import { loadVersion, versionLabel } from './version.js';
 import { saveSettings, clearSettings } from './settingsstore.js';
@@ -87,6 +88,20 @@ export function createPanels({
     thumbnail: (id) => (thumbnails ? thumbnails.get(id) : null),
     // H5: the live bindings, so How to play names the keys a rebind left.
     bindings: () => (input() ? input().bindings : null),
+    // H8: the controls page. The map itself is the Input's, so the page asks
+    // it three questions rather than keeping a copy that could drift - what
+    // is bound, what is bound twice, and put this one back.
+    conflicts: () => (input() ? bindingConflicts(input().bindings) : new Map()),
+    onRebind: (action, code) => {
+      if (!input()) return;
+      input().rebind(action, code);
+      // Binding a key must not also fire it. The keydown that bound it is
+      // being delivered to the Input as well, and which listener runs first
+      // is not ours to decide, so the Input is gated until the key comes
+      // back up rather than merely cleared here.
+      input().swallowPress();
+    },
+    onResetBinding: (action) => input() && input().resetBinding(action),
     mapId: () => map().id,
     onMap: (id) => goToMap(id),
     onFirstGesture: () => audio().unlock(),

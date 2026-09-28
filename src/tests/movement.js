@@ -495,10 +495,10 @@ export function register(debugTools) {
 
 /**
  * Stand (or hang in the air) 0.8m from a ledge face, hold forward, and press
- * Space once on a given step — released the next step (a tap) or kept down
- * until the end (a hold). Drives the real input.
+ * `code` — jump's key — once on a given step, released the next step (a tap)
+ * or held to the end. Drives the real input; H8's rebind check drives it on J.
  */
-export function driveAtLedge(h, spot, { airborne, pressAt, hold, holdFor = 0, steps }) {
+export function driveAtLedge(h, spot, { airborne, pressAt, hold, holdFor = 0, steps, code = 'Space' }) {
   const shade = h.shade;
   const { box, x, z, yaw } = spot;
   const ground = CONFIG.map.groundY;
@@ -523,17 +523,17 @@ export function driveAtLedge(h, spot, { airborne, pressAt, hold, holdFor = 0, st
   let sawClimb = false;
   let sawGrab = false;
   let onTop = false;
-  // Space goes up after the step at `pressAt + holdFor` (a one-step tap by
-  // default), or never, for a hold.
+  // The key goes up after the step at `pressAt + holdFor` (a one-step tap
+  // by default), or never, for a hold.
   const releaseAt = hold || pressAt === null ? Infinity : pressAt + holdFor;
   for (let i = 0; i < steps && !onTop; i++) {
     if (pressAt !== null && i === pressAt) {
-      h.input.heldCodes.add('Space');
-      h.input.pressedCodes.add('Space');
+      h.input.heldCodes.add(code);
+      h.input.pressedCodes.add(code);
     }
     h.stepFrames(1);
     h.input.clearEdges();
-    if (i >= releaseAt) h.input.heldCodes.delete('Space');
+    if (i >= releaseAt) h.input.heldCodes.delete(code);
     states.add(shade.state);
     if (climbStates.has(shade.state)) sawClimb = true;
     if (shade.state === SHADE_STATE.GRAB) sawGrab = true;

@@ -53,6 +53,8 @@ export class Input {
     this.locked = false;
     /** Set while a click is being used to acquire pointer lock. */
     this._swallowNextMouseDown = false;
+    /** Set while the settings page is binding a key (H8): see swallowPress(). */
+    this._swallowUntilKeyUp = false;
     /** True once the user has produced a real gesture (audio gate, Section 13). */
     this.hasUserGesture = false;
 
@@ -99,6 +101,39 @@ export class Input {
     for (const action of Object.keys(DEFAULT_BINDINGS)) {
       this.bindings[action] = DEFAULT_BINDINGS[action].slice();
     }
+    this._rebuildLookup();
+  }
+
+  /**
+   * Forget the press being handled right now, and everything until that key
+   * comes back up (H8).
+   *
+   * The settings page binds a key on that key's own `keydown`, and this
+   * class's listener and the menu's are both on `window`: whichever was
+   * added first runs first, and an event dispatched straight at `window`
+   * runs both of them whatever phase they asked for - so `preventDefault`
+   * and `stopPropagation` cannot keep the code out of `pressedCodes`. A
+   * `clearAll()` at the moment of the bind is therefore undone by the very
+   * event that caused it, half the time. Holding the gate open to the keyup
+   * works whichever way round they run, and spells the rule that matters:
+   * **binding a key must not also fire it.**
+   */
+  swallowPress() {
+    this.clearAll();
+    this._swallowUntilKeyUp = true;
+  }
+
+  /**
+   * Restore one action's shipped keys (H8). The settings page offers this per
+   * row, so a player who replaced the alternate binding of a cluster - `W /
+   * Up` down to one key - can have it back without resetting every other row
+   * they have set the way they like.
+   *
+   * @param {string} action
+   */
+  resetBinding(action) {
+    if (!DEFAULT_BINDINGS[action]) return;
+    this.bindings[action] = DEFAULT_BINDINGS[action].slice();
     this._rebuildLookup();
   }
 
@@ -262,6 +297,8 @@ export class Input {
   _onKeyDown(e) {
     if (this._shouldSuppress(e)) e.preventDefault();
     this.hasUserGesture = true;
+    // The press that bound a key is not also a press of it (H8).
+    if (this._swallowUntilKeyUp) return;
     // Browsers repeat keydown while a key is held. Only the first is an edge.
     if (this.heldCodes.has(e.code)) return;
     this.heldCodes.add(e.code);
@@ -270,6 +307,11 @@ export class Input {
 
   _onKeyUp(e) {
     if (this._shouldSuppress(e)) e.preventDefault();
+    if (this._swallowUntilKeyUp) {
+      this._swallowUntilKeyUp = false;
+      this.clearAll();
+      return;
+    }
     this.heldCodes.delete(e.code);
     this.releasedCodes.add(e.code);
   }
@@ -315,4 +357,35 @@ export class Input {
     }
     this.locked = nowLocked;
   }
+}
+
+/**
+ * Codes bound to more than one action, as `code -> actions` (H8).
+ *
+ * A conflict is **shown and never refused**: the game will fire both, and a
+ * player who wants melee and crouch on one key is entitled to them. What the
+ * settings page owes them is knowing, so this is the rule it draws from - a
+ * fact about the input map rather than about the page, which is also what
+ * lets a check assert it without a DOM.
+ *
+ * Pure, and takes the map rather than reading `this`, so the menu can be
+ * handed it from the composition root the way every other live reading is
+ * (Section 3.1: `ui/` does not import this module).
+ *
+ * @param {Record<string, string[]>} bindings
+ * @returns {Map<string, string[]>}
+ */
+export function bindingConflicts(bindings) {
+  const byCode = new Map();
+  for (const action of Object.keys(bindings)) {
+    for (const code of bindings[action]) {
+      if (!byCode.has(code)) byCode.set(code, []);
+      if (byCode.get(code).indexOf(action) === -1) byCode.get(code).push(action);
+    }
+  }
+  const clashes = new Map();
+  for (const [code, actions] of byCode) {
+    if (actions.length > 1) clashes.set(code, actions);
+  }
+  return clashes;
 }

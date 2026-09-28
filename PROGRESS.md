@@ -9942,3 +9942,136 @@ a page widens it to everything after it.
 **Left.** Nothing this job set out to do. D57 is the one judgement worth a
 look: difficulty is the setting most likely to have been changed for one
 evening rather than for good, and it follows you around now.
+
+## H8 — rebinding, and the key that bound itself (2026-09-28 17:00, scheduled run)
+
+**What was built.** A **Controls** page, reached from the settings menu and
+returning to it, with a row for every one of the seventeen actions
+`DEFAULT_BINDINGS` declares. The row shows every key bound to the action;
+activating it — Enter from the keyboard, a click from the mouse — puts it in
+*press a key*, and the next key becomes that action's **first** binding. A
+second cell on each row restores that one row's shipped keys.
+
+Three rules the page had to pick, all in **D58**:
+
+- **A rebind replaces the first key and leaves the alternate.** Six actions
+  ship with two (`forward: W / Up`); binding forward to T reads `T / Up`.
+  The tidier alternative — the pressed key becomes the only key — quietly
+  takes something away and nothing on the page would say so. The alternate
+  you *did* replace comes back from the row's own reset, which is why every
+  row has one rather than the page having a single reset-all.
+- **Escape leaves a capture, and is therefore the one code nothing can be
+  bound to.** A page you can walk into and not out of is worse than a pause
+  key nobody rebinds. A mouse button is bound by pressing it *on the cell
+  that is waiting*, so `fire` can be put back on Mouse0 by hand, and a press
+  anywhere else is that row's click and cancels this one — there is no way
+  to bind a button by accident.
+- **A key bound to two actions is shown, never refused.** `codeToActions`
+  has always been a list and the game fires both; a player who wants melee
+  and crouch on one key is entitled to them, and there is no rule here to
+  protect. Both rows name the other action. The rule itself is
+  `bindingConflicts(bindings)` in `input.js` — pure, taking the map rather
+  than reading `this` — and the page is handed it by the composition root
+  like every other live reading, because `ui/` does not import `input.js`
+  (Section 3.1). That also lets a check assert the conflict without a DOM.
+
+`Input` gained `resetBinding(action)` and `swallowPress()`; `panels.js` wires
+`conflicts`, `onRebind` and `onResetBinding` beside H5's `bindings`. Nothing
+that reads a binding needed touching: the briefing card C2 puts up and H5's
+*How to play* page both go through `controlRows()` on the live map, so a
+rebind moves both, which is the half of this job that was already done.
+
+**What was found, and it is the job.** The first run of the check reported
+*no ground ledge between 1.2m and 2.4m to climb* — on the plant, where there
+are dozens. **Binding a key also fired it.** The keydown that binds J is
+delivered to the `Input` as well as to the menu; both listen on `window`,
+whichever was added first runs first, and an event dispatched straight at
+`window` runs both whatever phase they asked for — so `preventDefault` and
+`stopPropagation` cannot keep `KeyJ` out of `pressedCodes`. Jump was `KeyJ`
+by then, so `findGroundLedge` stepped three frames per candidate with the
+body airborne for every one of them and rejected all 214 boxes.
+
+The first fix was a `clearAll()` inside `onRebind`, and it only worked half
+the time — the menu's listener turned out to run *first* here, so the Input
+recorded the key immediately after the clear. What works whichever way round
+they run is a gate: `swallowPress()` clears and then ignores everything until
+the key comes back up. The rule it spells is the one that matters and is now
+asserted: **binding a key must not also fire it.**
+
+This is the HANDOFF lesson again from the other side. The usual failure is a
+check that drives the game differently from a player; this was a check that
+drove it *exactly* as a player does — a real `KeyboardEvent` at the window —
+and so found a bug that a `rebind('jump', 'KeyJ')` call could never have
+found.
+
+**And a gap in H7, found while rewriting the same `_rows()` call.** The two
+sliders on the settings page applied their value on the left and right keys
+and never called `_changed()`, so a keyboard-only player's **sensitivity and
+volume were the two settings a reload forgot** — H7's own promise, missed by
+the one row type that has a second code path. Both call it now, and rather
+than two more lines of assertion the fix got a census, because the same
+omission is available to every row added after this one:
+`every-settings-row-that-moves-a-setting-reports-it-for-saving` drives each
+row of the settings page from the keyboard, sees whether any key of
+`CONFIG.settings.defaults` moved, and requires the save handler to have been
+called when one did — with the unpersisted debug gate excused by name and a
+slider already at its maximum nudged the other way rather than passed
+silently. It stubs the handlers rather than letting them run, because the
+real ones write the player's own record (TRAPS.md).
+
+**Checks.** Two new in `tests/bindings.js`, one new in `tests/settingsstore.js`,
+one extended in `tests/menu.js`:
+
+- `a-rebound-key-is-the-key-that-climbs-and-the-card-says-so` walks Settings →
+  Controls, puts the ring on the jump row, presses Enter and then J — real
+  `KeyboardEvent`s at the window, never `rebind()` — and then asserts the
+  three things that can each be true without the others: the row reads `J`,
+  the *How to play* card reads `J` (and so the briefing does, same
+  `controlRows`), and **J climbs a ledge while Space no longer does**. That
+  last pair is the one that would fail if the job were reverted in the way
+  that matters. `driveAtLedge` in `tests/movement.js` took a `code` option to
+  make it possible — line-for-line, because that file sits at 599 of the 600
+  the split guard allows.
+- `a-key-bound-twice-is-shown-on-both-rows-and-a-row-restores-its-own-default`
+  binds melee onto Space, requires both rows to name the other, requires the
+  conflict to be **real** — one `pressedCodes.add('Space')` and the Input
+  answers `pressed('jump')` and `pressed('melee')` both — then resets the one
+  row and requires melee back, jump untouched, and both notes gone. It also
+  counts a row and a reset for every action in `DEFAULT_BINDINGS`, so "every
+  action" is a claim the page keeps rather than one this file makes.
+- `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard` walks
+  the controls page too, which is thirty-five rows: seventeen key cells,
+  seventeen resets and Back.
+
+Both new checks restore the bindings in a `finally`. Bindings are game state,
+not presentation, so the runner will not put them back (F2) — a check that
+left jump on J would hand it to every check after it.
+
+**One look fix, free.** `#bl-menu .row.focused .value::after` has never
+matched anything: `_rows()` is handed the `.value` span, not the `.row`
+around it, so the focus ring was invisible on every settings row and has been
+since H5. `.value.focused::after` draws it now. Provisional, under D58's
+heading in spirit; noticed only because the controls page has thirty-five of
+them.
+
+**Verified.** `npm run suite`, both maps twice, 2026-09-28: plant **198
+passed, 1 failed, 8 not for this map** (1,002s and 1,010s), yard **178 / 1 /
+28** (678s, 679s), exit 0, 0 red, 0 flaky, 0 console errors, 0 context
+losses, 0 skips withheld. Three more per map than the pair that gated this
+job (plant 195, yard 175) — this job's two plus H7's census — and the one
+failure on each map is still the frame-budget check, skipped headless.
+
+The pair agreement came back: **plant 7,637ms (1% of the longer) and yard
+1,470ms (0%)**, against 59,792ms and 6% in the H7 verify three hours
+earlier, with the same orphan alive and the same `throttle: 4/8 cores` in
+both. So the H7 spread was the machine having a worse hour and not something
+this project did, which is the reading F16 asks for: compare the spread, not
+the total. The run took about three wall-clock hours against the H7
+verify's one, for the same reason — the 09-18 orphan Chrome has now burned
+**8,234 CPU-seconds** and is still burning them.
+
+**Left.** A rebind does not survive a reload — **H19**, and a job rather
+than a line because a keymap is not a scalar: it wants its own versioned
+record and a rule for a stored map naming an action this build no longer has.
+And the page is one flat list of thirty-five rows, which is **H20**, look
+only.

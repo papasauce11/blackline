@@ -29,6 +29,11 @@ const FOCUS = `
 #bl-menu .row.focused { border-bottom-color: ${hex(P.shadeTeal)}; }
 #bl-menu .row.focused span { opacity: 1; }
 #bl-menu .row.focused .value::after { content: ' ‹›'; opacity: 0.6; }
+/* A row that *is* a value - which is every settings row, because _rows()
+   is handed the .value span and not the .row around it - so the two
+   rules above never matched one and the ring was invisible on all of them.
+   Found while H8 was walking the controls page's thirty-five. */
+#bl-menu .value.focused::after { content: ' ‹›'; opacity: 0.6; }
 `;
 
 export const MENU_CSS = `
@@ -81,6 +86,22 @@ export const MENU_CSS = `
   display: block; margin-top: 3px; font-size: 10px; letter-spacing: 0.18em; opacity: 0.5;
 }
 #bl-menu .mapcard[aria-current=true] .mapnote { color: ${hex(P.hazardOrange)}; opacity: 0.9; }
+
+/* H8: the controls page. A binding row is four cells - the action, who else
+   is on its key, the key itself and the row's own reset - so the keys and
+   the reset get widths of their own rather than sharing the value slot with
+   the label, and thirty-five rows still read as a list. */
+#bl-menu .bindrow .what { flex: 0 0 34%; }
+#bl-menu .bindrow .clash {
+  flex: 1; text-align: right; padding-right: 14px; font-size: 10px;
+  letter-spacing: 0.14em; color: ${hex(P.wardenOrange)}; opacity: 0.95;
+}
+#bl-menu .bindrow .value { min-width: 96px; text-align: right; }
+#bl-menu .bindrow .value.waiting { color: ${hex(P.shadeTeal)}; }
+#bl-menu .bindrow .value.small {
+  min-width: 0; margin-left: 18px; font-size: 10px; opacity: 0.4;
+  color: ${hex(P.shadeTeal)};
+}
 
 /* The how-to-play and credits pages: running text, so the menu's uppercase
    tracking is turned off for the body of them. */

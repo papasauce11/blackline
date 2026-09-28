@@ -156,10 +156,9 @@ one setting only Josh can click; everything else here proceeds.
   makes it survive a reload, and nothing about the chain changes when it does.
 - [x] **H7 (S)** Settings persist. — done 2026-09-28, under Done. What is
   kept and the one thing that is not are **D57**.
-- [ ] **H8 (M)** Rebinding in the settings menu. Every action, press-to-bind,
-  conflicts shown, defaults restored per row; the briefing's controls card
-  already reads live bindings. *done-when:* a check rebinds jump to `KeyJ`,
-  drives a climb with it, and the card shows `J`.
+- [x] **H8 (M)** Rebinding in the settings menu. — done 2026-09-28, under
+  Done. What a rebind does to the key it replaces and to a key already
+  taken is **D58**; **H19** is the keymap surviving a reload.
 - [ ] **H9 (S)** Look and camera settings: sensitivity per axis, invert Y,
   FOV (third-person boom and the Warden's), head-bob on/off. *done-when:* a
   check reads each through the live camera.
@@ -210,6 +209,22 @@ one setting only Josh can click; everything else here proceeds.
   reachability, which is strictly stronger, and the id stays. *done-when:*
   the check drives a named card rather than a cycle and the menu has one way
   to pick a map. **blocked: D55.**
+- [ ] **H19 (S)** A rebind survives a reload. H7's store keeps settings and
+  a keymap is not one: it wants its own versioned record beside them, and a
+  rule for a stored map naming an action or a code this build no longer has
+  (ignore that entry, keep the rest — the settings store's "only a key the
+  defaults have, at the type they have" in the shape a map needs). H8's
+  controls page and `resetBinding` are the UI it needs; nothing there
+  changes. *done-when:* a check writes a rebind, throws the live map away
+  the way `resetSettings` does, loads, and drives a climb on the restored
+  key; and a record naming a dead action applies the rest of itself.
+- [ ] **H20 (S)** The controls page at seventeen actions is thirty-five
+  keyboard rows and one flat list (H8). Group it — move, fight, gadgets,
+  system — with the groups as headings the ring skips, or put the reset
+  cells behind the row's own sideways keys and halve the list. Look only;
+  nothing about what a player can do changes. *done-when:* the reachability
+  check still counts every control, and the page fits a 720p window without
+  scrolling.
 
 ## Block K — the Warden as an opponent
 
@@ -392,6 +407,23 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H8** Rebinding: a Controls page off the settings menu with a row per
+  action, press-to-bind, conflicts shown on both rows, and defaults restored
+  per row. A rebind writes the action's **first** key and leaves the
+  alternate, so `W / Up` becomes `T / Up`; the row's own reset brings the
+  shipped pair back. A key bound twice is **shown, never refused** — the
+  game fires both and the page's job is that the player knows — from
+  `bindingConflicts()` in `input.js`, so the rule is a fact about the input
+  map and not about the page. Escape leaves a capture and is therefore the
+  one code nothing can be bound to; a mouse button is bound by pressing it
+  on the waiting cell. D58 is the judgement. The defect the check found:
+  **binding a key also fired it** — the keydown reaches the Input as well as
+  the menu and the listener order is not ours, so the Input is gated from
+  the bind to the keyup (`swallowPress()`). Two checks, plus a third in
+  H7's file for a gap this found there: the keyboard sliders moved a setting
+  and never reported it, so a keyboard-only player's sensitivity and volume
+  were the two a reload forgot. — `HASH8`
 
 - **H7** Settings that survive a reload, which is what three jobs in a row
   had been writing "until H7" about: the role row and the last map (H5) and

@@ -110,6 +110,47 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D58 — What a rebind does to the key it replaces, and to a key already taken
+H8. Two judgements the controls page had to make, neither of which changes a
+rule of the game — every action is rebindable either way, and nothing a
+player can *do* moves. Both are one line to overturn.
+
+**A rebind replaces the first key and leaves the alternate.** Six actions
+ship with two keys (`forward: W / Up`), and press-to-bind writes slot 0, so
+binding forward to T reads `T / Up` and the arrow a player never touched is
+still there. The alternative — the pressed key becomes the action's only key
+— is tidier to explain and quietly takes something away, and nothing in the
+page would say it had. The alternate you *did* replace comes back with the
+row's own **reset**, which is why every row has one rather than the page
+having a single reset-all.
+
+Escape is the way out of a capture, and so the one code nothing can be bound
+to. A page you can walk into and not out of is worse than a pause key nobody
+rebinds. A mouse button is bound by pressing it on the cell that is waiting,
+which keeps `fire` on Mouse0 reachable by hand.
+
+**A key bound to two actions is shown and never refused.** The game fires
+both — `codeToActions` has always been a list — and a player who wants melee
+and crouch on one key is entitled to them; there is no rule here to protect.
+What the page owes them is knowing, so both rows name the other action. The
+alternative, refusing the bind, would mean the page deciding for the player
+which of two things they meant, with no way to say.
+
+The part of this that is **not** a judgement, and is now a check: *binding a
+key must not also fire it.* The keydown that binds J reaches the Input as
+well as the menu, and which of the two window listeners runs first is not
+ours to pick, so the Input is gated from the bind to the keyup
+(`swallowPress()`). Without it the first J bound jump *and* jumped.
+
+**Not kept across a reload.** A rebind lasts as long as the page, like the
+bindings always have; H7's store holds settings, and the keymap is not one of
+them. **H19** is the job that changes that, and it is a job rather than a
+line here because a keymap is not a scalar: it wants its own record, its own
+version, and a rule for a stored map naming an action this build no longer
+has.
+
+**decided:**
+
 ### D57 — What a browser keeps, and the one thing it does not
 H7. Nothing here changes a rule; it changes what the game remembers, which is
 a judgement you can overturn in one line.
