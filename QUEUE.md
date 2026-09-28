@@ -408,7 +408,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   same shape as H5's: `tutorialSeen` starts false, so the three checks that
   click the real Play now state their precondition instead of inheriting it.
   Two checks, one of which drives all eight prompts through the real
-  controller. — `HASH6`
+  controller. — `812f16a`
 
 - **H5** The main menu: a card per map, rendered from the map. The fork the
   job named — bake every registered map, or draw a card from something
