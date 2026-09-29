@@ -186,6 +186,18 @@ argument and refuse to run without one:** G1's own predecessor defaulted it to
 an empty string, which resolved to the current directory and patched the live
 tree in the middle of a gate run.
 
+**And the reason to reach for the file every time is what a backtick does on
+the way there.** Markdown prose about this project is full of backticked
+identifiers, and a backtick inside a double-quoted shell string is **command
+substitution** — so an inline `python -c "…"` carrying a sentence about
+`scripts/suite.mjs` makes bash *run* `scripts/suite.mjs`, and what comes back is
+`//: Is a directory` and a syntax error at line 5 of a file nobody was editing.
+H9 lost a few minutes reading that as the runner having broken. The edit itself
+never happened, which is the one mercy: the script reached python with a mangled
+string and its own anchor assertion refused. Write the script to the scratchpad
+and run `python <path>`, and keep the anchor assertion that made the failure
+loud.
+
 **Python's default encoding here is cp1252.** A script that opens a markdown
 file containing an em dash without `encoding='utf-8'` reads a different string,
 and an `anchor in s` that should be true is false. Open with `encoding='utf-8'`
