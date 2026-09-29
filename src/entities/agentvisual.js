@@ -11,7 +11,7 @@
 
 import { CONFIG } from '../config.js';
 import { SHADE_STATE } from './agentstate.js';
-import { blendFactor, easePose, restPose } from './pose.js';
+import { blendFactor, easePose, headBobLift, restPose } from './pose.js';
 
 const S = CONFIG.shade;
 /** The knife lives in combat config; the arc that draws it reads the same
@@ -338,8 +338,15 @@ export const VISUAL = {
    */
   _updateCamera() {
     const cam = S.camera;
-    // `_dip` is the weight of the last landing or climb, easing out (B8).
-    const pivotY = this._smoothPosition.y - this.half.y + cam.up + this._dip;
+    // `_dip` is the weight of the last landing or climb, easing out (B8); the
+    // bob is the stride, and only if the player asked for it (H9). It reads
+    // `_animTime` after `_animate` has advanced it this frame, so the camera
+    // rises with the same foot the legs are swinging.
+    const bob = headBobLift(
+      this._animTime, this.speed, S.sprintSpeed, cam.bob,
+      this.state === SHADE_STATE.GROUND && this.speed > 0.2
+    );
+    const pivotY = this._smoothPosition.y - this.half.y + cam.up + this._dip + bob;
     const pivot = { x: this._smoothPosition.x, y: pivotY, z: this._smoothPosition.z };
 
     const cosPitch = Math.cos(this.pitch);

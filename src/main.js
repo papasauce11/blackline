@@ -386,9 +386,10 @@ function renderFrame(wallDelta) {
   // killer, and its guard must not be slowed by a time scale it does not own.
   if (dead) deathCam.step(wallDelta, shade);
 
-  // Section 6.2: ADS narrows the FOV. Only the Warden touches it, and only
-  // while it owns the camera; the handover restores it.
-  if (owner === 'warden' && !cinematic) cameraOwner.applyAdsFov();
+  // The FOV this owner wants: the player's setting for the role, with Section
+  // 6.2's ADS narrowing inside it for the Warden (H9). Not while a cinematic
+  // has the camera — the FOV is the finisher's and the death camera's then.
+  if (!cinematic) cameraOwner.applyFov(owner);
 
   // The Warden-ground overlay's marker follows the human's actor. Nothing
   // while hidden, which is always outside the F4 panel.

@@ -51,6 +51,7 @@ import { register as registerFreeRoam } from './freeroam.js';
 import { register as registerSettings } from './settings.js';
 import { register as registerSettingsStore } from './settingsstore.js';
 import { register as registerBindings } from './bindings.js';
+import { register as registerCameraSettings } from './camerasettings.js';
 import { register as registerVersion } from './version.js';
 import { register as registerMenu } from './menu.js';
 import { register as registerTutorial } from './tutorial.js';
@@ -120,6 +121,7 @@ export function registerAutoTests(debugTools) {
   registerSettings(debugTools);
   registerSettingsStore(debugTools);
   registerBindings(debugTools);
+  registerCameraSettings(debugTools);
   registerVersion(debugTools);
   registerMenu(debugTools);
   registerTutorial(debugTools);

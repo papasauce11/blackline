@@ -159,9 +159,9 @@ one setting only Josh can click; everything else here proceeds.
 - [x] **H8 (M)** Rebinding in the settings menu. — done 2026-09-28, under
   Done. What a rebind does to the key it replaces and to a key already
   taken is **D58**; **H19** is the keymap surviving a reload.
-- [ ] **H9 (S)** Look and camera settings: sensitivity per axis, invert Y,
-  FOV (third-person boom and the Warden's), head-bob on/off. *done-when:* a
-  check reads each through the live camera.
+- [x] **H9 (S)** Look and camera settings. — done 2026-09-29, under Done.
+  The FOV range, the absolute ADS narrowing and the head-bob shipping off are
+  **D59**; **H21** and **H22** are what the work revealed.
 - [ ] **H10 (M)** Quality presets. Low / medium / high / auto — shadow map
   size, post on/off, resolution scale, particle caps, the outline pass; auto
   runs a two-second frame-time probe on first boot and picks. *done-when:*
@@ -225,6 +225,24 @@ one setting only Josh can click; everything else here proceeds.
   nothing about what a player can do changes. *done-when:* the reachability
   check still counts every control, and the page fits a 720p window without
   scrolling.
+- [ ] **H21 (S)** A stored number outside its bounds. H7's store validates a
+  loaded record by **type** and not by range, so a hand-edited
+  `{"fovShade": 500}` or a `mouseSensitivity` of 9 is accepted and the camera
+  is broken with no way back but *reset to defaults*. H9 added three more
+  numbers with published ends (`fovMin`/`fovMax`, the two sensitivity bounds),
+  which is what makes this worth doing now rather than when it bites. The
+  bounds belong beside the defaults so the store can find them from the key,
+  not in a second table: a value outside them is **clamped and the rest of the
+  record kept**, the way a dead action is dropped in H19. *done-when:* a check
+  writes an out-of-range record for every bounded setting, loads it, and finds
+  each one at its nearest end with every other setting intact.
+- [ ] **H22 (S)** The settings page is thirteen rows and two buttons, and H20
+  was written for the controls page's thirty-five. The same grouping serves
+  both: **look, audio, match, system**, with the group headings rows the ring
+  skips. Do it once, in `_rows()`, and let H20 be the controls page's turn.
+  Look only; nothing a player can do changes. *done-when:* the reachability
+  check still counts every control on both pages and neither needs scrolling
+  in a 720p window.
 
 ## Block K — the Warden as an opponent
 
@@ -407,6 +425,35 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H9** Look and camera settings, five rows at the top of the settings page:
+  **sensitivity per axis** (`mouseSensitivity` turns, `mouseSensitivityY`
+  pitches, equal by default so no feel changes until one moves), **invert Y**
+  (already there, now read through the camera), a **field of view per role**
+  (`fovShade` for the 2.2m boom, `fovWarden` for the eye, 60–100, both
+  defaulting to the `CONFIG.render.fov` every reading on record was taken at),
+  and **head-bob**, which did not exist and now does. The FOV became one
+  decision made in one place: `cameraOwner.applyFov(owner)` asserts it every
+  frame and `set()` resets a handover to the next owner's *resting* field, so
+  a cinematic that hands the camera back at the engine's FOV by contract is
+  corrected on the next frame instead of leaving a wide-FOV player narrow
+  until the next handover. The Warden's aim now narrows from the player's own
+  FOV to `adsFov` **absolutely**, so a wide view buys a bigger zoom and the
+  same sight picture. The bob is `headBobLift` in `entities/pose.js`, one rule
+  for both bodies, on the gait phase the legs already swing on and **upward
+  only** — down on this camera means a landing or a mantle (B8). D59 holds the
+  three judgements; it ships **off**. Three checks in a new
+  `tests/camerasettings.js`, each ending at the one camera: its world aim, its
+  **projection matrix**, its world height. The bob's is the one worth reading —
+  it sprints each body down the same lane twice, off and on, and takes the
+  difference of the two camera traces, which cancels the ground, the landing
+  dip and the boom's pullback and simultaneously proves the bob moves the body
+  by nothing at all. H7's own census caught the four new settings before the
+  suite did: `changedValues()` in `tests/settingsstore.js` returns the name of
+  any persisted setting it has no round-trip value for, so the four had to be
+  given one. Done 2026-09-29, commit `PENDING`. Follow-ups **H21** (a stored
+  number outside its bounds is accepted by type) and **H22** (thirteen rows
+  want H20's grouping).
 
 - **H8** Rebinding: a Controls page off the settings menu with a row per
   action, press-to-bind, conflicts shown on both rows, and defaults restored

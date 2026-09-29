@@ -196,13 +196,20 @@ export class Input {
    * Mouse movement for this frame scaled by sensitivity, in radians.
    * Mouse delta is a displacement, not a rate, so it is applied once per frame
    * rather than per physics step.
+   *
+   * Sensitivity is per axis (H9): `mouseSensitivity` turns, `mouseSensitivityY`
+   * pitches. Equal by default, so nothing about the feel changes until someone
+   * moves one of them; the ADS multiplier scales both, because it is there to
+   * keep a narrowed FOV tracking 1:1 and that is true of both axes.
+   *
    * @param {number} [sensitivityScale] e.g. the ADS multiplier
    */
   lookDelta(sensitivityScale = 1) {
-    const s = SETTINGS.mouseSensitivity * sensitivityScale;
+    const x = SETTINGS.mouseSensitivity * sensitivityScale;
+    const y = SETTINGS.mouseSensitivityY * sensitivityScale;
     return {
-      yaw: -this.mouse.dx * s,
-      pitch: (SETTINGS.invertY ? this.mouse.dy : -this.mouse.dy) * s,
+      yaw: -this.mouse.dx * x,
+      pitch: (SETTINGS.invertY ? this.mouse.dy : -this.mouse.dy) * y,
     };
   }
 

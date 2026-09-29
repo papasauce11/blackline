@@ -10,7 +10,7 @@
  * reaching for it.
  */
 
-import { CONFIG } from './config.js';
+import { CONFIG, SETTINGS } from './config.js';
 
 /**
  * @param {object} o
@@ -23,6 +23,18 @@ import { CONFIG } from './config.js';
 export function createCameraOwnership({ camera, scene, shade, warden, emitter }) {
   /** 'freefly' | 'shade' | 'warden' | null. The one camera is reparented, never rebuilt. */
   let owner = null;
+
+  /**
+   * The FOV a rig sits at with no aim in it (H9). The two roles are the
+   * player's settings and free-fly is the engine's, which is also what a
+   * cinematic restores to; with the shipped defaults all three are
+   * `CONFIG.render.fov`, so a check written before H9 still reads the right
+   * constant.
+   *
+   * @param {'freefly'|'shade'|'warden'} who
+   */
+  const restFov = (who) =>
+    who === 'warden' ? SETTINGS.fovWarden : who === 'shade' ? SETTINGS.fovShade : CONFIG.render.fov;
 
   return {
     get owner() {
@@ -44,7 +56,9 @@ export function createCameraOwnership({ camera, scene, shade, warden, emitter })
      * Every swap resets the full local transform and the FOV, so nothing a
      * previous owner did can survive the handover. The Warden's ADS narrows
      * the FOV (Section 6.2); without the reset here, swapping away mid-aim
-     * would leave the Shade permanently zoomed.
+     * would leave the Shade permanently zoomed. The FOV it resets to is the
+     * next owner's *resting* one (H9) and never `desiredFov()`, so the aim
+     * cannot come across with the camera either.
      *
      * @param {'freefly'|'shade'|'warden'} next
      */
@@ -58,7 +72,7 @@ export function createCameraOwnership({ camera, scene, shade, warden, emitter })
       camera.position.set(0, 0, 0);
       camera.rotation.set(0, 0, 0);
       camera.scale.set(1, 1, 1);
-      camera.fov = CONFIG.render.fov;
+      camera.fov = restFov(next);
       camera.updateProjectionMatrix();
 
       warden.setFirstPerson(next === 'warden');
@@ -97,11 +111,19 @@ export function createCameraOwnership({ camera, scene, shade, warden, emitter })
     },
 
     /**
-     * Section 6.2: ADS narrows the FOV. Only the Warden touches it, and only
-     * while it owns the camera; `set()` restores it on every handover.
+     * The FOV this owner wants, asserted every frame (H9). One place, so the
+     * Shade's setting, the Warden's, and Section 6.2's ADS narrowing cannot
+     * disagree — and so a cinematic that put the camera back at
+     * `CONFIG.render.fov` on its way out (combat's finisher, the death
+     * camera: their contract is to leave nothing behind) is corrected on the
+     * first frame the player has the camera again, rather than leaving
+     * whoever set a wide FOV looking through the shipped one until the next
+     * handover. It was `applyAdsFov()` and only the Warden called it.
+     *
+     * @param {'freefly'|'shade'|'warden'} human who the human is driving
      */
-    applyAdsFov() {
-      const fov = warden.desiredFov();
+    applyFov(human) {
+      const fov = human === 'warden' ? warden.desiredFov() : restFov(human);
       if (Math.abs(camera.fov - fov) > 0.01) {
         camera.fov = fov;
         camera.updateProjectionMatrix();

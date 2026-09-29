@@ -49,6 +49,13 @@ function changedValues() {
   const difficulties = Object.keys(CONFIG.ai.difficulty);
   const picks = {
     mouseSensitivity: defaults.mouseSensitivity + 0.0008,
+    // H9's four. The two sensitivities move by different amounts and the two
+    // FOVs to different degrees on purpose: a round trip that wrote the same
+    // value into both halves of a pair would pass with the pair swapped.
+    mouseSensitivityY: defaults.mouseSensitivityY + 0.0004,
+    fovShade: defaults.fovShade + 12,
+    fovWarden: defaults.fovWarden - 8,
+    headBob: !defaults.headBob,
     masterVolume: 0.25,
     matchLength: lengths.find((n) => n !== defaults.matchLength),
     difficulty: difficulties.find((name) => name !== defaults.difficulty),

@@ -14,10 +14,10 @@
  */
 
 import * as THREE from 'three';
-import { CONFIG } from '../config.js';
+import { CONFIG, SETTINGS } from '../config.js';
 import { applyGravity } from '../physics.js';
 import { buildWardenMesh, buildGroundBlob, WARDEN_FIGURE } from './wardenmesh.js';
-import { blendFactor, createPoseTarget, easePose, restPose } from './pose.js';
+import { blendFactor, createPoseTarget, easePose, headBobLift, restPose } from './pose.js';
 
 const W = CONFIG.warden;
 /** The carry (E2): where the arms rest, and the rifle with them. */
@@ -318,12 +318,16 @@ export class Warden {
   // -------------------------------------------------------------------------
 
   /**
-   * The FOV this Warden wants right now, blended between the default and the
-   * narrower ADS value (Section 6.2). The composition root applies it to the
-   * one camera; nothing here touches a camera.
+   * The FOV this Warden wants right now, blended between the player's own
+   * (`SETTINGS.fovWarden`, H9 - it was `CONFIG.render.fov`, which is what
+   * that setting defaults to) and the narrower ADS value (Section 6.2). The
+   * composition root applies it to the one camera; nothing here touches a
+   * camera. A player on 90 degrees therefore aims down to the same 52 as a
+   * player on 60, from further away: the sight picture is the sight picture.
    */
   desiredFov() {
-    return CONFIG.render.fov + (W.camera.adsFov - CONFIG.render.fov) * this.adsBlend;
+    const hip = SETTINGS.fovWarden;
+    return hip + (W.camera.adsFov - hip) * this.adsBlend;
   }
 
   updateVisual(wallDt) {
@@ -344,10 +348,16 @@ export class Warden {
     this._animate(wallDt);
     this._updateGroundBlob(feet);
 
-    // First person: the rig sits at the eyes and carries the full aim.
+    // First person: the rig sits at the eyes and carries the full aim, plus
+    // the stride's bob if the player asked for it (H9). `_animate` above has
+    // advanced `_animTime` this frame, so the eye rises with the foot.
+    const bob = headBobLift(
+      this._animTime, this.speed, W.sprintSpeed, W.camera.bob,
+      this.state === WARDEN_STATE.GROUND && this.speed > 0.2
+    );
     this.cameraRig.position.set(
       this._smoothPosition.x,
-      feet + W.standHeight * W.eyeHeightRatio,
+      feet + W.standHeight * W.eyeHeightRatio + bob,
       this._smoothPosition.z
     );
     this.cameraRig.rotation.set(this.pitch, this.yaw, 0, 'YXZ');

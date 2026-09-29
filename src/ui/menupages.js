@@ -67,9 +67,20 @@ export const MENU_PAGES = {
       <div class="card">
         <h1 style="font-size:20px">Settings</h1>
         <div class="tag"></div>
-        <div class="row"><span>mouse sensitivity</span>
+        <div class="row"><span>look sensitivity, turn</span>
           <input type="range" id="bl-sens" min="${CONFIG.settings.mouseSensitivityMin}"
             max="${CONFIG.settings.mouseSensitivityMax}" step="0.0002" value="${SETTINGS.mouseSensitivity}"></div>
+        <div class="row"><span>look sensitivity, pitch</span>
+          <input type="range" id="bl-sensy" min="${CONFIG.settings.mouseSensitivityMin}"
+            max="${CONFIG.settings.mouseSensitivityMax}" step="0.0002" value="${SETTINGS.mouseSensitivityY}"></div>
+        <div class="row"><span>field of view, shade</span>
+          <input type="range" id="bl-fov-shade" min="${CONFIG.settings.fovMin}"
+            max="${CONFIG.settings.fovMax}" step="1" value="${SETTINGS.fovShade}"></div>
+        <div class="row"><span>field of view, warden</span>
+          <input type="range" id="bl-fov-warden" min="${CONFIG.settings.fovMin}"
+            max="${CONFIG.settings.fovMax}" step="1" value="${SETTINGS.fovWarden}"></div>
+        <div class="row"><span>head-bob</span>
+          <span class="value" id="bl-bob">${SETTINGS.headBob ? 'on' : 'off'}</span></div>
         <div class="row"><span>master volume</span>
           <input type="range" id="bl-vol" min="0" max="1" step="0.05" value="${SETTINGS.masterVolume}"></div>
         <div class="row"><span>match length</span>
@@ -90,8 +101,26 @@ export const MENU_PAGES = {
         <button class="back" data-action="back">Back</button>
       </div>`;
 
+    // H9: look and camera. Sensitivity is per axis, the field of view is per
+    // role because the two are different pictures, and the head-bob is a
+    // switch. Every one of them takes effect on the next frame the camera is
+    // drawn - `cameraOwner.applyFov()` asserts the FOV every frame and
+    // `lookDelta` reads the live sensitivity - so a player adjusting these
+    // from the pause menu sees the result the moment they resume.
     const sens = this.root.querySelector('#bl-sens');
     sens.oninput = () => { SETTINGS.mouseSensitivity = parseFloat(sens.value); this._changed(); };
+    const sensY = this.root.querySelector('#bl-sensy');
+    sensY.oninput = () => { SETTINGS.mouseSensitivityY = parseFloat(sensY.value); this._changed(); };
+    const fovShade = this.root.querySelector('#bl-fov-shade');
+    fovShade.oninput = () => { SETTINGS.fovShade = parseFloat(fovShade.value); this._changed(); };
+    const fovWarden = this.root.querySelector('#bl-fov-warden');
+    fovWarden.oninput = () => { SETTINGS.fovWarden = parseFloat(fovWarden.value); this._changed(); };
+    const bob = this.root.querySelector('#bl-bob');
+    bob.onclick = () => {
+      SETTINGS.headBob = !SETTINGS.headBob;
+      bob.textContent = SETTINGS.headBob ? 'on' : 'off';
+      this._changed();
+    };
     const vol = this.root.querySelector('#bl-vol');
     vol.oninput = () => {
       SETTINGS.masterVolume = parseFloat(vol.value);
@@ -167,12 +196,18 @@ export const MENU_PAGES = {
     controls.onclick = () => this.show('controls');
     const back = this.root.querySelector('[data-action=back]');
     back.onclick = () => this.show(this._settingsReturn || 'main');
-    // The two sliders answer the left and right keys with a step of their own,
-    // so a keyboard can set sensitivity and volume without a mouse (H5). Both
-    // paths end at `_changed()`, or a keyboard-only player's slider is the one
-    // setting a reload forgets (H7).
+    // Every slider answers the left and right keys with a step of its own, so
+    // a keyboard can set sensitivity, the field of view and volume without a
+    // mouse (H5). Both paths end at `_changed()`, or a keyboard-only player's
+    // slider is the one setting a reload forgets (H7) - which is exactly the
+    // gap `every-settings-row-that-moves-a-setting-reports-it-for-saving`
+    // found in the two H5 shipped with, and it holds these four too.
     this._rows([
       this._slider(sens, () => { SETTINGS.mouseSensitivity = parseFloat(sens.value); this._changed(); }),
+      this._slider(sensY, () => { SETTINGS.mouseSensitivityY = parseFloat(sensY.value); this._changed(); }),
+      this._slider(fovShade, () => { SETTINGS.fovShade = parseFloat(fovShade.value); this._changed(); }),
+      this._slider(fovWarden, () => { SETTINGS.fovWarden = parseFloat(fovWarden.value); this._changed(); }),
+      bob,
       this._slider(vol, () => {
         SETTINGS.masterVolume = parseFloat(vol.value);
         if (this.handlers.onVolume) this.handlers.onVolume(SETTINGS.masterVolume);

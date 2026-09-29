@@ -110,6 +110,51 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D59 — Look and camera settings: the FOV range, and a head-bob that ships off
+H9 built the four settings the job named — sensitivity per axis, invert Y, a
+field of view per role, head-bob on or off. Three judgements were left inside
+it, and none of them changes a rule: every one is how the game *looks*, and
+every one is a line here to overturn.
+
+**The FOV sliders run 60 to 100 degrees, both defaulting to the engine's 70.**
+This is the one of the three a player could gain something from — 100 degrees
+sees more of the room than 60 does, on either side of the asymmetry — so it is
+flagged rather than buried: narrow `CONFIG.settings.fovMin` / `fovMax` and both
+sliders narrow with it. 70 as the default is not a preference, it is the FOV
+every measurement on record was taken at, and
+`each-role-draws-with-the-field-of-view-its-setting-asks-for` pins the two
+defaults to `CONFIG.render.fov` so a check written before H9 that reads that
+constant as the camera's resting field still reads the truth.
+
+**Aiming down sights narrows to 52 degrees absolutely, from wherever the
+player's FOV was.** It used to be `render.fov` → `adsFov`; it is now
+`SETTINGS.fovWarden` → `adsFov`. So a player on 90 gets a bigger zoom than a
+player on 60 and both get the same sight picture, which is the way every
+shooter does it. The alternative — narrowing by the same *fraction* — would
+give a wide-FOV player a permanently wider aim, which is the competitive edge
+the range above is already being careful about.
+
+**Head-bob ships off.** It is the option players most often turn off, and off
+is also the camera every timing, pixel and feel reading on record was taken
+against: on by default would have meant teaching
+`the-camera-dips-on-a-climb-and-comes-back` the difference between a stride and
+a dip in the same job that invented the stride. Turning it on is one row of the
+settings page, and `PLAYTEST.md` asks Josh to. If he wants it on out of the
+box, flip `headBob` in `CONFIG.settings.defaults` and that check gains a line
+that switches it off before it measures.
+
+The amplitudes are `CONFIG.shade.camera.bob` (0.018m) and the Warden's
+(0.035m), at a full sprint, scaled down by speed and zero off the ground. The
+Warden's is nearly twice the Shade's because an eye in a head swings only
+itself where a boom 2.2m behind the body swings the whole picture. The bob is
+**upward only**, in step with the body's own gait — the camera rises as a foot
+plants and never goes below its rest height — because down is what a landing
+and a climb mean on this camera (B8), and a stride borrowing that vocabulary
+would make both harder to read.
+
+**decided:**
+
+
 ### D58 — What a rebind does to the key it replaces, and to a key already taken
 H8. Two judgements the controls page had to make, neither of which changes a
 rule of the game — every action is rebindable either way, and nothing a

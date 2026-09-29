@@ -478,6 +478,16 @@ export const CONFIG = {
       dipRecovery: 0.26,
       pitchMin: -1.15,
       pitchMax: 1.05,
+      /**
+       * Head-bob (H9): metres the boom's pivot rides UP with the stride at a
+       * full sprint, scaled down by speed and zero off the ground. Upward
+       * only, in step with the body's own `POSE.gait.bob`, so the rest height
+       * stays the floor of the reading and a dip is still only ever a dip.
+       * Off unless `SETTINGS.headBob` (D59). Smaller than the Warden's: a
+       * boom two metres behind the body swings the whole picture, where an
+       * eye in a head only swings itself.
+       */
+      bob: 0.018,
     },
   },
 
@@ -510,11 +520,18 @@ export const CONFIG = {
     sprintFootstepStride: 2.4,
 
     camera: {
-      /** First person. FOV narrows while aiming down sights. */
+      /**
+       * First person. The FOV the eye sits at is the player's
+       * (`SETTINGS.fovWarden`, H9); aiming down sights narrows it to this,
+       * absolutely rather than by a fraction, so the sight picture is the
+       * same however wide the hip-fire view was set.
+       */
       adsFov: 52,
       fovSmoothing: 0.09,
       pitchMin: -1.4,
       pitchMax: 1.4,
+      /** Head-bob (H9), as the Shade's — see `CONFIG.shade.camera.bob`. */
+      bob: 0.035,
     },
   },
 
@@ -1548,6 +1565,15 @@ export const CONFIG = {
     mouseSensitivityMin: 0.0004,
     mouseSensitivityMax: 0.008,
     adsSensitivityMultiplier: 0.65,
+    /**
+     * The field-of-view slider's ends (H9, D59). Both roles share them, and
+     * `render.fov` sits inside them because it is what the defaults are.
+     * This is the one range in here a player could gain something from: 100
+     * degrees sees more of the room than 60 does. Narrow it and both sliders
+     * narrow with it.
+     */
+    fovMin: 60,
+    fovMax: 100,
 
     /**
      * Seed values for SETTINGS, nested deliberately.
@@ -1562,8 +1588,34 @@ export const CONFIG = {
      * now reads `undefined` and fails loudly instead of quietly.
      */
     defaults: {
+      /**
+       * Look sensitivity, per axis (H9). `mouseSensitivity` is the
+       * horizontal and stays the name it has had since Section 13 - it is in
+       * a player's stored record already, and renaming it would throw their
+       * setting away on the version bump H7's store does not do. Both are
+       * radians per device unit, both inside the bounds above, and the ADS
+       * multiplier scales both.
+       */
       mouseSensitivity: 0.0022,
+      mouseSensitivityY: 0.0022,
       invertY: false,
+      /**
+       * The field of view each role's camera sits at (H9). Two, because the
+       * two are different pictures: a boom 2.2m behind the body and an eye in
+       * a head. Both default to `CONFIG.render.fov`, which is what lets every
+       * check written before H9 keep reading that constant as the camera's
+       * resting FOV - `each-role-draws-with-the-field-of-view-its-setting-asks-for`
+       * pins the two together so the agreement cannot rot quietly.
+       */
+      fovShade: 70,
+      fovWarden: 70,
+      /**
+       * Head-bob (H9): the camera riding with the stride. Off by default
+       * (D59) - it is the option players most often want off, and off is
+       * also the camera every measurement on record was taken against. The
+       * amplitudes are `CONFIG.shade.camera.bob` and the Warden's.
+       */
+      headBob: false,
       masterVolume: 0.7,
       matchLength: 5,
       difficulty: 'medium',

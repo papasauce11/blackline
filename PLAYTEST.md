@@ -82,6 +82,51 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The camera is yours now (H9, 2026-09-29)
+
+Settings, five new rows at the top.
+
+**Look sensitivity, turn** and **look sensitivity, pitch** are separate
+sliders. They ship equal, so nothing changes until you move one; drag the
+pitch one down if the vertical feels twitchier than the horizontal, which on
+a wide monitor it usually does. Both are scaled the same way while the Warden
+aims, so the aim still tracks 1:1.
+
+**Field of view, shade** and **field of view, warden**, 60 to 100 degrees,
+both shipping at the 70 the game has always drawn at. Two of them because
+they are two pictures: a boom 2.2m behind the Shade and an eye in the
+Warden's head. Set one and look through the other role to see that it did not
+move.
+
+The Warden's **aim** narrows to 52 degrees whatever you set — so a wide FOV
+buys a bigger zoom and the same sight picture, which is the way every shooter
+does it. Worth a minute with the FOV at 100 and then at 60 with the right
+mouse button down.
+
+**Head-bob**, and it ships **off**. Turn it on and sprint: the camera rides up
+a couple of centimetres as each foot plants, 1.8cm on the Shade and 3.5cm on
+the Warden's eye. It never goes *below* where it rests, because down on this
+camera means a landing or a mantle taking its weight (B8) and a stride
+borrowing that would make both harder to read.
+
+`look-sensitivity-is-per-axis-and-invert-y-turns-only-the-pitch` moves a
+mouse at the two sliders' ends and reads the camera's own world aim;
+`each-role-draws-with-the-field-of-view-its-setting-asks-for` reads the
+**projection matrix** the renderer draws with, holds the aim down through
+forty blends, and dirties the FOV mid-frame to prove a frame puts it back;
+`head-bob-rides-the-stride-only-when-it-is-switched-on` sprints each body
+down the same lane twice, off and on, and the difference between the two
+camera traces is the bob with the ground, the dip and the pullback cancelled
+out — which also proves the bob moves the body not at all.
+
+**What is left for you:** whether 60–100 is the right range, or too generous
+for a game where one side is hiding — **D59**, one line. Whether the bob
+should ship on rather than off. Whether 1.8cm on a third-person boom reads as
+weight or as a wobble; it is the one of the two I am least sure of, because a
+boom swings the whole picture where an eye swings only itself. And the
+settings page is now thirteen rows and wants the grouping **H20** was written
+for the controls page — say if it has outgrown your window.
+
 ### You can rebind every key (H8, 2026-09-28)
 
 Settings → **Controls**. Seventeen rows, one per action. Click a row (or put

@@ -10075,3 +10075,181 @@ than a line because a keymap is not a scalar: it wants its own versioned
 record and a rule for a stored map naming an action this build no longer has.
 And the page is one flat list of thirty-five rows, which is **H20**, look
 only.
+
+## H9 — the camera is the player's, and a stride you can switch off (2026-09-29 02:00, scheduled run)
+
+**What was built.** The four look-and-camera settings H9 named, and one of
+them did not exist yet.
+
+**Sensitivity per axis.** `lookDelta()` read one `mouseSensitivity` for both
+axes; it reads `mouseSensitivity` for the turn and `mouseSensitivityY` for the
+pitch. The old key keeps its name deliberately — it is in a player's stored
+record already and H7's store has no migration, so renaming it would throw
+away the one setting that has existed since Section 13. Both default to 0.0022,
+so nothing about the feel changes until somebody moves one, and the ADS
+multiplier scales both: it is there to keep a narrowed FOV tracking 1:1, and
+that is as true vertically as horizontally.
+
+**A field of view per role, and one place that decides it.** Two settings,
+because the Shade looks through a boom 2.2m behind its body and the Warden
+through an eye in its head; both default to `CONFIG.render.fov`, which is the
+FOV every timing, pixel and feel reading on record was taken at. The
+interesting half is not the setting but where it is applied. `main.js` used to
+call `cameraOwner.applyAdsFov()` only when the Warden had the camera, and
+`set()` reset every handover to `CONFIG.render.fov`; combat's finisher and the
+death camera each reset the same constant on their way out, because their
+contract is to leave nothing behind. Four places, one constant, and a Shade on
+95 degrees would have come out of a finisher on 70 and stayed there until its
+next handover — which, since `set()` returns early when the owner has not
+changed, is *never*. So the FOV became one decision asserted every frame:
+`applyFov(owner)`, which is the player's setting for the role with Section
+6.2's ADS blend inside it for the Warden, and `set()` resets to the next
+owner's **resting** field so an aim still cannot come across with the camera.
+Nothing about combat's or the death camera's contract changed; the frame after
+them puts the player's own back.
+
+**And the aim narrows absolutely.** `desiredFov()` was
+`render.fov → adsFov`; it is `SETTINGS.fovWarden → adsFov`. A player on 90
+degrees therefore gets a bigger zoom than a player on 60 and both get the same
+52-degree sight picture, which is how every shooter does it. The alternative —
+narrowing by the same *fraction* — would hand a wide-FOV player a permanently
+wider aim, and that is precisely the competitive edge D59 is already being
+careful about with the 60–100 range.
+
+**Head-bob, which had to be built before it could be switched off.** There was
+no camera bob: the two bodies bob (`POSE.gait.bob` lifts the torso group) and
+the two camera rigs sat at a fixed height over the feet. `headBobLift()` in
+`entities/pose.js` is the rule, one copy for both bodies for the same reason
+`easePose` is — two copies is how the Shade's camera and the Warden's come to
+disagree. It rides the **gait phase the legs already swing on**, which is
+advanced by ground covered rather than by a clock, so the camera rises as a
+foot plants and a body that stops stops mid-stride. It is **upward only**,
+`abs(sin)` exactly as the body's own bob: down on this camera means a landing
+or a mantle taking its weight (B8), and a stride borrowing that vocabulary
+would have made both harder to read. 1.8cm on the Shade's boom, 3.5cm on the
+Warden's eye — nearly double, because an eye in a head swings only itself
+where a boom two metres back swings the whole picture.
+
+**What was judged, and it is all look (D59).** The FOV range 60–100 is the one
+of the three a player could gain something from, so it is flagged rather than
+buried: narrow `fovMin`/`fovMax` and both sliders narrow with it. The absolute
+ADS narrowing, above. And **head-bob ships off** — it is the option players
+most often turn off, and off is also the camera every reading on record was
+taken against: on by default would have meant teaching
+`the-camera-dips-on-a-climb-and-comes-back` the difference between a stride and
+a dip in the same job that invented the stride, and that is a check worth not
+touching. `PLAYTEST.md` asks Josh to turn it on.
+
+**What was found.** Two things, and the second one is mine.
+
+**H7's census caught the four new settings before the suite ran.**
+`changedValues()` in `tests/settingsstore.js` builds a non-default value for
+every persisted key and **returns the name of any key it has none for** rather
+than skipping it, so `mouseSensitivityY`, `fovShade`, `fovWarden` and `headBob`
+each had to be given a round-trip value. That is a census written in F15's
+shape working exactly as intended on the first job to test it: a setting cannot
+join the store without joining the check that proves the store keeps it. The
+two sensitivities move by different amounts and the two FOVs to different
+degrees, because a round trip that wrote the same value into both halves of a
+pair would pass with the pair swapped.
+
+**And the gate was measured against a tree that no longer existed.** The run
+started `npm run suite -- --runs 1` in the background, by the book, and then
+wrote this job's code while it ran — reasoning that the page had already
+loaded, which was true and beside the point.
+`the-registry-holds-every-check-its-modules-declare` does not read the page's
+modules; it `fetch`es `src/tests/index.js` and every module's text **from the
+origin at the moment it runs** and compares what they declare against what the
+loaded page registered. A new module registered in an index the page loaded
+before the edit is a check declared and not held — the exact hole F14 exists to
+report — and `tests/donedef.js` reads source text the same way. So the gate's
+verdict was about neither tree and the forty minutes it was still running for
+proved nothing either way. Written up in `TRAPS.md`: **do ORIENT and GATE on a
+clean tree and write nothing until the gate is back.** What actually stood as
+this job's gate is what step 8 of the protocol already says stands — H8's
+VERIFY, two runs green on the commit this one started from.
+
+**Checks.** Three new, in `tests/camerasettings.js`, and one extended in
+`tests/settingsstore.js`. Every one of the three ends at the one camera,
+because the whole Section 13 lesson is that a setting which moves a field and a
+label is indistinguishable from one that works:
+
+- `look-sensitivity-is-per-axis-and-invert-y-turns-only-the-pitch` puts a mouse
+  delta on the locked input and drives a real frame, which is the only route
+  `cameraOwner.look()` is reached by, then reads the camera's **own world
+  direction**. With the turn at the slider's minimum and the pitch at its
+  maximum the two come out 20:1 apart, and with them swapped, 20:1 the other
+  way — so neither reading can be the other axis standing in for it. On the
+  defaults the two are equal to the last bit. Invert Y reverses the pitch and
+  leaves the turn *identical*, which is the half of "invert Y" that has never
+  been asserted.
+- `each-role-draws-with-the-field-of-view-its-setting-asks-for` reads
+  `projectionMatrix.elements[5]`, which is `1 / tan(fovY / 2)` — the matrix the
+  renderer draws with and not the field that asked for it, because a missing
+  `updateProjectionMatrix()` is exactly the gap between them. The Shade at 95
+  and the Warden at 62 in the same check; the FOV dirtied to 12 mid-run and put
+  back by the next frame, which is the cinematic-restore path without staging a
+  finisher; the aim held down for forty frames with the drawn FOV required to
+  equal `90 + (52 - 90) * blend` at **every** blend, which is the assertion
+  that says the narrowing starts from the player's 90 and not from the shipped
+  70; and a handover to an aiming Warden required to land on 90 rather than 52.
+  It also pins `defaults.fovShade` and `defaults.fovWarden` to
+  `CONFIG.render.fov`, which is what lets `tests/warden.js`'s handover check go
+  on reading that constant as the camera's resting field and be right.
+- `head-bob-rides-the-stride-only-when-it-is-switched-on` is the one worth
+  reading. It sprints each body down the same `clearLane` **twice**, once with
+  the bob off and once on, from the same `initMatch` with the same keys, and
+  takes the difference of the two camera-height traces frame by frame. The
+  simulation is deterministic and the bob writes nothing it reads, so that
+  difference is the bob with the ground under the feet, the landing dip and the
+  boom's pullback all cancelled — and the same pair of runs proves the bob is
+  presentation only, because the two body traces are required to agree to
+  1e-9. Then: the peak is the body's amplitude scaled by the fastest speed the
+  run saw; the minimum is never below zero; it is zero on every frame the body
+  was off the ground, and zero on every frame it was barely moving.
+
+The three are registered after `tests/bindings.js`, and `MIN_TEST_MODULES`'s
+comment in `tests/registry.js` now says 58.
+
+**Verified.** `npm run suite`, both maps twice, 2026-09-29: plant **201
+passed, 1 failed, 8 not for this map** (1,075,014ms and 1,080,531ms), yard
+**181 / 1 / 28** (752,439ms, 743,908ms), exit 0, 0 red, 0 flaky, 0 console
+errors, 0 context losses, 0 skips withheld. Three more per map than the pair
+that gated this — plant 198, yard 178 — which is this job's three and nothing
+else. The one failure on each map is the frame-budget check, skipped headless.
+The runs of a map agree to **5,517ms on the plant (1% of the longer) and
+8,531ms on the yard (1%)**, so the pair is comparable (F16); read the totals
+against nothing, because the gate that preceded them took nearly two hours of
+wall clock for the same 1,719s of measured work, against four orphaned node
+processes rather than two.
+
+The three readings, identical on both maps and in both runs of each:
+
+| check | reading |
+|---|---|
+| `look-sensitivity-is-per-axis-and-invert-y-turns-only-the-pitch` | `20.0:1 apart at the slider's ends, either way round; invert turns -0.0660 into 0.0660 and leaves the turn at -0.0660` |
+| `each-role-draws-with-the-field-of-view-its-setting-asks-for` | `shade 95 drawn, and put back after a dirty 12; warden 90 narrows to 52 through all 40 blends; a handover takes the resting field, not the aimed one` |
+| `head-bob-rides-the-stride-only-when-it-is-switched-on` | `shade peak +0.0180m at 6.50m/s (amplitude 0.018) ... warden peak +0.0350m at 5.00m/s (amplitude 0.035), never lower than +0.0002m, 0 airborne, body identical to 1e-9` |
+
+The bob's peak is its configured amplitude to four decimal places at exactly
+each body's sprint speed, which is what `amplitude * min(1, speed/sprint)`
+promises and would not be true of a bob on a clock of its own. "Never lower
+than +0.0002m" is the least the bob ever was over 150 frames, not how far it
+went down: it is above zero because the sine passes through zero between two
+sampled frames, and it is the one figure in the line that moves from run to
+run — by a ten-thousandth of a metre, and `flaky` is empty, because what the
+check asserts about it is a sign and not a value. Costs: 0.03–0.4s for the
+look, 0.3–0.8s for the bob, **1.9–6.4s** for the FOV, which is forty rendered
+frames under SwiftShader and the price of holding an aim down the way a player
+does.
+
+**What was left.** `PLAYTEST.md` asks Josh three things: whether 60–100 is too
+generous a range for a game where one side is hiding, whether the bob should
+ship on, and whether 1.8cm on a third-person boom reads as weight or as a
+wobble — the last is the one I am least sure of, because a boom swings the
+whole picture where an eye swings only itself. **H21** and **H22** are in the
+queue. And the orphaned node processes are now **four**: the 09-18 pair this
+file has named for a week, and a second pair, pids 12396 and 7812 from
+**2026-09-26 23:32**, which nothing had noticed until this run listed the
+processes. Every timing above was measured against all four. Still Josh's to
+kill.

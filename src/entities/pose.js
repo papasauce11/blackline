@@ -18,10 +18,14 @@
  * body, filled in place every frame (E3's done-when), and the ease is
  * arithmetic on the groups' own Euler fields.
  *
- * Layering (Section 3.1): imports nothing. agentvisual.js and enforcer.js
+ * Layering (Section 3.1): imports config only. agentvisual.js and enforcer.js
  * fill the target; agentmesh.js and wardenmesh.js build the groups it is
- * applied to, each with `userData.baseY` on the body group.
+ * applied to, each with `userData.baseY` on the body group. `headBobLift` is
+ * here for the same reason the ease is: both bodies want one rule, and two
+ * copies of it is how the Shade's camera and the Warden's come to disagree.
  */
+
+import { SETTINGS } from '../config.js';
 
 const TAU = 2 * Math.PI;
 
@@ -65,6 +69,31 @@ export function restPose(target) {
  */
 export function blendFactor(wallDt) {
   return wallDt > 0 ? 1 - Math.pow(0.001, wallDt / POSE_BLEND) : 1;
+}
+
+/**
+ * Head-bob (H9): metres the camera rides above its rest height this frame.
+ *
+ * The same phase the legs swing on, so the camera rises as a foot plants
+ * rather than on a clock of its own - `animTime` is advanced by the ground
+ * covered, which is why a body that stops stops mid-stride. Upward only
+ * (`abs(sin)`, exactly as the body's own `POSE.gait.bob`): a camera that also
+ * went *below* its rest height would be a dip, and a dip in this game means
+ * a landing or a climb taking the camera's weight (B8).
+ *
+ * Zero when the setting is off, when the body is not on the ground, and when
+ * it is barely moving - so standing still is level, and a fall is not a walk.
+ *
+ * @param {number} animTime the body's gait phase, radians
+ * @param {number} speed horizontal speed, m/s
+ * @param {number} sprintSpeed that body's sprint, the speed the full
+ *   amplitude is reached at
+ * @param {number} amplitude metres at a full sprint (`camera.bob`)
+ * @param {boolean} walking on the ground and actually moving
+ */
+export function headBobLift(animTime, speed, sprintSpeed, amplitude, walking) {
+  if (!SETTINGS.headBob || !walking) return 0;
+  return Math.abs(Math.sin(animTime)) * amplitude * Math.min(1, speed / sprintSpeed);
 }
 
 /** `angle` carried `k` of the shortest way round toward `target`, kept in (-pi, pi]. */

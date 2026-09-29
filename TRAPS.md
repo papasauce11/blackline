@@ -18,6 +18,27 @@ believable.
 
 ---
 
+**The runner serves the live tree, so editing `src/` while a gate runs changes
+what the gate is measuring — and two checks read the tree rather than the
+page.** H9 started the gate in the background, by the book, and then wrote its
+code while it ran, reasoning that the page had already loaded. The page had;
+`the-registry-holds-every-check-its-modules-declare` had not, because it
+`fetch`es `src/tests/index.js` and every module's text from the origin **at the
+moment it runs** and compares what they declare against what the loaded page
+registered. A module registered in a file the page loaded before the edit is a
+check declared and not held, which is the exact hole F14 exists to report, and
+it reported it. `tests/donedef.js` reads source text the same way for the line
+counts and the two bans. So the gate's verdict was about a tree that no longer
+existed, and the run — forty minutes of it — proved nothing either way.
+
+**Do the ORIENT and GATE steps on a clean tree and write nothing until the gate
+is back.** If a gate has already been compromised this way, say so rather than
+reading it: the VERIFY at the end of the job, two runs on the finished tree, is
+the only reading that was ever load-bearing, and a gate is there to stop you
+building on a base somebody else broke. The base's own proof is the previous
+job's VERIFY, which is what step 8 of the protocol already says stands as the
+next job's gate.
+
 **A loaded machine can take the GPU away mid-suite.** One verify came back
 with *eight* pixel checks flaky at once and never reproduced. F1 found it: a
 **lost WebGL context**. Chrome kills a starved SwiftShader GPU process and

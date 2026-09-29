@@ -41,7 +41,7 @@ const CONDITIONAL = [
 ];
 
 /**
- * A floor on the modules `tests/index.js` pulls in - 57 today. It does not
+ * A floor on the modules `tests/index.js` pulls in - 58 today (H9). It does not
  * catch one module being dropped from both the import list and the call list,
  * which is the one shape this check cannot see; it catches the registrar
  * having collapsed to a handful and reading as a clean sweep of nothing.
