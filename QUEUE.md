@@ -167,6 +167,42 @@ one setting only Josh can click; everything else here proceeds.
   runs a two-second frame-time probe on first boot and picks. *done-when:*
   each preset changes the measured draw cost in a check; auto's pick is
   recorded in the report.
+  **Read this before starting it — H9's run scoped it and stopped rather than
+  half-build it.** The job is not "five knobs"; its central risk is that its
+  own default path silently recalibrates the suite. **Auto is the hazard.**
+  `qualityProbed` starts false, the headless runner gives every map a fresh
+  context, and a two-second frame-time probe under SwiftShader (a frame is
+  ~400ms) will pick **low** every time, deterministically — so the gate would
+  then run with the post off, the outlines off and the resolution at 0.7,
+  which is a different picture from the one **13 pixel-reading test modules**
+  were calibrated against (`feedback`, `figure`, `groundview`, `keylight`,
+  `legibility`, `look`, `materials`, `post`, `sitetint`, `soak`, `visual`,
+  `yardlight`, `yardmaterials` — post.js's own comment is the reason: "every
+  pixel check reads through this when it is on"). Not flaky, which is worse:
+  consistently red, and re-reading every one of them as the fix.
+  The way out that keeps both halves of the done-when true: the probe **runs
+  and records its pick** (`debugState`, into the run record `scripts/suite.mjs`
+  builds at line ~412 beside `contextLosses`, and the printed summary), while
+  a **`?quality=` pin** decides what is actually applied — one line at
+  `scripts/suite.mjs:357`, which already composes `?seed=&map=`, pinning the
+  gate to **medium**. A check drives `probeQuality()` directly and asserts its
+  pick; nothing about the gate's picture moves.
+  So: **`medium` must be exactly what the game draws today** — `shadowMapSize`
+  1024, resolution scale 1, full particles, outlines on, post on — the same
+  discipline H9 used to keep `fovShade`/`fovWarden` at `CONFIG.render.fov`.
+  Suggested table: low 512 / 0.7 / 0.35 particles / no outlines / no post ·
+  medium 1024 / 1 / 1 / on / on · high 2048 / 1.25 / 1 / on / on (the scale is
+  a multiplier on `devicePixelRatio` and `maxPixelRatio` 1.75 still caps it, so
+  high changes nothing on a 2x display — say so rather than pretending).
+  The knobs are reachable: shadow map at `mapkit.js:417` (one caster, one
+  line), resolution at `view.js`'s two `setPixelRatio` calls, post at
+  `SETTINGS.post`, particles at `E.impactSparks` / `E.detonationSparks` in
+  `effects.js`, and outlines in exactly two places — `parts.js:115`'s
+  `hullMesh` (both figures) and `mapkit.js:204`'s `_outlineGroup` — so one
+  `userData.isOutline = true` at each and a scene traverse is the whole rule,
+  rather than hunting `side: BackSide` materials. A row on the settings page
+  makes fourteen; see **H22**. Sizing: this is a **full** M, and the verify is
+  the expensive part, not the build.
 - [ ] **H11 (M)** `npm run bench`: the real GPU. Headed Chrome (the window
   placed off-screen), the frame-budget check and the 92-viewpoint sweep on
   both maps, results to `bench/<date>.json`; the frame-budget check leaves

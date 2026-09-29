@@ -10243,6 +10243,34 @@ look, 0.3–0.8s for the bob, **1.9–6.4s** for the FOV, which is forty rendere
 frames under SwiftShader and the price of holding an aim down the way a player
 does.
 
+**And H10 was scoped rather than started.** The run had budget for a second job
+and H10 is the next unblocked one, so it was designed far enough to size it -
+which was far enough to find that it is not a five-knobs job. **Auto is the
+hazard.** A two-second frame-time probe under SwiftShader, where a frame is
+~400ms, picks **low** every time and deterministically; `qualityProbed` starts
+false and the headless runner gives every map a fresh context, so the gate would
+then run with the post off, the outlines off and the resolution at 0.7 - which is
+not the picture the **13 pixel-reading test modules** were calibrated against
+(post.js's own comment is the reason: "every pixel check reads through this when
+it is on"). Not flaky, which is worse: consistently red, with a re-reading of all
+thirteen as the apparent fix.
+
+The way out keeps both halves of the done-when - the probe **runs and records its
+pick**, and a `?quality=` **pin** decides what is actually applied, one line where
+`scripts/suite.mjs` already composes `?seed=&map=` - and `medium` must be exactly
+what the game draws today, which is the same discipline this job used to keep both
+FOV defaults at `CONFIG.render.fov`. That, a preset table, and the line number of
+each of the five knobs (the one shadow caster at `mapkit.js:417`, the two
+`setPixelRatio` calls, `SETTINGS.post`, the two spark counts, and the only two
+places an outline is built - `parts.js:115` and `mapkit.js:204`, so one
+`userData.isOutline` at each is the whole rule) are now in H10's queue item.
+
+Stopping was the judgement step 8 asks for rather than a shortfall: a failed
+verify costs an hour, an M job whose risk is spread across every pixel check earns
+one, and there was not an hour of margin left. A note that saves the next run the
+discovery beats a half-built job that has to be understood before it can be
+finished.
+
 **What was left.** `PLAYTEST.md` asks Josh three things: whether 60–100 is too
 generous a range for a game where one side is hiding, whether the bob should
 ship on, and whether 1.8cm on a third-person boom reads as weight or as a
