@@ -451,7 +451,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   by nothing at all. H7's own census caught the four new settings before the
   suite did: `changedValues()` in `tests/settingsstore.js` returns the name of
   any persisted setting it has no round-trip value for, so the four had to be
-  given one. Done 2026-09-29, commit `PENDING`. Follow-ups **H21** (a stored
+  given one. Done 2026-09-29, commit `94385d7`. Follow-ups **H21** (a stored
   number outside its bounds is accepted by type) and **H22** (thirteen rows
   want H20's grouping).
 
