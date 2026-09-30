@@ -460,6 +460,39 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H10** Quality presets: **low / medium / high / auto** over the shadow map,
+  the resolution scale, the post, the particle counts and the outline pass.
+  `src/quality.js` is the rule and `CONFIG.quality` the table, and **`medium`
+  is exactly what the game drew before there were presets** — 1024 shadow map,
+  the device's own pixel ratio, full particle counts, outlines on, post on —
+  pinned knob for knob to the constants each number came from, because every
+  reading on record was taken there. Low is 512 / x0.7 / a third of the sparks
+  / no outlines / no post; high is 2048 / x1.25, and `maxPixelRatio` caps the
+  product so **high asks for no more pixels than medium on a 2x display**,
+  which the check asserts rather than the row pretending. The probe **records
+  and does not decide**: what is applied is `activeQuality()` — the URL's
+  `?quality=` first, the settings row second, auto's stored pick third,
+  `medium` before there is one — asserted every frame by `syncQuality()` as
+  H9 asserts the field of view, which is what makes the settings row safe
+  against a census that clicks it. The post is the player's row **AND** the
+  level rather than the level rewriting the row (D60), so `applyQuality`
+  writes no setting at all. The queue predicted auto would pick `low` under
+  software WebGL; it picked **`high`**, because the probe samples the CPU clock
+  around the draw and a software renderer queues a third of its work for the
+  pipeline tail F11 named — so it is judged against `cpuBudgetFraction`'s
+  8.33ms now, and a check feeds it a median between the two budgets to pin it
+  to the right constant. Four checks in a new `tests/quality.js`, each ending
+  at a live object (the drawing buffer's own width, `shadow.mapSize`,
+  `post.passes`, the frame's draw calls, the particles a burst lit) and each
+  asserting its own restore, because this is the one module in the suite that
+  resizes the drawing buffer. It also took `scripts/suite.mjs` past 600 lines,
+  so the verdict and the printing are `scripts/suitereport.mjs` and
+  `tests/pipelinewait.js` followed them, gaining the other half of its pair.
+  Done 2026-09-29, commit `53b52c6`. Follow-ups **H23** (the menu's cards and
+  the probe race on a first boot), **H24** (nobody has run the suite at `low`
+  or `high`) and **H25** (auto's pick depends on which map you open first: the
+  plant reads 8.70ms and picks `low`, the yard 5.30ms and picks `medium`).
+
 - **H9** Look and camera settings, five rows at the top of the settings page:
   **sensitivity per axis** (`mouseSensitivity` turns, `mouseSensitivityY`
   pitches, equal by default so no feel changes until one moves), **invert Y**
