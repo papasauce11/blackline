@@ -385,6 +385,9 @@ Standing beyond those:
   H4, whether a player waits on the sub-second bake or on the first draw.
 - The **orphaned node processes**, and there are now **four**: pids 9608 and
   4792 from the 09-18 17:00 build (Chrome 8920, its renderer 11756 at 1,970
-  CPU-seconds), and a second pair **12396 and 7812 from 2026-09-26 23:32**,
-  which nothing had noticed until H9 listed the processes. The routine cannot
-  kill them; `TRAPS.md` has the command and why Josh has to run it.
+  CPU-seconds), and **12396 and 7812 from 2026-09-26 23:32**, which H10 read
+  the command lines of: they are `npx serve -l 5173`, another session's dev
+  server rather than a leaked runner, so only the 09-18 pair competes for the
+  suite's cores. Eight runs of H10 leaked nothing, so F10's teardown holds.
+  The routine cannot kill any of them; `TRAPS.md` has the command and why
+  Josh has to run it.
