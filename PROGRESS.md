@@ -10281,3 +10281,233 @@ file has named for a week, and a second pair, pids 12396 and 7812 from
 **2026-09-26 23:32**, which nothing had noticed until this run listed the
 processes. Every timing above was measured against all four. Still Josh's to
 kill.
+
+## H10 — quality presets, and a probe that records without deciding (2026-09-29 17:00, scheduled run)
+
+**What was built.** Low / medium / high / auto over the five things that cost a
+frame, a probe that picks one from what this machine measured, and a
+`?quality=` pin that decides what is actually applied. `src/quality.js` is the
+whole rule; `CONFIG.quality` is the table.
+
+**The central risk was named before the job started and it was the right call.**
+H9's run scoped H10 and stopped rather than half-build it, because auto's own
+default path would have recalibrated the suite: `qualityProbed` starts false,
+every headless page gets a fresh context, and a preset applied from a probe
+would have run the gate at whatever a software renderer measures. The way out
+it wrote down is what was built — **the probe runs and records, and
+`activeQuality()` decides** — and that separation turned out to matter more
+than predicted, because the prediction about *which* level was wrong (below).
+
+**`medium` is the shipped picture, knob for knob.** A 1024 shadow map, the
+device's own pixel ratio, full spark bursts, outlines on, post on. Every
+reading on record was taken there — the 92-viewpoint sweep, the thirteen
+pixel-reading test modules, every screenshot — so
+`the-medium-preset-is-what-the-game-drew-before-there-were-presets` pins each
+number to the constant it came from, exactly as H9 pinned `fovShade` to
+`CONFIG.render.fov`. Low is 512 / x0.7 / a third of the sparks / no outlines /
+no post; high is 2048 / x1.25 / full / on / on.
+
+**The five knobs, and where each one lives.** The shadow map is the one
+caster's `shadow.mapSize`, and three sizes its depth target once and never
+looks again, so the old target is disposed and dropped for a new size to take.
+The resolution is one rule — `pixelRatioNow()` — read by `createRenderer`, by
+`resizeView` and by a level being applied, because three call sites computing
+`min(dpr * scale, maxPixelRatio)` separately is how they come to disagree about
+how big the buffer is. The particles are scaled inside `effects.sparks()`
+rather than at its two call sites, so a third caller joins the rule by
+existing, and never below one: a burst of nothing is a bullet that hit nothing.
+The outlines are `userData.isOutline` at the two places an inverted hull is
+made — `mapkit.js`'s outline group and `parts.js`'s hull, which every part of
+both figures comes through — and a scene traverse, rather than a hunt for
+`side: BackSide` materials.
+
+**The post is an AND, not an assignment (D60).** It already had a settings row
+of its own (E6), and the obvious shape — the preset writes `SETTINGS.post` when
+a level is chosen — is worse in three directions: it writes a player's stored
+record from a different row, the post row's label goes stale until something
+re-renders it, and the two rows then disagree about which is in charge. Worse
+than any of those, it would mean the settings-row census
+(`every-settings-row-that-moves-a-setting-reports-it-for-saving`, which clicks
+every row and restores `SETTINGS`) left the renderer wherever the row landed,
+for every check after it. So `postEnabled()` is the row **and** the level: low
+draws none whatever the row says, the row still remembers what the player
+chose, and it reads `on, off at low quality` rather than saying `on` while
+nothing glows. `applyQuality` then writes **no setting at all**.
+
+**Which is what lets the level be asserted every frame rather than applied
+once.** `syncQuality()` runs from `renderFrame` before the draw and reaches for
+a knob only when `activeQuality()` has moved — a string compare per frame,
+`cameraOwner.applyFov()`'s discipline from H9. One decision in one place, and
+it is what makes the settings row safe: a check that cycles the rows and puts
+`SETTINGS` back gets the picture back on the next frame.
+
+**Auto measures once per browser, and it draws nothing of its own.** The probe
+watches frames the game was already drawing — `debugState.cpuMs`, the clock
+already around `post.render` — which is what keeps it off the boot H4 measured
+and inside the 60 seconds the runner allows a page to load. A probe that
+rendered two seconds of its own frames on a cold renderer would have been
+timing a shader compile, and boot would have had to wait for it. Ten frames are
+discarded for the same reason, then up to forty or two seconds of them,
+whichever comes first — forty because the runner's warm-up is sixty, so the
+pick is in the run's record before the first check. The median is taken and not
+the mean: one frame that stalled on a collection is a frame, not a machine.
+What it picks goes in `SETTINGS.qualityAuto`, so a second visit applies it
+without measuring again; null is the whole record of "never measured", because
+a second flag could disagree with this one and the probe always picks
+something.
+
+**What was found.**
+
+**The queue's prediction was that auto picks `low` headless. It picked
+`high`.** The first run of the finished probe read a **6.30ms median** and
+chose `high` off Section 2's 16.67ms frame budget — which would have run the
+gate at a 2048 shadow map and a 1600x900 buffer, a bigger recalibration of the
+thirteen pixel modules than `low` would have been. The reason is the whole F11
+finding turned round: under SwiftShader `renderer.render()` *queues*, and a
+third of a headless run is the pipeline tail the suite waits for afterwards, so
+the CPU clock around a draw says nothing about what the machine can draw.
+`CONFIG.performance.cpuBudgetFraction` exists in this project for exactly that
+reason — "integrated graphics are usually GPU-bound, so a CPU frame that eats
+most of the budget on a dev machine will miss on Josh's" — and the probe was
+reading a CPU number against a GPU-inclusive budget, which is the mistake that
+constant is there to prevent. The thresholds are fractions of the **CPU's**
+share now (8.33ms): under half of it `high`, within it `medium`, over it `low`.
+The same 6.30ms reads as `medium`. And the check gained the clause that pins it
+to the right constant rather than to a number that agrees with it — a median
+*between* the CPU's share and the whole frame's must pick `low`, and would pick
+`medium` off the frame budget.
+
+**The pin earned itself twice over.** Not because the prediction was right, but
+because it was wrong in the other direction and nothing had to change to
+survive that. `?quality=medium` on the runner's URL held the picture still
+through both mistakes, and `a-quality-pin-decides-what-is-applied-and-the-probe-only-records`
+holds the pin against every row and against auto. `scripts/headless.mjs` pins
+the same level, so `npm run shot` and `npm run probe` draw the picture the gate
+judges rather than whatever auto fancies.
+
+**And `scripts/suite.mjs` was at 599 lines.** Adding the pin, the run record's
+`quality` field and the summary line would have taken it past the ~600 PLAN.md
+allows a module, so the verdict and the printing moved to
+`scripts/suitereport.mjs` — `judge()`, `summary()`, `expectedRedIds()`,
+`skipsById()` and `SKIP_GUARD`: the half of that file with no Chrome in it, and
+the half a reader comes to when they want to know what "OK" meant. suite.mjs is
+455 lines now, suitereport.mjs 189. One check reads the runner's text
+(`pipelinewait.js`, holding F16's spread contract) and it follows the code —
+and gained the other half of the pair while it was there: it now asserts both
+that `suitereport.mjs` still computes the spread **and** that `suite.mjs` still
+imports it, which is `tests/registry.js`'s import-and-call pairing and is
+strictly more than it held before.
+
+**H7's census caught the two new settings, and it cost a whole verify.** The
+first `npm run suite` on the finished tree came back **red on both maps, both
+runs**: `a-setting-changed-now-is-the-setting-a-reload-reads` with
+`this check has no changed value for the setting "quality"`. `changedValues()`
+in `tests/settingsstore.js` builds a non-default value for every persisted key
+and **returns the name of any key it has none for** rather than skipping it, so
+`quality` and `qualityAuto` each had to be given a round-trip value — `high`
+and `low`, deliberately different levels, because a pair written with the same
+value would pass with the pair swapped, and `quality` deliberately not `auto`,
+which is what it ships as. This is the second job running to be caught by that
+census (H9's four settings were the first), and the second to record that it
+worked. What it also shows is a gap in how this job was smoke-tested: three
+subset runs went green before the verify and none of their regexes reached this
+check id. A subset that names the new settings should have named
+`a-setting-changed` too, and the cheap rule is that **a job adding a key to
+`CONFIG.settings.defaults` runs `--subset "setting"` before it runs anything
+else.**
+
+**`high` does nothing on a 2x display**, and the check says so rather than
+letting a row pretend: the scale multiplies `devicePixelRatio` and
+`maxPixelRatio` (1.75) caps the product, so 2 x 1.25 and 2 x 1 both land on
+1.75. Asserted, not commented.
+
+**Checks.** Four new, in `tests/quality.js`, and one extended in
+`tests/pipelinewait.js`. Every one ends at a live object — the drawing buffer's
+own width, the key light's `shadow.mapSize`, `post.passes` after a frame, the
+frame's draw calls, the particle slots a burst lit — because a preset that
+wrote five fields and a label would look identical from the table.
+
+- `the-medium-preset-is-what-the-game-drew-before-there-were-presets` pins every
+  number in the medium row to the constant it came from, requires the three
+  shadow maps to be a strictly rising sequence (or two levels are one picture
+  under two labels), asserts the 2x-display cap, and then reads the live
+  picture: `1280x720` buffer, 1024 shadow map, **13 outlines**, 7 post passes,
+  5 sparks.
+- `each-quality-preset-changes-what-a-frame-costs` drives each level the way a
+  player would — the settings row, with the pin taken down the way boot puts it
+  up — draws one frame at each and reads what it cost: buffers
+  **896x503 / 1280x720 / 1600x900**, shadow maps **512 / 1024 / 2048**, draw
+  calls **290 / 332 / 332**, and at low 0 post passes, 13 outlines off and 2
+  sparks against medium's 5. High is allowed to equal medium's pixel count
+  (the cap) and not to fall below it, which would mean the scale went the wrong
+  way. It **asserts its own restore** — level, ratio, buffer, shadow map, post
+  and outline census all back where they were — because this is the one module
+  in the suite that resizes the drawing buffer and thirteen pixel-reading
+  modules run beside it: a botched put-back should be loud where it happened
+  rather than mysterious four checks later.
+- `the-quality-probe-picks-the-level-its-frame-times-ask-for` feeds three
+  machines' worth of frame times (**2.1 / 6.3 / 33.3ms** → high / medium / low),
+  requires the warm frames to be *thrown away* rather than averaged in (a
+  compile then forty fast frames must still pick high), requires no answer
+  before the floor, requires it to stop, pins it to the CPU budget, and then
+  reads what the **real boot's** probe recorded — H4's discipline, that a check
+  picking its own inputs owes the suite the reading the live path produced.
+- `a-quality-pin-decides-what-is-applied-and-the-probe-only-records` holds the
+  pin against all four row settings and against a stored auto pick, requires a
+  frame under the pin to reach for nothing, rejects `?quality=ultra` and
+  `?equality=low` as pins, and then checks the unpinned path: the row decides,
+  auto falls through to its stored pick, and `medium` before there is one.
+
+**And a verify died of the machine rather than of the game.** The second attempt
+came back `suite: crashed: run timed out` — F10's watchdog, 240s without a
+heartbeat on `every-sound-renders-to-samples-that-match-section-14` at 191/206.
+Run alone on the plant that check takes **16,738ms**, so a 240s gap is a stall
+and not a slow check, and raising `--stall` would have been moving the
+instrument without grounds. No orphan of this session's making: the process list
+holds only the known 09-18 pair (pids 9608/4792, its headless Chrome 8920/11756)
+and a `serve -l 5173` from 2026-09-26 that is another session's dev server, so
+F10's teardown held through eight runs of this job. Re-run at the default and it
+did not recur.
+
+**And the pick is not as decided as it sounds.** The green verify measured the
+same machine on both maps: the plant reads **8.70ms median CPU and picks `low`**,
+the yard **5.30ms and picks `medium`**. The plant is the heavier scene, so what
+the probe measures is machine *times* scene — and because `SETTINGS.qualityAuto`
+is written on the first boot that answers, whichever map a friend happens to open
+first decides their quality for the life of that browser. It is not flaky for any
+check (all four assert the pick is one of the three levels, never which one), and
+the pin means the gate never cared, which is exactly how a flaw like this stays
+invisible. **H25**, with the cheapest honest fix named: keep the *lowest* level
+any probe has picked, so a player whose plant needs `low` is not left on `medium`
+because they opened the yard first.
+
+**What was verified.** `npm run suite`, two runs per map, on the finished tree:
+**plant 205 passed / 1 failed / 8 not for this map (1,081,742ms and
+1,098,396ms), yard 185 / 1 / 28 (756,754ms and 794,260ms), exit 0, 0 red, 0
+flaky, 0 console errors, 0 context losses, 0 loop frames, 0 skips withheld.**
+Four more per map than the pair after H9 (plant 201, yard 181), which is H10's
+four exactly. The renderer's pipeline tail was 476,675ms and 478,857ms on the
+plant, 354,331ms and 347,241ms on the yard (F11), and the run pairs agree within
+**16,654ms on the plant (2% of the longer) and 37,506ms on the yard (5%)** — the
+yard's 5% is the widest spread since F11 and is the machine, not the suite. The
+one failure on each map is the frame-budget check, skipped headless. **Three
+attempts were spent on it**: the first red on H7's census, the second killed by
+F10's watchdog, the third green.
+
+Before it, a gate on the base: plant 201 / 1 / 8, yard 181 / 1 / 28, exit 0, and
+it was run and read on a **clean tree** before a line was written, which is the
+trap H9 paid for.
+
+**What was left.** Two follow-ups, both queued. **H23**: `thumbnails.start()`
+runs right after boot and the probe needs eighteen frames to answer, so on a
+first boot on a real machine a card can be baked at `medium` and its neighbour
+at whatever auto then picked — the pin hides this from the gate entirely.
+**H24**: nobody has ever run the suite at `low` or `high`.
+`npm run suite -- --query quality=low` does it today and it has never been
+done, so which of the thirteen pixel-reading modules survive a picture with no
+post and no outlines is simply unknown — and that is the honest limit of what
+this job proved. **D60** is the decision, and the line in it worth Josh's eye
+is that `low` turns the outlines off: everything else in that row is pure cost,
+but the outline is how a body separates from the concrete behind it, so a
+friend on a weak laptop might be playing a *more readable* game at medium with
+a 512 shadow map than at low.

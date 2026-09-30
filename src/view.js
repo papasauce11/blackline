@@ -9,6 +9,7 @@
 
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
+import { pixelRatioNow } from './quality.js';
 
 /** Guard for the risk-register rule: exactly one camera object, ever. */
 let camerasCreated = 0;
@@ -50,7 +51,10 @@ export function createRenderer(canvas) {
   } catch {
     return null;
   }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.render.maxPixelRatio));
+  // The device's ratio scaled by the quality preset and capped by
+  // `maxPixelRatio` (H10). One rule, in quality.js, so this and `resizeView`
+  // and a level being applied cannot disagree about how big the buffer is.
+  renderer.setPixelRatio(pixelRatioNow());
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   // Filmic tone mapping flattens toon banding and desaturates the palette.
@@ -125,7 +129,7 @@ export function resizeView(renderer, camera) {
   if (!(width > 0) || !(height > 0)) return null;
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.render.maxPixelRatio));
+  renderer.setPixelRatio(pixelRatioNow());
   renderer.setSize(width, height, false);
   return { width, height };
 }

@@ -225,6 +225,84 @@ export const CONFIG = {
   },
 
   // -------------------------------------------------------------------------
+  // Quality presets (H10). The five things that cost a frame, three settings
+  // of them, and the numbers the probe picks a setting from.
+  //
+  // `medium` is exactly what the game drew before there were presets, and must
+  // stay so: every reading on record was taken at these numbers - the
+  // 92-viewpoint sweep, the thirteen pixel-reading test modules, every
+  // screenshot. `the-medium-preset-is-what-the-game-drew-before-there-were-presets`
+  // pins each one to the constant it came from, the discipline H9 used to keep
+  // `fovShade` at `render.fov`.
+  //
+  // `resolutionScale` multiplies `devicePixelRatio` and `maxPixelRatio` still
+  // caps the product, so on a 2x display `high` asks for the same pixels as
+  // `medium`: 2 x 1.25 and 2 x 1 both land on 1.75. Said plainly, and asserted,
+  // rather than left as a row that quietly does nothing.
+  //
+  // What each level does with them is `quality.js`; the switch is
+  // `SETTINGS.quality`, and `?quality=` pins a page load over it.
+  // -------------------------------------------------------------------------
+  quality: {
+    presets: {
+      /** The level that stops paying: no post, no outlines, a third of the sparks. */
+      low: {
+        shadowMapSize: 512,
+        resolutionScale: 0.7,
+        particleScale: 0.35,
+        outlines: false,
+        post: false,
+      },
+      /** The shipped picture. Every number here is the constant it came from. */
+      medium: {
+        shadowMapSize: 1024,
+        resolutionScale: 1,
+        particleScale: 1,
+        outlines: true,
+        post: true,
+      },
+      /** A sharper shadow and a supersampled frame, where the cap leaves room. */
+      high: {
+        shadowMapSize: 2048,
+        resolutionScale: 1.25,
+        particleScale: 1,
+        outlines: true,
+        post: true,
+      },
+    },
+    /**
+     * What `auto` measures. The probe watches frames the game was drawing
+     * anyway, so none of this costs a draw.
+     */
+    probe: {
+      /**
+       * Frames discarded before the first sample. The first draws of a view
+       * this renderer has not seen compile shaders - tens of seconds headless -
+       * and a machine judged by its compile is judged wrongly.
+       */
+      warmFrames: 10,
+      /** Samples before a pick is allowed: one frame is not a machine. */
+      minFrames: 8,
+      /**
+       * The ceiling, under the 60 warm-up frames the headless runner drives, so
+       * the pick is in the run's record by the time the first check runs.
+       */
+      maxFrames: 40,
+      /** ...or two seconds of measured frame cost, whichever comes first. */
+      budgetMs: 2000,
+      /**
+       * Of the CPU's share of the frame budget - `performance.frameBudgetMs`
+       * times `cpuBudgetFraction`, 8.33ms - because what the probe samples is a
+       * CPU reading and that is the budget a CPU reading is judged against.
+       * Under half of it, this machine affords `high`.
+       */
+      highFraction: 0.5,
+      /** Within it, `medium`. Over it, `low`. */
+      mediumFraction: 1.0,
+    },
+  },
+
+  // -------------------------------------------------------------------------
   // Palette (Section 4). Faction teal / hazard orange / concrete grey.
   //
   // The material language (B6, Section 5 amended): concrete is structure you
@@ -1629,6 +1707,22 @@ export const CONFIG = {
       briefing: true,
       /** Post-processing (E6): the bloom and the vignette. Off is the scene as drawn. */
       post: true,
+      /**
+       * Quality (H10): `low`, `medium`, `high`, or `auto`. `auto` is the
+       * default because a friend opening the page has told us nothing about
+       * their machine and the probe can ask it; until it has answered, and on
+       * a level this build does not have, the game draws `medium` - the
+       * picture every measurement on record was taken at. `?quality=` pins a
+       * page load over this and is not stored.
+       */
+      quality: 'auto',
+      /**
+       * What `auto` last measured on this browser, or null for never. Null is
+       * the whole record of "not probed yet": a second flag could disagree
+       * with this one, and the probe always picks something. Typed
+       * string-or-null like `lastMap`, which is why H7's store accepts it.
+       */
+      qualityAuto: null,
       /**
        * Which role Play starts you in (H5). `shade` is the competitive
        * match; `warden` is free roam, because a competitive Warden would

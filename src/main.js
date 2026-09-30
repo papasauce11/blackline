@@ -29,6 +29,7 @@ import { Emitter } from './emitter.js';
 import { bootWorld } from './boot.js';
 import { bootMapId, mapUrl } from './maps/index.js';
 import { loadSettings } from './settingsstore.js';
+import { pinQuality, sampleQualityFrame, syncQuality } from './quality.js';
 import { FrameLoop } from './loop.js';
 import { computeStepPlan } from './timestep.js';
 import { resolveMatchOptions, createMatchState, bootMatchOptions } from './matchstate.js';
@@ -407,10 +408,20 @@ function renderFrame(wallDelta) {
 
   emitter.emit('frame:render', { alpha, wallDelta });
 
+  // H10: the quality level in force, asserted before the draw and reaching for
+  // a knob only when it has moved - `cameraOwner.applyFov`'s discipline (H9).
+  // It is what makes the settings row safe: a check that cycles the rows and
+  // puts `SETTINGS` back gets the picture back on the next frame, rather than
+  // leaving every check after it drawing at whatever the row landed on.
+  syncQuality();
   const cpuStart = performance.now();
   post.render(scene, camera);
+  const cpuMs = performance.now() - cpuStart;
+  // The probe watches the frames the game was drawing anyway, so `auto` costs
+  // no draw of its own and never times a cold renderer's shader compile (H10).
+  sampleQualityFrame(cpuMs);
   recordFrameFields(debugState, {
-    renderer, cpuMs: performance.now() - cpuStart, rng, shade, warden, camera, cameraOwner: cameraOwner.owner,
+    renderer, cpuMs, rng, shade, warden, camera, cameraOwner: cameraOwner.owner,
   });
 
   debugTools.update(wallDelta, wallDelta * 1000);
@@ -486,6 +497,13 @@ debugState.settingsStore = loadSettings();
 // one setting H7 does not keep: the URL owns it, and a persisted debug flag
 // would turn a friend's playtest build into a debug build for good.
 if (debugRequested(location.search)) SETTINGS.debug = true;
+
+// H10: the quality pin for this page load, before the renderer is built, so a
+// pinned page sizes its drawing buffer once instead of resizing it a moment
+// later. Nothing is written to SETTINGS - a pin belongs to the URL that asked
+// for it. `?quality=medium` is what holds the headless gate's picture still
+// while auto's probe still records the `low` it would have chosen here.
+debugState.qualityPin = pinQuality(location.search);
 
 // H4: what can be read off the device before anything is built. Recorded in the
 // shared bag so a check can see that the real boot asked, rather than only that

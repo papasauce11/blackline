@@ -62,6 +62,12 @@ function changedValues() {
     invertY: !defaults.invertY,
     briefing: !defaults.briefing,
     post: !defaults.post,
+    // H10's two. `quality` takes a named level rather than `auto`, because
+    // `auto` is what it ships as and a round trip that wrote the default in
+    // would pass with the store doing nothing; `qualityAuto` takes a different
+    // level again, so neither can be the other coming back.
+    quality: 'high',
+    qualityAuto: 'low',
     role: 'warden',
     lastMap: 'yard',
     tutorialSeen: !defaults.tutorialSeen,

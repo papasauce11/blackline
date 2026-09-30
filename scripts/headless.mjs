@@ -7,7 +7,7 @@
 // F7) and scripts/probe.mjs (F9) import this; scripts/suite.mjs carries
 // its own copy of the same server and launch, because it runs the suite
 // on import and adds a throttle token to the launch. Keep the two in step:
-// a MIME type or a Chrome flag added here is added there.
+// a MIME type, a Chrome flag or a query pin added here is added there.
 
 import http from 'node:http';
 import fs from 'node:fs';
@@ -114,7 +114,12 @@ export async function openPage(browser, prefix) {
  * for the harness; throws if the page booted another map.
  */
 export async function loadMap(page, port, mapId, query = '') {
-  const q = [query, `map=${mapId}`].filter(Boolean).join('&');
+  // H10: pinned to `medium`, the picture every reading on record was taken at.
+  // Auto's probe picks `low` under software WebGL every time, so an unpinned
+  // shot would come back without its outlines or its bloom. `--query` naming a
+  // level wins, which is how a shot of another level is taken.
+  const pin = /(^|&)quality=/.test(query) ? null : 'quality=medium';
+  const q = [query, pin, `map=${mapId}`].filter(Boolean).join('&');
   await page.goto(`http://127.0.0.1:${port}/?${q}`, { waitUntil: 'load' });
   await page.waitForFunction(() => !!window.BLACKLINE, null, { timeout: 60000 });
   const booted = await page.evaluate(() => window.BLACKLINE.map.id);

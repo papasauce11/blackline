@@ -110,6 +110,73 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D60 — Quality presets: the post is an AND, and what each level is worth
+
+**Raised by:** H10, 2026-09-29. Low / medium / high / auto over five knobs.
+Three things in it are look rather than rule, so they are taken and recorded
+here; one is close enough to the line that it is the one worth your eye.
+
+**The post already had a settings row** (E6), so a preset that names
+`post: false` has to relate to it somehow. Three ways:
+
+1. *The preset assigns `SETTINGS.post` when a level is chosen.* Rejected: it
+   writes a player's stored record from a different row, the post row's label
+   goes stale until something re-renders it, and the two then disagree about
+   which is in charge. It also means a check that cycles the settings rows and
+   puts `SETTINGS` back leaves the renderer wherever the row landed.
+2. **Taken: the post is drawn when the row says on AND the level allows it.**
+   `low` draws none whatever the row says; the row still remembers what the
+   player chose, for when they come back up to medium; and the row says so, as
+   `on, off at low quality`. `applyQuality` then writes no setting at all,
+   which is what makes it safe to apply on any frame and what makes
+   `syncQuality()` a one-string compare rather than a decision.
+3. *Drop the post from the preset.* Rejected: it is the most expensive thing in
+   the frame, so a `low` that keeps it is not a low.
+
+**The table.** Medium is the shipped picture knob for knob, pinned by
+`the-medium-preset-is-what-the-game-drew-before-there-were-presets` to the
+constants each number came from, because every reading on record was taken at
+it - the 92-viewpoint sweep, the thirteen pixel-reading modules, every
+screenshot.
+
+| | shadow map | resolution | particles | outlines | post |
+|---|---|---|---|---|---|
+| low | 512 | x0.7 | x0.35 | off | off |
+| medium | **1024** | **x1** | **x1** | **on** | **on** |
+| high | 2048 | x1.25 | x1 | on | on |
+
+**High does nothing on a 2x display**, and the check asserts that rather than
+letting the row pretend: the scale multiplies `devicePixelRatio` and
+`maxPixelRatio` (1.75) caps the product, so 2 x 1.25 and 2 x 1 both land on
+1.75. On a 1x display it is a real 1.25x supersample.
+
+**`auto` is the default**, and it measures once per browser: the probe watches
+ten frames it throws away (the first draws of a cold renderer are a shader
+compile) and then up to forty, or two seconds of them, and picks from the
+median against Section 2's 16.67ms budget - under half of it `high`, within it
+`medium`, over it `low`. What it picks is stored (`SETTINGS.qualityAuto`), so a
+second visit applies it without measuring again. Until it has answered, and on
+a level this build does not have, the game draws `medium`.
+
+**And auto is not as decided as it sounds.** The verify measured the same
+machine on both maps: the plant reads **8.70ms median CPU and picks `low`**, the
+yard **5.30ms and picks `medium`**, because the plant is the heavier scene and
+what the probe measures is machine *times* scene. Since the pick is stored on
+the first boot that answers, whichever map a friend opens first decides their
+quality for the life of that browser. That is **H25**, and it is a real flaw
+rather than a taste question - flagged here because the fix (keep the lowest
+level any probe has picked) is the kind of thing worth a glance before it is
+built.
+
+**The one worth your eye: `low` turns the outlines off.** Everything else in
+that row is pure cost, but the outline is how a body and a ledge separate from
+the concrete behind them (Section 4), so a friend on a weak laptop might be
+playing a *more readable* game at medium with a 512 shadow map than at low.
+Options: leave it as built; or keep the outlines at low and take the
+resolution to 0.6 instead, which costs about the same. One line.
+
+decided:
+
 ### D59 — Look and camera settings: the FOV range, and a head-bob that ships off
 H9 built the four settings the job named — sensitivity per axis, invert Y, a
 field of view per role, head-bob on or off. Three judgements were left inside

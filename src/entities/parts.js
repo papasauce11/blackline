@@ -113,6 +113,10 @@ export function part(group, pieces, material, outlineMaterial, outline) {
   // get back and a sibling outline stays behind; parenting makes the drift
   // impossible (Phase 5).
   const hullMesh = new THREE.Mesh(hull, outlineMaterial);
+  // H10: the other place an inverted hull is made (mapkit.js's outline group is
+  // the first). Both figures' every part comes through here, so one flag turns
+  // the outline off on both bodies.
+  hullMesh.userData.isOutline = true;
   mesh.add(hullMesh);
   return mesh;
 }

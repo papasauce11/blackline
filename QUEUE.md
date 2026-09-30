@@ -162,47 +162,44 @@ one setting only Josh can click; everything else here proceeds.
 - [x] **H9 (S)** Look and camera settings. — done 2026-09-29, under Done.
   The FOV range, the absolute ADS narrowing and the head-bob shipping off are
   **D59**; **H21** and **H22** are what the work revealed.
-- [ ] **H10 (M)** Quality presets. Low / medium / high / auto — shadow map
-  size, post on/off, resolution scale, particle caps, the outline pass; auto
-  runs a two-second frame-time probe on first boot and picks. *done-when:*
-  each preset changes the measured draw cost in a check; auto's pick is
-  recorded in the report.
-  **Read this before starting it — H9's run scoped it and stopped rather than
-  half-build it.** The job is not "five knobs"; its central risk is that its
-  own default path silently recalibrates the suite. **Auto is the hazard.**
-  `qualityProbed` starts false, the headless runner gives every map a fresh
-  context, and a two-second frame-time probe under SwiftShader (a frame is
-  ~400ms) will pick **low** every time, deterministically — so the gate would
-  then run with the post off, the outlines off and the resolution at 0.7,
-  which is a different picture from the one **13 pixel-reading test modules**
-  were calibrated against (`feedback`, `figure`, `groundview`, `keylight`,
-  `legibility`, `look`, `materials`, `post`, `sitetint`, `soak`, `visual`,
-  `yardlight`, `yardmaterials` — post.js's own comment is the reason: "every
-  pixel check reads through this when it is on"). Not flaky, which is worse:
-  consistently red, and re-reading every one of them as the fix.
-  The way out that keeps both halves of the done-when true: the probe **runs
-  and records its pick** (`debugState`, into the run record `scripts/suite.mjs`
-  builds at line ~412 beside `contextLosses`, and the printed summary), while
-  a **`?quality=` pin** decides what is actually applied — one line at
-  `scripts/suite.mjs:357`, which already composes `?seed=&map=`, pinning the
-  gate to **medium**. A check drives `probeQuality()` directly and asserts its
-  pick; nothing about the gate's picture moves.
-  So: **`medium` must be exactly what the game draws today** — `shadowMapSize`
-  1024, resolution scale 1, full particles, outlines on, post on — the same
-  discipline H9 used to keep `fovShade`/`fovWarden` at `CONFIG.render.fov`.
-  Suggested table: low 512 / 0.7 / 0.35 particles / no outlines / no post ·
-  medium 1024 / 1 / 1 / on / on · high 2048 / 1.25 / 1 / on / on (the scale is
-  a multiplier on `devicePixelRatio` and `maxPixelRatio` 1.75 still caps it, so
-  high changes nothing on a 2x display — say so rather than pretending).
-  The knobs are reachable: shadow map at `mapkit.js:417` (one caster, one
-  line), resolution at `view.js`'s two `setPixelRatio` calls, post at
-  `SETTINGS.post`, particles at `E.impactSparks` / `E.detonationSparks` in
-  `effects.js`, and outlines in exactly two places — `parts.js:115`'s
-  `hullMesh` (both figures) and `mapkit.js:204`'s `_outlineGroup` — so one
-  `userData.isOutline = true` at each and a scene traverse is the whole rule,
-  rather than hunting `side: BackSide` materials. A row on the settings page
-  makes fourteen; see **H22**. Sizing: this is a **full** M, and the verify is
-  the expensive part, not the build.
+- [x] **H10 (M)** Quality presets. - done 2026-09-29, under Done. The five
+  knobs, the probe, and the `?quality=` pin that keeps the gate's picture
+  still. What each level is worth, and the post being the player's row **AND**
+  the level rather than the level rewriting it, are **D60**; **H23** and
+  **H24** are what the work revealed. It also took `scripts/suite.mjs` past
+  600 lines, so the verdict and the summary moved to `scripts/suitereport.mjs`.
+- [ ] **H23 (S)** The menu's cards and auto's probe race. `thumbnails.start()`
+  runs right after boot and the probe needs `warmFrames + minFrames` frames to
+  answer (H10), so on a first boot on a real machine a card can be baked at
+  `medium` and its neighbour at whatever auto then picked - the pin hides this
+  from the gate entirely. Either hold the cards until the probe has answered or
+  hold the level until the cards are done; the second is cheaper and is what a
+  player would rather have (a card drawn at the level they will play at).
+  *done-when:* a check drives a first boot with `SETTINGS.qualityAuto` null and
+  asserts every card was rendered at one level, naming which.
+- [ ] **H24 (S)** Nobody has ever run the suite at `low` or `high`. The gate is
+  pinned to `medium` by design (H10), and `npm run suite -- --query quality=low`
+  already runs it at low - it has never been done, so which of the thirteen
+  pixel-reading modules survive a picture with no post and no outlines is
+  unknown. Run it once on each map at `low` and once at `high`, record which
+  checks disagree and why, and decide per check whether it should be
+  level-agnostic or is honestly a medium-only reading. *done-when:* a PROGRESS
+  entry lists every check that answers differently at `low`, and either the
+  check reads the level or `PLAYTEST.md` says low is a picture the suite does
+  not judge.
+- [ ] **H25 (S)** Auto's pick depends on which map you open first, and it is
+  stored for good. H10's verify measured the same machine twice: the plant reads
+  **8.70ms median CPU and picks `low`**, the yard **5.30ms and picks `medium`**.
+  The plant is the heavier scene, so what the probe measures is machine *times*
+  scene - and because `SETTINGS.qualityAuto` is written on the first boot that
+  answers, whichever map a friend happens to open first decides their quality
+  for the life of that browser. The cheapest honest fix is to keep the **lowest**
+  level any probe has picked, so a player whose plant needs `low` is not left on
+  `medium` because they opened the yard first; the alternative is a pick per map,
+  which is more record than the problem is worth. Look rather than rule, so
+  provisional either way. *done-when:* a check probes twice with two different
+  medians and asserts the stored pick is the lower, and the runner's summary
+  names both.
 - [ ] **H11 (M)** `npm run bench`: the real GPU. Headed Chrome (the window
   placed off-screen), the frame-budget check and the 92-viewpoint sweep on
   both maps, results to `bench/<date>.json`; the frame-budget check leaves
@@ -272,7 +269,8 @@ one setting only Josh can click; everything else here proceeds.
   record kept**, the way a dead action is dropped in H19. *done-when:* a check
   writes an out-of-range record for every bounded setting, loads it, and finds
   each one at its nearest end with every other setting intact.
-- [ ] **H22 (S)** The settings page is thirteen rows and two buttons, and H20
+- [ ] **H22 (S)** The settings page is fourteen rows and two buttons (H10 made
+  the fourteenth), and H20
   was written for the controls page's thirty-five. The same grouping serves
   both: **look, audio, match, system**, with the group headings rows the ring
   skips. Do it once, in `_rows()`, and let H20 be the controls page's turn.

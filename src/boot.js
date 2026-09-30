@@ -22,6 +22,8 @@ import {
 } from './view.js';
 import { createCameraOwnership } from './cameraowner.js';
 import { createPost } from './post.js';
+import { installQuality } from './quality.js';
+import { saveSettings } from './settingsstore.js';
 import { wireMatchEvents } from './wiring.js';
 import { Shade } from './entities/agent.js';
 import { Warden } from './entities/enforcer.js';
@@ -227,6 +229,15 @@ export async function bootWorld({
     }
   });
   watchContextLoss(canvas, debugState, emitter);
+
+  // H10: the quality preset in force, applied to the live objects now that the
+  // key light and both figures' hulls are in the scene. `onProbed` is how the
+  // level `auto` measures on a first boot survives a reload: the probe writes
+  // it into `SETTINGS` and this is what puts it in the store (H7).
+  // It writes `debugState.quality` itself, whenever the level or the probe's
+  // reading moves, so there is nothing to assign here - and assigning the
+  // return value would replace that record with the thinner one it hands back.
+  installQuality({ renderer, post, scene, map, debugState, onProbed: () => saveSettings() });
 
   const debugTools = new DebugTools({ input, emitter, debugState, harness });
   registerAssertions(debugTools, harness);

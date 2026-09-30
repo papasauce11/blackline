@@ -82,6 +82,67 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### There is a quality row, and it can measure your machine (H10, 2026-09-29)
+
+Settings, one new row: **quality**, cycling `low`, `medium`, `high`, `auto`.
+It ships on **auto**, which means the first time you open the page the game
+watches fifty of its own frames and picks; the row then reads `auto (high)` or
+whatever it settled on, and it remembers that pick so it never measures twice.
+
+Five things move with it, and **medium is exactly the game you have been
+playing**: a 1024 shadow map, your display's own pixel ratio, full spark
+bursts, the outlines on, the post on. Every screenshot and every number in
+`PROGRESS.md` was taken there.
+
+| | shadow map | resolution | sparks | outlines | post |
+|---|---|---|---|---|---|
+| low | 512 | x0.7 | a third | off | off |
+| medium | 1024 | x1 | all | on | on |
+| high | 2048 | x1.25 | all | on | on |
+
+Two honest warnings. **High does nothing on a high-DPI display** - the game
+caps its pixel ratio at 1.75 and a 2x screen is already there, so the row
+moves and the picture does not; on an ordinary 1080p monitor it is a real
+supersample and the shadow edges tighten. And **low turns the outlines off**,
+which is the change you will notice most and the one I am least sure is right:
+it is the cheapest thing in the frame to keep and the most useful thing to
+see. That is **D60**, and it is one line.
+
+The post row now reads `on, off at low quality` when the level has overruled
+it, rather than saying `on` while nothing glows.
+
+You can also pin a level on the URL: **`?quality=low`** opens the page at low
+whatever the row says, which is how to see one without changing your settings
+(the row then reads `medium (low)` - the level you asked for and the level you
+are getting). The headless suite runs pinned to medium for exactly that
+reason: auto picks `low` under software WebGL every time, and a suite that
+quietly drew with the post and the outlines off would have recalibrated
+thirteen pixel-reading checks against a picture nobody chose.
+
+`the-medium-preset-is-what-the-game-drew-before-there-were-presets` pins every
+number in the medium row to the constant it came from;
+`each-quality-preset-changes-what-a-frame-costs` draws one frame at each level
+and reads the drawing buffer, the key light's shadow map, the post passes, the
+draw calls and the particles a burst lit;
+`the-quality-probe-picks-the-level-its-frame-times-ask-for` feeds the probe
+three machines' worth of frame times and also reads what the real boot's own
+probe recorded; `a-quality-pin-decides-what-is-applied-and-the-probe-only-records`
+holds the pin against every row.
+
+One thing auto gets wrong, and it is queued (**H25**): what it measures is your
+machine *times the scene it measured on*. This PC reads 8.70ms on the plant and
+picks `low`, and 5.30ms on the yard and picks `medium` - and because the pick is
+remembered from the first boot that answers, whichever map you open first
+decides it for good. If auto lands somewhere that feels wrong, that is probably
+why, and the row still lets you say.
+
+**What is left for you:** whether low should keep the outlines (**D60**).
+Whether high is worth having at all on your monitor - if you are on a 2x
+display it is a row that does nothing and I would rather drop it than ship a
+lie. Whether auto's pick on your machine is the one you would have chosen: the
+main menu's footer does not say, but `?debug=1` then **F3** does, and so does
+the line the suite prints. And the settings page is fourteen rows now.
+
 ### The camera is yours now (H9, 2026-09-29)
 
 Settings, five new rows at the top.

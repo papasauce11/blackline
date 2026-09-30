@@ -94,6 +94,8 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { createGuard, otherRunners } from './watchdog.mjs';
+// The verdict and the printing (H10): the half of this file with no Chrome in it.
+import { judge, summary } from './suitereport.mjs';
 import { stampVersion, VERSION_FILE } from './version.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -182,37 +184,6 @@ function registeredMapIds() {
   for (const m of src.slice(start, end).matchAll(/\{\s*id:\s*'([a-z0-9-]+)'/g)) ids.push(m[1]);
   if (!ids.length) throw new Error('src/maps/index.js: REGISTRY lists no maps');
   return ids;
-}
-
-// The single source of truth for what may be red: the bullet list under
-// "## Deliberately red" in QUEUE.md. One backticked id per bullet.
-function expectedRedIds() {
-  const q = fs.readFileSync(path.join(ROOT, 'QUEUE.md'), 'utf8');
-  const start = q.indexOf('## Deliberately red');
-  if (start < 0) return [];
-  const rest = q.slice(start + 1);
-  const endRel = rest.search(/\n(## |---)/);
-  const section = endRel < 0 ? rest : rest.slice(0, endRel);
-  const ids = [];
-  for (const line of section.split('\n')) {
-    const m = /^- `([a-z0-9-]+)`/.exec(line.trim());
-    if (m) ids.push(m[1]);
-  }
-  return ids;
-}
-
-// The page-side check that holds scripts/suite-skips.json to what it
-// declares (F15, src/tests/skiplist.js). A skip is an exemption, and an
-// exemption is honoured only while the thing that polices exemptions has run
-// and passed on that map: otherwise skipping this one check would take every
-// other skip with it, which is the hole the pair was written to close.
-const SKIP_GUARD = 'the-headless-skip-list-holds-only-the-check-it-declares';
-
-function skipsById() {
-  const p = path.join(ROOT, 'scripts', 'suite-skips.json');
-  if (!fs.existsSync(p)) return new Map();
-  const list = JSON.parse(fs.readFileSync(p, 'utf8'));
-  return new Map(list.map(s => [s.id, s.reason]));
 }
 
 /**
@@ -354,7 +325,13 @@ async function main() {
     // a system never sees it change, so another map is another load.
     for (const [m, mapId] of MAPS.entries()) {
       if (m > 0 && COOLDOWN_MS > 0) await sleep(COOLDOWN_MS);
-      const query = [QUERY, `map=${mapId}`].filter(Boolean).join('&');
+      // H10: pinned to `medium`, the picture every reading on record was taken
+      // at. Auto's probe picks `low` under software WebGL every time and would
+      // run the gate with the post off, the outlines off and the resolution at
+      // 0.7 - recalibrating thirteen pixel-reading modules, consistently rather
+      // than flakily. It still records its pick. `--query` naming a level wins.
+      const pin = /(^|&)quality=/.test(QUERY ?? '') ? null : 'quality=medium';
+      const query = [QUERY, pin, `map=${mapId}`].filter(Boolean).join('&');
       await page.goto(`${origin}?${query}`, { waitUntil: 'load' });
       await page.waitForFunction(() => !!window.BLACKLINE, null, { timeout: 60000 });
       // The live loop plays the game between runs and under any check that
@@ -426,6 +403,9 @@ async function main() {
             // synchronised first (F11, D48). A third of a headless run, and
             // until now it appeared only as one check's ms.
             pipelineWaitMs: Math.round(res.pipelineWaitMs || 0),
+            // H10: what this page is drawing, and what auto's probe picked
+            // whatever the pin applied.
+            quality: h.debugState.quality ?? null,
             rerun: res.results.filter(x => x.rerun).map(x => x.id),
             // Frames the rAF loop drove while the suite ran. Zero is the only
             // right answer (F4); a check that drives frames does so through
@@ -463,130 +443,6 @@ async function main() {
   process.stdout.write(JSON.stringify(report, null, 2) + '\n');
   process.stderr.write(summary(report));
   process.exit(report.ok ? 0 : 1);
-}
-
-// Judged per map: "flaky" is a check answering differently between two runs
-// on the SAME map, and a check red on one map and green on another is red
-// there, with the map named.
-function judge(runs, renderer, consoleErrors) {
-  const expected = new Set(expectedRedIds());
-  const skips = skipsById();
-  const maps = [...new Set(runs.map(r => r.map))];
-
-  const red = [], expectedRed = [], flaky = [], skipped = [], unexpectedGreen = [], skipsWithheld = [];
-  for (const map of maps) {
-    const own = runs.filter(r => r.map === map);
-    const ids = [...new Set(own.flatMap(r => r.results.map(x => x.id)))];
-    const byRun = own.map(r => new Map(r.results.map(x => [x.id, x])));
-    // Green on every run of this map, or no skip is honoured here. Absent
-    // counts as not green - a --subset that names a skipped check and not
-    // this one judges that check like any other, which is the rule working.
-    const guardGreen = byRun.every(m => m.get(SKIP_GUARD)?.pass === true);
-    for (const id of ids) {
-      const outcomes = byRun.map(m => m.get(id)?.pass);
-      const allPass = outcomes.every(p => p === true);
-      const allFail = outcomes.every(p => p === false);
-      const detail = byRun.map(m => m.get(id)?.detail).find(Boolean) ?? '';
-      if (skips.has(id)) {
-        if (guardGreen) {
-          skipped.push({ id, map, reason: skips.get(id), outcome: allPass ? 'pass' : allFail ? 'fail' : 'mixed' });
-          continue;
-        }
-        // Withheld, and then judged like anything else, which is what makes
-        // this fail closed: the skipped check goes red and the run says why.
-        skipsWithheld.push({ id, map });
-      }
-      if (!allPass && !allFail) { flaky.push({ id, map, outcomes, detail }); continue; }
-      if (allFail) {
-        if (expected.has(id)) expectedRed.push({ id, map, detail });
-        else red.push({ id, map, detail });
-      } else if (expected.has(id)) {
-        unexpectedGreen.push(id);
-      }
-    }
-  }
-  // How far apart the runs of one map are (F16). Two runs of a map share one
-  // page, and until F11 the first left its renderer tail behind for the second
-  // to carry: across every pair on record since F5 the second run was 100-190s
-  // the slower, which made "the same suite, twice" two different measurements
-  // and quietly contaminated any comparison drawn between them. Reported, not
-  // judged - a spread is a reading about the machine, and a red would be a
-  // threshold nobody has grounds for yet.
-  const spreads = maps.map(map => {
-    const own = runs.filter(r => r.map === map);
-    const ms = own.map(r => r.ms);
-    const waits = own.map(r => r.pipelineWaitMs || 0);
-    return {
-      map,
-      runs: own.length,
-      spreadMs: Math.max(...ms) - Math.min(...ms),
-      waitSpreadMs: Math.max(...waits) - Math.min(...waits),
-      longestMs: Math.max(...ms),
-    };
-  });
-  const loopRan = runs.some(r => r.loopFrames > 0);
-  const ok = red.length === 0 && flaky.length === 0 && !loopRan;
-  return {
-    ok,
-    renderer,
-    maps,
-    runs: runs.map(r => ({
-      map: r.map, regression: r.regression, passed: r.passed, failed: r.failed, notForMap: r.notForMap, ms: r.ms,
-      pipelineWaitMs: r.pipelineWaitMs,
-      contextLosses: r.contextLosses, rerun: r.rerun, loopFrames: r.loopFrames,
-    })),
-    spreads,
-    red,
-    flaky,
-    expectedRed,
-    unexpectedGreen,
-    skipped,
-    skipsWithheld,
-    consoleErrors: { count: consoleErrors.length, first: consoleErrors.slice(0, 5) },
-  };
-}
-
-function summary(r) {
-  const lines = [];
-  lines.push(`suite: ${r.ok ? 'OK' : 'FAIL'}  renderer: ${r.renderer}`);
-  const tag = x => (r.maps.length > 1 ? `${x.id} [${x.map}]` : x.id);
-  for (const [i, run] of r.runs.entries()) {
-    lines.push(`  run ${i + 1} (${run.map}${run.regression ? ', regression set' : ''}): ${run.passed} passed, ${run.failed} failed`
-      + `${run.notForMap ? `, ${run.notForMap} not for this map` : ''}, ${run.ms}ms`
-      + `${run.pipelineWaitMs ? ` (${run.pipelineWaitMs}ms of it the renderer's pipeline tail, F11)` : ''}`);
-    if (run.contextLosses) {
-      lines.push(`    GL CONTEXT LOST ${run.contextLosses}x during run ${i + 1}; re-ran after restore: ${run.rerun.join(', ') || 'nothing'}`);
-    }
-    if (run.loopFrames) {
-      lines.push(`    LOOP RAN ${run.loopFrames} frame(s) under run ${i + 1}: the game played itself underneath the checks (F4)`);
-    }
-  }
-  for (const s of r.spreads ?? []) {
-    if (s.runs < 2) continue;
-    const share = s.longestMs ? Math.round((100 * s.spreadMs) / s.longestMs) : 0;
-    lines.push(`    ${s.map}: ${s.runs} runs spread ${s.spreadMs}ms (${share}% of the longest),`
-      + ` pipeline wait spread ${s.waitSpreadMs}ms - two runs of a map are comparable only while this is small (F16)`);
-  }
-  if (r.red.length) lines.push(`  RED (unexpected): ${r.red.map(tag).join(', ')}`);
-  if (r.flaky.length) lines.push(`  FLAKY: ${r.flaky.map(tag).join(', ')}`);
-  if (r.expectedRed.length) lines.push(`  expected red: ${r.expectedRed.map(tag).join(', ')}`);
-  if (r.unexpectedGreen.length) lines.push(`  now GREEN, remove from QUEUE.md: ${r.unexpectedGreen.join(', ')}`);
-  if (r.skipped.length) lines.push(`  skipped headless: ${r.skipped.map(x => `${tag(x)} (${x.outcome})`).join(', ')}`);
-  if (r.skipsWithheld && r.skipsWithheld.length) {
-    lines.push(`  SKIPS WITHHELD: ${r.skipsWithheld.map(tag).join(', ')} - ${SKIP_GUARD} did not pass there, so nothing is skipped and each was judged`);
-  }
-  if (r.consoleErrors.count) lines.push(`  console errors: ${r.consoleErrors.count}`);
-  if (r.otherRunners && r.otherRunners.length) {
-    lines.push(`  OTHER RUNNERS ALIVE: ${r.otherRunners.map(x => `pid ${x.pid} (${x.started})`).join(', ')}`
-      + ` - every timing above was measured against them`);
-  }
-  if (r.throttle) {
-    const t = r.throttle;
-    lines.push(`  throttle: ${t.cores}/${t.of} cores`
-      + `${t.pinnedProcesses ? ` (${t.pinnedProcesses} processes pinned)` : ''}`
-      + `, ${t.cooldownMs / 1000}s cooldown between runs`);
-  }
-  return lines.join('\n') + '\n';
 }
 
 main().catch(async err => {

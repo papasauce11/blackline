@@ -70,6 +70,7 @@ import { register as registerAnimation } from './animation.js';
 import { register as registerLook } from './look.js';
 import { register as registerMaterials } from './materials.js';
 import { register as registerYardMaterials } from './yardmaterials.js';
+import { register as registerQuality } from './quality.js';
 import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
@@ -140,6 +141,10 @@ export function registerAutoTests(debugTools) {
   registerLook(debugTools);
   registerMaterials(debugTools);
   registerYardMaterials(debugTools);
+  // After the pixel-reading modules: it is the one module that resizes the
+  // drawing buffer, so anything it failed to put back is seen by the soak and
+  // the frame-budget check rather than hidden behind them (H10).
+  registerQuality(debugTools);
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);

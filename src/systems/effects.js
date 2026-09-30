@@ -24,6 +24,7 @@
 
 import * as THREE from 'three';
 import { CONFIG, rng } from '../config.js';
+import { qualityParticles } from '../quality.js';
 
 const E = CONFIG.effects;
 const GA = CONFIG.gadgets;
@@ -283,7 +284,12 @@ export class Effects {
   }
 
   sparks(at, count) {
-    for (let i = 0; i < count; i++) {
+    // H10: the quality preset scales a burst - `low` pays for a third of them.
+    // Here rather than at the call sites, so a third caller joins the rule by
+    // existing, and never below one: a burst of nothing is a bullet that hit
+    // nothing.
+    const lit = qualityParticles(count);
+    for (let i = 0; i < lit; i++) {
       const slot = this.particles[this._nextParticle];
       this._nextParticle = (this._nextParticle + 1) % this.particles.length;
       slot.life = E.particleLifetime;

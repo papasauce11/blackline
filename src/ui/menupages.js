@@ -17,6 +17,7 @@
  */
 
 import { CONFIG, DEFAULT_BINDINGS, SETTINGS } from '../config.js';
+import { activeQuality, postEnabled, QUALITY_CHOICES } from '../quality.js';
 import { controlRows, keyLabel, objectiveLine } from './briefing.js';
 
 /** What the how-to-play page describes: the two roles, as the game has them. */
@@ -63,6 +64,22 @@ export const MENU_PAGES = {
 
   _renderSettings() {
     const lengths = Object.keys(CONFIG.match.lengths);
+    // H10: what the row says. `auto` names what it settled on, and a page
+    // pinned by `?quality=` names the level it is actually drawing beside the
+    // one the row asks for - a row that silently did nothing would be worse
+    // than one that admits the URL is in charge.
+    const qualityLabel = () => {
+      const active = activeQuality();
+      return SETTINGS.quality === active ? active : `${SETTINGS.quality} (${active})`;
+    };
+    // And what the post row says, which is now the player's half of an AND
+    // (D60): `low` turns the bloom off whatever this row asks for, and the row
+    // still remembers what they chose for when they come back up. Saying so is
+    // the alternative to a row that quietly does nothing.
+    const postLabel = () => {
+      if (!SETTINGS.post) return 'off';
+      return postEnabled() ? 'on' : `on, off at ${activeQuality()} quality`;
+    };
     this.root.innerHTML = `
       <div class="card">
         <h1 style="font-size:20px">Settings</h1>
@@ -92,7 +109,9 @@ export const MENU_PAGES = {
         <div class="row"><span>round briefing</span>
           <span class="value" id="bl-brief">${SETTINGS.briefing ? 'on' : 'off'}</span></div>
         <div class="row"><span>post-processing</span>
-          <span class="value" id="bl-post">${SETTINGS.post ? 'on' : 'off'}</span></div>
+          <span class="value" id="bl-post">${postLabel()}</span></div>
+        <div class="row"><span>quality</span>
+          <span class="value" id="bl-quality">${qualityLabel()}</span></div>
         <div class="row"><span>debug tooling</span>
           <span class="value" id="bl-dbg">${SETTINGS.debug ? 'on' : 'off'}</span></div>
         <div class="row"><span>settings</span>
@@ -161,8 +180,24 @@ export const MENU_PAGES = {
     const postRow = this.root.querySelector('#bl-post');
     postRow.onclick = () => {
       SETTINGS.post = !SETTINGS.post;
-      postRow.textContent = SETTINGS.post ? 'on' : 'off';
+      postRow.textContent = postLabel();
       this._changed();
+    };
+    // H10: low / medium / high / auto over the shadow map, the resolution, the
+    // post, the particle counts and the outlines. The level is asserted by
+    // `renderFrame` on the next frame rather than applied here, which is the
+    // one place it can be decided (`syncQuality`, quality.js) - and it is why
+    // a `?quality=` pin cannot be talked out of by this row. It writes no
+    // other setting: the post row above is the player's half of an AND with
+    // the preset (D60), so a level is chosen without rewriting anything they
+    // chose and this row's own label is right the moment it is drawn.
+    const quality = this.root.querySelector('#bl-quality');
+    quality.onclick = () => {
+      const at = QUALITY_CHOICES.indexOf(SETTINGS.quality);
+      SETTINGS.quality = QUALITY_CHOICES[(at + 1) % QUALITY_CHOICES.length];
+      this._changed();
+      // The whole page, because the preset moves the post row's value too.
+      this.render();
     };
     // Section 17.1, amended (C1): the debug gate, off by default. On, F3
     // and F4 work; off, they and every test key are inert, and a frame
@@ -213,7 +248,7 @@ export const MENU_PAGES = {
         if (this.handlers.onVolume) this.handlers.onVolume(SETTINGS.masterVolume);
         this._changed();
       }),
-      len, diff, inv, brief, postRow, dbg, reset, controls, back,
+      len, diff, inv, brief, postRow, quality, dbg, reset, controls, back,
     ]);
   },
 

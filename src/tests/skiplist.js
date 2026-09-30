@@ -4,7 +4,7 @@
  * The one documented way past a red gate, held by the gate (F15).
  *
  * `scripts/suite-skips.json` names checks the headless runner drops before it
- * judges anything: `judge()` in `scripts/suite.mjs` sees a skipped id, files
+ * judges anything: `judge()` in `scripts/suitereport.mjs` sees a skipped id, files
  * it under `skipped` with its reason and moves on, so the check counts towards
  * neither red nor flaky and the run exits 0. That is right for the one entry
  * in it - a frame budget measured against SwiftShader says nothing about a

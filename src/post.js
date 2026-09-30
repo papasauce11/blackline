@@ -31,12 +31,15 @@
  * are what they were plus the glow: every pixel check reads through this
  * when it is on (pixels.js's lens), because what ships is what is read.
  *
- * `SETTINGS.post` is the switch (a settings row); `CONFIG.render.post`
+ * `postEnabled()` is the switch: `SETTINGS.post`, the settings row, **and**
+ * the quality preset (H10, D60) - `low` draws no post whatever the row says,
+ * and the row still remembers what the player chose. `CONFIG.render.post` is
  * the numbers. Layering (Section 3.1): as view.js - three and config.
  */
 
 import * as THREE from 'three';
-import { CONFIG, SETTINGS } from './config.js';
+import { CONFIG } from './config.js';
+import { postEnabled } from './quality.js';
 
 const PP = CONFIG.render.post;
 
@@ -161,7 +164,7 @@ export function createPost(renderer) {
       return scene;
     },
     get enabled() {
-      return !!SETTINGS.post;
+      return postEnabled();
     },
     /**
      * Draw the frame: the scene through the passes when on, straight to
@@ -174,7 +177,7 @@ export function createPost(renderer) {
       // the scene's draws plus the passes - whichever path drew it.
       renderer.info.autoReset = false;
       renderer.info.reset();
-      if (!SETTINGS.post) {
+      if (!postEnabled()) {
         renderer.setRenderTarget(null);
         renderer.render(world, camera);
         post.passes = 0;

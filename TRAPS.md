@@ -122,6 +122,18 @@ this himself**: a scheduled session's sandbox refuses `taskkill` as
 interfering with a workload. Be sure of the pid first; the ordinary
 `chrome.exe` tree is Josh's own browser.
 
+**A new setting must join H7's round-trip census, and a subset that does not
+name it will not tell you.** `changedValues()` in `tests/settingsstore.js` builds
+a non-default value for every key in `CONFIG.settings.defaults` and **returns the
+name of any key it has none for**, so `a-setting-changed-now-is-the-setting-a-
+reload-reads` goes red the moment a setting is added without one. That is the
+census working; the trap is what it costs. H10 added two settings, ran three
+green subsets first, and none of their regexes reached that check id — so the
+failure arrived at the end of a **65-minute** verify instead of in the first
+minute. **A job that adds a key to `CONFIG.settings.defaults` runs
+`--subset "setting"` before it runs anything else.** H9 was caught by the same
+census and got away with it by happening to look.
+
 **A setting outlives the page now.** Since H7, `SETTINGS` is written to
 `localStorage` whenever a player makes a decision - a settings row, the role
 row, a map card, the end of the tutorial - and read once at boot. A check that

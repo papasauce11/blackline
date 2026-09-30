@@ -26,7 +26,7 @@
  *     the runner drained before every check - which F11 measured at 236s of
  *     added run.
  *   - A top-level `runChecks` drains once more after its last check and
- *     returns the total as `pipelineWaitMs`, which `scripts/suite.mjs` prints
+ *     returns the total as `pipelineWaitMs`, which `scripts/suitereport.mjs` prints
  *     beside the run's ms.
  *   - And the check the wait was found in still asks for the drain. That line
  *     is one word long and is the whole of what keeps its 265s off its own
@@ -123,9 +123,18 @@ export function register(debugTools) {
       // computed in node and never reaches the page, so the contract is all a
       // check here can hold - and it is worth holding, because the pairs on
       // record from F5 to F11 differed by 100-190s and nothing ever said so.
+      // Since H10 the judging and the printing are `scripts/suitereport.mjs`,
+      // which suite.mjs imports, so both halves are held: the spread is still
+      // computed, and the runner still reaches the file that computes it. The
+      // pairing is `tests/registry.js`'s - an import with no call, or a
+      // computation nothing imports, is the silent half either way.
       const runner = await (await fetch(`${location.origin}/scripts/suite.mjs`)).text();
+      if (runner.indexOf("from './suitereport.mjs'") === -1) {
+        problems.push('scripts/suite.mjs no longer imports suitereport.mjs, so nothing judges its runs or prints them (H10)');
+      }
+      const verdict = await (await fetch(`${location.origin}/scripts/suitereport.mjs`)).text();
       for (const wanted of ['spreadMs', 'waitSpreadMs', 'spreads']) {
-        if (runner.indexOf(wanted) === -1) problems.push(`scripts/suite.mjs no longer computes ${wanted}: the report stops saying how far apart the runs of a map are (F16)`);
+        if (verdict.indexOf(wanted) === -1) problems.push(`scripts/suitereport.mjs no longer computes ${wanted}: the report stops saying how far apart the runs of a map are (F16)`);
       }
 
       // 5. And the check the wait was found in still asks.

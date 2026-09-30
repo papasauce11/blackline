@@ -113,6 +113,11 @@ export class GameMap {
     this.siteTintMesh = null;
     this._outlineGroup = new THREE.Group();
     this._outlineGroup.name = 'outlines';
+    // H10: one of the two places an inverted hull is made, and the quality
+    // preset switches them by this flag rather than by hunting `side:
+    // BackSide` materials. On the group, so every outline in the map is one
+    // `visible` away and an outline added later needs nothing.
+    this._outlineGroup.userData.isOutline = true;
     this.root.add(this._outlineGroup);
   }
 
