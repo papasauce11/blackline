@@ -184,10 +184,11 @@ one setting only Josh can click; everything else here proceeds.
   option is to hide the thumbnail map's own outline group and size its key light
   from the preset, so `low` previews itself. Only worth doing on D61's second
   line, and the first thing it needs is a reason a player would want the dimmest
-  version of the map they are choosing between. *done-when:* D61 says option 2,
-  and a check reads two cards baked at two levels and asserts their pixels
-  differ by more than the noise H23 measured between two sets at the same level
-  (80 bytes of PNG).
+  version of the map they are choosing between. **blocked: D61** — option 1 is
+  what is built, so there is nothing to do here unless Josh moves that line.
+  *done-when:* D61 says option 2, and a check reads two cards baked at two
+  levels and asserts their pixels differ by more than the noise H23 measured
+  between two sets at the same level (80 bytes of PNG).
 - [ ] **H24 (S)** Nobody has ever run the suite at `low` or `high`. The gate is
   pinned to `medium` by design (H10), and `npm run suite -- --query quality=low`
   already runs it at low - it has never been done, so which of the thirteen
