@@ -128,6 +128,16 @@ export function requestedQuality(search) {
 export function pinQuality(search) {
   pinned = requestedQuality(search);
   state.pin = pinned;
+  // H24: the pin is part of what is published, because it is half of
+  // `qualitySource()` - so moving it has to republish even though no knob
+  // turned. Without this, a check that took the pin down and put it back left
+  // `debugState.quality` naming the state it had in the middle, and the headless
+  // runner copies that record into its own: the first suite run at `?quality=
+  // high` reported "auto, from the probe" while drawing a pinned `high`,
+  // because `syncQuality()` had nothing to apply on the way back and so never
+  // published. A record that is only true when something moved is worse than no
+  // record.
+  publish();
   return pinned;
 }
 

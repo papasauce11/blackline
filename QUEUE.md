@@ -189,16 +189,55 @@ one setting only Josh can click; everything else here proceeds.
   *done-when:* D61 says option 2, and a check reads two cards baked at two
   levels and asserts their pixels differ by more than the noise H23 measured
   between two sets at the same level (80 bytes of PNG).
-- [ ] **H24 (S)** Nobody has ever run the suite at `low` or `high`. The gate is
-  pinned to `medium` by design (H10), and `npm run suite -- --query quality=low`
-  already runs it at low - it has never been done, so which of the thirteen
-  pixel-reading modules survive a picture with no post and no outlines is
-  unknown. Run it once on each map at `low` and once at `high`, record which
-  checks disagree and why, and decide per check whether it should be
-  level-agnostic or is honestly a medium-only reading. *done-when:* a PROGRESS
-  entry lists every check that answers differently at `low`, and either the
-  check reads the level or `PLAYTEST.md` says low is a picture the suite does
-  not judge.
+- [x] **H24 (S)** Nobody has ever run the suite at `low` or `high`. — done
+  2026-10-05, under Done. Eight checks answer differently at low and two at
+  high, and **one of the eight is not a level effect at all**: the preset scales
+  the particle count, `effects.sparks()` takes three shared-rng draws per
+  particle, and the Warden draws its burst pause from that same stream, so the
+  quality level moves the simulation. That is **H27**. The picture checks that
+  are honestly medium-only readings are **H28**.
+
+- [ ] **H27 (M)** The quality level moves the simulation, and a seed does not
+  reproduce a match across levels. Measured by H24: one impact's sparks are 15
+  shared-`rng` draws at `medium` and **6 at `low`** (`qualityParticles` scales
+  the count, each particle takes three draws), and the very next
+  `rng.range(engageBurstPauseMin, engageBurstPauseMax)` the AI makes is 0.3745
+  against 0.3492. `the-warden-fires-in-bursts-of-rounds-at-the-torso` goes red
+  on the yard at low because of it. So `?quality=` is not presentational, which
+  is what H10 and D60 both claim it is; `?seed=N` only replays a match at the
+  level it was recorded at, which Section 16 check 28 does not say; and **H13's
+  replays would be wrong by construction**. Three ways out: give `systems/
+  effects.js` its own stream seeded from the match seed, so presentation never
+  touches the simulation's draws (recommended - it is the only one that also
+  covers a future effect nobody has written yet); or always draw the full
+  `count` and use only `lit` of them, which keeps the stream identical and
+  wastes draws; or take the particle scale out of the preset, which makes `low`
+  pay for every spark and is the one option that changes what a player gets.
+  The third changes the game, so if it is preferred that is a decision to
+  raise. *done-when:* a check seeds a match, runs the same engagement at two
+  levels and asserts the shot timestamps are identical, and
+  `the-warden-fires-in-bursts-of-rounds-at-the-torso` is green at `low` on both
+  maps.
+
+- [ ] **H28 (S)** Six checks read a picture only `medium` draws, and say so by
+  going red rather than by naming the level. From H24, with what each reported:
+  `the-outline-darkens-the-silhouette-edge` ("the hull is not drawing" - low
+  turns the outlines off); `post-processing-blooms-the-emissives-darkens-the-
+  corners-and-is-a-switch` ("0 passes, not 7" - low draws no post);
+  `a-wall-the-key-lights-from-behind-reads-plain` (7 crossings at 512 and **11
+  at 2048** against a ceiling of 6, so it is a 1024-only reading at both ends);
+  and three with absolute pixel floors that are really fractions of the drawing
+  buffer - `the-shade-reads-as-a-hooded-figure-at-8m-and-25m` (1,476px against
+  3,000), `a-look-at-a-pose-photographs-the-state-named` (2,459px against
+  3,000) and `the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`
+  (104px, plus 6 draw calls against 12 because the outline hulls are gone). The
+  three floors are the valuable half: an absolute pixel count is a reading about
+  the buffer, so they would break on a resized canvas too and scaling them by
+  buffer area makes them *more* honest, not merely level-agnostic. The outline
+  and post pair should assert the **absence** at low rather than skip it, which
+  is a stronger check than either has now. *done-when:* `npm run suite --
+  --query quality=low` and `--query quality=high` are both exit 0 on both maps,
+  with no check weakened and no new entry in `suite-skips.json`.
 - [ ] **H25 (S)** Auto's pick depends on which map you open first, and it is
   stored for good. H10's verify measured the same machine twice: the plant reads
   **8.70ms median CPU and picks `low`**, the yard **5.30ms and picks `medium`**.
@@ -471,6 +510,37 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H24** The suite run at `low` and at `high` for the first time, on both maps.
+  **At low, eight checks answer differently** (seven of them real level
+  effects): `exactly-one-shadow-caster`, `the-outline-darkens-the-silhouette-
+  edge`, `post-processing-blooms-...-and-is-a-switch`,
+  `the-shade-reads-as-a-hooded-figure-at-8m-and-25m`,
+  `the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`,
+  `a-look-at-a-pose-photographs-the-state-named`, plus
+  `a-wall-the-key-lights-from-behind-reads-plain` on the plant and
+  `the-warden-fires-in-bursts-of-rounds-at-the-torso` on the yard. **At high,
+  two**: `exactly-one-shadow-caster` on both maps and `a-wall-...` on the
+  plant, which turns out to be a **1024-only** reading rather than a
+  medium-or-better one - 7 crossings at 512 and 11 at 2048 against a ceiling of
+  6. Two were fixed here, because the done-when allows a check to read the
+  level: `exactly-one-shadow-caster` compared the live shadow map to
+  `CONFIG.render.shadowMapSize`, which stopped being the answer when H10 made
+  it a preset knob, and reads `qualityPreset().shadowMapSize` now - green at all
+  three levels and strictly stronger, since it catches a level that failed to
+  apply its map. And the high run exposed a defect in **H23's own** check: the
+  run record said `drawing high quality (auto, from the probe)` while drawing a
+  pinned `high`, because `syncQuality()` publishes only when a knob turns and
+  the pin came back to the level already applied - so `pinQuality()` publishes
+  now, held by a new check. **The finding that matters is none of that**: the
+  eighth red is not a level effect. The preset scales the particle count,
+  `effects.sparks()` takes three shared-`rng` draws per particle (15 at medium,
+  6 at low) and the AI's burst pause comes off the same stream, so the quality
+  level moves the simulation - **H27**, with the proof measured. Also now on
+  record, and nobody had it: the suite costs **384s / 210s at low, 1,014s /
+  698s at medium, 1,560s / 1,138s at high** (plant / yard), so low is 2.6-3.3x
+  faster and high 1.5-1.6x slower. The remaining six are **H28**. Done
+  2026-10-05, commit `H24_COMMIT`.
 
 - **H23** One level for the whole strip of cards. `thumbnails.start()` takes
   `holdQuality()` for the length of the set it bakes, so `syncQuality()` applies

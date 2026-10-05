@@ -10647,3 +10647,146 @@ which is D61's other option and the only part of this the measurement makes
 interesting. **H24** and **H25** are untouched and still the next two jobs in
 the block. The orphan question in `HANDOFF.md` is now one line shorter and
 wants Josh's confirmation rather than his `taskkill`.
+
+## H24 — the suite at low and at high, and the preset that moves the game (2026-10-05 02:00, scheduled run)
+
+**What was asked.** The gate has been pinned to `?quality=medium` since H10, by
+design, so nobody had ever run the suite at another level and which of the
+pixel-reading modules survive a picture with no post and no outlines was
+unknown. Run it once per map at `low` and once at `high`, record what answers
+differently, and decide per check whether it should read the level or is
+honestly a medium-only reading.
+
+**What answered differently.** Eight checks at low, two at high, nothing flaky,
+no console errors at either. The medium baseline is the verify of two hours
+earlier on the same tree: everything green but the declared headless skip.
+
+| Check | low (512 / x0.7 / no post / no outlines) | high (2048 / x1.25) | what moved |
+|---|---|---|---|
+| `exactly-one-shadow-caster` | red, 512 | red, 2048 | read `CONFIG.render.shadowMapSize` |
+| `a-wall-the-key-lights-from-behind-reads-plain` (plant) | red, 7 crossings / 6 | red, 11 / 6 | a **1024-only** reading |
+| `the-outline-darkens-the-silhouette-edge` | red, "the hull is not drawing" | green | low has no outlines |
+| `post-processing-blooms-...-and-is-a-switch` | red, "0 passes, not 7" | green | low draws no post |
+| `the-shade-reads-as-a-hooded-figure-at-8m-and-25m` | red, 1,476px / 3,000 | green | an absolute pixel floor |
+| `a-look-at-a-pose-photographs-the-state-named` | red, 2,459px / 3,000 | green | the same floor |
+| `the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m` | red, 104px and 6 draw calls / 12 | green | the floor, and the missing hulls |
+| `the-warden-fires-in-bursts-of-rounds-at-the-torso` (yard) | red, a 0.18s pause / 0.25-0.7 | green | **not a level effect** |
+
+**The finding is the last row, and it is not about pixels.** The quality preset
+scales the particle count (`qualityParticles`, 5 sparks at medium and 2 at
+low), `effects.sparks()` takes **three draws from the shared seeded `rng` per
+particle**, and the Warden's burst pause is
+`rng.range(engageBurstPauseMin, engageBurstPauseMax)` off that same stream. So
+the level changes how far the stream has advanced, and the AI's next decision
+is a different number. Probed rather than argued, one impact from a fresh seed:
+
+| level | particles lit | shared-rng draws | the next burst pause the AI would draw |
+|---|---|---|---|
+| low | 2 | **6** | 0.3492 |
+| medium | 5 | 15 | 0.3745 |
+| high | 5 | 15 | 0.3745 |
+
+Which also explains the shape of the census: `particleScale` is 1 at both
+medium and high, so the stream only diverges at `low` — and the burst check is
+red at low and green at high, exactly as the draw counts predict.
+
+Three things follow, and none of them is small. **`?quality=` is not
+presentational**, which is what H10's module header and D60 both say it is, and
+what the pin was built on. **`?seed=N` reproduces a match only at the level it
+was recorded at**, which is not what Section 16 check 28 promises a seed does.
+And **H13's replays would be wrong by construction** — a recorded input stream
+replayed at another quality level diverges from the first impact onward. It is
+**H27**, with three ways out named and measured: a private stream for
+`systems/effects.js` (recommended — the only one that also covers an effect
+nobody has written yet), always drawing the full `count` and using `lit` of
+them, or taking the particle scale out of the preset, which is the one option
+that changes what a player gets and so would be a decision rather than a fix.
+
+The 0.18s pause itself is a *consequence* and not the bug: `rng.range(0.25,
+0.7)` cannot return 0.18, so what the check measured was a gap in an engagement
+that unfolded differently, classified as a pause. Which of the two it is — a
+diverged burst structure, or the path at `ai.js:161` that zeroes `_burstPause` —
+is the first question H27 answers, and this entry does not claim to know.
+
+**What was fixed here, because the done-when allows a check to read the
+level.** `exactly-one-shadow-caster` compared the live shadow map to
+`CONFIG.render.shadowMapSize`. That constant was the answer until H10 made the
+shadow map a preset knob, and after it the clause was green only at whichever
+level the gate happened to be pinned to — red at 512 and red at 2048. It reads
+`qualityPreset().shadowMapSize` now, which is also **strictly stronger**: it
+catches a level that failed to apply its shadow map, which a constant never
+could. Green at all three levels, naming both numbers: *"shadow map 512x512 and
+low asks for 512"*.
+
+This is the same lesson HANDOFF.md already carries — *a check that reads the
+constant the derivation read can only ever agree with it* — arriving from the
+other side. Here the check kept reading a constant the derivation had
+**stopped** reading, and the only thing that could have exposed it is running
+the suite at a level nobody had run it at. Which is the argument for H24
+existing, and for doing it again after any job that turns a constant into a
+table.
+
+**And the high run found a defect in H23's own check, four hours old.** The run
+record read `drawing high quality (auto, from the probe)` while the page was
+demonstrably drawing a pinned `high` — a true level beside a false source. The
+cause: `syncQuality()` publishes only when a knob actually turns, and
+`putBack()` restores the pin to a level that is already applied, so nothing
+published and `debugState.quality` kept the state it had in the middle of the
+check. At `medium` it never showed, because there the restore *does* move the
+level and so does publish. The runner copies that record into its own run
+record, so the first suite run ever done at `high` recorded a sentence that was
+not true of anything. `pinQuality()` publishes now — the pin is half of
+`qualitySource()`, so moving it is a change to the published state whether or
+not a knob turned.
+
+**Checks.** One new and one extended.
+
+- `the-published-quality-record-names-the-pin-in-force` (new, in
+  `tests/qualityhold.js`) pins to `high`, to nothing, and then **twice to the
+  level already applied**, which is the case that went stale, and requires the
+  record's `pin`, `source` and `level` to agree with `qualitySource()` and
+  `appliedQuality()` every time. It would go red if `pinQuality()` stopped
+  publishing.
+- `exactly-one-shadow-caster` (extended, `tests/map.js`) reads the preset.
+
+**What was verified.** The three-level smoke first, 8 checks per map at each
+level, all green — which is the reading that matters for this job, because it
+says the two fixes hold at the levels that exposed them: *"shadow map 512x512
+and low asks for 512"*, *"1024x1024 and medium asks for 1024"*, *"2048x2048 and
+high asks for 2048"*, and the record check putting the pin back as
+`?quality=low` / `medium` / `high` in turn.
+
+Then `npm run suite`, two runs per map on the finished tree: **plant 207 passed
+/ 1 failed / 8 not for this map (1,011,646ms and 1,020,270ms), yard 187 / 1 /
+28 (699,967ms and 706,901ms), exit 0, 0 red, 0 flaky, 0 console errors, 0
+context losses, 0 loop frames, 0 skips withheld.** One more per map than H23's
+pair (206 and 186), which is this job's one new check. The pairs agree within
+**8,624ms on the plant (1%) and 6,934ms on the yard (1%)**, and the pipeline
+tail was 450,872 / 454,755ms and 332,734 / 333,610ms. The one failure on each
+map is the frame-budget check, skipped headless.
+
+The `--details` flag reached the script this time, which is the trap H23 wrote
+up an hour earlier being read by the next job rather than paid for twice. And
+the run record's own line is the `pinQuality` fix showing its work: it reads
+`drawing medium quality (?quality=medium)` where H24's first high run read
+`auto, from the probe`.
+
+**And the cost of a run per level, which nobody had.** Plant / yard, one run
+each: **low 383,936ms / 210,084ms, medium 1,014,154ms / 698,044ms, high
+1,559,986ms / 1,138,459ms.** Low is **2.6x and 3.3x faster** than medium and
+high is 1.5x and 1.6x slower, almost all of it the renderer's pipeline tail
+(96,312ms at low against 439,814ms at medium and 711,680ms at high on the
+plant). That is not an argument for moving the pin — eight checks are red at
+low and six of them honestly — but a `low` run is now a known-cheap way to find
+out whether something is broken before paying for a medium one, and that is
+worth having written down.
+
+**What was left.** **H27**, above, and it is the next job. **H28**: the six
+remaining checks that read a picture only `medium` draws. The valuable half of
+H28 is the three absolute pixel floors — 3,000px for a figure's coverage is a
+reading about the drawing buffer rather than about the figure, so they would
+break on a resized canvas too, and scaling them by buffer area makes them more
+honest rather than merely level-agnostic. The outline and post pair should
+assert the **absence** at low rather than be excused from it, which is a
+stronger check than either has today. Nothing was weakened and nothing was
+added to `suite-skips.json`.

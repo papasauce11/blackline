@@ -11,6 +11,7 @@
 
 import { CONFIG } from '../config.js';
 import { classifyReach } from '../physics.js';
+import { activeQuality, qualityPreset } from '../quality.js';
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
@@ -28,10 +29,20 @@ export function register(debugTools) {
         if (object.isPointLight && object.castShadow) pointCasters++;
       });
       const size = h.map.keyLight.shadow.mapSize;
-      const mapOk = size.x === CONFIG.render.shadowMapSize && size.y === CONFIG.render.shadowMapSize;
+      // H24: the size the **level in force** asks for, not `CONFIG.render.
+      // shadowMapSize`. That constant is medium's seed and stopped being the
+      // answer when H10 made the shadow map a preset knob, so this clause was
+      // red at `low` (512) and at `high` (2048) and green only at the level the
+      // gate happens to be pinned to - which is the first thing the first run
+      // of the suite at another level found. Reading the preset is also strictly
+      // stronger: it now catches a level that failed to apply its shadow map,
+      // which the constant could never see.
+      const want = qualityPreset().shadowMapSize;
+      const mapOk = size.x === want && size.y === want;
       return {
         pass: casters === 1 && pointCasters === 0 && mapOk,
-        detail: `${total} lights, ${casters} shadow caster(s), ${pointCasters} shadowed point lights, shadow map ${size.x}x${size.y}`,
+        detail: `${total} lights, ${casters} shadow caster(s), ${pointCasters} shadowed point lights, `
+          + `shadow map ${size.x}x${size.y} and ${activeQuality()} asks for ${want}`,
       };
     },
   });

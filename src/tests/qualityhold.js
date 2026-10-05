@@ -36,7 +36,7 @@
 import { CONFIG, SETTINGS } from '../config.js';
 import {
   QUALITY_FALLBACK, activeQuality, appliedQuality, holdQuality, pinQuality,
-  qualityHold, qualityReadings, releaseQuality, syncQuality,
+  qualityHold, qualityReadings, qualitySource, releaseQuality, syncQuality,
 } from '../quality.js';
 import { listMaps } from '../maps/index.js';
 import { createThumbnails } from '../thumbnails.js';
@@ -93,6 +93,66 @@ function putBack(h, was) {
 }
 
 export function register(debugTools) {
+  debugTools.registerAutoTest({
+    id: 'the-published-quality-record-names-the-pin-in-force',
+    spec: 'Section 13, H24',
+    name: 'debugState.quality follows the pin even when the applied level does not move, so the run record cannot name a state nothing is in',
+    run: (h) => {
+      // H24. The headless runner copies `debugState.quality` into its own run
+      // record, and the first suite run ever done at `?quality=high` reported
+      // `drawing high quality (auto, from the probe)` - a true level beside a
+      // false source. The cause: `syncQuality()` publishes only when a knob
+      // turned, so a check that took the pin down, moved `SETTINGS` and put the
+      // pin back left the record as it was in the middle, because the level it
+      // came back to was the level it had left applied. Nothing was wrong with
+      // the picture; the sentence about it was wrong, which is worse in a file
+      // somebody reads a month later.
+      const problems = [];
+      const seen = [];
+      const was = { quality: SETTINGS.quality, post: SETTINGS.post, auto: SETTINGS.qualityAuto };
+      try {
+        // Pin, then pin to nothing, then pin again to the *same* level that is
+        // already applied: the third is the one that used to go stale.
+        for (const search of ['?quality=high', '', '?quality=high', '?quality=high']) {
+          pinQuality(search);
+          const record = h.debugState.quality;
+          const wantPin = search === '' ? null : 'high';
+          if (!record) {
+            problems.push('debugState.quality is unset, so the boot never installed the presets');
+            break;
+          }
+          if (record.pin !== wantPin) problems.push(`with "${search || 'no pin'}" up the record names pin ${JSON.stringify(record.pin)}`);
+          if (record.source !== qualitySource()) {
+            problems.push(`the record says the level came from "${record.source}" and it came from "${qualitySource()}"`);
+          }
+          // And the level in the record is the level the live objects are at,
+          // which is what makes the pair readable together.
+          if (record.level !== appliedQuality()) {
+            problems.push(`the record says ${record.level} is drawn and the renderer is at ${appliedQuality()}`);
+          }
+        }
+        seen.push('the record follows a pin up, down and back up to the level already applied');
+      } finally {
+        pinQuality(location.search);
+        SETTINGS.quality = was.quality;
+        SETTINGS.post = was.post;
+        SETTINGS.qualityAuto = was.auto;
+        syncQuality();
+      }
+
+      const record = h.debugState.quality;
+      if (record && record.source !== qualitySource()) {
+        problems.push(`left the record saying "${record.source}" against "${qualitySource()}"`);
+      }
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${seen.join('; ')}; put back naming ${record ? record.source : '?'}`
+          : problems.join('; '),
+      };
+    },
+  });
+
   debugTools.registerAutoTest({
     id: 'every-menu-card-is-baked-at-one-quality-level',
     spec: 'Section 13, H23',

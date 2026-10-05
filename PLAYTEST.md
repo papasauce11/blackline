@@ -82,6 +82,45 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### What the suite judges is the medium picture, and now we know by how much (H24, 2026-10-05)
+
+Worth knowing before you trust a green suite: **the checks are calibrated to
+`medium`, and only to medium.** Nobody had ever run them at another level. Now
+somebody has, once on each map at each level, and here is the honest shape of
+it:
+
+- At **low**, eight checks go red — six of them because low is a different
+  picture on purpose (no post, no outlines, a 512 shadow map, 70% of the
+  pixels), which is them working rather than failing. One was a check reading a
+  constant that stopped being the answer, and that is fixed. **The eighth is a
+  real bug, and it is not about pixels at all** — see below.
+- At **high**, two go red. One is the same fixed constant. The other is the
+  wall-banding check, which turns out to be a **1024-only** reading: a 2048
+  shadow map has sharper steps and bands *more*, not less.
+- So: **low is a picture the suite does not judge.** If you play at low and
+  something looks wrong, the checks will not have caught it. That is now
+  written down rather than assumed, and the six honest medium-only readings are
+  queued as **H28** to say which level they read instead of just going red.
+
+**And the bug.** At low the Warden fires differently. Not slightly — a
+measurably illegal pause between bursts. The cause has nothing to do with
+drawing: the quality preset scales how many spark particles an impact makes,
+every particle takes three numbers from the game's one seeded random stream,
+and the Warden takes its burst pause from that same stream. So fewer sparks
+means the Warden's next decision is a different number. One impact is 15 draws
+at medium and 6 at low.
+
+Two things follow that you should know about. **The quality row is not
+cosmetic** — it changes what the AI does. And **`?seed=12345` only replays a
+match at the quality level it was recorded at**, which is not what the seed is
+supposed to promise. That is **H27**, it is the next job, and the recommended
+fix is to give the effects their own random stream so that drawing can never
+reach the simulation again.
+
+**What is left for you:** nothing to judge here, but if you have been playing
+at low and the Warden felt different from what these notes describe, that is
+why, and you were not imagining it.
+
 ### The map cards are all one picture of one game (H23, 2026-10-05)
 
 Nothing to look at here unless it is wrong, which is the point of saying it.
