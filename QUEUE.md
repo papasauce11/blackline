@@ -528,7 +528,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   and a `smokeBurst()` with no gadget behind it left 200 sprites alive and spent
   a whole low run asserting about it — the half of a trap already in `TRAPS.md`
   that this check walked into from the other side. Done 2026-10-05, commit
-  `H27_COMMIT`.
+  `8d5b81a`.
 
 - **H24** The suite run at `low` and at `high` for the first time, on both maps.
   **At low, eight checks answer differently** (seven of them real level
