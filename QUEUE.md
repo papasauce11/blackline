@@ -168,15 +168,26 @@ one setting only Josh can click; everything else here proceeds.
   the level rather than the level rewriting it, are **D60**; **H23** and
   **H24** are what the work revealed. It also took `scripts/suite.mjs` past
   600 lines, so the verdict and the summary moved to `scripts/suitereport.mjs`.
-- [ ] **H23 (S)** The menu's cards and auto's probe race. `thumbnails.start()`
-  runs right after boot and the probe needs `warmFrames + minFrames` frames to
-  answer (H10), so on a first boot on a real machine a card can be baked at
-  `medium` and its neighbour at whatever auto then picked - the pin hides this
-  from the gate entirely. Either hold the cards until the probe has answered or
-  hold the level until the cards are done; the second is cheaper and is what a
-  player would rather have (a card drawn at the level they will play at).
-  *done-when:* a check drives a first boot with `SETTINGS.qualityAuto` null and
-  asserts every card was rendered at one level, naming which.
+- [x] **H23 (S)** The menu's cards and auto's probe race. — done 2026-10-05,
+  under Done. The level is held for the length of the strip. What the job
+  measured is that a card's picture does not depend on the level at all, so the
+  hold makes the *record* true rather than repairing a picture: **D61**, and
+  **H26** is the option it leaves open.
+
+- [ ] **H26 (S)** Should a menu card honour the quality level? Today it cannot:
+  H23 measured a card as **byte-identical at `low` and at `medium`** while the
+  renderer was demonstrably at low, because the outlines are hidden by a
+  traverse of the live scene and the shadow map resized on the live map's key
+  light, and a card is a fresh map in a fresh scene with its own 1024 key light
+  drawn into a fixed 480x270 target. D61 took "leave it level-agnostic" - a card
+  is a picture of a place and every friend should see the same strip. The other
+  option is to hide the thumbnail map's own outline group and size its key light
+  from the preset, so `low` previews itself. Only worth doing on D61's second
+  line, and the first thing it needs is a reason a player would want the dimmest
+  version of the map they are choosing between. *done-when:* D61 says option 2,
+  and a check reads two cards baked at two levels and asserts their pixels
+  differ by more than the noise H23 measured between two sets at the same level
+  (80 bytes of PNG).
 - [ ] **H24 (S)** Nobody has ever run the suite at `low` or `high`. The gate is
   pinned to `medium` by design (H10), and `npm run suite -- --query quality=low`
   already runs it at low - it has never been done, so which of the thirteen
@@ -459,6 +470,33 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H23** One level for the whole strip of cards. `thumbnails.start()` takes
+  `holdQuality()` for the length of the set it bakes, so `syncQuality()` applies
+  nothing until the release — and on a first boot, where `auto`'s probe answers
+  about one card in, the strip can no longer come out at two levels. The level
+  in force keeps moving underneath the hold (the probe still writes
+  `SETTINGS.qualityAuto`, the row still works) and the release applies whatever
+  the answer is by then; a second holder is **refused** rather than counted,
+  because two holders and one release is a page stuck at whatever level the menu
+  opened at. Each card records the level it was drawn at —
+  `appliedQuality()`, not `activeQuality()`, because what a card can be asked
+  about is the picture it got. **The finding is that the picture was never at
+  stake**: measured before a line was written, a card is byte-identical at
+  `low` and at `medium` while the renderer is demonstrably at low (896x503
+  buffer, 512 shadow map, 0 of 13 outlines shown, no post), because none of the
+  five knobs is in a card. So the hold makes `record.quality` a true sentence
+  rather than repairing a strip — insurance, kept because the day a knob does
+  reach a card it is already the fix. **D61**; **H26** is the other option.
+  One check in a new `src/tests/qualityhold.js` (`tests/quality.js` was at 599
+  lines and the block took it to 606): it reads the real boot's own set for
+  free, drives a first boot with the probe's one assignment landing between the
+  first card and the second, and then **drops the hold and requires the set to
+  split** — `plant at medium and yard at low` — which is what says the hold is
+  load-bearing. It declares `glSync: true`, because the first
+  `readRenderTargetPixels` of an extra set read **40,572ms against a 171ms
+  build** and 266ms moments later: F11's queued pipeline tail in a new place,
+  a wait and not work. Done 2026-10-05, commit `H23_COMMIT`.
 
 - **H10** Quality presets: **low / medium / high / auto** over the shadow map,
   the resolution scale, the post, the particle counts and the outline pass.

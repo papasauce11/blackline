@@ -36,6 +36,12 @@
  * picture back on the next frame rather than leaving every check after it
  * drawing at whatever the row landed on.
  *
+ * **And once in a page's life it is asked to stand still** (H23): something
+ * drawing a *set* of pictures that must all be one level takes
+ * `holdQuality()`, and `syncQuality` applies nothing until the release. The
+ * one caller is the menu's cards; see `hold` below for why that is the fix and
+ * not a waiting room.
+ *
  * Layering (Section 3.1): imports config only, as `settingsstore.js` and
  * `version.js` do, so anything may reach it — `view.js` for the pixel ratio and
  * `systems/effects.js` for the particle counts both do.
@@ -70,6 +76,30 @@ const state = { applied: null, from: 'nothing applied yet', pin: null, probe: nu
 
 /** The probe, or null once it has answered. */
 let probe = null;
+
+/**
+ * Who is holding the applied level still, or null (H23).
+ *
+ * The level in force keeps moving underneath a hold - a probe that answers
+ * writes `SETTINGS.qualityAuto`, a player can still cycle the row - and the
+ * first frame after the release applies whatever the answer is by then.
+ * Nothing is remembered and nothing is refused; only the moment of applying
+ * is deferred.
+ *
+ * It exists for one thing. The menu's cards (`thumbnails.js`) are a **set** of
+ * pictures drawn one task apart, and on a first boot `auto`'s probe answers
+ * eighteen frames in - which is about one card - so without this the first card
+ * is drawn at the fallback and its neighbour at whatever the probe picked. Of
+ * the two ways to stop that, holding the level is the cheaper and is the one a
+ * player would rather have: the cards arrive now, at the level they are about
+ * to play at, rather than the strip staying empty until a probe has finished
+ * measuring.
+ *
+ * Not nestable, deliberately. Two holders and one release is a page stuck at
+ * whatever level the menu happened to open at, so a second `holdQuality` is
+ * refused rather than counted, and the check holds that.
+ */
+let hold = null;
 
 /**
  * Does this URL query pin a quality level? `?quality=medium`, the way
@@ -107,6 +137,51 @@ export function activeQuality() {
   if (QUALITY_LEVELS.indexOf(wanted) !== -1) return wanted;
   const picked = SETTINGS.qualityAuto;
   return QUALITY_LEVELS.indexOf(picked) !== -1 ? picked : QUALITY_FALLBACK;
+}
+
+/**
+ * The level the live objects are actually at, which is not always the one in
+ * force: a hold is up, or nothing has been applied yet. This is the honest
+ * answer to "what was that frame drawn at", and what a menu card records (H23).
+ */
+export function appliedQuality() {
+  return state.applied;
+}
+
+/**
+ * Hold the applied level still until `releaseQuality`. False if something
+ * already holds it, which is not an error to recover from but a bug to report:
+ * see the note on `hold`.
+ *
+ * @param {string} reason who is holding it, for the report
+ * @returns {boolean} whether this call is now the holder
+ */
+export function holdQuality(reason) {
+  if (hold) return false;
+  hold = reason;
+  publish();
+  return true;
+}
+
+/**
+ * Drop the hold and apply whatever the answer is now, in one frame's worth of
+ * work rather than waiting for the next frame to notice.
+ *
+ * @returns {object|null} the readings, if the level had moved under the hold
+ */
+export function releaseQuality() {
+  if (!hold) return null;
+  hold = null;
+  const applied = syncQuality();
+  // `applyQuality` publishes; nothing moved means nothing published, and the
+  // record would still say the level was held.
+  if (!applied) publish();
+  return applied;
+}
+
+/** What is holding the level still, or null. */
+export function qualityHold() {
+  return hold;
 }
 
 /** Where the level came from, for the report: the URL, the player, auto, or the fallback. */
@@ -235,8 +310,12 @@ function publish() {
  * Assert the applied level every frame, and reach for a knob only when it has
  * moved — a string compare per frame. Called from `renderFrame` before the
  * draw, so the frame is drawn at whatever the answer is now.
+ *
+ * Unless something is holding it (H23), in which case this is the frame that
+ * does not move the picture — which is the whole of what a hold is.
  */
 export function syncQuality() {
+  if (hold) return null;
   const want = activeQuality();
   if (want === state.applied) return null;
   return applyQuality(want);
@@ -392,7 +471,7 @@ export function sampleQualityFrame(ms) {
 
 /** What `debugState.quality` carries, and the run record with it. */
 export function qualityState() {
-  return { ...qualityReadings(), source: qualitySource(), probe: state.probe };
+  return { ...qualityReadings(), source: qualitySource(), hold, probe: state.probe };
 }
 
 /**
@@ -411,6 +490,9 @@ export function installQuality({ renderer, post, scene, map, debugState = null, 
   live.debugState = debugState;
   live.onProbed = onProbed;
   probe = createQualityProbe();
+  // A fresh install is a fresh set of live objects, so nothing may still be
+  // holding the level over them (H23).
+  hold = null;
   return applyQuality();
 }
 

@@ -10511,3 +10511,139 @@ is that `low` turns the outlines off: everything else in that row is pure cost,
 but the outline is how a body separates from the concrete behind it, so a
 friend on a weak laptop might be playing a *more readable* game at medium with
 a 512 shadow map than at low.
+
+## H23 — one level for the whole strip of cards (2026-10-05 02:00, scheduled run)
+
+**What was built.** `holdQuality()` / `releaseQuality()` in `src/quality.js`,
+and `thumbnails.start()` taking the hold for the length of the set it bakes.
+While a hold is up `syncQuality()` applies nothing; the level in force keeps
+moving underneath it — a probe that answers still writes
+`SETTINGS.qualityAuto`, a player can still cycle the row — and the release
+applies whatever the answer is by then. Each card now records the level it was
+actually drawn at (`record.maps[id].quality`, from `appliedQuality()` and not
+`activeQuality()`, because what a card can be asked about is the picture it
+got), and the set records the one level it started at.
+
+**The race, and where it comes from.** `thumbnails.start()` runs right after
+`window.BLACKLINE` is published, the cards are drawn one task apart, and the
+game is rendering frames in the gaps. `auto`'s probe answers
+`warmFrames + minFrames` frames in — eighteen, about 300ms, which is about one
+card — so on a first boot the first card is drawn at the fallback and its
+neighbour at whatever the probe then picked. H10's `?quality=` pin hides it
+from the suite completely, which is how it survived that job and why it was
+queued rather than found.
+
+Of the two fixes the queue named — hold the cards until the probe has answered,
+or hold the level until the cards are done — the second is what was built, for
+the reason the queue gave: the cards arrive at once, at the level about to be
+played at, rather than the strip staying empty while a probe measures.
+
+**What was found, and it changes what the job is worth.** *The level does not
+reach a card's pixels at all.* Measured with `npm run probe` before a line was
+written: with the renderer demonstrably at `low` — an **896x503 buffer, a 512
+shadow map, 0 of 13 outlines shown, no post pass** — a card came back
+**byte-identical** to the same card at `medium`, on both maps (71,770 and
+68,546 bytes either way). None of the five knobs is in a card. The outlines are
+hidden by a traverse of the *live* scene and the shadow map resized on the
+*live* map's key light, while a card is a fresh `buildDrawnMap` in a fresh
+scene with its own 1024 key light, drawn into a fixed 480x270 render target
+that no pixel ratio reaches, with no post and no particles.
+
+So the race was real in the **record** and not in the picture, and the hold is
+what makes `record.quality` true rather than what repairs a strip of cards.
+That is worth saying plainly because it is the difference between a fix and
+insurance — and it is insurance worth holding, because the day a knob does
+reach a card the hold is already the fix and the check already names the
+invariant. Whether a card *should* honour the level is a look question and a
+new one: **D61**, recommendation taken as built, with **H26** queued if Josh
+would rather see the game he is about to play.
+
+**The 40-second card that was a wait, not work.** The first extra thumbnail set
+the probe baked read **40,572ms on the plant with a 171ms build** — 40 seconds
+inside one `readRenderTargetPixels`. The second set, moments later, cost
+**266ms for both maps**. That is F11's finding in a new place: under
+SwiftShader `render()` queues, `readRenderTargetPixels` blocks on a GPU sync,
+and whichever call synchronises first pays for everything the run has queued —
+here the 60 warm frames the probe drives before it hands over. TRAPS.md says to
+put the suspect call on its own clock before reading its ms as its cost, and
+that is exactly what the second set was. The check declares `glSync: true`, so
+the runner drains before it and the wait lands on the run rather than on the
+check; it reads **1,842ms on the plant and 1,230ms on the yard**.
+
+Also measured and deliberately not asserted: two sets at the *same* level are
+**not** byte-identical across boot and later (71,690 against 71,770 bytes). So
+a check comparing one set's pixels to another's would be flaky, and this one
+reads the recorded level instead. A pixel comparison would also have passed
+today for a reason with nothing to do with the hold, which is the better
+argument against it.
+
+**Checks.** One new, in a new `src/tests/qualityhold.js`, because
+`tests/quality.js` was at 599 lines and the block took it to 606 — Section 3.1
+splits past ~600 (F3), and the subject is different anyway: that file is the
+five knobs read off the renderer, this one is the moment they are allowed to
+turn.
+
+- `every-menu-card-is-baked-at-one-quality-level` reads the real boot's own set
+  first and for free (H4's discipline, and the only clause that would notice
+  `start()` dropping the hold altogether), then drives a first boot — nothing
+  stored, the row on `auto`, the pin down — with the probe's one assignment
+  landing between the first card and the second. The interleaving rests on the
+  ordering this page already depends on: `yieldToPaint` posts a port message,
+  messages posted earlier are delivered earlier, and
+  `the-bake-yields-the-page-a-frame-to-paint` counts its markers with exactly
+  that. Then **the control**: the same drive with the hold dropped, which must
+  split the set, or the hold is not what made it one. It does split —
+  `plant at medium and yard at low`. Then one holder at a time (a second
+  `holdQuality` is refused rather than counted, because two holders and one
+  release is a page stuck at whatever level the menu opened at), nothing
+  applied while held, and a release that catches up with what moved. And it
+  owes the same restore census as its neighbour, since it resizes the drawing
+  buffer and thirteen pixel-reading modules run beside it: level, pixel ratio,
+  buffer, shadow map, post and the outline count all back where they were. It
+  reads, on both maps: *the boot's own 2 cards all at medium; 2 cards all at
+  medium with auto picking low in the middle of the set, then the game at low;
+  with the hold dropped the same drive draws plant at medium and yard at low;
+  one holder at a time, nothing applied while held, and the release applies
+  what moved; put back at medium, 1280x720* — 1,842ms on the plant, 1,230ms on
+  the yard.
+
+**What was verified.** A gate on the base first, on a clean tree, read before a
+line was written: **plant 205 passed / 1 failed / 8 not for this map
+(1,017,882ms), yard 185 / 1 / 28 (704,456ms), exit 0, 0 red, 0 flaky, 0 console
+errors, 0 context losses, 0 skips withheld** — and for the first time since
+2026-09-18 **no `OTHER RUNNERS ALIVE` line**: the orphan pair from that date is
+gone, so every timing here is the first on record measured without it. Then a
+smoke subset on the finished tree (9 checks, both maps, all green) before the
+verify, which is the habit H10 paid 65 minutes to learn.
+
+Then `npm run suite`, two runs per map on the finished tree: **plant 206 passed
+/ 1 failed / 8 not for this map (1,014,154ms and 1,023,599ms), yard 186 / 1 /
+28 (698,044ms and 696,721ms), exit 0, 0 red, 0 flaky, 0 console errors, 0
+context losses, 0 loop frames, 0 skips withheld.** One more per map than the
+base gate (plant 205, yard 185), which is H23's one check exactly. The run
+pairs agree within **9,445ms on the plant (1% of the longer) and 1,323ms on the
+yard (0%)** — the tightest pair on record against H10's 2% and 5%, and the
+first taken with no orphaned runner beside them, which is at least consistent
+with that being what the 09-18 pair was costing. The pipeline tail was 439,814
+and 453,923ms on the plant, 334,851 and 328,387ms on the yard. The one failure
+on each map is the frame-budget check, skipped headless. Auto's own reading
+moved again — 5.80ms on the plant and 4.90ms on the yard, both `medium`,
+against H10's 8.70 and 5.30 — which is **H25** saying the same thing a third
+time and is now also a statement about machine load rather than scene alone.
+
+**And a flag was swallowed, which is the new trap.** The verify was started as
+`npm run suite --details <file>` without npm's own `--`, so npm read the flag
+as its config and `scripts/suite.mjs` was handed no arguments: a perfectly
+valid four-run verify at the defaults that silently wrote no details file. So
+the per-check detail line and ms quoted above come from the smoke subset run on
+the identical tree, not from the verify. It was not re-run, because stopping a
+backgrounded runner leaves `suite.mjs` alive to the end of its runs and the
+replacement would have been measured beside it (TRAPS.md), which is a worse
+reading than a missing file. The trap is written up with its sharper sibling:
+**`npm run suite --runs 1` is a silent four-run suite.**
+
+**What was left.** **H26**, whether a card should honour the level at all,
+which is D61's other option and the only part of this the measurement makes
+interesting. **H24** and **H25** are untouched and still the next two jobs in
+the block. The orphan question in `HANDOFF.md` is now one line shorter and
+wants Josh's confirmation rather than his `taskkill`.

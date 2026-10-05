@@ -110,6 +110,44 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D61 — A menu card does not honour the quality level, and is left that way
+
+**Raised by:** H23, 2026-10-05. H23 held the quality level still for the length
+of the strip of cards the main menu bakes, so that a first boot cannot draw one
+card at the fallback and its neighbour at whatever `auto` then picked. Building
+it turned up something the queue had assumed the other way, and it is a look
+question rather than a rule, so the recommendation is taken and here it is.
+
+**A card's picture does not depend on the level at all.** Measured with
+`npm run probe` before anything was written: with the renderer demonstrably at
+`low` — an 896x503 buffer, a 512 shadow map, 0 of 13 outlines shown, no post
+pass — a card came back **byte-identical** to the same card at `medium`, on
+both maps. None of the five knobs is in a card. The outlines are hidden by a
+traverse of the *live* scene and the shadow map resized on the *live* map's key
+light, while a card is a fresh map in a fresh scene with its own 1024 key light,
+drawn into a fixed 480x270 render target that no pixel ratio reaches, with no
+post and no particles.
+
+So H23's race was real in the **record** and not in the picture, and the hold
+is insurance rather than a repair. Three ways to go:
+
+1. **Taken: leave a card level-agnostic, and hold the level anyway.** A card is
+   a picture of a place, not a frame of a round — the same argument that turns
+   the fog off in a thumbnail scene (D55) — and every friend seeing the same
+   strip is worth more than a strip that previews their own machine. The hold
+   stays because it is what makes `record.quality` a true sentence, it costs one
+   string, and the day a knob *does* reach a card it is already the fix.
+2. *Make a card honour the level* — hide the thumbnail map's own outline group
+   and size its key light from the preset. Then `low` previews itself: a player
+   on a weak laptop sees the game they are about to get. Against it: the card is
+   where someone decides which map to play, and deciding that from the dimmest
+   version of it is a worse card. That is **H26**, and it is one line here.
+3. *Drop the hold and the recorded level.* Rejected: it leaves a real race
+   unguarded on the argument that it does not show today, which is the argument
+   that let it survive H10.
+
+decided:
+
 ### D60 — Quality presets: the post is an AND, and what each level is worth
 
 **Raised by:** H10, 2026-09-29. Low / medium / high / auto over five knobs.

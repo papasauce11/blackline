@@ -71,6 +71,7 @@ import { register as registerLook } from './look.js';
 import { register as registerMaterials } from './materials.js';
 import { register as registerYardMaterials } from './yardmaterials.js';
 import { register as registerQuality } from './quality.js';
+import { register as registerQualityHold } from './qualityhold.js';
 import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
@@ -145,6 +146,10 @@ export function registerAutoTests(debugTools) {
   // drawing buffer, so anything it failed to put back is seen by the soak and
   // the frame-budget check rather than hidden behind them (H10).
   registerQuality(debugTools);
+  // Beside it, and after it: the level held still while the menu bakes a set
+  // of cards (H23). It resizes the drawing buffer for the same reason and
+  // belongs on the same side of the pixel-reading modules.
+  registerQualityHold(debugTools);
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);

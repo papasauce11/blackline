@@ -32,6 +32,20 @@
  *    the map's own lights stay, because the yard's lamps are the yard.
  *
  * All of that is look, not rule: D55.
+ *
+ * **One level for the whole strip** (H23). `start()` takes `holdQuality()` for
+ * the length of the set, because on a first boot `auto`'s probe answers about
+ * one card in and the cards would otherwise be drawn at two different levels.
+ * What was measured when that was built: at `low` the renderer is demonstrably
+ * at low - an 896x503 buffer, a 512 shadow map, 0 of 13 outlines shown, no post
+ * - and a card still comes back **byte-identical** to the same card at
+ * `medium`, because none of those knobs is in here. The outlines are hidden by
+ * a traverse of the *live* scene and the shadow map resized on the *live*
+ * map's key light, while a card is a fresh map in a fresh scene with its own
+ * 1024 key light, drawn into a fixed 480x270 target that no pixel ratio
+ * reaches, with no post pass and no particles. So the hold is what makes
+ * `record.quality` true rather than what repairs a picture - and the day a knob
+ * does reach a card, it is already the fix.
  */
 
 import * as THREE from 'three';
@@ -39,6 +53,7 @@ import { CONFIG } from './config.js';
 import { listMaps, buildDrawnMap } from './maps/index.js';
 import { yieldToPaint } from './bootscreen.js';
 import { createScene } from './view.js';
+import { appliedQuality, holdQuality, releaseQuality } from './quality.js';
 
 const T = CONFIG.menu.thumbnail;
 
@@ -85,8 +100,12 @@ export function thumbnailEye(map) {
 export function createThumbnails({ renderer, camera, gradientMap }) {
   /** id -> data URL, filled as each is rendered. */
   const urls = new Map();
-  /** What was drawn, for the check and the F3 overlay: per map, and the total. */
-  const record = { maps: {}, ms: 0, done: false };
+  /**
+   * What was drawn, for the check and the F3 overlay: per map, and the total.
+   * `quality` is the level the whole set was drawn at (H23) - one level, because
+   * `start()` holds it for the length of the set.
+   */
+  const record = { maps: {}, ms: 0, done: false, quality: null };
   let started = null;
   let settle = null;
   const ready = new Promise((resolve) => { settle = resolve; });
@@ -183,6 +202,10 @@ export function createThumbnails({ renderer, camera, gradientMap }) {
       ms: Math.round(performance.now() - t0),
       boxes: map.collision.boxes.length,
       bytes: url.length,
+      // The level the renderer was actually at for this draw, not the one in
+      // force: `appliedQuality()` and not `activeQuality()`, because what a
+      // card can be asked about is the picture it got (H23).
+      quality: appliedQuality(),
       eye: [Math.round(eye.from.x), Math.round(eye.from.y), Math.round(eye.from.z)],
     };
     return url;
@@ -206,19 +229,35 @@ export function createThumbnails({ renderer, camera, gradientMap }) {
     start() {
       if (started) return started;
       const t0 = performance.now();
+      // H23: one level for the whole strip. These are drawn one task apart and
+      // the game is drawing frames in between, so on a first boot `auto`'s
+      // probe answers somewhere in the middle of the set and the cards would
+      // come out at two different levels - which the headless gate's
+      // `?quality=` pin hides completely. The level is held rather than waited
+      // for, so the cards arrive at once and at the level about to be played
+      // at; `hold` in quality.js has the argument.
+      holdQuality('the menu is baking its cards');
+      record.quality = appliedQuality();
       started = (async () => {
-        for (const entry of listMaps()) {
-          // A real task boundary between maps, never inside one: two bakes and
-          // two draws back to back would be the one long block on the main
-          // thread that H4 took out of the boot. `await` on a settled promise
-          // is a microtask and would not yield at all (TRAPS.md), so this is
-          // the same posted message H4's bake lets go of the thread with.
-          await yieldToPaint();
-          urls.set(entry.id, renderOne(entry.id));
+        try {
+          for (const entry of listMaps()) {
+            // A real task boundary between maps, never inside one: two bakes and
+            // two draws back to back would be the one long block on the main
+            // thread that H4 took out of the boot. `await` on a settled promise
+            // is a microtask and would not yield at all (TRAPS.md), so this is
+            // the same posted message H4's bake lets go of the thread with.
+            await yieldToPaint();
+            urls.set(entry.id, renderOne(entry.id));
+          }
+          record.ms = Math.round(performance.now() - t0);
+          record.done = true;
+          settle();
+        } finally {
+          // Whatever happened in there, the page does not stay pinned to the
+          // level the menu opened at - a throw here used to leave `ready`
+          // pending and would now leave the picture held as well.
+          releaseQuality();
         }
-        record.ms = Math.round(performance.now() - t0);
-        record.done = true;
-        settle();
       })();
       return started;
     },

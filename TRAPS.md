@@ -325,3 +325,16 @@ cancel and what is left is the texture.
 is 0.75 linear, and the surface it multiplies is lit in linear: E4's first
 grime took a fifth off a lit floor where the texel promised a tenth. Budget the
 darkening from the pixels, not the texel.
+
+**`npm run suite --details out.txt` writes no details, and says nothing.** A
+flag has to come after npm's own `--` to reach the script: without it npm reads
+`--details out.txt` as its own config and `scripts/suite.mjs` is handed no
+arguments at all. H23 lost a verify's worth of per-check readings that way -
+the run itself was perfectly valid, four runs at the defaults, but the file it
+was told to write never appeared and nothing complained, because a runner
+cannot tell a flag it was never given from a flag nobody wanted. The same
+swallow applies to `--runs`, `--subset`, `--map` and `--query`, where the cost
+is worse: `npm run suite --runs 1` is a silent **four-run** suite. Every
+example in `HANDOFF.md` has the `--` in it; copy one rather than typing it. And
+when a run is meant to produce a file, check the file exists before reading the
+run as the measurement you asked for.

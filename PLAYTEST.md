@@ -82,6 +82,39 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The map cards are all one picture of one game (H23, 2026-10-05)
+
+Nothing to look at here unless it is wrong, which is the point of saying it.
+The main menu bakes a card per map at boot, one after the other, and on your
+**very first visit** the `auto` quality probe finishes measuring somewhere in
+the middle of that — about one card in. So the strip could have come out with
+the plant drawn at one level and the yard at another. It cannot now: the level
+is held still until the whole strip is done, then released, so the cards are
+one set drawn one way and the game catches up with whatever `auto` picked a
+frame later.
+
+While building it I measured something that makes this smaller than it sounds:
+**a card's picture does not depend on the level at all.** With the renderer
+provably at `low` — a 896x503 buffer, a 512 shadow map, every outline off, no
+post — a card comes back pixel-for-pixel identical to the same card at
+`medium`. None of the five knobs is actually inside a card: a card is a fresh
+copy of the map in its own little scene with its own light, drawn at a fixed
+480x270. So the hold is insurance rather than a repair.
+
+Which leaves one question that is yours (**D61**): should a card preview the
+level you are about to play at? I took *no* — a card is where you decide which
+map to play, and deciding that from the dimmest version of it is a worse card,
+and everyone you send the link to seeing the same strip is worth something. If
+you would rather the card showed you your own game, that is **H26** and it is
+one line in `DECISIONS.md`.
+
+`every-menu-card-is-baked-at-one-quality-level` holds it, and the half of it
+worth knowing about is that it **drops the hold and insists the strip then
+breaks** — otherwise the check would be agreeing with itself.
+
+**What is left for you:** D61, above. And whether the cards read as the places
+they are of at all, which is D55 and older.
+
 ### There is a quality row, and it can measure your machine (H10, 2026-09-29)
 
 Settings, one new row: **quality**, cycling `low`, `medium`, `high`, `auto`.
