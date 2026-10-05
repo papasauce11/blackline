@@ -32,13 +32,38 @@ export function debugRequested(search) {
 // ---------------------------------------------------------------------------
 // Seeded PRNG (Section 2, Section 15)
 //
-// mulberry32. One generator for the whole codebase. The seed is set at match
-// start and surfaced in the F3 overlay so any bug can be reproduced.
+// mulberry32, and **two streams off one seed** (H27). `rng` is the simulation's
+// and is the one the F3 overlay counts; `lookRng` is presentation's, and
+// `systems/effects.js` is its only caller.
+//
+// Why there are two. Until H27 there was one, and `effects.sparks()` drew three
+// numbers per particle from it with a particle count the quality preset scales
+// - so `?quality=low` lit two sparks where `medium` lit five, took 6 draws
+// where medium took 15, and every simulation draw after the first impact came
+// out different. H24 measured it: the next burst pause the Warden would draw
+// was 0.3745 at medium and 0.3492 at low, off the same impact. That made the
+// quality setting a thing that changes the game rather than how it looks, made
+// `?seed=N` reproduce a match only at the level it was recorded at, and would
+// have made H13's replays wrong by construction.
+//
+// Splitting the stream is the fix that also covers the effect nobody has
+// written yet: presentation cannot reach the simulation's draws because it is
+// not drawing from them. The alternative considered was to draw the full
+// unscaled count and light only some of them, which keeps one stream and fixes
+// the level dependence, but leaves every future presentation draw one careless
+// edit away from the same bug.
+//
+// Both streams are seeded from the match seed in one place - `rng.reseed()`,
+// called once per match from `initMatch` - so a seed still reproduces a match
+// exactly, which is what Section 16 check 28 promises. The look stream is
+// salted so the two never hand out the same sequence.
 // ---------------------------------------------------------------------------
 
 const MULBERRY_INC = 0x6d2b79f5;
 const MULBERRY_DIV = 4294967296;
 const DEFAULT_SEED = 0x424c4b4c; // "BLKL"
+/** Keeps the look stream from being the simulation's stream over again. */
+const LOOK_SALT = 0x9e3779b9;
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
@@ -56,76 +81,122 @@ const rngState = {
   calls: 0,
 };
 
-export const rng = {
-  /** Re-seed the generator. Called once per match from initMatch(). */
-  reseed(seed) {
-    const s = (seed >>> 0) || DEFAULT_SEED;
-    rngState.seed = s;
-    rngState.next = mulberry32(s);
-    rngState.calls = 0;
-    return s;
-  },
+const lookState = {
+  next: mulberry32((DEFAULT_SEED ^ LOOK_SALT) >>> 0),
+  calls: 0,
+};
 
+/**
+ * The derived helpers, over whichever state is handed in. Both streams get the
+ * same surface from one definition, so `lookRng.unit()` cannot drift from
+ * `rng.unit()` and a caller moved from one to the other needs no rewriting.
+ *
+ * @param {{next: () => number, calls: number}} state
+ */
+function streamOver(state) {
+  const stream = {
+    /** How many values have been drawn. Determinism canary. */
+    get calls() {
+      return state.calls;
+    },
+
+    /** Float in [0, 1). */
+    next() {
+      state.calls++;
+      return state.next();
+    },
+
+    /** Float in [min, max). */
+    range(min, max) {
+      return min + (max - min) * stream.next();
+    },
+
+    /** Integer in [min, max] inclusive. */
+    int(min, max) {
+      return min + Math.floor(stream.next() * (max - min + 1));
+    },
+
+    /** Uniform element from a non-empty array. */
+    pick(array) {
+      return array[Math.floor(stream.next() * array.length)];
+    },
+
+    /** True with probability p. */
+    chance(p) {
+      return stream.next() < p;
+    },
+
+    /** -1 or +1. */
+    sign() {
+      return stream.next() < 0.5 ? -1 : 1;
+    },
+
+    /** Float in [-1, 1). */
+    unit() {
+      return stream.next() * 2 - 1;
+    },
+
+    /**
+     * Fisher-Yates shuffle, in place, using this stream.
+     * Used for the randomised patrol circuit (Section 11).
+     */
+    shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(stream.next() * (i + 1));
+        const tmp = array[i];
+        array[i] = array[j];
+        array[j] = tmp;
+      }
+      return array;
+    },
+  };
+  return stream;
+}
+
+/** The simulation's stream, plus the two match-level members only it has. */
+export const rng = streamOver(rngState);
+
+/**
+ * Re-seed **both** streams. Called once per match from initMatch(), and it is
+ * deliberately the only way either is seeded: two reseed functions is one a
+ * caller can forget, and a look stream nobody reseeded would hand every match
+ * the same sparks (H27).
+ */
+rng.reseed = function reseed(seed) {
+  const s = (seed >>> 0) || DEFAULT_SEED;
+  rngState.seed = s;
+  rngState.next = mulberry32(s);
+  rngState.calls = 0;
+  lookState.next = mulberry32((s ^ LOOK_SALT) >>> 0);
+  lookState.calls = 0;
+  return s;
+};
+
+// Defined rather than written into an object literal, because a literal that
+// spread the factory's result would copy `calls` as the number it was at that
+// moment instead of the getter - which is exactly what the first draft of H27
+// did, leaving `rng.calls` frozen at 0 and the F3 overlay's determinism canary
+// reading zero draws for the life of the page.
+Object.defineProperty(rng, 'seed', {
   /** Current seed, for the debug overlay and the scoreboard. */
-  get seed() {
+  get() {
     return rngState.seed;
   },
+  enumerable: true,
+});
 
-  /** How many values have been drawn. Determinism canary. */
-  get calls() {
-    return rngState.calls;
-  },
-
-  /** Float in [0, 1). */
-  next() {
-    rngState.calls++;
-    return rngState.next();
-  },
-
-  /** Float in [min, max). */
-  range(min, max) {
-    return min + (max - min) * rng.next();
-  },
-
-  /** Integer in [min, max] inclusive. */
-  int(min, max) {
-    return min + Math.floor(rng.next() * (max - min + 1));
-  },
-
-  /** Uniform element from a non-empty array. */
-  pick(array) {
-    return array[Math.floor(rng.next() * array.length)];
-  },
-
-  /** True with probability p. */
-  chance(p) {
-    return rng.next() < p;
-  },
-
-  /** -1 or +1. */
-  sign() {
-    return rng.next() < 0.5 ? -1 : 1;
-  },
-
-  /** Float in [-1, 1). */
-  unit() {
-    return rng.next() * 2 - 1;
-  },
-
-  /**
-   * Fisher-Yates shuffle, in place, using the seeded stream.
-   * Used for the randomised patrol circuit (Section 11).
-   */
-  shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(rng.next() * (i + 1));
-      const tmp = array[i];
-      array[i] = array[j];
-      array[j] = tmp;
-    }
-    return array;
-  },
-};
+/**
+ * Presentation's stream (H27). Sparks, smoke puffs, a footprint's yaw, a
+ * ragdoll's tumble - anything whose draw count can depend on a quality preset
+ * or on how many of something the renderer felt like drawing. Seeded from the
+ * match seed by `rng.reseed`, so it is as reproducible as the simulation's and
+ * as unable to disturb it.
+ *
+ * Layering: if a value drawn here ever decides something a player can lose to,
+ * it belongs on `rng` instead. `the-quality-level-cannot-move-the-simulation`
+ * is what notices.
+ */
+export const lookRng = streamOver(lookState);
 
 /**
  * The seed `?seed=<n>` names in a query string, or null when it names none.

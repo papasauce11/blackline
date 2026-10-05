@@ -110,6 +110,47 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D62 — The quality level is presentational again, and it took a second rng
+
+**Raised by:** H27, 2026-10-05, and recorded rather than asked because nothing
+in it changes what a player can do — it removes something that did.
+
+H24 ran the suite at `low` for the first time and found that **the quality
+setting was changing the game.** `effects.sparks()` drew three numbers per
+particle from the one seeded `rng` and the preset scales the particle count, so
+an impact cost 15 draws at `medium` and 6 at `low`, and every simulation draw
+after the first bullet to hit anything came out different. The Warden's next
+burst pause was 0.3745 against 0.3492 off the same impact.
+
+Three ways out were on the queue. **Taken: a second stream.** `rng` is the
+simulation's, `lookRng` is presentation's, `systems/effects.js` is its only
+caller, and `rng.reseed()` seeds both from the match seed so a seed still
+reproduces a match exactly. It is a layering rule rather than a patch on one
+function: nothing presentational draws from the simulation's stream, so the next
+effect somebody writes cannot reintroduce this.
+
+Rejected, and the closer call than it looks: *draw the full unscaled count and
+light only some of them.* It keeps one stream, fixes the level dependence, and
+would have changed **no existing reading at all** — where splitting the stream
+moves every simulation draw at every level and so risked every seed-sensitive
+check in the suite. It was the safer option on the day. It was not taken because
+it leaves presentation drawing from the simulation's stream, which means the bug
+is one careless edit away forever and invisible until somebody runs the suite at
+a level nobody runs it at. In the event the risk did not land: 28 of 28
+seed-sensitive checks on the plant and 25 of 25 on the yard passed first time,
+no threshold touched.
+
+Also rejected: *take the particle scale out of the preset*, which is the only
+one of the three that changes what a player gets — `low` would pay for every
+spark. If you would rather have that, say so here and it is a small change.
+
+**What this does change for you:** a given seed now produces a different match
+than it did before 2026-10-05. It reproduces itself exactly, which is what the
+seed was ever for; it just is not the same match the same number produced last
+week. No recorded seed exists anywhere that this invalidates.
+
+decided:
+
 ### D61 — A menu card does not honour the quality level, and is left that way
 
 **Raised by:** H23, 2026-10-05. H23 held the quality level still for the length

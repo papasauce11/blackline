@@ -338,3 +338,19 @@ is worse: `npm run suite --runs 1` is a silent **four-run** suite. Every
 example in `HANDOFF.md` has the `--` in it; copy one rather than typing it. And
 when a run is meant to produce a file, check the file exists before reading the
 run as the measurement you asked for.
+
+**An object spread copies a getter's value, not the getter.** H27 split the
+seeded rng into two streams and built the simulation's as
+`export const rng = { ...streamOver(rngState), reseed, get seed() {} }`. The
+helpers came across fine, because they are functions closing over the state —
+but `calls` is a **getter**, and spreading evaluates it once and writes the
+number. `rng.calls` was therefore frozen at 0 for the life of the page, and
+`debugState.rngCalls`, the determinism canary the F3 overlay shows, read zero
+draws forever. **No check would have caught it**, because nothing asserts that
+field: it exists to be looked at by a human. It was found by a six-line
+`node -e` script run against the module before the suite ever saw it, asserting
+the properties two streams owe each other. Use `Object.defineProperty`, or
+build the object and attach, and keep the reason at the line. And the wider
+lesson, which this project keeps meeting from the other side: **a field nothing
+reads is a field that can die quietly** — if a value is a canary, something has
+to assert it, or it is decoration.

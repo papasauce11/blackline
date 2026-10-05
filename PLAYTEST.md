@@ -82,6 +82,34 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The quality row is cosmetic again, and a seed means what it says (H27, 2026-10-05)
+
+Nothing here changes how the game plays, and that is the whole point: until
+today **the quality row changed what the Warden did**, and now it cannot.
+
+The game has one seeded random number generator, which is what makes
+`?seed=12345` replay a match. The problem H24 found is that the spark particles
+drew from it, and the quality preset decides how many sparks an impact makes —
+so the level you played at decided how far along that stream the Warden's next
+decision came from. There are **two** streams now: one for the simulation and
+one for everything you only look at (sparks, smoke, footprints, a ragdoll's
+tumble). Both come off the seed you type, so a seed still replays exactly; the
+difference is that drawing can no longer reach the game.
+
+`the-quality-level-cannot-move-the-simulation` holds it, and the half worth
+knowing about is that it also insists the levels **still light different
+numbers of particles** — otherwise the check would be satisfied by quietly
+making every level draw the same sparks, which would "fix" the bug by deleting
+the feature.
+
+**One thing to know:** a given seed now produces a *different* match than it
+did before today. It reproduces itself perfectly; it is just not the same match
+that number gave you last week. If you had written a seed down because something
+interesting happened, that match is gone. Nothing in the repo recorded one.
+
+**What is left for you:** D62, if you would rather `low` kept all its sparks
+and paid for them.
+
 ### What the suite judges is the medium picture, and now we know by how much (H24, 2026-10-05)
 
 Worth knowing before you trust a green suite: **the checks are calibrated to
@@ -102,23 +130,20 @@ it:
   written down rather than assumed, and the six honest medium-only readings are
   queued as **H28** to say which level they read instead of just going red.
 
-**And the bug.** At low the Warden fires differently. Not slightly — a
-measurably illegal pause between bursts. The cause has nothing to do with
-drawing: the quality preset scales how many spark particles an impact makes,
-every particle takes three numbers from the game's one seeded random stream,
-and the Warden takes its burst pause from that same stream. So fewer sparks
-means the Warden's next decision is a different number. One impact is 15 draws
-at medium and 6 at low.
+**And the bug it found, which is fixed.** At low the Warden used to fire
+differently — a measurably illegal pause between bursts. The cause had nothing
+to do with drawing: the quality preset scales how many spark particles an impact
+makes, every particle took three numbers from the game's one seeded random
+stream, and the Warden takes its burst pause from that same stream. So fewer
+sparks meant the Warden's next decision was a different number. One impact was
+15 draws at medium and 6 at low. The quality row was not cosmetic, and
+`?seed=12345` only replayed a match at the level it was recorded at.
 
-Two things follow that you should know about. **The quality row is not
-cosmetic** — it changes what the AI does. And **`?seed=12345` only replays a
-match at the quality level it was recorded at**, which is not what the seed is
-supposed to promise. That is **H27**, it is the next job, and the recommended
-fix is to give the effects their own random stream so that drawing can never
-reach the simulation again.
+**H27 fixed it the same session** by giving the effects their own random stream,
+so drawing cannot reach the simulation at all — see the next section.
 
-**What is left for you:** nothing to judge here, but if you have been playing
-at low and the Warden felt different from what these notes describe, that is
+**What is left for you:** nothing to judge here. If you played at low before
+2026-10-05 and the Warden felt different from what these notes describe, that is
 why, and you were not imagining it.
 
 ### The map cards are all one picture of one game (H23, 2026-10-05)

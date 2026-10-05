@@ -197,27 +197,11 @@ one setting only Josh can click; everything else here proceeds.
   quality level moves the simulation. That is **H27**. The picture checks that
   are honestly medium-only readings are **H28**.
 
-- [ ] **H27 (M)** The quality level moves the simulation, and a seed does not
-  reproduce a match across levels. Measured by H24: one impact's sparks are 15
-  shared-`rng` draws at `medium` and **6 at `low`** (`qualityParticles` scales
-  the count, each particle takes three draws), and the very next
-  `rng.range(engageBurstPauseMin, engageBurstPauseMax)` the AI makes is 0.3745
-  against 0.3492. `the-warden-fires-in-bursts-of-rounds-at-the-torso` goes red
-  on the yard at low because of it. So `?quality=` is not presentational, which
-  is what H10 and D60 both claim it is; `?seed=N` only replays a match at the
-  level it was recorded at, which Section 16 check 28 does not say; and **H13's
-  replays would be wrong by construction**. Three ways out: give `systems/
-  effects.js` its own stream seeded from the match seed, so presentation never
-  touches the simulation's draws (recommended - it is the only one that also
-  covers a future effect nobody has written yet); or always draw the full
-  `count` and use only `lit` of them, which keeps the stream identical and
-  wastes draws; or take the particle scale out of the preset, which makes `low`
-  pay for every spark and is the one option that changes what a player gets.
-  The third changes the game, so if it is preferred that is a decision to
-  raise. *done-when:* a check seeds a match, runs the same engagement at two
-  levels and asserts the shot timestamps are identical, and
-  `the-warden-fires-in-bursts-of-rounds-at-the-torso` is green at `low` on both
-  maps.
+- [x] **H27 (M)** The quality level moves the simulation. — done 2026-10-05,
+  under Done. Two streams off one seed: `rng` for the simulation, `lookRng` for
+  presentation, `systems/effects.js` its only caller, both seeded by
+  `rng.reseed()`. **D62** records why the second option was the close call and
+  was not taken.
 
 - [ ] **H28 (S)** Six checks read a picture only `medium` draws, and say so by
   going red rather than by naming the level. From H24, with what each reported:
@@ -230,7 +214,11 @@ one setting only Josh can click; everything else here proceeds.
   buffer - `the-shade-reads-as-a-hooded-figure-at-8m-and-25m` (1,476px against
   3,000), `a-look-at-a-pose-photographs-the-state-named` (2,459px against
   3,000) and `the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`
-  (104px, plus 6 draw calls against 12 because the outline hulls are gone). The
+  (104px, plus 6 draw calls against 12 because the outline hulls are gone). A
+  seventh to judge rather than assume: `frame-budget-under-the-check-29-load`
+  was green at low in H24's run and red in both of H27's, on a machine five
+  hours into driving headless Chrome - decide whether it is load, in which case
+  say so, or a real low-only reading. The
   three floors are the valuable half: an absolute pixel count is a reading about
   the buffer, so they would break on a resized canvas too and scaling them by
   buffer area makes them *more* honest, not merely level-agnostic. The outline
@@ -510,6 +498,37 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H27** Two streams off one seed, so the picture cannot move the game.
+  `effects.sparks()` drew three numbers per particle from the one seeded `rng`
+  and the preset scales the count, so an impact cost **15 draws at `medium` and
+  6 at `low`** and every simulation draw after the first bullet to land came out
+  different — the Warden's next burst pause 0.3745 against 0.3492. That made the
+  quality row a thing that changes the game, made `?seed=N` reproduce a match
+  only at its own level against what Section 16 check 28 promises, and would
+  have made H13's replays wrong by construction. Now `rng` is the simulation's
+  and **`lookRng` is presentation's**, with `systems/effects.js` its only caller
+  across all fourteen draw sites, and `rng.reseed()` seeds both from the match
+  seed because two reseed functions is one a caller can forget. It is a layering
+  rule rather than a patch on one function: nothing presentational draws from
+  the simulation's stream, so the next effect somebody writes cannot bring this
+  back. **D62** holds the three options; the rejected one — draw the full
+  unscaled count, light some — was the safer call on the day, since splitting the
+  stream moves every simulation draw at every level, and the risk did not land:
+  **28 of 28 seed-sensitive checks on the plant and 25 of 25 on the yard passed
+  first time**, `a-match-replays-identically-from-its-seed` included, with no
+  threshold touched. One check,
+  `the-quality-level-cannot-move-the-simulation`, drives one seed through all
+  three levels and requires the simulation's draw count, its next number, the
+  Warden's pose and the AI's state to be identical **while requiring the levels
+  to light different particle counts** — or it would pass just as well with
+  `particleScale` 1 everywhere, which would fix H27 by deleting the feature.
+  Two of its own mistakes are written up because neither was caught by a check:
+  an object spread froze `rng.calls`, the determinism canary, at 0 (now a trap),
+  and a `smokeBurst()` with no gadget behind it left 200 sprites alive and spent
+  a whole low run asserting about it — the half of a trap already in `TRAPS.md`
+  that this check walked into from the other side. Done 2026-10-05, commit
+  `H27_COMMIT`.
 
 - **H24** The suite run at `low` and at `high` for the first time, on both maps.
   **At low, eight checks answer differently** (seven of them real level

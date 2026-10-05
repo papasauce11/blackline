@@ -10790,3 +10790,139 @@ honest rather than merely level-agnostic. The outline and post pair should
 assert the **absence** at low rather than be excused from it, which is a
 stronger check than either has today. Nothing was weakened and nothing was
 added to `suite-skips.json`.
+
+## H27 — two streams off one seed, so the picture cannot move the game (2026-10-05 02:00, scheduled run)
+
+**What was wrong.** One seeded generator served the whole codebase, and
+`effects.sparks()` drew three numbers from it per particle with a particle count
+the quality preset scales. So an impact cost **15 draws at `medium` and 6 at
+`low`**, and from the first impact of a round every simulation draw after it was
+a different number. H24 measured the consequence on the very next draw the AI
+would make — the Warden's burst pause, 0.3745 against 0.3492 — and found it
+because `the-warden-fires-in-bursts-of-rounds-at-the-torso` went red on the yard
+at low and nowhere else.
+
+Three things that were believed about this game were therefore false. **The
+quality setting was not presentational**, which `quality.js`'s own header and
+D60 both say it is and which the `?quality=medium` pin was built on. **`?seed=N`
+reproduced a match only at the level it was recorded at**, where Section 16
+check 28 promises a seed reproduces a match. And **H13's replays would have been
+wrong by construction** — a recorded input stream replayed at another level
+diverges at the first bullet that hits anything.
+
+**What was built.** Two streams off one seed. `rng` is the simulation's and is
+what the F3 overlay counts; **`lookRng` is presentation's, and
+`systems/effects.js` is its only caller** — all fourteen draw sites: a
+footprint's yaw, a spark's velocity, a smoke puff's placement and drift and
+size, a ragdoll's tumble. `rng.reseed()` seeds **both**, because two reseed
+functions is one a caller can forget and a look stream nobody reseeded would
+hand every match the same sparks; the look stream is salted with the golden
+ratio constant so the two never hand out the same sequence.
+
+The rule is deliberately a layering rule and not a patch on `sparks()`:
+*nothing presentational draws from the simulation's stream.* The alternative
+considered and rejected was to draw the full unscaled count and light only
+`lit` of them, which keeps one stream and would have fixed the level dependence
+without changing a single existing reading — attractive, and it was the safer
+option on the day — but it leaves every future effect one careless edit from
+the same bug, and the bug is invisible until somebody runs the suite at a level
+nobody runs it at. Which had never happened before H24. The third option on the
+queue, taking the particle scale out of the preset, was not taken because it is
+the only one that changes what a player gets: `low` would pay for every spark.
+
+Both surfaces come from one factory (`streamOver(state)`), so `lookRng.unit()`
+cannot drift from `rng.unit()` and a call site moved between them needs no
+rewriting.
+
+**What was found.**
+
+**The first draft froze the determinism canary, and no check would have caught
+it.** `export const rng = { ...streamOver(rngState), reseed, get seed() }`
+looks right and is not: an object spread copies `calls` as **the number the
+getter returned at spread time**, so `rng.calls` was permanently 0 and the F3
+overlay's draw counter read zero for the life of the page. Nothing asserts
+`debugState.rngCalls`, so the suite would have gone green on it. It was caught
+by a six-line node script run against the module before the suite ever saw it,
+asserting the seven properties two streams owe: each reproducible from a reseed,
+the two different from each other, the counters resetting, forty look draws not
+moving the simulation's next number, and the seed getter still answering.
+`Object.defineProperty` for the getter now, with the reason written at the line
+so the spread cannot come back.
+
+The general lesson is the one this project keeps relearning from the other
+direction: **a check that nothing reads is a field that can die quietly.**
+`rng.calls` exists as a determinism canary and is read only by an overlay a
+headless run never draws.
+
+**And the stream split cost no recalibration at all**, which was the real risk
+and the reason this was sized M. Splitting the stream moves every simulation
+draw at *every* level, `medium` included, so every seed-sensitive check could
+have shifted — and the ones here are rates, cones, patrol orders and soaks
+measured over many samples with tolerances, so **28 of 28 on the plant and 25
+of 25 on the yard passed first time**, `a-match-replays-identically-from-its-
+seed` and `ai-patrol-order-is-seed-reproducible` included. No threshold was
+touched. That is worth recording as evidence that F18's discipline — count
+bursts rather than rounds, measure a rate and not a coin — is what made a
+change like this affordable.
+
+**Checks.** One new, in `tests/quality.js`.
+
+- `the-quality-level-cannot-move-the-simulation` seeds one match per level,
+  steps all three the same 120 fixed steps, and fires the presentation calls an
+  impact makes on a fixed cadence (the methods and not the events — half an
+  emitted event leaves the other half behind). Then it requires the simulation's
+  **draw count**, the **next number it would hand out**, the Warden's position
+  and yaw to six places, and the AI's state to be identical across levels. The
+  draw count is the sharpest of the four: it cannot be equal by luck.
+  **And the second half is what keeps it honest** — it also requires the levels
+  to have lit a *different* number of particles, because otherwise the check
+  would pass just as well with `particleScale` 1 everywhere, which would "fix"
+  H27 by deleting the feature it is about. It reads: *one seed, 3 levels, 19
+  simulation draws and the Warden at the same place in all of them, while a
+  burst lit low 10 / medium 25 / high 25.*
+
+**The done-when, at the level that found the bug.** `npm run suite -- --runs 1
+--query quality=low`, the whole suite on both maps:
+`the-warden-fires-in-bursts-of-rounds-at-the-torso` is **green at low on both**
+- *18 rounds in 3.5s as bursts of [6 3 5] with pauses of [0.48 0.60 0.42]s* on
+the plant, *[6 6 3]* and *[0.30 0.27 0.53]s* on the yard, every pause inside
+config's 0.25-0.7 - and `the-quality-level-cannot-move-the-simulation` is green
+at low as well as at the pin.
+
+**And the off-level census is now exactly what H28 says it is**, which is the
+other thing this run bought. At low: **plant 201 passed / 8 failed, yard 183 /
+6**, and the reds are H28's six (the outline, the post, the wall's banding, and
+the three pixel floors) plus two frame-budget readings - the declared headless
+skip, and `frame-budget-under-the-check-29-load` on the plant, which was **not**
+red in H24's low run and is red in both of H27's. It is a wall-clock perf check
+and these two runs were taken on a machine that had been running headless Chrome
+for five hours with nine processes pinned, so the honest reading is "unexplained,
+probably load" and not "H27 made the plant slower" - H27 removes draws, it adds
+none. It is named in H28 so that job judges it with the rest rather than
+inheriting it silently.
+
+**What was verified.** The seed-sensitive smoke first, at the pin: **28 of 28
+on the plant and 25 of 25 on the yard**, which was the whole risk of the job.
+Then `npm run suite`, two runs per map on the finished tree: **plant 208 passed
+/ 1 failed / 8 not for this map (1,019,974ms and 1,037,783ms), yard 188 / 1 / 28
+(731,415ms and 713,430ms), exit 0, 0 red, 0 flaky, 0 context losses, 0 loop
+frames, 0 skips withheld.** One more per map than H24's pair (207 and 187),
+which is this job's one check. The pairs agree within **17,809ms on the plant
+(2%) and 17,985ms on the yard (2%)**.
+
+**One console error, and it is the machine.** *"The AudioContext encountered an
+error from the audio device or the WebAudio renderer."*, once, on the yard page.
+Every previous verify on record reported zero, so it is reported here rather
+than waved past. The argument that it is environmental: it is attributed to the
+**page URL** and not to a file in `src/`, where the smoke leak's assertions were
+attributed to `src/ui/debug.js`; H27 touched no audio path; and
+`every-sound-renders-to-samples-that-match-section-14` is green on both maps
+with all sixteen sounds rendering, none silent and none clipping. Headless
+Chrome has no audio device and this machine had been driving it for five hours.
+If it recurs on a cold run it is a defect and not a condition.
+
+**What was left.** **H28**, unchanged in scope by this: six checks that read a
+picture only `medium` draws, of which the three absolute pixel floors are the
+valuable half. The quality row's own description in `PLAYTEST.md` and D60 no
+longer need the warning H24 put on them, and both were corrected here rather
+than left to contradict the code.

@@ -27,7 +27,7 @@
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
-import { CONFIG, SETTINGS } from '../config.js';
+import { CONFIG, SETTINGS, rng } from '../config.js';
 import {
   QUALITY_LEVELS, QUALITY_FALLBACK, activeQuality, applyQuality, createQualityProbe,
   pinQuality, pixelRatioNow, qualityPreset, qualityReadings, requestedQuality, syncQuality,
@@ -94,6 +94,113 @@ function putBack(h, was) {
 }
 
 export function register(debugTools) {
+  debugTools.registerAutoTest({
+    id: 'the-quality-level-cannot-move-the-simulation',
+    spec: 'Section 2 (the seeded rng), Section 16 check 28, H27',
+    name: 'The same seed drives the same simulation at every quality level, although the levels light a different number of particles',
+    run: (h) => {
+      // H27, and H24 is why. `effects.sparks()` draws three numbers per
+      // particle and the preset scales the count, so while those came off the
+      // simulation's `rng` the quality setting decided what the Warden did
+      // next: 15 draws at medium against 6 at low, and the next burst pause
+      // the AI would draw 0.3745 against 0.3492. The streams are split now
+      // (`lookRng`), and this holds the split from both ends.
+      const problems = [];
+      const was = { quality: SETTINGS.quality, post: SETTINGS.post, auto: SETTINGS.qualityAuto };
+      const SEED = 0x27a11e;
+      const runs = {};
+      try {
+        pinQuality('');
+        SETTINGS.post = true;
+        for (const level of QUALITY_LEVELS) {
+          SETTINGS.quality = level;
+          syncQuality();
+          // One seeded match per level, stepped the same way, with the
+          // presentation call an impact makes fired on a fixed cadence. The
+          // method and not the event: `combat:impact` is heard by the audio and
+          // the hit marker too, and half an emitted event leaves the other half
+          // behind (TRAPS.md).
+          //
+          // Sparks and nothing else, deliberately. The first draft also fired
+          // `smokeBurst()`, which is the *other* half of that same trap: a
+          // cloud with no gadget behind it is a leak as far as
+          // `effects-drain-when-idle` is concerned, and it spent the rest of
+          // the run asserting "200 smoke sprites still alive 42s after the last
+          // gadget expired" - 120 console errors and seven unrelated checks
+          // down with it. Smoke is no loss here anyway: its puff count is
+          // `spriteCap / count` from config and no preset scales it, so it was
+          // never part of what H27 is about.
+          h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: SEED });
+          h.effects.reset();
+          let lit = 0;
+          for (let step = 0; step < 120; step++) {
+            h.stepFrames(1);
+            if (step % 10 === 0) {
+              h.effects.sparks({ x: 0, y: 2, z: 0 }, E.impactSparks);
+              lit = 0;
+              for (const slot of h.effects.particles) if (slot.life > 0) lit++;
+            }
+          }
+          // The simulation's own state after all that, plus the count of draws
+          // it has made and the next number it would hand out. A presentation
+          // draw that reached this stream moves every one of them.
+          runs[level] = {
+            lit,
+            simCalls: rng.calls,
+            nextDraw: rng.next(),
+            warden: [
+              h.warden.position.x.toFixed(6), h.warden.position.y.toFixed(6),
+              h.warden.position.z.toFixed(6), h.warden.yaw.toFixed(6),
+            ].join(','),
+            aiState: h.wardenAI.state,
+          };
+        }
+      } finally {
+        SETTINGS.quality = was.quality;
+        SETTINGS.post = was.post;
+        SETTINGS.qualityAuto = was.auto;
+        pinQuality(location.search);
+        syncQuality();
+        h.effects.reset();
+        h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      }
+
+      // 1. The simulation is the same at every level, read four ways. The draw
+      // count is the sharpest: it cannot be equal by luck.
+      const base = runs[QUALITY_FALLBACK];
+      for (const level of QUALITY_LEVELS) {
+        const seen = runs[level];
+        if (seen.simCalls !== base.simCalls) {
+          problems.push(`${level} left the simulation's stream at ${seen.simCalls} draws against ${QUALITY_FALLBACK}'s ${base.simCalls}`);
+        }
+        if (seen.nextDraw !== base.nextDraw) {
+          problems.push(`${level} would hand the simulation ${seen.nextDraw} next and ${QUALITY_FALLBACK} ${base.nextDraw}`);
+        }
+        if (seen.warden !== base.warden) problems.push(`${level} put the Warden at ${seen.warden}, ${QUALITY_FALLBACK} at ${base.warden}`);
+        if (seen.aiState !== base.aiState) problems.push(`${level} left the AI in ${seen.aiState} and ${QUALITY_FALLBACK} in ${base.aiState}`);
+      }
+
+      // 2. And the levels really were different pictures while that held - or
+      // this check would pass just as well with `particleScale` 1 everywhere,
+      // which would "fix" H27 by deleting the feature it is about.
+      const litByLevel = QUALITY_LEVELS.map((level) => runs[level].lit);
+      if (new Set(litByLevel).size < 2) {
+        problems.push(`every level lit ${litByLevel[0]} particles, so the presets no longer scale a burst and this proves nothing`);
+      }
+      if (!(runs.low.lit < base.lit)) {
+        problems.push(`low lit ${runs.low.lit} particles and ${QUALITY_FALLBACK} ${base.lit}; low must light fewer`);
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `one seed, ${QUALITY_LEVELS.length} levels: ${base.simCalls} simulation draws and the Warden at the same place in all of them, `
+            + `while a burst lit ${QUALITY_LEVELS.map((level) => `${level} ${runs[level].lit}`).join(' / ')}`
+          : problems.join('; '),
+      };
+    },
+  });
+
   debugTools.registerAutoTest({
     id: 'the-medium-preset-is-what-the-game-drew-before-there-were-presets',
     spec: 'Section 4.1, H10',

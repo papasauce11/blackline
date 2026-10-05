@@ -42,6 +42,16 @@
  * one caller is the menu's cards; see `hold` below for why that is the fix and
  * not a waiting room.
  *
+ * **And a level is presentational, which had to be made true** (H27). It was
+ * not: `qualityParticles()` below scales a particle count, `effects.sparks()`
+ * drew three numbers per particle from the simulation's seeded `rng`, and so
+ * the level decided what the Warden did next — 15 draws an impact at `medium`
+ * against 6 at `low`, and the AI's next burst pause 0.3745 against 0.3492.
+ * H24's first ever run of the suite at `low` is what found it. There are two
+ * streams now (`rng` and `lookRng`, config.js) and
+ * `the-quality-level-cannot-move-the-simulation` holds the claim this paragraph
+ * makes, so nothing here has to be trusted on its word again.
+ *
  * Layering (Section 3.1): imports config only, as `settingsstore.js` and
  * `version.js` do, so anything may reach it — `view.js` for the pixel ratio and
  * `systems/effects.js` for the particle counts both do.

@@ -20,10 +20,23 @@
  * object rather than 200 `THREE.Sprite`s. It is the same cap and the same one
  * shared material, but 200 sprites is 200 draw calls, which is precisely what
  * that row of the risk register is trying to prevent.
+ *
+ * **Every random number in this file comes from `lookRng`, never `rng`** (H27).
+ * This is the only module that draws from the presentation stream, and the
+ * reason is that a draw *count* in here is not fixed: `sparks()` takes three
+ * numbers per particle and the quality preset scales how many particles there
+ * are, so while these came off the simulation's stream `?quality=low` changed
+ * what the Warden did next. H24 measured it at 15 draws against 6 off one
+ * impact, and 0.3745 against 0.3492 on the AI's very next draw. The rule is
+ * now a layering rule rather than a patch: nothing presentational draws from
+ * the simulation's stream, so no future effect can reintroduce it. If a value
+ * drawn here ever decides something a player can lose to, it belongs on `rng`
+ * instead. `config.js` has the argument and
+ * `the-quality-level-cannot-move-the-simulation` is what notices.
  */
 
 import * as THREE from 'three';
-import { CONFIG, rng } from '../config.js';
+import { CONFIG, lookRng } from '../config.js';
 import { qualityParticles } from '../quality.js';
 
 const E = CONFIG.effects;
@@ -279,7 +292,7 @@ export class Effects {
     slot.x = at.x;
     slot.y = at.y + E.footprintLift;
     slot.z = at.z;
-    slot.yaw = source === 'warden' ? 0 : rng.range(-0.4, 0.4);
+    slot.yaw = source === 'warden' ? 0 : lookRng.range(-0.4, 0.4);
     return slot;
   }
 
@@ -288,6 +301,12 @@ export class Effects {
     // Here rather than at the call sites, so a third caller joins the rule by
     // existing, and never below one: a burst of nothing is a bullet that hit
     // nothing.
+    //
+    // H27: and this is the line that made the stream split necessary. The loop
+    // below draws three numbers per particle, so a scaled count is a scaled
+    // number of draws - 15 at medium and 6 at low - and while those came off
+    // the simulation's `rng` the quality setting decided what the Warden did
+    // next. It draws from `lookRng` now and the count may scale freely.
     const lit = qualityParticles(count);
     for (let i = 0; i < lit; i++) {
       const slot = this.particles[this._nextParticle];
@@ -296,9 +315,9 @@ export class Effects {
       slot.x = at.x;
       slot.y = at.y;
       slot.z = at.z;
-      slot.vx = rng.unit() * 4;
-      slot.vy = rng.range(1, 5);
-      slot.vz = rng.unit() * 4;
+      slot.vx = lookRng.unit() * 4;
+      slot.vy = lookRng.range(1, 5);
+      slot.vz = lookRng.unit() * 4;
     }
   }
 
@@ -314,16 +333,16 @@ export class Effects {
       this._nextSmoke = (this._nextSmoke + 1) % this.smoke.length;
       slot.duration = GA.smoke.duration;
       slot.life = GA.smoke.duration;
-      const radius = GA.smoke.radius * Math.cbrt(rng.next());
-      const theta = rng.next() * Math.PI * 2;
-      const phi = Math.acos(rng.unit());
+      const radius = GA.smoke.radius * Math.cbrt(lookRng.next());
+      const theta = lookRng.next() * Math.PI * 2;
+      const phi = Math.acos(lookRng.unit());
       slot.x = at.x + radius * Math.sin(phi) * Math.cos(theta);
       slot.y = at.y + radius * Math.cos(phi) * 0.6;
       slot.z = at.z + radius * Math.sin(phi) * Math.sin(theta);
-      slot.vx = rng.unit() * GA.smoke.driftSpeed;
-      slot.vy = rng.range(0, GA.smoke.driftSpeed);
-      slot.vz = rng.unit() * GA.smoke.driftSpeed;
-      slot.size = rng.range(GA.smoke.spriteSizeMin, GA.smoke.spriteSizeMax);
+      slot.vx = lookRng.unit() * GA.smoke.driftSpeed;
+      slot.vy = lookRng.range(0, GA.smoke.driftSpeed);
+      slot.vz = lookRng.unit() * GA.smoke.driftSpeed;
+      slot.size = lookRng.range(GA.smoke.spriteSizeMin, GA.smoke.spriteSizeMax);
     }
   }
 
@@ -339,9 +358,9 @@ export class Effects {
       vx: (direction.x || 0) * E.ragdollImpulse,
       vy: E.ragdollImpulse * 0.5,
       vz: (direction.z || 0) * E.ragdollImpulse,
-      spinX: rng.unit() * 6,
-      spinY: rng.unit() * 6,
-      spinZ: rng.unit() * 6,
+      spinX: lookRng.unit() * 6,
+      spinY: lookRng.unit() * 6,
+      spinZ: lookRng.unit() * 6,
     };
     this.ragdolls.push(record);
     return record;
