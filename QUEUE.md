@@ -496,7 +496,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   load-bearing. It declares `glSync: true`, because the first
   `readRenderTargetPixels` of an extra set read **40,572ms against a 171ms
   build** and 266ms moments later: F11's queued pipeline tail in a new place,
-  a wait and not work. Done 2026-10-05, commit `H23_COMMIT`.
+  a wait and not work. Done 2026-10-05, commit `ca5b762`.
 
 - **H10** Quality presets: **low / medium / high / auto** over the shadow map,
   the resolution scale, the post, the particle counts and the outline pass.
