@@ -540,7 +540,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   record, and nobody had it: the suite costs **384s / 210s at low, 1,014s /
   698s at medium, 1,560s / 1,138s at high** (plant / yard), so low is 2.6-3.3x
   faster and high 1.5-1.6x slower. The remaining six are **H28**. Done
-  2026-10-05, commit `H24_COMMIT`.
+  2026-10-05, commit `daf15db`.
 
 - **H23** One level for the whole strip of cards. `thumbnails.start()` takes
   `holdQuality()` for the length of the set it bakes, so `syncQuality()` applies
