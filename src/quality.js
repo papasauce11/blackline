@@ -225,10 +225,14 @@ export function qualityPreset(level = activeQuality()) {
  *
  * @param {number} [deviceRatio] the display's, for a check that wants to ask
  *   about a display this machine is not
+ * @param {string} [level] a level other than the applied one, for a check that
+ *   wants the buffer a *different* preset would ask for - H28's figure checks
+ *   read the shipped resolution whatever the player is drawing at, because the
+ *   shape of a helmet is geometry and not a pixel count
  */
-export function pixelRatioNow(deviceRatio) {
+export function pixelRatioNow(deviceRatio, level) {
   const dpr = deviceRatio ?? (typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);
-  return Math.min(dpr * qualityPreset().resolutionScale, CONFIG.render.maxPixelRatio);
+  return Math.min(dpr * qualityPreset(level).resolutionScale, CONFIG.render.maxPixelRatio);
 }
 
 /**

@@ -10,11 +10,15 @@
  * a question a pixel count can answer, and each check below says which half it
  * is settling.
  *
+ * The inverted-hull outline check was here until H28, which needed a clause in
+ * it and found this module at 589 lines against the ~600 guidance; it is
+ * `tests/outline.js` now, named for its own subject as H23's split was.
+ *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
 import { CONFIG } from '../config.js';
-import { createLens, difference, meanLuma, meanLumaIn, brightnessDelta, erode, quiesce, SITE_SAMPLE_OFFSET } from './pixels.js';
+import { createLens, difference, meanLuma, meanLumaIn, brightnessDelta, quiesce, SITE_SAMPLE_OFFSET } from './pixels.js';
 
 /** Look at `target` from `distance` away, on a bearing, at eye height. */
 function eyeOn(target, distance, bearing, height = 1.4) {
@@ -213,114 +217,6 @@ export function register(debugTools) {
         detail: problems.length === 0
           ? `${body.count} body pixels: luma ${steps.join(' -> ')} across meter 0/25/50/75/100, `
             + `monotonic, near-black (${darkLuma.toFixed(1)}) when hidden`
-          : problems.join('; '),
-      };
-    },
-  });
-
-  // -------------------------------------------------------------------------
-  // Section 4 — the inverted-hull outline is what makes the silhouette read
-  // -------------------------------------------------------------------------
-  debugTools.registerAutoTest({
-    id: 'the-outline-darkens-the-silhouette-edge',
-    spec: 'Section 4',
-    name: 'Hiding the inverted hull measurably lightens the body edge',
-    run: (h) => {
-      const problems = [];
-      const restore = quiesce(h);
-      const lens = createLens(h);
-      const shade = h.shade;
-
-      const site = h.map.sites[0];
-      shade.reset({ position: site.position, yaw: 0 });
-      h.stepFrames(20);
-      h.detection.smoothed = CONFIG.detection.meterMax;
-      h.detection._applyFeedback(shade);
-      const focus = { x: shade.position.x, y: shade.feetY + 1.0, z: shade.position.z };
-      lens.look(eyeOn(focus, 3, Math.PI * 0.75, 0.4), focus);
-
-      // The outlines are children of the meshes they hull, added in Phase 5's
-      // fix. Collect them by material rather than by name.
-      const outlineMaterial = shade.mesh.userData.materials.outline;
-      const hulls = [];
-      shade.mesh.traverse((object) => {
-        if (object.isMesh && object.material === outlineMaterial) hulls.push(object);
-      });
-      if (hulls.length === 0) {
-        lens.restore();
-        restore();
-        return { pass: false, detail: 'the Shade has no inverted-hull outline meshes' };
-      }
-
-      lens.grab();
-      shade.mesh.visible = false;
-      const empty = lens.grab();
-      shade.mesh.visible = true;
-      const withHull = lens.grab();
-      for (const hull of hulls) hull.visible = false;
-      const withoutHull = lens.grab();
-      for (const hull of hulls) hull.visible = true;
-
-      const body = difference(withHull, empty, lens.width, lens.height, 8);
-      const inner = erode(erode(body.mask, lens.width, lens.height), lens.width, lens.height);
-      const edge = new Uint8Array(body.mask.length);
-      for (let i = 0; i < body.mask.length; i++) if (body.mask[i] && !inner[i]) edge[i] = 1;
-
-      // The hull is a back-faced shell scaled past the body, so it occupies the
-      // silhouette RIM and nothing else. Whether removing it lightens or
-      // darkens that rim depends on the meter: Section 4.2 drives the outline
-      // from near-black at visibility 0 to a bright rim at 100. So the claim
-      // worth testing is not a direction, it is that the hull owns the edge —
-      // hiding it must change the rim far more than the interior.
-      const edgeChange = Math.abs(brightnessDelta(withHull, withoutHull, edge));
-      const coreChange = Math.abs(brightnessDelta(withHull, withoutHull, inner));
-
-      // One hull per body mesh, whatever the body is made of. Counted rather
-      // than hard-coded, so adding a limb cannot silently go un-outlined.
-      let bodyMeshes = 0;
-      shade.mesh.traverse((object) => {
-        if (object.isMesh && object.material !== outlineMaterial) bodyMeshes++;
-      });
-
-      if (body.count < 400) problems.push(`the Shade covered ${body.count} pixels`);
-      if (hulls.length !== bodyMeshes) {
-        problems.push(`${bodyMeshes} body meshes but ${hulls.length} outlines — something is un-outlined`);
-      }
-      if (edgeChange < 5) problems.push(`hiding the hull changed the silhouette edge by ${edgeChange.toFixed(1)} — it is not drawing`);
-      if (!(edgeChange > coreChange * 2)) {
-        problems.push(`edge ${edgeChange.toFixed(1)} vs interior ${coreChange.toFixed(1)} — the hull is not edge-only`);
-      }
-
-      // Section 4.2's range: a faint edge when hidden, a bright rim when lit.
-      const rimAt = (meter) => {
-        h.detection.smoothed = meter;
-        h.detection._applyFeedback(shade);
-        const frame = lens.grab();
-        let total = 0;
-        let count = 0;
-        for (let i = 0; i < edge.length; i++) {
-          if (!edge[i]) continue;
-          const p = i * 4;
-          total += 0.2126 * frame[p] + 0.7152 * frame[p + 1] + 0.0722 * frame[p + 2];
-          count++;
-        }
-        return count ? total / count : 0;
-      };
-      const faint = rimAt(0);
-      const bright = rimAt(CONFIG.detection.meterMax);
-      if (!(bright > faint)) {
-        problems.push(`the silhouette edge reads ${faint.toFixed(1)} hidden and ${bright.toFixed(1)} lit — no range`);
-      }
-      if (lens.glError() !== 0) problems.push('GL error during the reads');
-
-      lens.restore();
-      restore();
-      return {
-        pass: problems.length === 0,
-        detail: problems.length === 0
-          ? `${hulls.length} hulls over ${bodyMeshes} body meshes and ${body.count} pixels: hiding them moved the `
-            + `silhouette edge by ${edgeChange.toFixed(1)} against ${coreChange.toFixed(1)} in the interior, so the `
-            + `hull is what draws the rim; that rim runs ${faint.toFixed(1)} hidden to ${bright.toFixed(1)} lit`
           : problems.join('; '),
       };
     },

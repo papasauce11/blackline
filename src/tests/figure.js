@@ -28,11 +28,14 @@
 
 import * as THREE from 'three';
 import { withoutBloom } from '../entities/agentmesh.js';
-import { createLens, difference, quiesce } from './pixels.js';
+import { QUALITY_FALLBACK, pixelRatioNow, qualityPreset } from '../quality.js';
+import { createLens, difference, quiesce, scaledCount } from './pixels.js';
 import { clearLanes, alongLane, HEADINGS } from './lanes.js';
 
 /** The two distances the queue names. */
 const DISTANCES = [8, 25];
+/** The pixels a body covers at each of them, on the reference buffer (pixels.js). */
+const COVERS = { 8: 2000, 25: 150 };
 /** The top of the silhouette that is hood or helmet, and the band under it that is neck or shoulders, as fractions of its height. */
 const HOOD_BAND = 0.14;
 const NECK_BAND = 0.22;
@@ -42,6 +45,31 @@ const HOOD_OVER_NECK = 1.5;
 const NARROW = 2.2;
 /** Draw calls a body may add to a frame: six parts and their six hulls (twenty before E1; sixteen for the Warden before E2). */
 const DRAW_CALLS = 12;
+/**
+ * Both checks below read their silhouettes at **the shipped resolution**, not at
+ * the one the applied preset asks for.
+ *
+ * H24 ran them at `low` and the Warden/Shade pair went red on *"the Shade's
+ * hood 6px is not 1.5x its neck 5px"*: at `resolutionScale` 0.7 in the runner's
+ * 1280x720 window, the Shade at 25m is 28x8 pixels, and a hood and a neck
+ * cannot be told apart inside eight of them - the neck bottoms out at the
+ * narrowest row a difference frame can resolve while the hood keeps shrinking,
+ * so the ratio collapses on quantisation. Everything these two checks assert is
+ * about the **geometry** of a body - six parts, one material, tall and narrow,
+ * a hood over a neck, a helmet under shoulders, a rifle out front - and none of
+ * it is a claim about a buffer.
+ *
+ * Worth being exact about what this does *not* dodge, because it reads like a
+ * dodge: 896x503 is not what a player at `low` sees. It is what a player at
+ * `low` sees *in a 1280x720 window*. On a 1080p display `low` draws 1344x756,
+ * which is more pixels than this reference, so the red was a reading about the
+ * runner's window and not about the level. Whether a genuinely small window
+ * keeps a body legible at 25m is a real question and nothing in the suite asks
+ * it; it is queued as **H29** rather than answered here, and D63 records the
+ * call.
+ */
+const READ_AT = () => pixelRatioNow(undefined, QUALITY_FALLBACK);
+
 /** The eye is this far up from the feet, looking at a metre up. */
 const EYE = 1.4;
 const FOCUS = 1.0;
@@ -152,6 +180,31 @@ function silhouette(lens, mesh, eye, focus) {
   };
 }
 
+/**
+ * The pixels a body has to cover at `distance` in the buffer `lens` reads.
+ *
+ * A fraction of the buffer and not a number of pixels (H28, pixels.js): at
+ * `low`'s 0.7 these were 1,476px against 2,000 and read as a figure that had
+ * stopped drawing. `tests/bufferscale.js` calls **this function** rather than
+ * copying the numbers out of it, which is what keeps the scaling load-bearing -
+ * a floor that went back to being absolute fails there at the smallest buffer.
+ *
+ * @param {{height: number}} lens the lens, or any buffer's dimensions
+ */
+export function silhouetteFloor(lens, distance) {
+  return scaledCount(lens, COVERS[distance] ?? COVERS[DISTANCES[DISTANCES.length - 1]]);
+}
+
+/**
+ * The meshes of a body that actually draw: its parts, and its hulls only where
+ * the preset keeps the outlines. `low` turns them off (D60), which is five of a
+ * body's twelve draw calls and was read as *"something is not drawing"* until
+ * H28 - a true sentence about the hulls and a false one about the body.
+ */
+function drawnMeshes(bodies, hulls) {
+  return bodies.length + (qualityPreset().outlines ? hulls.length : 0);
+}
+
 /** The draw calls a mesh adds to a frame through `lens`. */
 function drawCalls(h, lens, mesh) {
   mesh.visible = false;
@@ -210,6 +263,27 @@ function yawToward(from, at) {
   return Math.atan2(-(at.x - from.x), -(at.z - from.z));
 }
 
+/**
+ * The Shade's silhouette at `distance` from a stand `standAndEyes` found, on
+ * the flat white the checks below read it on. Null when the body does not
+ * expose its two materials, or when nothing was drawn.
+ *
+ * The body is expected to be already placed and posed: this is the reading and
+ * not the setup, which is what lets `tests/bufferscale.js` take it three times
+ * over at three buffer sizes without standing the Shade up again each time.
+ *
+ * @param {object} where what `standAndEyes` returned
+ */
+export function flatShadeSilhouette(h, lens, where, distance) {
+  const { bodies, materials } = structure(h.shade.mesh, 'Shade');
+  if (!materials) return null;
+  const unflatten = flatten(bodies, materials);
+  const shape = silhouette(lens, h.shade.mesh, where.eyes[distance], where.focus);
+  unflatten();
+  h.shade.mesh.visible = true;
+  return shape;
+}
+
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'the-shade-reads-as-a-hooded-figure-at-8m-and-25m',
@@ -234,15 +308,16 @@ export function register(debugTools) {
       for (let i = 0; i < 60; i++) shade.updateVisual(1 / 60);
       const unflatten = flatten(bodies, materials);
 
-      const lens = createLens(h);
+      const lens = createLens(h, { pixelRatio: READ_AT() });
       const readings = [];
       let calls = null;
       for (const distance of DISTANCES) {
         const label = `at ${distance}m`;
         const s = silhouette(lens, shade.mesh, eyes[distance], focus);
         if (calls === null) calls = drawCalls(h, lens, shade.mesh);
-        if (!s || s.count < (distance <= 8 ? 2000 : 150)) {
-          problems.push(`${label} the Shade covered ${s ? s.count : 0} pixels`);
+        const floor = silhouetteFloor(lens, distance);
+        if (!s || s.count < floor) {
+          problems.push(`${label} the Shade covered ${s ? s.count : 0} pixels of a ${lens.width}x${lens.height} buffer, want ${floor}`);
           continue;
         }
         readings.push(`${label} ${s.count}px, ${s.height}x${s.width} (${s.aspect.toFixed(1)}:1), hood ${s.hood}px over neck ${s.neck}px`);
@@ -252,8 +327,9 @@ export function register(debugTools) {
           problems.push(`${label} the hood is ${s.hood}px over a neck of ${s.neck}px - no hood (want ${HOOD_OVER_NECK}x)`);
         }
       }
+      const drawn = drawnMeshes(bodies, hulls);
       if (calls === null || calls > DRAW_CALLS) problems.push(`the body adds ${calls} draw calls to a frame, at most ${DRAW_CALLS}`);
-      if (calls !== null && calls < bodies.length + hulls.length) problems.push(`the body adds ${calls} draw calls, fewer than its ${bodies.length + hulls.length} meshes - something is not drawing`);
+      if (calls !== null && calls < drawn) problems.push(`the body adds ${calls} draw calls, fewer than the ${drawn} meshes this level draws - something is not drawing`);
 
       unflatten();
       shade.mesh.visible = true;
@@ -263,7 +339,7 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${readings.join('; ')}; ${bodies.length} parts on one material with vertex colours, ${hulls.length} hulls, `
-            + `${calls} draw calls (20 before E1); stood at the lane from ${lane.from}`
+            + `${calls} draw calls of the ${drawn} this level draws (20 before E1); stood at the lane from ${lane.from}`
           : problems.join('; '),
       };
     },
@@ -292,7 +368,7 @@ export function register(debugTools) {
       const facing = yawToward(stand, eye);
       const views = { front: facing, side: facing + Math.PI / 2 };
 
-      const lens = createLens(h);
+      const lens = createLens(h, { pixelRatio: READ_AT() });
       const readings = [];
       const shapes = { shade: {}, warden: {} };
       let calls = null;
@@ -324,7 +400,8 @@ export function register(debugTools) {
       for (const who of ['shade', 'warden']) {
         for (const view of Object.keys(views)) {
           const s = shapes[who][view];
-          if (!s || s.count < 150) problems.push(`the ${who} from the ${view} covered ${s ? s.count : 0} pixels at ${far}m`);
+          const floor = silhouetteFloor(lens, far);
+          if (!s || s.count < floor) problems.push(`the ${who} from the ${view} covered ${s ? s.count : 0} pixels of a ${lens.width}x${lens.height} buffer at ${far}m, want ${floor}`);
         }
       }
 
@@ -348,8 +425,9 @@ export function register(debugTools) {
         if (Ws.reach < CARRIES) problems.push(`from the side the Warden's middle reaches ${(Ws.reach * 100).toFixed(0)}% of its height past its helmet, want ${CARRIES * 100}% - no rifle`);
         if (Ss.reach > CARRIES_NOT) problems.push(`from the side the Shade's middle reaches ${(Ss.reach * 100).toFixed(0)}% of its height past its hood, at most ${CARRIES_NOT * 100}% - it carries something`);
       }
+      const drawn = drawnMeshes(bodies, hulls);
       if (calls === null || calls > DRAW_CALLS) problems.push(`the Warden's body adds ${calls} draw calls to a frame, at most ${DRAW_CALLS}`);
-      if (calls !== null && calls < bodies.length + hulls.length) problems.push(`the Warden's body adds ${calls} draw calls, fewer than its ${bodies.length + hulls.length} meshes - something is not drawing`);
+      if (calls !== null && calls < drawn) problems.push(`the Warden's body adds ${calls} draw calls, fewer than the ${drawn} meshes this level draws - something is not drawing`);
 
       lens.restore();
       restore();
@@ -358,7 +436,7 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${readings.join('; ')}; the Warden ${bodies.length} parts on one material with vertex colours, ${hulls.length} hulls, `
-            + `${calls} draw calls (16 before E2); stood at the lane from ${lane.from}`
+            + `${calls} draw calls of the ${drawn} this level draws (16 before E2); stood at the lane from ${lane.from}`
           : `${problems.join('; ')} [${readings.join('; ')}]`,
       };
     },

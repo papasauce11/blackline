@@ -15,14 +15,19 @@
  */
 
 import { CONFIG, SETTINGS } from '../config.js';
-import { createLens, difference, quiesce, SITE_SAMPLE_OFFSET } from './pixels.js';
+import { activeQuality, qualityPreset, postEnabled } from '../quality.js';
+import { createLens, difference, quiesce, scaledCount, scaledRow, SITE_SAMPLE_OFFSET } from './pixels.js';
 
 const PP = CONFIG.render.post;
 
 /** A fixture reads over this (0..255) in the raw frame. */
 const FIXTURE_LUMA = 200;
-/** How far out from the fixture the halo is read, in pixels. */
+/** ...on at least this many pixels of the reference buffer, or there is nothing to bloom. */
+const FIXTURE_PIXELS = 20;
+/** How far out from the fixture the halo is read, in pixels of the reference buffer. */
 const HALO = 10;
+/** The corners have to give this many pixels of the reference buffer over the floor for the vignette to be readable. */
+const BAND_PIXELS = 500;
 /**
  * The halo: the ring round the fixture reads brighter by this much (luma,
  * 0..255) with the post on. Measured MEASURED_HALO; the floor is a third.
@@ -39,6 +44,8 @@ const HALO_STEP = 3;
 const BAND_RATIO_MAX = 0.9;
 /** The centre 10% is left alone, within this of unchanged. */
 const CENTRE_RATIO_MIN = 0.97;
+/** The hit marker's bounds may move this many pixels between the raw frame and the composite before it counts as bloomed. */
+const MARKER_SLOP = 3;
 
 function luma(frame, i) {
   return 0.2126 * frame[i] + 0.7152 * frame[i + 1] + 0.0722 * frame[i + 2];
@@ -68,6 +75,20 @@ function dilate(mask, width, height, radius) {
     }
   }
   return out;
+}
+
+/**
+ * The fixture of a lamp in `frame` - the pixels over `FIXTURE_LUMA` - and the
+ * ring just outside it, `halo` pixels out, which is where a bloom shows.
+ */
+function fixtureAndRing(frame, width, height, halo) {
+  const fixture = brightMask(frame, width, height, FIXTURE_LUMA);
+  let lit = 0;
+  for (let i = 0; i < fixture.length; i++) lit += fixture[i];
+  const grown = dilate(fixture, width, height, halo);
+  const ring = new Uint8Array(fixture.length);
+  for (let i = 0; i < ring.length; i++) ring[i] = grown[i] && !fixture[i] ? 1 : 0;
+  return { lit, ring };
 }
 
 /** Mean luma over a mask. */
@@ -126,6 +147,10 @@ export function register(debugTools) {
       const post = h.post;
       if (!post) return { pass: false, detail: 'no post pipeline on the harness' };
       const was = SETTINGS.post;
+      // The level, and whether its preset draws any post at all (D60): read
+      // once here because the detail line below is outside the try (H28).
+      const level = activeQuality();
+      const drawsPost = qualityPreset().post;
       const restore = quiesce(h);
       const lens = createLens(h);
       h.shade.mesh.visible = false;
@@ -153,6 +178,16 @@ export function register(debugTools) {
         }
         if (!eye) return { pass: false, detail: 'no lamp has an eye 3m off it in open air' };
         lens.look(eye, lamp.position);
+        const lampName = lamp.tag || lamp.lightId;
+        // The ring is a dilation measured in pixels and the fixture a count of
+        // them, so both are the reference buffer's and both are scaled to this
+        // one (H28, pixels.js).
+        const halo = scaledRow(lens, HALO);
+        const litFloor = scaledCount(lens, FIXTURE_PIXELS);
+
+        // Both frames of the lamp, and both of the floor, taken before anything
+        // is asserted: at a level that draws no post each pair is the same frame
+        // twice, and that is the reading rather than a reason to stop.
         SETTINGS.post = false;
         lens.grab();
         const raw = lens.grab();
@@ -160,21 +195,12 @@ export function register(debugTools) {
         SETTINGS.post = true;
         lens.grab();
         const shone = lens.grab();
-        const passes = 3 + 2 * PP.blurPasses;
-        if (post.passes !== passes) problems.push(`with the post on the frame reports ${post.passes} passes, not ${passes}`);
-
-        // The halo: the ring round the fixture, brighter with the post on.
-        const fixture = brightMask(raw, width, height, FIXTURE_LUMA);
-        let lit = 0;
-        for (let i = 0; i < fixture.length; i++) lit += fixture[i];
-        if (lit < 20) problems.push(`the fixture of ${lamp.tag || lamp.lightId} covers ${lit} pixels over ${FIXTURE_LUMA} from 3m; nothing to bloom`);
-        const grown = dilate(fixture, width, height, HALO);
-        const ring = new Uint8Array(fixture.length);
-        for (let i = 0; i < ring.length; i++) ring[i] = grown[i] && !fixture[i] ? 1 : 0;
+        const onPasses = post.passes;
+        const { lit, ring } = fixtureAndRing(raw, width, height, halo);
+        if (lit < litFloor) problems.push(`the fixture of ${lampName} covers ${lit} pixels of a ${width}x${height} buffer over ${FIXTURE_LUMA} from 3m, want ${litFloor}; nothing to bloom`);
         const haloRaw = meanOver(raw, ring);
         const haloPost = meanOver(shone, ring);
-        readings.push(`the ring round ${lamp.tag || lamp.lightId}'s fixture ${haloRaw.toFixed(1)} -> ${haloPost.toFixed(1)}`);
-        if (!(haloPost - haloRaw >= HALO_STEP)) problems.push(`the ring round the fixture reads ${haloRaw.toFixed(1)} raw and ${haloPost.toFixed(1)} with the post; no bloom`);
+        readings.push(`the ring round ${lampName}'s fixture, ${halo}px out, ${haloRaw.toFixed(1)} -> ${haloPost.toFixed(1)}`);
 
         // The vignette: a floor view, the outer band down, the centre alone.
         const site = h.map.sites[0];
@@ -185,15 +211,38 @@ export function register(debugTools) {
         SETTINGS.post = true;
         const floorPost = lens.grab();
         const band = bandRatio(floorRaw, floorPost, width, height, 0.06, 10);
+        const bandFloor = scaledCount(lens, BAND_PIXELS);
         const centreRaw = centreMean(floorRaw, width, height, 0.1);
         const centrePost = centreMean(floorPost, width, height, 0.1);
         readings.push(`the corners of site ${site.id}'s floor at ${band.median.toFixed(3)}x over ${band.count} pixels, the centre ${centreRaw.toFixed(1)} -> ${centrePost.toFixed(1)}`);
-        if (band.count < 500) problems.push(`only ${band.count} pixels of the corners read 10 or more raw; the vignette cannot be read here`);
-        else if (!(band.median <= BAND_RATIO_MAX)) problems.push(`the corners read ${band.median.toFixed(3)}x with the post on; no vignette`);
-        if (centreRaw > 1 && centrePost / centreRaw < CENTRE_RATIO_MIN) problems.push(`the centre reads ${centrePost.toFixed(1)} against ${centreRaw.toFixed(1)} raw; the vignette reaches the middle`);
+        if (band.count < bandFloor) problems.push(`only ${band.count} pixels of the corners of a ${width}x${height} buffer read 10 or more raw, want ${bandFloor}; the vignette cannot be read here`);
+
+        // -------------------------------------------------------------------
+        // `low` draws no post whatever the player's row says - the preset is
+        // the other half of an AND (D60, `postEnabled`) - so at that level the
+        // claim is the ABSENCE, and H28 has this check read it rather than go
+        // red with "0 passes, not 7" or ask for a skip. It is the stronger half
+        // of the pair: a row that could switch the bloom on at `low` would be
+        // the preset not being honoured, and nothing else in the suite would
+        // notice.
+        // -------------------------------------------------------------------
+        if (!drawsPost) {
+          if (postEnabled()) problems.push('the row turned the post on at a level whose preset has it off');
+          if (onPasses !== 0) problems.push(`with the row on the frame reports ${onPasses} passes at a level that draws no post`);
+          if (Math.abs(haloPost - haloRaw) >= HALO_STEP) problems.push(`the ring round the fixture moved ${(haloPost - haloRaw).toFixed(1)} with the row on at a level that draws no post`);
+          if (band.median <= BAND_RATIO_MAX) problems.push(`the corners read ${band.median.toFixed(3)}x with the row on at a level that draws no vignette`);
+        } else {
+          const passes = 3 + 2 * PP.blurPasses;
+          if (onPasses !== passes) problems.push(`with the post on the frame reports ${onPasses} passes, not ${passes}`);
+          if (!(haloPost - haloRaw >= HALO_STEP)) problems.push(`the ring round the fixture reads ${haloRaw.toFixed(1)} raw and ${haloPost.toFixed(1)} with the post; no bloom`);
+          if (band.count >= bandFloor && !(band.median <= BAND_RATIO_MAX)) problems.push(`the corners read ${band.median.toFixed(3)}x with the post on; no vignette`);
+          if (centreRaw > 1 && centrePost / centreRaw < CENTRE_RATIO_MIN) problems.push(`the centre reads ${centrePost.toFixed(1)} against ${centreRaw.toFixed(1)} raw; the vignette reaches the middle`);
+        }
 
         // The hit marker draws over the composite: its bounds are the same
-        // size with the post on and off, or it has grown a halo.
+        // size with the post on and off, or it has grown a halo. There is no
+        // composite at a level that draws no post, so there is nothing there
+        // for it to be the same size as, and the pair is not read.
         const marker = (on) => {
           SETTINGS.post = on;
           h.feedback.hitTimer = 0;
@@ -206,14 +255,23 @@ export function register(debugTools) {
           h.feedback.update(0);
           return difference(without, withMarker, width, height, 8);
         };
-        const markerRaw = marker(false);
-        const markerPost = marker(true);
-        if (!markerRaw.bounds || !markerPost.bounds) problems.push('the hit marker changed nothing');
-        else {
-          const spanRaw = markerRaw.bounds.maxX - markerRaw.bounds.minX;
-          const spanPost = markerPost.bounds.maxX - markerPost.bounds.minX;
-          readings.push(`the hit marker spans ${spanRaw}px raw, ${spanPost}px with the post`);
-          if (Math.abs(spanPost - spanRaw) > 3) problems.push(`the hit marker spans ${spanRaw}px raw and ${spanPost}px with the post; it is bloomed`);
+        if (drawsPost) {
+          const markerRaw = marker(false);
+          const markerPost = marker(true);
+          if (!markerRaw.bounds || !markerPost.bounds) problems.push('the hit marker changed nothing');
+          else {
+            const spanRaw = markerRaw.bounds.maxX - markerRaw.bounds.minX;
+            const spanPost = markerPost.bounds.maxX - markerPost.bounds.minX;
+            readings.push(`the hit marker spans ${spanRaw}px raw, ${spanPost}px with the post`);
+            if (Math.abs(spanPost - spanRaw) > MARKER_SLOP) problems.push(`the hit marker spans ${spanRaw}px raw and ${spanPost}px with the post; it is bloomed`);
+          }
+        } else {
+          // One frame of it all the same, so a level with no composite still
+          // proves the marker draws: a vacuous pair would be the one clause
+          // here that could never fail.
+          const drawn = marker(true);
+          if (!drawn.bounds) problems.push('the hit marker changed nothing');
+          else readings.push(`the hit marker spans ${drawn.bounds.maxX - drawn.bounds.minX}px, with no composite to bloom it`);
         }
 
         // The switch: the settings row.
@@ -240,7 +298,9 @@ export function register(debugTools) {
       }
       return {
         pass: problems.length === 0,
-        detail: problems.length === 0 ? `${readings.join('; ')}; ${3 + 2 * PP.blurPasses} passes a frame, 0 off; the settings row switches it` : problems.join('; '),
+        detail: problems.length === 0
+          ? `${readings.join('; ')}; ${drawsPost ? `${3 + 2 * PP.blurPasses} passes a frame, 0 off` : `0 passes a frame at ${level}, with the row on and with it off`}; the settings row switches it`
+          : problems.join('; '),
       };
     },
   });

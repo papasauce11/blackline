@@ -10926,3 +10926,213 @@ picture only `medium` draws, of which the three absolute pixel floors are the
 valuable half. The quality row's own description in `PLAYTEST.md` and D60 no
 longer need the warning H24 put on them, and both were corrected here rather
 than left to contradict the code.
+
+## H28 — six medium-only readings, and five of them were about the drawing buffer (2026-10-05 17:00, scheduled run; finished and verified in the 2026-10-06 02:00 run)
+
+**What the job was handed.** H24 ran the suite at `low` and at `high` for the
+first time and listed eight checks that answer differently at low and two at
+high. H27 took one of the eight — the Warden's bursts, which was the quality
+level moving the simulation through a shared rng. That left **six honest picture
+readings** and the queue's description of them: *checks that read a picture only
+`medium` draws, which should say which level they read instead of just going
+red.* The queue also named the valuable half correctly and for the right reason:
+a 3,000-pixel coverage floor for a figure *is a reading about the drawing
+buffer*, so it would break on a resized window too, and scaling it is more
+honest than making it level-aware.
+
+**What it turned out to be.** Five of the six were one bug, and the bug is not
+about quality at all. The runner's window is 1280x720 and `resolutionScale` is
+0.7 / 1 / 1.25, so the drawing buffer is **896x503 at `low`, 1280x720 at
+`medium` and 1600x900 at `high`** — and it is the player's window times their
+pixel ratio everywhere else. Against that, five checks held **absolute pixel
+geometry**:
+
+- a figure's coverage floor of 2,000 pixels, which a correctly drawn Shade
+  cleared with 3,014 at `medium` and missed with 1,455 at `low`;
+- a pose's floor of 3,000, read at 2,459 at `low`;
+- the two-body frames' 300 / 2,000 / 6,000, never red because the near eyes
+  clear them, and the same reading all the same;
+- the post's 20-pixel fixture, its 10-pixel halo dilation and its 500-pixel
+  corner band;
+- the outline's 400-pixel body floor.
+
+`scaledCount`, `scaledColumn` and `scaledRow` in `tests/pixels.js` are the fix,
+and the law they encode is the half of this worth remembering: **a count scales
+with the square of the buffer *height*, not with its area.** `render.fov` is a
+vertical field of view and the horizontal one follows the aspect, so a body's
+pixel height goes with the buffer's height and so does its width. On the 16:9
+the runner drives, height-squared and area give the same number; on anything
+else only the first is right. Measured across the three buffers on the plant:
+**5,750.8 / 5,814.0 / 5,730.9 pixels per megapixel-of-height, a spread of
+1.4%** — so the law is not approximately right, it is right.
+
+**What had been diagnosed wrongly, twice.** The sixth was the wall-banding
+check, and H24's write-up and this queue both recorded it as *"a 1024-only
+reading"*: a sharper shadow map banding more. It was not that. It reads
+**columns 700 to 1270 of row 200**, and at `low` the buffer is 896 wide — so
+the read ran off the end of each row and 374 pixels into the row above it, and
+the check assembled a staircase out of two rows and reported shadow stripes, 7
+crossings against a ceiling of 6. At `high` every column was in range and all
+of them were in the wrong place, landing left of the wall on the bay behind it:
+11 crossings. The index is `y * width + x` and nothing bounds-checks `x`. The
+reason the misdiagnosis was so easy is that **the artefact looks exactly like
+the thing it was blamed on** — two interleaved rows of a luma ramp are a
+staircase, and so is a shadow map's texel edge. It is in `TRAPS.md` now with
+that said out loud, because the lesson is not "scale your columns", it is that
+a plausible cause for a staircase is not evidence of one.
+
+**And under it, F8's instrument clause.** Fixing the window exposed a second
+bug in the same check that nothing had been pointed at. F8 proves its own
+instrument by taking the key-light fix off and requiring the stripes to come
+back — *as a count of crossings over the same ceiling*. But **a crossing count
+is a count of the shadow map's texels**: 14/9/6 crossings at a 512 map, 23/21/12
+at 1024, 50/44/25 at 2048. Halve the map and you halve the count, so at `low`'s
+512 map the third row read 6 crossings, which is *at* the ceiling rather than
+over it, and the check reported that its instrument had gone blind when what had
+happened was that the preset had changed the shadow map. Same shape as H24's
+`exactly-one-shadow-caster`, and the third time this shape has appeared since
+H10 made the shadow map a preset knob.
+
+The reading that does not move is the **amplitude**: the stripes are about a
+luma deep whether there are six of them across the window or fifty
+(0.81/0.43/0.30 luma at 512 against 0.76/0.58/0.47 at 2048). So the clause reads
+swing now — every row's residual must deepen by **2.5x** when the fix comes off
+— and the plain wall's ceiling in crossings stays, because a wall with no
+stripes on it has none at any map size. That split is the point: one of the two
+numbers was scale-free all along and the check was using the other one.
+
+**The pair that asserts an absence, and the bug it caught.** The outline and the
+post are the two checks whose subject is the live picture at a level that draws
+neither of them — `low` has `outlines: false` and `post: false` (D60). Going red
+there is wrong and skipping is worse, so both now **assert the absence**: at a
+level that draws no outlines every hull must be hidden, and at a level that
+draws no post the frame must report 0 passes, the ring round a fixture must not
+move, and the corners must not darken even with the settings row on. That is the
+stronger half of each pair — a row that could switch the bloom on at `low` would
+be the preset not being honoured, and nothing else in the suite would notice.
+
+It also caught a defect nobody could have found any other way. The outline check
+ended `hull.visible = true` for every hull, **unconditionally**. At `low` the
+preset has the outlines off, so that check *turned them on* and left them on for
+every check after it in the run. Nothing caught it and nothing would have: the
+suite is pinned to `medium`, where the restore happens to be correct. It
+restores to `qualityPreset().outlines` now. The general rule — *a check that
+hides something puts it back the way the preset wants it, not the way it found
+it written* — is in `TRAPS.md`.
+
+**The one judgement, and it is D63.** The two figure checks were the awkward
+case. Their red at `low` was *"the Shade's hood 6px is not 1.5x its neck 5px"*,
+and at 0.7 in a 1280x720 window the Shade at 25m is **28 by 8 pixels**: the neck
+bottoms out at the narrowest row a difference frame resolves while the hood keeps
+shrinking, so the ratio collapses on quantisation and not on anything about the
+body. Everything those two checks assert — six parts on one material, tall and
+narrow, a hood over a neck, a helmet under shoulders, a rifle out front — is
+**geometry**, and geometry is the same shape at every resolution. So they read
+at the resolution `medium` ships, whatever level is applied
+(`createLens(h, { pixelRatio })`, restored on the way out), and their numbers are
+now identical at all three levels: Shade 40x12, Warden 40x26 at 25m, measured at
+`low` and at `high`.
+
+**The line that keeps this from being a dodge, and it is the one for Josh.**
+896x503 is not what a player at `low` sees — it is what a player at `low` sees
+*in a 1280x720 window*. On a 1080p display `low` draws 1344x756, which is **more**
+pixels than the reference these checks now read at. The red was a reading about
+the runner's window, not about the level. But the cost is real and is recorded
+rather than buried: **nothing now asks whether a genuinely small window keeps a
+body legible at 25m.** The old red was the wrong instrument for that question —
+it could not tell a small window from a low preset — but it was the only thing
+pointed anywhere near it. That is **H29**, which asks it directly at a named
+buffer (1366x768 at `low` is 956x538) and has an answer that means something
+either way. D63 says that if Josh would rather the figure checks stayed at the
+applied resolution and `low` were held to the silhouette, H29 becomes the
+calibration job instead.
+
+**The seventh, which was not one of the six.** H27 left
+`frame-budget-under-the-check-29-load` red at low on the plant and asked this job
+to judge it with the rest. It is **green at `low` on both maps** — CPU 3.10ms
+median against a 16.67ms budget — so it goes on the record as machine load,
+which is what H27 suspected and could not show. Nothing was changed for it.
+
+**Checks.** One new module, one split, and clauses in five existing checks.
+
+- `a-pixel-reading-is-a-fraction-of-the-drawing-buffer`
+  (`tests/bufferscale.js`, new) is what makes the scaling load-bearing instead
+  of merely present. At the pin it drives the renderer's pixel ratio to the
+  three the presets ask for and reads the Shade's silhouette at each **through
+  the figure check's own floor function** rather than a copy of its numbers — so
+  a floor that goes back to being absolute fails here, at `medium`, without
+  anyone running the suite at another level again. It asserts the
+  height-squared law across the three buffers, asserts the key-light window
+  fits every one, and its last clause is the sentence the job exists for: the
+  smallest buffer's reading is **below** the reference floor, so *"a fixed 2,000
+  would have failed here"* is asserted rather than remembered. It restores
+  through `applyQuality()`, for the reason the outline bug above exists.
+- `the-outline-darkens-the-silhouette-edge` moved out of `tests/visual.js` into
+  **`tests/outline.js`**: the module was at 589 lines against the ~600 guidance
+  and this job needed to add a clause to it, so the block came out into a
+  sibling named for its own subject, as H23's did. `visual.js` is 485 now and
+  `outline.js` 180.
+- Clauses: the preset's own outline state (outline), the absence of post at a
+  level that draws none plus a non-vacuous marker reading (post), swing rather
+  than crossings (keylight), and scaled floors with the buffer named in every
+  detail line (figure, look, post, outline).
+
+**This entry was written by the run after the one that did the work.** The
+17:00 run of 2026-10-05 built all of it, wrote D63, the queue, `PLAYTEST.md`
+and `TRAPS.md`, and then stopped before `PROGRESS.md` and before any commit -
+so the 02:00 run of 2026-10-06 found a dirty tree with no WIP note in it and
+finished the job rather than committing it as WIP, which is the first branch
+of step 1 of the protocol. Everything under *What was verified* is this
+run's, and the suite had not been run twice on the finished tree before it.
+Nothing in the code or the docs was changed on the way except the four
+disagreeing numbers at the end of that section. The lesson for the protocol
+is small and worth having: a run that dies between the work and the commit
+leaves a tree that looks exactly like a run that died in the middle of the
+work, and the only thing that told them apart here was that every file the
+job touches was already coherent.
+
+**What was verified.** `npm run suite`, two runs per map on the
+finished tree: **plant 209 passed / 1 failed / 8 not for this map (1,026,004ms
+and 1,019,166ms), yard 189 / 1 / 28 (704,077ms and 703,601ms), exit 0, 0 red, 0
+flaky, 0 console errors, 0 context losses, 0 loop frames, 0 skips withheld, 0
+unexpectedly green.** One more per map than H27's pair (208 and 188), which is
+this job's one check. The pairs agree within **6,838ms on the plant (1%) and
+476ms on the yard (0%)** - the tightest pair on record, beating H23's.
+
+**And H27's console error did not recur.** H27 reported one `AudioContext`
+device error on the yard page where every earlier verify had none, argued it was
+environmental, and said that if it came back on a cold run it was a defect. It
+did not come back: **0 console errors** across four runs. That closes it as the
+machine, which is the outcome H27 predicted but could not show.
+
+The numbers in this entry are the checks' own, read with `--details <path>` -
+worth knowing because the report JSON carries a detail line only for a check
+that went **red**, so a passing check's measurements need a subset run to see at
+all. The readings quoted above come from
+`a-pixel-reading-is-a-fraction-of-the-drawing-buffer` on the plant at the pin:
+*x0.7 896x503: 1455px over a floor of 976, the wall window 490-889 on rows
+140/210/279; x1 1280x720: 3014px over a floor of 2000, the window 700-1270 on
+200/300/400; x1.25 1600x900: 4642px over a floor of 3125, the window 875-1588 on
+250/375/500.*
+
+**One correction made on the way, and it is the reason the numbers above were
+measured rather than copied.** The notes this job inherited quoted the figure's
+own coverage four times and **disagreed with themselves**: `pixels.js` and
+`bufferscale.js` said 3,012px at `medium` falling to 1,476 at `low`, `HANDOFF.md`
+said 3,014 to 1,455, and `PLAYTEST.md` said 3,012 to 1,455. Three of the four
+were wrong in one place or the other, which means none of them could be trusted
+and the ones in `src/` were wrong in a header that explains the whole fix. The
+measured answer is **3,014 and 1,455**, and all four now say it. The two bad
+numbers look like a draft taken before the pose settled; the lesson is the one
+F14 is about from the other side - a number written in four places is a number
+nothing checks.
+
+**What was left.** **H29** and **H30**, both S, both in the queue, and **D63**
+open for override. H30 is the census this job did not do: four more modules hold
+absolute pixel numbers — `visual.js`'s 5,000-pixel smoke-occlusion floor and its
+400-pixel alarm-fixture reads, plus floors in `legibility.js`, `readability.js`
+and `presentation.js` — and none of them is red at any level today, which means
+only that no level happens to cross them. That is exactly what was true of these
+six before anybody ran the suite at `low`. The half of H30 that is a judgement
+and not an edit: a floor genuinely about a fixed-size thing (a HUD element in CSS
+pixels) should stay absolute and carry a comment saying so.

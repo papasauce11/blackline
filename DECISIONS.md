@@ -110,6 +110,47 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D63 — A silhouette is read at the shipped resolution, not at the player's
+
+**Raised by:** H28, 2026-10-05, and recorded rather than asked because it
+changes nothing a player can do — but it decides what the suite will and will
+not notice, and that is yours to overturn.
+
+H24 ran the suite at `low` and `the-warden-and-the-shade-are-told-apart-by-
+silhouette-at-25m` went red on **"the Shade's hood 6px is not 1.5x its neck
+5px"**. At `low`'s 0.7 resolution scale in the runner's 1280x720 window the
+Shade at 25m is **28x8 pixels**, and a hood cannot be told from a neck inside
+eight of them: the neck bottoms out at the narrowest row a difference frame
+resolves while the hood keeps shrinking, so the ratio collapses on
+quantisation rather than on anything about the body.
+
+**Taken:** the two figure checks read their silhouettes at **the resolution
+`medium` ships**, whatever level is applied — `createLens(h, { pixelRatio })`,
+and `restore()` puts it back. Their numbers are now identical at all three
+levels (Shade 40x12, Warden 40x26 at 25m, measured at `low` and at `high`),
+which is what a claim about *geometry* should be. Everything those two checks
+assert — six parts on one material, tall and narrow, a hood over a neck, a
+helmet under shoulders, a rifle out front — is about the shape of a body and
+none of it is a claim about a buffer.
+
+**The line worth your eye, because this reads like a dodge.** 896x503 is not
+what a player at `low` sees. It is what a player at `low` sees **in a
+1280x720 window**. On a 1080p display `low` draws 1344x756, which is *more*
+pixels than the reference the checks now read at — so the red was a reading
+about the runner's window, not about the level, and a player at low is not
+getting the figure the red described.
+
+**What nothing now asks, and that is the cost:** whether a genuinely small
+window — a laptop at 1366x768 at `low`, say 956x538 — keeps a body legible at
+25m. The old red was the wrong instrument for that question (it could not
+tell a small window from a low preset) but it was the only thing pointed
+anywhere near it. It is queued as **H29**, which would ask it directly at a
+named buffer size and have an answer that means something. If you would
+rather the figure checks stayed at the applied resolution and `low` were held
+to the silhouette, say so here and H29 becomes the calibration job instead.
+
+decided:
+
 ### D62 — The quality level is presentational again, and it took a second rng
 
 **Raised by:** H27, 2026-10-05, and recorded rather than asked because nothing

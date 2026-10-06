@@ -30,7 +30,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { createLens, difference, quiesce } from './pixels.js';
+import { createLens, difference, quiesce, scaledCount } from './pixels.js';
 import { alongLane } from './lanes.js';
 import { standAndEyes } from './figure.js';
 import { strike, STRIKES } from './animation.js';
@@ -52,7 +52,9 @@ const APART = 0.9;
 /**
  * Both actors on the stand, a frame from every eye in open air.
  *
- * @returns {{ lane: string, stand: object, views: Object<string, { eye: object, covered: number, dataUrl: string }>, skipped: string[] }|null}
+ * @returns {{ lane: string, stand: object, buffer: {width: number, height: number}, views: Object<string, { eye: object, covered: number, dataUrl: string }>, skipped: string[] }|null}
+ *   `buffer` is the drawing buffer the frames were taken in, because every
+ *   pixel count below it is a fraction of that and not a number (H28)
  *   null when this map has no stand with a clear lane and 25m of sight
  */
 export function photograph(h) {
@@ -114,9 +116,10 @@ export function photograph(h) {
     const covered = difference(withBodies, without, lens.width, lens.height, 8).count;
     views[spec.name] = { eye, covered, dataUrl };
   }
+  const buffer = { width: lens.width, height: lens.height };
   lens.restore();
   restore();
-  return { lane: lane.from, stand, views, skipped };
+  return { lane: lane.from, stand, buffer, views, skipped };
 }
 
 /** The poses `photographPose` knows: the Shade's, and the Warden's aim. */
@@ -141,7 +144,7 @@ const POSE_DISTANCE = 4.5;
  * between the strike and the frame, so a vault is photographed part way
  * over. The match is left as `quiesce` leaves it.
  *
- * @returns {{ pose: string, reached: boolean, why: string, state: string, eye: string|null, covered: number, dataUrl: string|null }}
+ * @returns {{ pose: string, reached: boolean, why: string, state: string, eye: string|null, covered: number, buffer: object|null, dataUrl: string|null }}
  *   `state` is what the body was in for the frame; `reached` whether that
  *   is the state named, `why` what stopped it when not; `eye` null when
  *   no eye had sight of the body
@@ -205,6 +208,7 @@ export function photographPose(h, name) {
 
   let covered = 0;
   let dataUrl = null;
+  let buffer = null;
   if (eye) {
     const other = actor === shade ? warden : shade;
     const wasVisible = { actor: actor.mesh.visible, other: other.mesh.visible };
@@ -217,13 +221,14 @@ export function photographPose(h, name) {
     const withBody = lens.grab();
     dataUrl = h.renderer.domElement.toDataURL('image/png');
     covered = difference(withBody, without, lens.width, lens.height, 8).count;
+    buffer = { width: lens.width, height: lens.height };
     lens.restore();
     actor.mesh.visible = wasVisible.actor;
     other.mesh.visible = wasVisible.other;
   }
   h.input.clearAll();
   restore();
-  return { pose: name, reached, why, state, eye: eyeName, covered, dataUrl };
+  return { pose: name, reached, why, state, eye: eyeName, covered, buffer, dataUrl };
 }
 
 export function register(debugTools) {
@@ -239,8 +244,11 @@ export function register(debugTools) {
         if (!look.reached) { problems.push(`${name}: ${look.why}`); continue; }
         if (!look.eye) { problems.push(`${name}: no eye in open air with sight of the body (${look.state})`); continue; }
         if (!look.dataUrl || !look.dataUrl.startsWith('data:image/png;base64,') || look.dataUrl.length < 1000) problems.push(`${name}: the frame is not a PNG`);
-        // One body at 4.5m covers thousands of pixels.
-        if (look.covered < 3000) problems.push(`${name}: the body covers ${look.covered} pixels from the ${look.eye} eye, want 3000`);
+        // One body at 4.5m covers thousands of pixels - of the reference
+        // buffer, which is the whole of H28: at `low`'s 0.7 this read 2,459px
+        // against a flat 3,000 and failed a pose that was drawn correctly.
+        const floor = scaledCount(look.buffer, 3000);
+        if (look.covered < floor) problems.push(`${name}: the body covers ${look.covered} pixels of a ${look.buffer.width}x${look.buffer.height} buffer from the ${look.eye} eye, want ${floor}`);
         readings.push(`${name} ${look.state} ${look.covered}px ${look.eye}`);
       }
       return {
@@ -269,9 +277,12 @@ export function register(debugTools) {
           continue;
         }
         if (!view.dataUrl.startsWith('data:image/png;base64,') || view.dataUrl.length < 1000) problems.push(`the ${name} frame is not a PNG (${view.dataUrl.slice(0, 30)}..., ${view.dataUrl.length} chars)`);
-        // Both bodies at 4.5m cover thousands of pixels; at 25m a few hundred.
-        const least = name === 'far' ? 300 : name === 'eight' ? 2000 : 6000;
-        if (view.covered < least) problems.push(`the ${name} frame has the bodies on ${view.covered} pixels, want ${least}`);
+        // Both bodies at 4.5m cover thousands of pixels; at 25m a few hundred -
+        // of the reference buffer, as the floor above it is (H28). This one was
+        // never red at `low`, because the near eyes clear 6,000 with room to
+        // spare; it is the same reading all the same and is scaled with it.
+        const least = scaledCount(look.buffer, name === 'far' ? 300 : name === 'eight' ? 2000 : 6000);
+        if (view.covered < least) problems.push(`the ${name} frame has the bodies on ${view.covered} pixels of a ${look.buffer.width}x${look.buffer.height} buffer, want ${least}`);
         readings.push(`${name} ${view.covered}px`);
       }
       // The lane and the far eye are the figure checks' own, so the

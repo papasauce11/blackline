@@ -82,6 +82,50 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The suite judges low and high too now, and five of its "level" bugs were not (H28, 2026-10-05)
+
+The section below this one told you **low is a picture the suite does not
+judge**. It is out of date by one job: the suite is now green at `low` and at
+`high` on both maps, so if you play at low and something looks wrong, the
+checks are at least watching.
+
+**What the six "low is a different picture" reds turned out to be.** Five of
+them were one bug and it had nothing to do with quality: a check that counts
+pixels was comparing them against a **fixed number**, while `low` draws the
+frame at 70% of the size and `high` at 125%. A figure that covers 3,014 pixels
+at medium covers 1,455 at low — same figure, smaller frame — and a floor of
+2,000 fails it. The same reds would have appeared on a resized window or a
+different display. They are fractions of the frame now.
+
+**The one that was diagnosed wrong twice.** The wall-banding check was written up
+(by the last job, and by the queue) as a *"1024-only reading"* — a sharper shadow
+map banding more. It was not. It reads a fixed rectangle of the frame, columns
+700 to 1270, and at low the frame is only 896 wide: it was reading the end of one
+row and then part of the row above, assembling a staircase out of two rows and
+calling it shadow stripes. At high the columns were all in range and all in the
+wrong place, landing on the bay instead of the wall. Nothing was wrong with the
+wall at either level.
+
+**Nothing in the game changed.** Every fix here is in the checks. No threshold
+was loosened, nothing was added to the skip list, and the gate still runs at
+`medium`.
+
+**One thing for you, and it is in D63.** Two checks that read the Shade's and
+Warden's *shape* at 25m now read it at the resolution medium ships, whatever
+level you are playing at — because at low in a 1280x720 window the Shade at 25m
+is **28 by 8 pixels**, and a hood cannot be told from a neck inside eight of
+them. That red was about the window, not the level: at low on a 1080p screen the
+game draws 1344x756, which is *more* pixels than the checks now use. But it does
+mean **nothing currently asks whether a small laptop screen keeps a body legible
+at 25m**, and that is a fair question about playing on a weak machine — it is
+queued as H29. If you would rather the checks stayed at whatever you are playing
+at and held `low` to the silhouette, say so at D63.
+
+**What is left for you:** nothing to judge here. If you want to try it, the game
+runs at `?quality=low` and `?quality=high` on the URL as before, and a low run of
+the suite is about three times cheaper than a medium one if you ever want a quick
+check.
+
 ### The quality row is cosmetic again, and a seed means what it says (H27, 2026-10-05)
 
 Nothing here changes how the game plays, and that is the whole point: until
@@ -125,10 +169,9 @@ it:
 - At **high**, two go red. One is the same fixed constant. The other is the
   wall-banding check, which turns out to be a **1024-only** reading: a 2048
   shadow map has sharper steps and bands *more*, not less.
-- So: **low is a picture the suite does not judge.** If you play at low and
-  something looks wrong, the checks will not have caught it. That is now
-  written down rather than assumed, and the six honest medium-only readings are
-  queued as **H28** to say which level they read instead of just going red.
+- So: **low was a picture the suite did not judge.** That changed the same day —
+  **H28 closed it**, and the next section is what it found. If you are reading
+  this bullet for the state of things, read that one instead.
 
 **And the bug it found, which is fixed.** At low the Warden used to fire
 differently — a measurably illegal pause between bursts. The cause had nothing

@@ -62,6 +62,7 @@ import { register as registerFeedback } from './feedback.js';
 import { register as registerDeathCam } from './deathcam.js';
 import { register as registerPresentation } from './presentation.js';
 import { register as registerVisual } from './visual.js';
+import { register as registerOutline } from './outline.js';
 import { register as registerKeyLight } from './keylight.js';
 import { register as registerSiteTint } from './sitetint.js';
 import { register as registerPost } from './post.js';
@@ -72,6 +73,7 @@ import { register as registerMaterials } from './materials.js';
 import { register as registerYardMaterials } from './yardmaterials.js';
 import { register as registerQuality } from './quality.js';
 import { register as registerQualityHold } from './qualityhold.js';
+import { register as registerBufferScale } from './bufferscale.js';
 import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
@@ -134,6 +136,8 @@ export function registerAutoTests(debugTools) {
   registerDeathCam(debugTools);
   registerPresentation(debugTools);
   registerVisual(debugTools);
+  // Beside it, and out of it since H28: the inverted-hull outline on its own.
+  registerOutline(debugTools);
   registerKeyLight(debugTools);
   registerSiteTint(debugTools);
   registerPost(debugTools);
@@ -150,6 +154,11 @@ export function registerAutoTests(debugTools) {
   // of cards (H23). It resizes the drawing buffer for the same reason and
   // belongs on the same side of the pixel-reading modules.
   registerQualityHold(debugTools);
+  // And the third module that resizes the drawing buffer, on the same side of
+  // the pixel-reading checks for the same reason: it drives the renderer's
+  // pixel ratio to each preset's, to hold every pixel floor in this suite to
+  // being a fraction of the buffer rather than a number (H28).
+  registerBufferScale(debugTools);
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);

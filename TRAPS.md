@@ -39,6 +39,53 @@ building on a base somebody else broke. The base's own proof is the previous
 job's VERIFY, which is what step 8 of the protocol already says stands as the
 next job's gate.
 
+**A number of pixels is a reading about the drawing buffer, not about the thing
+you are measuring.** The buffer is 896x503 at `low`, 1280x720 at `medium` and
+1600x900 at `high` in the runner's window, and it is whatever the player's window
+is times their pixel ratio everywhere else. So a floor of 2,000 pixels fails a
+figure that is drawn perfectly, and a fixed rectangle of the frame reads
+somewhere else entirely. H28 found five checks doing one or the other, and the
+nastier half is the coordinate: **columns 700 to 1270 of an 896-wide buffer are
+the end of one row and then part of the row above it**, because the index is
+`y * width + x` and nothing bounds-checks `x`. That check had been written up
+twice — once by the job that found it and once by the queue — as a shadow-map
+effect, because the staircase it assembled out of two rows looked exactly like
+one. Use `scaledCount`, `scaledColumn` and `scaledRow` from `src/tests/pixels.js`
+for anything measured on the reference buffer, and remember that a count scales
+with the **square of the buffer height** (the vertical field of view is fixed and
+the horizontal follows the aspect), not with its area. The two agree on 16:9 and
+nowhere else.
+
+**A check about geometry should pin the buffer it reads in; a check about the
+picture should scale its floors.** The corollary of the trap above, and the line
+between them is worth getting right before you reach for either tool. The shape
+of a hood is the same shape at every resolution, so reading it in a buffer the
+preset shrank is reading the resolution — at `low` in a 1280x720 window the Shade
+at 25m is 28x8 pixels and its hood and its neck are the same two of them, which
+is a fact about 8 pixels and not about the body. `createLens(h, { pixelRatio })`
+pins it and restores it. But the outline's rim, the post's bloom and a pose
+photographed *are* the live picture, and those scale their floors instead, or
+they stop reading what the player sees.
+
+**A count can be a reading about the shadow map, the same way.** F8's wall check
+proves its own instrument by taking the fix off and requiring the stripes back,
+and the stripes are the shadow map's texel staircase: 14/9/6 crossings at a 512
+map, 23/21/12 at 1024, 50/44/25 at 2048. Halve the map and you halve the count,
+so a floor in crossings silently becomes a floor on the quality level. The
+amplitude does not move (0.81/0.43/0.30 luma at 512 against 0.76/0.58/0.47 at
+2048), so measure how deep a thing is rather than how many of it there are.
+This is the third time the same shape of bug has turned up since H10 made the
+shadow map a preset knob — see `exactly-one-shadow-caster` in H24.
+
+**A check that hides something must put it back the way the preset wants it, not
+the way it found it written.** `the-outline-darkens-the-silhouette-edge` ended
+`hull.visible = true` for every hull, unconditionally. At `low` the preset has
+the outlines off, so that check *turned them on* and left them on for every check
+after it in the run. Nothing caught it and nothing would have: the suite was
+pinned to `medium`, where the restore happens to be correct. Restore to
+`qualityPreset()`, and if a check changes something the preset owns, say so in
+its detail line so the next reader can see it was deliberate.
+
 **A loaded machine can take the GPU away mid-suite.** One verify came back
 with *eight* pixel checks flaky at once and never reproduced. F1 found it: a
 **lost WebGL context**. Chrome kills a starved SwiftShader GPU process and

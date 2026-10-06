@@ -17,12 +17,23 @@
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
-import { createLens, quiesce } from './pixels.js';
+import { createLens, quiesce, scaledColumn, scaledRow } from './pixels.js';
 
 /**
  * E4's probe eye: inside the loading bay, looking down the east shell wall
  * (`shell-east-2`, x = 30, z -16..-8, its inner face normal -x) at a grazing
  * angle. The wall fills the right half of the frame from x = 700 on.
+ *
+ * The rows and columns are **the reference buffer's** (1280x720, pixels.js) and
+ * are scaled to whatever buffer is in front of us by `wallWindow` below. They
+ * were plain numbers until H28, and the damage that did is worth stating
+ * because it does not look like a resolution bug: at `low`'s 896-wide buffer,
+ * columns 700 to 1270 of row 200 are the last 196 pixels of that row and then
+ * 374 pixels of the rows above it, so the check read a staircase it had
+ * assembled itself and called it shadow stripes - 7 crossings against a ceiling
+ * of 6. At `high` the columns are all in range and all in the wrong place,
+ * landing left of the wall on the bay behind it: 11 crossings. Neither reading
+ * was about the key light, and neither was about the shadow map.
  */
 const EYE = { x: 28.5, y: 1.6, z: -8 };
 const AT = { x: 30, y: 1.2, z: -16 };
@@ -36,8 +47,27 @@ const BAND = 0.5;
 /**
  * Level-crossings a plain wall may show on one row. Measured: 0-2 with the
  * fix, 12-23 without (the stripes are about a luma deep, on a wall at 25).
+ *
+ * This is the PLAIN wall's ceiling and it does not depend on the shadow map:
+ * a wall with no stripes on it has none at any map size.
  */
 const CEILING = 6;
+/**
+ * The other half - *the stripes come back when the fix comes off* - used to be
+ * this same ceiling, and H28 found that it cannot be. **A crossing count is a
+ * count of the shadow map's texels**, so halving the map halves it: the third
+ * row read 12 crossings at 1024 and 6 at 512, which is at the ceiling rather
+ * than over it, and the check reported that its instrument had gone blind when
+ * what had happened was that `low` has a 512 map. Same shape as H24's
+ * `exactly-one-shadow-caster`: a number that was the answer until the shadow
+ * map became a preset knob.
+ *
+ * So the instrument is demonstrated by the residual's **amplitude** instead,
+ * which is scale-free - the stripes are about a luma deep whether there are six
+ * of them across the window or twenty-four. A row's swing with the fix off is
+ * at least this many times its swing with the fix on.
+ */
+const SWING_RATIO = 2.5;
 
 /** Luma along one row, x0 inclusive to x1 exclusive. */
 function lumaRow(frame, width, y, x0, x1) {
@@ -50,13 +80,19 @@ function lumaRow(frame, width, y, x0, x1) {
 }
 
 /**
- * How many times the row crosses its own smoothed copy. The residual has to
- * leave a band of `BAND` on one side and then the other for a crossing to
- * count, so the ramp's own level steps (half a luma, one way) do not.
+ * How a row departs from its own smoothed copy, two ways.
+ *
+ * `crossings` counts the times the residual leaves a band of `BAND` on one side
+ * and then the other, so the ramp's own level steps (half a luma, one way) do
+ * not count. It is how many stripes are in the window.
+ *
+ * `swing` is the mean size of the residual, in luma. It is how DEEP they are,
+ * and it is the reading that does not move with the shadow map (above).
  */
-function levelCrossings(row) {
+function residuals(row) {
   let side = 0;
-  let count = 0;
+  let crossings = 0;
+  let swing = 0;
   for (let i = 0; i < row.length; i++) {
     let total = 0;
     let n = 0;
@@ -65,19 +101,39 @@ function levelCrossings(row) {
       n++;
     }
     const residual = row[i] - total / n;
+    swing += Math.abs(residual);
     const now = residual > BAND ? 1 : residual < -BAND ? -1 : 0;
     if (now === 0) continue;
-    if (side !== 0 && now !== side) count++;
+    if (side !== 0 && now !== side) crossings++;
     side = now;
   }
-  return count;
+  return { crossings, swing: row.length ? swing / row.length : 0 };
+}
+
+/**
+ * The window on the wall in the buffer `lens` reads: the constants above are
+ * fractions of the reference buffer and this is what they come to here. The
+ * right edge is clamped, so a buffer narrower than the scaling expects reads a
+ * short row rather than the next row along.
+ *
+ * Exported for `tests/bufferscale.js`, which asserts the window fits at every
+ * buffer size - the weakest thing worth saying about it, and enough to catch
+ * the constants coming back.
+ */
+export function wallWindow(lens) {
+  return {
+    rows: ROWS.map((y) => scaledRow(lens, y)),
+    x0: scaledColumn(lens, X0),
+    x1: Math.min(scaledColumn(lens, X1), lens.width),
+  };
 }
 
 /** Crossings and mean luma per row of the wall in `frame`. */
-function readWall(frame, width) {
-  return ROWS.map((y) => {
-    const row = lumaRow(frame, width, y, X0, X1);
-    return { y, crossings: levelCrossings(row), mean: row.reduce((a, b) => a + b, 0) / row.length };
+function readWall(frame, lens) {
+  const window = wallWindow(lens);
+  return window.rows.map((y) => {
+    const row = lumaRow(frame, lens.width, y, window.x0, window.x1);
+    return { y, ...residuals(row), mean: row.reduce((a, b) => a + b, 0) / row.length };
   });
 }
 
@@ -108,7 +164,8 @@ export function register(debugTools) {
 
       lens.look(EYE, AT);
       lens.grab(); // the first draw of a view compiles
-      const fixed = readWall(lens.grab(), lens.width);
+      const window = wallWindow(lens);
+      const fixed = readWall(lens.grab(), lens);
       for (const row of fixed) {
         if (row.crossings > CEILING) problems.push(`row ${row.y} crosses its smoothed copy ${row.crossings} times with the fix on (ceiling ${CEILING})`);
       }
@@ -121,19 +178,26 @@ export function register(debugTools) {
         material.customProgramCacheKey = () => 'bl-key-from-behind';
         material.needsUpdate = true;
       }
-      const striped = readWall(lens.grab(), lens.width);
+      const striped = readWall(lens.grab(), lens);
       for (const [material, onBeforeCompile, cacheKey] of saved) {
         material.onBeforeCompile = onBeforeCompile;
         material.customProgramCacheKey = cacheKey;
         material.needsUpdate = true;
       }
-      const stripedRows = striped.filter((row) => row.crossings > CEILING).length;
-      if (stripedRows < ROWS.length) problems.push(`with the fix off only ${stripedRows} of ${ROWS.length} rows show the stripes (${striped.map((row) => row.crossings).join('/')}): the instrument cannot see them`);
+      // Every row's residual has to deepen when the fix comes off, by a factor
+      // rather than to a count: a count is the shadow map's and this is not.
+      const blind = [];
+      for (let i = 0; i < fixed.length; i++) {
+        if (!(striped[i].swing >= fixed[i].swing * SWING_RATIO)) {
+          blind.push(`row ${fixed[i].y} swings ${striped[i].swing.toFixed(2)} luma with the fix off against ${fixed[i].swing.toFixed(2)} with it on, not ${SWING_RATIO}x`);
+        }
+      }
+      if (blind.length) problems.push(`the instrument cannot see the stripes: ${blind.join('; ')}`);
 
       // And back: the restored materials draw the plain wall again.
-      const again = readWall(lens.grab(), lens.width);
-      for (let i = 0; i < ROWS.length; i++) {
-        if (again[i].crossings !== fixed[i].crossings) problems.push(`row ${ROWS[i]} reads ${again[i].crossings} crossings after the materials were restored, ${fixed[i].crossings} before`);
+      const again = readWall(lens.grab(), lens);
+      for (let i = 0; i < fixed.length; i++) {
+        if (again[i].crossings !== fixed[i].crossings) problems.push(`row ${fixed[i].y} reads ${again[i].crossings} crossings after the materials were restored, ${fixed[i].crossings} before`);
       }
       if (lens.glError() !== 0) problems.push('GL error during the reads');
 
@@ -146,10 +210,11 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `the east shell wall from the bay: rows ${ROWS.join('/')} cross their smoothed copy `
-            + `${fixed.map((row) => row.crossings).join('/')} times at luma ${fixed.map((row) => row.mean.toFixed(1)).join('/')} `
-            + `(ceiling ${CEILING}); with the key lighting it from behind ${striped.map((row) => row.crossings).join('/')} `
-            + `at ${striped.map((row) => row.mean.toFixed(1)).join('/')}; ${materials.length} map materials patched, the shadow on`
+          ? `the east shell wall from the bay, columns ${window.x0}-${window.x1} of a ${lens.width}x${lens.height} buffer: rows ${fixed.map((row) => row.y).join('/')} cross their smoothed copy `
+            + `${fixed.map((row) => row.crossings).join('/')} times (ceiling ${CEILING}) and swing ${fixed.map((row) => row.swing.toFixed(2)).join('/')} luma `
+            + `at luma ${fixed.map((row) => row.mean.toFixed(1)).join('/')}; with the key lighting it from behind ${striped.map((row) => row.crossings).join('/')} `
+            + `crossings swinging ${striped.map((row) => row.swing.toFixed(2)).join('/')} at ${striped.map((row) => row.mean.toFixed(1)).join('/')}; `
+            + `${materials.length} map materials patched, the shadow on`
           : problems.join('; '),
       };
     },

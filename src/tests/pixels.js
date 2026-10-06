@@ -36,18 +36,84 @@ import { CONFIG } from '../config.js';
 export const SITE_SAMPLE_OFFSET = 3.5;
 
 /**
+ * The drawing buffer every pixel number in this suite was measured on: the
+ * headless runner's 1280x720 viewport at `medium`'s `resolutionScale` of 1.
+ *
+ * **A pixel count is a reading about the buffer as much as about the thing
+ * drawn in it, and until H28 the floors here did not say so.** H24 ran the
+ * suite at `low` for the first time and three of them went red with nothing
+ * wrong with the game: 0.7 is a buffer with 49% of the pixels in it, and a
+ * figure that covered 3,014 of them at `medium` covered 1,455 at `low` against
+ * a floor of 2,000 that was 2,000 whatever the buffer was. The quality level is
+ * only what *found* that. The same reds come up on a resized window, on a
+ * phone, on any display whose pixel ratio is not 1 - so the fix was never "read
+ * the level", it was to make a count a fraction of the buffer, which is more
+ * honest than level-agnostic and not merely equivalent to it.
+ *
+ * The same trap with sharper teeth for a *coordinate*: columns 700 to 1270 of a
+ * 1280-wide buffer are columns 700 to 1270 of an 896-wide one too, and that is
+ * a read which runs off the end of each row and into the next. It is why
+ * `tests/keylight.js` reported stripes on a plain wall at two levels.
+ *
+ * A count scales by the **square of the buffer height** and not by its area:
+ * `render.fov` is a vertical field of view and the horizontal one follows the
+ * aspect, so a body's pixel height goes with the buffer's height and so does
+ * its pixel width. On the 16:9 the runner drives the two laws give the same
+ * number; on anything else only this one is right.
+ * `a-pixel-reading-is-a-fraction-of-the-drawing-buffer` holds the law.
+ *
+ * Each of the three takes a `lens` - or anything with its `width` and `height`,
+ * which is how a check hands in the reference buffer itself.
+ */
+export const REFERENCE_WIDTH = 1280;
+export const REFERENCE_HEIGHT = 720;
+
+/** A column measured on the reference buffer, in the buffer `lens` reads. */
+export function scaledColumn(lens, x) {
+  return Math.round((x * lens.width) / REFERENCE_WIDTH);
+}
+
+/** A row measured on the reference buffer, in the buffer `lens` reads. */
+export function scaledRow(lens, y) {
+  return Math.round((y * lens.height) / REFERENCE_HEIGHT);
+}
+
+/** A pixel COUNT measured on the reference buffer, in the buffer `lens` reads. */
+export function scaledCount(lens, count) {
+  const scale = lens.height / REFERENCE_HEIGHT;
+  return Math.round(count * scale * scale);
+}
+
+/**
  * Take the camera, point it at something, and hand back a reader.
  *
  * The camera is detached to the scene for the duration — the Shade and Warden
  * rigs move it every frame, and a rig reparenting mid-measurement is a
  * measurement of the rig. `restore()` puts ownership back.
  *
+ * `pixelRatio` draws the buffer at a ratio of the caller's choosing for the
+ * length of the lens, and `restore()` puts that back too. It is for a check
+ * whose subject is **geometry** rather than the live picture: the shape of a
+ * hood is the same shape at every resolution, and reading it in a buffer the
+ * preset shrank is reading the resolution instead (H28). A check that is about
+ * what the player is actually looking at - the outline's rim, the post, a pose
+ * photographed - leaves it alone and scales its floors instead.
+ *
  * @param {object} h harness
+ * @param {{pixelRatio?: number}} [options]
  */
-export function createLens(h) {
+export function createLens(h, { pixelRatio = null } = {}) {
   const renderer = h.renderer;
   const gl = renderer.getContext();
   const camera = h.camera;
+  // Before the dimensions are read: `setPixelRatio` resizes the drawing buffer
+  // off the CSS size three already holds, and the post's targets follow it.
+  const wasRatio = renderer.getPixelRatio();
+  const moved = pixelRatio !== null && Math.abs(wasRatio - pixelRatio) > 1e-6;
+  if (moved) {
+    renderer.setPixelRatio(pixelRatio);
+    h.post.setSize();
+  }
   const width = renderer.domElement.width;
   const height = renderer.domElement.height;
   const owner = h.cameraOwner;
@@ -95,6 +161,10 @@ export function createLens(h) {
 
     restore() {
       h.setCameraOwner(owner);
+      if (moved) {
+        renderer.setPixelRatio(wasRatio);
+        h.post.setSize();
+      }
     },
   };
 }

@@ -203,29 +203,49 @@ one setting only Josh can click; everything else here proceeds.
   `rng.reseed()`. **D62** records why the second option was the close call and
   was not taken.
 
-- [ ] **H28 (S)** Six checks read a picture only `medium` draws, and say so by
-  going red rather than by naming the level. From H24, with what each reported:
-  `the-outline-darkens-the-silhouette-edge` ("the hull is not drawing" - low
-  turns the outlines off); `post-processing-blooms-the-emissives-darkens-the-
-  corners-and-is-a-switch` ("0 passes, not 7" - low draws no post);
-  `a-wall-the-key-lights-from-behind-reads-plain` (7 crossings at 512 and **11
-  at 2048** against a ceiling of 6, so it is a 1024-only reading at both ends);
-  and three with absolute pixel floors that are really fractions of the drawing
-  buffer - `the-shade-reads-as-a-hooded-figure-at-8m-and-25m` (1,476px against
-  3,000), `a-look-at-a-pose-photographs-the-state-named` (2,459px against
-  3,000) and `the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m`
-  (104px, plus 6 draw calls against 12 because the outline hulls are gone). A
-  seventh to judge rather than assume: `frame-budget-under-the-check-29-load`
-  was green at low in H24's run and red in both of H27's, on a machine five
-  hours into driving headless Chrome - decide whether it is load, in which case
-  say so, or a real low-only reading. The
-  three floors are the valuable half: an absolute pixel count is a reading about
-  the buffer, so they would break on a resized canvas too and scaling them by
-  buffer area makes them *more* honest, not merely level-agnostic. The outline
-  and post pair should assert the **absence** at low rather than skip it, which
-  is a stronger check than either has now. *done-when:* `npm run suite --
-  --query quality=low` and `--query quality=high` are both exit 0 on both maps,
-  with no check weakened and no new entry in `suite-skips.json`.
+- [x] **H28 (S)** Six checks read a picture only `medium` draws. — done
+  2026-10-06, under Done. Five of the six were one bug and it was not about
+  quality: **absolute pixel geometry against a resizable drawing buffer**. The
+  wall check was diagnosed wrongly twice before this (by H24 and by this
+  queue): it was not "a 1024-only reading", it was reading **columns 700-1270
+  of an 896-wide buffer**, which runs off the end of each row and into the next.
+  Fixing that exposed F8's instrument clause underneath, where a crossing count
+  turned out to be a count of the shadow map's texels — the amplitude is the
+  scale-free reading and is what the clause uses now. The seventh,
+  `frame-budget-under-the-check-29-load`, is **green at low on both maps**
+  (CPU 3.10ms median against a 16.67ms budget) and goes on the record as
+  machine load. Left: **H29** and **H30**, below, and **D63**.
+
+- [ ] **H29 (S)** Does a small window keep a body legible at 25m? D63 is the
+  reason this exists: H28 took the two figure checks off the applied resolution
+  and onto the one `medium` ships, because at `low` in the runner's 1280x720
+  window the Shade at 25m is **28x8 pixels** and a hood cannot be told from a
+  neck inside eight of them — the neck bottoms out at the narrowest resolvable
+  row while the hood keeps shrinking, so the 1.5x ratio fails on quantisation.
+  That red was about the *window*, not the level: a player at `low` on a 1080p
+  display draws 1344x756, more pixels than the reference. But the question it
+  was accidentally pointed at is real and now nothing asks it. Ask it directly:
+  drive the pixel ratio to a named small buffer (1366x768 at `low` is 956x538)
+  and read the Shade's silhouette at 25m, then say whether the hood survives.
+  The answer is information either way — if it does not, that is a finding about
+  small displays for `PLAYTEST.md` and possibly a minimum-resolution line in the
+  spec, which would be a decision. `createLens(h, { pixelRatio })` is the tool
+  and already exists. *done-when:* a check reads the silhouette at a named small
+  buffer and the entry says whether the hood reads there, with the numbers.
+- [ ] **H30 (S)** The pixel floors H28 did not reach. Four modules still hold
+  absolute pixel numbers that nothing scales: `tests/visual.js`'s 5,000-pixel
+  smoke-occlusion floor and its 400-pixel alarm-fixture reads, plus floors in
+  `legibility.js`, `readability.js` and `presentation.js`. None is red at any
+  level today, which means only that no level happens to cross them — the same
+  thing that was true of H28's six before anybody ran the suite at `low`.
+  `scaledCount` exists now, so this is a census and an edit rather than a
+  design. Do the census first and say how many there are before changing any:
+  a floor that is genuinely about a fixed-size thing (a HUD element in CSS
+  pixels) should stay absolute and say so in a comment, which is the half of
+  this job that is a judgement.
+  *done-when:* every absolute pixel floor under `src/tests/` is either scaled or
+  carries a comment saying why it is not, and the count of each is in the entry.
+
 - [ ] **H25 (S)** Auto's pick depends on which map you open first, and it is
   stored for good. H10's verify measured the same machine twice: the plant reads
   **8.70ms median CPU and picks `low`**, the yard **5.30ms and picks `medium`**.
@@ -498,6 +518,51 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H28** Six checks read a picture only `medium` draws — and **five of them
+  were not about the level at all**. The runner's window is 1280x720 and
+  `resolutionScale` is 0.7 / 1 / 1.25, so the drawing buffer is 896x503 at
+  `low` and 1600x900 at `high`, and five checks held **absolute pixel geometry**
+  against it: a figure's coverage floor of 2,000 that a correctly drawn Shade
+  cleared with **3,014px at `medium`** and missed with **1,455 at `low`**, a
+  pose's 3,000 read at 2,459, the two-body frames' 300/2,000/6,000, the post's
+  20-pixel fixture and 500-pixel corner band, and the outline's 400.
+  `scaledCount` / `scaledColumn` / `scaledRow` in `tests/pixels.js` are the fix,
+  and the law is that a count scales with the **square of the buffer height**
+  and not with its area — `render.fov` is vertical and the horizontal follows
+  the aspect — measured at 5,750.8 / 5,814.0 / 5,730.9 pixels per
+  megapixel-of-height across the three buffers, a spread of 1.4%. **The sixth
+  had been diagnosed wrongly twice**, by H24 and by this queue, as a
+  *"1024-only reading"* of a sharper shadow map: it reads columns 700-1270 of a
+  896-wide buffer at `low`, which runs off the end of each row and 374 pixels
+  into the row above, so the check assembled a staircase out of two rows and
+  called it shadow stripes. Fixing the window exposed **F8's instrument clause**
+  underneath, where a crossing count turns out to be a count of the shadow map's
+  texels (14/9/6 at 512, 23/21/12 at 1024, 50/44/25 at 2048) — the amplitude
+  is the scale-free reading, so the clause requires every row's residual to
+  deepen **2.5x** when the fix comes off, measured 0.16/0.10/0.11 luma to
+  0.71/0.48/0.37. The outline and post checks **assert the absence** at a level
+  that draws neither, which is the stronger half of each pair and caught a defect
+  nothing else could: the outline check ended `hull.visible = true`
+  unconditionally, so at `low` it turned the outlines on and left them on for
+  every check after it. One new check,
+  `a-pixel-reading-is-a-fraction-of-the-drawing-buffer`, reads the Shade at the
+  three buffer sizes **through the figure check's own floor function** rather
+  than a copy of its numbers, so a floor that stops scaling fails at the pin
+  without anyone running another level — and its last clause asserts that the
+  smallest buffer's 1,455px is *under* the reference floor of 2,000, which is
+  "a fixed number would have failed here" proved rather than remembered.
+  `tests/visual.js` was at 589 lines against the ~600 guidance, so the outline
+  block came out into `tests/outline.js` (180) and took it to 485. **D63** is
+  the one judgement and it records a cost: the two figure checks read a
+  silhouette at the resolution `medium` ships, because at `low` the Shade at 25m
+  is 28x8 pixels and a hood cannot be told from a neck inside eight of them —
+  a reading about the runner's **window**, not the level, since `low` on a 1080p
+  display draws more pixels than the reference — but nothing now asks whether a
+  genuinely small window keeps a body legible, which is **H29**. The seventh red
+  H27 left, `frame-budget-under-the-check-29-load`, is **green at `low` on both
+  maps** and goes on the record as machine load. Done 2026-10-06, commit
+  `PENDING`.
 
 - **H27** Two streams off one seed, so the picture cannot move the game.
   `effects.sparks()` drew three numbers per particle from the one seeded `rng`
