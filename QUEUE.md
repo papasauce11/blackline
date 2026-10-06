@@ -630,7 +630,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   legible in 347 of the 400 characters a detail line keeps. Its follow-ups are
   **H33** and **H34**. The gate for this job was H30's own VERIFY, byte-identical
   tree, because this run's gate was lost to a background timeout shorter than
-  the gate — two rules in `TRAPS.md`. Done 2026-10-06, commit `PENDING`.
+  the gate — two rules in `TRAPS.md`. Done 2026-10-06, commit `7d73ed0`.
 - **H30** Every pixel floor under `src/tests/` is a fraction of the drawing
   buffer, or says why it is not. H28 scaled the six floors H24's off-level runs
   had caught and left the rest with an honest note: *none of them is red at any
