@@ -216,22 +216,71 @@ one setting only Josh can click; everything else here proceeds.
   (CPU 3.10ms median against a 16.67ms budget) and goes on the record as
   machine load. Left: **H29** and **H30**, below, and **D63**.
 
-- [ ] **H29 (S)** Does a small window keep a body legible at 25m? D63 is the
-  reason this exists: H28 took the two figure checks off the applied resolution
-  and onto the one `medium` ships, because at `low` in the runner's 1280x720
-  window the Shade at 25m is **28x8 pixels** and a hood cannot be told from a
-  neck inside eight of them — the neck bottoms out at the narrowest resolvable
-  row while the hood keeps shrinking, so the 1.5x ratio fails on quantisation.
-  That red was about the *window*, not the level: a player at `low` on a 1080p
-  display draws 1344x756, more pixels than the reference. But the question it
-  was accidentally pointed at is real and now nothing asks it. Ask it directly:
-  drive the pixel ratio to a named small buffer (1366x768 at `low` is 956x538)
-  and read the Shade's silhouette at 25m, then say whether the hood survives.
-  The answer is information either way — if it does not, that is a finding about
-  small displays for `PLAYTEST.md` and possibly a minimum-resolution line in the
-  spec, which would be a decision. `createLens(h, { pixelRatio })` is the tool
-  and already exists. *done-when:* a check reads the silhouette at a named small
-  buffer and the entry says whether the hood reads there, with the numbers.
+- [x] **H29 (S)** Does a small window keep a body legible at 25m? — done
+  2026-10-06, under Done. **The suite cannot tell, and establishing that is the
+  finding.** At 1366x768 on `low` the Shade at 25m is **30 rows tall and 8
+  pixels wide**, and the hood-over-neck reading needs a band 14%-22% of the
+  body's height — *two rows* at that size. One row of measured body height
+  slides those two onto the shoulders, so the same body read **8/4 = 2.00x in
+  one run of a suite and 8/6 = 1.33x in the other**, after eight isolated runs
+  had agreed to within a pixel. So the ratio is reported and asserted nowhere
+  below the reference buffer; what is asserted is what held in every run — the
+  body is found, covers its share of the buffer, and stays 3:1 narrow. **D64**
+  has the numbers and **retracts this job's own first conclusion**, which was
+  that the hood reads everywhere and no minimum-resolution line was needed.
+  Whether 8 pixels of width reads as a hood is now an eyes-only question in
+  `PLAYTEST.md`. Left: **H31**, below, which this strengthened.
+- [ ] **H31 (S)** The two figure checks assert a 1.5x ratio on a band three
+  rows deep. H29 went looking for whether a small window keeps a body legible
+  and found the instrument instead: `band()` takes the neck as the rows between
+  **14% and 22%** of the silhouette's height, which is 8% of it, so the band is
+  *three rows* on the 40-row body the reference buffer draws at 25m and *two*
+  on the 30-row body a smaller one draws. At two rows H29 measured the same body
+  as **8/4 = 2.00x and 8/6 = 1.33x in two runs of one suite**, because one row of
+  measured height slides the band onto the shoulders and `narrowest()` returns a
+  shoulder. At the **reference** buffer, where `the-shade-reads-as-a-hooded-
+  figure-at-8m-and-25m` and `...told-apart-by-silhouette-at-25m` both assert
+  1.5x since H28 pinned them there, the neck read **5px and 6px across runs**
+  against a hood of 10px - 2.00x and 1.67x, so a third reading of 7px would be
+  1.43x and red. Both checks are green today and have been for every run on
+  record, so **this is not a defect and not urgent**; it is a clause running on a
+  margin nobody has measured, in two checks that already shipped.
+  Do the measurement before touching either: run both checks several times on
+  both maps and say what the neck actually does at 40 rows. If it is stable at
+  5-6px the clause is calibrated and the right answer is a **comment naming the
+  margin**, not an edit. If it reaches 7px the clause needs replacing, and the
+  candidate is the one H29 kept: at the reference the hood is 10px over a 5-6px
+  neck, so **the hood is wider than the neck** has 4-5px of room where the ratio
+  has one - but note H29 found even that fails at 6/6 on a 30-row body, so it is
+  a fix for the reference buffer and not a general one. The deeper option, and
+  the reason this is sized S rather than XS, is to take the neck as a **fixed
+  number of rows** below the hood rather than a fraction of the height, which
+  would stop the band moving at all; that is a change to a shared helper two
+  checks depend on and wants its own measurement either way.
+  *done-when:* the entry says what the neck measures across several runs on both
+  maps at the pinned resolution, and either the clause is changed or it carries a
+  comment naming the margin it runs on.
+- [ ] **H32 (S)** The `AudioContext` error, and what would settle it. It has
+  appeared in **two of the last three verifies** - H27 on the yard, none in H28,
+  H29 on the plant - as one console error per run pair: *"The AudioContext
+  encountered an error from the audio device or the WebAudio renderer."* H27 said
+  it would be a defect if it recurred **on a cold run** and H28's entry wrote it
+  off as the machine after one clean verify, which was premature: an intermittent
+  fault is not closed by a single absence. The evidence that it is environmental
+  is real but circumstantial - it is attributed to the **page URL** and never to
+  a file in `src/`, all sixteen sound checks are green on both maps every time,
+  and the machine had been driving headless Chrome for hours on each occasion.
+  What nobody has done is define the test. Do that: a verify run **first**, on a
+  machine that has not been driving Chrome, with the occurrence count recorded -
+  and in the same job check the cheap code-side hypothesis, which is whether the
+  audio graph can be created **more than once per page** (a second
+  `AudioContext` on a device Chrome has no audio for is exactly this message).
+  `systems/audio.js` and the boot path are where to look; the suite runs with
+  `--mute-audio`, which is worth knowing before concluding anything.
+  *done-when:* the entry says how many cold runs showed it and how many did not,
+  names whether more than one `AudioContext` is ever constructed, and either
+  closes it with that evidence or says what is still unknown. If it is
+  environmental, add it to `TRAPS.md` so the next reader does not re-litigate it.
 - [ ] **H30 (S)** The pixel floors H28 did not reach. Four modules still hold
   absolute pixel numbers that nothing scales: `tests/visual.js`'s 5,000-pixel
   smoke-occlusion floor and its 400-pixel alarm-fixture reads, plus floors in
@@ -519,6 +568,45 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H29** Does a small window keep a body legible at 25m? **No measurement can
+  say, and that is the result.** D63 moved the two figure checks onto the
+  resolution `medium` ships and recorded the cost: nothing was then asking
+  whether a genuinely small window keeps a body readable. Asked directly, of the
+  drawing buffer rather than of the level, over five sizes face-on at 25m on both
+  maps — and the answer came back **unstable between two runs of one suite**:
+  8/4 = 2.00x against 8/6 = **1.33x** at 956x538, and 6/4 = 1.50x against 6/6 =
+  **1.00x** at 896x503. Eight consecutive isolated runs had agreed to within one
+  pixel of neck first, which is why it is worth recording: it looked like a stable
+  measurement and was not one. **The cause is not quantisation of a row.**
+  `band()` takes the neck as the rows between 14% and 22% of the silhouette's
+  height, and at 25m in those buffers the silhouette is **30 rows tall and 8
+  pixels wide** — so the band is *two rows*, and the body's measured height
+  moving by one (31 to 30, 24 to 23, all the runs differ by) slides them onto
+  different anatomy, where `narrowest()` returns the shoulders. The two readings
+  measure two different things. **A hood cannot be told from a neck inside eight
+  pixels of width**, which vindicates D63 more strongly than D63 claimed: pinning
+  the figure checks to the shipped resolution was not a dodge around a threshold,
+  it was the only buffer the instrument works in. So the check asserts only what
+  held in both runs on both maps — the body is found, covers its share of the
+  buffer (a fraction of it, H28), and keeps its proportions at 3.0:1 or better
+  against a bar of 2.2, which is stable because it is a ratio of the whole
+  silhouette and not of two bands two rows tall. The hood and neck are in the
+  detail line and nothing asserts them. **D64** records it and **retracts this
+  job's own first conclusion** — that the hood reads at every size and no
+  minimum-resolution line was needed — which rested on the run that read 4px
+  necks; the honest statement is that at 1366x768 on `low` the Shade is 30x8
+  pixels and whether that reads is not a thing a pixel count settles. It is an
+  eyes-only ask in `PLAYTEST.md` now, one specific look. One new check,
+  `a-small-window-keeps-the-shade-a-hooded-figure-at-25m` in
+  `tests/smallwindow.js`, reading through `flatShadeSilhouette`,
+  `silhouetteFloor`, `yawToward` and `NARROW` rather than copies, restoring
+  through `applyQuality()`. Two traps cost a run each: **a detail line is cut at
+  400 characters** with no ellipsis, in `--details` as well as the report, and **a
+  passing check's numbers are not in the report at all**. And a third lesson that
+  is not a trap: **eight agreeing runs of a check in isolation did not predict a
+  full suite**, because the body's measured height moves by a row in full-suite
+  context — a new check's flakiness has to be proved where it will live. Done
+  2026-10-06, commit `PENDING29`.
 - **H28** Six checks read a picture only `medium` draws — and **five of them
   were not about the level at all**. The runner's window is 1280x720 and
   `resolutionScale` is 0.7 / 1 / 1.25, so the drawing buffer is 896x503 at

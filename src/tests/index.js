@@ -74,6 +74,7 @@ import { register as registerYardMaterials } from './yardmaterials.js';
 import { register as registerQuality } from './quality.js';
 import { register as registerQualityHold } from './qualityhold.js';
 import { register as registerBufferScale } from './bufferscale.js';
+import { register as registerSmallWindow } from './smallwindow.js';
 import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
@@ -159,6 +160,9 @@ export function registerAutoTests(debugTools) {
   // pixel ratio to each preset's, to hold every pixel floor in this suite to
   // being a fraction of the buffer rather than a number (H28).
   registerBufferScale(debugTools);
+  // And the fourth, which asks what the third one's law implies: whether a body
+  // is still legible once the buffer is small enough (H29).
+  registerSmallWindow(debugTools);
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);

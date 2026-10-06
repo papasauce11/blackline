@@ -39,10 +39,22 @@ const COVERS = { 8: 2000, 25: 150 };
 /** The top of the silhouette that is hood or helmet, and the band under it that is neck or shoulders, as fractions of its height. */
 const HOOD_BAND = 0.14;
 const NECK_BAND = 0.22;
-/** A hood is at least this much wider than the neck under it. */
+/**
+ * A hood is at least this much wider than the neck under it.
+ *
+ * Read at the resolution `medium` ships and nowhere else, and H29 is why: the
+ * neck is the narrowest row of a band 14% to 22% of the silhouette's height, so
+ * on the 30-row body a smaller buffer draws that band is **two rows**, and one
+ * row of measured height slides it onto the shoulders. H29 measured 8/4 and 8/6
+ * at the same buffer in two runs of one suite. The ratio is not meaningful below
+ * this buffer and nothing asserts it there.
+ */
 const HOOD_OVER_NECK = 1.5;
-/** Tall and narrow: height over width. */
-const NARROW = 2.2;
+/**
+ * Tall and narrow: height over width. Exported for `tests/smallwindow.js` (H29),
+ * which asserts it at buffers too small for the hood ratio to mean anything.
+ */
+export const NARROW = 2.2;
 /** Draw calls a body may add to a frame: six parts and their six hulls (twenty before E1; sixteen for the Warden before E2). */
 const DRAW_CALLS = 12;
 /**
@@ -258,8 +270,14 @@ function flatten(bodies, materials) {
   };
 }
 
-/** The yaw that faces `at` from `from`, in the actors' convention (forward is (-sin yaw, -cos yaw)). */
-function yawToward(from, at) {
+/**
+ * The yaw that faces `at` from `from`, in the actors' convention (forward is
+ * (-sin yaw, -cos yaw)).
+ *
+ * Exported for `tests/smallwindow.js` (H29), which has to read the Shade from
+ * the same angle as the red it exists to explain.
+ */
+export function yawToward(from, at) {
   return Math.atan2(-(at.x - from.x), -(at.z - from.z));
 }
 

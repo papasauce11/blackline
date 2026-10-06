@@ -82,6 +82,42 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A question for your eyes: does the Shade read at 25m on a small screen? (H29, 2026-10-06)
+
+The section below this one left one question open, and this job tried to answer
+it with a measurement and **found that it cannot be measured**. So this one is
+genuinely for you, and it is a small specific thing to look at rather than an
+open worry.
+
+**The ask.** Open the game with `?quality=low` on the URL, in a window about
+1366x768 (a small laptop screen). Find a Shade about 25 metres away. **Can you
+tell it from a Warden?** If you can, nothing needs doing and you can say so. If
+you cannot, that is a real finding about weak machines and there is a decision to
+make about a minimum resolution.
+
+**Why the suite cannot tell you.** At that window and that quality level the
+Shade at 25 metres is drawn **30 pixels tall and 8 pixels wide**. The check that
+reads a hooded figure works by comparing the width of the hood against the width
+of the neck beneath it, taking the neck as a band between 14% and 22% of the
+body's height - which on a 30-pixel body is **two rows of pixels**. When the
+measured height of the body shifted by a single row between two runs of the same
+suite, those two rows landed on the shoulders instead of the neck, and the same
+body read as 2.00x in one run and 1.33x in the other. A hood cannot be told from
+a neck inside eight pixels of width, by this instrument or any like it.
+
+**What the checks do still guarantee at that size**, because these held in every
+run: the body is drawn, it covers the share of the frame it should, and it keeps
+its tall narrow proportions (3:1 or better). So it is not a case of the figure
+vanishing or going squat on a small screen. The open question is only whether
+*you* can read a hood at that size.
+
+**What this does not say.** An earlier draft of this section said the hood reads
+fine at every size and there was no minimum resolution to worry about. That was
+wrong and rested on the run that happened to measure the neck correctly; it is
+corrected here rather than quietly removed. D64 has the numbers and the retraction.
+
+**What is left for you:** the one look described above. That is all.
+
 ### The suite judges low and high too now, and five of its "level" bugs were not (H28, 2026-10-05)
 
 The section below this one told you **low is a picture the suite does not
@@ -827,6 +863,14 @@ that it means *this room* (D8).
 The suite drives frames and reads pixels, so most of Section 16 is AUTO
 now. What is not, and why:
 
+- **Whether a hooded figure reads on a small screen** (H29, D64). At
+  `?quality=low` in a 1366x768 window the Shade at 25m is **30 pixels tall and
+  8 wide**, and the hood-over-neck measurement the checks use needs a band two
+  rows deep - so it read the same body as 2.00x and 1.33x in two runs of one
+  suite, because one row of body height slides the band onto the shoulders. The
+  checks still hold that the body is drawn, covers its share of the frame and
+  stays 3:1 narrow at that size; whether you can tell a Shade from a Warden
+  there is the part only you can answer.
 - **The frame budget on a real GPU.** `the-frame-budget-holds-everywhere-not-just-at-site-a`
   is skipped headless (software GL draws a frame in 400ms). Run it in
   your tab: `?debug=1`, F4, Y, and read its line. It wants 8.33ms

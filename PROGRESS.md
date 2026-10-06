@@ -11157,3 +11157,180 @@ only that no level happens to cross them. That is exactly what was true of these
 six before anybody ran the suite at `low`. The half of H30 that is a judgement
 and not an edit: a floor genuinely about a fixed-size thing (a HUD element in CSS
 pixels) should stay absolute and carry a comment saying so.
+
+## H29 — does a small window keep a body legible at 25m? The suite cannot tell, and that is the finding (2026-10-06 02:00, scheduled run)
+
+**Why this job existed.** H24 ran the suite at `low` and
+`the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m` went red on *"the
+Shade's hood 6px is not 1.5x its neck 5px"*. H28 moved both figure checks onto
+the resolution `medium` ships, on the grounds that everything they assert is the
+**geometry** of a body and a hood is the same shape at every resolution — and
+that the red was a reading about the runner's 1280x720 window rather than about
+the level, since a player at `low` on a 1080p display draws 1344x756 and gets
+*more* pixels than the reference. D63 recorded that and recorded its cost
+honestly: the old red was the wrong instrument for a real question, and it was
+the only thing in the suite pointed anywhere near it. H29 is that question asked
+properly.
+
+**How it was asked.** The queue named one buffer (1366x768 at `low`, which is
+956x538). What is read instead is a **sweep of five**, because the question is
+about the buffer and not about any display: a window height times a preset's
+`resolutionScale` is the only thing that reaches the rasteriser, so a 1080p
+display at `low` and a 756-row window at `medium` draw the same body out of the
+same pixels. The sweep contains the size the queue named and brackets it both
+ways.
+
+Read **face-on**, which mattered and nearly did not happen. The first draft stood
+the Shade at the lane's yaw and got comfortable ratios everywhere — a cheerful
+finding about a question nobody had asked. The red being explained came from the
+told-apart check's `front` view, where the Shade is turned to the camera and its
+hood is read across its full width against the narrowest neck row under it.
+`yawToward` is exported from `tests/figure.js` for it.
+
+**What came back, and it is not what the first draft of this entry said.**
+
+| display | buffer | the Shade | run 1 | run 2 |
+|---|---|---|---|---|
+| 1920x1080 at `low` | 1344x756 | 43x12 / 42x12 | 10 / 6 = 1.67x | 10 / 6 = 1.67x |
+| 1280x720 at `medium`, the reference | 1280x720 | 41x12 / 40x12 | 10 / 6 = 1.67x | 10 / 6 = 1.67x |
+| 1366x768 at `low` | 956x538 | 31x8 / 30x8 | 8 / 4 = **2.00x** | 8 / 6 = **1.33x** |
+| 1280x720 at `low` | 896x503 | 28x8 | 6 / 4 = **1.50x** | 6 / 6 = **1.00x** |
+| 1024x600 at `low` | 746x420 | 24x8 / 23x8 | 6 / 4 = 1.50x | 6 / 4 = 1.50x |
+
+**Two runs of one suite read the same body as 2.00x and 1.33x.** The check went
+**flaky on both maps** in the verify, which is how this was found at all.
+
+**And it had looked stable.** Before that verify the check was run **eight
+consecutive times in isolation**, four per map, and all eight agreed: the hood
+rock-steady at 10 / 10 / 8 / 6 / 6 and only the neck wobbling between 4 and 5,
+with every reading clearing the threshold. Eight agreeing runs did not predict
+the ninth, because the full suite is where the body's measured height moves.
+
+**The cause, and it is not quantisation of one row.** `band()` in
+`tests/figure.js` takes the neck as the rows between **14% and 22%** of the
+silhouette's height — 8% of it. At 25m in these buffers the silhouette is **30
+rows tall and 8 pixels wide**, so that band is *two rows*. The body's measured
+height moving by a single row — 31 to 30, 24 to 23, which is all the two runs
+differ by — slides those two rows onto different anatomy, and `narrowest()`
+returns the shoulders instead of the neck. **The two readings are not a noisy
+measurement of one thing; they are measurements of two different things.** That
+is why the hood looked so steady while the neck jumped by half its own value:
+the hood is the *widest* row of a four-row band, which barely moves, and the neck
+is the *narrowest* row of a two-row one, which moves entirely.
+
+**So the answer to the question is that this instrument cannot answer it.** A
+hood cannot be told from a neck inside eight pixels of width, and no
+band-by-fraction-of-height decomposition is meaningful on a body that small.
+That is a **stronger vindication of D63 than D63 claimed for itself**: pinning
+the figure checks to the shipped resolution was not a dodge around a one-pixel
+threshold, it was the only buffer where the instrument works at all.
+
+**What the check asserts, therefore.** Only the readings that held across both
+runs on both maps: the body is **found**, it **covers its share of the buffer**
+(a fraction of it, H28, not a number of pixels — floors of 165 / 150 / 83 / 73 /
+51 against counts in the hundreds), and it **keeps its tall narrow proportions**,
+measured 3.58 / 3.42 / 3.88 / 3.50 / 3.00 in one run and 3.50 / 3.33 / 3.75 /
+3.50 / 2.88 in the other against a bar of 2.2. That last is stable precisely
+because it is a ratio of the **whole silhouette** rather than of two bands two
+rows deep. The hood and the neck go in the detail line and **nothing asserts
+them**: a clause that reports 2.00x and 1.33x for one body in one suite is not a
+clause.
+
+**The wrong conclusion this job published first, and why it is named here.** The
+first versions of D64, `PLAYTEST.md` and this entry all said the hood reads at
+every size tested and that there is therefore **no minimum-resolution line to
+write into the spec**. That was wrong. It rested entirely on the eight runs that
+happened to measure 4px necks, and it was written before the verify disagreed.
+It is retracted in D64 and in `PLAYTEST.md` rather than quietly deleted, for the
+same reason H28's own retraction is on the record: a reader who finds the old
+sentence quoted somewhere needs to be able to find out it was withdrawn. The
+honest statement is narrower — at 1366x768 on `low` the Shade at 25m is **30
+pixels tall and 8 wide**, and whether that reads as a hooded figure to a human
+eye is not a thing a pixel count settles in either direction.
+
+**Which makes it Josh's, and as one specific look rather than an open worry.**
+`PLAYTEST.md` has it under *Still needs a human*: open the game at
+`?quality=low` in a window about 1366x768, find a Shade at 25 metres, and say
+whether you can tell it from a Warden. If he can, nothing needs doing. If he
+cannot, *then* there is a minimum-resolution decision — which is exactly why no
+such line was written on the strength of eight agreeing runs.
+
+**Checks.** One new module, `tests/smallwindow.js` (238 lines), registered after
+the pixel-reading modules beside the other three that resize the drawing buffer.
+It is kept out of `tests/figure.js` (459) for the reason H23's and H28's splits
+were, and reads through **four exports of that module rather than copies of
+them** — `flatShadeSilhouette`, `silhouetteFloor`, `yawToward` and `NARROW`. It
+restores through `applyQuality()` for the reason H28's outline bug exists, and
+declares `glSync: true` because five buffer resizes put the renderer's pipeline
+tail on the run's clock rather than inside one check (F11, D48).
+`HOOD_OVER_NECK` was exported for a first draft that asserted it and is a
+module-local constant again, now carrying a comment saying why it is read at one
+resolution and nowhere else.
+
+**Three things learned, two of them traps.**
+
+**A check's detail line is cut at 400 characters, with no ellipsis, in
+`--details` as well as in the report.** `scripts/suite.mjs:415` does
+`String(x.detail ?? '').slice(0, 400)`. This check prints one reading per buffer
+and **three of the five vanished** — and because a failing check puts its
+problems first and its readings last, what came back was a complaint followed by
+two readings that did not support it, which reads exactly like a check that broke
+out of its own loop early.
+
+**A passing check's numbers are not in the report at all.** The report carries a
+`detail` only for a check that went red or flaky — right for a gate, wrong for
+writing up a job, because the measurements an entry needs come from checks that
+passed. `npm run suite -- --runs 1 --map <one> --details <path> --subset "^<id>$"`
+is about a minute and is how every number above was read.
+
+**And the one that is not a trap but a method: a new check's flakiness has to be
+proved where the check will live.** Eight isolated runs agreed and the ninth, in
+a full suite, did not — because `quiesce()` re-inits the match and normalises the
+simulation, but the body's *measured* height still moves by a row in full-suite
+context. A subset run is the right tool for reading numbers and the wrong one for
+believing them.
+
+**What was verified.** `npm run suite`, two runs per map on the finished
+tree: **plant 210 passed / 1 failed / 8 not for this map (1,042,320ms and
+1,049,080ms), yard 190 / 1 / 28 (722,454ms and 714,857ms), exit 0, 0 red, **0
+flaky**, 0 context losses, 0 loop frames, 0 skips withheld, 0 unexpectedly
+green.** One more per map than H28's pair (209 and 189), which is this job's one
+check. Both runs of each map agree **exactly** on every count, which is the
+result that mattered here: the first verify of this job had the new check flaky on
+both maps, and the second has it reading the same thing twice. The pairs agree
+within **6,760ms on the plant (1%) and 7,597ms on the yard (1%)**; the tails were
+450,110ms and 451,229ms on the plant, 333,735ms and 333,917ms on the yard.
+
+**And one console error, which corrects something written earlier today.** H27
+reported an `AudioContext` device error on the **yard** page and argued it was
+environmental, saying it would be a defect if it recurred on a cold run. H28's
+verify had none, and H28's entry concluded *"that closes it as the machine"*.
+**That was premature and this run is why**: the same error is here, once, on the
+**plant** page. The standing record is now two occurrences in three verifies
+(H27 yard, H28 none, H29 plant). What has not changed is the evidence that it is
+environmental: it is attributed to the **page URL** and not to any file in
+`src/`, no sound check is red on either map, and this machine had been driving
+headless Chrome for most of a session each time. What has changed is that nobody
+should write "closed" against it again on the strength of a single clean verify -
+it is intermittent, so one absence proves nothing and H28's sentence should have
+said so. It is queued as **H32**, which names what a cold run would have to be
+to settle it.
+
+The numbers in the table above come from `--details` on a two-run full-suite pass
+of the plant, which is where the disagreement was caught; the per-size readings on
+the finished tree are *1344x756 42x12 402px 3.5:1 hood 10/6; 1280x720 (ref) 41x12
+356px 3.4:1 hood 10/5; 956x538 31x8 207px 3.9:1 hood 8/4; 896x503 28x8 184px
+3.5:1 hood 6/4; 746x420 24x8 120px 3.0:1 hood 6/4*, against floors of 165 / 150 /
+83 / 73 / 51 and a narrowness bar of 2.2.
+
+**What was left.** **H30** (S), the pixel-floor census H28 did not reach, is next
+and unchanged by this. **H31** (S) was rewritten by what this job found and is
+the more interesting one: the two figure checks assert 1.5x on a band that is
+*three rows deep* at the reference buffer, where the neck measured **5px and 6px
+across runs** against a hood of 10px — so a third reading of 7px would be 1.43x
+and red. Both are green and have been for every run on record, so it is not a
+defect; it is a clause running on a margin nobody had measured. H31 is told to
+measure before touching either, and the deeper option it now names is to take the
+neck as a **fixed number of rows** below the hood rather than a fraction of the
+height, which would stop the band moving at all — a change to a helper two
+shipped checks depend on, and the reason it is not an XS.

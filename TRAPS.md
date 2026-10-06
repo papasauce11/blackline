@@ -86,6 +86,27 @@ pinned to `medium`, where the restore happens to be correct. Restore to
 `qualityPreset()`, and if a check changes something the preset owns, say so in
 its detail line so the next reader can see it was deliberate.
 
+**A check's detail line is cut at 400 characters, and the cut is invisible.**
+`scripts/suite.mjs` does `detail: String(x.detail ?? '').slice(0, 400)` where it
+collects a run's results, so it applies to the report's red lines **and to the
+`--details <path>` file alike**. H29's check reads five drawing-buffer sizes and
+prints one reading each; three of the five vanished, and because a failing check
+puts its problems first and its readings last, what came back was a complaint
+followed by two readings that did not support it - which reads exactly like a
+check that broke out of its own loop early. If a check has more than three or
+four numbers to report, make each reading terse (`956x538 body 31x8 hood
+8/4=2.00x` is twenty-eight characters and says everything) and count the line
+before trusting what came back. There is no warning and no ellipsis.
+
+**A passing check's numbers are not in the report at all.** The report carries a
+`detail` only for a check that went red or flaky, which is right for a gate and
+wrong for writing up a job: the measurements a PROGRESS entry needs are usually
+from checks that **passed**. Run `npm run suite -- --runs 1 --map <one>
+--details <path> --subset "^<id>$"` - about a minute - and read the file.
+Do not copy a number out of an earlier entry instead: H28 did, from notes that
+disagreed with each other, and the time went on deciding which was a typo when
+the answer was that two instruments had been quoted in one sentence.
+
 **A loaded machine can take the GPU away mid-suite.** One verify came back
 with *eight* pixel checks flaky at once and never reproduced. F1 found it: a
 **lost WebGL context**. Chrome kills a starved SwiftShader GPU process and

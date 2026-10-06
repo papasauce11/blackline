@@ -110,6 +110,84 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D64 — A hood cannot be measured inside eight pixels, so below the reference buffer nothing asserts it
+
+**Raised by:** H29, 2026-10-06, and recorded rather than asked because it changes
+nothing a player can do. It is here because it **answers the question D63 left
+open** - and the answer is not the one H29 set out to find.
+
+**What D63 asked for.** D63 moved the two figure checks onto the resolution
+`medium` ships, and recorded the cost: nothing was then asking whether a
+genuinely small window keeps a body legible at 25m, and the red it replaced was
+the only thing in the suite pointed anywhere near that question. H29 asked it
+directly, of the drawing buffer rather than of the quality level, over five sizes
+on both maps.
+
+**What came back.** Face-on at 25m, the same body read twice in two runs of one
+full suite:
+
+| display | buffer | the Shade | run 1 | run 2 |
+|---|---|---|---|---|
+| 1920x1080 at `low` | 1344x756 | 43x12 / 42x12 | 10 / 6 = 1.67x | 10 / 6 = 1.67x |
+| 1280x720 at `medium`, the reference | 1280x720 | 41x12 / 40x12 | 10 / 6 = 1.67x | 10 / 6 = 1.67x |
+| 1366x768 at `low` | 956x538 | 31x8 / 30x8 | 8 / 4 = **2.00x** | 8 / 6 = **1.33x** |
+| 1280x720 at `low` | 896x503 | 28x8 | 6 / 4 = **1.50x** | 6 / 6 = **1.00x** |
+| 1024x600 at `low` | 746x420 | 24x8 / 23x8 | 6 / 4 = 1.50x | 6 / 4 = 1.50x |
+
+**The two smallest-but-one rows disagree with themselves by a factor of 1.5.**
+Eight consecutive runs of the check on its own had agreed to within one pixel of
+neck, which is exactly why this is worth writing down: it looked like a stable
+measurement for eight runs and was not one.
+
+**Why, and it is not quantisation of one row.** `band()` in `tests/figure.js`
+takes the neck as the rows between **14% and 22%** of the silhouette's height. At
+25m in these buffers the silhouette is **30 rows tall and 8 pixels wide**, so that
+band is *two rows* - and the body's measured height moving by one row (31 to 30,
+24 to 23, which is all the two runs differ by) slides those two rows onto
+different anatomy. `narrowest()` then returns the shoulders instead of the neck.
+The two readings are not a noisy measurement of one thing; they are measurements
+of two different things.
+
+**So the honest answer is that the suite cannot answer the question.** A hood
+cannot be told from a neck inside **eight pixels of width**, and no
+band-by-fraction-of-height decomposition is meaningful on a body that small. That
+is a stronger vindication of D63 than D63 claimed for itself: pinning the figure
+checks to the shipped resolution was not a dodge around a one-pixel threshold, it
+was the only place the instrument works at all.
+
+**Taken.** The new check asserts only what held across both runs on both maps -
+the body is **found**, it **covers its share of the buffer** (a fraction of it,
+H28), and it **keeps its tall narrow proportions** (3.0:1 or better against a bar
+of 2.2, because that is a ratio of the whole silhouette rather than of two bands
+two rows tall). The hood and the neck go in the detail line and **nothing asserts
+them**. A clause that reports 2.00x and 1.33x for the same body in one suite is
+not a clause.
+
+**What is NOT claimed, and this is the part that matters to you.** H29's first
+draft of this entry said the hood reads at every size and that there is therefore
+no minimum-resolution line to write into the spec. **That was wrong** and is
+retracted here rather than quietly fixed: it rested on the run that read 4px
+necks. What is true is narrower - at 1366x768 on `low` the Shade at 25m is
+**30 pixels tall and 8 wide**, and whether that reads as a hooded figure to a
+human eye is not something a pixel count can settle in either direction.
+
+**So it is yours to settle, and it is a small specific ask rather than an open
+worry.** It is in `PLAYTEST.md` under *Still needs a human*: open the game at
+`?quality=low` in a window about 1366x768, look at a Shade at 25 metres, and say
+whether you can tell it from a Warden. If you can, nothing needs doing. If you
+cannot, that is a real finding about weak machines and **then** there is a
+decision about a minimum resolution - which is why no such line was written on a
+guess.
+
+**And it sharpens D63's own open question.** D63 offered you the alternative of
+holding `low` to the silhouette instead. H29 is the argument against it: at that
+size the clause would be asserting which two rows a band happened to land on.
+Note that this is not purely a small-buffer problem - at the **reference** buffer
+the neck read 5px and 6px across runs, which is **H31**, and the two figure checks
+that shipped assert 1.5x on exactly that number.
+
+decided:
+
 ### D63 — A silhouette is read at the shipped resolution, not at the player's
 
 **Raised by:** H28, 2026-10-05, and recorded rather than asked because it
