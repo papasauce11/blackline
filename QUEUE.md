@@ -562,7 +562,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   genuinely small window keeps a body legible, which is **H29**. The seventh red
   H27 left, `frame-budget-under-the-check-29-load`, is **green at `low` on both
   maps** and goes on the record as machine load. Done 2026-10-06, commit
-  `PENDING`.
+  `de439c3`.
 
 - **H27** Two streams off one seed, so the picture cannot move the game.
   `effects.sparks()` drew three numbers per particle from the one seeded `rng`
