@@ -11,6 +11,7 @@
  */
 
 import { CONFIG } from '../config.js';
+import { scaledCount } from './pixels.js';
 
 const E = CONFIG.effects;
 const GA = CONFIG.gadgets;
@@ -150,10 +151,15 @@ export function register(debugTools) {
           masked++;
         }
       }
-      if (masked < 500) {
+      // A fraction of the buffer rather than a number of pixels (H28, H30):
+      // the body is a world object projected into the frame, so the pixels it
+      // covers go with the square of the buffer height. `scaledCount` reads
+      // only a height, which is what this site has.
+      const bodyFloor = scaledCount({ height }, 500);
+      if (masked < bodyFloor) {
         rim.uBlRimStrength.value = startStrength;
         h.setCameraOwner(owner);
-        return { pass: false, detail: `the Shade covered only ${masked} pixels — nothing to measure` };
+        return { pass: false, detail: `the Shade covered only ${masked} pixels of a ${width}x${height} buffer, want ${bodyFloor} — nothing to measure` };
       }
 
       // 2. The rim, by difference: same body, strength 0 vs its maximum.
@@ -199,7 +205,13 @@ export function register(debugTools) {
       const edgeMean = edgeCount ? edgeSum / edgeCount : 0;
       const coreMean = coreCount ? coreSum / coreCount : 0;
 
-      if (brightened < 200) problems.push(`the rim changed only ${brightened} pixels of ${masked}`);
+      // Scaled with the body it is a rim of (H30). A fraction of `masked` would
+      // be self-calibrating and was considered, but a rim is an edge and the
+      // share of a silhouette its edge occupies falls as the body grows, so a
+      // fraction of the body would be a different and harder claim than the one
+      // this line has always made.
+      const rimFloor = scaledCount({ height }, 200);
+      if (brightened < rimFloor) problems.push(`the rim changed only ${brightened} pixels of ${masked} in a ${width}x${height} buffer, want ${rimFloor}`);
       if (edgeMean <= 0) problems.push('the silhouette edge did not brighten at all');
       if (!(edgeMean > coreMean * 1.5)) {
         problems.push(`edge +${edgeMean.toFixed(1)} vs core +${coreMean.toFixed(1)} — that is a wash, not a rim`);

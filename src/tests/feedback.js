@@ -127,6 +127,8 @@ export function register(debugTools) {
 
         const dHalf = difference(base, half, width, height, 8);
         const dLow = difference(base, low, width, height, 8);
+        // Already a fraction of the frame, and the precedent H30 followed: the
+        // vignette covers the whole view, so a share of it is the claim.
         if (dHalf.count < width * height * 0.05) {
           problems.push(`half health changed ${dHalf.count} pixels, want at least 5% of the frame`);
         } else {
@@ -205,6 +207,12 @@ export function register(debugTools) {
         h.feedback.hitTimer = 0;
         const off = reader.grab();
         const d = difference(off, on, width, height, 8);
+        // **Absolute on purpose** (H30). The marker itself is sized in fractions
+        // of the buffer height - `F.hitMarkerOuter * height` three lines down -
+        // so its area does scale; but twenty pixels is not a claim about its
+        // size, it is *the mark is on screen at all*, and the clauses after this
+        // one measure where and how big. A floor that scaled would get looser
+        // on a small buffer, which is the wrong direction for a tripwire.
         if (d.count < 20) {
           problems.push(`the hit marker changed ${d.count} pixels, want a visible mark`);
         } else {
@@ -280,6 +288,9 @@ export function register(debugTools) {
           const frame = hit(fromCamera(h, axis, 6));
           if (!(h.feedback.indicatorTimer > 0)) problems.push(`${name}: damage with a source started no indicator`);
           const d = difference(none, frame, width, height, 8);
+          // **Absolute on purpose** (H30), as the hit marker's twenty is: an
+          // existence tripwire, with the arc's radius and placement asserted
+          // properly in the clauses below, both as fractions of the height.
           if (d.count < 20) {
             problems.push(`${name}: the arc changed ${d.count} pixels, want a visible arc`);
             continue;

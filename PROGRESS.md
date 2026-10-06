@@ -11334,3 +11334,130 @@ measure before touching either, and the deeper option it now names is to take th
 neck as a **fixed number of rows** below the hood rather than a fraction of the
 height, which would stop the band moving at all — a change to a helper two
 shipped checks depend on, and the reason it is not an XS.
+
+## H30 — the pixel-floor census, and the three that are not about size (2026-10-06 02:00, scheduled run)
+
+**What it was handed.** H28 scaled the six pixel floors H24's off-level runs had
+caught, and left the rest with an honest note: *none of them is red at any level
+today, which means only that no level happens to cross them.* That was exactly
+true of H28's own six before anybody ran the suite at `low`, so the note was a
+prediction as much as a disclaimer. H30 is the census it asked for, and the queue
+sized it right: *a census and an edit rather than a design, with the judgement in
+which floors should stay absolute.*
+
+**The census: twelve floors.**
+
+| | |
+|---|---|
+| **8 scaled** with `scaledCount` | a body in `visual.js` and another in `presentation.js`, the alarm fixture, the death cam's killer, a vent region and a route strip in `legibility.js`, and the rim in `presentation.js` |
+| **1 already correct** | `feedback.js`'s damage vignette, written as **5% of the frame** because it covers the whole view - the precedent the rest followed |
+| **3 left absolute** | `visual.js`'s alarm tripwire at **10px**, and `feedback.js`'s hit marker and damage arc at **20px** each - **D65** |
+
+Each of the eight is a thing in the world projected into the frame, so the pixels
+it covers go with the square of the buffer height, which is H28's law and not a
+new one.
+
+**The three that stayed, which is the judgement half.** None is a claim about how
+big anything is. Each says **something was drawn at all**, with the size,
+placement and shape asserted properly in the clauses immediately around it - the
+hit marker's extent against `F.hitMarkerOuter * height` two lines later, the arc's
+radius against `F.indicatorRadius` in half-heights, both already fractions. And
+the argument for leaving them is not inertia: **scaling a tripwire makes it looser
+on a small buffer.** A floor of twenty exists to catch *nothing drawn*; scaled, it
+would be ten at 503 rows and five at 420, so the smaller the window the less it
+would take to satisfy - the opposite of what a canary is for. A small fixed number
+is the honest way to say "this is not zero".
+
+**The one that went the other way, and is in D65 to be argued with.**
+`presentation.js`'s rim at 200px was **scaled** rather than left absolute or made
+a fraction of the body it rims. A fraction of `masked` was the obvious
+alternative - the line already prints it - and was refused because the share of a
+silhouette its edge occupies *falls* as the body grows, so a fraction of the body
+would be a different and harder claim than that line has ever made. It is a real
+improvement available to somebody who wants a different check.
+
+**The one floor that did not take `scaledCount`.** The smoke cloud's 5,000
+pixels. The claim there is that the cloud *obscures*, which is a share of what the
+player can see - so a wider frame showing more smoke genuinely is more obscured,
+where a taller frame showing a bigger body is not a bigger body. The check was
+already computing `diff.count / lens.pixels` and printing it, and now asserts it;
+`SMOKE_COVERS` derives the fraction from the original 5,000 over the reference
+buffer, so the provenance of the number survives the change. The two laws agree
+on the 16:9 the runner drives and part company only off it, but the one that
+states this particular claim is the fraction.
+
+**What the queue had wrong.** It named four modules holding floors:
+`tests/visual.js`, `legibility.js`, `readability.js` and `presentation.js`.
+**`readability.js` holds none** - it never calls `createLens` and reads no pixels
+at all. Checked rather than assumed, which is the only reason it is in this entry;
+the census also turned up `feedback.js`, which the queue had not named.
+
+**Checks.** One new module, `tests/pixelfloors.js` (195 lines), registered beside
+the other census checks because it reads source text and draws no frame.
+
+- `every-pixel-floor-under-tests-is-a-fraction-of-the-buffer-or-says-why-not`
+  scans the source of every check module the page loaded - the Resource Timing
+  list, as F13's bans do, never a guess at the import graph - and matches a
+  count-ish name compared against a bare integer. **It is built on F13's model
+  rather than a comment convention**: the fixed floor is the default-illegal
+  thing, every allowance is named in a table with its reason, and the check fails
+  on a new floor **and fails when an allowance goes stale**, because an exemption
+  for something that has gone is one the next line inherits without arguing.
+  A comment convention would let the next fixed floor be written with the magic
+  words above it and read by nobody.
+
+**Three things found in the building of it.**
+
+**It was proved rather than assumed.** One floor was reverted to its absolute
+form and the check named `src/tests/visual.js:276` with the number and the fix to
+apply. Then restored. A census that has never been seen to fail is a census
+nobody should trust.
+
+**And it caught itself.** That same run also flagged `src/tests/pixelfloors.js:58`
+- its own instrument string, `'if (diff.count < 5000) {'`, written as a literal.
+Which is correct behaviour and a hole in the design: a census that cannot survive
+describing its own subject has to either excuse its own file or stop spelling the
+subject out. `donedef.js` has exactly this problem with `Math.random` and solves
+it the second way, reading the call's name back off its own regex, so the number
+is interpolated here now and this file is scanned like every other.
+
+**The pattern is exercised every run, because this check fails quiet.** If
+`FLOORS` ever matched nothing - a typo, a dropped flag, somebody tidying the
+character class - the census would report *zero absolute floors* and pass, which
+is the answer it gives when everything is correct. So it runs the pattern against
+a line that must match and a line that must not, the second being the scaled form
+the H30 fix produced. F8's instrument clause is the model, and H28's wall check is
+the cautionary tale: an instrument nobody checks is an instrument that goes blind
+without saying so.
+
+**What was verified.** `npm run suite`, two runs per map on the finished tree:
+**plant 211 passed / 1 failed / 8 not for this map (1,034,863ms and 1,026,224ms),
+yard 191 / 1 / 28 (723,021ms and 719,414ms), exit 0, 0 red, 0 flaky, 0 console
+errors, 0 context losses, 0 loop frames, 0 skips withheld, 0 unexpectedly
+green.** One more per map than H29's pair (210 and 190), which is this job's one
+check, and both runs of each map agree exactly on every count. The pairs agree
+within **8,639ms on the plant (1%) and 3,607ms on the yard (0%)**; the tails were
+448,548ms and 444,812ms on the plant, 333,774ms and 334,621ms on the yard.
+
+Before the verify, the new check was run on its own on both maps and the three
+checks it most directly affects were run with it; the legibility and presentation
+floors it rewrote are exercised by the full pass.
+
+**And the `AudioContext` error did not appear this time**, which makes the
+standing tally **two of the last four verifies** (H27 yard, H28 none, H29 plant,
+H30 none). That is the shape of something intermittent and environmental rather
+than a defect in a code path, but it is explicitly *not* closed - H28 called it
+closed after one clean verify and H29 brought it straight back. **H32** holds it
+and says what a cold run would have to be.
+
+**What was left.** **H31** (S) is next and is the more interesting of the two
+things H29 and H30 both point at: the two figure checks assert a 1.5x
+hood-over-neck ratio on a band that is **three rows deep** at the pinned
+resolution, where the neck measured 5px and 6px across runs against a hood of
+10px - so a third reading of 7px would be 1.43x and red. Both are green and have
+been on every run on record, so it is a margin nobody has measured rather than a
+defect. The deeper option H31 now names is to take the neck as a **fixed number of
+rows** below the hood rather than a fraction of the height, which would stop the
+band moving at all - a change to a helper two shipped checks depend on, and the
+reason it is not an XS. Then **H32** (the `AudioContext` error), **H25** and
+**H11**.

@@ -261,8 +261,8 @@ one setting only Josh can click; everything else here proceeds.
   maps at the pinned resolution, and either the clause is changed or it carries a
   comment naming the margin it runs on.
 - [ ] **H32 (S)** The `AudioContext` error, and what would settle it. It has
-  appeared in **two of the last three verifies** - H27 on the yard, none in H28,
-  H29 on the plant - as one console error per run pair: *"The AudioContext
+  appeared in **two of the last four verifies** - H27 on the yard, none in H28,
+  H29 on the plant, none in H30 - as one console error per run pair: *"The AudioContext
   encountered an error from the audio device or the WebAudio renderer."* H27 said
   it would be a defect if it recurred **on a cold run** and H28's entry wrote it
   off as the machine after one clean verify, which was premature: an intermittent
@@ -281,20 +281,16 @@ one setting only Josh can click; everything else here proceeds.
   names whether more than one `AudioContext` is ever constructed, and either
   closes it with that evidence or says what is still unknown. If it is
   environmental, add it to `TRAPS.md` so the next reader does not re-litigate it.
-- [ ] **H30 (S)** The pixel floors H28 did not reach. Four modules still hold
-  absolute pixel numbers that nothing scales: `tests/visual.js`'s 5,000-pixel
-  smoke-occlusion floor and its 400-pixel alarm-fixture reads, plus floors in
-  `legibility.js`, `readability.js` and `presentation.js`. None is red at any
-  level today, which means only that no level happens to cross them — the same
-  thing that was true of H28's six before anybody ran the suite at `low`.
-  `scaledCount` exists now, so this is a census and an edit rather than a
-  design. Do the census first and say how many there are before changing any:
-  a floor that is genuinely about a fixed-size thing (a HUD element in CSS
-  pixels) should stay absolute and say so in a comment, which is the half of
-  this job that is a judgement.
-  *done-when:* every absolute pixel floor under `src/tests/` is either scaled or
-  carries a comment saying why it is not, and the count of each is in the entry.
-
+- [x] **H30 (S)** The pixel floors H28 did not reach. — done 2026-10-06,
+  under Done. The census is **twelve floors**: eight scaled with `scaledCount`,
+  one already a fraction of the frame (`feedback.js`'s vignette, 5%, the
+  precedent), and **three left absolute on purpose** because they are existence
+  tripwires and scaling one would make it *looser* on a small buffer - **D65**.
+  The queue named four modules and was wrong about one: **`readability.js` has
+  no pixel floors at all** and never calls `createLens`. One new check,
+  `every-pixel-floor-under-tests-is-a-fraction-of-the-buffer-or-says-why-not`,
+  holds the census the way F13 holds the spec's bans - a table of allowances
+  with reasons, red on a new floor **and** red when an allowance goes stale.
 - [ ] **H25 (S)** Auto's pick depends on which map you open first, and it is
   stored for good. H10's verify measured the same machine twice: the plant reads
   **8.70ms median CPU and picks `low`**, the yard **5.30ms and picks `medium`**.
@@ -568,6 +564,42 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H30** Every pixel floor under `src/tests/` is a fraction of the drawing
+  buffer, or says why it is not. H28 scaled the six floors H24's off-level runs
+  had caught and left the rest with an honest note: *none of them is red at any
+  level today, which means only that no level happens to cross them* - which was
+  exactly true of H28's six before anybody ran the suite at `low`. The census
+  came to **twelve**. **Eight scaled**: a body in `visual.js` and in
+  `presentation.js`, an alarm fixture, the killer in the death cam, a vent region
+  and a route strip in `legibility.js`, and the rim in `presentation.js` - each a
+  thing in the world projected into the frame, so its pixel count goes with the
+  square of the buffer height. **One was already right**: `feedback.js`'s damage
+  vignette, written as 5% of the frame because it covers the whole view, and the
+  precedent the rest followed. **Three stay absolute** and that is **D65**:
+  `visual.js`'s *"tripping the camera changed nothing on screen"* at 10px and
+  `feedback.js`'s hit marker and damage arc at 20px each, none of them a claim
+  about size - each says *something was drawn at all*, with the size and
+  placement asserted as fractions of the height in the clauses right beside it.
+  Scaling a tripwire makes it **looser on a small buffer**, which is backwards.
+  One judgement went the other way and is in D65 for argument: the rim at 200px
+  was **scaled** rather than made a fraction of the body it rims, because the
+  share of a silhouette its edge occupies falls as the body grows, so a fraction
+  of the body would be a harder claim than the line has ever made. **One thing
+  the queue had wrong**: it named `readability.js` as holding floors and it holds
+  none - it never calls `createLens`. The smoke floor is the one that did not
+  take `scaledCount`: *obscuring* is a share of what the player can see, so it
+  reads the fraction of the frame the check already computed and printed,
+  derived from its own 5,000 pixels over the reference buffer. One new check,
+  `every-pixel-floor-under-tests-is-a-fraction-of-the-buffer-or-says-why-not` in
+  `tests/pixelfloors.js`, built on F13's model rather than a comment convention:
+  a table of allowances with reasons, red on any new count-against-a-bare-number,
+  **and red when an allowance goes stale**, because an exemption for something
+  that has gone is one the next line inherits without arguing. It was proved by
+  reverting one floor and watching it name the file and line, and it **caught
+  itself** doing it - the first draft spelled its own test string out as a
+  literal, which `donedef.js` solves the same way, by not spelling its subject
+  out. It also exercises its pattern every run, because a census whose regex
+  rotted would report zero floors and pass. Done 2026-10-06, commit `PENDING30`.
 - **H29** Does a small window keep a body legible at 25m? **No measurement can
   say, and that is the result.** D63 moved the two figure checks onto the
   resolution `medium` ships and recorded the cost: nothing was then asking

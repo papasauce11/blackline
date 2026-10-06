@@ -110,6 +110,61 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D65 — Three pixel floors stay absolute, because they are existence claims
+
+**Raised by:** H30, 2026-10-06, and recorded rather than asked because it changes
+nothing a player can do. It is the judgement half of a job whose other half was
+mechanical, and it is the line a later reader is most likely to want to argue
+with.
+
+H28 scaled six pixel floors and left the rest, noting honestly that *none of them
+is red at any level today, which means only that no level happens to cross them*.
+H30 read every floor in the suite. There were **twelve**, and the census is:
+
+- **eight scaled** - a body in `visual.js` and `presentation.js`, an alarm
+  fixture, the killer in the death cam, a vent region and a route strip in
+  `legibility.js`, and the rim in `presentation.js`. Each is a thing in the world
+  projected into the frame, so the pixels it covers go with the square of the
+  buffer height (`scaledCount`, H28).
+- **one already correct** - `feedback.js`'s damage vignette, which was written as
+  5% of the frame because it covers the whole view. It is the precedent the rest
+  followed.
+- **three left absolute**, which is this decision.
+
+**The three, and why.** `visual.js`'s *"tripping the camera changed nothing on
+screen"* at **10px**, and `feedback.js`'s hit marker and damage arc at **20px**
+each. None is a claim about how big a thing is. Each is a claim that **something
+was drawn at all**, with the size, placement and shape asserted properly in the
+clauses immediately around it - the hit marker's extent is checked against
+`F.hitMarkerOuter * height` two lines later, and the arc's radius against
+`F.indicatorRadius` in half-heights, both already fractions.
+
+**The argument, which is the bit worth your eye.** Scaling a tripwire makes it
+**looser on a small buffer**, and that is backwards. The purpose of a floor of
+twenty is to catch *nothing drawn*; if it scaled it would be ten on a 503-row
+buffer and five on a 420-row one, so the smaller the window the less it would
+take to satisfy it - the opposite of what you want from a canary. A fixed small
+number is the honest statement of "this is not zero".
+
+**The one that is genuinely arguable** is `presentation.js`'s rim at 200px, which
+H30 **scaled** rather than leaving absolute. A rim is an edge, so the obvious
+alternative was to make it a fraction of the body it rims (`masked`, which the
+line already prints). That was considered and refused: the share of a silhouette
+its edge occupies *falls* as the body grows, so a fraction of the body would be a
+different and harder claim than the one that line has always made. If you would
+rather it asserted the edge-to-body ratio, that is a real improvement and a
+different check.
+
+**Held by a check rather than a convention.** `every-pixel-floor-under-tests-is-a-
+fraction-of-the-buffer-or-says-why-not` scans the source of every check module the
+page loaded, fails on any count-against-a-bare-number it does not know, **and
+fails if one of these three disappears** - an exemption for something that has
+gone is an exemption the next line inherits without arguing, which is F13's rule.
+It also exercises its own pattern every run, because a census whose regex rotted
+would report zero floors and pass.
+
+decided:
+
 ### D64 — A hood cannot be measured inside eight pixels, so below the reference buffer nothing asserts it
 
 **Raised by:** H29, 2026-10-06, and recorded rather than asked because it changes

@@ -22,7 +22,7 @@
 
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { createLens, difference, quiesce } from './pixels.js';
+import { createLens, difference, quiesce, scaledCount } from './pixels.js';
 import { plainMaterialOf } from '../maproutelight.js';
 
 const S = CONFIG.shade;
@@ -50,7 +50,14 @@ export const VENT_CONTRAST_MIN = 0.25;
 export const ROUTE_LIGHT_STEP = 10;
 export const ROUTE_CONTRAST_MIN = 0.25;
 export const EDGE_CONTRAST_MIN = 0.5;
-/** Fewest pixels a strip needs on screen before its mean means anything. */
+/**
+ * Fewest pixels a strip needs on screen before its mean means anything, **on
+ * the reference buffer** - scaled to the live one by `scaledCount` at the two
+ * sites that read it (H30). A strip is a thing in the world, so the number of
+ * pixels it covers goes with the square of the buffer height, and a floor that
+ * did not say so would fail a strip that was drawn correctly in a smaller
+ * window.
+ */
 const EDGE_MIN_PIXELS = 200;
 
 /**
@@ -59,7 +66,10 @@ const EDGE_MIN_PIXELS = 200;
  * has less floor in front of it than one on the hall floor.
  */
 const WALK_IN_DISTANCES = [3.0, 2.5, 2.0, 1.5, 1.0];
-/** Fewest pixels a region needs before its mean means anything. */
+/**
+ * Fewest pixels a region needs before its mean means anything, **on the
+ * reference buffer**, scaled where it is read (H30) for the reason above.
+ */
 const MIN_REGION_PIXELS = 400;
 
 /** Luma of one pixel of a frame, 0..255. */
@@ -235,6 +245,8 @@ export function register(debugTools) {
       const readings = [];
       const restore = quiesce(h);
       const lens = createLens(h);
+      // Both floors are measured on the reference buffer (H30).
+      const regionFloor = scaledCount(lens, MIN_REGION_PIXELS);
 
       // The actors are lit geometry; get them out of every frame.
       h.shade.mesh.visible = false;
@@ -262,12 +274,12 @@ export function register(debugTools) {
           const body = michelson(read.body, read.surround);
           readings.push({ label, from: spot.from, interior, body, read });
 
-          if (read.pixels.interior < MIN_REGION_PIXELS) {
-            problems.push(`${label}: only ${read.pixels.interior} interior pixels through the mouth from the approach`);
+          if (read.pixels.interior < regionFloor) {
+            problems.push(`${label}: only ${read.pixels.interior} interior pixels through the mouth from the approach, want ${regionFloor} in a ${lens.width}x${lens.height} buffer`);
             continue;
           }
-          if (read.pixels.surround < MIN_REGION_PIXELS) {
-            problems.push(`${label}: only ${read.pixels.surround} pixels of surround around the mouth`);
+          if (read.pixels.surround < regionFloor) {
+            problems.push(`${label}: only ${read.pixels.surround} pixels of surround around the mouth, want ${regionFloor}`);
             continue;
           }
           if (interior < VENT_CONTRAST_MIN) {
@@ -373,6 +385,9 @@ export function register(debugTools) {
       const restore = quiesce(h);
       const lens = createLens(h);
       const { width, height } = lens;
+      // Both floors are measured on the reference buffer (H30).
+      const regionFloor = scaledCount(lens, MIN_REGION_PIXELS);
+      const edgeFloor = scaledCount(lens, EDGE_MIN_PIXELS);
 
       h.shade.mesh.visible = false;
       h.warden.mesh.visible = false;
@@ -416,7 +431,7 @@ export function register(debugTools) {
         first.forEach((b, i) => { b.mesh.material = lit[i]; });
 
         const d = difference(shown, hidden, width, height);
-        if (!d.bounds || d.count < MIN_REGION_PIXELS) {
+        if (!d.bounds || d.count < regionFloor) {
           problems.push(`${route.id}: its first stage (${box.tag}) is not on screen from its foot`);
           continue;
         }
@@ -456,8 +471,8 @@ export function register(debugTools) {
           const noStrip = lens.grab();
           lighting.mesh.visible = true;
           const ds = difference(withStrip, noStrip, width, height);
-          if (!ds.bounds || ds.count < EDGE_MIN_PIXELS) {
-            problems.push(`${route.id}: the strip on ${edge.box.tag} is ${ds.count} pixels from the top of ${stand.box.tag}`);
+          if (!ds.bounds || ds.count < edgeFloor) {
+            problems.push(`${route.id}: the strip on ${edge.box.tag} is ${ds.count} pixels from the top of ${stand.box.tag}, want ${edgeFloor} in a ${width}x${height} buffer`);
             continue;
           }
           const edgeRead = readMasked(withStrip, null, ds, width, height, { x: 0.3, y: 3 });

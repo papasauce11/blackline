@@ -75,6 +75,7 @@ import { register as registerQuality } from './quality.js';
 import { register as registerQualityHold } from './qualityhold.js';
 import { register as registerBufferScale } from './bufferscale.js';
 import { register as registerSmallWindow } from './smallwindow.js';
+import { register as registerPixelFloors } from './pixelfloors.js';
 import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
@@ -163,6 +164,9 @@ export function registerAutoTests(debugTools) {
   // And the fourth, which asks what the third one's law implies: whether a body
   // is still legible once the buffer is small enough (H29).
   registerSmallWindow(debugTools);
+  // Beside the other census checks, because it reads source text and draws no
+  // frame: every pixel floor in this suite is a fraction of the buffer (H30).
+  registerPixelFloors(debugTools);
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);

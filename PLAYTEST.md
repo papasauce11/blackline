@@ -82,6 +82,35 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The checks now mean the same thing at any window size (H30, 2026-10-06)
+
+**Nothing in the game changed and there is nothing here to judge.** This is a
+note about how much to trust the checks, because two jobs running have been about
+the same mistake and it is now closed.
+
+**The mistake.** A check that counts pixels was comparing them against a fixed
+number. But the frame is drawn at 70% of its size at `low` quality and 125% at
+`high`, and at whatever your window is times your display's pixel ratio
+everywhere else - so a figure covering 3,014 pixels on the reference frame covers
+1,455 on a smaller one. Same figure, smaller frame, and a floor of 2,000 fails
+it. H28 fixed the six of these that had actually gone off; H30 went looking for
+the rest and found **twelve floors in total**, of which eight needed fixing.
+
+**Three were left alone on purpose**, and they are the interesting ones: the
+checks for *"tripping the camera changed something on screen"* and *"the hit
+marker is visible"* and *"the damage arc is visible"*. Those do not measure how
+big anything is - they measure that it is **not missing**. Scaling such a number
+would make it easier to satisfy on a small screen, which is the wrong direction
+for a tripwire. D65 has the argument if you want to disagree with it.
+
+**What it buys you.** If you play at `low`, or on a small laptop, or on a
+high-density display, the checks are now measuring the same things they measure
+on the reference frame rather than silently becoming stricter or looser. And a
+new check watches for the next fixed number somebody writes, so this does not
+have to be found a third time.
+
+**What is left for you:** nothing.
+
 ### A question for your eyes: does the Shade read at 25m on a small screen? (H29, 2026-10-06)
 
 The section below this one left one question open, and this job tried to answer

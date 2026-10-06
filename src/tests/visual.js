@@ -18,7 +18,22 @@
  */
 
 import { CONFIG } from '../config.js';
-import { createLens, difference, meanLuma, meanLumaIn, brightnessDelta, quiesce, SITE_SAMPLE_OFFSET } from './pixels.js';
+import { createLens, difference, meanLuma, meanLumaIn, brightnessDelta, quiesce, scaledCount,
+  REFERENCE_WIDTH, REFERENCE_HEIGHT, SITE_SAMPLE_OFFSET } from './pixels.js';
+
+/**
+ * The share of the frame the smoke cloud has to change to count as
+ * obscuring, derived from the 5,000 pixels this floor was written as and the
+ * reference buffer they were measured on (H30).
+ *
+ * **A fraction of the frame, and deliberately not `scaledCount`.** The claim
+ * here is that the cloud *obscures*, which is a share of what the player can
+ * see - so a wider frame showing more smoke really is more obscured, where a
+ * taller frame showing a bigger body is not a bigger body. The two laws agree
+ * on the 16:9 the runner drives and part company only off it, but the one that
+ * states this claim is this one.
+ */
+const SMOKE_COVERS = 5000 / (REFERENCE_WIDTH * REFERENCE_HEIGHT);
 
 /** Look at `target` from `distance` away, on a bearing, at eye height. */
 function eyeOn(target, distance, bearing, height = 1.4) {
@@ -167,10 +182,14 @@ export function register(debugTools) {
       const lit = at(CONFIG.detection.meterMax);
 
       const body = difference(lit, empty, lens.width, lens.height, 8);
-      if (body.count < 400) {
+      // A fraction of the buffer rather than a number of pixels (H28): a body
+      // is a world object projected into the frame, so its pixel count goes
+      // with the square of the buffer height.
+      const bodyFloor = scaledCount(lens, 400);
+      if (body.count < bodyFloor) {
         lens.restore();
         restore();
-        return { pass: false, detail: `the Shade covered ${body.count} pixels — nothing to measure` };
+        return { pass: false, detail: `the Shade covered ${body.count} pixels of a ${lens.width}x${lens.height} buffer, want ${bodyFloor} — nothing to measure` };
       }
 
       const gain = brightnessDelta(dark, lit, body.mask);
@@ -253,8 +272,9 @@ export function register(debugTools) {
       const sprites = h.effects.pooledSprites;
 
       if (sprites === 0) problems.push('no smoke sprites were alive');
-      if (diff.count < 5000) {
-        problems.push(`the cloud changed only ${diff.count} pixels (${(covered * 100).toFixed(1)}% of frame) — it is not obscuring`);
+      // The share of the frame, not a count of pixels (H30, `SMOKE_COVERS`).
+      if (covered < SMOKE_COVERS) {
+        problems.push(`the cloud changed only ${diff.count} pixels (${(covered * 100).toFixed(2)}% of a ${lens.width}x${lens.height} frame, want ${(SMOKE_COVERS * 100).toFixed(2)}%) — it is not obscuring`);
       }
       // Smoke is light grey against an industrial interior: it should lighten.
       const shift = brightnessDelta(clear, smoked, diff.mask);
@@ -339,7 +359,9 @@ export function register(debugTools) {
       const placed = lens.grab();
 
       const fixture = difference(placed, bare, lens.width, lens.height, 6);
-      if (fixture.count < 150) problems.push(`the fixture drew only ${fixture.count} pixels`);
+      // A fixture is a thing in the world, so a fraction of the buffer (H28).
+      const fixtureFloor = scaledCount(lens, 150);
+      if (fixture.count < fixtureFloor) problems.push(`the fixture drew only ${fixture.count} pixels of a ${lens.width}x${lens.height} buffer, want ${fixtureFloor}`);
 
       // The lens is the state readout, as a destructible light's glass is.
       // Trip it and the colour must change on screen, not just in a material.
@@ -347,6 +369,10 @@ export function register(debugTools) {
       h.effects._stepAlarmFixture(0);
       const alerted = lens.grab();
       const alertDiff = difference(alerted, placed, lens.width, lens.height, 6);
+      // **Absolute on purpose** (H30): this is an existence claim and not a size
+      // one - the colour changed on screen *at all* - and ten pixels is
+      // something in every buffer this game runs in. Scaling it would say the
+      // tripwire gets looser on a small screen, which is backwards.
       if (alertDiff.count < 10) problems.push('tripping the camera changed nothing on screen');
 
       // Destroyed, it goes.
@@ -441,8 +467,11 @@ export function register(debugTools) {
       warden.mesh.visible = true;
 
       const killer = difference(withWarden, withoutWarden, width, height, 8);
-      if (killer.count < 300) {
-        problems.push(`the killer covered ${killer.count} pixels — it is not in frame`);
+      // A body in frame, so a fraction of the buffer (H28). `scaledCount` reads
+      // only a height, which is all this site has.
+      const killerFloor = scaledCount({ height }, 300);
+      if (killer.count < killerFloor) {
+        problems.push(`the killer covered ${killer.count} pixels of a ${width}x${height} buffer, want ${killerFloor} — it is not in frame`);
       } else {
         // Section 10.2 puts the camera ON the killer, so it should be somewhere
         // near the middle rather than clipped to a corner.
