@@ -606,7 +606,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   is not a trap: **eight agreeing runs of a check in isolation did not predict a
   full suite**, because the body's measured height moves by a row in full-suite
   context — a new check's flakiness has to be proved where it will live. Done
-  2026-10-06, commit `PENDING29`.
+  2026-10-06, commit `fa064e2`.
 - **H28** Six checks read a picture only `medium` draws — and **five of them
   were not about the level at all**. The runner's window is 1280x720 and
   `resolutionScale` is 0.7 / 1 / 1.25, so the drawing buffer is 896x503 at
