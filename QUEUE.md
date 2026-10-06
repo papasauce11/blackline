@@ -599,7 +599,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   itself** doing it - the first draft spelled its own test string out as a
   literal, which `donedef.js` solves the same way, by not spelling its subject
   out. It also exercises its pattern every run, because a census whose regex
-  rotted would report zero floors and pass. Done 2026-10-06, commit `PENDING30`.
+  rotted would report zero floors and pass. Done 2026-10-06, commit `4a977a2`.
 - **H29** Does a small window keep a body legible at 25m? **No measurement can
   say, and that is the result.** D63 moved the two figure checks onto the
   resolution `medium` ships and recorded the cost: nothing was then asking
