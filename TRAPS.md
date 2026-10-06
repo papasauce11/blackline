@@ -160,6 +160,25 @@ writing to a file and wait on the file (`until grep -q "suite: " <file>`,
 itself backgrounded or in a Monitor — a foreground wait hits the same cap).
 Stopping a backgrounded run from the tool does not stop the runner.
 
+**Writing to a file means `> file 2>&1`, and the background `timeout` is a
+kill and not a wait.** H31 started its gate as `npm run suite -- --runs 1 2>&1
+| tail -60` with `run_in_background` and a 15-minute `timeout`, on a gate that
+takes 35. At fifteen minutes the tool killed the wrapper and the pipeline with
+it, so **the whole run's output went nowhere**: `tail` buffers to the end by
+design, there was no partial output to read, and the output file held the four
+characters `[killed]`. The runner itself carried on exactly as the trap above
+says, to the end of its run, with its stdout pointed at a pipe nobody was
+holding — forty minutes of work with no verdict, and no gate for the job. Two
+rules out of it: **redirect, never pipe** (`> out.txt 2>&1`, so a killed
+wrapper still leaves everything the runner printed up to that moment on disk),
+and **set `timeout` above the longest the run could take** — the cap is
+7,200,000ms, a two-run `npm run suite` is about 3,000,000ms of it, and there is
+no cost to asking for more than you need. Then wait on the file in a second
+backgrounded command. And when waiting on the *process* instead, do not use
+`tasklist /FI "PID eq N" | grep N` from the Bash tool: it matched nothing and
+returned "exited" immediately on a process that had half an hour left.
+`Wait-Process -Id N -Timeout <s>` in PowerShell is the one that answers.
+
 **And an orphaned runner never dies on its own — it has to be killed by hand,
 and a routine cannot do it.** *(Since F10 the gate no longer makes them: a run
 whose heartbeat stands still dies naming the check, and SIGINT/SIGTERM tear

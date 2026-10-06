@@ -48,8 +48,24 @@ const NECK_BAND = 0.22;
  * row of measured height slides it onto the shoulders. H29 measured 8/4 and 8/6
  * at the same buffer in two runs of one suite. The ratio is not meaningful below
  * this buffer and nothing asserts it there.
+ *
+ * **The margin this runs on, measured (H31).** At the reference buffer the band
+ * is three rows (four at 39), and it does *not* slide onto the shoulders here -
+ * it always contains the neck's narrowest row. What moves is the body's
+ * sub-pixel alignment under the breath, which lifts the torso 4cm where a row
+ * is 4.5cm: over **48 readings on both maps the hood was 10px every time and
+ * the neck was 4, 5 or 6px**, so this clause reads 1.67x at worst against its
+ * 1.5x and a neck of 7px would be 1.43x and red. It never reached 7. So the
+ * clause is calibrated rather than lucky - but one reading of it is still one
+ * phase of a 6.98s cycle, which is why `tests/breath.js` holds the **worst**
+ * phase and why the deeper fix the queue offered (a fixed number of rows
+ * instead of a fraction of the height) was measured and not needed: it would
+ * not touch a variation that happens inside one row.
+ *
+ * Exported for `tests/breath.js` (H31), which holds this same ratio at every
+ * phase of the breath rather than at the one phase a run arrives in.
  */
-const HOOD_OVER_NECK = 1.5;
+export const HOOD_OVER_NECK = 1.5;
 /**
  * Tall and narrow: height over width. Exported for `tests/smallwindow.js` (H29),
  * which asserts it at buffers too small for the hood ratio to mean anything.
@@ -92,8 +108,20 @@ const BROAD = 2.0;
 const APART = 1.5;
 /** A helmet on the shoulders: the top band's widest row over the widest row of the band under it, at most this for the Warden ... */
 const HELMET_UNDER_SHOULDERS = 0.6;
-/** ... and at least this for the Shade, whose hood is as wide as anything under it. */
-const HOOD_OVER_ALL_BELOW = 0.9;
+/**
+ * ... and at least this for the Shade, whose hood is as wide as anything under
+ * it.
+ *
+ * **The other clause on a thin margin (H31), and in character the thinner of
+ * the two.** Over the same 48 readings the widest row of the neck band was 8,
+ * 9 or 10px against a hood of 10, so this read **exactly 1.00 at worst**
+ * against its 0.9. A band row of 11px would still pass by a tenth of a pixel
+ * and 12px - the body's full width - would fail, and the band never reaches a
+ * 12px row at this buffer because it stops at the ninth or tenth row from the
+ * top. `tests/breath.js` holds this one at the worst phase of the breath
+ * alongside `HOOD_OVER_NECK`, for the same reason.
+ */
+export const HOOD_OVER_ALL_BELOW = 0.9;
 /** From the side, the middle of the figure (as fractions of its height from the top) ... */
 const CARRY_BAND = [0.3, 0.7];
 /** ... reaches ahead of the head by at least this fraction of the height on the Warden (the rifle), and at most this on the Shade. */
@@ -189,6 +217,10 @@ function silhouette(lens, mesh, eye, focus) {
     below: widest(neck),
     widest: widest(rows),
     reach: reach(hood, carry) / height,
+    // Every row's width, top first, so a check can print where the bands
+    // actually fell instead of only what they returned (H31). `rowExtents`
+    // reads bottom-first, because `readPixels` does.
+    profile: rows.map((row) => row.width).reverse(),
   };
 }
 

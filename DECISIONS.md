@@ -110,6 +110,76 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D66 — The hood's margin is 11%, the clause stands, and D64's account of why it moved was wrong
+
+**Raised by:** H31, 2026-10-06, and recorded rather than asked because it
+changes nothing a player can do. It is here for two reasons: it decides what the
+suite will and will not notice, which D63 established is yours to overturn — and
+it **corrects the mechanism D64 gave for its own numbers.** D64 cannot be
+edited, so the correction lives here.
+
+**What was measured.** Two shipped checks assert the Shade's hood is 1.5x the
+neck under it, on a band three rows deep at the buffer they read. H29 had seen
+the same body read a neck of 5px and of 6px, so a third reading of 7px would
+have been 1.43x and red. H31 measured it before touching either: 48 readings,
+six runs, both maps, face-on at 25m on the reference buffer.
+
+| | |
+|---|---|
+| the hood | **10px in every one of the 48** |
+| the neck | **4, 5 or 6px — never 7** |
+| `hood/neck` | 1.67x to 2.50x, **worst 1.67x** against the 1.5x bar, in all six runs |
+| the widest row of the same band | 8, 9 or 10px — so `HOOD_OVER_ALL_BELOW` read **exactly 1.00** against its 0.9 |
+
+**Taken: the clause stands, with the margin named at its line, and a new check
+holds the worst phase.** The queue offered a replacement clause if the neck
+reached 7px; it did not. So nothing about either shipped check changed. What is
+new is `the-hood-holds-its-ratio-at-every-phase-of-the-breath`, which sweeps the
+breath and asserts **both** of that band's clauses at the worst of eight phases
+— a claim neither shipped check makes, because each takes the one reading its
+own arrival gave it. The margin is now *held* rather than merely documented.
+
+**The correction, and it is the part worth your eye.** D64 explained H29's 8/4
+against 8/6 by saying the neck band is *two rows* on a 30-row body and that the
+measured height moving from 31 to 30 slid those rows onto the shoulders.
+**The arithmetic does not support that.** `band()` measures down from the top
+row and both ends scale together, so at 30 rows the band is **three** rows at
+offsets 5, 6 and 7 from the top — and at 31 rows it is **the same three
+offsets**. The other pair D64 quotes, 24 and 23 rows, is offsets 4 and 5 at
+both. A one-row change in measured height moves that band in neither case.
+
+What moves the reading is the **breath**. The Shade's torso rises and falls 4cm
+at 0.9 rad/s standing still, `updateVisual` runs on the wall clock from the
+render frame rather than from the fixed step, and `Agent.reset()` deliberately
+leaves the phase alone — so the phase a check reads is a function of how many
+frames the whole run drew before it. At 25m a row of this body is about 4.5cm,
+so the breath is most of a row: it slides the body past the pixel grid and the
+narrow part of the neck falls inside one row or straddles two. That is measured
+at the reference. For the small buffers it is an inference, but a strong one —
+the band arithmetic rules out the stated cause, and H29's instability reproduced
+in these six runs (956x538 ran 1.33x to 2.00x, 896x503 ran 1.00x to 1.50x,
+while the reference read 1.67x six times out of six).
+
+**D64's conclusion is unaffected and is reinforced.** The hood-over-neck ratio
+is not meaningful below the reference buffer and nothing asserts it there; your
+one eyes-only question in `PLAYTEST.md` is unchanged and still the only thing
+that can settle whether 30x8 pixels reads as a hood. Only D64's explanation of
+its own disagreement changes, and it changes from "the band slid" to "the body
+did".
+
+**What was deliberately not done, in case you would rather it were.** The
+alternative to sweeping the phase is to **anchor** it — zero the breath's phase
+in `Agent.reset()` so every check reads the same one. That would make every
+pose-reading check in the suite repeatable to the pixel, which is tempting. It
+was refused because it buys stability without buying coverage: a player sees
+every phase, so a clause that holds at one chosen phase is still a clause nobody
+has bounded, and sweeping is the stronger claim. It would also change what a
+reinserted body looks like for a fraction of a second, which is a look decision
+this job had no need to take. If you would rather the suite were repeatable than
+thorough here, say so and the anchor is about four lines.
+
+decided:
+
 ### D65 — Three pixel floors stay absolute, because they are existence claims
 
 **Raised by:** H30, 2026-10-06, and recorded rather than asked because it changes

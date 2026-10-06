@@ -31,7 +31,7 @@ const HANG_ARM_ANGLE = -3.05;
  * `_posture` fills the target and `easePose` (pose.js) carries the six
  * groups there. Every number is a look, never a rule; D42 argues them.
  */
-const POSE = {
+export const POSE = {
   /**
    * The swing: the legs to the amplitude, the arms the other way by `arms`
    * of it, the amplitude by speed; the body leans into its speed and bobs

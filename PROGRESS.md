@@ -11461,3 +11461,209 @@ rows** below the hood rather than a fraction of the height, which would stop the
 band moving at all - a change to a helper two shipped checks depend on, and the
 reason it is not an XS. Then **H32** (the `AudioContext` error), **H25** and
 **H11**.
+
+## H31 — what the neck actually does, and the breath that moves it (2026-10-06 17:00, scheduled run)
+
+**What it was handed.** Two shipped checks assert that the Shade's hood is 1.5x
+the neck under it, where the neck is the narrowest row of a band 14% to 22% of
+the silhouette's height — three rows on the 40-row body the reference buffer
+draws at 25m. H29 had seen the same body read a neck of 5px and of 6px in
+different runs, against a hood of 10, so a third reading of 7px would be 1.43x
+and red. Both checks were green and had been on every run on record, so this
+was never a defect: it was a clause running on a margin nobody had measured.
+The queue was explicit about the order — **measure before touching either** —
+and offered three outcomes: a comment if the neck is stable at 5-6, a
+replacement clause if it reaches 7, or the deeper change of taking the neck as a
+fixed number of rows.
+
+**The measurement, which is the job.** Three runs per map of the two figure
+checks plus a new one that sweeps the breath, read through `--details` because
+**a passing check's numbers are not in the report at all** (TRAPS.md). At the
+reference buffer, face-on at 25m, 48 phase readings across six runs on both
+maps (and 96 by the end of the verify, which agreed without moving a pixel):
+
+| | |
+|---|---|
+| the hood | **10px in every one of the 48** |
+| the neck | **4, 5 or 6px — never 7**, so `hood/neck` ran 1.67x to 2.50x |
+| worst case | **1.67x** against the 1.5x bar, in all six runs, to the digit |
+| the body | 39, 40 or 41 rows by 12 columns |
+
+The two shipped checks agree, read six times each at the same buffer: the hooded
+figure check read the 25m neck at 5, 6, 6, 6, 5, 6 and the told-apart check at
+6, 6, 5, 6, 6, 6 — **5 or 6, never 7**. At 8m the same clause has no margin
+problem at all: a hood of 28px over a neck of 12, 13, 12, 12, 12 and 10, which
+is 2.15x at worst.
+
+**So the answer is the first of the queue's three: a comment, not an edit.** The
+clause is calibrated rather than lucky, and `HOOD_OVER_NECK` now carries the
+measurement at its own line.
+
+**What moves the reading, and it is not what anybody thought.** The Shade
+breathes standing still — `POSE.breath` lifts the torso **4cm at 0.9 rad/s**, a
+6.98s cycle — and `updateVisual` runs on the **wall clock from the render
+frame**, never from `fixedStep`. `Agent.reset()` deliberately does not zero
+`_breathTime`, which is right (a reinserted body keeps breathing), so **the
+phase a check reads is a function of how many frames the whole run drew before
+it.** At 25m on this buffer the Shade is forty rows tall for 1.8 metres: a row
+is about 4.5cm and the breath is most of one. That is why a subset and a full
+suite disagree, why two runs of one suite can disagree, and why eight isolated
+runs agreed with each other — they arrived at similar phases.
+
+**And it corrects D64's stated cause, which was arithmetically wrong.** D64
+explained H29's 8/4 against 8/6 by saying the band is *two rows* at 30 rows and
+that the measured height moving from 31 to 30 slid those rows onto the
+shoulders. `band()` says otherwise, and it is worth checking rather than
+believing: at **30 rows the band is three rows at offsets 5, 6, 7 from the top,
+and at 31 rows it is the same three offsets.** The pair D64 quotes for the
+smallest buffer, 24 and 23 rows, is likewise offsets 4 and 5 at both. A one-row
+change in measured height does not move the band in either pair, because
+`band()` measures down from the top row and both ends scale together. The band
+*does* change between 39 and 40 rows (it gains offset 6 at 39), but in the
+direction that adds a wider hood row, which `narrowest()` ignores.
+
+What actually varies is the body's **sub-pixel** alignment: the breath slides a
+4.5cm row of body past the pixel grid, so the narrow part of the neck falls
+inside one row or straddles two, and the band — which always contains the
+neck's narrowest row at this buffer — returns 4, 5 or 6 for the same neck. That
+explains the reference wobble, which is measured here, and it is the strong
+inference for the small buffers, where the band arithmetic rules out the stated
+cause and H29's instability reproduced in these same six runs: at 956x538 the
+ratio ran **1.33x to 2.00x** and at 896x503 **1.00x to 1.50x**, while the
+reference read 1.67x six times out of six. **D64's conclusion stands and is
+reinforced** — the ratio is not meaningful below the reference and nothing
+asserts it there. Only its explanation of its own numbers changes. **D66.**
+
+**Why the deeper option was measured and refused.** The queue's third outcome
+was to take the neck as a fixed number of rows below the hood, "which would stop
+the band moving at all". The band is not what is moving. A fixed row count would
+leave the 4/5/6 variation exactly where it is, because that variation happens
+*inside* one row, and it would cost a change to a helper two shipped checks
+depend on. It is in the comment at `HOOD_OVER_NECK` so the next reader does not
+re-derive it.
+
+**The second clause nobody had noticed, on the same band and the same margin.**
+`HOOD_OVER_ALL_BELOW` requires the hood to be at least 0.9 of the widest row of
+the neck band. Over the same 48 readings that row was 8, 9 or 10px against a
+hood of 10, so the clause read **exactly 1.00 at worst** — the same 11% as the
+ratio, and thinner in character: a band row of 11px still passes by a tenth of a
+pixel and 12px, the body's full width, would fail. It never reaches a 12px row
+here because the band stops at the ninth or tenth row from the top. It is
+asserted at the worst phase alongside the ratio, and the measurement is at its
+line too.
+
+**The check.** One new module, `src/tests/breath.js` (191 lines), registered
+beside the figure checks.
+
+- `the-hood-holds-its-ratio-at-every-phase-of-the-breath` stands the Shade at
+  the figure checks' own stand, face-on to their own 25m eye, on their own
+  pinned reference buffer, and then **advances the breath an eighth of a cycle
+  at a time through `updateVisual` at the fixed step** — the way a frame
+  advances it, so the eased pose lags as it really does rather than being
+  teleported to a phase. It asserts both of the band's clauses at the **worst**
+  of the eight phases, which is a claim neither shipped check makes: each of
+  those takes the one reading its own arrival gave it.
+- It would fail if the job were reverted in the sense that matters: the clause
+  it holds did not exist, and the quantity it bounds was unbounded.
+- **It is not flaky although its first sample is arbitrary.** Eight samples
+  cover one cycle from wherever the run came in, so the set of phases rotates
+  between runs. That would matter if the worst value were rare; a 6px neck came
+  up in six or seven of the eight samples in every run, so the maximum is hit
+  many times over whatever the rotation. Six runs read a worst case of 1.67x and
+  1.00 to the digit while the individual phases moved.
+- It reads `flatShadeSilhouette`, `silhouetteFloor`, `yawToward`,
+  `HOOD_OVER_NECK` and `HOOD_OVER_ALL_BELOW` from `figure.js` rather than copies,
+  and the breath's period from `POSE` rather than from two constants written
+  again. `figure.js` gained a `profile` on its silhouette record — every row's
+  width, top first — so a check can print **where the bands actually fell**
+  instead of only what they returned. That is what made the sub-pixel reading
+  legible: `40|4689aa8869aaa|10/6-9` is a whole phase in twenty-two characters,
+  which matters because a detail line is cut at 400 with no ellipsis.
+- No `glSync`: it reads the buffer the figure checks just read, at the same
+  pixel ratio, so nothing is resized and no pipeline is built.
+- Cost: **19.9s on the plant, 16.2s on the yard**, against 23s and 18s for the
+  hooded-figure check beside it.
+
+**What was not done, with the reason.** The obvious alternative to sweeping the
+phase is to **anchor** it — zero `_breathTime` in `Agent.reset()` so every check
+reads the same phase. It was refused twice over: it would change what a
+reinserted body looks like for a fraction of a second, which is a presentational
+decision this job did not need to take; and it would buy stability without
+buying coverage, since a player sees every phase of the breath and a clause that
+holds at one chosen phase is still a clause nobody has bounded. Sweeping is the
+stronger claim and it needs nothing outside `src/tests/`.
+
+**The gate, which was lost, and the trap that is now written down.** This run's
+gate was started as `npm run suite -- --runs 1 2>&1 | tail -60` in the
+background with a **15-minute** limit on a **35-minute** gate. At fifteen
+minutes the tool killed the wrapper and the pipeline with it, and because `tail`
+buffers to the end there was no partial output: forty minutes of work with no
+verdict. The runner itself behaved exactly as F10 promises — it ran to
+completion and tore its own Chrome tree down, and `node.exe` and the headless
+Chrome processes were both confirmed gone afterwards. `src/`, `scripts/` and
+`package.json` are **byte-identical** to the tree H30's VERIFY proved this
+morning (`git diff 4a977a2 HEAD -- src/ scripts/ package.json` is empty), so
+that two-run-per-map pass stands as this job's gate exactly as step 8 of the
+protocol intends, and the VERIFY below is the load-bearing reading. Two rules
+are in `TRAPS.md`: **redirect, never pipe**, and set the background `timeout`
+above the longest the run could take. Also recorded there: `tasklist /FI "PID eq
+N" | grep N` from the Bash tool reported a live process as exited, and
+`Wait-Process -Id N -Timeout <s>` is the one that answers.
+
+**What was verified.** `npm run suite`, two runs per map on the finished tree:
+**plant 212 passed / 1 failed / 8 not for this map (1,062,214ms and
+1,049,942ms), yard 192 / 1 / 28 (730,789ms and 724,018ms), exit 0, 0 red, **0
+flaky**, 0 unexpectedly green, **0 console errors**, 0 context losses, 0 loop
+frames, 0 skips withheld, 0 re-runs, and no other runner on the machine.** Both
+runs of each map agree exactly on every count, and each map is one check up on
+H30's pair (211 and 191) — this job's. The one failure on each is the
+frame-budget check, skipped headless, with its reason in `suite-skips.json`.
+Run-pair spreads: **plant 12,272ms (1% of the longer), yard 6,771ms (1%)**, and
+the pipeline tails were 452,727ms and 446,276ms on the plant, 332,320ms and
+327,726ms on the yard — a little over **40% of each run is the renderer's tail
+and not work** (F11, D48), which is the only way to read those totals. Auto
+would have picked `medium` on both maps this time (5.00ms median over 9 samples
+on the plant, 4.70ms over 32 on the yard), where H10's verify had the plant at
+8.70ms picking `low`: one machine, several answers, which is **H25**.
+
+**And the new check's own numbers are the result.** Across the four verify runs
+its worst phase read **1.67x and over-below 1.00 in all four, to the digit**,
+while the best phase moved 2.50x / 1.67x / 2.00x / 2.50x. That is the stability
+claim proved in full-suite context, which is precisely what H29's check could
+not do — and the reason is in the distribution. Over all **96 phase readings
+this job took (twelve runs of the check, both maps: six subset runs, two
+confirming runs and the four of the verify)** the hood was **10px in every one**
+and the neck was 6px in 71, 5px in 19 and 4px in 6 — **never 7**. The worst
+value is the *common* one, so eight samples hit it many times over whatever
+phase the run came in at. The clause was settled on the first 48 of those, and
+the verify's own 32 agreed without moving a pixel.
+
+**One console-error data point, for H32 and not for this job.** Zero on both
+maps. The `AudioContext` device error now stands at **two of the last five
+verifies** (H27 yard, H28 none, H29 plant, H30 none, H31 none). H32 is unchanged
+by this and should stay queued as written: an intermittent fault is not closed
+by absences — that is the exact mistake H28's entry made after one of them — and
+three clean verifies in a row is still not the cold-run test H32 defines.
+
+**One thing to know about this verify's own standing.** `donedef.js` fetches
+`PLAYTEST.md`, `HANDOFF.md` and `TRAPS.md` **at the moment its checks run**, so
+editing those three mid-run is the same hazard as editing `src/` mid-run. All of
+this job's document edits landed within the first five minutes of a sixty-minute
+run and those checks register late in the suite, so every run read the settled
+text — and the empty `flaky` list is the evidence rather than the assumption,
+since two runs reading two different documents is exactly what it would report.
+`src/` was untouched from the moment the verify started. The protocol already
+has every job write its `PROGRESS.md` entry *after* its verify, so a document
+edit after a verify is the normal case; the thing to avoid is editing one in the
+middle, and that is worth knowing before the next job does it on purpose.
+
+**What was left.** **H32** (S) is next, the `AudioContext` console error, which
+H28 called closed one verify too early; this run's console-error count is one
+more data point for it. Then **H25** and **H11**. Nothing here is blocked.
+Two follow-ups the work revealed are in `QUEUE.md`: **H33**, the other checks
+that read a posed body at whatever phase the run arrived in — `tests/look.js`,
+`tests/animation.js` and `tests/smallwindow.js` all pose and read once, and
+whether any of their clauses is near a margin is unmeasured; and **H34**, the
+8m half of the hooded-figure clause, whose neck read 10 to 13px across six runs
+— a 30% spread against the 25m reading's 20%, on a band ten rows deep, which is
+a wider variation than the thin end of the same check and nobody knows why.

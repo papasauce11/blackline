@@ -230,43 +230,25 @@ one setting only Josh can click; everything else here proceeds.
   that the hood reads everywhere and no minimum-resolution line was needed.
   Whether 8 pixels of width reads as a hood is now an eyes-only question in
   `PLAYTEST.md`. Left: **H31**, below, which this strengthened.
-- [ ] **H31 (S)** The two figure checks assert a 1.5x ratio on a band three
-  rows deep. H29 went looking for whether a small window keeps a body legible
-  and found the instrument instead: `band()` takes the neck as the rows between
-  **14% and 22%** of the silhouette's height, which is 8% of it, so the band is
-  *three rows* on the 40-row body the reference buffer draws at 25m and *two*
-  on the 30-row body a smaller one draws. At two rows H29 measured the same body
-  as **8/4 = 2.00x and 8/6 = 1.33x in two runs of one suite**, because one row of
-  measured height slides the band onto the shoulders and `narrowest()` returns a
-  shoulder. At the **reference** buffer, where `the-shade-reads-as-a-hooded-
-  figure-at-8m-and-25m` and `...told-apart-by-silhouette-at-25m` both assert
-  1.5x since H28 pinned them there, the neck read **5px and 6px across runs**
-  against a hood of 10px - 2.00x and 1.67x, so a third reading of 7px would be
-  1.43x and red. Both checks are green today and have been for every run on
-  record, so **this is not a defect and not urgent**; it is a clause running on a
-  margin nobody has measured, in two checks that already shipped.
-  Do the measurement before touching either: run both checks several times on
-  both maps and say what the neck actually does at 40 rows. If it is stable at
-  5-6px the clause is calibrated and the right answer is a **comment naming the
-  margin**, not an edit. If it reaches 7px the clause needs replacing, and the
-  candidate is the one H29 kept: at the reference the hood is 10px over a 5-6px
-  neck, so **the hood is wider than the neck** has 4-5px of room where the ratio
-  has one - but note H29 found even that fails at 6/6 on a 30-row body, so it is
-  a fix for the reference buffer and not a general one. The deeper option, and
-  the reason this is sized S rather than XS, is to take the neck as a **fixed
-  number of rows** below the hood rather than a fraction of the height, which
-  would stop the band moving at all; that is a change to a shared helper two
-  checks depend on and wants its own measurement either way.
-  *done-when:* the entry says what the neck measures across several runs on both
-  maps at the pinned resolution, and either the clause is changed or it carries a
-  comment naming the margin it runs on.
+- [x] **H31 (S)** The two figure checks assert a 1.5x ratio on a band three
+  rows deep. — done 2026-10-06, under Done. **Measured first, as the queue
+  insisted, and the measurement said leave the clause alone**: over 48 readings
+  on both maps the hood was 10px every time and the neck 4, 5 or 6px, never 7,
+  so the worst case is 1.67x against the 1.5x bar. What moves the reading is the
+  **breath** — 4cm of torso on a body drawn at 4.5cm a row — and not `band()`
+  sliding, which corrects **D64**'s account of its own numbers. The deeper
+  option was refused with a reason, a second clause on the same 11% turned up,
+  and the margin is now *held* rather than documented by
+  `the-hood-holds-its-ratio-at-every-phase-of-the-breath`. **D66**; the
+  follow-ups are **H33** and **H34**.
 - [ ] **H32 (S)** The `AudioContext` error, and what would settle it. It has
-  appeared in **two of the last four verifies** - H27 on the yard, none in H28,
-  H29 on the plant, none in H30 - as one console error per run pair: *"The AudioContext
+  appeared in **two of the last five verifies** - H27 on the yard, none in H28,
+  H29 on the plant, none in H30, none in H31 - as one console error per run pair: *"The AudioContext
   encountered an error from the audio device or the WebAudio renderer."* H27 said
   it would be a defect if it recurred **on a cold run** and H28's entry wrote it
   off as the machine after one clean verify, which was premature: an intermittent
-  fault is not closed by a single absence. The evidence that it is environmental
+  fault is not closed by a single absence, and by the same argument the two
+  clean verifies since it last appeared (H30 and H31) do not close it either. The evidence that it is environmental
   is real but circumstantial - it is attributed to the **page URL** and never to
   a file in `src/`, all sixteen sound checks are green on both maps every time,
   and the machine had been driving headless Chrome for hours on each occasion.
@@ -310,6 +292,48 @@ one setting only Josh can click; everything else here proceeds.
   `suite-skips.json` for a `bench-only` list it is honest about.
   *done-when:* a bench run on this PC produces numbers the HANDOFF quotes,
   and `PLAYTEST.md` stops asking Josh to run it by hand.
+- [ ] **H33 (S)** Which other checks read a posed body at whatever phase the
+  run arrived in? H31 found the mechanism and fixed one instance of it:
+  `updateVisual` runs on the **wall clock from the render frame**, never from
+  `fixedStep`, and `Agent.reset()` deliberately leaves `_breathTime` alone — so
+  the breath's phase at any check is a function of how many frames the whole run
+  drew before it, which is why a subset and a full suite disagree and why two
+  runs of one suite can. At 25m that phase is worth most of a pixel row.
+  `tests/figure.js` is now covered at the worst phase by `tests/breath.js`, but
+  **`tests/look.js` and `tests/animation.js` reset a body and read it after a
+  fixed 60 `updateVisual` calls in exactly the same way**, and
+  `tests/smallwindow.js` poses once and reads five buffer sizes off that single
+  phase. Nobody knows whether any of their clauses is near a margin, which is
+  precisely the state the two figure checks were in before H31.
+  **Do the census, not the fix.** List every check that poses a body and then
+  reads pixels or geometry off it; for each, say what its thinnest clause is,
+  what that clause reads at the phase it happens to get, and whether a whole
+  breath can move it. Only then propose anything — several of them will be
+  nowhere near a margin and want nothing done. The cheap global alternative is
+  named and refused in **D66** with its reasons (zeroing the phase in `reset()`
+  makes the suite repeatable without making it thorough, and changes how a
+  reinserted body looks), so re-propose it only with the census in hand.
+  *done-when:* the entry lists every such check with its thinnest clause
+  measured over a breath, and names the ones the breath cannot reach.
+- [ ] **H34 (S, the small end of it)** The 8m half of the hooded-figure clause
+  varies more than the 25m half, and nobody knows why. Measuring H31's margin
+  turned this up on the way past: at **8m**
+  `the-shade-reads-as-a-hooded-figure-at-8m-and-25m` read the neck at 10, 12,
+  12, 12, 13 and 12px over six runs on both maps — a **30% spread** — where the
+  25m reading moved only between 5 and 6px, 20%, and the 8m band is **ten rows
+  deep** against three. A better-resolved measurement varying *more* in relative
+  terms is the wrong way round. The likely answer is dull — the breath is worth
+  about three rows at 8m rather than one, and the neck's profile has more
+  structure to be narrowest in — but that is a guess and this queue has been
+  wrong about a pixel reading three times now (H24 and the queue both misread
+  the wall check, and D64 misread its own band).
+  **There is no urgency whatsoever**: the 8m hood is 28px, so the clause reads
+  2.15x at worst against its 1.5x, which is **43% of margin** and the widest in
+  the check. This is here because it is a cheap unexplained number and those
+  have twice turned out to be instruments rather than bodies.
+  *done-when:* the entry says what the 8m neck's rows do over a breath and why
+  the spread is wider than at 25m, or says the question is not worth a check and
+  why.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -564,6 +588,49 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H31** The two figure checks asserted a 1.5x hood-over-neck ratio on a band
+  three rows deep, and H29 had watched that band read 5px and 6px for the same
+  body in different runs — a third reading of 7px would have been 1.43x and red.
+  The queue insisted on the measurement first and the measurement settled it:
+  **48 readings, six runs, both maps, face-on at 25m on the reference buffer —
+  the hood 10px in every single one and the neck 4, 5 or 6px, never 7**, so the
+  clause reads **1.67x at worst** against its 1.5x in all six runs to the digit.
+  The two shipped checks agree independently, six readings each. So the first of
+  the queue's three outcomes: **a comment naming the margin, not an edit**, and
+  neither shipped clause was touched. **What moves the reading is the breath**,
+  and that is the finding: the Shade's torso lifts 4cm standing still,
+  `updateVisual` runs on the wall clock from the render frame rather than from
+  `fixedStep`, and `reset()` deliberately leaves the phase alone — so the phase
+  a check reads is a function of how many frames the whole run drew first, and
+  at 25m a row is 4.5cm, so the breath is most of one. It slides the body past
+  the pixel grid and the narrow part of the neck falls in one row or straddles
+  two. **This corrects D64's account of its own numbers** and is **D66**: D64
+  blamed a one-row height change sliding a two-row band onto the shoulders, and
+  `band()` measures down from the top with both ends scaling together, so at 30
+  rows the band is *three* rows at offsets 5-7 and at 31 rows it is **the same
+  three offsets** — the pair D64 quotes cannot have moved it. D64's conclusion
+  is untouched and reinforced: H29's instability reproduced here across six runs
+  (1.33x-2.00x at 956x538, 1.00x-1.50x at 896x503, against 1.67x six-for-six at
+  the reference), so the ratio still means nothing below the reference and
+  nothing asserts it there. **The deeper option was measured and refused**: a
+  fixed number of rows for the neck would not touch a variation that happens
+  inside one row, and would change a helper two shipped checks depend on.
+  **A second clause on the same band and the same 11% turned up**:
+  `HOOD_OVER_ALL_BELOW` read exactly 1.00 against its 0.9 bar, thinner in
+  character than the ratio. One new check,
+  `the-hood-holds-its-ratio-at-every-phase-of-the-breath` in `tests/breath.js`,
+  advances the breath an eighth of a cycle at a time through `updateVisual` at
+  the fixed step and asserts **both** clauses at the worst of eight phases — a
+  claim neither shipped check makes, since each takes the one reading its own
+  arrival gave it. It is stable because the worst value is common, not rare: a
+  6px neck came up in six or seven of eight samples every run, so six runs read
+  1.67x and 1.00 to the digit while the individual phases moved. `figure.js`
+  gained a row `profile` so a check can print **where the bands actually fell**
+  rather than only what they returned, which is what made the sub-pixel reading
+  legible in 347 of the 400 characters a detail line keeps. Its follow-ups are
+  **H33** and **H34**. The gate for this job was H30's own VERIFY, byte-identical
+  tree, because this run's gate was lost to a background timeout shorter than
+  the gate — two rules in `TRAPS.md`. Done 2026-10-06, commit `PENDING`.
 - **H30** Every pixel floor under `src/tests/` is a fraction of the drawing
   buffer, or says why it is not. H28 scaled the six floors H24's off-level runs
   had caught and left the rest with an honest note: *none of them is red at any

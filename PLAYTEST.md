@@ -82,6 +82,46 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The Shade breathes, and that is why the checks kept changing their minds (H31, 2026-10-06)
+
+**Nothing in the game changed and there is nothing here to judge.** This closes
+the loose end the section below it left, and it is a better answer than that
+section expected.
+
+**The loose end.** The check that proves the Shade reads as a hooded figure
+compares the width of the hood against the width of the neck beneath it. The
+same body kept reading a 5-pixel neck in one run and a 6-pixel neck in the next,
+and at 7 the check would have gone red — so it was running on about 11% of
+margin that nobody had measured.
+
+**It was measured, and it is fine.** 48 readings, six runs, both maps: the hood
+came out at **10 pixels every single time** and the neck at **4, 5 or 6 — never
+7**. So the check is calibrated rather than lucky, and nothing about it needed
+changing.
+
+**And the reason it wobbles is that he is breathing.** Standing still, the
+Shade's torso rises and falls four centimetres. At 25 metres his whole body is
+only forty pixels tall, so one pixel row is about four and a half centimetres —
+**the breath is most of a row.** It slides his body past the pixel grid, so the
+narrow part of his neck lands inside one row or straddles two, and the
+measurement comes out a pixel different. Nothing is wrong with the figure; the
+ruler is just nearly as coarse as the thing it is measuring.
+
+**What is new.** A check now takes that reading at **eight points across a whole
+breath** and requires the hood to hold up at the worst of them, rather than at
+whichever moment the run happened to arrive at. That is a stronger promise than
+the two older checks make, and it caught a second clause in the same place
+running on the same thin margin.
+
+**It also corrects something written yesterday.** The previous section explained
+the wobble by saying the measuring band slid onto the Shade's shoulders. It
+does not — the arithmetic says the band lands on the same rows either way. The
+body moved, not the band. The conclusion that section reached is unaffected and
+if anything stronger, and **the one thing it asks of you is unchanged**: the look
+at a Shade at 25 metres on a small screen, described below.
+
+**What is left for you:** nothing new. The one open look is in the next section.
+
 ### The checks now mean the same thing at any window size (H30, 2026-10-06)
 
 **Nothing in the game changed and there is nothing here to judge.** This is a
@@ -128,11 +168,13 @@ make about a minimum resolution.
 Shade at 25 metres is drawn **30 pixels tall and 8 pixels wide**. The check that
 reads a hooded figure works by comparing the width of the hood against the width
 of the neck beneath it, taking the neck as a band between 14% and 22% of the
-body's height - which on a 30-pixel body is **two rows of pixels**. When the
-measured height of the body shifted by a single row between two runs of the same
-suite, those two rows landed on the shoulders instead of the neck, and the same
-body read as 2.00x in one run and 1.33x in the other. A hood cannot be told from
-a neck inside eight pixels of width, by this instrument or any like it.
+body's height - which on a 30-pixel body is only **three rows of pixels**. The
+same body read as 2.00x in one run of the same suite and 1.33x in the other.
+*(Corrected by the section above, written the day after this one: the reason is
+that the Shade is breathing and the body slides past the pixel grid, not that
+the measuring band moved. The band lands on the same rows either way.)* A hood
+cannot be told from a neck inside eight pixels of width, by this instrument or
+any like it.
 
 **What the checks do still guarantee at that size**, because these held in every
 run: the body is drawn, it covers the share of the frame it should, and it keeps
