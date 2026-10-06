@@ -11115,17 +11115,38 @@ all. The readings quoted above come from
 200/300/400; x1.25 1600x900: 4642px over a floor of 3125, the window 875-1588 on
 250/375/500.*
 
-**One correction made on the way, and it is the reason the numbers above were
-measured rather than copied.** The notes this job inherited quoted the figure's
-own coverage four times and **disagreed with themselves**: `pixels.js` and
-`bufferscale.js` said 3,012px at `medium` falling to 1,476 at `low`, `HANDOFF.md`
-said 3,014 to 1,455, and `PLAYTEST.md` said 3,012 to 1,455. Three of the four
-were wrong in one place or the other, which means none of them could be trusted
-and the ones in `src/` were wrong in a header that explains the whole fix. The
-measured answer is **3,014 and 1,455**, and all four now say it. The two bad
-numbers look like a draft taken before the pose settled; the lesson is the one
-F14 is about from the other side - a number written in four places is a number
-nothing checks.
+**One correction made on the way, and what it turned out to be.** The notes
+this job inherited quoted the figure's coverage in five places and the pairs
+did not agree: `pixels.js` and `bufferscale.js` said 3,012px at `medium` falling to
+1,476 at `low`, `figure.js` said 1,476 against a floor of 2,000, `HANDOFF.md`
+said 3,014 to 1,455 and `PLAYTEST.md` said 3,012 to 1,455. The first reading of
+that was a transcription error somewhere, and it is not: **they are two
+instruments measuring nearly the same thing.** 1,476px is what the figure
+check itself read at `low` when H24 found the red; 1,455px is what
+`a-pixel-reading-is-a-fraction-of-the-drawing-buffer` reads at x0.7 today,
+from its own stand with its own frame count. They differ by 1.4%, which is
+the same 1.4% the height-squared law holds to across the three buffers - the
+thin limbs a smaller buffer resolves differently against an 8-luma
+threshold. 3,012 and 3,014 are the same story one run apart, and the figure
+check's own reading at `medium` is a third number again, **3,072px**, because it
+poses the body for longer.
+
+So nothing was wrong except the prose, which had put two instruments' numbers
+in one sentence. What was changed is small: `pixels.js` and `bufferscale.js` now
+quote the pair `bufferscale` itself prints (3,014 and 1,455) so a reader can run
+the check and see them, `figure.js` keeps H24's 1,476 because that is the figure
+check's own history, and `PLAYTEST.md` is made to match. **The real lesson is the
+precision.** None of these numbers is stable to four significant figures - a
+pixel count off a software rasteriser moves a percent between runs - and
+quoting one to four digits in five places invites exactly the hour this cost:
+a reader cannot tell a drifting measurement from a typo, so they go looking
+for a bug in the record instead of reading what the record is for. A floor, a
+ratio and an order of magnitude are what these sentences needed.
+
+**The paragraph above replaced a wrong one.** As first written this entry said
+three of the four numbers were wrong and guessed they came from a draft taken
+before the pose settled. H24's own table says otherwise, and the guess is on
+the record as a guess rather than quietly deleted.
 
 **What was left.** **H29** and **H30**, both S, both in the queue, and **D63**
 open for override. H30 is the census this job did not do: four more modules hold
