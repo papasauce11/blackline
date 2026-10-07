@@ -12297,3 +12297,103 @@ manage, because the first draft lost the Warden's reading to the silent cut.
 declared and unmeasured) and **H34**, rewritten to the one question this census
 did not answer. **D70** records the ride being pinned. H36 and H37 are H11's and
 untouched; **H35** still waits for three gates and has one.
+
+## H34 — the 13px neck is real, there is a 14, and eight phases was too coarse (2026-10-07 02:00, scheduled run)
+
+**What it was handed.** H31 read the 8m neck at 10, 12, 12, 12, **13** and 12px
+over six runs on both maps and asked why the 8m half of
+`the-shade-reads-as-a-hooded-figure-at-8m-and-25m` varies more than the 25m
+half, when the 8m band is ten rows deep against three. H33's census answered
+the comparison from the other end - over eight phases of one breath the 8m neck
+read 10-12 and the 25m neck 4-6, so in relative terms 17% against 33%, which is
+the right way round - and the queue rewrote this job down to the one reading
+that was left: **the 13 nobody had reproduced.** Two candidates were open: a
+sweep too coarse to catch it, or something other than the breath.
+
+### The answer: both of H33's numbers were under-sampled
+
+**32 phases of the breath at 8m, on each map**, reproducing that check exactly
+- its stand, its **lane yaw**, its reference buffer, its own
+`flatShadeSilhouette`. Sixty-four readings:
+
+| | neck, by count | range | worst ratio |
+|---|---|---|---|
+| plant (site A) | 10×3 · 11×6 · **12×18** · 13×5 | 10-13 | 2.154x |
+| yard (site C) | 10×5 · 11×5 · **12×19** · 13×2 · **14×1** | 10-**14** | **2.000x** |
+
+So **the 13 is real and common enough** - 5 of 32 phases on the plant, 2 of 32
+on the yard - and the yard goes one further to **14px, once in 32**. H33's
+eight phases on one map simply missed both, and the 2.33x it recorded is
+wrong: **the measured worst is 2.00x** (28/14) against the clause's 1.5x. The
+census table in `tests/breathcensus.js` is corrected to 10-14px and 2.00x, and
+says in the same line that eight phases is too coarse at 8m so the next reader
+does not repeat it.
+
+**The yaw was not the variable**, which was the other candidate and is now
+ruled out: both maps' lanes read a yaw of **-3.142** (π), so H31's six readings
+across two maps were not six readings at two angles. What differs between the
+maps is the stand and what is behind the body, and the spread is the same shape
+on both.
+
+**And the hood never moved.** 28px in all 64 readings, on both maps, with the
+body's height at 122-127 - the same invariance H31 found at 25m (10px in 48
+readings). The neck is the only thing the breath moves here.
+
+### Why eight phases is enough at 25m and not at 8m
+
+This is the real content of H34's "wrong way round", and it is about sampling
+rather than about anatomy. The breath lifts the torso 4cm. At 25m a row is
+about 4.5cm, so the breath is worth **about one row** and the body spends most
+of the cycle at one of two alignments: a worst-case 6px neck came up in six or
+seven of eight samples in every run H31 took, which is exactly why
+`tests/breath.js` can assert the 25m worst case from eight samples and not be
+flaky. At 8m a row is about 1.5cm, so the breath is worth **about three rows**,
+the reading is spread over five integers instead of two, and the extremes are
+rare - 12px is 18 of 32 and 14px is 1 of 32. **A finer measurement needs more
+samples to find its own worst case, not fewer**, and reading eight phases at
+both distances was the mistake rather than anything the body did.
+
+### The judgement: no dense clause, and what is asserted instead
+
+The honest answer to "is this worth a check" is **no, not as a ratio**. At
+2.00x against 1.5x the clause keeps **33% of margin** and is still the widest
+in that check; the neck would have to reach 19px - a third wider than anything
+in 64 readings - to fail, and a dense sweep costs 64 readings of the reference
+buffer in a check that already runs 33 seconds.
+
+What is worth asserting is the fact the margin **rests on**: the hood holds
+still. If the hood ever starts riding the breath the way the neck does, the 8m
+margin becomes a product of two moving numbers and every reading above wants
+taking again. Eight phases is ample to catch a hood that moves, so
+`tests/breathcensus.js` gained a clause that sweeps eight phases at 8m, reads
+through `figure.js`'s own exports, and asserts that **the hood is one width at
+every phase** and that the worst ratio over them clears `HOOD_OVER_NECK`. It
+reads `the 8m hood holds at 28px over 8 phases, worst 2.15x of 1.5x` on both
+maps.
+
+### What was verified
+
+Its own gate was H33's VERIFY on this branch (protocol step 8).
+
+**VERIFY**: **OK**, plant **216 passed / 1 failed / 8 not for this map**
+(1,070,794ms and 1,078,579ms), yard **196 / 1 / 28** (746,071ms and 744,803ms),
+exit 0, 0 red, 0 flaky, **0 console errors**, 0 context losses, 0 loop frames,
+both runs of each map agreeing exactly on every count. The same check count as
+H33's pair, because this extended that census rather than adding one. Run-pair
+spreads 7,785ms and 1,268ms against pipeline waits of 980ms and 439ms, the
+tightest waits on record.
+
+The census check's detail hit **exactly 400 characters** when the new reading
+was appended - the silent cut (TRAPS.md), for the second time in two jobs - and
+five readings were shortened to bring it to 362. The check costs 33s on the
+plant and 24s on the yard with the 8m sweep in it.
+
+### What was left
+
+Nothing of H34. **H38** (hold `hang.js`'s glove at the worst phase) and
+**H39** (the twelve modules that read a body off a rendered frame) are H33's
+and open; **H36** and **H37** are H11's; **H35** has one of its three gates.
+One lesson for all of them: **a sweep's density is part of the instrument**,
+and this is the third time a pixel reading turned out to be about how it was
+measured rather than about the body - H29's two readings, D64's band, and now
+H33's own eight phases.

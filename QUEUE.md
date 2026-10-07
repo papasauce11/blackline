@@ -378,32 +378,15 @@ one setting only Josh can click; everything else here proceeds.
   *done-when:* every module in `ALSO_DRAWN` is reclassified — measured with
   its numbers, or out of reach with the proof that covers it — and the list is
   empty or holds only what is genuinely unmeasurable, with why.
-- [ ] **H34 (S, and most of it is answered)** One 13px neck at 8m.
-  **H33's census answered the question this job was written to ask**, from the
-  other end: over eight phases of one breath on one tree the 8m neck reads
-  **10, 11 or 12px** and the 25m neck reads **4, 5 or 6px** - so in relative
-  terms the 8m reading varies **17%** and the 25m one **33%**, which is the
-  right way round, and the premise of this job ("a better-resolved measurement
-  varying *more* in relative terms is the wrong way round") was an artefact of
-  comparing two six-sample cross-run spreads at two distances, each sampling
-  six arbitrary phases of the same cycle. The mechanism is the breath, as the
-  guess here said, and `tests/breathcensus.js` now holds the margin: 28px of
-  hood over a worst neck of 12px is **2.33x against 1.5x**.
-  **What is left is one number.** H31's six runs included a **13px** neck, one
-  count outside anything the eight-phase sweep saw. Either the sweep is too
-  coarse at 8m - where the band is ten rows deep and the breath is worth about
-  three of them, so eight samples of the cycle may miss an extreme that
-  sixteen would catch - or something other than the breath moved that one
-  reading. Settle it with a denser sweep at 8m alone, which is cheap, and
-  either widen the margin recorded in the census table to the worst of it or
-  say the 13 was the gait and not the breath.
-  **There is no urgency whatsoever**: even at 13px the clause reads 2.15x
-  against its 1.5x, the widest margin in the check. This stays open only
-  because a cheap unexplained number has twice turned out to be an instrument
-  rather than a body.
-  *done-when:* a sweep dense enough to reproduce a 13px neck at 8m either finds
-  it and the census table's margin is corrected to match, or does not and the
-  entry says what else could have produced it.
+- [x] **H34 (S)** One 13px neck at 8m. — done 2026-10-07, under Done. **It is
+  real, there is a 14, and eight phases was the problem.** Over 32 phases on
+  each map the 8m neck reads 10-13 on the plant and **10-14 on the yard**, so
+  the worst margin is **2.00x** against 1.5x and not the 2.33x H33 recorded
+  from eight phases on one map; the census table is corrected and says why.
+  The hood held at 28px in all 64 readings and both maps' lanes read the same
+  yaw, so neither the hood nor the angle was the variable. **No dense clause**
+  (33% of margin left, and a dense sweep costs 64 readings): what is asserted
+  instead is the invariance the margin rests on.
 - [ ] **H35 (S, the small end)** Three gates with their console-error counts
   written down, then close the `AudioContext` error or name a new hypothesis.
   H32 eliminated the code side of it — one realtime context per page, one owner
@@ -680,6 +663,30 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H34** The 13px neck at 8m is real, there is a 14, and eight phases was too
+  coarse. H31 saw a 13 once in six runs and H33's eight-phase sweep on one map
+  read 10-12 and recorded 2.33x of margin. **32 phases on each map** - the same
+  stand, the same lane yaw, the same reference buffer, `figure.js`'s own
+  `flatShadeSilhouette` - read the neck at 10-13 on the plant (13 in 5 of 32)
+  and **10-14 on the yard** (14 in 1 of 32), so the real worst is **2.00x**
+  against the clause's 1.5x. The **hood held at 28px in all 64 readings** on
+  both maps and both lanes read a yaw of -3.142, so neither the hood nor the
+  viewing angle was the variable: the neck is the only thing the breath moves
+  at 8m, and the sweep was simply too coarse to find its own extremes. **Why
+  eight is enough at 25m and not at 8m**, which is the real content of this
+  job's "wrong way round": the breath is worth about one row at 25m, so the
+  worst value is common (a 6px neck in six or seven of eight samples, which is
+  what lets `breath.js` assert it from eight), and about three rows at 8m, so
+  the reading spreads over five integers and the extremes are rare. **A finer
+  measurement needs more samples to find its own worst case, not fewer.** The
+  judgement is **no dense clause** - 33% of margin is left, the neck would have
+  to reach 19px to fail, and 64 readings is too much to spend in a check that
+  already runs 33s - so `tests/breathcensus.js` asserts the fact the margin
+  rests on: the 8m hood is **one width at every phase**, swept over eight,
+  with the worst ratio over them clearing the bar. Third time a pixel reading
+  has turned out to be about how it was measured rather than about the body
+  (H29's two readings, D64's band, H33's own eight phases).
+  Done 2026-10-07, commit `TBD34`.
 - **H33** Two phases survive a reset, and the census of what they reach.
   H31 found the mechanism — `updateVisual` runs on the wall clock from the
   render frame, `reset()` leaves the breath's phase alone, so the phase a check

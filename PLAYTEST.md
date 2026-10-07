@@ -120,6 +120,19 @@ a deeper or shallower breath, say so — it is a one-line change plus a
 re-measurement of the figure checks' margins, and **D70** explains why it is
 worth that rather than being free.
 
+**And a footnote the same day (H34), because it is the honest kind.** The
+census first reported the Shade's neck at 8m as 10–12 pixels wide across the
+breath, with a comfortable margin. A denser sweep — 32 phases instead of 8, on
+both maps — found 13 and then 14, so the real margin is smaller than first
+recorded (still 33% clear of its bar, and nothing shipped changed). The reason
+is worth one line because it has now bitten three times: **how finely you
+sample is part of what you measure.** At 25m the breath moves the body about
+one pixel row, so eight samples find the worst case; at 8m it moves it about
+three, the reading spreads over five values, and the extreme turns up once in
+thirty-two. Nothing to look at here — it is on this page because the number in
+the previous paragraph's neighbourhood changed, and this file should not quietly
+hold the first version of a measurement.
+
 ### The frame budget holds on the real GPU, and you no longer have to check (H11, 2026-10-07)
 
 **This closes the oldest thing on this page's "only you can judge" list.**

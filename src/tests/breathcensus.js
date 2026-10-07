@@ -72,7 +72,9 @@
 
 import { CONFIG } from '../config.js';
 import { POSE } from '../entities/agentvisual.js';
-import { quiesce } from './pixels.js';
+import { QUALITY_FALLBACK, pixelRatioNow } from '../quality.js';
+import { createLens, quiesce } from './pixels.js';
+import { standAndEyes, flatShadeSilhouette, HOOD_OVER_NECK } from './figure.js';
 
 const SELF = 'every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it';
 
@@ -112,7 +114,7 @@ const POSED = [
   {
     module: 'figure.js',
     reach: 'measured',
-    note: 'the 25m hood-over-neck pair is held at the worst phase by breath.js. The rest is wide: 8m count 2,996-3,089 over a 2,000 floor, 8m aspect 3.5-3.6 over 2.2, 25m count 345-359 over 150, 25m aspect 3.3-3.4 over 2.2. The 8m neck reads 10, 11 or 12px under a hood that was 28px at every phase - 2.33x at worst against 1.5x, which is H34\'s question answered from the other end',
+    note: 'the 25m hood-over-neck pair is held at the worst phase by breath.js. The rest is wide: 8m count 2,996-3,089 over a 2,000 floor, 8m aspect 3.5-3.6 over 2.2, 25m count 345-359 over 150, 25m aspect 3.3-3.4 over 2.2. The 8m neck reads 10 to 14px under a hood that read 28px in all 64 readings H34 took on both maps - 2.00x at worst against 1.5x. H33 read 10-12 and recorded 2.33x here from eight phases on one map, and H34 corrected it: eight phases is too coarse at 8m',
   },
   {
     module: 'smallwindow.js',
@@ -194,6 +196,11 @@ const STILL = 1e-4;
  */
 const MEASURED_RIDE = 0.08;
 const RIDE_TOLERANCE = 0.02;
+
+/** The two distances figure.js reads at, and the phases this samples the near hood over. */
+const NEAR = 8;
+const FAR = 25;
+const HOOD_PHASES = 8;
 
 /** The body group of a built figure, and the height the pose lifts it from. */
 function bodyGroup(actor) {
@@ -311,7 +318,7 @@ export function register(debugTools) {
         if (shade._dip !== 0) problems.push(`reset() left the camera dip at ${shade._dip}; then it clears nothing and the two phases above prove nothing`);
         if (breathBefore <= 0) problems.push('the breath never advanced, so nothing here was measured');
         if (gaitBefore <= 0) problems.push('the gait never advanced, so "reset() did not move it" is 0 === 0 and says nothing; the body has to be walked and not merely drawn');
-        readings.push(`reset keeps breath ${breathBefore.toFixed(2)}s, gait ${gaitBefore.toFixed(2)}, clears the dip`);
+        readings.push(`reset keeps breath ${breathBefore.toFixed(2)}s + gait ${gaitBefore.toFixed(2)}, clears the dip`);
 
         // ----------------------------------------------------------------
         // 3. What the breath moves on the Shade, over one whole cycle: the
@@ -331,7 +338,7 @@ export function register(debugTools) {
           if (lift.span < want * 0.5) {
             problems.push(`the torso moved ${lift.span.toFixed(4)}m of the ${want.toFixed(3)}m \`POSE.breath.lift\` asks for; the lift is configured and not reaching the body`);
           }
-          readings.push(`torso rides ${lift.span.toFixed(3)}m of a ${BREATH_SECONDS.toFixed(2)}s breath`);
+          readings.push(`torso rides ${lift.span.toFixed(3)}m of ${BREATH_SECONDS.toFixed(2)}s`);
 
           // Proof `rotations`: the breath is a position. Every limb rotation
           // holds still through the same cycle that moved the torso.
@@ -369,7 +376,7 @@ export function register(debugTools) {
             if (cam.span > STILL) {
               problems.push(`a whole breath moved the camera ${cam.span.toFixed(5)}m; camerasettings.js and feel.js read the camera and are declared out of reach because it does not`);
             }
-            readings.push(`a metre of body moves the camera ${(lifted - before).toFixed(2)}m, a whole breath under ${STILL}m`);
+            readings.push(`1m of body moves the camera ${(lifted - before).toFixed(2)}m, a breath under ${STILL}m`);
           }
         }
 
@@ -391,7 +398,67 @@ export function register(debugTools) {
           if (Math.abs(warden.speed) > 0.2) {
             problems.push(`the Warden was moving at ${warden.speed.toFixed(2)} m/s, so a still chest says nothing - the bob is zero only at a stand`);
           }
-          readings.push(`the Warden's chest holds inside ${STILL}m at ${warden.speed.toFixed(2)} m/s`);
+          readings.push(`the Warden's chest inside ${STILL}m at ${warden.speed.toFixed(2)} m/s`);
+        }
+
+        // ----------------------------------------------------------------
+        // 5. The 8m hood does not move, which is what the widest margin in
+        //    the suite actually rests on (H34).
+        //
+        //    `the-shade-reads-as-a-hooded-figure-at-8m-and-25m` reads the 8m
+        //    hood over the 8m neck at one arbitrary phase, and the neck there
+        //    wanders: over 32 phases on each map H34 read **10 to 14px**,
+        //    where H33's eight phases on one map had read 10 to 12 and
+        //    recorded 2.33x of margin. Eight is too coarse at 8m - the band is
+        //    ten rows deep and the breath is worth about three of them, so the
+        //    extremes are rare there, where at 25m a worst-case neck turns up
+        //    in six samples of eight and `tests/breath.js` can assert it from
+        //    eight. The real worst is **2.00x** (28/14, on the yard).
+        //
+        //    So the clause that belongs here is not the ratio - a dense sweep
+        //    of it costs 64 readings - but the **invariance of the hood**,
+        //    which is why the ratio is safe at any phase and which eight
+        //    phases is ample to catch moving. The hood read 28px at every one
+        //    of H34's 64 readings on both maps. If it ever starts riding the
+        //    breath the way the neck does, the 8m margin is a product of two
+        //    moving numbers instead of one and wants measuring again.
+        // ----------------------------------------------------------------
+        const where = standAndEyes(h, FAR);
+        if (!where) {
+          problems.push(`no stand on this map with a clear lane and ${FAR}m of sight, so the 8m hood was not read`);
+        } else {
+          // The lane's own yaw, which is what that check uses; breath.js and
+          // figure.js's second check face the eye instead, a different and
+          // easier question.
+          shade.reset({ position: where.stand, yaw: where.lane.yaw });
+          h.stepFrames(5);
+          const lens = createLens(h, { pixelRatio: pixelRatioNow(undefined, QUALITY_FALLBACK) });
+          const frames = Math.max(1, Math.round((BREATH_SECONDS / HOOD_PHASES) * 60));
+          const hoods = [];
+          const ratios = [];
+          try {
+            for (let phase = 0; phase < HOOD_PHASES; phase++) {
+              for (let i = 0; i < frames; i++) shade.updateVisual(1 / 60);
+              const shape = flatShadeSilhouette(h, lens, where, NEAR);
+              if (!shape) { problems.push(`a phase read no silhouette at ${NEAR}m`); continue; }
+              hoods.push(shape.hood);
+              if (Number.isFinite(shape.neck) && shape.neck > 0) ratios.push(shape.hood / shape.neck);
+            }
+          } finally {
+            lens.restore();
+          }
+          if (hoods.length === HOOD_PHASES) {
+            const low = Math.min(...hoods);
+            const high = Math.max(...hoods);
+            if (low !== high) {
+              problems.push(`over ${HOOD_PHASES} phases the ${NEAR}m hood read ${low}-${high}px; it held at one width in all 64 of H34's readings, and the widest margin in the suite rests on only the neck moving`);
+            }
+            const worst = ratios.length ? Math.min(...ratios) : 0;
+            if (!(worst >= HOOD_OVER_NECK)) {
+              problems.push(`the worst of ${HOOD_PHASES} phases reads a ${NEAR}m hood ${worst.toFixed(2)}x its neck, under ${HOOD_OVER_NECK}x`);
+            }
+            readings.push(`the ${NEAR}m hood holds at ${low}px over ${HOOD_PHASES} phases, worst ${worst.toFixed(2)}x of ${HOOD_OVER_NECK}x`);
+          }
         }
       } finally {
         restore();
@@ -405,7 +472,7 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${poses.length} pose a body: ${held} held at the worst phase, ${measured} measured, ${none} out of reach by proof; `
-            + `${renders.length} render one and are declared unmeasured (H39). ${readings.join('; ')}`
+            + `${renders.length} render one, unmeasured (H39). ${readings.join('; ')}`
           : problems.join('; '),
       };
     },
