@@ -95,6 +95,31 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The Shade breathes, and that is now a number the suite holds (H33, 2026-10-07)
+
+**Nothing changed; this is one look detail you have never been told about,
+because it only became visible by being measured.** Standing still, the Shade's
+torso rises and falls **4cm on a 7-second cycle** — so over a whole breath the
+body rides 8cm. You will see it if you stand still and watch her from the side;
+at 25m it is worth about a pixel row, which is how it was found at all (it was
+moving a pixel reading between two runs of one suite).
+
+H33 took the census of everything that reading could affect: twenty-three test
+modules, eight phases of the breath, both maps. **Everything passes at every
+phase**, and the one clause spending real margin is a test's own (a hanging
+glove against a ledge, 0.075m of a 0.15m tolerance) rather than anything you
+would see. It also turned up a second thing with the same property — the
+**gait**, the leg-swing phase, which moves a silhouette far more than the
+breath does: a walking frame covers 24% more or fewer pixels depending on where
+the legs are, which is as it should be and is only worth knowing if you ever
+compare two screenshots of a walk.
+
+**The one thing to be aware of:** the breath's depth is one number, and a test
+now pins it at the 4cm the census measured everything else against. If you want
+a deeper or shallower breath, say so — it is a one-line change plus a
+re-measurement of the figure checks' margins, and **D70** explains why it is
+worth that rather than being free.
+
 ### The frame budget holds on the real GPU, and you no longer have to check (H11, 2026-10-07)
 
 **This closes the oldest thing on this page's "only you can judge" list.**

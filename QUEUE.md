@@ -323,48 +323,87 @@ one setting only Josh can click; everything else here proceeds.
   `latestBench()` is the reader; `benchOnlyById()` is the set it must cover.
   *done-when:* the audit prompt asks for it, and a dry run against this repo
   names 2026-10-07 and its commit.
-- [ ] **H33 (S)** Which other checks read a posed body at whatever phase the
-  run arrived in? H31 found the mechanism and fixed one instance of it:
-  `updateVisual` runs on the **wall clock from the render frame**, never from
-  `fixedStep`, and `Agent.reset()` deliberately leaves `_breathTime` alone — so
-  the breath's phase at any check is a function of how many frames the whole run
-  drew before it, which is why a subset and a full suite disagree and why two
-  runs of one suite can. At 25m that phase is worth most of a pixel row.
-  `tests/figure.js` is now covered at the worst phase by `tests/breath.js`, but
-  **`tests/look.js` and `tests/animation.js` reset a body and read it after a
-  fixed 60 `updateVisual` calls in exactly the same way**, and
-  `tests/smallwindow.js` poses once and reads five buffer sizes off that single
-  phase. Nobody knows whether any of their clauses is near a margin, which is
-  precisely the state the two figure checks were in before H31.
-  **Do the census, not the fix.** List every check that poses a body and then
-  reads pixels or geometry off it; for each, say what its thinnest clause is,
-  what that clause reads at the phase it happens to get, and whether a whole
-  breath can move it. Only then propose anything — several of them will be
-  nowhere near a margin and want nothing done. The cheap global alternative is
-  named and refused in **D66** with its reasons (zeroing the phase in `reset()`
-  makes the suite repeatable without making it thorough, and changes how a
-  reinserted body looks), so re-propose it only with the census in hand.
-  *done-when:* the entry lists every such check with its thinnest clause
-  measured over a breath, and names the ones the breath cannot reach.
-- [ ] **H34 (S, the small end of it)** The 8m half of the hooded-figure clause
-  varies more than the 25m half, and nobody knows why. Measuring H31's margin
-  turned this up on the way past: at **8m**
-  `the-shade-reads-as-a-hooded-figure-at-8m-and-25m` read the neck at 10, 12,
-  12, 12, 13 and 12px over six runs on both maps — a **30% spread** — where the
-  25m reading moved only between 5 and 6px, 20%, and the 8m band is **ten rows
-  deep** against three. A better-resolved measurement varying *more* in relative
-  terms is the wrong way round. The likely answer is dull — the breath is worth
-  about three rows at 8m rather than one, and the neck's profile has more
-  structure to be narrowest in — but that is a guess and this queue has been
-  wrong about a pixel reading three times now (H24 and the queue both misread
-  the wall check, and D64 misread its own band).
-  **There is no urgency whatsoever**: the 8m hood is 28px, so the clause reads
-  2.15x at worst against its 1.5x, which is **43% of margin** and the widest in
-  the check. This is here because it is a cheap unexplained number and those
-  have twice turned out to be instruments rather than bodies.
-  *done-when:* the entry says what the 8m neck's rows do over a breath and why
-  the spread is wider than at 25m, or says the question is not worth a check and
-  why.
+- [x] **H33 (S)** Which other checks read a posed body at whatever phase the
+  run arrived in? — done 2026-10-07, under Done. **There are two phases, not
+  one**: `_animTime`, the gait, has the same property and is the bigger lever
+  (24% of a pixel count on `look.js`'s walk and sprint poses against the
+  breath's 1-3%). Of eleven modules that pose a body, **1 is held at the worst
+  phase, 5 are measured here, 4 are out of reach by a proof the check now
+  runs**, and twelve more read a body off a rendered frame and are declared
+  unmeasured (**H39**). The one clause spending real margin is `hang.js`'s
+  glove — **0.075m of a 0.15m tolerance**, invisible to the first instrument
+  because a passing check's numbers are not in its detail line — which is
+  **H38**. It also answers **H34** from the other end. **D70** pins the ride
+  the table was measured at.
+- [ ] **H38 (S)** Hold `hang.js`'s glove at the worst phase of the breath.
+  H33 measured it, and it is the thinnest breath-reached clause in the suite:
+  `a-hang-is-at-full-stretch-under-the-lip` asserts
+  `|gloveY - lip| <= 0.15m` on a **world** position of a mesh hanging off an
+  arm inside the body group the breath lifts, and over eight phases the offset
+  ran **-0.021m to +0.055m, a span of 0.075m — half the tolerance** — with the
+  lift delivering its full ±0.037m at the read. The worst phase passes at
+  **2.75x**, so **there is no urgency and no bug**: this is bounding a quantity
+  the check samples and does not bound, which is the state the two figure
+  clauses were in before H31 and the reason H31 was worth doing.
+  Do it the way `tests/breath.js` does — sweep the cycle, assert the worst —
+  and put it beside hang.js rather than in it if that file cannot take the
+  lines. The reason it is worth doing at all rather than filed as comfortable:
+  `hangDrop`, the arm's length and the breath's amplitude are three
+  independent numbers, and the margin is the product of all three with nothing
+  watching it.
+  *done-when:* a check asserts the glove against the lip at the worst of eight
+  phases on both maps, and the entry says what the worst phase reads and how
+  much of the tolerance is left. If the honest answer turns out to be that the
+  clause is better off reading something the breath cannot move, say that and
+  why instead.
+- [ ] **H39 (S)** The twelve modules that read a body off a frame they rendered
+  rather than posing one. H33's census criterion was a grep — a module whose
+  text names `updateVisual` poses a body — which is checkable and is *not* the
+  whole of what inherits the run's phase: a check that calls `h.renderFrame()`
+  and reads pixels gets whatever phase the run is at, through the same
+  `updateVisual` call inside the frame. Twelve such modules are declared in
+  `ALSO_DRAWN` in `tests/breathcensus.js` and **none is measured**: `visual.js`,
+  `presentation.js`, `feedback.js`, `sitetint.js`, `quality.js`,
+  `qualityhold.js`, `groundview.js`, `plantrule.js`, `briefing.js`,
+  `debuggate.js`, `fuzz.js`, `performance.js`.
+  Several will obviously be out of reach (a HUD panel, the debug gate, the
+  site's floor tint) and the census's own proofs may already cover them — say
+  so per module rather than measuring for the sake of it. The ones worth a
+  reading are the ones with a **body** in the frame and a pixel floor on it:
+  `visual.js` and `presentation.js` first, then `feedback.js`'s death-cam
+  killer. H33's two instruments are both in the scratchpad pattern it
+  describes: a detail-line diff over eight phases finds every reported
+  quantity, and anything a passing check does not report has to be measured
+  directly.
+  *done-when:* every module in `ALSO_DRAWN` is reclassified — measured with
+  its numbers, or out of reach with the proof that covers it — and the list is
+  empty or holds only what is genuinely unmeasurable, with why.
+- [ ] **H34 (S, and most of it is answered)** One 13px neck at 8m.
+  **H33's census answered the question this job was written to ask**, from the
+  other end: over eight phases of one breath on one tree the 8m neck reads
+  **10, 11 or 12px** and the 25m neck reads **4, 5 or 6px** - so in relative
+  terms the 8m reading varies **17%** and the 25m one **33%**, which is the
+  right way round, and the premise of this job ("a better-resolved measurement
+  varying *more* in relative terms is the wrong way round") was an artefact of
+  comparing two six-sample cross-run spreads at two distances, each sampling
+  six arbitrary phases of the same cycle. The mechanism is the breath, as the
+  guess here said, and `tests/breathcensus.js` now holds the margin: 28px of
+  hood over a worst neck of 12px is **2.33x against 1.5x**.
+  **What is left is one number.** H31's six runs included a **13px** neck, one
+  count outside anything the eight-phase sweep saw. Either the sweep is too
+  coarse at 8m - where the band is ten rows deep and the breath is worth about
+  three of them, so eight samples of the cycle may miss an extreme that
+  sixteen would catch - or something other than the breath moved that one
+  reading. Settle it with a denser sweep at 8m alone, which is cheap, and
+  either widen the margin recorded in the census table to the worst of it or
+  say the 13 was the gait and not the breath.
+  **There is no urgency whatsoever**: even at 13px the clause reads 2.15x
+  against its 1.5x, the widest margin in the check. This stays open only
+  because a cheap unexplained number has twice turned out to be an instrument
+  rather than a body.
+  *done-when:* a sweep dense enough to reproduce a 13px neck at 8m either finds
+  it and the census table's margin is corrected to match, or does not and the
+  entry says what else could have produced it.
 - [ ] **H35 (S, the small end)** Three gates with their console-error counts
   written down, then close the `AudioContext` error or name a new hypothesis.
   H32 eliminated the code side of it — one realtime context per page, one owner
@@ -641,6 +680,43 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H33** Two phases survive a reset, and the census of what they reach.
+  H31 found the mechanism — `updateVisual` runs on the wall clock from the
+  render frame, `reset()` leaves the breath's phase alone, so the phase a check
+  reads is a function of how many frames the whole run drew before it — and
+  this is the census the queue asked for: eight entry phases of the 6.98s
+  breath, every candidate check run through the registry exactly as the suite
+  runs it, both maps. **Everything passed at every phase.** Three results.
+  **There are two phases, not one**: `_animTime`, the gait, is advanced inside
+  `updateVisual` by the ground covered, is zeroed in the constructor and not by
+  `reset()` either, and it is the bigger lever — 24% of a pixel count on
+  `look.js`'s walk and sprint poses (7,891-9,818px against a floor of 3,000)
+  against the breath's 1-3% — and the harder to reason about, because it
+  advances only while something walked. **The margins are wide except one**:
+  figure.js reads 2,996-3,089px over a 2,000 floor at 8m and a neck of 10-12px
+  under a hood that was 28px at every phase (2.33x of 1.5x), smallwindow 116-121
+  over 51, bufferscale 1.7% of spread over a 10% tolerance because its law is a
+  ratio between counts and the common part cancels — and **`hang.js`'s glove
+  sweeps 0.075m of a 0.15m tolerance**, half of it, passing at 2.75x. That one
+  was **invisible to the first instrument**: the census began as a diff of the
+  numbers in each check's own detail line, and a passing check's numbers are not
+  in its detail line at all (TRAPS.md), so it had to be read out of the module
+  by eye and measured directly. **And four reasons a clause cannot be reached
+  are now proved rather than asserted** — the Warden does not breathe (and held
+  to the pixel at all eight phases, agreeing with `enforcer.js:407`
+  independently), the camera's pivot has no `pose.lift` in it, the breath is a
+  position and not one of the eleven rotations `animation.js` compares, and a
+  difference taken inside the group cancels it. `tests/breathcensus.js` holds
+  the census on H30's model, both ways, and proves each reason behaviourally in
+  a window where the torso is shown to have ridden its 0.080m. **It caught
+  three flaws in itself**: it declared itself, its camera clause was vacuous
+  because the suite leaves camera ownership wherever the last check put it (a
+  metre of body moved the camera 0.000m, and the control said so), and its
+  "the body really moved" clause scaled with the very constant it was guarding,
+  so zeroing that constant would have satisfied it with a body that does not
+  breathe. It also answers **H34** from the other end and holds **D66**'s
+  refusal. **D70**; the follow-ups are **H38** and **H39**.
+  Done 2026-10-07, commit `TBD33`.
 - **H11** `npm run bench`: the frame budget on the real GPU, and the oldest
   eyes-only item on `PLAYTEST.md` closed with a measurement. Everything in
   this repo is verified headless on SwiftShader, which draws a frame in about

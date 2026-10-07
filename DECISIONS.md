@@ -110,6 +110,55 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D70 — A test now pins how far the Shade's breath moves her, because a census of margins is a census at one amplitude
+
+**Raised by:** H33, 2026-10-07. Taken rather than asked because it changes no
+rule and no look *today* — but it makes one look constant harder to change
+tomorrow, and looks are yours, so here it is in one page.
+
+**The background.** The Shade breathes standing still: `POSE.breath` lifts the
+torso **4cm** at 0.9 rad/s, a 6.98s cycle, so over a whole breath the body
+group rides **8cm**. H31 found that this is why a pixel reading moved between
+two runs of one suite — the phase a check reads is a function of how many
+frames the whole run drew before it — and H33 took the census of what that
+reaches: twenty-three modules, eight phases, both maps.
+
+**The thing worth your eye.** Four of those modules are declared **out of the
+breath's reach**, and the census proves each reason behaviourally rather than
+asserting it in a comment: it drives a whole breath through the body and
+requires the torso to ride its 8cm *while* every limb rotation, the camera's
+world height and the Warden's chest hold still. The first draft of that clause
+required the ride to be **at least half of `2 * POSE.breath.lift`** — which
+would have been satisfied by setting that constant to zero, with a body that
+does not breathe, and all four proofs then trivially true about a mechanism
+that no longer existed. So the ride is pinned **absolutely**: `MEASURED_RIDE`
+is 0.080m with 0.020m of tolerance.
+
+**The cost, which is the line to read.** If you ever want a deeper or shallower
+breath — it is one number, `CONFIG`'s `POSE.breath.lift` — that check goes red
+and says so in as many words: *"the Shade's torso moved Xm against the 0.08m
+this census measured its table at; every margin in POSED above wants
+re-measuring."* That is the intended behaviour and not an obstacle: the whole
+table of margins is a set of readings taken at one amplitude, and a bigger
+breath moves every one of them (the thinnest, `tests/hang.js`'s glove, already
+sweeps **half** of its 0.15m tolerance at 4cm). But it does mean a look change
+you would expect to be free now costs a measurement.
+
+**Two other ways it could have gone, both worse:**
+
+1. *Leave the clause relative.* Rejected above: it is a tautology, and the
+   first draft is the worked example of how a clause can look like a check and
+   assert nothing.
+2. *Assert nothing about the amplitude and trust the table's prose.* This is
+   what H30 explicitly stopped doing for pixel floors and F15 for the skip
+   list: a census held by a comment is a census that rots, and the point of
+   H33 was to leave numbers somebody can rely on.
+
+So: **nothing shipped changed, nothing a player can see or feel changed**, and
+if you want a different breath, say so and the job that changes it
+re-measures — which is the correct amount of work for a change that moves
+every margin in the figure checks.
+
 ### D69 — A bench-only check is answered by `npm run bench`, and a stale answer prints rather than reds
 
 **Raised by:** H11, 2026-10-07, and taken rather than asked because nothing

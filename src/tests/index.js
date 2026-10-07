@@ -68,6 +68,7 @@ import { register as registerSiteTint } from './sitetint.js';
 import { register as registerPost } from './post.js';
 import { register as registerFigure } from './figure.js';
 import { register as registerBreath } from './breath.js';
+import { register as registerBreathCensus } from './breathcensus.js';
 import { register as registerAnimation } from './animation.js';
 import { register as registerLook } from './look.js';
 import { register as registerMaterials } from './materials.js';
@@ -151,6 +152,8 @@ export function registerAutoTests(debugTools) {
   // Beside it: the same hood over the same neck, at every phase of the
   // breath rather than the one phase the run arrived in (H31).
   registerBreath(debugTools);
+  // And the census of what those two phases reach at all (H33).
+  registerBreathCensus(debugTools);
   registerAnimation(debugTools);
   registerLook(debugTools);
   registerMaterials(debugTools);

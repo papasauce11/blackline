@@ -12132,3 +12132,168 @@ beside a real-GPU number belonging to a different commit. Of the earlier
 follow-ups, **H33** (every other check that reads a posed body at whatever
 phase the run arrived in) is next, then **H34**; **H35** now has one of its
 three gates.
+
+## H33 — two phases survive a reset, and the census of what they reach (2026-10-07 02:00, scheduled run)
+
+**What it was handed.** H31 found the mechanism behind a reading that moved
+between two runs of one suite - `updateVisual` runs on the **wall clock from
+the render frame**, never from `fixedStep`, and `Agent.reset()` deliberately
+leaves `_breathTime` alone - and fixed one instance of it. The queue asked for
+the rest: *which other checks read a posed body at whatever phase the run
+arrived in, what is each one's thinnest clause, what does that clause read at
+the phase it happens to get, and can a whole breath move it.* It said, twice,
+**do the census, not the fix**, and pointed at D66 for the cheap global
+alternative already refused with reasons.
+
+**Three things came out of it, and the first was not in the queue.**
+
+### One: there are two phases, not one
+
+`_animTime`, the gait, has **exactly the same property**. It is advanced inside
+`updateVisual` (by the ground covered, so only while the body walks), it is
+zeroed in the constructor at `agent.js:156` and **`reset()` clears neither** -
+`reset()` does clear `_dip`, `_dipKick`, `_dipVel` and `_smoothPosition`, so
+the two phases are a deliberate exception rather than a reset that does
+nothing.
+
+And it is the **bigger lever of the two**. Over eight phases the breath moves a
+pixel count by 1-3%; the gait moves
+`a-look-at-a-pose-photographs-the-state-named`'s walk and sprint frames by
+**24%** - 7,891 to 9,818px and 8,065 to 9,788px, in a strict alternation,
+against a floor of 3,000 - because a leg at the top of its swing is a different
+silhouette from a leg under the body. Every other pose in that check moved 1-5%.
+The gait is also the harder of the two to reason about: a clock advances
+whatever the run does, where the gait advances only while something walked, so
+its value at any check is a function of how much walking the whole run did
+before it.
+
+### Two: the numbers, and one clause that spends real margin
+
+Eight entry phases of the 6.98s breath, set by advancing the body the way a
+frame advances it, with each check then run through the registry exactly as the
+suite runs it. **Everything passed at every phase on both maps**; what follows
+is how much room each has.
+
+| check | what moves over a breath | against |
+|---|---|---|
+| `figure.js` 8m | count 2,996-3,089 · aspect 3.5-3.6 · **neck 10, 11 or 12px under a 28px hood** | floor 2,000 · 2.2 · **2.33x of 1.5x** |
+| `figure.js` 25m | count 345-359 · aspect 3.3-3.4 · neck 4-6px under a 10px hood | floor 150 · 2.2 · 1.67x of 1.5x, **held by breath.js** |
+| `told-apart` | the Shade's half only; the Warden held **to the pixel at all eight** | 1.44x to 1.5x |
+| `smallwindow.js` | count 116-121 and aspect 2.9-3.0 at the smallest buffer | floor 51 · 2.2 |
+| `look.js` five eyes | every count by 1.1%; thinnest eye 877-887px | floor 300 |
+| `look.js` poses | **the gait**, 24% on walk and sprint; 1-5% elsewhere | floor 3,000 |
+| `bufferscale.js` | each count by 3.3%, but the law is a **ratio between** them, so the common part cancels: 1.7% of spread | 10% tolerance |
+| `hang.js` | **-0.021m to +0.055m, a span of 0.075m** | **0.15m tolerance** |
+
+**`hang.js` is the one, and the first instrument could not see it.** The census
+started as a diff of the numbers in each check's own detail line across the
+eight phases, which is cheap and covers every reported quantity - and it came
+back `1 numbers, 0 moved` for `a-hang-is-at-full-stretch-under-the-lip`,
+because **a passing check's numbers are not in its detail line at all**
+(TRAPS.md, and H29 recorded the same thing). Reading the module found the
+clause by eye: `|gloveY - lip| <= 0.15m`, where `gloveY` is the **world**
+position of a mesh hanging off an arm inside the body group the breath lifts.
+Measured directly with hang.js's own helpers, the offset ran **-0.021m to
++0.055m across eight phases** with the lift delivering its full ±0.037m at the
+read. So **the breath sweeps half the tolerance**, and the worst phase sits at
+2.75x of it. It passes everywhere today and wants nothing done - but it was
+unbounded, which is exactly the state the two figure clauses were in before
+H31. **H38** proposes holding it at the worst phase, with these numbers.
+
+**And H34 is answered from the other end.** H34 asked why the 8m neck varies
+30% across runs where the 25m neck varies 20%, calling a better-resolved
+measurement varying more in relative terms "the wrong way round". Over one
+breath on one tree the 8m neck reads **10, 11 or 12px** and the 25m neck reads
+**4, 5 or 6px** - so in relative terms the 8m reading varies **17%** and the
+25m one **33%**, which is the right way round after all. H34's puzzle was two
+six-sample cross-run spreads at two distances, each sampling six arbitrary
+phases of the same cycle; the one reading it has that this sweep never saw is a
+13px neck, one count outside a range of three. Its queue item is rewritten to
+that single remaining question rather than left as written.
+
+### Three: four reasons a clause cannot be reached, each now proved
+
+The census's useful half is what it rules **out**, and prose would rot:
+
+- **The Warden does not breathe.** `enforcer.js:407` sets `pose.lift` from the
+  walk bob, which is zero at a stand. The measurement agreed independently -
+  every Warden reading in `told-apart` (554px, 40x26, 1.5:1, helmet 10 over
+  shoulders 26, side 41x28, reach 41%) held to the pixel across all eight
+  phases.
+- **The camera never reads the breath.** Its pivot is
+  `_smoothPosition.y - half.y + cam.up + _dip + bob` and `pose.lift` is not in
+  it, which is why `camerasettings.js` and `feel.js` are out of reach.
+- **The breath is a position, not a rotation.** `animation.js` compares poses
+  over eleven rotations with no `lift` among them, and its one world-height
+  reading is the rifle hand of a body that does not breathe; `scuff.js` reads
+  an arm angle.
+- **A difference taken inside the group cancels it**, which is `warden.js`'s
+  outline drift.
+
+### The check
+
+`every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it`
+in `tests/breathcensus.js` (393 lines), on H30's model: a table with reasons,
+red on a new entry and red when an entry goes stale. The census criterion is a
+grep - a module whose text names `updateVisual` poses a body - so it is
+checkable rather than a matter of opinion, read from the registrar's own import
+list the way `registry.js` reads it. Both directions: a module that starts
+posing a body is red until declared, and a declared module that stops is red
+until dropped. **11 modules pose a body: 1 held at the worst phase, 5 measured,
+4 out of reach by proof.**
+
+The four reasons are **behavioural clauses, not comments**: a whole breath is
+driven through the body and the check requires the torso to ride its 0.080m
+while every limb rotation, the camera's world height and the Warden's chest all
+hold inside 0.0001m. Each carries the second half HANDOFF.md demands of a check
+that picks its own inputs - the camera is first shown to move a full metre when
+the body does, the gait is **walked and not merely drawn**, and the Warden's
+speed is asserted to be zero, because the bob is zero only at a stand.
+
+**It caught three flaws in itself, which is the whole argument for writing it
+this way.** It declared itself (it drives `updateVisual` to prove things *about*
+the phases rather than to read a clause off a posed body, so it is excluded by
+name and a clause holds that it stays excluded). Its camera clause was
+**vacuous**: a metre of body moved the camera 0.000m, because the suite leaves
+camera ownership wherever the last check put it, and the control said so before
+anybody believed the clause. And its "the body really moved" clause **scaled
+with the very constant it was guarding** - at least half of `2 *
+POSE.breath.lift` - so zeroing that constant would have satisfied it with a
+body that does not breathe and made all four proofs trivially true about a
+mechanism that no longer existed. It is pinned absolutely now, to the 0.080m
+ride the table's numbers were measured at (**D70**).
+
+Proved load-bearing by breaking both halves at once: dropping `hang.js` from
+the table and setting `pose.lift = 0` in `agentvisual.js` produced *"hang.js
+poses a body and this census does not declare it; over a whole breath the
+Shade's torso moved 0.0000m against the 0.08m this census measured its table
+at"*. The check also now holds **D66**'s refusal - `reset()` keeps both phases -
+so a job that changes that changes this line in the same diff.
+
+**The scope it does not cover, said plainly.** Twelve more modules read a body
+off a frame they rendered rather than posing one, and they inherit the run's
+phase too. They are declared in `ALSO_DRAWN` and **none of them is measured**.
+That is **H39**, not a claim made here, and the census is red if one of them
+appears or disappears so the gap cannot widen quietly.
+
+### What was verified
+
+Its own gate was H11's VERIFY on this branch (protocol step 8).
+
+**VERIFY**: **OK**, plant **216 passed / 1 failed / 8 not for this map**
+(1,054,992ms and 1,050,331ms), yard **196 / 1 / 28** (734,857ms and 735,911ms),
+exit 0, 0 red, 0 flaky, **0 console errors**, 0 context losses, 0 loop frames,
+and both runs of each map agreeing exactly on every count. One more check per
+map than H11's pair, which is this census. The run-pair spreads are **4,661ms
+and 1,054ms, both 0% of the longer and the tightest on record**, against
+pipeline waits of 1,415ms and 2,913ms. The census check reads **341 characters**
+of detail, under the 400 the report keeps - which it needed two passes to
+manage, because the first draft lost the Warden's reading to the silent cut.
+
+### What was left
+
+**H38** (hold hang.js's glove at the worst phase - 0.075m of a 0.15m tolerance,
+2.75x today), **H39** (the twelve modules that read a body off a rendered frame,
+declared and unmeasured) and **H34**, rewritten to the one question this census
+did not answer. **D70** records the ride being pinned. H36 and H37 are H11's and
+untouched; **H35** still waits for three gates and has one.
