@@ -312,19 +312,37 @@ async function main() {
 
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
     page.setDefaultTimeout(TIMEOUT);
+    // Where the suite is when an error arrives, so that an error with no stack
+    // of its own is still attributable (H32). The `AudioContext` device error
+    // is the worked example: it has turned up in two of five verifies, is
+    // reported against the page URL and not against any file, and nobody could
+    // say which map, which of a map's two runs or how far in - so two
+    // occurrences stayed anecdotes. A device error arrives asynchronously from
+    // Chrome's audio service, so this is the only end that knows.
+    const at = { map: null, run: null, since: null };
+    const stamp = () => {
+      if (!at.map) return 'before the first page: ';
+      const into = at.since ? `, ${Math.round((Date.now() - at.since) / 1000)}s in` : ', before its first run';
+      return `[${at.map} run ${at.run ?? '-'}${into}] `;
+    };
     page.on('console', m => {
       if (m.type() !== 'error') return;
-      const at = m.location && m.location().url;
-      consoleErrors.push(at ? `${m.text()} @ ${at}` : m.text());
+      const where = m.location && m.location().url;
+      consoleErrors.push(`${stamp()}${m.text()}${where ? ` @ ${where}` : ''}`);
     });
-    page.on('pageerror', e => consoleErrors.push(`pageerror: ${e.message}`));
-    page.on('requestfailed', r => consoleErrors.push(`request failed: ${r.url()} (${r.failure()?.errorText})`));
+    page.on('pageerror', e => consoleErrors.push(`${stamp()}pageerror: ${e.message}`));
+    page.on('requestfailed', r => consoleErrors.push(`${stamp()}request failed: ${r.url()} (${r.failure()?.errorText})`));
 
     let renderer = null;
     // One page load per map (D1): the world is built on the map at boot and
     // a system never sees it change, so another map is another load.
     for (const [m, mapId] of MAPS.entries()) {
       if (m > 0 && COOLDOWN_MS > 0) await sleep(COOLDOWN_MS);
+      // For `stamp()` above: a console error during the page load belongs to
+      // this map and to no run of it yet.
+      at.map = mapId;
+      at.run = null;
+      at.since = null;
       // H10: pinned to `medium`, the picture every reading on record was taken
       // at. Auto's probe picks `low` under software WebGL every time and would
       // run the gate with the post off, the outlines off and the resolution at
@@ -363,6 +381,8 @@ async function main() {
       for (let i = 0; i < RUNS; i++) {
         if (i > 0 && COOLDOWN_MS > 0) await sleep(COOLDOWN_MS);
         const t0 = Date.now();
+        at.run = i + 1;
+        at.since = t0;
         const r = await guard.withDeadline(page, page.evaluate(async ([subsetSource, regression]) => {
           const h = window.BLACKLINE;
           // The warm-up beats and yields too, so the deadline's first gap is

@@ -174,7 +174,19 @@ export function summary(r) {
   if (r.skipsWithheld && r.skipsWithheld.length) {
     lines.push(`  SKIPS WITHHELD: ${r.skipsWithheld.map(tag).join(', ')} - ${SKIP_GUARD} did not pass there, so nothing is skipped and each was judged`);
   }
-  if (r.consoleErrors.count) lines.push(`  console errors: ${r.consoleErrors.count}`);
+  if (r.consoleErrors.count) {
+    // The messages themselves, not only the count (H32). HANDOFF.md tells
+    // every run that "a new console error is a defect even when every check
+    // passes", and until now reading one meant parsing the JSON report - which
+    // is how the intermittent `AudioContext` error got written off twice by
+    // sessions that had seen only its count. Each carries the map, the run and
+    // how far into it the error arrived.
+    lines.push(`  console errors: ${r.consoleErrors.count}`);
+    for (const message of r.consoleErrors.first) lines.push(`    ${message}`);
+    if (r.consoleErrors.count > r.consoleErrors.first.length) {
+      lines.push(`    ... and ${r.consoleErrors.count - r.consoleErrors.first.length} more (the report's JSON keeps the first ${r.consoleErrors.first.length})`);
+    }
+  }
   if (r.otherRunners && r.otherRunners.length) {
     lines.push(`  OTHER RUNNERS ALIVE: ${r.otherRunners.map(x => `pid ${x.pid} (${x.started})`).join(', ')}`
       + ` - every timing above was measured against them`);

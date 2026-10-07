@@ -82,6 +82,43 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The audio error in the test logs is the machine, and now we can prove half of it (H32, 2026-10-06)
+
+**Nothing in the game changed and there is nothing here to judge.** The sound is
+exactly as it was. This is about a line that keeps appearing in the test output,
+because it has now been written off once, brought back once, and it was time to
+stop guessing.
+
+**The line.** *"The AudioContext encountered an error from the audio device or
+the WebAudio renderer."* It has turned up in two of the last six full test
+runs, once each time, and never in a way that made a sound check fail — all
+sixteen sounds render correctly every time, on both maps.
+
+**What was ruled out.** The obvious suspect was the game building its audio
+system twice, because a second audio connection on a machine with no sound is
+exactly this message. It does not: there is **one** place in the whole codebase
+that opens the audio device, it refuses to do it twice, and a new check now
+makes sure no future code sneaks a second one in. The other suspect was the
+offline sound rendering the tests use — seventeen of those happen per run — and
+every single one has produced correct audio every time, which it could not do if
+the renderer were failing.
+
+**So it is the sound hardware, or Windows' view of it**, under a headless
+browser that has been running for hours. Worth knowing: the browser *does* give
+the game a working 48kHz audio device, so this is not "no sound card" — it is a
+sound device that occasionally complains.
+
+**What is still open, and why it is slightly funny.** Nobody has ever checked
+whether this happens on a *freshly started* machine, because every observation
+came from a test run at the **end** of a long session. The test run at the
+**start** of each session would answer it, and that has been happening twice a
+day for weeks with nobody writing the number down. It is written down from now
+on, and after three of them the question closes.
+
+**What is left for you:** nothing. If you ever see this line in your own browser
+while actually playing, that *would* be worth telling me — none of the above
+applies to a real browser on a real machine.
+
 ### The Shade breathes, and that is why the checks kept changing their minds (H31, 2026-10-06)
 
 **Nothing in the game changed and there is nothing here to judge.** This closes

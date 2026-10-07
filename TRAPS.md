@@ -154,6 +154,49 @@ number measuring the wrong thing. Queue one marker per gap and require that at
 slice N exactly N have run. The same caution applies to any "did something else
 get a chance" test: what you are counting is turns, and a batch is one.
 
+**One `AudioContext` device error per run pair is the machine, and the code
+side of it is closed — do not re-litigate it from the count alone.** *"The
+AudioContext encountered an error from the audio device or the WebAudio
+renderer."* has turned up in two of the six verifies on record (H27 on the
+yard, H29 on the plant; H28, H30, H31 and H32 clean - the last three in a row,
+which is the exact shape of evidence H28 mistook for a closure once already). It has been written off once
+and brought back once, which is the real trap: **an intermittent fault is not
+closed by an absence**, and H28's entry said "that closes it as the machine"
+after a single clean verify. What H32 established, so that nobody measures it
+again:
+
+- **Exactly one realtime audio context exists per page.** `AudioSystem.unlock()`
+  returns `this.context` when one exists, and it is the **only** place in the
+  whole of `src/` that names the constructor — one module, three lines, held now
+  by `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` on
+  F13's model. The "second context on a device Chrome has no audio for"
+  hypothesis is **false**.
+- **The "WebAudio renderer" half is ruled out too.** A run builds **seventeen**
+  `OfflineAudioContext`s (sixteen sounds in `tests/soak.js`, the scuff in
+  `tests/scuff.js`), and every one has rendered correct samples in every run on
+  record. A renderer that errored would have failed a render, and
+  `every-sound-renders-to-samples-that-match-section-14` would be red. It never
+  has been.
+- So what is left is the **device**: one live context, resumed, in a headless
+  Chrome launched with `--mute-audio` and `--autoplay-policy=no-user-gesture-required`,
+  on a Windows box whose audio endpoint is nobody's business here.
+
+**What is still unknown, and it is cheap to settle.** Whether it ever happens on
+a *cold* machine. All six recorded observations are **end-of-session verifies**,
+taken after an hour or more of driving Chrome — so the cold run H27 asked for has
+never been recorded. And the joke is that it happens twice a day already: **the
+GATE is a cold run**, and no session has ever written its console-error count
+down. HANDOFF.md now asks every run to, and **H35** closes the error or names a
+new hypothesis once three are on the record.
+
+Two things make a future occurrence worth more than these five. The runner
+**stamps every console error with the map, the run and how many seconds into it
+the error arrived** — a device error arrives asynchronously from Chrome's audio
+service with no stack and is attributed to the page URL, so the Node end is the
+only one that knows where the suite was. And the summary **prints the messages**
+rather than only the count, which is how the first two got written off by
+sessions that had seen a number and not a sentence.
+
 **A plant run can take 960s, and `npm run suite` is four runs.** Nothing of
 that fits the Bash tool's 10-minute cap. Start it with `run_in_background`
 writing to a file and wait on the file (`until grep -q "suite: " <file>`,

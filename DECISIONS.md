@@ -110,6 +110,65 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D67 — The code side of the `AudioContext` error is closed; a console error still does not fail the gate
+
+**Raised by:** H32, 2026-10-06, and recorded rather than asked because it
+changes nothing a player can do. It is here because it decides what the suite
+notices, which D63 established is yours to overturn, and because it is the
+second time this error has been written about with a conclusion attached.
+
+**What was asked.** *"The AudioContext encountered an error from the audio device
+or the WebAudio renderer."* has appeared in two of the six verifies on record
+(H27 on the yard, H29 on the plant; H28, H30, H31 and H32 clean - the last
+three in a row, which is exactly the shape of evidence H28 mistook for a
+closure). H27 said it would
+be a defect if it recurred on a cold run. H28 wrote *"that closes it as the
+machine"* after one clean verify and H29 had to retract that. H32 was told to
+stop writing it off and define the test instead, and to check one cheap
+code-side hypothesis: can the audio graph be built more than once per page?
+
+**The code side is closed, and the answer is no.** There is **exactly one**
+module in the whole of `src/` that names the realtime constructor —
+`src/systems/audio.js`, on three lines — and `unlock()` returns the existing
+context when there is one. That is now a ban with one named owner, on F13's
+model, so a second module reaching for it is red. And the other half of the
+message, *"or the WebAudio renderer"*, is ruled out too: a run builds
+**seventeen** offline contexts and every one has rendered correct samples in
+every run on record, where a renderer that errored would have failed a render
+and turned a sound check red. One live context, seventeen offline ones, all
+correct. What is left is the device.
+
+**One correction to H27's reasoning while we are here.** H27 argued in part that
+*"headless Chrome has no audio device"*. It has one: the new check reads the
+live context as **running at 48000Hz** on both maps. So the error is not a
+context failing to find a device — it is a device that intermittently errors,
+which is a smaller and more plausible claim.
+
+**What is still unknown, and the joke in it.** Whether it ever happens on a cold
+machine. **All six observations are end-of-session verifies**, taken after an
+hour or more of driving Chrome — so the cold run H27 asked for has never been
+recorded. And it happens twice a day already: **the GATE is a cold run**, and no
+session has ever written down its gate's console-error count. `HANDOFF.md` now
+asks every run to, **H35** closes it once three are on the record, and the
+runner now stamps each error with the map, the run and the seconds into it, so
+one occurrence is worth more than these five were.
+
+**Taken, and this is the line for your eye: a console error still does not fail
+the gate.** It is counted, it is now *printed* in the summary rather than left
+in the JSON, and `HANDOFF.md` tells every run that a new one is a defect even
+when every check passes — but the run still exits 0. The alternative is to make
+the gate red on any console error, and it was refused for a specific reason:
+**this error would have failed two of the last six verifies**, both of which
+were correct runs of a correct game, and a gate that goes red on the machine's
+audio service stops the project twice a week for something no player will ever
+meet. The weaker version — fail only on an error attributed to a file in `src/`
+— is better and is still not free, because the two occurrences are attributed to
+the page URL and would pass it, so it would buy nothing today while adding a
+rule to maintain. If you would rather the gate were strict about this, say so
+and it is a few lines in `suitereport.mjs`.
+
+decided:
+
 ### D66 — The hood's margin is 11%, the clause stands, and D64's account of why it moved was wrong
 
 **Raised by:** H31, 2026-10-06, and recorded rather than asked because it

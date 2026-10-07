@@ -11667,3 +11667,173 @@ whether any of their clauses is near a margin is unmeasured; and **H34**, the
 8m half of the hooded-figure clause, whose neck read 10 to 13px across six runs
 — a 30% spread against the 25m reading's 20%, on a band ten rows deep, which is
 a wider variation than the thin end of the same check and nobody knows why.
+
+## H32 — the AudioContext error: the code side closed, and the test was the gate all along (2026-10-06 17:00, scheduled run)
+
+**What it was handed.** *"The AudioContext encountered an error from the audio
+device or the WebAudio renderer."* - one console error per run pair, in two of
+the six verifies on record. H27 reported it, argued it was environmental and
+said it would be a defect if it recurred **on a cold run**. H28 saw none and
+wrote *"that closes it as the machine."* H29 brought it straight back and had to
+retract H28's sentence. So the queue stopped asking for a verdict and asked for
+a definition: *"What nobody has done is define the test. Do that"* - plus one
+cheap code-side hypothesis to check, whether the audio graph can be built more
+than once per page, because a second device context where Chrome has no audio is
+exactly this message.
+
+**The code side is closed, and the hypothesis is false.**
+
+| | |
+|---|---|
+| realtime contexts per page | **one.** `AudioSystem.unlock()` returns `this.context` when one exists |
+| modules in `src/` that name the realtime constructor | **one** - `src/systems/audio.js`, on **3 lines of 163 modules scanned** |
+| offline contexts a run builds | **seventeen** - sixteen sounds in `tests/soak.js`, the scuff in `tests/scuff.js` |
+| offline renders that have ever failed | **none, in any run on record** |
+| the live context, measured | **running, 48000Hz**, on both maps |
+
+The second row is the one that needed building: `unlock()`'s guard cannot see a
+*different* module reaching for the constructor, and a new system wanting a
+sound of its own would do it in one line. So it is a ban with one named owner
+now, on F13's model and H30's - red on a new namer **and** red if
+`systems/audio.js` ever stops being one, because an allowance for something that
+has moved is an allowance the next line inherits without arguing.
+
+The third and fourth rows rule out the *other* half of the message by arithmetic
+already on the record. *"or the WebAudio renderer"* - an `OfflineAudioContext`
+**is** a WebAudio renderer, and a run builds seventeen of them. Every one has
+rendered correct samples in every run ever recorded; a renderer that errored
+would have failed a render and turned
+`every-sound-renders-to-samples-that-match-section-14` red, and it never has
+been. One live context and seventeen correct offline ones leaves the device.
+
+**And one correction to H27, which is the sort of thing worth measuring rather
+than assuming.** H27 argued in part that *"headless Chrome has no audio
+device"*. It has one. The new check reads the live context as **running at
+48000Hz** on both maps - it is not suspended, not closed, and not failing to
+find a sink. So the claim shrinks from "a context with nowhere to go" to "a
+device that intermittently errors", which is both smaller and more plausible,
+and it is in **D67**.
+
+**What is still unknown, and the finding is that the test has been running twice
+a day for weeks.** Whether it ever happens on a **cold** machine. Every single
+one of the six observations - H27 yard, H29 plant, and H28, H30, H31 and H32 clean
+- is an **end-of-session verify**, taken after an hour or more of driving
+headless Chrome. H27 asked for a cold run and nobody noticed that the project
+already does one twice a day: **the GATE is a cold run.** It is the first thing
+every scheduled session does, on a machine that has been idle, and **no session
+has ever written down its console-error count** - the gate's numbers are read
+for red and flaky and then discarded, while `PROGRESS.md` and `HANDOFF.md` record
+only the verify.
+
+So the test is now defined and costs nothing: `HANDOFF.md` asks every run to put
+its gate's console-error count into its entry, and **H35** closes the question
+on three of them rather than on another guess. H35 also says, in as many words,
+not to be started early - three gates is three runs, and picking it up sooner
+would produce exactly the premature "that closes it" that H28 wrote.
+
+**Two changes make the next occurrence worth more than these five were.**
+
+- The runner **stamps every console error with the map, the run and how many
+  seconds into it the error arrived.** A device error arrives asynchronously
+  from Chrome's audio service with no stack of its own and is attributed to the
+  page URL, so the Node end is the only thing that knows where the suite was;
+  until now two occurrences could not be placed beyond "somewhere in that pair".
+- The summary **prints the messages** instead of only the count. `HANDOFF.md`
+  has told every run for weeks that *a new console error is a defect even when
+  every check passes*, while reading one meant parsing the JSON report - which
+  is how the first two came to be written off by sessions that had seen a number
+  and not a sentence.
+
+**Both were proved rather than assumed**, because an error path nothing has
+exercised is not an error path. `--pre` injected a `console.error` before the
+first run and another twenty seconds into it, and the summary came back with
+`[yard run -, before its first run]` and `[yard run 1, 25s in]`. That is F8's
+rule applied to plumbing: prove the instrument can see the thing before trusting
+it to report the thing's absence.
+
+**The check.** One new module, `src/tests/audiocontext.js` (205 lines),
+registered beside the other census checks because it reads source text.
+
+- `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` holds
+  the ban above, and also a thing nothing held before: **an offline render gives
+  the live context back by identity.** `renderOffline` swaps the whole graph onto
+  a throwaway context and restores it in a `finally` - deliberately, so what is
+  measured is what plays rather than a re-implementation of it - and if that
+  restore were ever broken, **every sound in the game would stop and no check
+  would say so**, because the sixteen sound checks read the offline samples and
+  those would still be perfect. The master gain's own context is checked too.
+- Its pattern is **built from pieces** so the file does not contain the
+  contiguous identifier and the census does not flag itself; H30's check caught
+  itself exactly that way and `donedef.js` solves it the same way. It carries the
+  must-match / must-not-match pair for the same reason H30's does: **this census
+  answers "none" both when it is working and when it is broken**, so the pattern
+  is exercised every run on a line that must match and one that must not. The
+  line that must not match is the offline constructor, which is the distinction
+  the whole check rests on - `\b` before the name is what keeps
+  `OfflineAudioContext` out, since the character before its `A` is a word
+  character.
+- **What it deliberately does not do** is count the realtime contexts the page
+  has built. Nothing in a browser exposes that, and the obvious instrument -
+  patch the global constructor, build one, count it - would have the test
+  creating its own subject, since a spare device context is the exact condition
+  under suspicion. The ban plus the idempotence clause next door is the honest
+  reach of a test from inside the page; the rest is a cold run, which is not a
+  check.
+
+**What was verified.** `npm run suite`, two runs per map on the finished tree:
+**plant 213 passed / 1 failed / 8 not for this map (1,056,276ms and
+1,063,802ms), yard 193 / 1 / 28 (729,602ms and 745,324ms), exit 0, 0 red, **0
+flaky**, 0 unexpectedly green, **0 console errors**, 0 context losses, 0 loop
+frames, 0 skips withheld, 0 re-runs, and no other runner on the machine.** Both
+runs of each map agree exactly on every count, and each map is one check up on
+H31's pair (212 and 192) - this job's. The one failure on each is the
+frame-budget check, skipped headless. Auto would have picked `medium` on both
+(5.30ms median over 9 samples on the plant, 5.00ms over 32 on the yard).
+
+**And the spread is this run's one thing worth reading.** Plant 7,526ms (1% of
+the longer), yard **15,722ms (2%)** - the widest yard spread on record, and the
+reason is in the line beside it: the yard's **pipeline-wait** spread is
+17,077ms, which is *larger than the whole run spread*. So the work did not move
+and the renderer's tail did, which is precisely what F16 put that line there to
+let a reader see. The tails were 456,581ms and 457,998ms on the plant, 326,473ms
+and 343,550ms on the yard - a little over 40% of every run.
+
+**And the gate's own count, which is the thing this job asks every run for from
+now on: this run has no gate reading.** H31 lost it to a background timeout
+shorter than the gate, H32 ran under H31's verify as its gate by step 8, and so
+the first entry in the record H35 needs will be the next run's. That is an
+unsatisfying start to a census this job created, and it is written down rather
+than quietly skipped: the three gates H35 waits for are the next three runs',
+not this one's.
+
+**What the new check reads**, identically on both maps and in all four runs:
+*163 modules under src/ scanned, 1 names the device constructor and it is
+src/systems/audio.js (3 lines); 3 modules name the offline one, which opens no
+device; the live context is running, 48000Hz and is the same object after
+rendering a sound offline.*
+
+**And the error did not appear**, which is the third clean verify in a row (H30,
+H31, H32) and the reason the tally is now **two of six**. It changes nothing:
+three absences are the exact shape of evidence H28 mistook for a closure after
+one, and all six observations are still end-of-session verifies. The numbers
+written into `D67`, `TRAPS.md`, `QUEUE.md` and `PLAYTEST.md` earlier in this job
+said *five*, and were corrected to six after this verify rather than left to
+rot - a stale count is the whole thing this job exists to stop people reasoning
+from.
+
+**One judgement, and it is D67.** A console error is counted and now printed,
+and it still **does not fail the gate**. Making it fail was considered and
+refused with a number: **this error would have failed two of the last six
+verifies**, both of which were correct runs of a correct game, and a gate that
+goes red on the machine's audio service stops the project twice a week over
+something no player will ever meet. The narrower version - fail only on an error
+attributed to a file in `src/` - is better and still buys nothing today, because
+both occurrences are attributed to the page URL and would pass it. D67 has it
+either way for Josh to overturn.
+
+**What was left.** **H25** (S) is next: auto's pick depends on which map a
+friend opens first and is then stored for good. Then **H11** (`npm run bench`,
+M), then H31's and H32's follow-ups **H33**, **H34** and **H35**. Nothing in
+Block H is blocked on Josh. `TRAPS.md` carries the standing account of this
+error so that the next reader does not re-litigate it from the count alone,
+which is the thing that has now happened twice.
