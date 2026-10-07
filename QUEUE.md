@@ -716,7 +716,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   so zeroing that constant would have satisfied it with a body that does not
   breathe. It also answers **H34** from the other end and holds **D66**'s
   refusal. **D70**; the follow-ups are **H38** and **H39**.
-  Done 2026-10-07, commit `TBD33`.
+  Done 2026-10-07, commit `d63abdc`.
 - **H11** `npm run bench`: the frame budget on the real GPU, and the oldest
   eyes-only item on `PLAYTEST.md` closed with a measurement. Everything in
   this repo is verified headless on SwiftShader, which draws a frame in about
