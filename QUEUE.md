@@ -705,7 +705,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   `hangDrop` 2.05 → 2.25 reds only the worst-phase clause while the ride
   passes. Left alone and queued as **H40**: the shipped clause's own reading is
   of the ease rather than of the hang.
-  Done 2026-10-07, commit `PENDING`.
+  Done 2026-10-07, commit `c9e70f9`.
 - **H34** The 13px neck at 8m is real, there is a 14, and eight phases was too
   coarse. H31 saw a 13 once in six runs and H33's eight-phase sweep on one map
   read 10-12 and recorded 2.33x of margin. **32 phases on each map** - the same
