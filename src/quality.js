@@ -473,9 +473,10 @@ export function createQualityProbe(config = Q.probe) {
  * draw, with the number the F3 overlay and the frame-budget check already use.
  *
  * The probe's pick is **recorded whatever is applied**, so a report always says
- * what this machine would have chosen. It is *remembered* only on the first
- * boot of a browser that has never measured — after that a load applies the
- * stored pick without spending two seconds finding it again — and it is only
+ * what this machine would have chosen. It is *remembered* through
+ * `rememberedPick`, which keeps the **lower** of what is stored and what was
+ * just picked (H25: a probe reads this machine *times this scene*, so the map a
+ * friend opens first must not decide their level for good) — and it is only
  * *applied* by `syncQuality`, which answers the pin and the player's row first.
  *
  * @param {number} ms
@@ -486,11 +487,54 @@ export function sampleQualityFrame(ms) {
   if (!probe.done) return;
   state.probe = probe.reading();
   probe = null;
-  if (SETTINGS.qualityAuto === null && QUALITY_LEVELS.indexOf(state.probe.pick) !== -1) {
-    SETTINGS.qualityAuto = state.probe.pick;
+  const keep = rememberedPick(SETTINGS.qualityAuto, state.probe.pick);
+  if (keep !== SETTINGS.qualityAuto) {
+    SETTINGS.qualityAuto = keep;
     if (live.onProbed) live.onProbed();
   }
   publish();
+}
+
+/**
+ * The level to remember, given what is already stored and what a probe has just
+ * picked: **the lower of the two** (H25, D68).
+ *
+ * The probe measures this machine *times this scene*, which H10's own verify
+ * demonstrated without anybody noticing what it implied: the same machine read
+ * **8.70ms on the plant and picked `low`**, and **5.30ms on the yard and picked
+ * `medium`**. The plant is the heavier scene. And because the old rule stored
+ * the pick only when nothing was stored yet - `qualityAuto === null`, the first
+ * boot that answers - **whichever map a friend happened to open first decided
+ * their quality for the life of that browser**. Open the yard, get `medium`,
+ * then play the plant at a level that machine cannot hold.
+ *
+ * Taking the lower is the conservative direction and the only one that is safe
+ * in both orders: a player whose plant needs `low` is not left on `medium`
+ * because they opened the yard first, and a player who opens the plant first is
+ * not raised to `medium` later by the easier scene. The cost is that a machine
+ * that was briefly busy is remembered as slower than it is, which the settings
+ * row fixes in one click and which is the right way round - an honest `low` is
+ * playable and an optimistic `medium` is not.
+ *
+ * A stored value this does not recognise is treated as nothing stored (H7's
+ * store validates a key by type and not by range, which is **H21**), so a
+ * hand-edited `"ultra"` is replaced by a real reading rather than compared
+ * against.
+ *
+ * @param {string|null} stored `SETTINGS.qualityAuto`
+ * @param {string|null} picked what the probe just picked
+ * @returns {string|null} what to store
+ */
+export function rememberedPick(stored, picked) {
+  const fresh = QUALITY_LEVELS.indexOf(picked);
+  if (fresh === -1) return stored;
+  const known = QUALITY_LEVELS.indexOf(stored);
+  if (known === -1) return picked;
+  // QUALITY_LEVELS is the preset table's own order, weakest first, so the lower
+  // index *is* the lower level. Read from the table rather than listed here, so
+  // a fourth preset slotted into `CONFIG.quality.presets` is ordered by where
+  // it was put rather than by a list somebody forgot to update.
+  return known <= fresh ? stored : picked;
 }
 
 /** What `debugState.quality` carries, and the run record with it. */

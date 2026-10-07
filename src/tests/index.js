@@ -78,6 +78,7 @@ import { register as registerBufferScale } from './bufferscale.js';
 import { register as registerSmallWindow } from './smallwindow.js';
 import { register as registerPixelFloors } from './pixelfloors.js';
 import { register as registerAudioContext } from './audiocontext.js';
+import { register as registerAutoPick } from './autopick.js';
 import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerSoak } from './soak.js';
@@ -161,6 +162,10 @@ export function registerAutoTests(debugTools) {
   // of cards (H23). It resizes the drawing buffer for the same reason and
   // belongs on the same side of the pixel-reading modules.
   registerQualityHold(debugTools);
+  // Beside them, and it draws no frame: the probe's pick is stored as the lower
+  // of what it found and what was already there, so the map a friend opens
+  // first cannot decide their level for good (H25).
+  registerAutoPick(debugTools);
   // And the third module that resizes the drawing buffer, on the same side of
   // the pixel-reading checks for the same reason: it drives the renderer's
   // pixel ratio to each preset's, to hold every pixel floor in this suite to

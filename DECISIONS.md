@@ -110,6 +110,59 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D68 — `auto` remembers the lowest level any probe has picked, not the first
+
+**Raised by:** H25, 2026-10-06, and taken rather than asked because the queue
+said so in as many words — *"look rather than rule, so provisional either
+way"*. It changes what a friend on `auto` is shown, so it is yours to overturn
+and the cost is named below.
+
+**The defect.** `auto`'s probe measures a median CPU frame and picks a preset.
+H10's own verify measured this machine twice and nobody read what it implied:
+**8.70ms on the plant, which picks `low`**, and **5.30ms on the yard, which
+picks `medium`**. The plant is the heavier scene, so what the probe measures is
+the machine **times the scene**. And the rule for remembering it was *store the
+pick if nothing is stored yet* — the first boot that answers — so **whichever
+map a friend happened to open first decided their quality for the life of that
+browser.** Open the yard, get `medium`, then play the plant at a level that
+machine cannot hold, until they clear their site data or find the settings row.
+
+**Taken: keep the lower of what is stored and what was just picked.** It is the
+only rule that is safe in both orders. A player whose plant needs `low` is not
+left on `medium` because they opened the yard first, and a player who opens the
+plant first is not raised by the easier scene afterwards. `rememberedPick` in
+`quality.js` is the whole of it, the preset table's own order decides which is
+lower (so a fourth preset is ordered by where it is put rather than by a list
+somebody forgot), and a stored value the table does not recognise is treated as
+nothing stored rather than compared against — which matters because H7's store
+validates a key by type and not by range, and that is **H21**.
+
+**The cost, which is the line worth your eye.** The level now only ever goes
+**down** on its own. A machine that was briefly busy — a big download, a
+compile, another game still shutting down — gets measured as slower than it is,
+and that reading is remembered for good. The player fixes it in one click on the
+settings row, and `auto` is a starting guess rather than a promise, so I think
+that is the right way round: an honest `low` is playable and an optimistic
+`medium` is not. But it is a real asymmetry and you may disagree.
+
+**The two alternatives, and why not.** *A pick per map* is more faithful — each
+scene gets its own reading — and was refused as more record than the problem is
+worth: two keys, a migration for the one that exists, and a player who still
+cannot say what their quality "is". *Letting it drift back up* (re-probe and
+raise when several readings agree) is the honest fix for the transient-load
+cost, and it is a feature rather than a bug fix: it needs a history, a rule for
+how many agreeing readings count, and a decision about whether raising someone's
+level mid-session is welcome. If the asymmetry above bothers you, that is the
+shape of the answer and it wants its own job.
+
+**Also fixed here, and it is why this went a month unnoticed.** The headless
+runner's summary printed the quality line for the **first run only** and
+silently dropped every other map's — so a two-map suite showed the plant's
+probe and never the yard's, and the disagreement that is the entire problem was
+invisible in the output everybody reads. It prints one line per map now.
+
+decided:
+
 ### D67 — The code side of the `AudioContext` error is closed; a console error still does not fail the gate
 
 **Raised by:** H32, 2026-10-06, and recorded rather than asked because it

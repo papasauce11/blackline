@@ -158,13 +158,21 @@ export function summary(r) {
     lines.push(`    ${s.map}: ${s.runs} runs spread ${s.spreadMs}ms (${share}% of the longest),`
       + ` pipeline wait spread ${s.waitSpreadMs}ms - two runs of a map are comparable only while this is small (F16)`);
   }
+  // One line per MAP, not one line for the whole suite (H25). This used to
+  // `break` after the first run, so a two-map suite printed the plant's probe
+  // and silently dropped the yard's - and the two disagree, which is the entire
+  // point: the probe measures this machine *times this scene* (8.70ms and `low`
+  // on the plant against 5.30ms and `medium` on the yard, H10's own verify).
+  // A reader could not see that from the summary, which is how it went a month
+  // without anybody noticing that the map you open first decides your level.
+  const named = new Set();
   for (const run of r.runs) {
     const q = run.quality;
-    if (!q) continue;
+    if (!q || named.has(run.map)) continue;
+    named.add(run.map);
     lines.push(`    ${run.map}: drawing ${q.level} quality (${q.source}), ${q.buffer ? q.buffer.join('x') : '?'} buffer, `
       + `${q.shadowMapSize} shadow map, post ${q.post ? 'on' : 'off'}`
       + `${q.probe ? ` - auto would pick ${q.probe.pick} here (${q.probe.why})` : ', probe still measuring'}`);
-    break;
   }
   if (r.red.length) lines.push(`  RED (unexpected): ${r.red.map(tag).join(', ')}`);
   if (r.flaky.length) lines.push(`  FLAKY: ${r.flaky.map(tag).join(', ')}`);

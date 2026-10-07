@@ -154,12 +154,27 @@ number measuring the wrong thing. Queue one marker per gap and require that at
 slice N exactly N have run. The same caution applies to any "did something else
 get a chance" test: what you are counting is turns, and a batch is one.
 
+**A per-run number printed once is a per-run number nobody can compare, and a
+`break` in a summary loop hides a whole map.** The runner's quality line - the
+one that says what `auto` *would* have picked on this machine - ran over
+`r.runs` and `break`ed after the first. The suite runs two maps, the probe reads
+the machine **times the scene**, and the two maps disagree: 8.70ms and `low` on
+the plant against 5.30ms and `medium` on the yard. The summary showed one of
+them. So the fact that one machine gets two answers - which turned out to be a
+real defect in what a friend's browser remembers, **H25** - sat invisible in the
+output every session reads for a month, while `HANDOFF.md` dutifully quoted the
+single number it was shown. When a measurement is per map or per run, print it
+per map or per run; the whole value of two readings is in their difference, and
+a loop that stops at the first one throws that away while still looking like it
+reported something.
+
 **One `AudioContext` device error per run pair is the machine, and the code
 side of it is closed — do not re-litigate it from the count alone.** *"The
 AudioContext encountered an error from the audio device or the WebAudio
-renderer."* has turned up in two of the six verifies on record (H27 on the
-yard, H29 on the plant; H28, H30, H31 and H32 clean - the last three in a row,
-which is the exact shape of evidence H28 mistook for a closure once already). It has been written off once
+renderer."* has turned up in two of the seven verifies on record (H27 on the
+yard, H29 on the plant; H28, H30, H31, H32 and H25 clean - the last **four in a
+row**, which is the exact shape of evidence H28 mistook for a closure once
+already, and a longer streak is not a different kind of evidence). It has been written off once
 and brought back once, which is the real trap: **an intermittent fault is not
 closed by an absence**, and H28's entry said "that closes it as the machine"
 after a single clean verify. What H32 established, so that nobody measures it

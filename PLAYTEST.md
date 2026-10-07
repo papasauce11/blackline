@@ -82,6 +82,40 @@ PNG each, `--pose vault,aim` for a few.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### If quality is on Auto, the map you open first no longer decides it (H25, 2026-10-06)
+
+**This one a friend could actually have felt**, and it is worth knowing about if
+you have ever played on `auto`.
+
+**What was wrong.** On `auto` the game measures a couple of seconds of frames
+when it starts and picks `low`, `medium` or `high` from that. The catch is that
+it measures your machine **and the map you happen to be in** — the plant is the
+heavier of the two, and on this PC the plant measured 8.70ms and chose `low`
+while the yard measured 5.30ms and chose `medium`. Same machine, two answers.
+
+And the choice was remembered **the first time only.** So if a friend opened the
+yard first, their browser wrote down `medium` and kept it — and then they played
+the plant at a level their machine could not hold, for as long as that browser
+kept its site data. If they had opened the plant first they would have got
+`low` and been fine.
+
+**What it does now.** It keeps the **lower** of the two. Open the yard, get
+`medium`; open the plant later, and it quietly drops to `low` and stays there.
+Open the plant first and nothing raises it afterwards.
+
+**The cost, and tell me if you disagree.** The level can now only go *down* on
+its own. If your machine happens to be busy when you start — a download, a
+compile, something else closing — it gets measured as slower than it really is
+and remembers that. One click on the quality row in Settings fixes it, and
+`auto` is meant as a starting guess rather than a promise, so I would rather err
+towards a level that definitely plays. But if you would rather it recovered on
+its own, that is a real thing to build and D68 says what it would take.
+
+**What is left for you:** if you play on `auto` and it ever feels blurrier or
+flatter than you expect, check what the quality row says — and if it says `low`
+on a machine you think should manage `medium`, that is this rule being cautious
+and one click undoes it.
+
 ### The audio error in the test logs is the machine, and now we can prove half of it (H32, 2026-10-06)
 
 **Nothing in the game changed and there is nothing here to judge.** The sound is

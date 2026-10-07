@@ -265,19 +265,19 @@ one setting only Josh can click; everything else here proceeds.
   `every-pixel-floor-under-tests-is-a-fraction-of-the-buffer-or-says-why-not`,
   holds the census the way F13 holds the spec's bans - a table of allowances
   with reasons, red on a new floor **and** red when an allowance goes stale.
-- [ ] **H25 (S)** Auto's pick depends on which map you open first, and it is
-  stored for good. H10's verify measured the same machine twice: the plant reads
-  **8.70ms median CPU and picks `low`**, the yard **5.30ms and picks `medium`**.
-  The plant is the heavier scene, so what the probe measures is machine *times*
-  scene - and because `SETTINGS.qualityAuto` is written on the first boot that
-  answers, whichever map a friend happens to open first decides their quality
-  for the life of that browser. The cheapest honest fix is to keep the **lowest**
-  level any probe has picked, so a player whose plant needs `low` is not left on
-  `medium` because they opened the yard first; the alternative is a pick per map,
-  which is more record than the problem is worth. Look rather than rule, so
-  provisional either way. *done-when:* a check probes twice with two different
-  medians and asserts the stored pick is the lower, and the runner's summary
-  names both.
+- [x] **H25 (S)** Auto's pick depends on which map you open first, and it is
+  stored for good. — done 2026-10-06, under Done. The cheapest honest fix was
+  the right one: `rememberedPick` keeps the **lower** of what is stored and what
+  a probe just found, which is the only rule safe in both orders, and a stored
+  value the preset table does not recognise is treated as nothing stored rather
+  than compared against (**H21** is why that matters). **D68** has the cost - the
+  level now only ever goes down on its own, so a machine that was briefly busy
+  is remembered as slower than it is - and the two alternatives with why not.
+  The second half of the done-when turned out to be a one-word bug: the runner's
+  summary **broke after the first run**, so a two-map suite printed the plant's
+  probe and silently dropped the yard's, which is how a disagreement between two
+  maps on one machine went a month without being noticed in the output everybody
+  reads.
 - [ ] **H11 (M)** `npm run bench`: the real GPU. Headed Chrome (the window
   placed off-screen), the frame-budget check and the 92-viewpoint sweep on
   both maps, results to `bench/<date>.json`; the frame-budget check leaves
@@ -331,8 +331,9 @@ one setting only Josh can click; everything else here proceeds.
   H32 eliminated the code side of it — one realtime context per page, one owner
   module, the seventeen offline renders all correct in every run on record — and
   found that the cold run H27 asked for **has been happening twice a day all
-  along and was never recorded**: every one of the six observations is an
-  end-of-session verify, and the GATE is the cold run. `HANDOFF.md` now asks
+  along and was never recorded**: every one of the seven observations is an
+  end-of-session verify (two showed it, five did not, the last **four in a row**),
+  and the GATE is the cold run. `HANDOFF.md` now asks
   every run to write its gate's console-error count into its `PROGRESS.md`
   entry, and the runner stamps each error with the map, the run and the seconds
   into it, so a single occurrence is now attributable. This job is the reading,
@@ -601,6 +602,46 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H25** Auto's pick depended on which map you opened first, and was then
+  stored for the life of that browser. H10's verify had measured the same
+  machine twice - **8.70ms on the plant picking `low`, 5.30ms on the yard
+  picking `medium`** - so the probe reads the machine **times the scene**, and
+  the storing rule was *write the pick if nothing is stored yet*: the first boot
+  that answered decided everything after it. A friend who opened the yard first
+  got `medium` and then played the heavier map at a level their machine could
+  not hold. **`rememberedPick(stored, picked)` in `quality.js` keeps the lower
+  of the two**, which is the only rule safe in both orders - the easier scene
+  cannot raise the level and the heavier one brings it down - with the preset
+  table's own order deciding which is lower, so a fourth preset is ordered by
+  where it is put rather than by a list somebody forgot to update, and an
+  unrecognised stored value treated as nothing stored rather than compared
+  against (**H21**). **D68** records the cost, which is real: the level now only
+  goes **down** by itself, so a machine that was briefly busy is remembered as
+  slower than it is, fixable in one click on the settings row. The two
+  alternatives - a pick per map, and letting it drift back up on agreeing
+  readings - are argued and refused there, the second as a feature rather than a
+  fix.
+  **The second half of the done-when turned out to be a one-word bug.** The
+  runner's summary `break`s after the first run, so a two-map suite printed the
+  plant's quality line and **silently dropped the yard's** - which is how a
+  disagreement between two maps on one machine survived a month in the output
+  every session reads. It prints one line per map now, and the confirming run
+  shows both: *plant ... auto would pick medium (5.10ms over 8 frames)* and
+  *yard ... auto would pick medium (4.80ms over 14 frames)*.
+  One new check, `a-second-maps-probe-cannot-raise-the-level-the-first-one-stored`
+  in `tests/autopick.js` (its own module because `tests/quality.js` is at 544
+  lines and a block would have taken it past 600). It feeds **two real probes
+  two different medians**, proves they pick differently before leaning on them
+  (F8), holds the rule in **both orders** and over **every pair in the preset
+  table**, and reads `quality.js` to confirm the storing path goes through the
+  rule **and that the old first-boot guard is gone** - which is the clause that
+  makes the job revert-detectable, because a pure function nobody calls is
+  decoration (H27's frozen `rng.calls`). It deliberately does **not** complete a
+  synthetic probe through `sampleQualityFrame`: that would overwrite
+  `state.probe`, which the run record carries and `HANDOFF.md` quotes as *what
+  auto would have picked*, and a check that makes the report lie about the
+  machine is the exact class of bug H24 found in H23's check.
+  Done 2026-10-06, commit `PENDING`.
 - **H32** The `AudioContext` device error, and the test nobody had defined. It
   had appeared in two of six verifies (H27 yard, H29 plant), been written off
   by H28 after a single clean one and brought back by H29 the same day, so the

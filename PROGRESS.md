@@ -11837,3 +11837,129 @@ M), then H31's and H32's follow-ups **H33**, **H34** and **H35**. Nothing in
 Block H is blocked on Josh. `TRAPS.md` carries the standing account of this
 error so that the next reader does not re-litigate it from the count alone,
 which is the thing that has now happened twice.
+
+## H25 — auto remembers the lowest, and the summary was hiding the evidence (2026-10-06 17:00, scheduled run)
+
+**What it was handed.** H10's verify had measured the same machine twice -
+**8.70ms median CPU on the plant, which picks `low`**, and **5.30ms on the yard,
+which picks `medium`** - and the queue had read what that implies: the probe is
+a reading about this machine **times this scene**, the plant being the heavier
+of the two. The storing rule was *write the pick if nothing is stored yet*
+(`SETTINGS.qualityAuto === null`, the first boot that answers), so **whichever
+map a friend happened to open first decided their quality for the life of that
+browser.** Open the yard, get `medium`, then play the plant at a level that
+machine cannot hold until you clear your site data or find the settings row.
+
+**Taken: keep the lower of what is stored and what was just picked.** One
+exported function, `rememberedPick(stored, picked)` in `quality.js`, and
+`sampleQualityFrame` stores through it. It is the only rule that is safe in both
+orders - the easier scene cannot raise the level, the heavier one brings it down
+- and the **preset table's own order** decides which is lower, so a fourth
+preset is ordered by where it is slotted into `CONFIG.quality.presets` rather
+than by a list somebody forgot to update. A stored value the table does not
+recognise is treated as nothing stored rather than compared against, which
+matters because H7's store validates a key by type and not by range and a
+hand-edited `"ultra"` gets this far - that is **H21**, still open, and this is
+one place it would have bitten.
+
+**The cost is real and is in D68 rather than buried.** The level now only ever
+goes **down** on its own. A machine that was briefly busy - a download, a
+compile, another game still shutting down - is measured as slower than it is and
+remembers that for good. One click on the settings row fixes it, and `auto` is a
+starting guess rather than a promise, so an honest `low` beats an optimistic
+`medium`; but it is an asymmetry and Josh may want the other side of it. The two
+alternatives are argued there and refused: **a pick per map** is more faithful
+and more record than the problem is worth (two keys, a migration, and a player
+who cannot say what their quality *is*), and **letting it drift back up** is the
+honest answer to the transient-load cost but is a feature - it needs a history,
+a rule for how many agreeing readings count, and a decision about whether
+raising somebody's level mid-session is welcome.
+
+**And the second half of the done-when turned out to be a one-word bug, which is
+the part worth remembering.** The queue asked that *"the runner's summary names
+both"*. It named one: the loop over `r.runs` printing the quality line
+**`break`ed after the first run**, so a two-map suite printed the plant's probe
+and silently dropped the yard's. The disagreement between two maps on one
+machine - the entire defect this job exists to fix - sat invisible for a month
+in the output every session reads, while `HANDOFF.md` dutifully quoted the
+single number it was shown. One line per map now, and the confirming run shows
+it: *plant ... auto would pick medium (5.10ms over 8 frames)*, *yard ... auto
+would pick medium (4.80ms over 14 frames)*. It is in `TRAPS.md` as the general
+lesson, because the whole value of two readings is in their difference and a
+loop that stops at the first still looks like it reported something.
+
+**The check.** One new module, `src/tests/autopick.js` (185 lines) - its own
+rather than a block in `tests/quality.js`, which is at 544 lines and would have
+gone past the ~600 the spec allows.
+
+- `a-second-maps-probe-cannot-raise-the-level-the-first-one-stored` feeds **two
+  real probes two different medians** (33.33ms picks `low`, 2.08ms picks `high`,
+  both derived from the constants the probe itself reads rather than typed
+  beside the threshold), **proves they pick differently before leaning on them**
+  (F8: if both picked the same level every clause below would be comparing a
+  thing with itself, and the check says so and stops), then holds the rule in
+  **both orders** and over **every one of the nine pairs** in the preset table
+  rather than three hand-picked cases.
+- **The clause that makes the job revert-detectable** reads `quality.js` and
+  requires the storing path to go through the rule **and the old first-boot
+  guard to be gone**. A pure function nobody calls is decoration - H27's
+  `rng.calls` froze at zero behind an object spread and no check noticed,
+  because nothing asserted the field.
+- **What it deliberately does not do**, and the reason is worth keeping: it does
+  not complete a synthetic probe through `sampleQualityFrame`. That would
+  overwrite `state.probe`, which the headless runner's **run record** carries
+  and which `HANDOFF.md` quotes as *what auto would have picked* - so the report
+  would then lie about this machine, which is the exact class of bug H24 found
+  in H23's check, where the record named a level the run was not drawing. The
+  rule is a pure function, tested as one, and the single line that calls it is
+  held by its text.
+
+**What was verified.** `npm run suite`, two runs per map on the finished tree:
+**plant 214 passed / 1 failed / 8 not for this map (1,065,586ms and
+1,067,175ms), yard 194 / 1 / 28 (730,891ms and 737,424ms), exit 0, 0 red, **0
+flaky**, 0 unexpectedly green, **0 console errors**, 0 context losses, 0 loop
+frames, 0 skips withheld, 0 re-runs, and no other runner on the machine.** Both
+runs of each map agree exactly on every count, and each map is one check up on
+H32's pair (213 and 193) - this job's. The one failure on each is the
+frame-budget check, skipped headless. The run-pair spreads are the tightest on
+record: **plant 1,589ms (0% of the longer), yard 6,533ms (1%)**, with pipeline
+tails of 456,149ms and 454,679ms on the plant, 328,689ms and 336,458ms on the
+yard.
+
+**And the done-when's second half is proved in the real thing rather than in a
+subset.** The summary names both maps now:
+
+```
+plant: ... auto would pick medium here (6.50ms median CPU over 9 frames ...)
+yard:  ... auto would pick medium here (4.80ms median CPU over 32 frames ...)
+```
+
+**One machine, two readings 35% apart, in the output every session reads** -
+which is the sentence this job exists to make visible. Both happen to pick
+`medium` tonight, so the new rule changes nothing on this machine in this run;
+that is what it looks like when a defect is about a *rule* rather than about
+today's numbers, and the check holds the rule rather than the numbers.
+
+**The gate's console-error count, which H32 asked every run for: this run still
+has none to give.** H25 ran under H32's verify as its gate by step 8, so no
+cold run was taken. The record H35 waits for starts with the next session's
+gate, and that is now said twice - in H32's entry and here - because a census
+nobody feeds is the thing H32 was created out of.
+
+**And the `AudioContext` error did not appear again**, which makes it **two of
+seven verifies** and **four clean in a row** (H30, H31, H32, H25). That streak
+is now long enough to be tempting, and `TRAPS.md` says in as many words not to
+take it: H28 called this closed on one absence and H29 brought it back the same
+day. Four absences from end-of-session verifies are four observations of the
+same condition, not evidence about a cold machine. The counts in `HANDOFF.md`
+and `TRAPS.md` were moved to seven; **D67** was left at six on purpose, because
+a decision entry is a snapshot of what was known when it was written and this
+project does not edit them.
+
+**What was left.** **H11** (M) is next, `npm run bench` on the real GPU, and it
+is a whole run. Then the three follow-ups this week left: **H33** (every other
+check that reads a posed body at whatever phase the run arrived in), **H34** (the
+8m neck's wider spread) and **H35** (three gates' console-error counts, and it
+says not to be started early). H21 is worth reading beside this job: the stored
+quality level is exactly the kind of value its range check would have caught,
+and `rememberedPick` now defends itself against one case of it.
