@@ -645,7 +645,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   that keeps a census from reading zero when it breaks. **D67** records the one
   judgement: a console error is counted and printed but still does not fail the
   gate, because this one would have failed two of the last six correct runs.
-  Done 2026-10-06, commit `PENDING`.
+  Done 2026-10-06, commit `9e94697`.
 - **H31** The two figure checks asserted a 1.5x hood-over-neck ratio on a band
   three rows deep, and H29 had watched that band read 5px and 6px for the same
   body in different runs — a third reading of 7px would have been 1.43x and red.
