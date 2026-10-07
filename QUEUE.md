@@ -676,7 +676,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   the judgement that a stale bench prints rather than reds; **H36** (the worst
   viewpoint is one frame and does not reproduce) and **H37** (the audit says how
   old the bench is) are the follow-ups.
-  Done 2026-10-07, commit `TBD`.
+  Done 2026-10-07, commit `209b420`.
 - **H25** Auto's pick depended on which map you opened first, and was then
   stored for the life of that browser. H10's verify had measured the same
   machine twice - **8.70ms on the plant picking `low`, 5.30ms on the yard
