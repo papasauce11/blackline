@@ -12397,3 +12397,174 @@ One lesson for all of them: **a sweep's density is part of the instrument**,
 and this is the third time a pixel reading turned out to be about how it was
 measured rather than about the body - H29's two readings, D64's band, and now
 H33's own eight phases.
+
+## H38 — the hanging glove held at the worst phase, and the centimetre the census missed (2026-10-07 17:00, scheduled run)
+
+**What it was handed.** H33's census named `tests/hang.js` the thinnest
+breath-reached clause in the suite and the one its first instrument was blind
+to. `a-hang-is-at-full-stretch-under-the-lip` asserts
+`|gloveY - lip| <= 0.15m` on a **world** position of a mesh hanging off an arm
+inside the body group the Shade's breath lifts, and over eight phases the
+census read the offset running -0.021m to +0.055m — a span of 0.075m, half the
+tolerance, passing at 2.75x on its worst phase. No bug and no urgency: the job
+was to bound a quantity the check samples and does not bound, which is the
+state the two figure clauses were in before H31, and the reason to bother at
+all is that the margin is the product of three independent numbers —
+`hangDrop`, the arm's length and the breath's amplitude — with nothing watching
+it.
+
+**What was built.** A second check in the same module,
+`the-hanging-glove-holds-the-lip-at-every-phase-of-the-breath`, written the way
+`tests/breath.js` is: hang at the first hangable ground-level ledge the
+controller's own probe reports, sample the glove's offset at eight phases of
+the 6.98s breath by driving `updateVisual` at the fixed step, and assert the
+**worst** of them. It costs nothing to sweep — the glove is a world position
+off the matrix, so there is no render and no `readPixels` anywhere in it, and
+it runs in **10-17ms** against the 28-36s `tests/breath.js` pays for eight
+reads of the reference buffer. Both checks now reach the lip through one
+`hangAtGroundLedge` and the glove through one `hangingGloveY`, so they cannot
+drift into reading two different quantities, and the tolerance is one named
+constant rather than a literal in two places.
+
+The clause it asserts is **2.26x** at worst, with **56% of the tolerance
+left**: over eight phases the offset runs -0.014m to +0.066m on both maps,
+worst 0.066m of 0.15m. And it carries the second half HANDOFF.md demands of a
+check that picks its own inputs, because without it the whole thing is
+decoration: **the glove's own ride is asserted absolutely**, 0.078m with
+0.012m of tolerance, so a worst-of-eight read off a body that is not breathing
+is caught rather than passed. That is not hypothetical — see below.
+
+**It corrects the census by a centimetre, and the cause is a settle.** The
+span agrees with H33 (0.079m and 0.080m against 0.075m, and a dense sweep puts
+it at 0.0800m, twice `POSE.breath.lift` to the millimetre) but the whole band
+sits a centimetre higher, so the margin is 2.26x and not 2.75x. A probe of the
+settle says why. The arm's **angle** arrives by frame 30 — `armL.rotation.x`
+reads -3.04 at frame 20 and -3.05 at 30, 60 and 120 — but the pose's
+contribution to the glove's **height** is still moving well past it:
+
+| frames of `updateVisual` after the grab | glove − lip | of which is not the breath |
+|---|---|---|
+| 0 | -2.079m | — (arms still down, `armX` 0.000) |
+| 3 | -0.911m | — (`armX` -2.086) |
+| 5 | -0.691m | — |
+| 10 | -0.435m | — |
+| 20 | -0.188m | — |
+| **30** (what the shipped clause reads) | **-0.036m** | **-0.016m** |
+| 60 | -0.007m | +0.018m |
+| 120 | -0.009m | +0.027m |
+| settled (dense sweep's mid) | — | **+0.0263m** |
+
+So a sweep that began at frame 30 would be sweeping the ease and the breath
+together and calling the sum the breath, which is what the census did. The new
+check settles **150** frames before its first sample, five times the shipped
+clause's thirty, and the constant says in as many words why they differ. The
+lesson is H34's in a different currency: **a sweep inherits whatever its first
+sample inherited**, and here that was a transient rather than a phase.
+
+**Eight phases is the right density here, and that is a measurement and not a
+habit.** H34 had just finished showing that eight phases is too coarse at 8m,
+so this job owed the opposite proof rather than the same assumption. A dense
+sweep of **all 419 frames** of one cycle reads a worst of **0.0663m** against
+the eight-phase check's **0.066m** — the same number to the millimetre. The
+reason the two jobs come out differently is the quantity, not the sweep: an
+offset in metres is **continuous**, so eight samples of a sinusoid can only
+miss its peak by `1 - cos(pi/8)`, which is 7.6% of a 0.040m amplitude and
+therefore 3mm; a pixel count is an **integer**, and at 8m the breath spreads
+the neck over five of them with the extremes turning up once in thirty-two.
+**A sweep's density has to be chosen against its quantity's own graininess.**
+
+**And the map does not enter it, which the done-when asked for and this
+explains.** Both maps' dense sweeps are identical — -0.0137m to +0.0663m, span
+0.0800m, mid +0.0263m — on lips of **3.00m** (the plant's `hall-container`)
+and **2.90m** (the yard's `ring-west-0`). They have to be: the offset is the
+glove's height above the feet minus `hangDrop`, and the lip cancels out of it.
+So the two maps are two readings of the body and one reading of the rule, not
+two readings of two geometries.
+
+**Proved load-bearing by breaking each clause on its own**, which is the only
+way to know the pair is not one clause and a comment:
+
+- `POSE.breath.lift` 0.04 → 0 reds *only* the control — *"over 8 phases the
+  glove rode 0.0000m against the 0.078m this clause was measured at"* — while
+  the worst-phase clause reported a perfectly comfortable **5.70x** on eight
+  identical readings of one phase and would have passed. That is exactly the
+  hole the control exists to close, and it is worth noting that the reading it
+  would have published (82% of the tolerance left) is *better* than the true
+  one.
+- `hangDrop` 2.05 → 2.25 reds *only* the worst-phase clause — *"the worst of 8
+  phases draws the hanging glove 0.211m off the lip, over 0.15m"* — while the
+  ride read 0.075m and the control passed. One of the three numbers the margin
+  is a product of, moved, and named.
+
+**Stability.** The set of eight phases rotates with wherever the run came in,
+so the worry is the same one `tests/breath.js` answers: four subset runs
+entered at breath phases from 12.72s to 19.73s and the worst read 0.065m,
+0.066m, 0.066m and 0.066m. It is stable for a better reason than breath.js's
+— the worst of eight samples of a smooth sinusoid is within 3mm of its peak
+wherever the samples fall, where breath.js depends on a worst-case pixel count
+being *common*.
+
+**What was found and left alone.** The shipped clause reads a **transient, not
+the hang**: at frame 30 the glove is 0.036m under the lip, which is 24% of its
+tolerance spent on the tail of the arm's swing, where the hang itself settles
+at 0.026m over it. Nothing is wrong today and nothing was touched — H31's
+precedent is that a clause gets measured before it gets edited, and the new
+check now covers the hang properly — but the shipped clause's one reading is
+about the ease and would redden if the ease ever slowed, which is a false red
+about the blend rather than about the body. That is **H40**, sized S.
+
+**No decision raised.** The settle split and the sweep's density are instrument
+choices with their measurements written at the line, and the absolute pin on
+the breath's amplitude rests on **D70**, which already says that changing the
+breath's depth is a one-line change plus a re-measurement of the margins that
+were taken at it. This is now the second place that re-measurement would be
+demanded from, and the second is the point.
+
+**And one line given back.** `HANDOFF.md` was at 399 of the 400 lines
+`traps-md-holds-the-traps-and-handoff-points-at-it` allows, and G1's rule is
+that a job which adds to that page takes something out. This job's index line
+is paid for by the **orphaned-runner paragraph** under *Still needs a human*,
+which is a closed finding rather than anything needing a human - the runner has
+been gone since H23 and `TRAPS.md` holds the standing version with the same
+history, by the rule that a trap is retired by name and not deleted quietly.
+The page is 396 lines now, which leaves the next three jobs somewhere to go.
+
+**And a trap paid again, with a half of it that was not on the record.**
+`TRAPS.md` warns that a backtick inside a double-quoted shell string is command
+substitution, and that the way out is to write the patch script to a file. This
+entry's own VERIFY paragraph was written with an inline `python -c "..."`
+instead, and the trap as written describes the loud failure - bash hands python
+nonsense and the anchor assertion refuses, "which is the one mercy". The quiet
+failure is the one that happened: `auto`, `medium` and `bench only` are
+identifiers with no slash in them, so bash ran each as a command, printed
+`command not found` to stderr among the rest of the output, substituted **the
+empty string**, and the patch *succeeded* - leaving a sentence reading "would
+have picked  on both" and an exit code of 0. The trap now carries that half
+too, because "the edit never happened" and "the edit happened with holes in it"
+want different habits: the second one is only caught by reading the patched
+lines back.
+
+**Verified.** GATE (cold, HEAD `0d08664`): OK, plant 216 passed / 1 failed / 8
+not for this map (1,070,494ms, 449,994ms of it the renderer's pipeline tail),
+yard 196 / 1 / 28 (749,101ms, 338,275ms tail), 0 red, 0 flaky, 0 context
+losses, and **0 console errors on either map** — which is the point of writing
+it down: H35 wants three gates' counts and this is the **second**, H11's being
+the first and also 0. `auto` would have picked `medium` on both maps (5.20ms
+and 5.30ms), and the runner throttled itself to 4 of 8 cores with a 45s
+cooldown.
+
+VERIFY (two runs of each map, on the finished tree): **OK**. Plant **217
+passed / 1 failed / 8 not for this map** on both runs (1,060,802ms and
+1,076,531ms, 445,989ms and 449,506ms of it the pipeline tail), yard **197 / 1 /
+28** on both (737,811ms and 753,325ms, 326,972ms and 335,141ms tail). **0 red,
+0 flaky, 0 console errors, 0 context losses, 0 loop frames, 0 re-runs, 0 skips
+withheld, 0 bench drops withheld, 0 unexpectedly green and no other runner on
+the machine** - and both runs of each map agree exactly on every count, which
+for a check whose eight samples rotate with the run's entry phase is the claim
+worth having. One check more than the pair after H34 on each map, which is this
+one. Run-pair spreads 15,729ms (1%) on the plant and 15,514ms (2%) on the yard,
+against pipeline-wait spreads of 3,517ms and 8,169ms - so read the work as
+unmoved (F16). `auto` would have picked `medium` on both (5.40ms, 4.80ms).
+
+The one failure on each map is the frame-budget check, reported as `bench only`
+against a real-GPU reading from `e95fe4b` (D69), exactly as it was at the gate.

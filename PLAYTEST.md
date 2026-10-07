@@ -133,6 +133,22 @@ thirty-two. Nothing to look at here — it is on this page because the number in
 the previous paragraph's neighbourhood changed, and this file should not quietly
 hold the first version of a measurement.
 
+**And the glove that was holding the ledge (H38, same day).** The one clause
+above that was spending real margin — a test's own, a hanging hand measured
+against the ledge it holds — now has a test that checks it at **every** point
+of the breath rather than at whichever point the run happened to reach, and it
+clears its limit with **56% to spare**. Two things came out of it worth one
+line each. The margin is a little tighter than the census first said (2.26
+times clear, not 2.75), because the census had read the hand while the Shade's
+arms were **still swinging up into the hang** rather than once she was hanging
+— nothing about the game changed, only when the ruler was held up. And the
+grab itself takes about **a third of a second** for the arms to come from down
+at her sides to straight overhead; that is the animation blend doing its job
+and no test complains about it, but it is the kind of thing only your eyes can
+call, so if a grab ever reads as an arm *snapping* up rather than reaching,
+that is the number to change. `the-hanging-glove-holds-the-lip-at-every-phase-of-the-breath`
+is the new one, and it runs in a hundredth of a second.
+
 ### The frame budget holds on the real GPU, and you no longer have to check (H11, 2026-10-07)
 
 **This closes the oldest thing on this page's "only you can judge" list.**

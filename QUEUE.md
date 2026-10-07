@@ -335,27 +335,15 @@ one setting only Josh can click; everything else here proceeds.
   because a passing check's numbers are not in its detail line — which is
   **H38**. It also answers **H34** from the other end. **D70** pins the ride
   the table was measured at.
-- [ ] **H38 (S)** Hold `hang.js`'s glove at the worst phase of the breath.
-  H33 measured it, and it is the thinnest breath-reached clause in the suite:
-  `a-hang-is-at-full-stretch-under-the-lip` asserts
-  `|gloveY - lip| <= 0.15m` on a **world** position of a mesh hanging off an
-  arm inside the body group the breath lifts, and over eight phases the offset
-  ran **-0.021m to +0.055m, a span of 0.075m — half the tolerance** — with the
-  lift delivering its full ±0.037m at the read. The worst phase passes at
-  **2.75x**, so **there is no urgency and no bug**: this is bounding a quantity
-  the check samples and does not bound, which is the state the two figure
-  clauses were in before H31 and the reason H31 was worth doing.
-  Do it the way `tests/breath.js` does — sweep the cycle, assert the worst —
-  and put it beside hang.js rather than in it if that file cannot take the
-  lines. The reason it is worth doing at all rather than filed as comfortable:
-  `hangDrop`, the arm's length and the breath's amplitude are three
-  independent numbers, and the margin is the product of all three with nothing
-  watching it.
-  *done-when:* a check asserts the glove against the lip at the worst of eight
-  phases on both maps, and the entry says what the worst phase reads and how
-  much of the tolerance is left. If the honest answer turns out to be that the
-  clause is better off reading something the breath cannot move, say that and
-  why instead.
+- [x] **H38 (S)** Hold `hang.js`'s glove at the worst phase of the breath. —
+  done 2026-10-07, under Done. It is bounded now at **2.26x** with 56% of the
+  tolerance left, and the job **corrected the census's number by a centimetre**:
+  swept from a settled pose the offset runs -0.014m to +0.066m, not H33's
+  -0.021m to +0.055m, because the hang pose was still easing when the census
+  read it. Eight phases is the right density here and a **dense sweep of all
+  419 frames proves it** (0.0663m against 0.066m) — the opposite answer to
+  H34's, for a measured reason: this quantity is continuous where a pixel count
+  is an integer. **H40** is what it found and left alone.
 - [ ] **H39 (S)** The twelve modules that read a body off a frame they rendered
   rather than posing one. H33's census criterion was a grep — a module whose
   text names `updateVisual` poses a body — which is checkable and is *not* the
@@ -387,6 +375,30 @@ one setting only Josh can click; everything else here proceeds.
   yaw, so neither the hood nor the angle was the variable. **No dense clause**
   (33% of margin left, and a dense sweep costs 64 readings): what is asserted
   instead is the invariance the margin rests on.
+- [ ] **H40 (S)** The shipped glove clause reads a transient, not the hang.
+  `a-hang-is-at-full-stretch-under-the-lip` draws thirty frames of
+  `updateVisual` after the grab and then reads `|gloveY - lip|`, and H38's
+  probe of the settle shows thirty frames is **inside the ease**: the arm's
+  angle has arrived (`armL.rotation.x` -3.04 at frame 20, -3.05 at 30, 60 and
+  120) but the part of the glove's height that is not the breath is still
+  moving, -0.016m at frame 30 against +0.027m at 120 and +0.0263m settled. So
+  that clause reads **-0.036m, 24% of its tolerance**, where the hang it claims
+  to be about sits at +0.026m, and what it is really bounding is the tail of
+  the arm's swing. Nothing is wrong today and the new sweep covers the hang
+  properly, so this is about what the clause *means*: it would redden if the
+  pose blend ever slowed, which is a false red about the blend and not about
+  the body. Two honest options, and the job is to pick one with a measurement
+  rather than to split the difference — settle it to the hang (it then reads
+  the same quantity the sweep does, and the sweep's 150 frames is the number),
+  or keep thirty and say at the line that the reading is deliberately of the
+  ease, with a bound that belongs to a transition rather than to a pose. The
+  second is only worth taking if the transition is worth asserting, which
+  wants the arm's own sweep measured: it goes from arms-down to straight up
+  over about twenty frames, and whether the glove is ever further from the lip
+  than it should be *during* a grab is a question nobody has asked.
+  *done-when:* the clause reads a quantity its own comment names, with the
+  frame count argued from the settle probe's numbers, and the entry says which
+  option was taken and why the other was not.
 - [ ] **H35 (S, the small end)** Three gates with their console-error counts
   written down, then close the `AudioContext` error or name a new hypothesis.
   H32 eliminated the code side of it — one realtime context per page, one owner
@@ -663,6 +675,37 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H38** The hanging glove, held at the worst phase of the breath, and the
+  centimetre the census missed. H33 named `tests/hang.js` the thinnest
+  breath-reached clause in the suite — `|gloveY - lip| <= 0.15m` on a world
+  position inside the body group the breath lifts, half the tolerance spent on
+  a quantity nothing bounded — and this is the bound:
+  `the-hanging-glove-holds-the-lip-at-every-phase-of-the-breath` hangs at the
+  ledge the controller's own probe reports, samples eight phases of the 6.98s
+  breath and asserts the **worst**, at **2.26x with 56% of the tolerance
+  left** (the offset runs -0.014m to +0.066m on both maps). It costs **10-17ms**
+  because the glove is a world position off the matrix and nothing renders.
+  **It corrects H33's number by a centimetre**, and the cause is a settle, not
+  the breath: the span agrees (0.079m and 0.080m, with a dense sweep at
+  0.0800m, twice `POSE.breath.lift` to the millimetre) but the arm's *angle*
+  arrives by frame 30 while the pose's contribution to the glove's *height* is
+  still moving — -0.016m at frame 30 against +0.0263m settled — so the census
+  swept the ease and the breath together and called the sum the breath. The
+  sweep settles **150** frames and the constant says why. **Eight phases is
+  right here and a dense sweep of all 419 frames proves it** (0.0663m against
+  0.066m), which is the opposite of H34's answer for a measured reason: an
+  offset in metres is continuous, so eight samples miss a sinusoid's peak by at
+  most `1 - cos(pi/8)` — 3mm — where a pixel count is an integer whose extremes
+  are rare. **A sweep's density has to be chosen against its quantity's own
+  graininess.** The map does not enter it: both maps' dense sweeps are
+  identical on lips 0.10m apart, because the lip cancels out of
+  `gloveAboveFeet - hangDrop`. Proved load-bearing by breaking each clause
+  alone — zeroing the breath reds only the ride control while the worst-phase
+  clause reports a comfortable **5.70x** on eight readings of one phase, and
+  `hangDrop` 2.05 → 2.25 reds only the worst-phase clause while the ride
+  passes. Left alone and queued as **H40**: the shipped clause's own reading is
+  of the ease rather than of the hang.
+  Done 2026-10-07, commit `PENDING`.
 - **H34** The 13px neck at 8m is real, there is a 14, and eight phases was too
   coarse. H31 saw a 13 once in six runs and H33's eight-phase sweep on one map
   read 10-12 and recorded 2.33x of margin. **32 phases on each map** - the same

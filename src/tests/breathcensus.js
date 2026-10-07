@@ -30,11 +30,19 @@
  * numbers are not in its detail line at all (TRAPS.md), so it had to be
  * measured directly. `|gloveY - lip| <= 0.15m`, where the glove hangs off an
  * arm inside the body group the breath lifts: over eight phases the offset ran
- * **-0.021m to +0.055m, a span of 0.075m - half the tolerance** - with the
- * lift delivering its full +/-0.037m at the read. It passes at 2.75x on the
- * worst phase, so it wants nothing done today; what it wanted was bounding,
- * which is the state the two figure clauses were in before H31. **H38** is the
- * proposal.
+ * **-0.021m to +0.055m, a span of 0.075m - half the tolerance**. It passed on
+ * the worst phase, so it wanted nothing done; what it wanted was bounding,
+ * which is the state the two figure clauses were in before H31. **H38 built
+ * that bound, and corrected this number in the process**: read from a settled
+ * pose the offset runs **-0.014m to +0.066m** and the margin is **2.26x**, not
+ * the 2.75x recorded here, because the hang pose was still easing when this
+ * census read it (the arm's angle arrives by frame 30, the pose's contribution
+ * to the glove's height is still moving 0.009m between frames 30 and 120). The
+ * breath's own ride agrees either way, and a dense sweep of all 419 frames of a
+ * cycle puts it at 0.080m - twice `POSE.breath.lift` to the millimetre. The
+ * lesson is the one H34 left in a different currency: **a sweep inherits
+ * whatever its first sample inherited**, and here that was a transient rather
+ * than a phase.
  *
  * **Three: most of the suite cannot be reached at all, for four structural
  * reasons, and this check proves each one** rather than asserting it in prose:
@@ -133,8 +141,8 @@ const POSED = [
   },
   {
     module: 'hang.js',
-    reach: 'measured',
-    note: 'the thinnest in the suite, and the detail line does not carry it. |gloveY - lip| <= 0.15m ran -0.021m to +0.055m over eight phases, a span of 0.075m, which is half the tolerance; it passes at 2.75x on its worst phase. H38 proposes holding it at the worst phase',
+    reach: 'held',
+    note: 'the thinnest in the suite, and the detail line did not carry it. H38 gave it a second check that sweeps the cycle, asserts the worst phase and holds the glove\'s own ride absolutely as the control. It also corrected this line: read from a settled pose |gloveY - lip| runs -0.014m to +0.066m, not the -0.021m to +0.055m recorded here, because the hang pose was still easing when this census read it. The ride agrees (0.080m) and the margin is 2.26x, not 2.75x',
   },
   {
     module: 'animation.js',

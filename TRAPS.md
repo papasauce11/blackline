@@ -376,6 +376,20 @@ string and its own anchor assertion refused. Write the script to the scratchpad
 and run `python <path>`, and keep the anchor assertion that made the failure
 loud.
 
+**And H38 found the failure mode that has no mercy in it.** The paragraph above
+describes the loud case, where what bash hands python is nonsense and the anchor
+refuses. The quiet case is the common one: a backticked *identifier* with no
+slash in it - `auto`, `medium`, `bench only` - is run as a command, the shell
+prints `auto: command not found` to stderr among the rest of the output, and
+command substitution replaces it with **the empty string**. The script then
+succeeds. It patches the file, prints `ok`, and leaves prose with holes in it
+reading "would have picked  on both" - which is exactly what a sentence looks
+like when nobody reads it again. Nothing failed, the exit code was 0, and the
+only sign was four `command not found` lines above a success message. So the
+rule is not "write it to a file when the content looks dangerous"; it is to
+write **every** markdown patch to a file, because the content that bites is
+ordinary prose about this project, and then read the patched lines back.
+
 **Python's default encoding here is cp1252.** A script that opens a markdown
 file containing an em dash without `encoding='utf-8'` reads a different string,
 and an `anchor in s` that should be true is false. Open with `encoding='utf-8'`
