@@ -686,7 +686,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   with the worst ratio over them clearing the bar. Third time a pixel reading
   has turned out to be about how it was measured rather than about the body
   (H29's two readings, D64's band, H33's own eight phases).
-  Done 2026-10-07, commit `TBD34`.
+  Done 2026-10-07, commit `bf8cf98`.
 - **H33** Two phases survive a reset, and the census of what they reach.
   H31 found the mechanism — `updateVisual` runs on the wall clock from the
   render frame, `reset()` leaves the breath's phase alone, so the phase a check
