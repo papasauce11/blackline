@@ -641,7 +641,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   `state.probe`, which the run record carries and `HANDOFF.md` quotes as *what
   auto would have picked*, and a check that makes the report lie about the
   machine is the exact class of bug H24 found in H23's check.
-  Done 2026-10-06, commit `PENDING`.
+  Done 2026-10-06, commit `f4b031c`.
 - **H32** The `AudioContext` device error, and the test nobody had defined. It
   had appeared in two of six verifies (H27 yard, H29 plant), been written off
   by H28 after a single clean one and brought back by H29 the same day, so the
