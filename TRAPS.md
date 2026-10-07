@@ -212,6 +212,27 @@ only one that knows where the suite was. And the summary **prints the messages**
 rather than only the count, which is how the first two got written off by
 sessions that had seen a number and not a sentence.
 
+**`npm run bench` must not run beside `npm run suite`, and it refuses to
+(H11).** The bench opens a headed Chrome on the real GPU and times frames; the
+suite is half an hour of sustained all-core software rasterising. A frame timed
+beside one is a reading about a busy machine, and nothing in the number says
+so. So `bench.mjs` calls `otherRunners()` before it launches anything and exits
+2 naming the pid. The order in a run is: gate, build, **bench**, verify —
+the bench goes in the gap, never alongside. It also refuses if the browser
+comes up on a software rasteriser, because that is the gate's number wearing
+the word bench, and it writes nothing in either case.
+
+**And a cold gate's first seconds are not a reading about this machine.** H11's
+gate recorded `auto would pick low here (215.40ms median CPU over 8 frames)` on
+the plant. Twenty minutes later, on a byte-identical tree, a three-check subset
+read **5.90ms over 9 frames** — and the real GPU reads 3.2-4.1ms. 215ms is a
+reading about whatever else was starting on the machine while the page booted,
+over eight frames, and the probe takes it once per page load with no way to
+know. Two consequences: a probe median from a gate is not comparable with one
+from a subset or a bench, and **a run's own timings are not comparable with the
+numbers in `PROGRESS.md` unless the probe line looks sane**. This gate's plant
+run took 1,078s against the 963s on record, and that is the same fact.
+
 **A plant run can take 960s, and `npm run suite` is four runs.** Nothing of
 that fits the Bash tool's 10-minute cap. Start it with `run_in_background`
 writing to a file and wait on the file (`until grep -q "suite: " <file>`,

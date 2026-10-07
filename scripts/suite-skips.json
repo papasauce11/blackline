@@ -1,6 +1,1 @@
-[
-  {
-    "id": "the-frame-budget-holds-everywhere-not-just-at-site-a",
-    "reason": "Measures GPU frame time against an 8.33ms ceiling. Headless Chrome renders with SwiftShader (software) at ~400ms a frame, so the number says nothing about a real GPU. Run it in a real browser: F4 then Y."
-  }
-]
+[]

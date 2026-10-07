@@ -88,6 +88,7 @@ import { register as registerHeartbeat } from './heartbeat.js';
 import { register as registerTraversalFuzz } from './traversalfuzz.js';
 import { register as registerRegistry } from './registry.js';
 import { register as registerSkipList } from './skiplist.js';
+import { register as registerBenchList } from './benchlist.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -191,6 +192,9 @@ export function registerAutoTests(debugTools) {
   registerTraversalFuzz(debugTools);
   registerRegistry(debugTools);
   registerSkipList(debugTools);
+  // Beside it, the other list of checks the gate does not count: the ones
+  // `npm run bench` answers on the real GPU instead (H11).
+  registerBenchList(debugTools);
   // Last: it is the heaviest check and it leaves the world in a known state.
   registerPerformance(debugTools);
 }

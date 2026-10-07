@@ -6,10 +6,8 @@
  * `scripts/suite-skips.json` names checks the headless runner drops before it
  * judges anything: `judge()` in `scripts/suitereport.mjs` sees a skipped id, files
  * it under `skipped` with its reason and moves on, so the check counts towards
- * neither red nor flaky and the run exits 0. That is right for the one entry
- * in it - a frame budget measured against SwiftShader says nothing about a
- * real GPU - and it is also, in exactly one line of JSON, a way to make any
- * red check disappear. The routine's own instructions say what belongs there
+ * neither red nor flaky and the run exits 0. It is also, in exactly one line
+ * of JSON, a way to make any red check disappear. The routine's own instructions say what belongs there
  * ("only a check that measures this machine's GPU or audio hardware") and that
  * adding one is "never a way past a red gate"; until this check, nothing held
  * either sentence. The weekly audit greps the file and reports it unchanged,
@@ -33,6 +31,18 @@
  * the rule actually allows. Whether SwiftShader really draws in 400ms is a
  * measurement, and the check that measures it is the one being skipped.
  *
+ * **The file is empty since H11, and ALLOWED with it.** Its one entry for a
+ * month was the 92-viewpoint frame budget, and a skip turned out to be the
+ * wrong shape for it: a skip says "this machine cannot run this check" and
+ * then nobody owes an answer, which is how `PLAYTEST.md` came to be asking
+ * Josh to open the game and read that line by hand. It is now in
+ * `scripts/bench-checks.json`, where the claim is "`npm run bench` runs this
+ * one instead, on the real GPU, and the number is in `bench/<date>.json`" -
+ * held to the stronger standard that goes with the stronger claim by
+ * `tests/benchlist.js`, which also holds that no id is in both files. An
+ * empty list is not this check with nothing to do: it is this check holding
+ * the file empty, both ways, so a new skip is still an edit here.
+ *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
@@ -48,12 +58,7 @@ const SELF = 'the-headless-skip-list-holds-only-the-check-it-declares';
  * edit to a check, visible in the diff and in the commit that makes it - which
  * is the point, and the difference between an exemption and a way past.
  */
-const ALLOWED = [
-  {
-    id: 'the-frame-budget-holds-everywhere-not-just-at-site-a',
-    why: 'measures this machine\'s GPU against an 8.33ms ceiling, and headless draws with SwiftShader in ~400ms',
-  },
-];
+const ALLOWED = [];
 
 /**
  * The hardware a reason is allowed to appeal to. The rule is that only a check
@@ -134,8 +139,12 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${list.length} check${list.length === 1 ? '' : 's'} skipped headless, each declared here, registered, and argued from hardware `
-            + `(${ALLOWED.map((entry) => `${entry.id} ${entry.why}`).join('; ')}); the runner honours a skip only where this check is green`
+          ? (list.length
+            ? `${list.length} check${list.length === 1 ? '' : 's'} skipped headless, each declared here, registered, and argued from hardware `
+              + `(${ALLOWED.map((entry) => `${entry.id} ${entry.why}`).join('; ')}); the runner honours a skip only where this check is green`
+            : 'nothing is skipped headless: the list is empty, this check declares it empty, and the comparison runs both ways '
+              + 'so a new skip is an edit here too; the one entry it carried until H11 (the 92-viewpoint frame budget) is the '
+              + 'bench\'s now - scripts/bench-checks.json, held by tests/benchlist.js')
           : problems.join('; '),
       };
     },

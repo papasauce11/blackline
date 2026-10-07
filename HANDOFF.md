@@ -1,28 +1,26 @@
 # Blackline — handoff
 
-**Read this first.** Then `QUEUE.md` (the work), `DECISIONS.md` (what waits
-on Josh, and what he has decided), `PLAN.md` (the protocol a session follows),
-and `TRAPS.md` before you touch anything — thirty-odd environment traps, an
-hour each, which lived in this file until G2. `BLACKLINE_SPEC.md` is the
-contract; `PROGRESS.md` is the full append-only history — read the last entry,
-and the entry named in the index below for whatever you are about to touch.
-`PLAYTEST.md` is Josh's: how to run it, what to look at, what only eyes can
-judge, what is known to be wrong — every Block C, D, E and H job updates it.
+**Read this first.** Then `QUEUE.md` (the work), `DECISIONS.md` (what waits on
+Josh, and what he has decided), `PLAN.md` (the protocol), and `TRAPS.md` before
+you touch anything — thirty-odd environment traps, an hour each, which lived in
+this file until G2. `BLACKLINE_SPEC.md` is the contract; `PROGRESS.md` is the
+append-only history — read the last entry, and the entry named in the index
+below for whatever you are about to touch. `PLAYTEST.md` is Josh's: how to run
+it, what to look at, what only eyes can judge, what is known to be wrong —
+every Block C, D, E and H job updates it.
 
 This file is orientation, not history: every run reads it and pays for every
 line, so a job's write-up goes in `PROGRESS.md` and gets one line in the index
 here (G1). `traps-md-holds-the-traps-and-handoff-points-at-it` keeps it under
-**400 lines**, and a job that adds to it takes something out — which is the
-point.
+**400 lines**, and a job that adds to it takes something out.
 
 ## Last audit
 
 2026-09-27, HEAD `c5856f8`: plant 184 / 1 / 8, yard 165 / 1 / 27, 0 red, 0 flaky,
-0 console errors; live site 29/29 per map; 62 commits and 26 jobs that week, 0 WIP,
-0 blocked on Josh; no check deleted, no threshold loosened; 0 TODO/FIXME. **Both
-its findings are closed** — the yard's difficulty red was F17 the same day (easy's
-aim cone, wider at 16m than a body is), the 09-18 orphan runner gone since
-2026-10-05 (H23). Report: PROGRESS.md.
+0 console errors; live site 29/29 per map; 62 commits and 26 jobs, 0 WIP, 0 blocked
+on Josh; no check deleted, no threshold loosened; 0 TODO/FIXME. **Both its findings
+are closed** (F17's aim cone; the 09-18 orphan runner, gone since H23). Report:
+PROGRESS.md. **It is ten days old** — the next one is overdue.
 
 ## Where things stand
 
@@ -31,18 +29,18 @@ aim cone, wider at 16m than a body is), the 09-18 orphan runner gone since
 | Branch | `phases-14-45` — ahead of `main`, not merged; Josh merges |
 | Merge with | `git checkout main && git merge --ff-only phases-14-45`, then `git push origin main` |
 | Hosted | **https://papasauce11.github.io/blackline/** — a branch deploy of `phases-14-45`, rebuilt on every push (H2). Remote https://github.com/papasauce11/blackline; every commit is pushed (H1). `npm run suite -- --url https://papasauce11.github.io/blackline/ --regression` checks the live copy. **Which build a friend is on** is the main menu's footer, from `version.json` (H3) — live and reading `2af44b2 · 2026-09-27`, both H3 checks 2/2 per map against the Pages URL: `npm run stamp` writes it from git and only from a clean tree, so `npm run suite` stamps HEAD at the gate and leaves it alone mid-job — **and the `Record <job>` commit runs `npm run stamp`** so the deployed stamp names the job rather than the commit before it (D52; there is no deploy workflow and cannot be one from here) |
-| Working tree | clean after H31 (2026-10-06) |
-| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-10-06, after H25: plant 214 passed, 1 failed, 8 not for this map (1,065,586ms, 1,067,175ms), yard 194 / 1 / 28 (730,891ms, 737,424ms), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames, 0 skips withheld, 0 unexpectedly green, 0 re-runs and no other runner on the machine** - and both runs of each map agree exactly on every count. One more per map than the pair after H32 (213, 193): H25's check. Three jobs landed in that run (H31, H32, H25) and the suite grew by one check each time. **The `AudioContext` device error is at two of the last seven verifies** (H27 yard, H29 plant; H28, H30, H31, H32 and H25 clean - the last **four in a row**, which is the exact shape of evidence H28 mistook for a closure once already, so do not take it: four absences from end-of-session verifies are four observations of the same condition, not evidence about a cold machine) - intermittent, attributed to the page URL and never to a file in `src/`, with no sound check red; **H28 called it closed after one clean verify and H29 brought it back.** Since H32 its **code side is closed**: one module in all of `src/` names the realtime constructor, and the seventeen offline contexts a run builds have rendered correctly in every run on record - so it is the device, which exists and reads as **running at 48000Hz**, against H27's guess that headless Chrome has none. What is left is whether it ever happens *cold*, and every observation so far is an end-of-session verify. **So write the GATE's console-error count into your `PROGRESS.md` entry**: the gate is the only cold suite run this project ever does, it has been happening twice a day for weeks, no run has ever written its count down, and that is the whole of what **H35** waits for. The runner now stamps every console error with the map, the run and the seconds into it, and the summary prints the messages rather than only the count (D67, and `TRAPS.md` has the standing account). Every run line names how much of it was the renderer's pipeline tail instead of leaving it inside one check (F11), and a line per map names the spread between its runs — **plant 1,589ms (0% of the longer) and yard 6,533ms (1%)**, the tightest pair on record; the tails were 456,149ms and 454,679ms on the plant, 328,689ms and 336,458ms on the yard, so **a little over 40% of each run is the tail rather than work**. When a spread does move, read it against the *pipeline-wait* spread beside it before reading it as work: H32's yard pair moved 15,722ms and its wait moved 17,077ms, so the work had not moved at all, which is F16's point exactly. **Read the spread line before comparing any timing here to a `PROGRESS.md` number, and read the total against nothing at all.** The one failure on each map is the frame-budget check, skipped headless, and since F15 that skip is honoured only where `the-headless-skip-list-holds-only-the-check-it-declares` is green. The Deliberately-red list in `QUEUE.md` is empty. Every run is **pinned to `?quality=medium`** since H10, and since **H28 both off-levels exit 0 on both maps**, so a `low` run is a cheap *and* honest way to find out whether something is broken before paying for a medium one (2.6-3.3x faster: 384s plant, 210s yard, against 1,560s and 1,138s at `high`) - and since **H30 every pixel floor in the suite is a fraction of the drawing buffer**, so those runs mean the same thing the pinned one does. The summary says what auto *would* have picked: 8.70ms and 5.30ms (H10), 6.90ms, 8.10ms and 5.40ms (H23), 5.10ms (H28), 5.20ms (H29), 6.20ms (H30), 5.00ms/4.70ms (H31), 5.30ms/5.00ms (H32) and **6.50ms on the plant with 4.80ms on the yard** here, both `medium` - and since H25 the summary names **both maps** rather than only the first run, which is how you can see one machine give two readings 35% apart, which pick `medium` or `low` depending on the scene and the load — one machine, several answers, which is **H25**. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s. `--details <path>` writes every check's own detail line to a file, which is how a **passing** check's numbers are read - the report carries a detail only for a red or flaky one - and every detail is **cut at 400 characters** with no ellipsis (H29) |
-| Next job | **The second arc** (2026-09-25, D50): Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, in that order. H5 to H10, H23 to H25 and H27 to H32 are done, so the next job is **H11** (`npm run bench`: the real GPU, M), and after those the three follow-ups H31 and H32 left - **H33** (every other check that reads a posed body at whatever phase the run arrived in; `look.js`, `animation.js` and `smallwindow.js` all do), **H34** (the 8m neck varies 30% where the 25m neck varies 20%, on 43% of margin, and nobody knows why) and **H35** (three gates' console-error counts, then close the `AudioContext` error or do not - **and it says in as many words not to be started early**, because its evidence is three runs). H31 closed the margin question those two came out of: the hood is **10px in all 48 readings** and the neck 4-6px, so 1.67x at worst against 1.5x, nothing shipped changed, and `tests/breath.js` now holds that clause and one more at the **worst of eight phases of the breath** rather than at whichever phase a run arrives in. Every H job proceeds; nothing in the block is blocked. H17 and H18 are H5's follow-ups and wait on D55, and **H26** waits on D61. The other open small ones are **H21** (H7's store validates a stored number by type and not by range) and **H22** (the settings page is fourteen rows since H10) |
-| Waiting on Josh | **two things for his eyes, both small and specific.** **D68** (H25) is the newest Provisional and the only one of the three this week that a friend could have *felt*: on `auto`, the map you opened first used to decide your quality for the life of that browser, because the probe reads the machine **times the scene** (8.70ms and `low` on the plant against 5.30ms and `medium` on the yard, one machine). It now keeps the **lower** of what is stored and what it just measured. **The line worth his eye is the cost**: the level only ever goes *down* on its own, so a machine that was briefly busy is remembered as slower than it is until he clicks the settings row. The alternative - letting it drift back up once several readings agree - is a real feature and D68 says what it would take. Then **D67** (H32) is the newest Provisional and the line worth his eye is a refusal: a console error is counted and now *printed* in the summary, and it still **does not fail the gate** - because the `AudioContext` device error would have failed two of the last six verifies, both of them correct runs of a correct game. Its code side is closed (one module in all of `src/` opens the audio device; the seventeen offline renders a run does have never failed), so what is left is the machine, and whether it ever happens on a *cold* run is now a procedure rather than a guess. Then **D66** (H31) is the newest Provisional and it is short: the hood-over-neck clause was measured before it was touched, the hood came back 10px in all 48 readings and the neck 4-6px, so the clause stands at 1.67x of margin at worst and nothing shipped changed - and **it corrects the mechanism D64 gave for its own numbers**, which was a band sliding and is really the Shade breathing. Nothing in D66 changes a rule or a look; the line worth a glance is that **a one-row change in measured height does not move that band**, which D64 said it did. Then **D64** (H29), which is the **answer to the question D63 raised** - except that the answer is *the suite cannot tell*, so the last step is his. Asked directly, over five drawing-buffer sizes face-on at 25m on both maps, the hood-over-neck reading came back **unstable between two runs of one suite**: 8/4 = 2.00x against **8/6 = 1.33x** at 956x538, and 6/4 = 1.50x against **6/6 = 1.00x** at 896x503 - after eight isolated runs had agreed to within a pixel. The cause is not quantisation of a row, and **not the band sliding either, which is what D64 says and what D66 corrects**: at 25m in those buffers the silhouette is **30 rows tall and 8 pixels wide**, and H31 measured the real cause to be the Shade's own breath moving the body past the pixel grid. **A hood cannot be told from a neck inside eight pixels**, which vindicates D63 more strongly than D63 claimed for itself, and is what both entries agree on. So the ask in `PLAYTEST.md` under *Still needs a human* is one look: **open the game at `?quality=low` in a window about 1366x768, find a Shade at 25m, and say whether he can tell it from a Warden.** If he can, nothing needs doing; if he cannot, *then* there is a minimum-resolution decision, which is why none was written on a guess. D64 also **retracts H29's own first conclusion** - that the hood reads everywhere and no such line was needed - because it rested on the run that read 4px necks. Then **D63** itself, still open for override, and H29 is the argument against the alternative it offered (hold `low` to the silhouette): at that size the clause asserts which sub-pixel alignment a three-row band happened to catch. Then **D62** (H27): the quality level was changing the game through the shared rng and now cannot, by having two streams off one seed - the line worth his eye is that **a given seed produces a different match than it did before 2026-10-05**; it reproduces itself exactly, which is all a seed ever promised, but it is not the same match that number gave last week. Then **D61** (H23): a menu card's picture does not depend on the quality level at all, measured byte-identical at `low` and at `medium`, and it is left that way because a card is a picture of a place and every friend seeing the same strip beats a strip that previews their machine; the other option is **H26**. Then **D60** (H10), where the line worth his eye is that **`low` turns the outlines off**: everything else in that row is pure cost, but the outline is how a body separates from the concrete behind it (Section 4), so a friend on a weak laptop might be playing a *more readable* game at medium with a 512 shadow map than at low. D60 also holds the post being the player’s row **AND** the level, and that `high` does nothing on a 2x display (the 1.75 cap). Then **D59** (H9: the FOV sliders run 60–100, the Warden’s aim narrows to 52 absolutely, head-bob ships off and `PLAYTEST.md` asks him to switch it on), **D58** (a rebind replaces the first key and keeps the alternate) and **D57** (what a browser keeps). **D55** (the main menu as built) is the one with a real question inside it: the plant is a sealed shell, so its card is its roof, and showing its inside needs the roof hidden for the render - that is **H17**, and it waits on his word. **D56** is the newest Blocking and is genuinely a rule: there is no Shade AI, so “play the Warden” can only mean free roam; nothing is blocked on it. **D54** (easy’s aim cone 5.0 → 4.0) is the one a player can feel. The Provisional section stays open for override, and the things only eyes can settle are under *Still needs a human* |
-| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,974 lines); `no-source-file-outside-config-is-over-600-lines` holds it, and it counts **every module the page loaded, `tests/` included** — 159 of them. H10 added `src/quality.js` (522) and `src/tests/quality.js` (437) and took `src/main.js` to 557, `src/ui/menupages.js` to 413 and `src/systems/effects.js` to 461; H23 added `src/tests/qualityhold.js` (222), H28 `src/tests/bufferscale.js` (170), H29 `src/tests/smallwindow.js` (232), H31 `src/tests/breath.js` (191), which took `tests/figure.js` to 494, H32 `src/tests/audiocontext.js` (205) and H25 `src/tests/autopick.js` (185), which also took `src/quality.js` from 522 to **566** - the next job to touch it should know it has 34 lines of room. **`src/physics.js` is at exactly 600 and `tests/movement.js` at 599** (then `systems/combat.js` 593, `maps/plant.js` 585, `tests/ai.js` 576, `tests/objective.js` 575, `systems/audio.js` 573) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. **H23 and H28 are the worked examples**: H23's check took `tests/quality.js` to 606 and H28 needed a clause in `tests/visual.js` at 589, and both times the block came straight back out into a sibling named for its own subject — `tests/outline.js` (180) is H28's, and it took `visual.js` down to 485. H29 kept its own check out of `tests/figure.js` (459) for the same reason and took four exports from it rather than copies: `flatShadeSilhouette`, `silhouetteFloor`, `yawToward`, `HOOD_OVER_NECK` and `NARROW`. `src/mapground.js` is 543, `src/mapkit.js` 537, `tests/difficulty.js` 554, `tests/donedef.js` 504, `src/ui/autosuite.js` 499, `tests/menu.js` 489. Outside `src/`, **H10 split `scripts/suite.mjs` at 599**: the verdict and the printing are `scripts/suitereport.mjs` (189) and the runner is 455, with `watchdog.mjs` 205 and `headless.mjs` 132. **This page is kept under the 400 lines `traps-md-holds-the-traps-and-handoff-points-at-it` allows** — a job that adds to it takes something out, which is the point of G1 and G2. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions, and since F13 the gate holds that census |
+| Working tree | clean after H11 (2026-10-07) |
+| AUTO suite | headless, `npm run suite`, **both maps since D6**, twice each. **2026-10-07, after H11: plant 215 passed, 1 failed, 8 not for this map (1,050,750ms, 1,062,140ms), yard 195 / 1 / 28 (725,592ms, 736,663ms), exit 0, 0 red, 0 flaky, 0 console errors, 0 context losses, 0 loop frames, 0 skips withheld, 0 bench drops withheld, 0 unexpectedly green, 0 re-runs and no other runner on the machine** - and both runs of each map agree exactly on every count. One more per map than the pair after H25 (214, 194): H11's check. **The one failure on each map is the frame-budget check, and since H11 it is reported as `bench only` rather than `skipped headless`** - a different claim, held by a different census, and the line under it names the newest real-GPU reading (`last bench 2026-10-07 (e95fe4b) on ... GTX 1060 ...: OK, 12 readings`). A stale one prints and does not red (D69). The Deliberately-red list in `QUEUE.md` is empty. **The `AudioContext` device error is at two of the last eight verifies** (H27 yard, H29 plant; H28, H30, H31, H32, H25 and H11 clean - the last **five in a row**, which is the exact shape of evidence H28 mistook for a closure once already, so do not take it: five absences from end-of-session verifies are five observations of the same condition, not evidence about a cold machine) - intermittent, attributed to the page URL and never to a file in `src/`, with no sound check red. Since H32 its **code side is closed**: one module in all of `src/` names the realtime constructor and the seventeen offline contexts a run builds have rendered correctly in every run on record, so it is the device, which exists and reads as **running at 48000Hz**. What is left is whether it ever happens *cold*. **So write the GATE's console-error count into your `PROGRESS.md` entry**: the gate is the only cold suite run this project ever does, and until H11 no run had ever written its count down. **H11's gate was 0**, the first of the three **H35** waits for. The runner stamps every console error with the map, the run and the seconds into it, and the summary prints the messages rather than only the count (D67; `TRAPS.md` has the standing account). Every run line names how much of it was the renderer's pipeline tail rather than work (F11) - **about 43% of each run here** (449,607ms and 456,243ms on the plant, 330,747ms and 328,813ms on the yard) - and a line per map names the spread between its runs: **plant 11,390ms (1% of the longer) and yard 11,071ms (2%)**, against pipeline-wait spreads of 6,636ms and 1,934ms. When a spread moves, read it against the *pipeline-wait* spread beside it before reading it as work: H32's yard pair moved 15,722ms and its wait moved 17,077ms, so the work had not moved at all, which is F16's point exactly. **Read the spread line before comparing any timing here to a `PROGRESS.md` number, and read the total against nothing at all** - H11's own cold gate went 1,078s on the plant against these 1,051s, with a probe median of 215.40ms against 5.90ms, which is machine load and not work (`TRAPS.md`). Every run is **pinned to `?quality=medium`** since H10, and since **H28 both off-levels exit 0 on both maps**, so a `low` run is a cheap *and* honest way to find out whether something is broken before paying for a medium one (2.6-3.3x faster: 384s plant, 210s yard, against 1,560s and 1,138s at `high`) - and since **H30 every pixel floor in the suite is a fraction of the drawing buffer**, so those runs mean the same thing the pinned one does. The summary says what auto *would* have picked: 8.70ms and 5.30ms (H10), 6.90ms/8.10ms/5.40ms (H23), 5.10ms (H28), 5.20ms (H29), 6.20ms (H30), 5.00ms/4.70ms (H31), 5.30ms/5.00ms (H32), 6.50ms/4.80ms (H25) and **5.90ms on the plant with 4.80ms on the yard** here, both `medium` - and since H25 it names **both maps** rather than only the first run, which is how you see one machine give two readings 35% apart. **H11 asked the same question of the real GPU and got 3.2-4.1ms on both maps, picking `high`, the two agreeing to 0.2ms** - so the gap D68 is about is mostly this renderer. The regression set (`--regression`, or F4 then U) is whole on every map since D7: plant 29 checks in 58s headless, yard 29 in 25s. `--details <path>` writes every check's own detail line to a file, which is how a **passing** check's numbers are read - the report carries a detail only for a red or flaky one - and every detail is **cut at 400 characters** with no ellipsis (H29) |
+| Next job | **The second arc** (2026-09-25, D50): Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, in that order. H5 to H11, H23 to H25 and H27 to H32 are done, so the next job is **H33** (S) — the census H31's mechanism asks for: `updateVisual` runs on the **wall clock from the render frame**, never from `fixedStep`, and `Agent.reset()` leaves `_breathTime` alone, so the breath's phase at any check is a function of how many frames the whole run drew before it, worth most of a pixel row at 25m. `tests/figure.js` is covered at the worst phase by `tests/breath.js`; **`look.js`, `animation.js` and `smallwindow.js` read a posed body the same way and nobody knows whether any of their clauses is near a margin**. It says *do the census, not the fix*, and D66 names and refuses the cheap global alternative. Then **H34** (the 8m neck varies 30% where the 25m varies 20%, on 43% of margin, and nobody knows why), **H36** (H11: the sweep's worst viewpoint is one frame and does not reproduce between two benches, where the mean agrees to 0.12ms), **H37** (H11/D69: the weekly audit says how old the bench is) and **H35** (three gates' console-error counts, then close the `AudioContext` error or do not — **it says in as many words not to be started early**, because its evidence is three runs, and H11's gate is the first of them at **0**). Every H job proceeds; nothing in the block is blocked. H17 and H18 are H5's follow-ups and wait on D55, and **H26** waits on D61. The other open small ones are **H21** (H7's store validates a stored number by type and not by range) and **H22** (the settings page is fourteen rows since H10) |
+| Waiting on Josh | **nothing blocking, and one piece of actual good news at the head of it.** **D69** (H11) is the newest Provisional, and it is the first entry in weeks that *closes* something rather than asking: the frame budget on a real GPU, the oldest eyes-only item on `PLAYTEST.md`, is **answered** — `npm run bench` on this PC's GTX 1060 says it holds everywhere, **3x to 6x under its ceiling**, over twelve readings on both maps at all three levels. Two things in there are worth a glance of his even though neither is a decision: **`high` is nearly free on this card** (1.71ms against `medium`'s 1.75ms), so if he has been playing at `medium` out of caution there is no reason to, which is a line under D60 nobody could write before; and **`auto` picks `high` here with both maps agreeing to 0.2ms**, where software GL had them 3.4ms apart — so the gap D68 is about is mostly an artefact of the renderer the gate uses, though its mechanism is real and H25's fix stands. The decision D69 actually asks him to accept is small: a bench-only check is answered only when somebody runs the bench, and **a stale bench prints its date rather than going red**, so the gate can say OK beside a real-GPU number from another commit. The refused alternative (red on a stale bench) is **H37**, moved to the weekly audit where a calendar question belongs. Then **D68** (H25), the one of these a friend could have *felt*: on `auto`, the map you opened first used to decide your quality for the life of that browser, because the probe reads the machine **times the scene** (8.70ms and `low` on the plant against 5.30ms and `medium` on the yard, one machine). It now keeps the **lower** of what is stored and what it just measured. **The line worth his eye is the cost**: the level only ever goes *down* on its own, so a machine that was briefly busy is remembered as slower than it is until he clicks the settings row. The alternative - letting it drift back up once several readings agree - is a real feature and D68 says what it would take. Then **D67** (H32) is the newest Provisional and the line worth his eye is a refusal: a console error is counted and now *printed* in the summary, and it still **does not fail the gate** - because the `AudioContext` device error would have failed two of the last six verifies, both of them correct runs of a correct game. Its code side is closed (one module in all of `src/` opens the audio device; the seventeen offline renders a run does have never failed), so what is left is the machine, and whether it ever happens on a *cold* run is now a procedure rather than a guess. Then **D66** (H31) is the newest Provisional and it is short: the hood-over-neck clause was measured before it was touched, the hood came back 10px in all 48 readings and the neck 4-6px, so the clause stands at 1.67x of margin at worst and nothing shipped changed - and **it corrects the mechanism D64 gave for its own numbers**, which was a band sliding and is really the Shade breathing. Nothing in D66 changes a rule or a look; the line worth a glance is that **a one-row change in measured height does not move that band**, which D64 said it did. Then **D64** (H29), which is the **answer to the question D63 raised** - except that the answer is *the suite cannot tell*, so the last step is his. Asked directly, over five drawing-buffer sizes face-on at 25m on both maps, the hood-over-neck reading came back **unstable between two runs of one suite**: 8/4 = 2.00x against **8/6 = 1.33x** at 956x538, and 6/4 = 1.50x against **6/6 = 1.00x** at 896x503 - after eight isolated runs had agreed to within a pixel. The cause is not quantisation of a row, and **not the band sliding either, which is what D64 says and what D66 corrects**: at 25m in those buffers the silhouette is **30 rows tall and 8 pixels wide**, and H31 measured the real cause to be the Shade's own breath moving the body past the pixel grid. **A hood cannot be told from a neck inside eight pixels**, which vindicates D63 more strongly than D63 claimed for itself, and is what both entries agree on. So the ask in `PLAYTEST.md` under *Still needs a human* is one look: **open the game at `?quality=low` in a window about 1366x768, find a Shade at 25m, and say whether he can tell it from a Warden.** If he can, nothing needs doing; if he cannot, *then* there is a minimum-resolution decision, which is why none was written on a guess. D64 also **retracts H29's own first conclusion** - that the hood reads everywhere and no such line was needed - because it rested on the run that read 4px necks. Then **D63** itself, still open for override, and H29 is the argument against the alternative it offered (hold `low` to the silhouette): at that size the clause asserts which sub-pixel alignment a three-row band happened to catch. Then **D62** (H27): the quality level was changing the game through the shared rng and now cannot, by having two streams off one seed - the line worth his eye is that **a given seed produces a different match than it did before 2026-10-05**; it reproduces itself exactly, which is all a seed ever promised, but it is not the same match that number gave last week. Then **D61** (H23): a menu card's picture does not depend on the quality level at all, measured byte-identical at `low` and at `medium`, and it is left that way because a card is a picture of a place and every friend seeing the same strip beats a strip that previews their machine; the other option is **H26**. Then **D60** (H10), where the line worth his eye is that **`low` turns the outlines off**: everything else in that row is pure cost, but the outline is how a body separates from the concrete behind it (Section 4), so a friend on a weak laptop might be playing a *more readable* game at medium with a 512 shadow map than at low. D60 also holds the post being the player’s row **AND** the level, and that `high` does nothing on a 2x display (the 1.75 cap). Then **D59** (H9: the FOV sliders run 60–100, the Warden’s aim narrows to 52 absolutely, head-bob ships off and `PLAYTEST.md` asks him to switch it on), **D58** (a rebind replaces the first key and keeps the alternate) and **D57** (what a browser keeps). **D55** (the main menu as built) is the one with a real question inside it: the plant is a sealed shell, so its card is its roof, and showing its inside needs the roof hidden for the render - that is **H17**, and it waits on his word. **D56** is the newest Blocking and is genuinely a rule: there is no Shade AI, so “play the Warden” can only mean free roam; nothing is blocked on it. **D54** (easy’s aim cone 5.0 → 4.0) is the one a player can feel. The Provisional section stays open for override, and the things only eyes can settle are under *Still needs a human* |
+| Source | no module in `src/` over 600 lines except `config.js` (a table, exempt in PLAN.md, 1,974 lines); `no-source-file-outside-config-is-over-600-lines` holds it, and it counts **every module the page loaded, `tests/` included** — 159 of them. H10 added `src/quality.js` (522) and `src/tests/quality.js` (437) and took `src/main.js` to 557, `src/ui/menupages.js` to 413 and `src/systems/effects.js` to 461; H23 added `src/tests/qualityhold.js` (222), H28 `src/tests/bufferscale.js` (170), H29 `src/tests/smallwindow.js` (232), H31 `src/tests/breath.js` (191), which took `tests/figure.js` to 494, H32 `src/tests/audiocontext.js` (205) and H25 `src/tests/autopick.js` (185), which also took `src/quality.js` from 522 to **566** - the next job to touch it should know it has 34 lines of room. H11 added `src/tests/benchlist.js` (235) and, outside `src/`, `scripts/bench.mjs` (321), taking `scripts/suitereport.mjs` to 311. **`src/physics.js` is at exactly 600 and `tests/movement.js` at 599** (then `systems/combat.js` 593, `maps/plant.js` 585, `tests/ai.js` 576, `tests/objective.js` 575, `systems/audio.js` 573) — the next line added to any of them turns that check red, so the job that touches one splits it first rather than discovering this halfway through a verify. **H23 and H28 are the worked examples**: H23's check took `tests/quality.js` to 606 and H28 needed a clause in `tests/visual.js` at 589, and both times the block came straight back out into a sibling named for its own subject — `tests/outline.js` (180) is H28's, and it took `visual.js` down to 485. H29 kept its own check out of `tests/figure.js` (459) for the same reason and took four exports from it rather than copies: `flatShadeSilhouette`, `silhouetteFloor`, `yawToward`, `HOOD_OVER_NECK` and `NARROW`. `src/mapground.js` is 543, `src/mapkit.js` 537, `tests/difficulty.js` 554, `tests/donedef.js` 504, `src/ui/autosuite.js` 499, `tests/menu.js` 489. Outside `src/`, **H10 split `scripts/suite.mjs` at 599**: the verdict and the printing are `scripts/suitereport.mjs` (189) and the runner is 455, with `watchdog.mjs` 205 and `headless.mjs` 132. **This page is kept under the 400 lines `traps-md-holds-the-traps-and-handoff-points-at-it` allows** — a job that adds to it takes something out, which is the point of G1 and G2. 0 TODO/FIXME; one `Math.random` (the audio noise buffer) and one `setTimeout` (the performance check), both documented exceptions, and since F13 the gate holds that census |
 | Runtime assertions | 8, zero failures |
 | Map, plant | 214 collision boxes, 57 climbable, Warden ground one connected component with a column of cells down each vault rack aisle. **8 declared routes, 22 stages** (`map.routes`); 21 surfaces that need a leg up, every one a stage or landing of a route; **139 of 139** approaches the rule names climb |
 | Map, yard | 132 boxes, 58 climbable, 5 lamps, Warden ground 15,332 cells in one component, 21 waypoints, **9 declared routes, 20 stages**, 11 surfaces that need a leg up, every one on a route; **151 of 151** approaches climb; 44 container tops one connected deck; the walkway's floor and roof have no approach at all |
 
 Phases 1–49 of the original build are done and committed. The **redesign** (the
-50-phase plan, below) closed at B9, 2026-09-14; its two remaining questions went
-2026-09-21 (B5b dropped on D25, B5d built on D27). Blocks A–G are all closed.
+50-phase plan, below) closed at B9, 2026-09-14, its last two questions on
+2026-09-21 (B5b dropped, D25; B5d built, D27). Blocks A–G are all closed.
 
 ## What was built, and where it is written up
 
@@ -87,8 +85,9 @@ the gate holds the spec's two bans, one `Math.random(` and one `setTimeout(`,
 each argued at its own line · F14 the suite counts itself, so a dropped
 `register` call cannot shrink every run silently · F15 the skip list is a
 census and not a lever — the runner honours a skip only on a map where that
-check passed, so the policeman cannot be exempted · F16 read every run-pair on
-record: the pairs agree since F11 and the runner prints the spread per map.
+check passed, so the policeman cannot be exempted (H11 gave the bench list the
+same rule) · F16 read every run-pair on record: the pairs agree since F11 and
+the runner prints the spread per map.
 **Each has a PROGRESS entry; that is where the argument is.**
 
 **F17 / F18** a fresh seed turned the yard's difficulty check red and the cone was why: at 16m the Shade subtends ±1.22 degrees against easy's ±5, held for a whole burst, so a kill was a run of coins. `easy.aimErrorDegrees` 5.0 → **4.0** (D54), and F18 gave the check the clause F17 could not calibrate — **count bursts, not rounds**, and god-mode the Shade so an engagement stops sampling when the cone succeeds rather than when it lands. Two alternatives were measured and rejected; the per-round draw is right in principle and is **K6**'s.
@@ -105,6 +104,7 @@ record: the pairs agree since F11 and the runner prints the spread per map.
 - **H7** settings that survive a reload: one versioned record under one key, a version it does not know ignored rather than migrated, a hand-edited one able to set only a key the defaults have at the type they have, and **every access wrapped** because `localStorage` throws rather than returning null when site data is blocked. The one setting deliberately not kept is the debug gate (`NOT_PERSISTED`, D57).
 - **H8** rebinding: a **Controls** page, a row per action, press-to-bind, the row's own reset, a rebind writing the first key and leaving the alternate, and a key on two actions **shown rather than refused** (`bindingConflicts()`, D58). The defect worth reading: **binding a key also fired it**, because the keydown reaches the `Input` as well as the menu and the listener order is not ours — the gate is `swallowPress()`, held to the keyup.
 - **H10** quality presets: low / medium / high / auto over the shadow map, the resolution, the post, the particle counts and the outlines — `src/quality.js`, with `CONFIG.quality` the table and **`medium` exactly what the game drew before there were presets**. The probe **records and does not decide**: what is applied is `activeQuality()`, the URL's `?quality=` first, the row second, auto's stored pick third, `medium` before there is one, asserted every frame by `syncQuality()` as H9 asserts the FOV. The queue predicted auto would pick `low` headless; it picked **`high`**, because a CPU clock round a draw says nothing about a software renderer that queues, and `cpuBudgetFraction` is the constant that exists to say so. It also split `scripts/suite.mjs` and left **H23**, **H24** and **D60**.
+- **H11** the frame budget on the real GPU, and the oldest eyes-only item on `PLAYTEST.md` closed with a measurement. `npm run bench` opens a **headed** Chrome on this PC's own GPU (window off the desktop), loads every map at every level and writes `bench/<date>.json`. **It holds everywhere, 3x to 6x under its ceiling**: twelve readings on `NVIDIA GeForce GTX 1060 6GB`, mean draw **1.12-1.83ms** against 8.33ms, check 29's whole load **CPU 2.00ms + GPU 2.01ms** against 16.67ms at the worst of them, peak 387 draw calls against a 600 cap. The **GPU timer worked for the first time** (`EXT_disjoint_timer_query_webgl2` needs a real driver), so the project has GPU milliseconds at all now. Three findings past the budget: **`high` is nearly free** (1.71ms against `medium`'s 1.75ms, which is a line under D60); **`auto` picks `high` on both maps, 3.2-4.1ms, agreeing to 0.2ms** where software GL had them 3.4ms apart, so D68's gap is mostly the gate's renderer and not the machine; and **the sweep's "worst viewpoint" does not reproduce while its mean does** - 5.50ms→2.60ms at `medium` and 2.60ms→4.60ms at `high` over two benches, a different place named five times in six, because the check times **one** frame per viewpoint and that one frame is what it asserts. That is **H36** and it matters on a weaker machine, not this one. The mechanism change is that **a skip and a bench-only drop are now different claims**: `suite-skips.json` ("this machine cannot run this") is empty, `bench-checks.json` ("`npm run bench` answers this, and here is where") holds the frame budget, one file read by the bench and by the gate so they cannot drift, and `the-bench-only-list-holds-only-checks-the-bench-itself-runs` holds it to more than F15 asks - hardware **and** the command named in the reason, no id in both files, no id in `bench.mjs`'s own **code** (prose decided line-locally, as `donedef.js` does it), and `package.json` really carrying the script. Proved by breaking two clauses at once and watching it name `bench.mjs:83` while leaving the same id in that file's doc comment alone. **D69**; the follow-ups are **H36** and **H37**.
 - **H31** what the neck actually does, and the breath that moves it. Two shipped checks assert a 1.5x hood-over-neck ratio on a band three rows deep, and the queue insisted on measuring before touching either. **48 readings, six runs, both maps, face-on at 25m on the reference buffer: the hood 10px every single time and the neck 4, 5 or 6px, never 7**, so the clause reads **1.67x at worst** against its 1.5x in all six runs to the digit - and the two shipped checks agree independently, six readings each. So the first of the queue's three outcomes, **a comment naming the margin and no edit**; neither shipped clause was touched. **The finding is what moves it.** `updateVisual` runs on the wall clock from the render frame, never from `fixedStep`, and `reset()` deliberately leaves `_breathTime` alone - so the phase a check reads is a function of how many frames the whole run drew before it, which is why a subset and a full suite disagree. **This corrects D64** (`D66`): D64 blamed a one-row height change sliding a two-row band onto the shoulders, and the band is three rows at both 30 and 31 and at the *same offsets*, so that cannot be it. D64's conclusion is untouched and reinforced - H29's instability reproduced across six runs (1.33x-2.00x at 956x538, 1.00x-1.50x at 896x503, against 1.67x six-for-six at the reference), so nothing asserts the ratio below the reference. The **deeper option was refused with a measurement**: a fixed row count would not touch a variation that happens inside one row. A **second clause on the same band and the same 11%** turned up - `HOOD_OVER_ALL_BELOW` read exactly 1.00 against 0.9 - and `tests/breath.js` holds both at the **worst of eight phases** of the breath, which is a claim neither shipped check makes. It is stable because the worst value is common rather than rare. `figure.js` gained a row `profile` so a check can print *where the bands fell* rather than only what they returned. Follow-ups **H33** and **H34**. Its gate was H30's VERIFY on a byte-identical tree, because this run's own gate was lost to a background timeout shorter than the gate - two rules now in `TRAPS.md`.
 - **H30** every pixel floor under `src/tests/` is a fraction of the drawing buffer, or says why it is not. H28 scaled the six H24's off-level runs caught and left the rest with an honest note - *none is red at any level today, which means only that no level happens to cross them* - which was exactly true of H28's six beforehand. The census is **twelve**: **eight scaled** (a body in `visual.js` and `presentation.js`, the alarm fixture, the death cam's killer, a vent region and a route strip in `legibility.js`, the rim), **one already right** (`feedback.js`'s vignette at 5% of the frame, the precedent), and **three left absolute**, which is **D65**: the alarm tripwire at 10px and the hit marker and damage arc at 20px are **existence** claims, not size ones, and scaling a tripwire makes it *looser* on a small buffer. The smoke floor is the one that did not take `scaledCount` - *obscuring* is a share of what the player can see, so it reads the fraction of the frame the check already computed. **The queue was wrong about one module**: `readability.js` holds no floors and never calls `createLens`. Held by `every-pixel-floor-under-tests-is-a-fraction-of-the-buffer-or-says-why-not` on F13's model rather than a comment convention - a table of allowances with reasons, red on a new floor **and** red when an allowance goes stale - proved by reverting one floor and watching it name the line, and it **caught itself** doing so, because the first draft spelled its own test string out as a literal. It exercises its pattern every run, since a census whose regex rotted would report zero and pass.
 - **H29** does a small window keep a body legible at 25m? **The suite cannot tell, and establishing that is the result.** Asked of the buffer rather than of the level, five sizes face-on at 25m on both maps - and the hood-over-neck reading came back **unstable across two runs of one suite**: 2.00x against **1.33x** at 956x538 and 1.50x against **1.00x** at 896x503, after eight isolated runs had agreed to within a pixel of neck. Not quantisation of a row - and **not what this bullet used to say either**: H31 measured the cause and it is the **breath**, 4cm of torso on a body drawn at 4.5cm a row, sliding the body past the pixel grid. `band()` measures down from the top row with both ends scaling together, so at 30 rows and at 31 the band is the *same three* offsets and a one-row height change cannot have moved it (D66 has the arithmetic). The two readings measure the same neck at two sub-pixel alignments. **A hood cannot be told from a neck inside eight pixels of width**, which vindicates D63 more strongly than D63 claimed. So the check asserts only what held in every run - the body is found, covers its share of the buffer (H28), and stays 3:1 narrow against a bar of 2.2, stable because it is a ratio of the whole silhouette and not of a three-row band - and the hood and neck are reported, asserted nowhere. **D64** records it and **retracts this job's own first conclusion**, that the hood reads everywhere and no minimum-resolution line was needed; whether 30x8 pixels reads as a hood is now one specific eyes-only ask in `PLAYTEST.md`. Three lessons: a detail line is **cut at 400 characters** with no ellipsis (in `--details` too), a **passing check's numbers are not in the report at all**, and **eight agreeing runs in isolation did not predict a full suite**, because the body's measured height moves a row in full-suite context. Its follow-up **H31** is strengthened: at the *reference* buffer the neck read 5px and 6px across runs, and the two shipped figure checks assert 1.5x on exactly that number.
@@ -161,12 +161,11 @@ sweep — `PROBE_STEP` 0.12 up from the feet, stop where the hand is not in open
 air, keep sweeping past anything that is not this box — meets this box's face.
 A face above the ceiling over the only place you can stand is not climbable, and
 nothing has to say so. The old test ("any wide surface within `vaultReach` of the
-footprint is below") named a gantry touching a deck slab at one corner, a duct
-roof diagonally beside a container, and server racks three metres under the roof;
-nine surfaces stopped deriving and every designed route kept its move.
-`the-climb-rule-has-no-exceptions` recomputes "should climb" from the same
-approaches and passes, which makes the rule the single source of truth.
-`GameMap._supportApproaches(box)` is how a check reads the spots.
+footprint is below") named a gantry touching a deck slab at one corner and server
+racks three metres under the roof; nine surfaces stopped deriving and every
+designed route kept its move. `the-climb-rule-has-no-exceptions` recomputes
+"should climb" from the same approaches and passes, which makes the rule the
+single source of truth. `GameMap._supportApproaches(box)` reads the spots.
 
 "Needs a leg up first" is reported, not failed — Josh's call; a surface you climb
 something else to reach is the point of a stacked route. Since B5 "from the floor"
@@ -190,24 +189,22 @@ standing body's worth of open air above the charge. A duct fails by its roof, a
 crate top passes by the air above it, nothing is named.
 
 Why the room alone is not enough: the Warden stays grounded and the Shade climbs
-anything within 3.8m, so the Shade could plant on a gantry or a vent roof where
-no Warden can kneel — an unloseable plant, and worse,
-`setDefendTarget(round.chargeAt)` would send the AI at a charge it cannot reach
-and stall it in DEFEND for the whole 45s fuse.
-
-What it actually excludes, measured (A5, after B4): of **377 places a charge can
-go inside a site room** it refuses **ten** — the 8 ducts by their lid, and two
-wide tops whose middles are over 2m from any Warden ground. So it reads "no plant
-in the middle of anything wider than four metres" far more than "no plant up
-high", and on a flat room floor it changes nothing. Detail in `PROGRESS.md`.
+anything within 3.8m, so the Shade could plant where no Warden can kneel — an
+unloseable plant, and `setDefendTarget(round.chargeAt)` would stall the AI in
+DEFEND at a charge it cannot reach for the whole 45s fuse. What it actually
+excludes, measured (A5, after B4): of **377 places a charge can go inside a site
+room** it refuses **ten** — the 8 ducts by their lid, and two wide tops whose
+middles are over 2m from any Warden ground. So it reads "no plant in the middle
+of anything wider than four metres" far more than "no plant up high", and on a
+flat room floor it changes nothing. Detail in `PROGRESS.md`.
 
 Block A's checks were one 1,382-line file and are now four: `tests/plantspots.js`
 (where a charge can go — `spotOffTheRing`, `plantAt`, `perchesInSiteRooms`,
 `plantableSpots`, `plantOutcomeAt`, shared by all four), `tests/plantrule.js`
 (A2–A4: one reach, the gate every step, the refusal's HUD line),
 `tests/plantcensus.js` (A5, the whole map both directions) and
-`tests/objective.js` (round flow: detonation, defuse retention, lives, reinsert,
-milestones, state not bleeding).
+`tests/objective.js` (round flow: detonation, defuse retention, lives,
+reinsert, milestones, state not bleeding).
 
 ## Where the code went — F3's split
 
@@ -228,12 +225,12 @@ it so. Nothing moved changes an order or a name a check reaches. H4 added
 | `systems/gadgets.js` (633) | `gadgets.js` (506). `gadgeteffects.js`: `EffectRegistry`, `Projectile` |
 
 The class splits (`agent`, `ai`, `mapkit`) are **prototype mixins**: the sibling
-file exports an object of methods and the class file ends with
-`Object.assign(X.prototype, ...)`. `this` is the same object, every private field
-keeps its name, and `shade._probeLedge`, `ai._pathTo`, `map._supportCandidates`
-still exist for the checks that call them. A method needing a module constant
-imports it from the shared `*state.js`, never from the class file — that would be
-a cycle. God mode is `debugState.godMode`, not a `let` in `main.js`.
+exports an object of methods and the class file ends with
+`Object.assign(X.prototype, ...)`, so `this` is the same object, every private
+field keeps its name, and `shade._probeLedge`, `ai._pathTo` and
+`map._supportCandidates` still exist for the checks that call them. A moved
+method takes a module constant from the shared `*state.js`, never from the class
+file — that would be a cycle. God mode is `debugState.godMode`.
 
 ## Where the suite runner lives
 
@@ -243,78 +240,88 @@ set, the lost-context tiebreak (F1), the presentation reset before every check
 and forwards, so checks reach it as `h.debugTools.runAutoTests()` / `_autoTests`;
 one that must drive the runner uses `suite.runChecks()`. `scripts/suite.mjs` is
 the headless runner and `scripts/suitereport.mjs` its verdict and summary (H10:
-`judge`, `summary`, the Deliberately-red list and the skip census — the half
-with no Chrome in it). `scripts/watchdog.mjs` is the deadline, teardown and
-orphan warning, `scripts/version.mjs` the build stamp it writes first (H3).
+`judge`, `summary`, the Deliberately-red list, the skip census and, since H11,
+the bench census and the newest bench's date — the half with no Chrome in it).
+`scripts/watchdog.mjs` is the deadline, teardown and orphan warning,
+`scripts/version.mjs` the build stamp it writes first (H3), and
+`scripts/bench.mjs` the one runner that is **headed**, on the real GPU (H11).
 
 ## Running it
 
-```bash
-npm run suite
-```
+`npm run suite`. `scripts/suite.mjs` serves the repo in-process, drives the
+Chrome already on this PC headless with software WebGL, loads the page once per
+registered map (D6: every map in `src/maps/index.js`), warms 60 frames, runs the
+AUTO suite twice on each and prints a JSON report. Exit 0 means nothing is red
+outside QUEUE.md's Deliberately-red list and the two runs agree, judged per map.
+Each run carries `contextLosses` and `rerun` (F1), printed as `GL CONTEXT LOST`;
+zero is normal, and a non-zero one is the machine, not the game, unless the same
+check is in the list every run.
 
-`scripts/suite.mjs` serves the repo in-process, drives the Chrome already on this
-PC headless with software WebGL, loads the page once per registered map (D6: every
-map in `src/maps/index.js`), warms 60 frames, runs the AUTO suite twice on each and
-prints a JSON report. Exit 0 means nothing is red outside QUEUE.md's
-Deliberately-red list and the two runs agree, judged per map. Each run carries
-`contextLosses` and `rerun` (F1), printed as `GL CONTEXT LOST`; zero is normal, and
-a non-zero one is the machine, not the game, unless the same check is in the list
-every run.
+**What a pair of run times means (F16).** The two runs of a map share one page,
+and until F11 the first left its renderer tail for the second to carry, so the
+plant's second run is the slower in *every* pair on record. They agree within
+14s now and the summary prints the spread per map: **read that before comparing
+anything to a `PROGRESS.md` number**, and prefer a first run.
 
-**What a pair of run times means (F16).** The two runs of a map share one page, and
-until F11 the first left its renderer tail for the second to carry, so the plant's
-second run is the slower in *every* pair on record (by 30-98s at 130 checks,
-145-190s at 177) and no entry says which position it sat in. They agree within 14s
-now and the summary prints the spread per map: read that before comparing anything
-to a `PROGRESS.md` number, and prefer a first run.
-
-- `--runs 1` is the gate: about 25 minutes for both maps (963s plant, 646s yard
-  since F11, which pays a tail per map that used to be dropped at teardown or
-  charged to the next run). The full `npm run suite` is four runs, about 55
-  minutes. **Each map alone is past the Bash tool's 10-minute cap — background
-  it.**
+- `--runs 1` is the gate: 25-30 minutes for both maps (963s plant, 646s yard
+  since F11; H11's cold gate went 1,078s and 737s, which is load and not work —
+  `TRAPS.md`). The full `npm run suite` is four runs, about an hour. **Each map
+  alone is past the Bash tool's 10-minute cap — background it.**
 - **Every run is pinned to `?quality=medium`** (H10), the picture every reading
   on record was taken at; `--query quality=low` overrides it, and no run has
   ever been done at another level (**H24**). `npm run shot` and `npm run probe`
   pin the same way.
-- `--map plant` to narrow · `--regression` for the regression set per map
-  (plant 29 checks in 58s, yard 29 in 25s) · `--subset "<regex>"` while
-  iterating · `--query "seed=N"` to reseed · `--stall SECONDS` and `--stall-wait SECONDS`, below.
+- `--map plant` to narrow · `--regression` per map (plant 29 checks in 58s,
+  yard 29 in 25s) · `--subset "<regex>"` while iterating · `--query "seed=N"` to
+  reseed · `--stall` and `--stall-wait SECONDS`, below.
 - `--details <file>` writes every check's id, outcome, detail line and **ms** per
   run — the readings a PROGRESS entry quotes, which the stdout report never
-  carried for a green check. Since F11 the slowest is
-  `every-route-reads-lit-from-its-foot` at **77s on the plant**, then the
-  pipeline-wait check at 30s.
-- `scripts/suite-skips.json` lists checks that cannot pass headless with
-  reasons (today: the frame-budget check; SwiftShader draws a frame in
-  ~400ms). They are reported, never counted. **Since F15 it is a census, not
-  a lever**: `the-headless-skip-list-holds-only-the-check-it-declares` holds
-  the file and its `ALLOWED` list to the same set both ways, and the runner
-  honours a skip only on a map where that check passed — skipping the guard
-  withholds every skip and prints `SKIPS WITHHELD`, so a `--subset` naming a
-  skipped check names the guard too. Needs `npm install` once
-  (`playwright-core`, no browser download).
+  carries for a green check. The slowest since F11 is
+  `every-route-reads-lit-from-its-foot` at **77s on the plant**.
+- **Two lists say what the gate does not count, and they are different claims
+  (H11).** `suite-skips.json` is "this machine cannot run this" and is **empty
+  since H11**; `bench-checks.json` is "`npm run bench` runs this one instead, on
+  the real GPU, and the number is in `bench/<date>.json`", and holds the
+  92-viewpoint frame budget. Both are reported, never counted, and **both are
+  censuses and not levers**: `the-headless-skip-list-holds-only-the-check-it-declares`
+  (F15) and `the-bench-only-list-holds-only-checks-the-bench-itself-runs` (H11)
+  hold each file to its `ALLOWED` list both ways, and a drop is honoured only on
+  a map where its guard passed — skipping a guard withholds every drop it owns
+  and prints `SKIPS WITHHELD` / `BENCH DROPS WITHHELD`, so a `--subset` naming a
+  dropped check names its guard too. The bench list is held to more because it
+  claims more: a reason must name hardware **and** `npm run bench`, no id in both
+  files, `bench.mjs` must read the file and **name no id in its own code**, and
+  `package.json` must have the command. The summary prints the newest bench's
+  date, commit and verdict, or `NO BENCH ON RECORD`; **a stale bench prints and
+  does not red** (D69), and **H37** moves that calendar question to the audit.
+  Needs `npm install` once (`playwright-core`, no browser download).
 
-**A hung run dies (F10).** The run is raced against a heartbeat the page
-publishes (`beat()` in `ui/autosuite.js`, on `debugState.suiteProgress`). When
-it stands still for `--stall` seconds — **240 since F11/D48**, the floor being
-the slowest *check* (77s); a pipeline wait beats while it waits and carries
-`--stall-wait` (600s) — the run is abandoned with `suite: crashed: run timed
-out` naming that check, browser and server are closed, exit code 2. Against
-the beat standing still, never wall-clock total: a cold plant run is
-legitimately 960s. `--stall 0` disables it; `SIGINT`/`SIGTERM` close the same
-way. A `suite.mjs` older than this process is named at startup and in `OTHER
-RUNNERS ALIVE` — its Chrome competes for the same cores.
+**A hung run dies (F10).** The run is raced against the heartbeat the page
+publishes (`beat()` in `ui/autosuite.js`). When it stands still for `--stall`
+seconds — **240 since F11/D48**, the floor being the slowest *check* (77s); a
+pipeline wait beats while it waits and gets `--stall-wait` (600s) — the run is
+abandoned naming that check, the tree is closed, exit 2. Against the beat
+standing still, **never wall-clock total**: a cold plant run is legitimately
+960s or more. `SIGINT`/`SIGTERM` close the same way, and an older `suite.mjs`
+is named in `OTHER RUNNERS ALIVE` — its Chrome competes for the same cores.
+`scripts/watchdog.mjs`'s header has the rest.
 
-Four more headless tools, each with a PROGRESS entry:
+Five more headless tools, each with a PROGRESS entry:
 
 ```bash
 npm run shot -- --map plant                  # F6: both figures from five eyes
 npm run shot -- --map plant --pose vault,aim # F7: one pose, or --pose all
 npm run probe -- --map plant probe.js        # F9: a question asked of the game
 npm run stamp                                # H3: version.json, from a clean tree only
+npm run bench                                # H11: the frame budget, headed, on the real GPU
 ```
+
+`bench.mjs` is the one that is **not** headless: a real Chrome on this PC's GPU
+with the window off the desktop, every map at every level, about two minutes,
+appending to `bench/<date>.json`. It refuses to run beside a live `suite.mjs`
+and refuses to bench a software rasteriser, writing nothing either way — **run
+it in the gap between a gate and a verify, never alongside**. `--quality medium`
+or `--map yard` narrows it, `--onscreen` shows the window.
 
 `shot.mjs` writes `shots/look-<map>-<eye>.png` (gitignored) in about 30s a map,
 read with the Read tool — the Browser pane's job without the pane. `probe.mjs`
@@ -323,26 +330,25 @@ scope and prints what it returns as JSON (and writes any `pngs`); every "what
 does this read" goes through it, and a finding that should stay true becomes a
 check — F17 is the worked example. `version.mjs` is H3's, and refuses a dirty tree.
 
-In a real browser, for what headless cannot prove (the frame budget on a GPU
-with the post on, how it looks, how it sounds): `npx serve -l 5173 .`, then
-**`?debug=1`** for F3 and F4 (C1: without it the page is the playtest build,
-every debug key inert) and `?map=yard` for the second map. `window.BLACKLINE`
-is the harness in both builds; in-game **F3** overlay · **F4** test mode ·
-**Y** full suite · **U** regression set · **N** the Warden's ground. Run it
-**twice** — a flaky check shows as a different answer, not a pass.
+In a real browser, for what neither headless nor the bench can prove (how it
+looks, how it sounds): `npx serve -l 5173 .`, then **`?debug=1`** for F3 and F4
+(C1: without it the page is the playtest build, every debug key inert) and
+`?map=yard`. `window.BLACKLINE` is the harness in both builds; in-game **F3**
+overlay · **F4** test mode · **Y** full suite · **U** regression set · **N** the
+Warden's ground. Run it **twice** — a flaky check shows as a different answer,
+not a pass.
 
 ## Environment traps
 
-**They live in `TRAPS.md` now** — about thirty of them, each one an hour somebody
-has already paid. Read that file before you start; the heading stays here because
-the scheduled task's prompt falls back to it (G2, D47).
+**They live in `TRAPS.md` now** — about thirty, each one an hour somebody has
+already paid. Read that file before you start; the heading stays here because the
+scheduled task's prompt falls back to it (G2, D47), and
 `traps-md-holds-the-traps-and-handoff-points-at-it` holds both ends.
 
-Two of them in one line each, because a reader of this page should not be without
-them; the argument for both is in `TRAPS.md`. **Verify anything visual by reading
-pixels back** (`src/tests/pixels.js`) — no screenshot is available to a scheduled
-run or to the Browser pane. **Warm 60 frames of `renderFrame(1/60)` before
-measuring anything**, or you measure a shader compile.
+Two of them here, because a reader of this page should not be without them.
+**Verify anything visual by reading pixels back** (`src/tests/pixels.js`) — no
+screenshot reaches a scheduled run or the Browser pane. **Warm 60 frames of
+`renderFrame(1/60)` before measuring anything**, or you measure a shader compile.
 
 ## The lesson that keeps repeating
 
@@ -360,13 +366,12 @@ had ground beside it within `warden.stepHeight`, and stayed green with the step
 temporarily at 2.00m while the fill walked up crate stacks; it asks "is the ground
 beside it *level* with it" now, which is a fact about the geometry. Before
 believing a derived-data check, raise the constant it derives from and watch it go
-red. A3 was the same shape — it *selects* the perches to try with `canDefuseAt`
-then asserts `canDefuseAt` refused them, which proves nothing — and the way out
-was to open `DEFUSE_REACH.dy` until the same perch is legal and require that the
-identical hold then plants. **H4's is the same debt paid up front**: the WebGL2
-refusal is driven with a stubbed canvas, so it also asserts that the live renderer
-came out of that same function. Any check that picks its own inputs owes the suite
-that second half.
+red. A3 was the same shape — it *selects* the perches with `canDefuseAt` then
+asserts `canDefuseAt` refused them, which proves nothing. **H4 and H11 paid the
+same debt up front**: the WebGL2 refusal also asserts the live renderer came out
+of that function, and H11's census was proved by breaking two clauses and
+watching each name its own line. Any check that picks its own inputs owes the
+suite that second half.
 
 ## Still needs a human
 
@@ -383,13 +388,12 @@ Standing beyond those:
 
 - How any of it **looks**, and how any of it **sounds**. Samples are the right
   length, level and register; nobody has heard it.
-- The **frame budget on a real GPU**, with the post on. CPU 1.7ms mean / 5.4ms
-  worst across 92 viewpoints against a 16.67ms budget says there is room, not
-  what a real GPU does with it. `PLAYTEST.md` says how to answer it — and since
-  H4, whether a player waits on the sub-second bake or on the first draw.
-- The **orphaned runner is gone.** H23's gate printed no `OTHER RUNNERS ALIVE`
-  line for the first time since 2026-09-18, so the 09-18 pair (pids 9608/4792
-  and their Chrome) is dead and every timing from 2026-10-05 is the first on
-  record measured without it — which is the clean test `TRAPS.md` says nobody
-  had ever had. Compare a new number to an older one with that in mind, not
-  the other way round. Nothing has leaked since F10's teardown landed.
+- The **frame budget on a real GPU is answered** (H11, 2026-10-07) and off this
+  list: `npm run bench` on a GTX 1060 says it **holds everywhere, 3x to 6x
+  under its ceiling** over twelve readings. What is left is **a friend's**
+  hardware, which wants a friend's bench — and, still only eyes, whether a
+  player waits on the sub-second bake or on the first draw (H4).
+- The **orphaned runner is gone** since H23 — the first gate without an
+  `OTHER RUNNERS ALIVE` line since 2026-09-18, so every timing from 2026-10-05
+  is the first on record measured without one, the clean test `TRAPS.md` says
+  nobody had ever had. Nothing has leaked since F10's teardown.

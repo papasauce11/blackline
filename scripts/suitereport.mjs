@@ -7,11 +7,12 @@
 // the half a reader comes to when they want to know what "OK" meant.
 //
 // Nothing here has state. `judge()` takes the runs and returns the report;
-// `summary()` turns that report into the lines on stderr. Both read two files
-// from the checkout - QUEUE.md's Deliberately-red list and
-// scripts/suite-skips.json - and that is deliberate: the rules a run is judged
-// by belong to the commit you are on, not to the page that was loaded (which is
-// what makes `--url` judge a deployed copy by these rules).
+// `summary()` turns that report into the lines on stderr. Both read three
+// files from the checkout - QUEUE.md's Deliberately-red list,
+// scripts/suite-skips.json and, since H11, scripts/bench-checks.json - and that
+// is deliberate: the rules a run is judged by belong to the commit you are on,
+// not to the page that was loaded (which is what makes `--url` judge a deployed
+// copy by these rules).
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -51,15 +52,84 @@ export function skipsById() {
   return new Map(list.map(s => [s.id, s.reason]));
 }
 
+// H11's other list, and the reason it is a different list. A skip says "this
+// machine cannot run this check". `scripts/bench-checks.json` says something
+// stronger: "`npm run bench` runs this one instead, headed, on the real GPU,
+// and its number is in bench/<date>.json". The frame budget sat in the skip
+// list for a month with nobody owing an answer, and that is the gap the two
+// lists exist to keep apart - a check this machine cannot run, against a check
+// run somewhere that reports.
+//
+// One file, two readers: scripts/bench.mjs runs what it names and this decides
+// what the gate does not count, so the bench cannot drift from the gate.
+// src/tests/benchlist.js holds both ends of that from inside the page.
+export const BENCH_CHECKS_FILE = path.join(ROOT, 'scripts', 'bench-checks.json');
+
+/** Every check `npm run bench` runs, bench-only or not. */
+export function benchChecks() {
+  if (!fs.existsSync(BENCH_CHECKS_FILE)) return [];
+  const list = JSON.parse(fs.readFileSync(BENCH_CHECKS_FILE, 'utf8'));
+  return Array.isArray(list) ? list : [];
+}
+
+/** The ones the gate does not count, by id, with the reason. */
+export function benchOnlyById() {
+  return new Map(benchChecks()
+    .filter(entry => entry && entry.benchOnly === true && typeof entry.id === 'string')
+    .map(entry => [entry.id, entry.reason]));
+}
+
+// The page-side check that holds the list above, and the same rule as
+// SKIP_GUARD: an exemption is honoured only where the thing that polices
+// exemptions has run and passed, or the one line of JSON that moves a check to
+// the bench could move the check that polices the move.
+export const BENCH_GUARD = 'the-bench-only-list-holds-only-checks-the-bench-itself-runs';
+
+/**
+ * The newest bench/<date>.json, so the summary can say how old the real-GPU
+ * number is. Reported and never judged: nothing in the gate can know whether
+ * this machine's GPU has been asked lately, and a stale bench is a reader's
+ * judgement rather than a red. Absent is the honest answer on a fresh clone.
+ */
+export function latestBench(dir = path.join(ROOT, 'bench')) {
+  let names;
+  try {
+    names = fs.readdirSync(dir).filter(n => /^\d{4}-\d{2}-\d{2}\.json$/.test(n)).sort();
+  } catch {
+    return null;
+  }
+  if (!names.length) return null;
+  const date = names[names.length - 1].replace(/\.json$/, '');
+  try {
+    const doc = JSON.parse(fs.readFileSync(path.join(dir, `${date}.json`), 'utf8'));
+    const runs = Array.isArray(doc.runs) ? doc.runs : [];
+    const run = runs[runs.length - 1];
+    if (!run) return null;
+    const scenes = Array.isArray(run.scenes) ? run.scenes : [];
+    return {
+      date,
+      at: run.at ?? null,
+      commit: run.commit ?? null,
+      gpu: run.gpu && run.gpu.renderer ? run.gpu.renderer : null,
+      ok: !!run.ok,
+      readings: scenes.reduce((n, s) => n + (Array.isArray(s.checks) ? s.checks.length : 0), 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Judged per map: "flaky" is a check answering differently between two runs
 // on the SAME map, and a check red on one map and green on another is red
 // there, with the map named.
 export function judge(runs, renderer, consoleErrors) {
   const expected = new Set(expectedRedIds());
   const skips = skipsById();
+  const benchOnly = benchOnlyById();
   const maps = [...new Set(runs.map(r => r.map))];
 
   const red = [], expectedRed = [], flaky = [], skipped = [], unexpectedGreen = [], skipsWithheld = [];
+  const benched = [], benchDropsWithheld = [];
   for (const map of maps) {
     const own = runs.filter(r => r.map === map);
     const ids = [...new Set(own.flatMap(r => r.results.map(x => x.id)))];
@@ -68,6 +138,7 @@ export function judge(runs, renderer, consoleErrors) {
     // counts as not green - a --subset that names a skipped check and not
     // this one judges that check like any other, which is the rule working.
     const guardGreen = byRun.every(m => m.get(SKIP_GUARD)?.pass === true);
+    const benchGuardGreen = byRun.every(m => m.get(BENCH_GUARD)?.pass === true);
     for (const id of ids) {
       const outcomes = byRun.map(m => m.get(id)?.pass);
       const allPass = outcomes.every(p => p === true);
@@ -81,6 +152,17 @@ export function judge(runs, renderer, consoleErrors) {
         // Withheld, and then judged like anything else, which is what makes
         // this fail closed: the skipped check goes red and the run says why.
         skipsWithheld.push({ id, map });
+      }
+      // The bench's, and fail closed the same way. The outcome HERE is kept
+      // and printed - the frame budget reads `fail` under software GL, and a
+      // reader of the gate should see that this is the number being set aside
+      // rather than a check nobody ran.
+      if (benchOnly.has(id)) {
+        if (benchGuardGreen) {
+          benched.push({ id, map, reason: benchOnly.get(id), outcome: allPass ? 'pass' : allFail ? 'fail' : 'mixed' });
+          continue;
+        }
+        benchDropsWithheld.push({ id, map });
       }
       if (!allPass && !allFail) { flaky.push({ id, map, outcomes, detail }); continue; }
       if (allFail) {
@@ -133,6 +215,9 @@ export function judge(runs, renderer, consoleErrors) {
     unexpectedGreen,
     skipped,
     skipsWithheld,
+    benched,
+    benchDropsWithheld,
+    lastBench: latestBench(),
     consoleErrors: { count: consoleErrors.length, first: consoleErrors.slice(0, 5) },
   };
 }
@@ -179,6 +264,23 @@ export function summary(r) {
   if (r.expectedRed.length) lines.push(`  expected red: ${r.expectedRed.map(tag).join(', ')}`);
   if (r.unexpectedGreen.length) lines.push(`  now GREEN, remove from QUEUE.md: ${r.unexpectedGreen.join(', ')}`);
   if (r.skipped.length) lines.push(`  skipped headless: ${r.skipped.map(x => `${tag(x)} (${x.outcome})`).join(', ')}`);
+  // H11: the checks the gate does not count because something else answers
+  // them, and how old that answer is. The date is the whole value of the line
+  // - a bench-only check whose last reading is three weeks old is a check
+  // nobody is answering, which is the state this mechanism replaced.
+  if (r.benched && r.benched.length) {
+    lines.push(`  bench only: ${r.benched.map(x => `${tag(x)} (${x.outcome} here)`).join(', ')}`
+      + ' - `npm run bench` measures these headed, on the real GPU');
+    const b = r.lastBench;
+    lines.push(b
+      ? `    last bench ${b.date}${b.commit ? ` (${b.commit})` : ''} on ${b.gpu ?? 'an unnamed renderer'}:`
+        + ` ${b.ok ? 'OK' : 'RED'}, ${b.readings} reading${b.readings === 1 ? '' : 's'}`
+      : '    NO BENCH ON RECORD in bench/ - these checks are counted nowhere until `npm run bench` is run');
+  }
+  if (r.benchDropsWithheld && r.benchDropsWithheld.length) {
+    lines.push(`  BENCH DROPS WITHHELD: ${r.benchDropsWithheld.map(tag).join(', ')} - ${BENCH_GUARD} did not pass there,`
+      + ' so nothing is handed to the bench and each was judged');
+  }
   if (r.skipsWithheld && r.skipsWithheld.length) {
     lines.push(`  SKIPS WITHHELD: ${r.skipsWithheld.map(tag).join(', ')} - ${SKIP_GUARD} did not pass there, so nothing is skipped and each was judged`);
   }

@@ -11963,3 +11963,172 @@ check that reads a posed body at whatever phase the run arrived in), **H34** (th
 says not to be started early). H21 is worth reading beside this job: the stored
 quality level is exactly the kind of value its range check would have caught,
 and `rememberedPick` now defends itself against one case of it.
+
+## H11 — the frame budget on the real GPU, and a list that owes a number (2026-10-07 02:00, scheduled run)
+
+**What it was handed.** `npm run bench`: headed Chrome with the window
+off-screen, the frame-budget check and the 92-viewpoint sweep on both maps,
+results to `bench/<date>.json`, and "the frame-budget check leaves
+`suite-skips.json` for a `bench-only` list it is honest about". Done when a
+bench on this PC produces numbers the HANDOFF quotes and `PLAYTEST.md` stops
+asking Josh to run it by hand.
+
+**Why it mattered more than it reads.** Every reading in this repo is taken
+headless on SwiftShader, which draws a frame in about 400ms, so
+`the-frame-budget-holds-everywhere-not-just-at-site-a` has been dropped from
+every gate since F5. F15 made the drop *honest* — `scripts/suite-skips.json` is
+a census held both ways by a check, not a lever — but honest about the wrong
+thing. **A skip says "this machine cannot run this", and then nobody owes an
+answer.** `PLAYTEST.md` asked Josh to press F4 then Y and read one line; for a
+month nobody did; and the project's only statement about its own performance
+was a CPU number from a software rasteriser, with `HANDOFF.md` saying in as
+many words that it "says there is room, not what a real GPU does with it".
+
+### What was built
+
+`scripts/bench.mjs` (321 lines), `scripts/bench-checks.json`,
+`src/tests/benchlist.js` (235 lines), plus readers in
+`scripts/suitereport.mjs` and one line in `package.json`.
+
+**Two lists instead of one, because they are two claims.**
+`scripts/suite-skips.json` keeps its meaning and is now `[]`;
+`scripts/bench-checks.json` carries the new one — *`npm run bench` runs this
+check instead, headed, on the real GPU, and the number is in
+`bench/<date>.json`*. **One file, two readers**: `bench.mjs` runs what it names
+and `suitereport.mjs` drops what it names, so the bench cannot drift from the
+gate. `judge()` files a bench-only id under `benched` with the outcome it got
+*here* (the frame budget reads `fail` under software GL, and a reader should
+see that the number is being set aside rather than that nobody ran it), and
+honours the drop only where `BENCH_GUARD` passed on that map — F15's
+fail-closed rule, applied to the second list.
+
+**Three honesty clauses in the runner**, because a bench that lies is worse
+than no bench. It **refuses to bench software**: if the unmasked renderer names
+SwiftShader or a software rasteriser it writes nothing and exits 2, because
+that is the gate's own number wearing the word bench. It **refuses to run
+beside a live `suite.mjs`** (`otherRunners()`, F10's reader), because a frame
+timed beside half an hour of all-core software rasterising is a reading about a
+busy machine and nothing in the number would say so. And it **runs exactly what
+the list names**, with no id of its own.
+
+Headed and not headless-with-the-GPU on purpose: a headless Chrome has no
+window and so no swap chain, and whether it uses the GPU at all has changed
+between Chrome versions more than once. No `--ignore-gpu-blocklist` either — if
+Chrome refuses this card, a friend's Chrome refuses it too, and the bench
+should say so rather than override it. Three backgrounding switches are passed
+because Chrome throttles a window it believes nobody can see, which would be an
+artefact of the window being off the desktop rather than anything about the
+game; nothing here draws through rAF, so no vsync flag is needed. The viewport
+is pinned to the suite's 1280x720 so a number here sits beside a number there.
+
+### The answer
+
+`NVIDIA GeForce GTX 1060 6GB` through ANGLE/D3D11, on an i7-2600. Twelve
+readings — both maps, `low`/`medium`/`high`, two runs twenty minutes apart on a
+byte-identical tree. **Every one green. The frame budget holds everywhere, 3x
+to 6x under its ceiling.**
+
+| | plant low | plant medium | plant high | yard low | yard medium | yard high |
+|---|---|---|---|---|---|---|
+| sweep, mean draw | 1.32 / 1.27 | 1.75 / 1.72 | 1.71 / 1.83 | 1.12 / 1.14 | 1.59 / 1.69 | 1.59 / 1.72 |
+| sweep, worst | 1.90 / 1.90 | **5.50** / 2.60 | 2.60 / **4.60** | 3.00 / 2.60 | 3.00 / 3.10 | 3.00 / 3.90 |
+| check 29, CPU median | 1.50 / 1.50 | 2.00 / 2.00 | 2.00 / 2.00 | 0.90 / 0.90 | 1.30 / 1.40 | 1.30 / 1.40 |
+| check 29, GPU | 1.60 / 1.59 | 2.01 / 2.01 | 2.08 / 2.04 | 1.00 / 0.98 | 1.39 / 1.44 | 1.36 / 1.45 |
+
+(milliseconds, run 1 / run 2, against an **8.33ms** draw ceiling and a
+**16.67ms** whole-frame budget. 92 viewpoints across 23 places on the plant, 96
+across 24 on the yard. Peak 387 draw calls against a 600 cap, 10,950
+triangles.) **The GPU timer worked for the first time** —
+`EXT_disjoint_timer_query_webgl2` needs a real driver, so until now
+`performance.js` had always taken its `no GPU timer` branch and the project had
+no GPU milliseconds at all.
+
+### Three findings the budget was not the point of
+
+**`high` is nearly free on this card.** Mean draw 1.71ms at `high` against
+1.75ms at `medium` on the plant; check 29 costs 2.08ms of GPU against 2.01ms.
+`high` doubles the shadow map and supersamples at 1.25x and it is inside the
+noise. So on hardware like this the quality row is not a performance decision,
+which is a line under **D60** that nobody could write before.
+
+**`auto` picks `high` here, and the two maps agree.** The probe read 3.2, 4.0
+and 4.1ms on the plant and 3.4, 3.8 and 3.7ms on the yard, all over forty
+samples, against the 8.33ms a CPU frame is allowed. The same probe under
+software GL reads **8.70ms on the plant and 5.30ms on the yard** — the 3.4ms
+disagreement **D68** is about. Here it is 0.2ms. So the gap's *size* is largely
+an artefact of the renderer the gate runs on; its *mechanism* — the probe
+measures the machine times the scene — is real, and H25's `rememberedPick`
+stands, because a weaker machine would still straddle a threshold the way this
+one does not.
+
+**The "worst viewpoint" does not reproduce, and the mean does.** The means
+agree to **0.12ms** in all six scenes. The worst moved **5.50ms → 2.60ms** at
+`medium` and **2.60ms → 4.60ms** at `high`, and named a different place on the
+map in five of six scenes. The sweep does one untimed draw then times **one**
+frame per viewpoint, so the worst is a single sample and a scheduling hiccup is
+indistinguishable from a hot corner — and the worst is what the clause asserts.
+It does not matter on this GPU, where nothing came within 1.5x of its ceiling,
+which is exactly why it is worth settling before it does: on a weaker machine a
+one-sample worst is what decides the check, and a check whose verdict is one
+frame is the flaky shape this project calls a bug in the check. That is **H36**,
+and it carries H31's rule — measure what N makes the worst reproduce before
+touching the clause, and do not take the mean on its own, because a map with
+one unaffordable corner and ninety-one cheap ones passes on a mean.
+
+### The check, and proving it load-bearing
+
+`the-bench-only-list-holds-only-checks-the-bench-itself-runs` in
+`tests/benchlist.js` — a census on F15's model, held to a stronger standard
+than the skip list's because the claim is stronger. Every entry must be
+declared there with the same `benchOnly` boolean, be a check some module
+registers, carry a reason of 80+ characters that **names hardware** *and*
+**names `npm run bench`** (so a reader of the gate's output can find the
+number), and be absent from `suite-skips.json` — one exemption, one home, or
+the two reasons eventually disagree. Then the honest half, which is what the
+queue's "honest about it" had to mean: `bench.mjs` must read the file, and
+**must not name any of the ids in its own code**, so what it runs cannot drift
+from what the gate dropped; `suitereport.mjs` must read the same file; and
+`package.json` must really have the command, because a bench-only list with no
+`npm run bench` behind it is the exemption without the number.
+
+Code or prose is decided **line-locally**, as `donedef.js` decides it for the
+two spec bans: an id on a line beginning `//`, `/*` or `*` is prose. That is
+deliberate — `bench.mjs`'s own doc comment names the frame-budget check,
+because a reader of that file should be told what it is for.
+
+**Proved by breaking both novel clauses at once** and watching it name each:
+flipping `benchOnly` to `false` in the file and adding one line of code to
+`bench.mjs` holding the id produced *"benchOnly=false in the file and true
+here; scripts/bench.mjs:83 names ... in code"*. It named line 83, the line
+added, and left the same id in that file's doc comment alone.
+
+`skiplist.js` keeps its job over an empty file — the comparison runs both ways,
+so a new skip is still an edit there — and its detail line says so in words
+now rather than printing empty parentheses.
+
+### What was verified
+
+**GATE** (`--runs 1`, HEAD `e95fe4b`, cold): **OK**, plant 214 passed / 1
+failed, yard 194 passed / 1 failed — the one being the frame-budget check,
+skipped — 0 red, 0 flaky, **0 console errors**, no `OTHER RUNNERS ALIVE`. For
+**H35**'s census: **this gate's console-error count is 0**, the first cold-run
+count ever written down, and the `AudioContext` error did not appear.
+
+Two readings from that gate are worth keeping. It recorded `auto would pick low
+here (215.40ms median CPU over 8 frames)` on the plant, against 5.90ms from a
+three-check subset twenty minutes later on the same tree and 4.0ms from the
+real GPU. 215ms is a reading about whatever else was starting on this machine
+while the page booted, taken over eight frames; the plant run's 1,078s against
+the 963s on record is the same fact. Both are now in `TRAPS.md`, because a
+probe median from a cold gate is not comparable with one from anywhere else.
+
+### What was left
+
+**H36** (the worst viewpoint is one frame) and **H37** (the weekly audit says
+how old the bench is — D69's refused alternative, moved to where a
+calendar-shaped question belongs). **D69** records the one judgement: a stale
+bench *prints* rather than reds, and the cost is that the gate can say OK
+beside a real-GPU number belonging to a different commit. Of the earlier
+follow-ups, **H33** (every other check that reads a posed body at whatever
+phase the run arrived in) is next, then **H34**; **H35** now has one of its
+three gates.

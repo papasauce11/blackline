@@ -110,6 +110,68 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D69 — A bench-only check is answered by `npm run bench`, and a stale answer prints rather than reds
+
+**Raised by:** H11, 2026-10-07, and taken rather than asked because nothing
+here changes a rule or a look — it changes what the gate's output says about a
+check the gate has never been able to run. It is yours to overturn and the cost
+is named below.
+
+**What was wrong with the old arrangement.** One check has been dropped from
+every gate since F5: `the-frame-budget-holds-everywhere-not-just-at-site-a`,
+the 92-viewpoint sweep, because headless draws with SwiftShader at ~400ms a
+frame and a frame budget measured against that is not a reading. F15 made the
+drop honest — `scripts/suite-skips.json` is a census, held both ways by a check
+— but honest about the wrong thing. **A skip says "this machine cannot run
+this", and then nobody owes an answer.** So `PLAYTEST.md` asked you to open the
+game, press F4 then Y, and read one line by hand, and for a month nobody did,
+and the project's only statement about its own frame budget was a CPU number
+from a software rasteriser.
+
+**What is built.** Two lists instead of one, because they are two claims:
+
+- `scripts/suite-skips.json` keeps its meaning and is now **empty**.
+- `scripts/bench-checks.json` carries the new one: *`npm run bench` runs this
+  check instead, headed, on the real GPU, and the number is in
+  `bench/<date>.json`.*
+
+One file, two readers — `scripts/bench.mjs` runs what it names and
+`scripts/suitereport.mjs` drops what it names — so the bench cannot drift from
+the gate. `the-bench-only-list-holds-only-checks-the-bench-itself-runs` holds
+both ends from inside the page, including that `bench.mjs` names no id in its
+own code and that `package.json` really has the command. **And the gate's
+summary now prints the date, commit and verdict of the newest bench**, or
+`NO BENCH ON RECORD` when there is none.
+
+**The line worth your eye, which is the cost.** A bench-only check is answered
+only when somebody runs the bench, and **a stale answer prints rather than
+going red**. So the gate can say "OK" beside a real-GPU number that is three
+weeks old and belongs to a different commit, and nothing stops it. That is
+deliberate — the gate runs on a machine that may not have the GPU the bench
+needs, and a red for "nobody has benched lately" would be a red about a
+calendar — but it is a judgement, and the two alternatives are real:
+
+1. **Taken: print the staleness, never red on it.** The reader decides. The
+   failure mode is a number nobody notices has rotted.
+2. *Red when the newest bench is older than N days or names another commit.*
+   Stronger, and it would have caught exactly the month this job closed. The
+   objection is that it makes the gate's verdict depend on something the gate
+   cannot do, and a routine that cannot clear it would stop building. Worth
+   doing **as a line in the weekly audit instead**, which is where a
+   calendar-shaped question belongs; that is **H37**.
+3. *Run the bench from the gate.* Refused: the gate is headless by necessity
+   (a scheduled run has no pane and should not be opening windows), and a
+   headed Chrome inside a run that already takes half an hour is the kind of
+   coupling that makes a gate fail for reasons that are not about the game.
+
+**And the answer the first bench gave, which is the reason any of this
+matters.** On this PC's GTX 1060, over both maps and all three levels, twelve
+readings: **the frame budget holds everywhere, 3x to 6x under its ceiling.**
+Spec check 29's load (smoke, flashbang, sustained gunfire and a ragdoll at
+once) costs CPU 2.00ms + GPU 2.01ms against a 16.67ms budget on the plant at
+`medium`. The numbers are in `HANDOFF.md` and `bench/2026-10-07.json`, and
+`PLAYTEST.md` no longer asks you for them.
+
 ### D68 — `auto` remembers the lowest level any probe has picked, not the first
 
 **Raised by:** H25, 2026-10-06, and taken rather than asked because the queue

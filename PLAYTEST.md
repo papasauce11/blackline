@@ -77,10 +77,70 @@ Shade driven into each state (walk, sprint, crouch, slide, rise, fall,
 landing, vault, mantle, grab, hang, pullup) and the Warden aiming, one
 PNG each, `--pose vault,aim` for a few.
 
+**`npm run bench`** (H11, 2026-10-07) is the one that needed you until now.
+Everything else here is measured headless on software GL, which draws a frame
+in about 400ms and so cannot say anything about a frame budget; this opens a
+**real Chrome on this PC's GPU** (the window placed off the desktop, so it only
+takes focus for a second), runs the frame-budget checks on both maps at all
+three quality levels, prints the numbers and writes them to
+`bench/<date>.json`. About two minutes. It refuses to run if `npm run suite` is
+still going — a frame timed beside a sustained all-core load is a reading about
+a busy machine — and it refuses to run at all if the browser comes up on a
+software rasteriser, because that would be the gate's number wearing the word
+bench. `--quality medium` or `--map yard` narrows it; `--onscreen` puts the
+window where you can watch it.
+
 ## What to look at
 
 Newest first. Each item says what the checks already prove and what is
 left for you.
+
+### The frame budget holds on the real GPU, and you no longer have to check (H11, 2026-10-07)
+
+**This closes the oldest thing on this page's "only you can judge" list.**
+Since Section 2 was written the project's whole claim about performance was a
+CPU number taken on a software rasteriser, and the one check that actually
+times the draw was dropped from every gate because headless draws a frame in
+400ms. `npm run bench` takes that reading properly. The first one, on this PC:
+
+| | plant | yard |
+|---|---|---|
+| 92/96 viewpoints, mean draw | 1.27–1.83ms | 1.12–1.72ms |
+| worst single viewpoint | 1.90–5.50ms | 2.60–3.90ms |
+| check 29's load (smoke + flash + gunfire + ragdoll) | CPU 1.50–2.00ms, GPU 1.59–2.08ms | CPU 0.90–1.40ms, GPU 0.98–1.45ms |
+
+against an **8.33ms** ceiling on the draw and a **16.67ms** budget for the
+whole frame, at `low`, `medium` and `high`, two runs each. Twelve readings,
+every one green, nothing closer than **1.5x** to its ceiling and most of them
+4x or better. Peak 387 draw calls against a 600 cap, 10,950 triangles.
+GPU: `NVIDIA GeForce GTX 1060 6GB` through ANGLE/D3D11.
+
+**Three things in there are worth your eye.**
+
+- **`high` is nearly free on this card.** Mean draw 1.71ms at `high` against
+  1.75ms at `medium` on the plant, and check 29 costs 2.08ms of GPU against
+  2.01ms. So on hardware like this the quality row is not a performance
+  decision at all, which bears on **D60** — if you have been playing at
+  `medium` out of caution, there is no reason to.
+- **`auto` picks `high` here, and both maps now agree.** The probe read
+  3.2–4.1ms of CPU across all six scenes, against the 8.33ms a CPU frame is
+  allowed. That is the same probe that read **8.70ms on the plant and 5.30ms
+  on the yard** under software GL — the disagreement **D68** is about. It is a
+  3.4ms gap there and a 0.2ms gap here, so on this machine the map you open
+  first no longer changes anything even before H25's fix; on a weaker one it
+  still could, so the fix stands.
+- **The "worst viewpoint" number does not reproduce and the mean does.** Over
+  two runs the means agree to 0.12ms, and the worst moved 5.50ms → 2.60ms at
+  `medium` and 2.60ms → 4.60ms at `high`, naming a different place on the map
+  five times out of six. The sweep times **one frame per viewpoint**, so the
+  worst is a single sample and a scheduling hiccup looks like a hot corner.
+  Nothing to do about it on this GPU, where everything is 1.5x under at worst —
+  queued as **H36** because on a weaker machine a one-sample worst is what
+  would decide the check.
+
+**What is still only yours:** whether 60fps *feels* like 60fps with the post
+on, and whether a friend on weaker hardware agrees. The bench answers for this
+PC and no other.
 
 ### If quality is on Auto, the map you open first no longer decides it (H25, 2026-10-06)
 
@@ -739,11 +799,11 @@ a lamp's halo (a ring ten pixels round a fixture reads three to four
 times brighter), the corners darker by a sixth and the centre untouched,
 the hit marker no bigger, seven passes a frame and none off, the row
 switching (`post-processing-blooms-the-emissives-darkens-the-corners-
-and-is-a-switch`). What only eyes and a GPU can judge: **the frame
-budget** - run F4 then Y in a real browser with the post on and read
-`the-frame-budget-holds-everywhere-not-just-at-site-a`; if it is red,
-turn the row off and run it again, and D10's "if the frame budget
-allows" has its answer; whether the glow reads as light or as haze
+and-is-a-switch`). **The frame budget is answered** since H11: `npm run
+bench` times the post-processed frame on the real GPU, and D10's "if the
+frame budget allows" has its answer - it allows it, 3x to 6x over, at
+every level on both maps (the numbers are under *What to look at*). What
+only eyes can judge: whether the glow reads as light or as haze
 (`render.post.bloomStrength`, 0.8; 0.4 is barely there, 1.5 flares);
 whether the vignette reads as a frame or as dirt on the lens
 (`vignetteStrength`, 0.3); whether the site tint, now multiplied in
@@ -1013,10 +1073,14 @@ now. What is not, and why:
   checks still hold that the body is drawn, covers its share of the frame and
   stays 3:1 narrow at that size; whether you can tell a Shade from a Warden
   there is the part only you can answer.
-- **The frame budget on a real GPU.** `the-frame-budget-holds-everywhere-not-just-at-site-a`
-  is skipped headless (software GL draws a frame in 400ms). Run it in
-  your tab: `?debug=1`, F4, Y, and read its line. It wants 8.33ms
-  everywhere, the smoke-flash-gunfire-ragdoll load included.
+- ~~**The frame budget on a real GPU.**~~ **Answered, H11, 2026-10-07.**
+  `the-frame-budget-holds-everywhere-not-just-at-site-a` is not a thing to
+  read by hand any more: `npm run bench` runs it headed on this PC's GPU, on
+  both maps at all three levels, and writes the numbers to
+  `bench/<date>.json`. It holds everywhere, 3x to 6x under its ceiling, the
+  smoke-flash-gunfire-ragdoll load included. The numbers are under *What to
+  look at*. What is left is not a measurement: whether 60fps on **a friend's**
+  hardware is 60fps, which wants a friend's bench and not yours.
 - **How anything looks.** The checks measure contrast, luma steps and
   pixel counts; whether the result is *legible* - a duct reads as a duct,
   a lit route reads as a route, the strip reads as an edge, the Shade

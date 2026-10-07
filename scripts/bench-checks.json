@@ -1,0 +1,12 @@
+[
+  {
+    "id": "the-frame-budget-holds-everywhere-not-just-at-site-a",
+    "benchOnly": true,
+    "reason": "Times the draw at 92 viewpoints against an 8.33ms ceiling, which is a reading about this machine's GPU. Headless draws with SwiftShader, a software rasteriser, at roughly 400ms a frame, so the gate cannot ask the question at all. `npm run bench` asks it in a headed Chrome on the real GPU, on every map at every level, and writes the answer to bench/<date>.json."
+  },
+  {
+    "id": "frame-budget-under-the-check-29-load",
+    "benchOnly": false,
+    "reason": "Not bench-only: its CPU median is green headless at every level (3.10ms against the 8.33ms ceiling, H28) and the gate counts it. `npm run bench` runs it anyway because the half it cannot measure headless is the GPU half - EXT_disjoint_timer_query_webgl2 needs a real driver, and check 29's load is the smoke, flashbang, gunfire and ragdoll together."
+  }
+]

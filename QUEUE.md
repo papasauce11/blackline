@@ -278,12 +278,51 @@ one setting only Josh can click; everything else here proceeds.
   probe and silently dropped the yard's, which is how a disagreement between two
   maps on one machine went a month without being noticed in the output everybody
   reads.
-- [ ] **H11 (M)** `npm run bench`: the real GPU. Headed Chrome (the window
-  placed off-screen), the frame-budget check and the 92-viewpoint sweep on
-  both maps, results to `bench/<date>.json`; the frame-budget check leaves
-  `suite-skips.json` for a `bench-only` list it is honest about.
-  *done-when:* a bench run on this PC produces numbers the HANDOFF quotes,
-  and `PLAYTEST.md` stops asking Josh to run it by hand.
+- [x] **H11 (M)** `npm run bench`: the real GPU. — done 2026-10-07, under
+  Done. **The frame budget holds, 3x to 6x under its ceiling**, over twelve
+  readings on `NVIDIA GeForce GTX 1060 6GB` — both maps, all three levels, two
+  runs. `suite-skips.json` is **empty** and the drop lives in
+  `scripts/bench-checks.json`, one file read by the bench (what to run) and by
+  the gate (what not to count), held both ways by
+  `the-bench-only-list-holds-only-checks-the-bench-itself-runs` — which also
+  holds that `bench.mjs` names no id in its own code, so the two cannot drift.
+  **D69** is the one judgement: a stale bench prints rather than reds.
+  **H36** and **H37** are what the work revealed.
+- [ ] **H36 (S)** The sweep's "worst viewpoint" is one frame, and it does not
+  reproduce. H11 benched the 92-viewpoint check twice on the real GPU twenty
+  minutes apart on a byte-identical tree. The **mean agrees to 0.12ms** in all
+  six scenes; the **worst moved 5.50ms → 2.60ms** on the plant at `medium` and
+  **2.60ms → 4.60ms** at `high`, and named a different place on the map in five
+  of the six. `the-frame-budget-holds-everywhere-not-just-at-site-a` times one
+  untimed-then-timed draw per viewpoint, so the worst is a single sample and a
+  scheduling hiccup is indistinguishable from a hot corner — and the worst is
+  what the clause asserts against the 8.33ms ceiling. On this GPU it does not
+  matter (nothing came within 1.5x), which is exactly why it is worth doing
+  before it does: on a weaker machine a one-sample worst is what decides the
+  check, and a check whose verdict is one frame is the flaky shape this project
+  treats as a bug in the check.
+  **Measure before changing anything** (H31's rule): take N draws per viewpoint
+  in the bench and say what N makes the worst reproduce, and whether the place
+  it names becomes stable. Only then propose a clause. The mean is already
+  stable and is *not* the right assertion on its own — a map with one
+  unaffordable corner and ninety-one cheap ones passes on a mean.
+  *done-when:* the entry says how many samples a viewpoint needs for the worst
+  to agree between two runs, names the plant's and the yard's genuinely
+  worst places, and either proposes the clause or says why the one-frame
+  reading is good enough and on what evidence.
+- [ ] **H37 (S)** The weekly audit says how old the bench is. D69 took "print
+  the staleness, never red on it" and named the alternative it refused: a gate
+  that goes red when the newest `bench/<date>.json` is older than N days or
+  names another commit would make the gate's verdict depend on hardware the
+  gate may not have, and a routine that cannot clear it would stop building.
+  A **calendar-shaped question belongs in the weekly audit**, which already
+  reports drift it cannot fix (files over 600 lines, TODO counts, the skip
+  list unchanged). Add the bench: the newest file's date and commit, how many
+  commits have landed since, whether every `benchOnly` id has a reading in it,
+  and one line of recommendation when it is stale. `scripts/suitereport.mjs`'s
+  `latestBench()` is the reader; `benchOnlyById()` is the set it must cover.
+  *done-when:* the audit prompt asks for it, and a dry run against this repo
+  names 2026-10-07 and its commit.
 - [ ] **H33 (S)** Which other checks read a posed body at whatever phase the
   run arrived in? H31 found the mechanism and fixed one instance of it:
   `updateVisual` runs on the **wall clock from the render frame**, never from
@@ -602,6 +641,42 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H11** `npm run bench`: the frame budget on the real GPU, and the oldest
+  eyes-only item on `PLAYTEST.md` closed with a measurement. Everything in
+  this repo is verified headless on SwiftShader, which draws a frame in about
+  400ms, so one check had been dropped from every gate since F5 and
+  `PLAYTEST.md` asked Josh to press F4 then Y and read its line by hand - and
+  for a month nobody did, which left the project's only statement about its own
+  performance a CPU number from a software rasteriser. `scripts/bench.mjs`
+  opens a **headed** Chrome on this PC's GPU (the window off the desktop),
+  loads every registered map at every quality level, runs the checks
+  `scripts/bench-checks.json` names and writes `bench/<date>.json`. **The
+  answer: the frame budget holds everywhere, 3x to 6x under its ceiling** -
+  twelve readings on `NVIDIA GeForce GTX 1060 6GB`, mean draw 1.12-1.83ms
+  against 8.33ms, check 29's whole load CPU 2.00ms + GPU 2.01ms against 16.67ms
+  at the worst of them, peak 387 draw calls against a 600 cap. The **GPU timer
+  worked for the first time** (`EXT_disjoint_timer_query_webgl2` needs a real
+  driver), so the project has GPU milliseconds at all now. Two findings beyond
+  the budget: **`high` is nearly free here** (1.71ms against `medium`'s 1.75ms),
+  and **`auto` picks `high` on both maps, 3.2-4.1ms, the two agreeing to
+  0.2ms** where software GL had them 3.4ms apart - the gap D68 is about is
+  mostly an artefact of the renderer the gate uses, though its mechanism is
+  real and H25's fix stands. Three honesty clauses in the runner: it refuses to
+  bench a software rasteriser, refuses to run beside a live `suite.mjs`, and
+  runs exactly what the list names. `suite-skips.json` is **empty** now and
+  `skiplist.js` holds it empty both ways; the drop moved to a list that makes a
+  stronger claim and is held to a stronger standard -
+  `the-bench-only-list-holds-only-checks-the-bench-itself-runs` requires every
+  entry registered, argued from hardware, naming `npm run bench`, absent from
+  the skip list, and **absent from `bench.mjs`'s own code**, so what the bench
+  runs cannot drift from what the gate stopped counting. Proved by breaking
+  both clauses at once and watching it name `bench.mjs:83` while leaving the
+  same id in that file's doc comment alone. The gate's summary prints the
+  newest bench's date, commit and verdict, or `NO BENCH ON RECORD`. **D69** is
+  the judgement that a stale bench prints rather than reds; **H36** (the worst
+  viewpoint is one frame and does not reproduce) and **H37** (the audit says how
+  old the bench is) are the follow-ups.
+  Done 2026-10-07, commit `TBD`.
 - **H25** Auto's pick depended on which map you opened first, and was then
   stored for the life of that browser. H10's verify had measured the same
   machine twice - **8.70ms on the plant picking `low`, 5.30ms on the yard
