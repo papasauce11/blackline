@@ -145,20 +145,38 @@ Two false starts are worth as much as the fix. **The GPU timer extension is
 present under this SwiftShader build**, so gating the sample count on
 `getExtension('EXT_disjoint_timer_query_webgl2')` gated nothing - H11's claim
 was that it returns *usable* timings on a real driver, not that it is absent on
-a software one, and presence is not usefulness. And **a `glError()` waits for
-everything queued, not for the draw just issued**, so timing one draw with a
-backlog in front of it measures the backlog: a probe read "eight seconds a
-draw" that was really sixty warmed frames of somebody else's queue, and the
-wrong number happened to give the right answer, which is the kind of thing that
-survives until it does not.
+a software one, and presence is not usefulness. The second false start was to
+believe `glError()`. This entry used to say that it **waits for everything
+queued, not for the draw just issued**, so that timing a draw behind a backlog
+measures the backlog - which is how a probe reading "eight seconds a draw" came
+to be dismissed as really being sixty warmed frames of somebody else's queue.
+That reading was the right order of magnitude and the dismissal was wrong.
 
-What works is **drain, then time one draw, then decide** - two
-synchronisations before the sweep, and the check declaring `glSync: true` so the
-wait is on the run's clock rather than inside its own ms (D48), or the drain
+And the third false start, which is the one worth the whole entry: **drain,
+then time one synced draw, then decide** does not work either, because
+`glError()` is **not a barrier on this renderer**. Measured with `npm run
+probe`, at three viewpoints of the plant: nine queued draws submit in 13-24ms,
+`getError()` returns **0.6-0.8ms** later, and a real `fenceSync` /
+`clientWaitSync` wait then takes **5,480-6,834ms** for those same nine, which
+is **610-761ms a queued draw**. So a sweep that drained and timed one "synced"
+draw read 2.6-3.6ms of submission and bought all nine samples over again. H36's
+first explanation was that the probe never called `lens.look()` and so timed an
+empty camera; looking at a real viewpoint reads **lower**, not higher (2.6-3.6ms
+against 5.1ms), so the camera was never it. The barrier was.
+
+What works is **not timing it at all**. The only barrier in this page that
+really waits is `drainPipeline()`'s fence, and it must **yield to the event
+loop** to poll - so it cannot live inside a synchronous per-viewpoint timer,
+and there is no honest wall clock here to decide affordability with. A count
+that has to be affordable is therefore **declared and not measured**: H36 put
+the frame-budget sweep's sample count in the URL, `?viewpointSamples=9`, which
+only `npm run bench` asks for and nothing else does. A check that genuinely
+wants the renderer drained still declares `glSync: true` so the wait lands on
+the run's clock rather than in its own ms (D48) - without the flag the drain
 stands the heartbeat still and `--stall` kills the run instead of
-`--stall-wait`. The general rule: **before timing anything on this renderer, ask
-whether the thing you are timing has finished**, and before trusting a budget,
-check what it actually bought.
+`--stall-wait`. The general rule survives in a stronger form: **before timing
+anything on this renderer, ask whether the thing you are timing has finished -
+and do not believe `getError()` when it says it has.**
 
 **A second WebGL context costs sixteen seconds here, and `getContext` will not
 give you a first one twice.** H4 needed to know whether this browser has WebGL2

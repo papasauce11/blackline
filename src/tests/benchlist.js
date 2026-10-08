@@ -40,8 +40,24 @@
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
+import { CONFIG } from '../config.js';
+import {
+  VIEWPOINT_SAMPLES, VIEWPOINT_BUDGET_MS, VIEWPOINT_SAMPLES_PARAM, viewpointCost, viewpointSamples,
+} from './soak.js';
+
 /** This check's own id: the policeman is not exemptible, here either. */
 const SELF = 'the-bench-only-list-holds-only-checks-the-bench-itself-runs';
+
+/**
+ * The fewest timed draws a viewpoint's median may rest on, measured: over two
+ * benches of this PC's GPU the worst median-of-N agreed within 0.3ms in all six
+ * scenes from **five** samples and within 0.2ms from nine, where the worst
+ * max-of-N never agreed at all (H36). It is a floor on the sample count and not
+ * a promise of reproducibility - a fourth bench read one viewpoint 2.6ms high
+ * across all nine of its draws, because a stall longer than the sampling window
+ * is inside every sample in it, and `tests/soak.js` has that arithmetic.
+ */
+const MIN_VIEWPOINT_SAMPLES = 5;
 
 /** F15's policeman, which may not be dropped by this route either. */
 const SKIP_GUARD = 'the-headless-skip-list-holds-only-the-check-it-declares';
@@ -51,9 +67,11 @@ const SKIP_GUARD = 'the-headless-skip-list-holds-only-the-check-it-declares';
  * entry here is a deliberate edit visible in the diff of the commit that
  * makes it, which is the difference between an exemption and a way past.
  */
+const SWEEP = 'the-frame-budget-holds-everywhere-not-just-at-site-a';
+
 const ALLOWED = [
   {
-    id: 'the-frame-budget-holds-everywhere-not-just-at-site-a',
+    id: SWEEP,
     benchOnly: true,
     why: 'times 92 viewpoints against an 8.33ms ceiling, and headless draws them with SwiftShader',
   },
@@ -228,6 +246,146 @@ export function register(debugTools) {
           ? `${list.length} check${list.length === 1 ? '' : 's'} run by \`npm run bench\`, ${benchOnly.length} of them dropped from the gate `
             + `(${benchOnly.map((entry) => entry.id).join(', ') || 'none'}); each declared here, registered, argued from hardware and naming the command; `
             + 'none also in suite-skips.json; bench.mjs and suitereport.mjs both read the one file and bench.mjs names no id of its own'
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one',
+    spec: 'Section 2 / check 29, H36',
+    name: 'A viewpoint costs the median of several timed draws, the budget affords them even at the ceiling, and a frame the scheduler took away cannot set the verdict',
+    run: async (h) => {
+      const problems = [];
+      const PERF = CONFIG.performance;
+      const ceiling = PERF.frameBudgetMs * PERF.cpuBudgetFraction;
+
+      // 1. The two constants, held as a RELATION rather than as copies of
+      //    themselves - a check that reads the number the sweep read can only
+      //    ever agree with it (HANDOFF's standing lesson). The relation that
+      //    matters is that the budget still affords every sample on a machine
+      //    drawing right at its ceiling: if it did not, a slow machine would
+      //    be judged on fewer samples than a fast one, which is the bias the
+      //    budget exists to avoid.
+      if (VIEWPOINT_SAMPLES < MIN_VIEWPOINT_SAMPLES) {
+        problems.push(`a viewpoint is costed from ${VIEWPOINT_SAMPLES} draws and two benches only agreed from ${MIN_VIEWPOINT_SAMPLES} (H36)`);
+      }
+      const affords = VIEWPOINT_SAMPLES * ceiling;
+      if (VIEWPOINT_BUDGET_MS < affords) {
+        problems.push(`the per-viewpoint budget is ${VIEWPOINT_BUDGET_MS}ms, and ${VIEWPOINT_SAMPLES} draws at the ${ceiling.toFixed(2)}ms ceiling need ${affords.toFixed(0)}ms - a machine at its ceiling would be judged on fewer samples than one well inside it`);
+      }
+
+      // 2. A spike cannot reach the verdict. The input is chosen to be one the
+      //    OLD clause would have failed on, and that is asserted rather than
+      //    assumed: 13.80ms at bay-a-north was a real reading on this PC's GPU
+      //    at a place whose median is 2.30ms, and it reddened this check.
+      const quiet = new Array(VIEWPOINT_SAMPLES).fill(2);
+      const spiked = quiet.slice();
+      spiked[VIEWPOINT_SAMPLES - 1] = 13.8;
+      if (!(Math.max(...spiked) > ceiling)) {
+        problems.push(`the spike this check uses is ${Math.max(...spiked)}ms against a ${ceiling.toFixed(2)}ms ceiling, so it is not one the old clause would have failed on and proves nothing`);
+      }
+      if (viewpointCost(spiked) !== 2) {
+        problems.push(`${VIEWPOINT_SAMPLES} draws of 2ms with one of 13.8ms cost ${viewpointCost(spiked)}ms; a descheduled frame is reaching the verdict`);
+      }
+
+      // 3. And the second half, without which the clause above is satisfied by
+      //    a statistic that ignores everything: a viewpoint genuinely over the
+      //    ceiling in every draw must still read over it. The median has to be
+      //    deaf to one frame and not to the cost.
+      const overrun = new Array(VIEWPOINT_SAMPLES).fill(ceiling + 1);
+      if (!(viewpointCost(overrun) > ceiling)) {
+        problems.push(`every draw at ${(ceiling + 1).toFixed(2)}ms costs ${viewpointCost(overrun).toFixed(2)}ms, under the ceiling; the median is hiding a real overrun`);
+      }
+
+      // 4. **The count is declared, and the declaration defaults to one.**
+      //    This is the clause three dead runs paid for, and it is a rule
+      //    rather than an instrument because no instrument here works. A
+      //    sweep that prices its own frames reads 0.6ms and buys all nine:
+      //    probed, nine queued draws of a real viewpoint submit in 13-24ms,
+      //    `gl.getError()` returns 0.6ms later, and a real `fenceSync` then
+      //    waits 5.5-6.9 SECONDS for the same nine - 610-761ms a draw, which
+      //    at 92 viewpoints is the 600s `--stall-wait` those runs died on. The
+      //    barrier that does wait is asynchronous and cannot live inside a
+      //    timer (H36, `TRAPS.md`). So: a page that asks for nothing pays for
+      //    one draw a viewpoint, and the gate is the page that asks for
+      //    nothing. Each row is a reading somebody can get wrong - an absent
+      //    parameter, a junk one, and an ask past the top of what was ever
+      //    measured.
+      const asks = [
+        ['', 1],
+        ['?quality=medium&map=yard', 1],
+        [`?${VIEWPOINT_SAMPLES_PARAM}=0`, 1],
+        [`?${VIEWPOINT_SAMPLES_PARAM}=1`, 1],
+        [`?${VIEWPOINT_SAMPLES_PARAM}=nine`, 1],
+        [`?${VIEWPOINT_SAMPLES_PARAM}=${VIEWPOINT_SAMPLES}`, VIEWPOINT_SAMPLES],
+        [`?${VIEWPOINT_SAMPLES_PARAM}=500`, VIEWPOINT_SAMPLES],
+      ];
+      for (const [search, want] of asks) {
+        const got = viewpointSamples(search);
+        if (got !== want) {
+          problems.push(`"${search || '(no query)'}" buys ${got} timed draws a viewpoint and should buy ${want}`
+            + (want === 1 ? ' - the gate is the page that asks for nothing' : ''));
+        }
+      }
+
+      // 5. The sweep is what uses all of it, read from its own text the way
+      //    this module reads bench.mjs's - a statistic nothing calls is
+      //    decoration, and a parameter nothing reads is a comment.
+      const sweepText = await (await fetch(`${location.origin}/src/tests/soak.js`)).text();
+      if (!/viewpointCost\(each\)/.test(sweepText)) {
+        problems.push('tests/soak.js does not cost a viewpoint with viewpointCost(each); the sweep is not using the statistic this check holds');
+      }
+      if (!/worst viewpoint's median frame/.test(sweepText)) {
+        problems.push('tests/soak.js\'s ceiling complaint no longer says it is about a median frame, so a red would not say what it had measured');
+      }
+      if (!/VIEWPOINT_BUDGET_MS/.test(sweepText)) {
+        problems.push('tests/soak.js no longer spends a per-viewpoint budget, so a GPU too slow for nine samples would be asked for nine anyway');
+      }
+      if (!/viewpointSamples\(typeof location/.test(sweepText)) {
+        problems.push('tests/soak.js no longer takes its sample count from the URL, so it is deciding one from a clock, and no clock here can (H36)');
+      }
+      // And the flag it must NOT have. A drain before the sweep is the shape
+      // the measured version needed - it waits for the renderer so the wait
+      // lands on the run's clock rather than in this check's ms (F11, D48) -
+      // so the flag coming back is the sweep gone back to timing a draw in
+      // order to decide something. Read off the registry rather than the text,
+      // the way pipelinewait.js reads the other direction.
+      const sweep = h.debugTools._autoTests.find((t) => t.id === SWEEP);
+      if (!sweep) problems.push(`no module registers "${SWEEP}", which is the check these two numbers are for`);
+      else if (sweep.glSync) {
+        problems.push(`"${SWEEP}" declares glSync again; the sweep only ever needed a drain in order to time its own draws, and that is what took three runs past --stall-wait (H36)`);
+      }
+
+      // 6. The two runners, and their two URLs. Only a real GPU can afford a
+      //    median, so only the bench may ask for one - and the bench must
+      //    actually ask, or `bench/<date>.json` fills up with one-sample
+      //    readings wearing the word median. Both ends are read from the files
+      //    themselves against this check's own constant, so neither can drift.
+      //    Comment lines come out of both first, decided line-locally and
+      //    never by parsing, exactly as clause 5 of the check above decides
+      //    it: bench.mjs's header explains the parameter at length, and an
+      //    explanation is not an ask.
+      const code = (body) => body.replace(/^[\t ]*(\/\/|\/\*|\*).*$/gm, '');
+      const asking = `${VIEWPOINT_SAMPLES_PARAM}=${VIEWPOINT_SAMPLES}`;
+      const bench = await text(location.origin, '/scripts/bench.mjs');
+      if (bench.error) problems.push(`${bench.error}; it is the one runner that may ask for a median`);
+      else if (!code(bench.body).includes(asking)) {
+        problems.push(`scripts/bench.mjs does not put ${asking} in the page URL, so the bench times one draw a viewpoint and calls it a median`);
+      }
+      const gate = await text(location.origin, '/scripts/suite.mjs');
+      if (gate.error) problems.push(`${gate.error}; it is the runner that must NOT ask for a median`);
+      else if (new RegExp(`${VIEWPOINT_SAMPLES_PARAM}=`).test(code(gate.body))) {
+        problems.push(`scripts/suite.mjs asks for ${VIEWPOINT_SAMPLES_PARAM} in code; headless a sample costs 610-761ms of queued pipeline and the gate drops this verdict anyway (H36)`);
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `a viewpoint costs the median of up to ${VIEWPOINT_SAMPLES} timed draws inside ${VIEWPOINT_BUDGET_MS}ms, which affords all ${VIEWPOINT_SAMPLES} at the ${ceiling.toFixed(2)}ms ceiling (${affords.toFixed(0)}ms); `
+            + `a 13.8ms spike among 2ms draws costs ${viewpointCost(spiked)}ms and ${ceiling.toFixed(2)}ms+ draws still read over; `
+            + `${asks.length} URLs buy what they should (nothing asked buys 1, ${asking} buys ${VIEWPOINT_SAMPLES}, 500 clamps to ${VIEWPOINT_SAMPLES}); `
+            + 'the sweep calls the statistic, takes its count from the URL and declares no glSync; bench.mjs asks and suite.mjs does not'
           : problems.join('; '),
       };
     },

@@ -288,74 +288,8 @@ one setting only Josh can click; everything else here proceeds.
   holds that `bench.mjs` names no id in its own code, so the two cannot drift.
   **D69** is the one judgement: a stale bench prints rather than reds.
   **H36** and **H37** are what the work revealed.
-- [~] **H36 (S)** The sweep's "worst viewpoint" is one frame, and it does not
-  reproduce. **The measuring is done and written up; the two-run VERIFY is
-  not.** Committed as WIP 2026-10-07; `PROGRESS.md`'s H36 entry has every
-  reading. What was found: the worst *place* reproduces at no sample count
-  (the top is a dozen near-ties inside the 0.1ms the clock is quantised to),
-  the worst *value* settles as a **median** from five samples and never as a
-  maximum, and **a single draw had already read 13.80ms at `bay-a-north` on the
-  yard at `medium` and turned this check red on the real GPU**, at a place
-  whose median is 2.30ms. What is built: a viewpoint costs the median of up to
-  nine timed draws inside a 120ms budget, the worst single draw is reported and
-  not asserted, the busiest three are named instead of one, and
-  `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one` in
-  `tests/benchlist.js` holds it headless in 4ms (proved by three breaks, each
-  naming its own line).
-  **The code is in history, not in the tree.** `3baf549` has the whole
-  implementation - the median statistic, the budget, the holder check - and the
-  next commit **reverted both source files to the tree H39 verified**, on
-  purpose: the sweep as written tipped three runs past the 600s `--stall-wait`,
-  and leaving it at the tip would have handed the next scheduled run a crashed
-  GATE and a `## BROKEN BASE` instead of a session. So the base is green by
-  construction and the work is one `git checkout 3baf549 -- src/tests/soak.js
-  src/tests/benchlist.js` away.
-  **resume from:** `src/tests/soak.js`, the sweep in
-  `the-frame-budget-holds-everywhere-not-just-at-site-a`. The statistic and its
-  holder are finished and proved; **what is unresolved is one interaction with
-  the runner's drain, and three runs died on it** (one full verify at 40
-  minutes, two subsets). Read this before touching anything, because two
-  plausible theories were measured and *both are wrong*.
-  - **It IS the sample count, and the probe that said otherwise was pointing at
-    nothing.** A gate on the parked base puts the pipeline tail of a subset
-    containing this sweep at **224s**; with nine samples the same shape of run
-    went past **600s**. Nine samples add 736 draws, so a **queued** draw of a
-    real viewpoint costs on the order of **500ms** of pipeline work - which is
-    the `~400ms a frame` figure after all. The 2.5-4.1ms reading that argued
-    against this came from a probe that **never called `lens.look()`**, so it
-    timed whatever the camera happened to be showing rather than a map
-    viewpoint, and it timed it *synced*, one draw at a time. Both of those make
-    it the wrong measurement. **So the budget's intent was right all along and
-    only its instrument was wrong**: nine samples are genuinely unaffordable
-    headless, and what is needed is a gate that reflects what a real view costs
-    when queued. A per-viewpoint wall clock cannot see that, for the reason in
-    `TRAPS.md`; the honest candidates are to let the bench ask for the samples
-    explicitly through the URL (the check is in `bench-checks.json`, so a
-    multi-sample reading is a bench measurement by construction) or to time one
-    *looked-at* viewpoint with a sync and let the budget decide from that.
-  - **Not the gate's mechanism.** A wall clock round `renderOnly()` times the
-    *submission* (1.7ms while the work lands later) and the GPU timer extension
-    is **present** under SwiftShader, so neither bounds anything; both false
-    starts are in `TRAPS.md`. The sweep now drains, then times one draw start
-    to finish, then asks the budget - which is right, and still reads 9.
-  - **Where it stalls:** every run containing the sweep at nine samples stalls in
-    `phase pipeline-wait` at **601s**, one second past `--stall-wait`, either on
-    `a-zero-size-viewport-does-not-blind-the-renderer` (full verify, 208/220) or
-    on "after the last check" (3-check subset). The backlog a drain clears
-    measures **~40s** after 60 warm frames. The plant's historical tail is
-    ~450s, so the suspicion is that the tail was *already* marginal against the
-    600s deadline and something here tips it - `glSync: true` is a red herring - with the
-    sample count back at one the same subset drains in 224s and the flag is
-    harmless, so start from the sample count and not from the accounting.
-  **Do not raise `--stall-wait` to make it pass.** That is a deadline hiding a
-  cost, and the cost is the thing to understand. If the tail really is the
-  sweep's 368 distinct views building pipelines (F11), the honest options are to
-  say so with a number and leave the deadline alone, or to give the sweep its own
-  drain so the cost is on its own clock rather than the next check's.
-  **Nothing above questions the measurement**, which is complete: the readings,
-  the plateau arithmetic and the 13.80ms red are all in `PROGRESS.md`, and the
-  twelve real-GPU readings in `bench/2026-10-08.json` were taken by the shipped
-  statistic on a path the gate does not touch.
+- [x] **H36 (S)** The sweep's "worst viewpoint" is one frame, and it does not
+  reproduce. — done 2026-10-08, under Done.
 - [ ] **H37 (S)** The weekly audit says how old the bench is. D69 took "print
   the staleness, never red on it" and named the alternative it refused: a gate
   that goes red when the newest `bench/<date>.json` is older than N days or
@@ -438,6 +372,49 @@ one setting only Josh can click; everything else here proceeds.
   *done-when:* the clause reads a quantity its own comment names, with the
   frame count argued from the settle probe's numbers, and the entry says which
   option was taken and why the other was not.
+- [ ] **H41 (S)** Which other checks time something on this renderer, and do
+  any of them assert on it? H36 established that no synchronous clock in the
+  page can price a draw — `gl.getError()` returns 0.6ms after nine queued draws
+  that a real fence waits 5.5-6.9s for, so a wall clock round `renderOnly()`
+  reads a submission and nothing else (`TRAPS.md`). The frame-budget sweep was
+  one such clock and is told its sample count now rather than measuring it. The
+  question nobody has asked is how many more there are.
+  `frame-budget-under-the-check-29-load` is the obvious second, and it is NOT
+  bench-only, so whatever it asserts headless it asserts on this instrument.
+  Census every `performance.now()` in `src/tests/` that brackets a render or a
+  GL call, and for each one say whether its verdict depends on the number: a
+  check that *reports* a submission time is honest and a check that *asserts*
+  on one is measuring the wrong thing. Where a verdict does depend on it,
+  either the check becomes bench-only with a reason naming the hardware
+  (`scripts/bench-checks.json`, the H11 mechanism) or it stops asserting and
+  says so at the line. Nothing may be loosened to make this come out: a
+  threshold that only passes because a submission is cheap is the defect and
+  not the threshold.
+  *done-when:* a census of timed renders in `src/tests/` is in `PROGRESS.md`
+  with a verdict-depends-on-it column, every one that does is either bench-only
+  with a hardware reason or no longer asserting, and a check holds the census
+  the way `tests/breathcensus.js` holds H33's.
+- [ ] **H42 (S)** The bench asks for nine samples and nothing proves it got
+  them. H36 put the sample count in the URL and
+  `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one` holds that
+  `scripts/bench.mjs` asks (`viewpointSamples=9`) and that `scripts/suite.mjs`
+  does not. But the 120ms budget is still a live cap inside the sweep, by
+  design, so a bench on a card slow enough to need 15ms a frame quietly reads
+  eight samples — and on a much slower one, fewer than the five two benches
+  agreed at, at which point the detail line says `NOT a median` and the stored
+  reading is still called a median by its field name. The bench is the one
+  runner whose whole output is those numbers, and it already has three honesty
+  clauses that stop it writing a reading it cannot stand behind: it refuses
+  software, refuses to run beside a suite, and runs exactly what
+  `bench-checks.json` names. This is the fourth. Read each scene's detail line
+  and exit 1 when a scene the bench asked nine samples of came back on fewer
+  than five, naming the scene and the count. Keep it a judgement about the
+  count and never about the ms — a slow card is allowed to be slow, and what is
+  not allowed is a one-sample reading filed as a median.
+  *done-when:* a bench whose sweep fell under five samples a viewpoint exits
+  non-zero and says which scene and how many it got, proved by forcing the
+  count down once; `bench/<date>.json` carries the count per scene so an old
+  file can be read the same way.
 - [ ] **H35 (S, the small end)** Three gates with their console-error counts
   written down, then close the `AudioContext` error or name a new hypothesis.
   H32 eliminated the code side of it — one realtime context per page, one owner
@@ -457,6 +434,15 @@ one setting only Josh can click; everything else here proceeds.
   **Do not start this one early.** Its evidence is three gates, which is three
   runs; picking it up before they exist would produce exactly the premature
   "that closes it" that H28 wrote and H29 had to retract.
+  **The three gates exist now, and all three read 0** — H11's, H38's and the
+  one H36 opened with (2026-10-08, plant and yard, 0 console errors on a cold
+  run). So this job is ready, and it is worth naming what it is deciding
+  between rather than letting the next session rediscover it: three clean cold
+  gates, against an error that has appeared at three of the last twelve
+  *end-of-session verifies*, is the warming-machine hypothesis holding and not
+  the error closing. Read `HANDOFF.md`'s standing warning before writing the
+  word closed — an intermittent fault is not closed by an absence, however
+  long, and that warning has already predicted its own violation once.
   *done-when:* three runs' gate console-error counts are on the record and the
   entry either closes the error with that evidence or names what to look at
   next.
@@ -714,6 +700,44 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H36** The worst viewpoint was one frame, and no clock in this page can
+  price a draw. The sweep timed **one** draw per viewpoint and asserted the
+  highest against the 8.33ms ceiling, so its verdict was a single frame — and
+  H11 had already watched that frame move 5.50ms → 2.60ms between two benches
+  of a byte-identical tree. Measured over four benches of this PC's GTX 1060 at
+  fifteen draws a viewpoint: the worst **place** reproduces at no sample count
+  (the top is a dozen near-ties inside the 0.1ms `performance.now()` is clamped
+  to, while the top **ten as a set** does reproduce, 7–10 of 10), the worst
+  **value** settles as a **median** — within 0.3ms between benches from five
+  samples and 0.2ms from nine, where max-of-N agreed nowhere and *grew* worse
+  with more samples — and **a single draw had already turned this check red on
+  the real GPU**, 13.80ms at `bay-a-north`, at a place whose median is 2.30ms.
+  So a viewpoint costs the median of the draws it was asked for, the worst
+  single draw is reported and never asserted, and the busiest **three** are
+  named instead of one crowned winner.
+  **The second half took three dead runs and is the more useful finding.** The
+  sample count was meant to come from a per-viewpoint wall-clock budget, which
+  bought all nine headless, queued 736 extra draws and killed three runs at the
+  600s `--stall-wait`. Probed: nine queued draws of a real viewpoint submit in
+  13–24ms, `gl.getError()` returns **0.6–0.8ms** later, and a real `fenceSync`
+  then waits **5,480–6,834ms** for those same nine — **610–761ms a queued
+  draw**. So `getError()` is not a barrier here, the only barrier that is must
+  yield to the event loop to poll, and **no synchronous clock in this page can
+  price a draw at all.** The count is therefore declared and not measured:
+  `?viewpointSamples=9`, which `scripts/bench.mjs` asks for and nothing else
+  does, one otherwise, the budget demoted from the decision to a cap. The
+  parked note's own diagnosis — a probe that never called `lens.look()` — is
+  disproved in passing, since looking at a real viewpoint reads *lower*
+  (2.6–3.6ms against 5.1ms), and `TRAPS.md`'s claim that a `glError()` waits
+  for everything queued is corrected rather than extended.
+  `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one` holds both
+  constants as a relation, the median both ways, **seven URLs buying what they
+  should**, that the sweep reads the URL and declares no `glSync`, and that
+  `bench.mjs` asks while `suite.mjs` does not — proved by **five breaks**, each
+  naming its own line. Pipeline tail of a subset containing the sweep:
+  **224,968ms**, the parked base's 224s to the second, so the gate costs what
+  it always cost.
+  Done 2026-10-08, commit `@@HASH@@`.
 - **H39** The other twelve, and the two facts that answered ten of them. H33
   declared `ALSO_DRAWN` — the modules that read a body off a frame they rendered
   rather than posing one — and measured none of them. **Two structural facts,

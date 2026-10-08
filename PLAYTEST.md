@@ -225,19 +225,26 @@ one frame got pushed aside by something else on the PC, and the test called it a
 performance failure.
 
 It now times **nine** frames per place and takes the middle one, so a frame the
-machine stole cannot decide anything. Two things worth knowing. The worst *place*
-on a map turns out not to be a real thing - a dozen places are tied within a
-fraction of a millisecond, so which one is "worst" changes every run, and the
-test now reports the busiest **three** instead of crowning one. And the number
-that matters is unchanged and healthy: the busiest views cost **1.9ms to 4.8ms**
-against the 8.3ms a frame is allowed, on both maps at all three quality levels.
+machine stole cannot decide anything - nine when `npm run bench` runs it on the
+real graphics card, which is the only place the number means anything at all.
+Two things worth knowing. The worst *place* on a map turns out not to be a real
+thing - a dozen places are tied within a fraction of a millisecond, so which one
+is "worst" changes every run, and the test now reports the busiest **three**
+instead of crowning one. And the number that matters is unchanged and healthy:
+the busiest views cost **1.9ms to 4.8ms** against the 8.3ms a frame is allowed,
+on both maps at all three quality levels.
 
-**One caveat, because this page should not claim more than is proved.** The new
-measurement is confirmed on the real graphics card over four runs; what has not
-finished yet is the big automated suite agreeing, which stalled on a timing
-deadline unrelated to the numbers above. The job is marked unfinished and the
-next session has the exact two commands to settle it. Nothing about the readings
-is in doubt.
+**Finished now, and the delay bought something.** What was left over on
+2026-10-08 was the big automated suite agreeing, and it had stalled three times
+getting there. The cause turned out to be about this project's test machinery
+rather than about the game: when the suite draws without a graphics card, a
+frame does not cost the millisecond or two the clock reports - it costs about
+**two thirds of a second**, and no clock in the page can see that, because the
+question "has this frame finished?" comes back "yes" while six seconds of work
+is still queued behind it. So the test no longer tries to work out how many
+readings it can afford. It is simply **told**: nine on the real card, one in the
+automated suite, where its verdict is thrown away anyway. Nothing about the
+readings above was ever in doubt, and the suite now agrees on both maps.
 
 **Nothing for you to look at** unless you want the names: the busiest corners are
 `deck-office-door` and `stair-hall-foot` on the plant, and `gate` and

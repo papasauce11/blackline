@@ -44,6 +44,15 @@
 //     both ends of that from inside the page (src/tests/benchlist.js) -
 //     including that no id is written in this file's own source.
 //
+// And one thing this runner asks the page for that no other may:
+// `?viewpointSamples=9`. The frame-budget sweep costs a viewpoint the MEDIAN
+// of its timed draws and takes **one** draw unless a page asks for more,
+// because headless a second draw costs about half a second of queued pipeline
+// and the gate drops the verdict anyway. Nine is where two benches of this
+// PC's GPU agreed to 0.2ms, so this is the one URL in the repo that asks for
+// them, and `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one`
+// holds that it does (H36).
+//
 // The viewport is pinned to the suite's 1280x720 so a number here is
 // comparable with a number there. Playwright sets that by emulation in a
 // headed browser, which changes the size of the drawing buffer and nothing
@@ -192,8 +201,10 @@ async function main() {
           at.level = level;
           // One page load per map and level: the world is built on the map at
           // boot, and `?quality=` is read at boot too (H10's precedence has
-          // the URL first), so a level is a load exactly as a map is.
-          await page.goto(`${origin}?quality=${level}&map=${mapId}`, { waitUntil: 'load' });
+          // the URL first), so a level is a load exactly as a map is. The
+          // sample count rides the same URL, for the reason in this file's
+          // header: a median is a thing only a real GPU can afford.
+          await page.goto(`${origin}?quality=${level}&map=${mapId}&viewpointSamples=9`, { waitUntil: 'load' });
           await page.waitForFunction(() => !!window.BLACKLINE, null, { timeout: 60000 });
           // The live loop would play the game under the checks (F4).
           await page.evaluate(() => window.BLACKLINE.loop.stop());
