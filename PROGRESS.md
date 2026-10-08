@@ -12876,7 +12876,14 @@ diff the two at the end of every iteration.
 `2026-10-08`. H37 is the job that reports how old the newest bench is, and a
 calendar question wants to know that the calendar is not the local one.
 
-**NOT VERIFIED - this job is committed as WIP and is `[~]` in `QUEUE.md`.**
+**NOT VERIFIED, and the code is deliberately not in the tree.** This job is
+`[~]` in `QUEUE.md`. The implementation is committed in **`3baf549`** and the
+commit after it **puts both source files back to the tree H39 verified**, because
+the sweep as written tipped three runs past the 600s `--stall-wait` and a base
+like that hands the next scheduled run a crashed GATE and a `## BROKEN BASE`
+rather than a session. The measurement, the readings and the reasoning below all
+stand; only the clause is parked, one `git checkout 3baf549 -- src/tests/soak.js
+src/tests/benchlist.js` from being back.
 Everything above is measured and stands; what is missing is the two-run suite,
 and it is missing for a reason worth writing down rather than retrying blindly.
 **Three runs died in the renderer's pipeline tail** - one full verify at forty
@@ -12891,16 +12898,18 @@ bought all nine samples headless because a draw is queued rather than drawn -
 true as far as it goes, and the gate was rewritten twice for it (first on the
 GPU timer extension, which turns out to be **present** under SwiftShader and so
 gates nothing; then on draining and timing one draw start to finish, which is
-right). But the arithmetic then says nine samples are **correct** headless: a
-drained `lens.renderOnly()` costs **2.5-4.1ms** here, measured with a sync
-around each draw, so nine fit 120ms comfortably and add about **two seconds**
-of real work across the whole sweep. The `~400ms a frame` this project quotes is
-a whole `renderFrame`, not a repeated lens draw of a warmed view, and conflating
-them is what made both theories look plausible. So the sample count is not what
-is tipping the tail over its deadline, and the next session starts from a
-different question - the first thing to test being the `glSync: true` this job
-added to the sweep, which is the one change to how the runner *accounts* for
-that wait. `QUEUE.md` has the exact two-command resume.
+right). A third
+reading then argued the sample count was innocent - a drained lens draw timed at
+**2.5-4.1ms**, so nine inside 120ms - and **that reading was the wrong
+measurement**, which a gate on the parked base settled: with one sample the
+pipeline tail of a subset containing this sweep is **224s**, and with nine the
+same shape of run passed **600s**. Nine samples add 736 draws, so a **queued**
+draw of a real viewpoint costs on the order of **500ms** - the `~400ms a frame`
+figure after all. The probe that said 2.8ms **never called `lens.look()`**, so it
+timed whatever the camera happened to be showing rather than a map viewpoint, and
+timed it synced, one draw at a time. **The budget's intent was right and only its
+instrument was wrong.** `QUEUE.md` has the resume, and it starts from the sample
+count rather than from the `glSync: true` flag, which the 224s reading clears.
 
 **What is safe to rely on meanwhile.** The twelve real-GPU readings in
 `bench/2026-10-08.json` were taken by the shipped statistic, on a path none of

@@ -302,34 +302,51 @@ one setting only Josh can click; everything else here proceeds.
   `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one` in
   `tests/benchlist.js` holds it headless in 4ms (proved by three breaks, each
   naming its own line).
+  **The code is in history, not in the tree.** `3baf549` has the whole
+  implementation - the median statistic, the budget, the holder check - and the
+  next commit **reverted both source files to the tree H39 verified**, on
+  purpose: the sweep as written tipped three runs past the 600s `--stall-wait`,
+  and leaving it at the tip would have handed the next scheduled run a crashed
+  GATE and a `## BROKEN BASE` instead of a session. So the base is green by
+  construction and the work is one `git checkout 3baf549 -- src/tests/soak.js
+  src/tests/benchlist.js` away.
   **resume from:** `src/tests/soak.js`, the sweep in
   `the-frame-budget-holds-everywhere-not-just-at-site-a`. The statistic and its
   holder are finished and proved; **what is unresolved is one interaction with
   the runner's drain, and three runs died on it** (one full verify at 40
   minutes, two subsets). Read this before touching anything, because two
   plausible theories were measured and *both are wrong*.
-  - **Not the sample count.** A drained SwiftShader `lens.renderOnly()` draw
-    costs **2.5-4.1ms** here, measured with a sync around each one, so nine of
-    them genuinely fit the 120ms budget and `wanted` is **9** headless by the
-    gate's own correct arithmetic. Nine samples add about **2 seconds** of real
-    draw work across the whole sweep. The "~400ms a frame" in `TRAPS.md` is a
-    whole `renderFrame`, not a repeated lens draw of a warmed view - that
-    distinction is what both wrong theories rested on.
+  - **It IS the sample count, and the probe that said otherwise was pointing at
+    nothing.** A gate on the parked base puts the pipeline tail of a subset
+    containing this sweep at **224s**; with nine samples the same shape of run
+    went past **600s**. Nine samples add 736 draws, so a **queued** draw of a
+    real viewpoint costs on the order of **500ms** of pipeline work - which is
+    the `~400ms a frame` figure after all. The 2.5-4.1ms reading that argued
+    against this came from a probe that **never called `lens.look()`**, so it
+    timed whatever the camera happened to be showing rather than a map
+    viewpoint, and it timed it *synced*, one draw at a time. Both of those make
+    it the wrong measurement. **So the budget's intent was right all along and
+    only its instrument was wrong**: nine samples are genuinely unaffordable
+    headless, and what is needed is a gate that reflects what a real view costs
+    when queued. A per-viewpoint wall clock cannot see that, for the reason in
+    `TRAPS.md`; the honest candidates are to let the bench ask for the samples
+    explicitly through the URL (the check is in `bench-checks.json`, so a
+    multi-sample reading is a bench measurement by construction) or to time one
+    *looked-at* viewpoint with a sync and let the budget decide from that.
   - **Not the gate's mechanism.** A wall clock round `renderOnly()` times the
     *submission* (1.7ms while the work lands later) and the GPU timer extension
     is **present** under SwiftShader, so neither bounds anything; both false
     starts are in `TRAPS.md`. The sweep now drains, then times one draw start
     to finish, then asks the budget - which is right, and still reads 9.
-  - **What actually happens:** every run containing the sweep now stalls in
+  - **Where it stalls:** every run containing the sweep at nine samples stalls in
     `phase pipeline-wait` at **601s**, one second past `--stall-wait`, either on
     `a-zero-size-viewport-does-not-blind-the-renderer` (full verify, 208/220) or
     on "after the last check" (3-check subset). The backlog a drain clears
     measures **~40s** after 60 warm frames. The plant's historical tail is
     ~450s, so the suspicion is that the tail was *already* marginal against the
-    600s deadline and something here tips it - the first thing to test is the
-    `glSync: true` this job added to the sweep, by taking it off and running the
-    same 3-check subset: if the stall moves back to `--stall` at 240s the flag
-    is implicated, and if it stays at 601s it never was.
+    600s deadline and something here tips it - `glSync: true` is a red herring - with the
+    sample count back at one the same subset drains in 224s and the flag is
+    harmless, so start from the sample count and not from the accounting.
   **Do not raise `--stall-wait` to make it pass.** That is a deadline hiding a
   cost, and the cost is the thing to understand. If the tail really is the
   sweep's 368 distinct views building pipelines (F11), the honest options are to
