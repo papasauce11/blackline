@@ -344,37 +344,18 @@ one setting only Josh can click; everything else here proceeds.
   419 frames proves it** (0.0663m against 0.066m) — the opposite answer to
   H34's, for a measured reason: this quantity is continuous where a pixel count
   is an integer. **H40** is what it found and left alone.
-- [ ] **H39 (S)** The twelve modules that read a body off a frame they rendered
-  rather than posing one. H33's census criterion was a grep — a module whose
-  text names `updateVisual` poses a body — which is checkable and is *not* the
-  whole of what inherits the run's phase: a check that calls `h.renderFrame()`
-  and reads pixels gets whatever phase the run is at, through the same
-  `updateVisual` call inside the frame. Twelve such modules are declared in
-  `ALSO_DRAWN` in `tests/breathcensus.js` and **none is measured**: `visual.js`,
-  `presentation.js`, `feedback.js`, `sitetint.js`, `quality.js`,
-  `qualityhold.js`, `groundview.js`, `plantrule.js`, `briefing.js`,
-  `debuggate.js`, `fuzz.js`, `performance.js`.
-  Several will obviously be out of reach (a HUD panel, the debug gate, the
-  site's floor tint) and the census's own proofs may already cover them — say
-  so per module rather than measuring for the sake of it. The ones worth a
-  reading are the ones with a **body** in the frame and a pixel floor on it:
-  `visual.js` and `presentation.js` first, then `feedback.js`'s death-cam
-  killer. H33's two instruments are both in the scratchpad pattern it
-  describes: a detail-line diff over eight phases finds every reported
-  quantity, and anything a passing check does not report has to be measured
-  directly.
-  *done-when:* every module in `ALSO_DRAWN` is reclassified — measured with
-  its numbers, or out of reach with the proof that covers it — and the list is
-  empty or holds only what is genuinely unmeasurable, with why.
-- [x] **H34 (S)** One 13px neck at 8m. — done 2026-10-07, under Done. **It is
-  real, there is a 14, and eight phases was the problem.** Over 32 phases on
-  each map the 8m neck reads 10-13 on the plant and **10-14 on the yard**, so
-  the worst margin is **2.00x** against 1.5x and not the 2.33x H33 recorded
-  from eight phases on one map; the census table is corrected and says why.
-  The hood held at 28px in all 64 readings and both maps' lanes read the same
-  yaw, so neither the hood nor the angle was the variable. **No dense clause**
-  (33% of margin left, and a dense sweep costs 64 readings): what is asserted
-  instead is the invariance the margin rests on.
+- [x] **H39 (S)** The twelve modules that read a body off a frame they
+  rendered. — done 2026-10-07, under Done. **Two facts answered ten of them
+  before a pixel was counted**, and both are proved: a lens grab never calls
+  `updateVisual`, so every grab in a check is at one pose and a difference
+  between two grabs cancels the body; and the gait is multiplied by `walking`,
+  so it reaches no standing body at all, which every body in this group is.
+  The two that are reached are wide — the thinnest is the rim's
+  edge-over-interior at **1.39x** — and the list is classified in
+  `tests/breathdrawn.js`, which `tests/breathcensus.js` now imports rather
+  than keeping a second copy. **The queue was wrong about one module** for the
+  third time in this block: the death camera is `visual.js`'s, not
+  `feedback.js`'s, and is out of reach twice over.
 - [ ] **H40 (S)** The shipped glove clause reads a transient, not the hang.
   `a-hang-is-at-full-stretch-under-the-lip` draws thirty frames of
   `updateVisual` after the grab and then reads `|gloveY - lip|`, and H38's
@@ -675,6 +656,44 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H39** The other twelve, and the two facts that answered ten of them. H33
+  declared `ALSO_DRAWN` — the modules that read a body off a frame they rendered
+  rather than posing one — and measured none of them. **Two structural facts,
+  both now proved behaviourally, answer ten of the twelve**: a lens `grab()` is
+  `h.post.render(...)` plus a `readPixels` and never calls `updateVisual`, so
+  every grab inside a check is at **one** pose and a difference between two
+  grabs cancels the body exactly (twelve grabs move the body under 0.0001m
+  where twelve real frames move it 0.0064m); and `_posture` multiplies the whole
+  gait by `walking`, so a standing body's limbs are at rest whatever
+  `_animTime` reached (1.08 rad of swing walking, under 0.0001 rad standing
+  across a whole turn of it) — and every body in this group stands, so the
+  *bigger* of H33's two levers reaches none of them. A third fact explains why
+  nothing here needed H38's settle: `Agent.reset()` ends in `updateVisual(0)`
+  and `blendFactor(0)` is **1**, so a reset body is re-posed at the run's phase
+  with the ease snapped, where H38's hang was driven into and had a live ease on
+  top of the breath. **What is left is two clauses and both are wide**: the
+  dim-with-the-meter check covers 18,579–19,763px over a 400 floor (46x) and
+  reads near-black at 36.7–42.8 against 90, and the rim check masks
+  7,376–8,109px over 500, brightens 4,872–5,118 over 200, and reads its
+  silhouette **2.08–2.39x** the interior against a bar of 1.5 — **1.39x, the
+  thinnest in the group**, the breath moving it 7%. The opposite shape to H38's
+  answer for a reason rather than by luck: a body's own pixels are counted in
+  the thousands or averaged over its mask, where H38's glove was a point two
+  metres from the pivot the breath turns. Ten out of reach by five proofs —
+  `onepose`, `hidden`, `nobody`, `onebit`, `cost` — three held behaviourally
+  with their second halves (hidden bodies move **0** pixels across a crest-to-
+  trough where shown bodies move 18,470; draw calls **449** at both ends of an
+  exact 0.080m lift) and two from the module's own text, as `donedef.js` reads
+  source. **Its own control caught its instrument**: the first draft advanced
+  half a cycle from wherever the run arrived, which moves the body by
+  `2A·|sin θ|` — the whole ride at a crest and nothing at a crossing — so it
+  would have been vacuous in six runs of eight and green in all of them. The
+  phases are absolute now. Proved load-bearing by three breaks, each naming its
+  own line, including the cross-module wiring in both directions. **The queue
+  was wrong about one module**, the third time in this block: the death camera
+  is `visual.js`'s and is out of reach twice over, by the Warden and by the
+  breath living inside the mesh.
+  Done 2026-10-07, commit `PENDING39`.
 - **H38** The hanging glove, held at the worst phase of the breath, and the
   centimetre the census missed. H33 named `tests/hang.js` the thinnest
   breath-reached clause in the suite — `|gloveY - lip| <= 0.15m` on a world

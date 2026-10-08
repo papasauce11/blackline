@@ -68,11 +68,14 @@
  * clause that only ever asserts "this number did not change" passes just as
  * well when nothing is connected.
  *
- * What it does not cover, said plainly: thirteen modules read a body off a
- * frame they rendered rather than posing one themselves, and those inherit the
- * run's phase too. They are declared in `ALSO_DRAWN` and **none of them is
- * measured** - that is **H39**, not a claim made here. The census is held both
- * ways so a new module in either group is red until it is classified.
+ * What this module does not cover: twelve modules read a body off a frame they
+ * rendered rather than posing one themselves, and those inherit the run's
+ * phase too. H33 declared them and measured none; **H39 classified them**, in
+ * `tests/breathdrawn.js`, which owns that table and the five proofs that cover
+ * it - two measured, ten out of reach, and the gait reaching none of them
+ * because every body in that group stands. The list is imported from there so
+ * it cannot be kept twice, and the census below is still held both ways, so a
+ * new module in either group is red until it is classified.
  *
  * Registered from tests/index.js beside tests/breath.js. Nothing here imports
  * main.js (Section 3.1).
@@ -83,11 +86,17 @@ import { POSE } from '../entities/agentvisual.js';
 import { QUALITY_FALLBACK, pixelRatioNow } from '../quality.js';
 import { createLens, quiesce } from './pixels.js';
 import { standAndEyes, flatShadeSilhouette, HOOD_OVER_NECK } from './figure.js';
+import { DRAWN } from './breathdrawn.js';
 
 const SELF = 'every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it';
 
-/** This module's own file, excluded from the census it holds. */
-const OWN_FILE = 'breathcensus.js';
+/**
+ * The modules that drive `updateVisual` to prove things ABOUT the two phases
+ * rather than to read a clause off a posed body, and are excluded from the
+ * census for that reason. Each is held below to still be driving it, so an
+ * exclusion cannot come to cover a module that proves nothing.
+ */
+const OWN_FILES = ['breathcensus.js', 'breathdrawn.js'];
 
 /** The breath's own period, from the look table rather than a number copied out of it. */
 const BREATH_SECONDS = (2 * Math.PI) / POSE.breath.rate;
@@ -172,15 +181,14 @@ const POSED = [
 
 /**
  * The modules that read a body off a frame they rendered rather than posing
- * one. They inherit the run's phase exactly as the list above does, and
- * **none of them has been measured** - H39. Declared so the census is complete
- * about its own scope rather than quiet about it.
+ * one. They inherit the run's phase exactly as the list above does, and H33
+ * declared them without measuring any - **H39 classified them**, so the list
+ * lives in `tests/breathdrawn.js` beside the proofs that cover it and is read
+ * from there rather than kept twice. This module still holds the one clause
+ * that needs both lists: a module that renders a frame and is in neither is
+ * unclassified, which is the hole a census exists to report.
  */
-const ALSO_DRAWN = [
-  'briefing.js', 'debuggate.js', 'feedback.js', 'fuzz.js', 'groundview.js',
-  'performance.js', 'plantrule.js', 'presentation.js', 'quality.js',
-  'qualityhold.js', 'sitetint.js', 'visual.js',
-];
+const ALSO_DRAWN = DRAWN.map((entry) => entry.module);
 
 /** Rotations the breath must not touch: animation.js's own list, by the parts both meshes name. */
 const LIMBS = ['head', 'armL', 'armR', 'legL', 'legR'];
@@ -260,11 +268,12 @@ export function register(debugTools) {
         else if (RENDERS_A_FRAME.test(text)) renders.push(file);
       }
       for (const file of poses) {
-        // This module drives `updateVisual` to prove things ABOUT the two
-        // phases rather than to read a clause off a posed body, so it is
-        // excluded by name - and the clause below holds that it stays out,
-        // because a census that declares itself is a census of one thing.
-        if (file === OWN_FILE) continue;
+        // The two census modules drive `updateVisual` to prove things ABOUT
+        // the two phases rather than to read a clause off a posed body, so
+        // they are excluded by name - and the clause below holds that they
+        // stay out, because a census that declares itself is a census of one
+        // thing.
+        if (OWN_FILES.includes(file)) continue;
         if (!declared.has(file)) problems.push(`${file} poses a body and this census does not declare it; what the breath and the gait do to its thinnest clause is the whole point of the list`);
       }
       for (const entry of POSED) {
@@ -276,11 +285,15 @@ export function register(debugTools) {
       for (const file of ALSO_DRAWN) {
         if (!renders.includes(file)) problems.push(`${file} is in ALSO_DRAWN and no longer renders a frame of its own; drop it`);
       }
-      // This module is in neither: it drives updateVisual to prove things about
-      // it, which is not reading a clause off a posed body. Named so the
-      // exclusion is deliberate rather than an oversight nobody can see.
-      if (declared.has(OWN_FILE)) problems.push(`${OWN_FILE} declares itself; it proves the mechanism rather than reading a clause off it`);
-      if (!poses.includes(OWN_FILE)) problems.push(`${OWN_FILE} no longer drives updateVisual, so none of the four proofs below is reading a body that moved`);
+      // The two census modules are in neither list: they drive updateVisual to
+      // prove things about it, which is not reading a clause off a posed body.
+      // Named so the exclusion is deliberate rather than an oversight nobody
+      // can see, and each held to still be driving it.
+      for (const own of OWN_FILES) {
+        if (declared.has(own)) problems.push(`${own} declares itself; it proves the mechanism rather than reading a clause off it`);
+        if (alsoDrawn.has(own)) problems.push(`${own} is in the drawn table; it proves the mechanism rather than reading a clause off it`);
+        if (!poses.includes(own)) problems.push(`${own} no longer drives updateVisual, so its proofs are not reading a body that moved`);
+      }
 
       const { shade, warden } = h;
       const restore = quiesce(h);
@@ -480,7 +493,7 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${poses.length} pose a body: ${held} held at the worst phase, ${measured} measured, ${none} out of reach by proof; `
-            + `${renders.length} render one, unmeasured (H39). ${readings.join('; ')}`
+            + `${renders.length} render one, classified next door (H39). ${readings.join('; ')}`
           : problems.join('; '),
       };
     },

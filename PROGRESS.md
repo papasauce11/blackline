@@ -12568,3 +12568,191 @@ unmoved (F16). `auto` would have picked `medium` on both (5.40ms, 4.80ms).
 
 The one failure on each map is the frame-budget check, reported as `bench only`
 against a real-GPU reading from `e95fe4b` (D69), exactly as it was at the gate.
+
+## H39 — the other twelve, and the two facts that answered ten of them (2026-10-07 20:00, scheduled run)
+
+**What it was handed.** H33's census covered every module that **poses** a body
+— a grep for `updateVisual` is the whole criterion, which is what makes that
+list checkable — and said plainly that it was not the whole of what inherits
+the run's phase. A check that renders a frame and reads pixels out of it gets
+whatever phase the run is at, through the same `updateVisual` inside the frame.
+Twelve such modules sat in `ALSO_DRAWN`, **declared and unmeasured**. The job
+was to reclassify every one: measured with its numbers, or out of reach with
+the proof that covers it.
+
+**Two facts about the machinery answered ten of the twelve before any pixel was
+counted, and both are now proved rather than asserted.**
+
+- **A lens does not advance the pose.** `grab()` in `tests/pixels.js` is
+  `h.post.render(...)` and a `readPixels`; it never calls `updateVisual`. So
+  every grab inside one check is at **one** pose, and a difference between two
+  grabs — which is how nearly every picture check in the suite isolates what it
+  is about — cancels the body exactly. Measured: twelve grabs move the body
+  under 0.0001m where twelve real frames move it 0.0064m.
+- **The gait reaches nothing while a body stands.** `_posture` multiplies the
+  whole gait by `walking`, so a standing body's limbs are at rest whatever
+  `_animTime` has reached. Every body in this group stands. Measured: the legs
+  and arms swing **1.08 rad** while walking and under **0.0001 rad** across a
+  whole turn of `_animTime` standing still. So the gait — which H33 found to be
+  the *bigger* lever, 24% of a pixel count on `look.js`'s walk and sprint poses
+  — is out of reach of all twelve for one structural reason, and no entry in the
+  table needs a gait note.
+
+**And a third fact, which is why nothing here needed H38's settle.**
+`Agent.reset()` ends with `this.updateVisual(0)`, and `blendFactor(0)` is
+**1** — so a reset body is re-posed at the run's current phase with the ease
+snapped all the way to its target. A check that resets a body and then reads it
+reads a *settled* pose. H38's hang is driven into rather than reset into, which
+is precisely why it had a live ease riding on top of the breath and needed 150
+frames of it out of the way. The two jobs are the same mechanism from opposite
+ends.
+
+**What was left is two clauses, and both are wide.** Over eight entry phases on
+both maps, run through the registry exactly as the suite runs them, with the
+lift shown to have ridden 0.0787m and 0.0798m across the sweep:
+
+| clause | reads | against | margin |
+|---|---|---|---|
+| `the-shade-visibly-dims-with-the-meter`, body | 18,579–19,763px | a floor of 400 | **46x**, moving 4–5% |
+| the same, near-black | luma 36.7–42.8 | a bar of 90 | **2.1–2.4x**, moving under one step |
+| `the-rim-light-is-really-on-screen`, body | 7,376–8,109px | a floor of 500 | **14.8x** |
+| the same, rim | 4,872–5,118px | a floor of 200 | **24x** |
+| the same, **edge over interior** | **2.08–2.39x** | a bar of 1.5 | **1.39x**, moving 7% |
+
+So the group's answer is the opposite shape to H38's, and the reason is not
+luck: a body's own pixels are **counted in the thousands or averaged over its
+mask**, where H38's glove was a single point two metres from the pivot the
+breath turns. The thinnest thing here is the rim's edge-over-interior at
+**1.39x**, which is the clause that says a rim light is an edge and not an
+ambient add wearing a rim's name — and it is thin because 1.5 is a demanding
+bar for that claim, not because the breath is near it.
+
+**The queue was wrong about one module, which is the third time.** It named
+"`feedback.js`'s death-cam killer" as the third thing worth reading. The death
+camera is `the-death-camera-frames-the-killer` in **`visual.js`**, not
+`feedback.js` — and it is structurally out of reach twice over: the killer it
+isolates is the **Warden**, which does not breathe (H33 proved that), and the
+ragdoll clauses beside it read `mesh.position` and `mesh.rotation`, which the
+breath never touches because it moves a group *inside* the mesh. H30's entry
+said the same of `readability.js` and H33's own sweep density was the second;
+**a queue line written from memory of a module is a guess, and the module is
+the authority.**
+
+**The twelve, classified.** `tests/breathdrawn.js` holds the table, which is
+now the one source of truth — `tests/breathcensus.js` imports it rather than
+keeping a second copy, so the two censuses cannot come to disagree about which
+file is in which group:
+
+- **measured (2)**: `visual.js` (one of its five clauses; the other four are
+  covered by `hidden`, `onepose` twice and the Warden), `presentation.js` (one
+  of its seven).
+- **out of reach (10)**, by five proofs: `onepose` — `feedback.js`, every
+  clause a difference between two grabs with only the feedback quad toggled.
+  `hidden` — `sitetint.js` and `groundview.js`, which hide both bodies for the
+  length of the reading. `nobody` — `quality.js`, `qualityhold.js`,
+  `plantrule.js`, `briefing.js`, `debuggate.js`, which read no framebuffer and
+  no part of a posed body at all. `onebit` — `fuzz.js`, whose one framebuffer
+  read reduces a whole frame to **whether any pixel is non-zero**, to tell a
+  live context from a lost one (F1); where a body is drawn cannot move one bit.
+  `cost` — `performance.js`, whose one clause is a frame cost in milliseconds.
+
+**Each proof is held, and three of the five behaviourally with the second half
+HANDOFF demands.** `onepose` and `standing` are above. `hidden`: with both
+bodies hidden, a crest-to-trough move of the breath changes **0 pixels**, and
+with them shown the same move changes **18,470** on the plant and **16,976** on
+the yard — the pair is the proof, because the first half alone would pass on a
+renderer that had stopped drawing. `cost`: the draw calls read **449** on the
+plant and **332** on the yard at both ends of an exact 0.080m lift, so the
+breath moves a transform and nothing a frame budget is made of. `nobody` and
+`onebit` are held from the module's own text, the way `tests/donedef.js` reads
+source for its line counts and its two bans. And the table is held as a
+classification rather than a list: an entry naming a proof this check does not
+hold is red, and so is **a proof no entry rests on**, which is H30's rule about
+allowances going stale.
+
+**Its own control caught the instrument, which is the part worth keeping.** The
+first draft advanced the body **half a cycle** from wherever the run arrived,
+and the control fired on both maps: *"the body moved 0.0239m between the two
+draw-call counts, under one lift of 0.04m, so equal counts say nothing."* It
+was right, and the arithmetic is the lesson — advancing half a period from
+phase θ moves the body by `2A·|sin θ|`, which is the whole ride at a crest and
+**nothing at all** at a crossing. A proof whose window depends on the phase the
+run happened to start at is a proof that is vacuous at two phases in eight, and
+the suite would have reported it green in six runs out of eight. The phases are
+**absolute** now — `CREST`, `TROUGH` and `CROSSING`, set on the clock and
+snapped with `updateVisual(0)` — so every clause here is the same measurement
+in every run. That is the second time in two jobs that a sweep's own control
+has been the thing that found the flaw, and the first draft would have passed
+its gate.
+
+**Proved load-bearing by three breaks, each naming its own line.**
+Misclassifying `feedback.js` as `nobody` produced *"feedback.js is declared out
+of reach because it reads no body, and it reads the framebuffer"* **and** *"the
+proof `onepose` is held below and no entry rests on it"* — both halves of the
+table's census at once. Renaming `visual.js` out of the table produced
+`breathcensus.js`'s *"visual.js renders a frame and is in neither list"* and
+*"visualGONE.js is in ALSO_DRAWN and no longer renders a frame of its own"*,
+which is the cross-module wiring proved in both directions. And zeroing
+`POSE.breath.lift` emptied the controls in both censuses at once.
+
+**A trap out of that loop.** `git checkout --` does not revert a file git has
+never seen, so the break-and-revert loop silently stopped reverting the moment
+the file under test was **new and untracked**: two breaks accumulated, the
+second and third runs were measured on a tree carrying earlier breaks, and the
+only reason it was recoverable is that each red named its own line and the
+stale complaint appeared in runs it did not belong to. `TRAPS.md` has it, with
+`git add -N` and reading `git status --short` *between* breaks rather than only
+at the end.
+
+**What was left.** Nothing in this group wants doing. `ALSO_DRAWN` is empty of
+unmeasured modules, which is the done-when, and the honest residue is one line
+rather than a job: `performance.js`'s clause is answered by `npm run bench` and
+not here (H11), so its margin is a real-GPU number — 3x to 6x under its ceiling
+over twelve readings — and the `cost` proof is what says the breath cannot
+reach it either way.
+
+**No decision raised.** Every choice here is an instrument choice with its
+measurement at the line, and the pin on the breath's amplitude is still
+**D70**'s, now read from a third place.
+
+**Verified. GATE: none of its own, by protocol step 8** — H38's VERIFY, two
+runs of each map on a tree this job started from, stands as it. So this entry
+has no cold console-error count to add to H35's three; the one this session
+produced is in H38's entry, and it was **0**.
+
+VERIFY: **OK**. Plant **218 passed / 1 failed / 8 not for this map** on both
+runs (1,142,663ms and 1,097,414ms, 451,873ms and 443,881ms of it the pipeline
+tail), yard **198 / 1 / 28** on both (773,105ms and 769,357ms, 337,220ms and
+341,584ms tail). **0 red, 0 flaky, 0 context losses, 0 loop frames, 0 re-runs,
+0 skips withheld, 0 bench drops withheld, 0 unexpectedly green and no other
+runner**, both runs of each map identical on every count. One check more than
+the pair after H38, which is this one. `auto` would have picked `medium` on
+both (6.10ms, 4.30ms).
+
+**One console error, and it is the audio one — so the streak that HANDOFF.md
+described one job ago is over.** *"The AudioContext encountered an error from
+the audio device or the WebAudio renderer"*, **plant run 1, 336s in**, the
+third occurrence in twelve verifies (H27 yard, H29 plant, this). The thing
+worth recording is not the error, whose code side H32 closed, but that H38 had
+just written into `HANDOFF.md` that the clean run was "eight in a row, which is
+the exact shape of evidence H28 mistook for a closure once already, so do not
+take it" — and it broke on the **very next verify**. The record predicted
+itself, so the warning stands in the strongest form it has ever had: **an
+intermittent fault is not closed by an absence, and the length of the absence
+is not an argument.** The occurrence fits the standing hypothesis rather than
+straining it — an end-of-session verify, 336s into a run, on a session whose
+own cold gate was 0 that morning — and `TRAPS.md` carries it. It does not fail
+the gate, by D67.
+
+**And one timing worth reading rather than quoting.** The plant's run pair
+spread **45,249ms, 4% of the longest** — the widest since F11 — against a
+pipeline-wait spread of only 7,992ms, where the yard's pair spread 3,748ms
+against a 4,364ms wait. So unlike H32's yard pair, this one is **not** the
+renderer's tail: 45s of spread with 8s of wait behind it is the machine, and
+the audio error landed inside the slower of the two runs. F16's rule says read
+the spread before the total; read here, it says both plant totals are load
+readings and neither is a cost, so nothing in this entry's timings should be
+compared with a `PROGRESS.md` number.
+
+The five checks that read source text and markdown were re-run against the
+committed tree after these records were written, as the protocol orders them.

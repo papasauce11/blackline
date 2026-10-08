@@ -196,6 +196,21 @@ again:
   Chrome launched with `--mute-audio` and `--autoplay-policy=no-user-gesture-required`,
   on a Windows box whose audio endpoint is nobody's business here.
 
+**And H39 is the third occurrence, which arrived the moment the record claimed
+a streak.** 2026-10-07, plant run 1, **336s in** - the twelfth verify on
+record, and the third to show it (H27 yard, H29 plant, H39 plant). What makes
+it worth a paragraph is the timing of the *writing* rather than of the error:
+one job earlier, H38 had updated `HANDOFF.md` to say the clean run was "eight
+in a row, which is the exact shape of evidence H28 mistook for a closure once
+already, so do not take it" - and the next verify showed the error. Nobody has
+to argue the point again. **An intermittent fault is not closed by an absence,
+and the length of the absence is not an argument**; eight in a row was not
+evidence of anything except eight observations of the same condition. The
+occurrence also fits the standing hypothesis rather than straining it: it is an
+end-of-session verify, 336s into a run, on a session whose own cold GATE
+reported **0** console errors that morning. H35 is still three gates, and this
+is not one of them.
+
 **What is still unknown, and it is cheap to settle.** Whether it ever happens on
 a *cold* machine. All six recorded observations are **end-of-session verifies**,
 taken after an hour or more of driving Chrome — so the cold run H27 asked for has
@@ -394,6 +409,23 @@ ordinary prose about this project, and then read the patched lines back.
 file containing an em dash without `encoding='utf-8'` reads a different string,
 and an `anchor in s` that should be true is false. Open with `encoding='utf-8'`
 both ways.
+
+**`git checkout --` does not revert a file git has never seen, so the loop
+that proves a check load-bearing silently stops reverting the moment the check
+is new.** H39 wrote a new module and proved it by breaking it three ways in a
+loop - patch, run the subset, read the red, `git checkout --` the file, next
+break. The first two breaks were in the new module, which was **untracked**:
+`git checkout` printed `error: pathspec ... did not match any file(s) known to
+git` on stderr, among a page of suite output, and the break stayed in. So the
+second run was measured on a tree carrying the first break, and the third on a
+tree carrying both. The reds still named their own lines, which is the only
+reason this was recoverable rather than three proofs that proved nothing - the
+misclassified entry's complaint was in every run after the one it belonged to,
+which is what gave it away. Two rules. **`git add -N <file>` (or a first
+commit) before a break-and-revert loop on a new file**, so checkout has
+something to go back to. And **read `git status --short` between breaks, not
+only at the end**: a revert that did nothing looks exactly like a revert that
+worked, and a loop is where that costs the most.
 
 **A coverage check cannot see a connectivity fault.** Three times now: the A1
 constant that stayed green with the step at 2m, the HUD check that was green

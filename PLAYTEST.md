@@ -149,6 +149,22 @@ call, so if a grab ever reads as an arm *snapping* up rather than reaching,
 that is the number to change. `the-hanging-glove-holds-the-lip-at-every-phase-of-the-breath`
 is the new one, and it runs in a hundredth of a second.
 
+**And the rest of it is closed (H39, same day).** The breath question has been
+running for four days across five jobs, so here is the end of it in one
+paragraph. Twelve more tests looked at the Shade through a rendered frame and
+nobody had checked whether her breathing moved what they measure. Ten of them
+**cannot** be affected, for two reasons that are now tested rather than assumed:
+a test that photographs the game does not advance the animation, so everything
+it compares is the same instant; and the leg-swing is switched off entirely
+while she stands still, which she does in all of these. The two that *are*
+affected are nowhere near their limits — the closest is a test of the rim light
+around her silhouette, which passes with about a third more margin than it
+needs. **Nothing to look at and nothing changed.** The one thing worth knowing
+if you ever read these numbers yourself: the amount her breathing shifts a
+measurement depends on *where* on the body it is taken, and it is largest at the
+hands, because they are furthest from the point the breath pivots on. That is
+why the hanging-hand test was the only tight one in the whole census.
+
 ### The frame budget holds on the real GPU, and you no longer have to check (H11, 2026-10-07)
 
 **This closes the oldest thing on this page's "only you can judge" list.**
