@@ -737,7 +737,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   naming its own line. Pipeline tail of a subset containing the sweep:
   **224,968ms**, the parked base's 224s to the second, so the gate costs what
   it always cost.
-  Done 2026-10-08, commit `@@HASH@@`.
+  Done 2026-10-08, commit `181a7f3`.
 - **H39** The other twelve, and the two facts that answered ten of them. H33
   declared `ALSO_DRAWN` — the modules that read a body off a frame they rendered
   rather than posing one — and measured none of them. **Two structural facts,
