@@ -22,7 +22,16 @@ const KNIFE_SWING_TIME = CONFIG.combat.knife.swingAnimTime;
  * lip, which is where `hangDrop` puts them. Pi is straight up on this rig;
  * a shade short of it keeps the elbows in front of the head.
  */
-const HANG_ARM_ANGLE = -3.05;
+export const HANG_ARM_ANGLE = -3.05;
+
+/**
+ * How much of the way the drawn body closes on the capsule in one frame of
+ * `wallDt`. Exported so a check can argue a settle from the law rather than
+ * from a copy of its result (H40).
+ */
+export function positionSmoothing(wallDt) {
+  return wallDt > 0 ? 1 - Math.pow(0.0001, wallDt) : 1;
+}
 
 /**
  * The poses (E3), in radians about each group's pivot - x forward for a
@@ -82,7 +91,13 @@ export const VISUAL = {
 
     // Smooth the render position so the 60Hz simulation does not read steppy at
     // higher refresh rates. Simulation state is untouched.
-    const smoothing = wallDt > 0 ? 1 - Math.pow(0.0001, wallDt) : 1;
+    //
+    // This is the SLOWEST ease between a state change and the drawn body:
+    // 0.1423 a frame at 60Hz, so 45 frames to 99.9% against the pose blend's
+    // twelve (H40). A grab lifts the capsule about a metre, so a check that
+    // reads a world position off this mesh must wait for it and not for the
+    // pose - `positionSmoothing` is exported for the one that does.
+    const smoothing = positionSmoothing(wallDt);
     this._smoothPosition.lerp(this.position, smoothing);
 
     const feet = this._smoothPosition.y - this.half.y;

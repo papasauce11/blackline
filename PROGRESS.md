@@ -13001,3 +13001,156 @@ and no look changed, and the ceiling (`frameBudgetMs` × `cpuBudgetFraction`) is
 untouched. The one judgement worth Josh's eye is in `PLAYTEST.md` rather than
 here: the busiest corners are named now, so if the game ever hitches in one
 specific place there is a list to check it against.
+
+## H40 — two clauses read the same hands at two different moments, and the slow ease was never the pose (2026-10-08 02:00, scheduled run)
+
+**What it was handed.** `a-hang-is-at-full-stretch-under-the-lip` reads
+`|gloveY - lip|` thirty frames after a grab. H38's probe of the settle said
+thirty frames is inside the pose ease — the arm's angle has arrived, but the
+part of the glove's height that is not the breath was still moving, -0.016m at
+frame 30 against +0.0263m settled — so the clause was bounding the tail of the
+arm's swing at 24% of its tolerance where the hang sits at 17%. The queue named
+two options and asked for a measurement rather than a split difference: settle
+it to the hang, the sweep's 150 frames, or keep thirty and say at the line that
+the reading is deliberately of the ease.
+
+**The measurement went wrong twice before it went right, and both wrong turns
+are worth the space**, because each of them looked conclusive at the time.
+
+**One: is the transition bounded at all?** No, and not nearly. Frame by frame
+from the grab, the glove is **2.19m** off the lip at frame 0 with the arms still
+down, 0.44m at frame 5, and first inside the 0.15m tolerance at **frame 12**;
+the worst excursion inside the first thirty frames is **14.6x the tolerance**.
+So option 2's "bound the transition" cannot be done with this quantity at any
+number — a bound that held the ease would have to be 2.2m, which bounds
+nothing. That much stood all the way through.
+
+**Two, and this one was wrong.** I measured the pose ease directly, as
+`torso.y - (baseY + lift)` against the live `_breathTime`, at eight *controlled*
+grab phases — the phase matters because `_breathTime` advances only in
+`updateVisual` and `Agent.reset()` deliberately leaves it alone (D66), so a
+check inherits whatever phase the run arrived in. That quantity is **0.0006m at
+frame 30 and 0.0006m at frame 150**. The arm's error against `HANG_ARM_ANGLE` is
+1e-3 rad by frame 14, 1e-4 by 18, 9.6e-8 by 30. And `POSE_BLEND` is 0.2s, twelve
+frames to 99.9%, so thirty frames is 2.5 blends and a pose cannot still be
+easing 2.5 blends in. On that I concluded the premise did not reproduce, wrote
+it up, wrote a PLAYTEST entry saying so, and started a verify.
+
+**What saved it was 7.4mm that nothing accounted for.** Across those eight
+phases one frame-30 reading sat 0.0074m below the settled band's floor, with the
+pose residual at 0.0006m and the arm at 9.6e-8 rad. Neither thing I had measured
+could put it there, so something else was moving — and it was the one ease I had
+not measured. `updateVisual` does not only ease the pose toward its target; it
+lerps **`_smoothPosition` toward the capsule**, so that a 60Hz simulation does
+not read steppy on a faster screen. That law is `1 - 0.0001^wallDt`, which is
+**0.1423 a frame** and **45 frames** to 99.9% against the pose blend's twelve —
+and a grab lifts the capsule about a metre.
+
+| | at grab | f30 | f45 | f60 | f150 |
+|---|---|---|---|---|---|
+| drawn body chasing the capsule, plant | -0.930m | **-0.00930m** | -0.00093m | -0.00009m | 0.00000m |
+| drawn body chasing the capsule, yard | -0.830m | **-0.00830m** | -0.00083m | -0.00008m | 0.00000m |
+| pose chasing the breath, plant | 0.0003m | 0.0004m | 0.0002m | 0.00001m | -0.0008m |
+
+**So the queue's premise is right, H38's mechanism is wrong, and this session's
+first answer was wrong in exactly the same way H38's was** — each of us measured
+one ease and concluded about the other, and the two eases differ by a factor of
+nearly four. The clause at thirty frames was reading a body **9.3mm (plant) and
+8.3mm (yard)** below where it was going, because the drawn body was still
+sliding into the hang. That is the centimetre H33's census band sat below H38's
+(-0.021m to +0.055m against -0.014m to +0.066m), it is why 150 frames was right
+all along, and it was never the arm. The lesson is not about the glove: **a
+world position read off `shade.mesh` within 45 frames of a state change is
+reading a body still on its way**, and nothing in this project knew that.
+
+**What was built — option 1, and one settle instead of two.** `SETTLE_FRAMES` is
+150 and `SWEEP_SETTLE_FRAMES` is gone, so both clauses wait the same frames and
+read the same world position in the same state of arrival, which is precisely
+what the queue's option 1 asked for. The count is argued from the **slower** of
+the two eases rather than the faster: 150 is 3.3 of the mesh chase's 45 frames.
+`positionSmoothing()` is exported from `agentvisual.js` so the check can hold the
+count against the *law* rather than against a copy of its answer, which is
+H29's rule and the reason the relation clause below can catch a slowed chase.
+The shipped clause's own reading moves from -0.019m to +0.017m on the plant,
+inside its 0.15m tolerance either way, so no verdict changes; what changes is
+that the verdict is about the hang.
+
+**Why option 2 was not taken**, beyond the 14.6x: it would have documented the
+reading as deliberately of the ease, which is a true sentence about the wrong
+ease. The transition such a note would have described is the arm's, and the arm
+is finished in a fifth of a second.
+
+**The check.** `the-hang-pose-has-arrived-before-the-glove-is-read` holds four
+things. The **relation**, which needs no body: `SETTLE_FRAMES` must be at least
+`SETTLE_MARGIN` (2.0) times the slowest ease's own frames-to-99.9%, computed
+from `positionSmoothing()` and `POSE_BLEND` rather than from the number 45.
+The **control**, taken before the settle and asserted, without which everything
+after it is satisfied by a body that never moved: one frame in, the drawn body
+must be at least 0.5m under the capsule, the arms at least 1.0 rad off the hang
+angle and the glove at least 0.5m off the lip (measured 0.80m, 1.72 rad, 1.54m).
+The **arrival**, watched frame by frame rather than assumed: the frame the gap
+first closes under 0.0005m must be inside `SETTLE_FRAMES / 1.5` (measured frame
+50 against 100), and at the read frame the gap must be under 0.0005m and the
+arm under 1e-3 rad (measured 0.00000m and 4.44e-16 rad). And the **pose**, which
+H38 blamed and this job cleared — asserted anyway at 0.002m, because "the pose
+is innocent" is a measurement and not a belief, and a pose that did start
+lagging should say so there rather than in the glove's tolerance.
+
+**Proved by four breaks, each naming its own line.** Back to thirty frames:
+*"the glove is read 30 frames after a grab, and the slowest ease into that
+reading takes 45 frames to 99.9% (the mesh's chase at 0.1423 a frame, against
+the pose blend's 12) ... the drawn body is still 0.00930m from the capsule at
+frame 30, where the glove is read, so both clauses are reading a body on its way
+to the hang"* — the job's whole finding, held as a red. Slowing the chase's law
+while leaving `SETTLE_FRAMES` alone: both halves fire, the relation recomputing
+106 frames from the new law and the behavioural clause watching the arrival slip
+to frame 116. Settling before the control is taken: all three control clauses,
+*"there is no arrival here to watch"*. And subtracting the breath at the wrong
+phase — H38's actual mistake, reproduced on demand: *"the torso's ease was
+**0.03999m** from where the breath wanted it"*, which is `POSE.breath.lift` of
+0.04m to a hundredth of a millimetre.
+
+**Verified.** `npm run suite`, two runs of each map, exit 0: **plant 220
+passed, 1 failed, 8 not for this map** (1,105,958ms and 1,105,884ms, of which
+448,916ms and 449,761ms the renderer's pipeline tail) and **yard 200 / 1 / 28**
+(765,105ms and 764,240ms, 330,978ms and 332,336ms of tail). 0 red, 0 flaky, 0
+context losses, 0 loop frames, 0 skips withheld, 0 bench drops withheld, 0
+unexpectedly green, 0 re-runs, no other runner — and **0 console errors in all
+four runs**, as in this run's gate and in H36's verify before it. Both runs of
+each map agree exactly on every count, and the spreads are **74ms (0%)** on the
+plant and **865ms (0%)** on the yard against pipeline-wait spreads of 845ms and
+1,358ms: the tightest pairs on record, and tighter than H36's own 1,395ms and
+8,088ms earlier in the same session. One check more than H36's verify on each
+map, which is this one. Auto would have picked `medium` on both (7.00ms, 4.70ms).
+
+The arrival check's own line, both maps: *"one frame in, the drawn body is 0.80m
+under the capsule with the arms 1.72 rad off the hang angle and the glove 1.53m
+off the lip; the body reaches the capsule at frame 50 and is 0.00000m off it at
+150 (3.3 of the 45-frame ease, the slowest of the two), the arms 4.44e-16 rad
+off, the torso within 0.00068m of the breath throughout."* And the sweep it now
+shares a settle with reads **worst 0.066m of 0.15m, rode 0.079m** — the same
+0.066m H38 recorded, which is the point: moving the shipped clause to the
+sweep's frame count did not move the sweep.
+
+**One thing about the machine, recorded because it cost a diagnosis.** A verify
+stopped from outside left its `node` alive: the next subset opened with
+*"WARNING: another suite.mjs is still running (pid 11532)"*, which is F10's
+watchdog doing exactly its job. Killing the tree by hand left no `node` at all
+and twelve `chrome.exe` that are Josh's own browser, the same twelve H36
+checked. A stopped runner is not a torn-down runner — check for the warning
+before trusting any timing after one.
+
+**Two follow-ups, both from the finding rather than from the fix.** **H43**: the
+mesh's chase is the slowest ease in the project and two jobs in a row missed it,
+so the census is worth taking — which checks read a world position off a mesh
+within 45 frames of a state change, in the shape `tests/breathcensus.js` holds
+H33's. **H44**: the drawn body is 0.20m under the capsule a tenth of a second
+after a grab and 0.09m at a sixth, because the smoothing is sized for 60Hz
+jitter and a grab moves a metre; whether that reads as the body floating up into
+the hang is a question for eyes and nobody has asked it.
+
+**No decision raised.** Which frame a check reads at, and which law it argues
+that frame from, are instrument choices with their measurements at the line. No
+rule and no look changed: the smoothing, the pose blend, the breath and the
+glove's 0.15m tolerance are all untouched, and the only constant that moved is
+how long a test waits before looking.

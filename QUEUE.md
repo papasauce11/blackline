@@ -348,30 +348,10 @@ one setting only Josh can click; everything else here proceeds.
   than keeping a second copy. **The queue was wrong about one module** for the
   third time in this block: the death camera is `visual.js`'s, not
   `feedback.js`'s, and is out of reach twice over.
-- [ ] **H40 (S)** The shipped glove clause reads a transient, not the hang.
-  `a-hang-is-at-full-stretch-under-the-lip` draws thirty frames of
-  `updateVisual` after the grab and then reads `|gloveY - lip|`, and H38's
-  probe of the settle shows thirty frames is **inside the ease**: the arm's
-  angle has arrived (`armL.rotation.x` -3.04 at frame 20, -3.05 at 30, 60 and
-  120) but the part of the glove's height that is not the breath is still
-  moving, -0.016m at frame 30 against +0.027m at 120 and +0.0263m settled. So
-  that clause reads **-0.036m, 24% of its tolerance**, where the hang it claims
-  to be about sits at +0.026m, and what it is really bounding is the tail of
-  the arm's swing. Nothing is wrong today and the new sweep covers the hang
-  properly, so this is about what the clause *means*: it would redden if the
-  pose blend ever slowed, which is a false red about the blend and not about
-  the body. Two honest options, and the job is to pick one with a measurement
-  rather than to split the difference — settle it to the hang (it then reads
-  the same quantity the sweep does, and the sweep's 150 frames is the number),
-  or keep thirty and say at the line that the reading is deliberately of the
-  ease, with a bound that belongs to a transition rather than to a pose. The
-  second is only worth taking if the transition is worth asserting, which
-  wants the arm's own sweep measured: it goes from arms-down to straight up
-  over about twenty frames, and whether the glove is ever further from the lip
-  than it should be *during* a grab is a question nobody has asked.
-  *done-when:* the clause reads a quantity its own comment names, with the
-  frame count argued from the settle probe's numbers, and the entry says which
-  option was taken and why the other was not.
+- [x] **H40 (S)** The shipped glove clause reads a transient, not the hang. —
+  done 2026-10-08, under Done. The queue was right that it read a transient and
+  wrong about which: the pose blend was innocent and the mesh's own chase was
+  the slow ease.
 - [ ] **H41 (S)** Which other checks time something on this renderer, and do
   any of them assert on it? H36 established that no synchronous clock in the
   page can price a draw — `gl.getError()` returns 0.6ms after nine queued draws
@@ -415,6 +395,41 @@ one setting only Josh can click; everything else here proceeds.
   non-zero and says which scene and how many it got, proved by forcing the
   count down once; `bench/<date>.json` carries the count per scene so an old
   file can be read the same way.
+- [ ] **H43 (S)** Which checks read a world position off a mesh before the
+  drawn body has got there? H40 found the slowest ease in the project and it is
+  not one anybody had named: `updateVisual` lerps `_smoothPosition` toward the
+  capsule at `positionSmoothing()`, 0.1423 a frame, **45 frames** to 99.9%,
+  against the pose blend's twelve — and a state change that moves the body a
+  metre leaves the drawn body **9mm** out at frame 30. Two jobs in a row
+  measured the pose ease and concluded about this one (H38 named the arm, H40's
+  own first answer cleared the arm and stopped there), so a census is worth the
+  same treatment H33's breath got. Every check that reads a *world* position
+  off `shade.mesh` or the Warden's — `getWorldPosition`, a `position.y` off a
+  part, a landing or reach measured in world space — with how many frames of
+  `updateVisual` separate it from the state change before it. A read inside 2x
+  the chase's 45 frames either waits, or says at the line why the lag does not
+  reach its quantity; a read that cancels the lag by subtracting two positions
+  taken in the same frame is out of reach and should say that too, the way H39's
+  grabs cancel the breath. Nothing may be loosened to make it come out.
+  *done-when:* the census is in `PROGRESS.md` with a frames-since-state-change
+  column, every read inside the band is waiting or argued, and a check holds the
+  census the way `tests/breathcensus.js` holds H33's.
+- [ ] **H44 (S)** Does the grab's slide read as the body floating up into the
+  hang? The position smoothing is sized for 60Hz jitter on a faster screen, and
+  it is doing something rather different when a grab moves the capsule a metre:
+  measured on the plant, the drawn body is **0.80m** under the capsule one
+  frame in, **0.20m** at a tenth of a second, **0.09m** at a sixth and 9mm at
+  half a second. That is the body visibly catching up to a hang it is already
+  in, for about a quarter of a second, and nobody has looked at it — H40 found
+  it while measuring something else and it is a *look* question, so it wants
+  eyes rather than a threshold. A shot per frame of the first fifteen, through
+  `npm run shot`, is enough to see it; if it reads badly the fix is a shorter
+  smoothing for a traversal state change rather than a shorter one everywhere,
+  because the 60Hz smoothing is doing its own job correctly.
+  *done-when:* `PLAYTEST.md`'s eyes list carries the question with the numbers
+  and the frames to look at, or a measured reason the lag cannot be seen; if it
+  can, a `DECISIONS.md` entry with the options, because how the body moves into
+  a hang is a look and looks are Josh's.
 - [ ] **H35 (S, the small end)** Three gates with their console-error counts
   written down, then close the `AudioContext` error or name a new hypothesis.
   H32 eliminated the code side of it — one realtime context per page, one owner
@@ -700,6 +715,35 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H40** Two clauses read the same hands at two different moments, and the
+  slow ease was never the pose. H38 left a finding: the shipped glove clause
+  reads `|gloveY - lip|` thirty frames after a grab, which its probe of the
+  settle put *inside* the pose ease, so the clause was bounding the tail of the
+  arm's swing rather than the hang. **The premise is right and its mechanism is
+  wrong**, and this job's own first answer was wrong the same way. Measured:
+  the pose ease is innocent — `torso.y - (baseY + lift)` against the live
+  `_breathTime` is 0.0006m at frame 30 and 0.0006m at frame 150, the arm's error
+  against `HANG_ARM_ANGLE` is 9.6e-8 rad by frame 30, and `POSE_BLEND` is 0.2s,
+  twelve frames to 99.9%. What was still moving is the ease nobody had named:
+  `updateVisual` lerps **`_smoothPosition` toward the capsule** at 0.1423 a
+  frame, **45 frames** to 99.9%, and a grab lifts the capsule a metre — so at
+  frame 30 the drawn body is **9.3mm (plant) / 8.3mm (yard)** below where it is
+  going. That is the centimetre H33's band sat below H38's, and it is why 150
+  frames was right all along. Option 1 taken: `SETTLE_FRAMES` is 150,
+  `SWEEP_SETTLE_FRAMES` is gone, both clauses read the same position in the same
+  state of arrival, and the count is argued from the **slower** of the two eases
+  (3.3 of 45) with `positionSmoothing()` exported so the check holds the law and
+  not a copy of its answer. Option 2 refused with a number: the glove is 2.19m
+  off the lip at the grab and the worst excursion in the first thirty frames is
+  **14.6x the tolerance**, so a bound on the transition would have to be 2.2m.
+  `the-hang-pose-has-arrived-before-the-glove-is-read` holds the relation, a
+  control asserted before the settle, the arrival watched frame by frame, and
+  the pose cleared rather than assumed — **four breaks**, each naming its own
+  line, including H38's own mis-subtraction reproduced on demand at **0.03999m**
+  against a breath depth of 0.04m. Two follow-ups queued: **H43** (the census of
+  world-position reads inside the chase) and **H44** (whether the slide is
+  visible, which is a look and so Josh's).
+  Done 2026-10-08, commit `@@HASH@@`.
 - **H36** The worst viewpoint was one frame, and no clock in this page can
   price a draw. The sweep timed **one** draw per viewpoint and asserted the
   highest against the 8.33ms ceiling, so its verdict was a single frame — and

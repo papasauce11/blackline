@@ -33,18 +33,33 @@
  * from a settled pose it runs **-0.014m to +0.066m**, and the worst phase
  * clears its bar by **2.26x**: the breath's own ride agrees (0.080m, twice
  * `POSE.breath.lift` to the millimetre, over a dense sweep of all 419 frames
- * of a cycle), but the whole band sits a centimetre higher, because the hang
- * pose was still easing when the census read it. See `SWEEP_SETTLE_FRAMES`.
- * Eight phases are ample for *this* quantity - the dense sweep's worst is
- * 0.0663m against the eight-phase 0.066m, because an offset in metres is
- * continuous where a pixel count is not, which is exactly why H34 needed
- * thirty-two phases at 8m and this needs eight.
+ * of a cycle), but the whole band sits a centimetre higher. Eight phases are
+ * ample for *this* quantity - the dense sweep's worst is 0.0663m against the
+ * eight-phase 0.066m, because an offset in metres is continuous where a pixel
+ * count is not, which is exactly why H34 needed thirty-two phases at 8m and
+ * this needs eight.
+ *
+ * **H40 found which settle that centimetre is, and it is not the pose.** There
+ * are two eases between a grab and the glove's world height, and H38 named the
+ * faster one. The pose blend is `POSE_BLEND`, 0.2s, **twelve frames** to
+ * 99.9%, and it is innocent: the torso's residual against the live breath -
+ * `torso.y - (baseY + lift)`, which is exactly the part of the glove's height
+ * that is not the breath - never exceeds **0.00061m at any frame**, frame 1
+ * included. The slow one is the mesh's own chase, `_smoothPosition` lerped at
+ * `positionSmoothing()`, **0.1423 a frame and 45 frames** to 99.9%; a grab
+ * lifts the capsule about a metre, so at frame 30 the drawn body is still
+ * **9.3mm (plant) and 8.3mm (yard)** below where it is going. That is the
+ * centimetre, it is why the sweep's 150 frames was right, and it is what the
+ * shipped clause used to read at thirty. Both clauses settle `SETTLE_FRAMES`
+ * now, and `the-hang-pose-has-arrived-before-the-glove-is-read` holds the
+ * count against the slower law.
  *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
 import { CONFIG } from '../config.js';
-import { POSE } from '../entities/agentvisual.js';
+import { POSE, HANG_ARM_ANGLE, positionSmoothing } from '../entities/agentvisual.js';
+import { POSE_BLEND } from '../entities/pose.js';
 import { SHADE_STATE } from '../entities/agent.js';
 import { landingSpot } from '../mapclimb.js';
 import { driveAtLedge, findGroundLedge } from './movement.js';
@@ -59,29 +74,62 @@ const S = CONFIG.shade;
 const GLOVE_ON_LIP = 0.15;
 
 /**
- * Frames of `updateVisual` after a grab before the first check reads the
- * glove. The arms swing up to the hang angle over the pose blend, so the
- * frames straight after a grab are the ease arriving rather than the hang: the
- * glove is 0.69m under the lip five frames in. Thirty is what that check has
- * always read at and its reading is held to it.
+ * Frames of `updateVisual` after a grab before **either** check reads the
+ * glove, and the quantity they therefore read: the hang, at whatever phase of
+ * the breath the run arrived in.
+ *
+ * One constant and not two since H40, which is the queue's own option 1: the
+ * shipped clause read at thirty frames and the sweep at a hundred and fifty,
+ * so the two of them were reading the same world position in two different
+ * states of arrival and only one of them was the hang.
+ *
+ * A hundred and fifty, argued from the **slower** of the two eases between a
+ * grab and this reading. The pose blend is the faster and the one H38 named -
+ * `POSE_BLEND` 0.2s, twelve frames to 99.9%, with the torso's residual against
+ * the live breath never over 0.00061m at any frame. The mesh's own chase is the
+ * slow one: `_smoothPosition` closes `positionSmoothing(1/60)` = 0.1423 of the
+ * gap a frame, which is **45 frames** to 99.9%, and a grab lifts the capsule
+ * about a metre. Measured from the grab, that gap is 0.93m (plant) and 0.83m
+ * (yard), still **9.3mm and 8.3mm** at frame thirty, under a millimetre at 45
+ * and under a tenth of one at 60. So thirty frames drew the body 9mm below
+ * where it was going and the glove's offset carried it; a hundred and fifty is
+ * 3.3 of those eases, with the gap at zero to five decimal places.
  */
-const SETTLE_FRAMES = 30;
-
-/**
- * And the frames the **sweep** settles, which is five times as many for a
- * measured reason. The arm's angle arrives by frame 30, but the pose's own
- * contribution to the glove's height is still moving: the offset reads
- * -0.036m at frame 30, -0.007m at 60 and -0.009m at 120, and the part of it
- * that is not the breath goes -0.016m, +0.018m, +0.027m over the same frames.
- * So a sweep that began at 30 would be sweeping the ease and the breath
- * together and calling the sum the breath. By 120 the pose has arrived to
- * within a third of a millimetre of where a dense sweep of a whole cycle puts
- * it; 150 is that with room.
- */
-const SWEEP_SETTLE_FRAMES = 150;
+const SETTLE_FRAMES = 150;
 
 /** Eight phases of one breath, sampled the way `tests/breath.js` samples them. */
 const PHASES = 8;
+
+/**
+ * H40's bounds for the arrival check, every one measured on both maps.
+ *
+ * `SETTLE_MARGIN` is the relation `SETTLE_FRAMES` is argued from: at least this
+ * many of the **slowest** ease's own time-to-99.9%, which the check computes
+ * from `positionSmoothing()` rather than carrying a copy of 45. 150 frames is
+ * 3.3 of them, so 2.0 leaves room for a smoothing slowed by half before
+ * anybody has to think again. `ARRIVAL_MARGIN` holds the same margin
+ * behaviourally, against the frame the check watches the gap close for itself -
+ * two clauses, because there are two ways to lose it: slow the law's constant,
+ * or change the easing and leave the constant alone.
+ *
+ * `SMOOTH_ARRIVED` is 0.0005m against a gap that reads 0.00000m at
+ * `SETTLE_FRAMES` and closes under 0.0005m around frame 50. `POSE_SETTLED` is
+ * 0.002m against a worst of 0.00061m, and that residual is a steady-state lag
+ * and not a transient: the torso starts where the breath already wanted it, so
+ * the ease only ever has the sinusoid to chase. `ARM_ARRIVED` is 1e-3 rad
+ * against 9.6e-8 at frame 30 and 3e-10 by 40 - the error falls by 0.5623 a
+ * frame, so this is five orders of room on something exponential.
+ * `UNSETTLED_*` are the control's floor, from a gap of 0.71-0.80m, an arm 1.72
+ * rad off and a glove 1.49-1.58m off the lip one frame after the grab.
+ */
+const SETTLE_MARGIN = 2.0;
+const ARRIVAL_MARGIN = 1.5;
+const SMOOTH_ARRIVED = 0.0005;
+const POSE_SETTLED = 0.002;
+const ARM_ARRIVED = 1e-3;
+const UNSETTLED_SMOOTH = 0.5;
+const UNSETTLED_ARM = 1.0;
+const UNSETTLED_GLOVE = 0.5;
 
 /** The breath's own period, from the look table rather than a number copied out of it. */
 const BREATH_SECONDS = (2 * Math.PI) / POSE.breath.rate;
@@ -217,7 +265,9 @@ export function register(debugTools) {
         if (Math.abs(top - shade.feetY - S.hangDrop) > 0.05) problems.push(`hanging feet ${(top - shade.feetY).toFixed(2)}m under the lip, want hangDrop ${S.hangDrop}`);
         // The drawn body, settled by the walk above: the arms straight up and
         // the gloves' height in the world. This is the one reading, at
-        // whatever phase of the breath the run arrived in; the check below
+        // whatever phase of the breath the run arrived in - and since H40 the
+        // phase is the only thing about it that is not settled, because it
+        // waits the same `SETTLE_FRAMES` the sweep does. The check below
         // sweeps the cycle and asserts the worst of it (H38).
         const parts = shade.mesh.userData.parts;
         if (parts.armL.rotation.x > -3.0 || parts.armR.rotation.x > -3.0) problems.push(`hanging arms at ${parts.armL.rotation.x.toFixed(2)} / ${parts.armR.rotation.x.toFixed(2)}, not straight up`);
@@ -286,7 +336,7 @@ export function register(debugTools) {
       const shade = h.shade;
       const problems = [];
 
-      const hang = hangAtGroundLedge(h, SWEEP_SETTLE_FRAMES);
+      const hang = hangAtGroundLedge(h, SETTLE_FRAMES);
       if (!hang.spot || !hang.hung) {
         shade.reset(h.map.shadeSpawns[0]);
         return {
@@ -337,6 +387,121 @@ export function register(debugTools) {
         : 'on the lip exactly';
       const line = `hanging at ${hang.tag}, lip ${hang.top.toFixed(2)}m: ${PHASES} phases of a ${BREATH_SECONDS.toFixed(2)}s breath,`
         + ` glove-lip ${readings}; worst ${worst.toFixed(3)}m of ${GLOVE_ON_LIP}m (${left}), rode ${ride.toFixed(3)}m`;
+      return { pass: problems.length === 0, detail: problems.length === 0 ? line : `${problems.join('; ')} [${line}]` };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'the-hang-pose-has-arrived-before-the-glove-is-read',
+    spec: 'Section 6.1, amended (20.4; B8) / H38, H40',
+    name: 'The drawn body has finished arriving at the hang before either clause reads the glove, with the frame count argued from the slowest ease and not the fastest',
+    // No `glSync`: nothing here renders either. Everything below is a rotation
+    // and two group positions off the matrix.
+    run: (h) => {
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
+      const shade = h.shade;
+      const problems = [];
+
+      // 1. The relation, first, because it holds without a body at all: the
+      //    frames both clauses wait must be a multiple of the SLOWEST ease's
+      //    own time to 99.9%, computed from the law rather than copied from
+      //    its answer. H38 argued this count from the pose blend, which is the
+      //    faster of the two by nearly four times, and a count argued from the
+      //    fast one is how thirty frames came to look settled (H40).
+      const smoothingPerFrame = positionSmoothing(1 / 60);
+      const smoothFrames = Math.log(0.001) / Math.log(1 - smoothingPerFrame);
+      const blendFrames = POSE_BLEND * 60;
+      const slowest = Math.max(smoothFrames, blendFrames);
+      if (SETTLE_FRAMES < slowest * SETTLE_MARGIN) {
+        problems.push(`the glove is read ${SETTLE_FRAMES} frames after a grab, and the slowest ease into that reading takes`
+          + ` ${slowest.toFixed(0)} frames to 99.9% (the mesh's chase at ${smoothingPerFrame.toFixed(4)} a frame,`
+          + ` against the pose blend's ${blendFrames.toFixed(0)}), so the count is under the ${SETTLE_MARGIN}x it is argued from`);
+      }
+
+      const hang = hangAtGroundLedge(h, 0);
+      if (!hang.spot || !hang.hung) {
+        shade.reset(h.map.shadeSpawns[0]);
+        return {
+          pass: false,
+          detail: hang.spot
+            ? `a tap at ${hang.tag} did not hang (state ${shade.state}), so there was no arrival to watch`
+            : 'no hangable ground-level ledge was found',
+        };
+      }
+      const parts = shade.mesh.userData.parts;
+      // The two gaps, named apart because H38 and H40's own first answer each
+      // measured one of them and concluded about the other.
+      const meshGap = () => Math.abs(shade._smoothPosition.y - shade.position.y);
+      const poseGap = () => Math.abs(parts.torso.position.y
+        - (parts.torso.userData.baseY + Math.sin(shade._breathTime * POSE.breath.rate) * POSE.breath.lift));
+      const armGap = () => Math.max(
+        Math.abs(parts.armL.rotation.x - HANG_ARM_ANGLE),
+        Math.abs(parts.armR.rotation.x - HANG_ARM_ANGLE)
+      );
+
+      // 2. The control, taken BEFORE the settle and asserted, without which
+      //    every clause below is satisfied by a body that never moved: one
+      //    frame in, the mesh is most of a metre under the capsule, the arms
+      //    are nowhere near the hang and the glove is nowhere near the lip.
+      shade.updateVisual(1 / 60);
+      const meshAtOne = meshGap();
+      const armAtOne = armGap();
+      const gloveAtOne = Math.abs(hangingGloveY(shade) - hang.top);
+      if (meshAtOne < UNSETTLED_SMOOTH) {
+        problems.push(`one frame after the grab the drawn body is already within ${meshAtOne.toFixed(3)}m of the capsule,`
+          + ` inside the ${UNSETTLED_SMOOTH}m this control assumes; there is no arrival here to watch`);
+      }
+      if (armAtOne < UNSETTLED_ARM) {
+        problems.push(`one frame after the grab the arms are already ${armAtOne.toFixed(3)} rad from the hang angle,`
+          + ` inside the ${UNSETTLED_ARM} rad this control assumes`);
+      }
+      if (gloveAtOne < UNSETTLED_GLOVE) {
+        problems.push(`one frame after the grab the glove is already ${gloveAtOne.toFixed(2)}m from the lip,`
+          + ` inside the ${UNSETTLED_GLOVE}m this control assumes`);
+      }
+
+      // 3. The arrival, watched rather than assumed, and the worst each gap
+      //    reaches after it. `meshArrived` is the number H38's account needed
+      //    and did not have: the frame the DRAWN body stops moving toward the
+      //    capsule, which is 45-ish and not 12, and which thirty frames is
+      //    inside.
+      let meshArrived = -1;
+      let worstPose = poseGap();
+      for (let f = 2; f <= SETTLE_FRAMES; f++) {
+        shade.updateVisual(1 / 60);
+        if (meshArrived < 0 && meshGap() <= SMOOTH_ARRIVED) meshArrived = f;
+        worstPose = Math.max(worstPose, poseGap());
+      }
+      if (meshArrived < 0) {
+        problems.push(`the drawn body is still ${meshGap().toFixed(5)}m from the capsule at frame ${SETTLE_FRAMES},`
+          + ` where the glove is read, so both clauses are reading a body on its way to the hang`);
+      } else if (meshArrived > SETTLE_FRAMES / ARRIVAL_MARGIN) {
+        problems.push(`the drawn body reaches the capsule at frame ${meshArrived} and the glove is read at`
+          + ` ${SETTLE_FRAMES}, under the ${ARRIVAL_MARGIN}x margin this count is argued from`);
+      }
+      const meshAtRead = meshGap();
+      const armAtRead = armGap();
+      if (meshAtRead > SMOOTH_ARRIVED) {
+        problems.push(`at frame ${SETTLE_FRAMES} the drawn body is ${meshAtRead.toFixed(5)}m off the capsule, over ${SMOOTH_ARRIVED}m`);
+      }
+      if (armAtRead > ARM_ARRIVED) {
+        problems.push(`at frame ${SETTLE_FRAMES} the arms are ${armAtRead.toExponential(2)} rad off the hang angle`);
+      }
+      // And the pose, which H38 blamed and H40 cleared. It is asserted anyway,
+      // because "the pose is innocent" is a measurement and not a belief, and
+      // a pose that did start lagging should say so here rather than in the
+      // glove's own tolerance.
+      if (worstPose > POSE_SETTLED) {
+        problems.push(`the torso's ease was ${worstPose.toFixed(5)}m from where the breath wanted it, over ${POSE_SETTLED}m;`
+          + ` the glove's height then carries a pose that is still moving and not only the breath`);
+      }
+
+      shade.reset(h.map.shadeSpawns[0]);
+      const line = `hanging at ${hang.tag}: one frame in, the drawn body is ${meshAtOne.toFixed(2)}m under the capsule with the arms`
+        + ` ${armAtOne.toFixed(2)} rad off the hang angle and the glove ${gloveAtOne.toFixed(2)}m off the lip; the body reaches the`
+        + ` capsule at frame ${meshArrived} and is ${meshAtRead.toFixed(5)}m off it at ${SETTLE_FRAMES}`
+        + ` (${(SETTLE_FRAMES / slowest).toFixed(1)} of the ${slowest.toFixed(0)}-frame ease, the slowest of the two),`
+        + ` the arms ${armAtRead.toExponential(2)} rad off, the torso within ${worstPose.toFixed(5)}m of the breath throughout`;
       return { pass: problems.length === 0, detail: problems.length === 0 ? line : `${problems.join('; ')} [${line}]` };
     },
   });

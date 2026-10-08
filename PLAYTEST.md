@@ -165,6 +165,34 @@ measurement depends on *where* on the body it is taken, and it is largest at the
 hands, because they are furthest from the point the breath pivots on. That is
 why the hanging-hand test was the only tight one in the whole census.
 
+### Two tests were reading the Shade's hands at two different moments (H40, 2026-10-08)
+
+**Nothing changed in the game, and nothing was broken — but two tests disagreed
+about when to look, and only one of them was looking at the right thing.**
+
+When the Shade grabs a ledge, the drawn body does not snap to the new position;
+it slides there, so that a 60-a-second simulation does not look steppy on a
+faster screen. That slide takes about **three quarters of a second** to finish,
+and a grab moves her about a metre. One of the two tests about her hanging hands
+was reading them **half a second** after the grab — while the body was still
+sliding, about **9mm** below where it was going — and the other was waiting a
+full two and a half seconds, which is settled. So the two were measuring the
+same hands in two different states, and the earlier one was quietly reading the
+slide.
+
+They both wait the same time now, and the test says *why* that time is enough:
+it is three times the slowest of the two animations feeding into it, and the
+test watches the body arrive for itself and goes red if it ever stops arriving
+in time. That matters because the previous explanation blamed the wrong
+animation — her arms swinging up, which finishes in a fifth of a second and was
+never the problem — and a test argued from the fast one looks settled when it is
+not.
+
+**Nothing for you to look at.** If you want to watch it anyway: hang from a lip
+and look at the hands. They should sit on it, rising and falling about 8cm over
+a seven-second breath, and the body should slide up into the hang rather than
+snapping — that slide is the thing all of this was about.
+
 ### The frame budget holds on the real GPU, and you no longer have to check (H11, 2026-10-07)
 
 **This closes the oldest thing on this page's "only you can judge" list.**
