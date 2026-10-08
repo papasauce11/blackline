@@ -40,8 +40,22 @@
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
+import { CONFIG } from '../config.js';
+import { VIEWPOINT_SAMPLES, VIEWPOINT_BUDGET_MS, viewpointCost } from './soak.js';
+
 /** This check's own id: the policeman is not exemptible, here either. */
 const SELF = 'the-bench-only-list-holds-only-checks-the-bench-itself-runs';
+
+/**
+ * The fewest timed draws a viewpoint's median may rest on, measured: over two
+ * benches of this PC's GPU the worst median-of-N agreed within 0.3ms in all six
+ * scenes from **five** samples and within 0.2ms from nine, where the worst
+ * max-of-N never agreed at all (H36). It is a floor on the sample count and not
+ * a promise of reproducibility - a fourth bench read one viewpoint 2.6ms high
+ * across all nine of its draws, because a stall longer than the sampling window
+ * is inside every sample in it, and `tests/soak.js` has that arithmetic.
+ */
+const MIN_VIEWPOINT_SAMPLES = 5;
 
 /** F15's policeman, which may not be dropped by this route either. */
 const SKIP_GUARD = 'the-headless-skip-list-holds-only-the-check-it-declares';
@@ -228,6 +242,94 @@ export function register(debugTools) {
           ? `${list.length} check${list.length === 1 ? '' : 's'} run by \`npm run bench\`, ${benchOnly.length} of them dropped from the gate `
             + `(${benchOnly.map((entry) => entry.id).join(', ') || 'none'}); each declared here, registered, argued from hardware and naming the command; `
             + 'none also in suite-skips.json; bench.mjs and suitereport.mjs both read the one file and bench.mjs names no id of its own'
+          : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one',
+    spec: 'Section 2 / check 29, H36',
+    name: 'A viewpoint costs the median of several timed draws, the budget affords them even at the ceiling, and a frame the scheduler took away cannot set the verdict',
+    run: async (h) => {
+      const problems = [];
+      const PERF = CONFIG.performance;
+      const ceiling = PERF.frameBudgetMs * PERF.cpuBudgetFraction;
+
+      // 1. The two constants, held as a RELATION rather than as copies of
+      //    themselves - a check that reads the number the sweep read can only
+      //    ever agree with it (HANDOFF's standing lesson). The relation that
+      //    matters is that the budget still affords every sample on a machine
+      //    drawing right at its ceiling: if it did not, a slow machine would
+      //    be judged on fewer samples than a fast one, which is the bias the
+      //    budget exists to avoid.
+      if (VIEWPOINT_SAMPLES < MIN_VIEWPOINT_SAMPLES) {
+        problems.push(`a viewpoint is costed from ${VIEWPOINT_SAMPLES} draws and two benches only agreed from ${MIN_VIEWPOINT_SAMPLES} (H36)`);
+      }
+      const affords = VIEWPOINT_SAMPLES * ceiling;
+      if (VIEWPOINT_BUDGET_MS < affords) {
+        problems.push(`the per-viewpoint budget is ${VIEWPOINT_BUDGET_MS}ms, and ${VIEWPOINT_SAMPLES} draws at the ${ceiling.toFixed(2)}ms ceiling need ${affords.toFixed(0)}ms - a machine at its ceiling would be judged on fewer samples than one well inside it`);
+      }
+
+      // 2. A spike cannot reach the verdict. The input is chosen to be one the
+      //    OLD clause would have failed on, and that is asserted rather than
+      //    assumed: 13.80ms at bay-a-north was a real reading on this PC's GPU
+      //    at a place whose median is 2.30ms, and it reddened this check.
+      const quiet = new Array(VIEWPOINT_SAMPLES).fill(2);
+      const spiked = quiet.slice();
+      spiked[VIEWPOINT_SAMPLES - 1] = 13.8;
+      if (!(Math.max(...spiked) > ceiling)) {
+        problems.push(`the spike this check uses is ${Math.max(...spiked)}ms against a ${ceiling.toFixed(2)}ms ceiling, so it is not one the old clause would have failed on and proves nothing`);
+      }
+      if (viewpointCost(spiked) !== 2) {
+        problems.push(`${VIEWPOINT_SAMPLES} draws of 2ms with one of 13.8ms cost ${viewpointCost(spiked)}ms; a descheduled frame is reaching the verdict`);
+      }
+
+      // 3. And the second half, without which the clause above is satisfied by
+      //    a statistic that ignores everything: a viewpoint genuinely over the
+      //    ceiling in every draw must still read over it. The median has to be
+      //    deaf to one frame and not to the cost.
+      const overrun = new Array(VIEWPOINT_SAMPLES).fill(ceiling + 1);
+      if (!(viewpointCost(overrun) > ceiling)) {
+        problems.push(`every draw at ${(ceiling + 1).toFixed(2)}ms costs ${viewpointCost(overrun).toFixed(2)}ms, under the ceiling; the median is hiding a real overrun`);
+      }
+
+      // 4. The sweep is what uses it, read from its text the way this module
+      //    reads bench.mjs's - a statistic nothing calls is decoration.
+      const text = await (await fetch(`${location.origin}/src/tests/soak.js`)).text();
+      if (!/viewpointCost\(each\)/.test(text)) {
+        problems.push('tests/soak.js does not cost a viewpoint with viewpointCost(each); the sweep is not using the statistic this check holds');
+      }
+      if (!/worst viewpoint's median frame/.test(text)) {
+        problems.push('tests/soak.js\'s ceiling complaint no longer says it is about a median frame, so a red would not say what it had measured');
+      }
+      if (!/VIEWPOINT_BUDGET_MS/.test(text)) {
+        problems.push('tests/soak.js no longer spends a per-viewpoint budget, so its sample count is not affordable-by-construction on both renderers');
+      }
+      // And the sync, which is the half a budget cannot do on its own.
+      // `renderOnly()` only *queues* a draw - SwiftShader submits one in 1.7ms
+      // and takes 8s to do it - so a wall clock around a submission bounds
+      // nothing, and a budget trusting it bought nine samples headless, queued
+      // nine times the commands, and took a verify past its 600s stall
+      // deadline (H36). The sweep asks what a draw really costs by making one
+      // finish, once, before deciding. A sweep that stops doing so will
+      // quietly cost the gate nine sweeps' worth of pipeline tail instead of
+      // one, and nothing in its own ms would say so.
+      // `[\s\S]` and not `\n`, because the working copy is mixed CRLF and LF
+      // and a pattern written with a bare newline matches one of them only -
+      // which this clause found out about itself, loudly, on its first run.
+      if (!/lens\.glError\(\);[\s\S]{0,240}const trueDrawMs/.test(text)) {
+        problems.push('tests/soak.js no longer synchronises before timing the draw that chooses its sample count, so its budget is measuring submissions and not draws (H36)');
+      }
+      if (!/trueDrawMs \* VIEWPOINT_SAMPLES <= VIEWPOINT_BUDGET_MS/.test(text)) {
+        problems.push('tests/soak.js does not decide its sample count from the synced draw against the budget, so the budget is decorative');
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `a viewpoint costs the median of up to ${VIEWPOINT_SAMPLES} timed draws inside ${VIEWPOINT_BUDGET_MS}ms, which affords all ${VIEWPOINT_SAMPLES} at the ${ceiling.toFixed(2)}ms ceiling (${affords.toFixed(0)}ms); `
+            + `a 13.8ms spike among 2ms draws costs ${viewpointCost(spiked)}ms, ${ceiling.toFixed(2)}ms+ draws still read over, and the sweep calls it`
           : problems.join('; '),
       };
     },

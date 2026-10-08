@@ -288,28 +288,57 @@ one setting only Josh can click; everything else here proceeds.
   holds that `bench.mjs` names no id in its own code, so the two cannot drift.
   **D69** is the one judgement: a stale bench prints rather than reds.
   **H36** and **H37** are what the work revealed.
-- [ ] **H36 (S)** The sweep's "worst viewpoint" is one frame, and it does not
-  reproduce. H11 benched the 92-viewpoint check twice on the real GPU twenty
-  minutes apart on a byte-identical tree. The **mean agrees to 0.12ms** in all
-  six scenes; the **worst moved 5.50ms → 2.60ms** on the plant at `medium` and
-  **2.60ms → 4.60ms** at `high`, and named a different place on the map in five
-  of the six. `the-frame-budget-holds-everywhere-not-just-at-site-a` times one
-  untimed-then-timed draw per viewpoint, so the worst is a single sample and a
-  scheduling hiccup is indistinguishable from a hot corner — and the worst is
-  what the clause asserts against the 8.33ms ceiling. On this GPU it does not
-  matter (nothing came within 1.5x), which is exactly why it is worth doing
-  before it does: on a weaker machine a one-sample worst is what decides the
-  check, and a check whose verdict is one frame is the flaky shape this project
-  treats as a bug in the check.
-  **Measure before changing anything** (H31's rule): take N draws per viewpoint
-  in the bench and say what N makes the worst reproduce, and whether the place
-  it names becomes stable. Only then propose a clause. The mean is already
-  stable and is *not* the right assertion on its own — a map with one
-  unaffordable corner and ninety-one cheap ones passes on a mean.
-  *done-when:* the entry says how many samples a viewpoint needs for the worst
-  to agree between two runs, names the plant's and the yard's genuinely
-  worst places, and either proposes the clause or says why the one-frame
-  reading is good enough and on what evidence.
+- [~] **H36 (S)** The sweep's "worst viewpoint" is one frame, and it does not
+  reproduce. **The measuring is done and written up; the two-run VERIFY is
+  not.** Committed as WIP 2026-10-07; `PROGRESS.md`'s H36 entry has every
+  reading. What was found: the worst *place* reproduces at no sample count
+  (the top is a dozen near-ties inside the 0.1ms the clock is quantised to),
+  the worst *value* settles as a **median** from five samples and never as a
+  maximum, and **a single draw had already read 13.80ms at `bay-a-north` on the
+  yard at `medium` and turned this check red on the real GPU**, at a place
+  whose median is 2.30ms. What is built: a viewpoint costs the median of up to
+  nine timed draws inside a 120ms budget, the worst single draw is reported and
+  not asserted, the busiest three are named instead of one, and
+  `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one` in
+  `tests/benchlist.js` holds it headless in 4ms (proved by three breaks, each
+  naming its own line).
+  **resume from:** `src/tests/soak.js`, the sweep in
+  `the-frame-budget-holds-everywhere-not-just-at-site-a`. The statistic and its
+  holder are finished and proved; **what is unresolved is one interaction with
+  the runner's drain, and three runs died on it** (one full verify at 40
+  minutes, two subsets). Read this before touching anything, because two
+  plausible theories were measured and *both are wrong*.
+  - **Not the sample count.** A drained SwiftShader `lens.renderOnly()` draw
+    costs **2.5-4.1ms** here, measured with a sync around each one, so nine of
+    them genuinely fit the 120ms budget and `wanted` is **9** headless by the
+    gate's own correct arithmetic. Nine samples add about **2 seconds** of real
+    draw work across the whole sweep. The "~400ms a frame" in `TRAPS.md` is a
+    whole `renderFrame`, not a repeated lens draw of a warmed view - that
+    distinction is what both wrong theories rested on.
+  - **Not the gate's mechanism.** A wall clock round `renderOnly()` times the
+    *submission* (1.7ms while the work lands later) and the GPU timer extension
+    is **present** under SwiftShader, so neither bounds anything; both false
+    starts are in `TRAPS.md`. The sweep now drains, then times one draw start
+    to finish, then asks the budget - which is right, and still reads 9.
+  - **What actually happens:** every run containing the sweep now stalls in
+    `phase pipeline-wait` at **601s**, one second past `--stall-wait`, either on
+    `a-zero-size-viewport-does-not-blind-the-renderer` (full verify, 208/220) or
+    on "after the last check" (3-check subset). The backlog a drain clears
+    measures **~40s** after 60 warm frames. The plant's historical tail is
+    ~450s, so the suspicion is that the tail was *already* marginal against the
+    600s deadline and something here tips it - the first thing to test is the
+    `glSync: true` this job added to the sweep, by taking it off and running the
+    same 3-check subset: if the stall moves back to `--stall` at 240s the flag
+    is implicated, and if it stays at 601s it never was.
+  **Do not raise `--stall-wait` to make it pass.** That is a deadline hiding a
+  cost, and the cost is the thing to understand. If the tail really is the
+  sweep's 368 distinct views building pipelines (F11), the honest options are to
+  say so with a number and leave the deadline alone, or to give the sweep its own
+  drain so the cost is on its own clock rather than the next check's.
+  **Nothing above questions the measurement**, which is complete: the readings,
+  the plateau arithmetic and the 13.80ms red are all in `PROGRESS.md`, and the
+  twelve real-GPU readings in `bench/2026-10-08.json` were taken by the shipped
+  statistic on a path the gate does not touch.
 - [ ] **H37 (S)** The weekly audit says how old the bench is. D69 took "print
   the staleness, never red on it" and named the alternative it refused: a gate
   that goes red when the newest `bench/<date>.json` is older than N days or
@@ -321,8 +350,20 @@ one setting only Josh can click; everything else here proceeds.
   commits have landed since, whether every `benchOnly` id has a reading in it,
   and one line of recommendation when it is stale. `scripts/suitereport.mjs`'s
   `latestBench()` is the reader; `benchOnlyById()` is the set it must cover.
+  **Two things H36 found that this job needs.** `bench/<date>.json` is named
+  from `run.at`, which is **UTC**, so a bench taken at 21:26 EDT files under the
+  next day — a staleness report in local days will be off by one for any
+  evening bench. And the newest file is now `bench/2026-10-08.json` with
+  **twelve readings from the shipped check** (H36 rewrote what it measures), so
+  a dry run names that rather than 2026-10-07.
+  **This is the one job in Block H that edits a file outside this repo** — the
+  audit task's own prompt, at
+  `~/.claude/scheduled-tasks/blackline-audit/SKILL.md`. A scheduled session
+  that is not comfortable changing another standing task's instructions
+  unattended should leave it for Josh and say so in its summary, which is what
+  the 2026-10-07 run did.
   *done-when:* the audit prompt asks for it, and a dry run against this repo
-  names 2026-10-07 and its commit.
+  names the newest bench file's date and commit.
 - [x] **H33 (S)** Which other checks read a posed body at whatever phase the
   run arrived in? — done 2026-10-07, under Done. **There are two phases, not
   one**: `_animTime`, the gait, has the same property and is the bigger lever

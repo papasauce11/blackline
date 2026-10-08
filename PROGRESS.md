@@ -12756,3 +12756,171 @@ compared with a `PROGRESS.md` number.
 
 The five checks that read source text and markdown were re-run against the
 committed tree after these records were written, as the protocol orders them.
+
+## H36 (WIP, unverified) — the worst viewpoint was one frame, and it had already gone red on the real GPU (2026-10-07 22:00, scheduled run)
+
+**What it was handed.** `the-frame-budget-holds-everywhere-not-just-at-site-a`
+walks the camera to every waypoint and site on a map, looks four ways from each
+— 92 viewpoints on the plant, 96 on the yard — and times a frame at each. It
+timed **one** draw per viewpoint and asserted the highest of them against the
+8.33ms ceiling, so **its verdict was a single frame**. H11 benched it twice
+twenty minutes apart on a byte-identical tree: the mean agreed to 0.12ms in all
+six scenes, the worst moved 5.50ms → 2.60ms on the plant at `medium` and named
+a different place in five of six. The queue's instruction was H31's rule —
+measure what sample count makes the worst reproduce before proposing anything —
+and its own note said that on this GPU it did not matter, nothing having come
+within 1.5x of the ceiling.
+
+**That note is false, and finding out was the job.** The instrumented bench
+caught the thing the queue thought was still hypothetical: at `bay-a-north` on
+the yard at `medium` a single timed draw read **13.80ms** against the 8.33ms
+ceiling, and **the check went red on the real GPU**. The same place in the next
+bench reads a **median of 2.30ms with a maximum of 2.40ms over fifteen draws**.
+So the red was a frame the scheduler took away, reported as a frame budget
+failure, on a machine where that viewpoint costs 28% of its allowance.
+
+**The measurement.** Two benches on this PC's GTX 1060 with the sweep
+instrumented to take **fifteen** timed draws per viewpoint and report every one
+of them — the bench stores a check's whole detail line rather than the suite's
+400-character cut, which is what made this affordable — and then, offline, what
+every sample count from one to fifteen *would* have concluded. Three answers.
+
+**One: the worst PLACE never reproduces, at any count.** The top-three places
+overlapped one or two of three in every one of the six scenes, at fifteen
+samples as at one. It is not noise in the instrument — it is that **the top of
+the distribution is a plateau inside the clock's own resolution**.
+`performance.now()` is clamped to 0.1ms, and at a median of fifteen, **4 to 13
+viewpoints of 92 sit within 0.2ms of the top** and 18 to 41 within 0.5ms. So
+"which viewpoint is worst" is a choice among a dozen ties decided by one or two
+ticks, and no sample count can fix a tie. What *does* reproduce is the top
+**ten as a set** — 7 to 10 of 10 across the two benches — so the busiest
+*neighbourhood* is a real finding and the busiest *viewpoint* never was one.
+
+**Two: the worst VALUE settles as a median and never as a maximum.** Median-of-N
+agreed between the two benches within 0.3ms in all six scenes from **five**
+samples and within 0.2ms from nine. Max-of-N agreed nowhere: the gap was still
+1.0–1.1ms at fifteen on the yard, and on the plant at `medium` it **grew** from
+0.1ms at nine to 0.6ms at fifteen — because a longer run gives a spike more
+chances to happen. **More samples make a maximum worse.** That is the whole
+argument for the median, and it is the opposite of the intuition that more
+sampling makes any statistic steadier.
+
+**Three, and this is the honest residue: a median survives a descheduled frame
+and not a sustained stall.** The first bench taken with the *shipped* code read
+`deck-office-door@0` on the plant at `medium` at **4.80ms across all nine of its
+draws**, where both instrumented benches read that same viewpoint at a median of
+**2.20ms with a maximum of 2.30** — unusually tight — and the next bench put its
+worst *single* draw at 3.80ms. Four readings of that scene's worst median go
+**2.60, 2.40, 4.80, 2.60**. Nine draws at 2.2ms buy about **20ms** of window, and
+anything that slows the machine for longer than the window is inside every
+sample in it. No count reaches past that. What makes the clause safe is not
+reproducibility but **headroom**: the worst of those four readings is 58% of the
+ceiling.
+
+**What was built.** A viewpoint now costs the **median of up to nine timed draws
+taken inside a 120ms budget**, and the worst of those medians is what is
+asserted. The budget rather than a flat nine is the part worth explaining,
+because it lets one check be honest on two renderers at once: a 2.5ms draw on
+this GPU buys all nine inside 22ms, a draw right at the 8.33ms ceiling still
+buys nine (75ms of the 120), and a 400ms SwiftShader draw buys exactly one — so
+**the gate pays precisely what it always paid**, which matters because the gate
+runs this check and drops only its verdict. The detail line says how many draws
+each median rests on and says `NOT a median` when it is fewer than five, so
+nobody reads a one-sample headless line as a median one.
+
+Two things are now **reported and not asserted**: the worst single draw, because
+13.80ms was a scheduling artefact and not a cost, and the busiest **three**
+places rather than one crowned winner, because the winner is a tie. The
+readings, twelve of them in `bench/2026-10-08.json` and the first ever taken by
+the shipped check rather than by an instrument: worst medians **1.90ms** (plant
+low), **4.80ms** (plant medium), **2.60ms** (plant high), **2.40ms** (yard low),
+**2.90ms** (yard medium), **2.80ms** (yard high), against 8.33ms — and the
+busiest corners are `deck-office-door` and `stair-hall-foot` on the plant,
+`gate` and `store-west-lane` on the yard.
+
+**The check that makes it revert-detectable at the gate**, which needed thought
+because the sweep itself is bench-only and fails headless by design, so the gate
+cannot see a change in it. `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one`
+runs headless in **4ms** and holds three things. The constants as a
+**relation** rather than as copies of themselves, which is HANDOFF's standing
+lesson about a check that reads the number the code read: the budget must afford
+every sample at the ceiling (9 × 8.33 = 75ms of 120), or a machine at its
+ceiling would be judged on fewer samples than one well inside it. The statistic
+**both ways** — a 13.8ms spike among nine 2ms draws must cost 2ms, *and* nine
+draws all over the ceiling must still read over it, without which the first
+clause is satisfied by a statistic deaf to everything. And that the sweep
+actually calls it, read from `soak.js`'s own text the way `donedef.js` reads
+source, because a statistic nothing calls is decoration.
+
+**Proved load-bearing by three breaks, each naming its own line.** Putting the
+statistic back to the old maximum: *"9 draws of 2ms with one of 13.8ms cost
+13.8ms; a descheduled frame is reaching the verdict."* Making it deaf (return
+0): that complaint **and** *"every draw at 9.33ms costs 0.00ms, under the
+ceiling; the median is hiding a real overrun"* — both halves at once, which is
+the point of having both. Cutting the budget to 40ms: *"the per-viewpoint budget
+is 40ms, and 9 draws at the 8.33ms ceiling need 75ms — a machine at its ceiling
+would be judged on fewer samples than one well inside it."*
+
+**A trap, and it is the mirror of the one H39 recorded an hour earlier.** H39's
+break loop failed to revert because the file was **untracked**; this one
+reverted too far. `git checkout -- src/tests/soak.js` took the file back to
+**HEAD**, which during a job is not "before my break" but "before the job" — so
+it silently threw away the whole implementation along with the break, and the
+next two breaks failed to find their anchors, which is the only reason it was
+noticed. The work came back from a copy made for an earlier `node --check`.
+`TRAPS.md` now has both sides: **keep your own copy and restore from that**, and
+diff the two at the end of every iteration.
+
+**One small thing for H37's benefit.** `bench/<date>.json` is named from
+`run.at`, which is **UTC** — so a bench taken at 21:26 EDT files under
+`2026-10-08`. H37 is the job that reports how old the newest bench is, and a
+calendar question wants to know that the calendar is not the local one.
+
+**NOT VERIFIED - this job is committed as WIP and is `[~]` in `QUEUE.md`.**
+Everything above is measured and stands; what is missing is the two-run suite,
+and it is missing for a reason worth writing down rather than retrying blindly.
+**Three runs died in the renderer's pipeline tail** - one full verify at forty
+minutes (601s stood still on `a-zero-size-viewport-does-not-blind-the-renderer`,
+208/220, `phase pipeline-wait`) and two subsets, the last of them after all
+three of its checks had passed, stalling on "after the last check" at the same
+601s. One second past `--stall-wait`.
+
+**Two theories were measured and both are wrong, which is the useful part.**
+The first was that a 120ms per-viewpoint budget wrapped round `renderOnly()`
+bought all nine samples headless because a draw is queued rather than drawn -
+true as far as it goes, and the gate was rewritten twice for it (first on the
+GPU timer extension, which turns out to be **present** under SwiftShader and so
+gates nothing; then on draining and timing one draw start to finish, which is
+right). But the arithmetic then says nine samples are **correct** headless: a
+drained `lens.renderOnly()` costs **2.5-4.1ms** here, measured with a sync
+around each draw, so nine fit 120ms comfortably and add about **two seconds**
+of real work across the whole sweep. The `~400ms a frame` this project quotes is
+a whole `renderFrame`, not a repeated lens draw of a warmed view, and conflating
+them is what made both theories look plausible. So the sample count is not what
+is tipping the tail over its deadline, and the next session starts from a
+different question - the first thing to test being the `glSync: true` this job
+added to the sweep, which is the one change to how the runner *accounts* for
+that wait. `QUEUE.md` has the exact two-command resume.
+
+**What is safe to rely on meanwhile.** The twelve real-GPU readings in
+`bench/2026-10-08.json` were taken by the shipped statistic, on a path none of
+this touches - a 2.5ms draw affords nine samples by any of the three gates
+tried. `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one` passed
+headless in 4ms and was proved by three breaks, each naming its own line. And
+the measurement that is the substance of this job - the plateau, the median's
+behaviour against the maximum's, and the 13.80ms red - rests on four benches
+and not on the suite at all.
+
+**And a note on the machine, because it will confuse the next reader.** While
+this was written a 60-frame warm-up stalled past 240s once, and the backlog a
+single drain clears measured **~40s**. No orphaned runner existed (no `node.exe`
+at all, and the twelve `chrome.exe` were Josh's own browser, checked), so F10's
+teardown held. Treat a run that dies in warming as the machine; a run that dies
+at 601s in `pipeline-wait` is the thing this job has not finished.
+
+**No decision raised.** What a viewpoint costs is an instrument choice with its
+measurement at the line; no rule and no look changed, and the ceiling
+(`frameBudgetMs` × `cpuBudgetFraction`) is untouched. The one judgement worth
+Josh's eye is in `PLAYTEST.md` rather than here: the busiest corners are named
+now, so if the game ever hitches in one specific place there is a list to check
+it against.

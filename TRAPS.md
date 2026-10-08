@@ -130,6 +130,36 @@ check's cost, put the suspect call on its own clock — `--details` gives the
 total and nothing else. And two runs of a map share a page, so a tail one run
 leaves behind is a tail the next one pays (F16).
 
+**Timing `renderOnly()` measures submitting a draw, not drawing it, and a
+budget built on it bounds nothing.** H36 gave the viewpoint sweep a
+per-viewpoint wall-clock budget so it would take nine samples where nine were
+affordable and one where they were not. Under SwiftShader it took nine, queued
+nine times the commands, and the pipeline tail ran past the 600s `--stall-wait`
+and killed a verify forty minutes in. The reason is F11's tail seen from the
+inside: **a draw submits in about 1.7ms and the work lands later**, at whichever
+check next synchronises, so a clock wrapped round `renderOnly()` reads the
+submission and the budget is spent in microseconds however expensive the frame
+really is.
+
+Two false starts are worth as much as the fix. **The GPU timer extension is
+present under this SwiftShader build**, so gating the sample count on
+`getExtension('EXT_disjoint_timer_query_webgl2')` gated nothing - H11's claim
+was that it returns *usable* timings on a real driver, not that it is absent on
+a software one, and presence is not usefulness. And **a `glError()` waits for
+everything queued, not for the draw just issued**, so timing one draw with a
+backlog in front of it measures the backlog: a probe read "eight seconds a
+draw" that was really sixty warmed frames of somebody else's queue, and the
+wrong number happened to give the right answer, which is the kind of thing that
+survives until it does not.
+
+What works is **drain, then time one draw, then decide** - two
+synchronisations before the sweep, and the check declaring `glSync: true` so the
+wait is on the run's clock rather than inside its own ms (D48), or the drain
+stands the heartbeat still and `--stall` kills the run instead of
+`--stall-wait`. The general rule: **before timing anything on this renderer, ask
+whether the thing you are timing has finished**, and before trusting a budget,
+check what it actually bought.
+
 **A second WebGL context costs sixteen seconds here, and `getContext` will not
 give you a first one twice.** H4 needed to know whether this browser has WebGL2
 and probed a throwaway canvas for it. That probe measured **16,240ms**: under
@@ -426,6 +456,20 @@ commit) before a break-and-revert loop on a new file**, so checkout has
 something to go back to. And **read `git status --short` between breaks, not
 only at the end**: a revert that did nothing looks exactly like a revert that
 worked, and a loop is where that costs the most.
+
+**And `git checkout --` reverts to HEAD, which is not "before my break" when
+the work is uncommitted.** The trap above is its mirror and H36 paid the other
+side of it an hour later. The break-and-revert loop that proves a check
+load-bearing was run against a file that was **tracked but modified**: the
+break landed, the red was read, `git checkout -- <file>` ran - and took the
+file back to the last commit, throwing away the whole job's implementation
+along with the break. The next two breaks then failed to find their anchors,
+which is the only reason it was noticed at all. So the rule for a
+break-and-revert loop is **keep your own copy and restore from that**: `cp
+<file> <scratchpad>/good.js` before the first break, `cp
+<scratchpad>/good.js <file>` after each one, and diff the two at the end of
+every iteration. `git checkout` is the right tool only when the thing you
+want back is what is committed, which during a job it never is.
 
 **A coverage check cannot see a connectivity fault.** Three times now: the A1
 constant that stayed green with the step at 2m, the HUD check that was green

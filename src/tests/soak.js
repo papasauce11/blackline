@@ -13,6 +13,69 @@ import { createLens } from './pixels.js';
 
 const A = CONFIG.audio;
 
+/**
+ * Timed draws per viewpoint in the frame-budget sweep, and the wall-clock the
+ * sweep will spend buying them (H36). Both are measured numbers.
+ *
+ * The sweep used to time **one** draw per viewpoint and assert the highest of
+ * them against the ceiling, so its verdict was a single frame. H36 benched it
+ * twice on this PC's GPU with fifteen draws per viewpoint and asked what a
+ * sample count would have to be for that verdict to reproduce. Three answers.
+ *
+ *   - **The worst PLACE never reproduces, at any count up to fifteen.** The
+ *     top-three places overlapped one or two of three in every one of the six
+ *     scenes. It is not noise in the measurement: at a median of fifteen,
+ *     **4 to 13 viewpoints of 92 sit within 0.2ms of the top** and 18 to 41
+ *     within 0.5ms, on a clock `performance.now()` clamps to **0.1ms**. The
+ *     top of the distribution is a dozen near-ties, so which one is "worst" is
+ *     decided by one or two ticks and no count can fix it. The top **ten as a
+ *     set** does reproduce - 7 to 10 of 10 - so the busiest *neighbourhood* is
+ *     a real finding and the busiest *viewpoint* is not.
+ *   - **The worst VALUE settles as a median and never as a maximum.** Two
+ *     benches agreed within 0.3ms in all six scenes from five samples and
+ *     within 0.2ms from nine, where the max-of-N gap was still 1.0-1.1ms at
+ *     fifteen on the yard and on the plant at `medium` *grew* from 0.1ms at
+ *     nine to 0.6ms at fifteen - because a longer run gives a spike more
+ *     chances. **More samples make a maximum worse**, which is the whole
+ *     argument for the median. What a median does **not** survive is a
+ *     sustained stall, and the fourth bench produced one: `deck-office-door@0`
+ *     on the plant at `medium` read a median of **4.80ms** across all nine
+ *     draws where two benches read it at 2.20ms with a maximum of 2.30, and
+ *     the next bench put its worst single draw at 3.80ms. Four readings of
+ *     that scene's worst median go 2.60, 2.40, **4.80**, 2.60. So nine samples
+ *     buy about 20ms of window, and anything that slows the machine for longer
+ *     than the window is inside every sample of it. No count fixes that; the
+ *     **headroom** does, and the worst of those four is 58% of the ceiling.
+ *   - **And a spike had already turned this check red on a real GPU.** One
+ *     reading at `bay-a-north` on the yard at `medium` came back **13.80ms**
+ *     against the 8.33ms ceiling; the same place in the next bench reads a
+ *     median of **2.30ms** and a maximum of 2.40ms over fifteen draws. H36's
+ *     queue line said nothing on this GPU came within 1.5x of the ceiling.
+ *     Something did, and it was a descheduled frame rather than a cost.
+ *
+ * Nine, because nine is where two benches agreed to 0.2ms everywhere. The
+ * **budget** rather than a flat nine is what lets one check be honest on two
+ * renderers: a 2.5ms draw on this GPU buys all nine inside 120ms, a draw right
+ * at the 8.33ms ceiling still buys nine, and a 400ms SwiftShader draw buys
+ * one - so the gate, which runs this check and drops only its verdict, pays
+ * exactly what it always paid. `the-bench-only-list-holds-only-checks-the-bench
+ * -itself-runs` holds both numbers and the median against this file's text.
+ */
+export const VIEWPOINT_SAMPLES = 9;
+export const VIEWPOINT_BUDGET_MS = 120;
+
+/**
+ * What a viewpoint costs, given its timed draws: the **median**, so one frame
+ * the scheduler took away cannot set a verdict about a frame budget. Exported
+ * for the check that proves a spike cannot reach it.
+ */
+export function viewpointCost(samples) {
+  if (!samples.length) return 0;
+  const sorted = samples.slice().sort((a, b) => a - b);
+  const middle = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
 /** Peak absolute sample, and where the tail falls below a fraction of it. */
 function envelope(buffer) {
   const data = buffer.getChannelData(0);
@@ -246,7 +309,13 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'the-frame-budget-holds-everywhere-not-just-at-site-a',
     spec: 'Section 2 / check 29',
-    name: 'Sweep viewpoints across the whole map and report the worst frame',
+    name: 'Sweep viewpoints across the whole map and assert the worst viewpoint\'s median frame, not its unluckiest one',
+    // Since H36 this synchronises twice before the sweep - once to clear
+    // whatever the run has queued and once to time a single draw start to
+    // finish - so the wait belongs on the run's clock and not inside this
+    // check's ms (F11, D48). Without the flag the drain stands the heartbeat
+    // still and `--stall` kills the run rather than `--stall-wait`.
+    glSync: true,
     run: (h) => {
       const problems = [];
       const PERF = CONFIG.performance;
@@ -262,11 +331,55 @@ export function register(debugTools) {
       ];
 
       lens.renderOnly();
-      let worst = { ms: 0, where: '', calls: 0 };
       let total = 0;
       let samples = 0;
       let peakCalls = 0;
       let peakTriangles = 0;
+      let drawn = 0;
+      let leanest = Infinity;
+      const costs = [];
+      let spike = { ms: 0, where: '' };
+      // How many samples the budget can actually afford, asked **once, by
+      // making one draw finish**. This is H36's second lesson and it cost a
+      // crashed verify to learn: a wall clock around `renderOnly()` does not
+      // measure a draw, it measures *submitting* one. Probed here, SwiftShader
+      // submits a draw in **1.7-2.2ms and then takes 40,030ms to drain five of
+      // them** - about eight seconds of real work behind each 1.7ms
+      // submission, which is F11's pipeline tail seen from the inside. So a
+      // 120ms budget wrapped round submissions bought all nine samples
+      // headless, nine times the commands went into the queue, and the tail
+      // ran past the 600s `--stall-wait` and killed the run.
+      //
+      // The first fix was wrong too and is worth recording: the GPU timer
+      // extension is **present** under this SwiftShader build, so gating on
+      // `getExtension('EXT_disjoint_timer_query_webgl2')` gated nothing. H11's
+      // claim was that it returns *usable* timings on a real driver, not that
+      // it is absent on a software one, and presence is not usefulness.
+      //
+      // One synchronisation, before the sweep, is what answers it honestly:
+      // `glError()` after a timed draw cannot return until that draw is done,
+      // so this reads what a draw really costs on whatever renderer this is -
+      // and then the budget decides, which is what the budget was always
+      // claiming to do. It is one sync for the whole sweep, and the work it
+      // waits for is work something was going to pay for at the next check
+      // anyway (D48). Headless that gives one sample and the sweep costs what
+      // it always cost, which is what the gate is owed: it runs this check and
+      // drops only its verdict.
+      // Drain first, THEN time one draw. The drain is necessary and is its own
+      // small lesson: a `glError()` waits for everything queued, not for the
+      // draw just issued, so timing a draw with a backlog in front of it
+      // measures the backlog. This was measured the wrong way round once - a
+      // probe read "8 seconds a draw" that was really 60 warmed frames of
+      // somebody else's queue - and the number it produced happened to give the
+      // right answer for the wrong reason, which is the sort of thing that
+      // survives until it does not.
+      lens.renderOnly();
+      lens.glError();
+      const probeStarted = performance.now();
+      lens.renderOnly();
+      lens.glError();
+      const trueDrawMs = performance.now() - probeStarted;
+      const wanted = trueDrawMs * VIEWPOINT_SAMPLES <= VIEWPOINT_BUDGET_MS ? VIEWPOINT_SAMPLES : 1;
 
       for (const spot of spots) {
         for (let i = 0; i < 4; i++) {
@@ -277,22 +390,48 @@ export function register(debugTools) {
           // time the render alone — reading the buffer back would time a GPU
           // sync and a 3.5MB copy instead of the frame.
           lens.renderOnly();
-          const started = performance.now();
-          lens.renderOnly();
-          const ms = performance.now() - started;
+          // As many timed draws as `VIEWPOINT_BUDGET_MS` affords, up to
+          // `VIEWPOINT_SAMPLES`, and the viewpoint's cost is their MEDIAN
+          // (H36). The budget rather than a flat count is what keeps this
+          // honest on both renderers at once: on this PC's GPU a draw is about
+          // 2.5ms, so the budget buys all nine; under SwiftShader a draw is
+          // 400ms, so it buys one and the sweep costs exactly what it always
+          // did, which matters because the gate runs this check and drops only
+          // its verdict. A machine right at the ceiling still gets all nine.
+          const each = [];
+          const openedAt = performance.now();
+          do {
+            const t0 = performance.now();
+            lens.renderOnly();
+            each.push(performance.now() - t0);
+          } while (each.length < wanted && performance.now() - openedAt < VIEWPOINT_BUDGET_MS);
+          const ms = viewpointCost(each);
+          const highest = Math.max(...each);
           total += ms;
           samples++;
+          drawn += each.length;
+          leanest = Math.min(leanest, each.length);
           peakCalls = Math.max(peakCalls, h.renderer.info.render.calls);
           peakTriangles = Math.max(peakTriangles, h.renderer.info.render.triangles);
-          if (ms > worst.ms) worst = { ms, where: spot.name, calls: h.renderer.info.render.calls };
+          costs.push({ ms, where: `${spot.name}@${i}`, calls: h.renderer.info.render.calls });
+          if (highest > spike.ms) spike = { ms: highest, where: `${spot.name}@${i}` };
         }
       }
 
       const mean = total / samples;
       const budget = PERF.frameBudgetMs;
       const ceiling = budget * PERF.cpuBudgetFraction;
+      // The busiest places as a SET and the worst as a value, because H36
+      // measured that the single worst PLACE does not reproduce at any sample
+      // count while the top-ten set does (7-10 of 10 over two benches) - the
+      // top of the distribution is a dozen near-ties inside the 0.1ms
+      // `performance.now()` is clamped to, so "the worst viewpoint" is not a
+      // quantity this can measure. The value is: median-of-nine agreed to
+      // 0.2ms between two benches in all six scenes.
+      const ranked = costs.slice().sort((a, b) => b.ms - a.ms);
+      const worst = ranked[0] || { ms: 0, where: '', calls: 0 };
       if (worst.ms > ceiling) {
-        problems.push(`the worst viewpoint ("${worst.where}") costs ${worst.ms.toFixed(2)}ms, over the ${ceiling.toFixed(2)}ms ceiling`);
+        problems.push(`the worst viewpoint's median frame ("${worst.where}") costs ${worst.ms.toFixed(2)}ms, over the ${ceiling.toFixed(2)}ms ceiling`);
       }
       if (peakCalls > 600) problems.push(`${peakCalls} draw calls at the busiest viewpoint`);
       if (lens.glError() !== 0) problems.push('GL error during the sweep');
@@ -300,12 +439,23 @@ export function register(debugTools) {
       lens.restore();
       h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
       h.menu.hide();
+      // The spike is REPORTED and never asserted: one of them read 13.80ms on
+      // this PC's GPU at a place whose median over fifteen draws is 2.30ms,
+      // and it turned this check red (H36). A descheduled frame is not a
+      // frame budget. It is printed because a spike that grew would be worth
+      // somebody's attention, and `drawn`/`leanest` are printed so a reader
+      // can see whether the medians are medians at all.
+      const medians = leanest >= 5
+        ? `median of ${leanest}-${VIEWPOINT_SAMPLES}`
+        : `${leanest} sample${leanest === 1 ? '' : 's'}, NOT a median - a synced draw took ${trueDrawMs.toFixed(0)}ms here, so ${VIEWPOINT_SAMPLES} of them do not fit ${VIEWPOINT_BUDGET_MS}ms`;
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${samples} viewpoints across ${spots.length} places: mean ${mean.toFixed(2)}ms, worst `
-            + `${worst.ms.toFixed(2)}ms at "${worst.where}" (${worst.calls} calls), peak ${peakCalls} calls / `
-            + `${peakTriangles} triangles, against a ${ceiling.toFixed(2)}ms draw ceiling`
+          ? `${samples} viewpoints across ${spots.length} places, ${drawn} timed draws (${medians}): mean ${mean.toFixed(2)}ms, worst `
+            + `${worst.ms.toFixed(2)}ms at "${worst.where}" (${worst.calls} calls) against a ${ceiling.toFixed(2)}ms draw ceiling; `
+            + `busiest ${ranked.slice(0, 3).map((c) => `${c.where} ${c.ms.toFixed(2)}`).join(', ')}; `
+            + `worst single draw ${spike.ms.toFixed(2)}ms at "${spike.where}", reported not asserted (H36); `
+            + `peak ${peakCalls} calls / ${peakTriangles} triangles`
           : problems.join('; '),
       };
     },

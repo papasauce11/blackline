@@ -212,6 +212,38 @@ GPU: `NVIDIA GeForce GTX 1060 6GB` through ANGLE/D3D11.
 on, and whether a friend on weaker hardware agrees. The bench answers for this
 PC and no other.
 
+### The speed test no longer fails because of one unlucky frame (H36, 2026-10-07)
+
+**This one is a real fix, and it had already bitten.** The test that walks the
+camera to ninety-odd places around each map and times how long a frame takes
+used to time **one** frame per place and judge the whole map on the slowest of
+them. A frame is not always given the machine when it asks: once, while
+measuring, a single frame took **13.8ms** at a spot by the yard's north bay -
+against a limit of 8.3ms - and the test went **red on the real graphics card**.
+The same spot measured again takes **2.3ms**. Nothing was wrong with the game;
+one frame got pushed aside by something else on the PC, and the test called it a
+performance failure.
+
+It now times **nine** frames per place and takes the middle one, so a frame the
+machine stole cannot decide anything. Two things worth knowing. The worst *place*
+on a map turns out not to be a real thing - a dozen places are tied within a
+fraction of a millisecond, so which one is "worst" changes every run, and the
+test now reports the busiest **three** instead of crowning one. And the number
+that matters is unchanged and healthy: the busiest views cost **1.9ms to 4.8ms**
+against the 8.3ms a frame is allowed, on both maps at all three quality levels.
+
+**One caveat, because this page should not claim more than is proved.** The new
+measurement is confirmed on the real graphics card over four runs; what has not
+finished yet is the big automated suite agreeing, which stalled on a timing
+deadline unrelated to the numbers above. The job is marked unfinished and the
+next session has the exact two commands to settle it. Nothing about the readings
+is in doubt.
+
+**Nothing for you to look at** unless you want the names: the busiest corners are
+`deck-office-door` and `stair-hall-foot` on the plant, and `gate` and
+`store-west-lane` on the yard. If the game ever feels like it hitches in one
+specific spot, those are the ones already known to be working hardest.
+
 ### If quality is on Auto, the map you open first no longer decides it (H25, 2026-10-06)
 
 **This one a friend could actually have felt**, and it is worth knowing about if
