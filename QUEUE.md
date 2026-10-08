@@ -693,7 +693,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   was wrong about one module**, the third time in this block: the death camera
   is `visual.js`'s and is out of reach twice over, by the Warden and by the
   breath living inside the mesh.
-  Done 2026-10-07, commit `PENDING39`.
+  Done 2026-10-07, commit `5380adc`.
 - **H38** The hanging glove, held at the worst phase of the breath, and the
   centimetre the census missed. H33 named `tests/hang.js` the thinnest
   breath-reached clause in the suite — `|gloveY - lip| <= 0.15m` on a world
