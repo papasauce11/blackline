@@ -743,7 +743,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   against a breath depth of 0.04m. Two follow-ups queued: **H43** (the census of
   world-position reads inside the chase) and **H44** (whether the slide is
   visible, which is a look and so Josh's).
-  Done 2026-10-08, commit `@@HASH@@`.
+  Done 2026-10-08, commit `d87e6ec`.
 - **H36** The worst viewpoint was one frame, and no clock in this page can
   price a draw. The sweep timed **one** draw per viewpoint and asserted the
   highest against the 8.33ms ceiling, so its verdict was a single frame — and
