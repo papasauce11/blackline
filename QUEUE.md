@@ -458,6 +458,21 @@ one setting only Josh can click; everything else here proceeds.
   the error closing. Read `HANDOFF.md`'s standing warning before writing the
   word closed — an intermittent fault is not closed by an absence, however
   long, and that warning has already predicted its own violation once.
+  **And one fact from that same run which cuts the other way, recorded here
+  rather than left in `PROGRESS.md` because it changes what this job decides.**
+  The hypothesis on the record is that the error belongs to *end-of-session
+  verifies* and not to cold gates — three of the last twelve verifies had it.
+  That run added **eight more end-of-session runs across two verifies, every
+  one of them 0**, on top of its cold gate at 0: nine clean runs in a session.
+  The count is now three of twenty verifies, and the clean ones are no longer
+  concentrated anywhere. That does not support the warming hypothesis so much
+  as **weaken the pattern the hypothesis was built on** — an error at 3 of 20
+  runs with nothing about position in the session predicting it is simply
+  intermittent, where "the machine warming up" was a story about where the
+  occurrences happened to sit. Weigh that before adopting either branch this
+  entry's own text offers: the honest third answer may be that neither the code
+  (H32 closed that side) nor the session position explains it, and that what is
+  left to look at is the device, which H32 left reading 48000Hz.
   *done-when:* three runs' gate console-error counts are on the record and the
   entry either closes the error with that evidence or names what to look at
   next.
