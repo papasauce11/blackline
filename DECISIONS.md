@@ -110,6 +110,61 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D71 — The gate reports a frame cost it used to assert, because no clock in this page can price a draw
+
+**Raised by:** H41, 2026-10-09. Taken rather than asked because it changes no
+rule and no look: it changes who is allowed to judge a stopwatch. But it takes
+an assertion **off** the gate, and that is the one kind of change this project
+holds to needing an argument in writing, so here is the page.
+
+**The background, which is H36's.** A wall clock wrapped round a render on this
+machine reads the *submission* and not the drawing. Probed: nine queued draws
+submit in 13-24ms, `gl.getError()` comes back 0.6ms later, and a real
+`fenceSync` then waits **5.5 to 6.9 seconds** for those same nine — 610-761ms a
+queued frame. `frame-budget-under-the-check-29-load` times 180 frames of the
+smoke-flashbang-gunfire-ragdoll load and asserted their median against half the
+60fps budget: **3.10ms against an 8.33ms ceiling**, 2.7x clear. That reading is
+real, and it is a reading about queueing work rather than about doing it — the
+frame it describes cost two thirds of a second. The clause could not fail for
+the reason check 29 exists.
+
+**What was done.** The clock stops setting the verdict and says so at the line;
+the verdict moves to the runner whose clock can price a draw. `npm run bench`
+runs this very check in a headed Chrome on the real GPU, refuses a software
+rasteriser outright, and now asks for `?timedVerdict=1` — the second parameter
+in the repo that one runner asks for and the gate's URL does not. On the GTX
+1060 the same clause reads **0.90-2.00ms of CPU with 0.95-2.08ms of GPU beside
+it against 16.67ms**, four to five times inside the budget on both maps at all
+three levels. Everything in that check which does not need a clock is still the
+gate's, every run: that the load assembled, that Section 15's sprite cap held
+under it, that the pools neither grew nor leaked, that no runtime assertion
+fired.
+
+**The cost, and it is the line to read.** The gate no longer has a tripwire on
+the CPU side of a frame. Something that made queueing a frame 2.7x more
+expensive used to turn the gate red and now will not; what catches it instead is
+a bench, which is manual and whose staleness **prints rather than reds** (D69).
+The number is still in the gate's own output, and when it goes over the ceiling
+the line says so in as many words — it is simply not a red.
+
+**Two other ways it could have gone, both worse:**
+
+1. *Make the whole check bench-only*, the H11 mechanism, as the sweep is.
+   Rejected with a reason: `benchOnly` drops a check's whole verdict, so the
+   gate would also stop counting the four clock-free clauses above — the only
+   automated proof that check 29's load can still be assembled at all. Dodging
+   one dishonest clause by dropping four honest ones is a loosening.
+2. *Keep asserting it and document the clock in a comment.* Rejected: that is a
+   true sentence about the wrong quantity, and the same mistake H36 had just
+   finished taking out of the sweep next door.
+
+**If you would rather keep a tripwire at the gate**, there is a real version of
+one and it is not this: a ceiling on *how long it takes to queue a frame*,
+argued from measurements of the submission path rather than borrowed from the
+frame budget. Nobody has measured what that ceiling should be, and inventing a
+number to keep an assertion alive is how the thing above happened, so it is not
+in this job. Say the word and it is a job.
+
 ### D70 — A test now pins how far the Shade's breath moves her, because a census of margins is a census at one amplitude
 
 **Raised by:** H33, 2026-10-07. Taken rather than asked because it changes no

@@ -352,28 +352,15 @@ one setting only Josh can click; everything else here proceeds.
   done 2026-10-08, under Done. The queue was right that it read a transient and
   wrong about which: the pose blend was innocent and the mesh's own chase was
   the slow ease.
-- [ ] **H41 (S)** Which other checks time something on this renderer, and do
-  any of them assert on it? H36 established that no synchronous clock in the
-  page can price a draw — `gl.getError()` returns 0.6ms after nine queued draws
-  that a real fence waits 5.5-6.9s for, so a wall clock round `renderOnly()`
-  reads a submission and nothing else (`TRAPS.md`). The frame-budget sweep was
-  one such clock and is told its sample count now rather than measuring it. The
-  question nobody has asked is how many more there are.
-  `frame-budget-under-the-check-29-load` is the obvious second, and it is NOT
-  bench-only, so whatever it asserts headless it asserts on this instrument.
-  Census every `performance.now()` in `src/tests/` that brackets a render or a
-  GL call, and for each one say whether its verdict depends on the number: a
-  check that *reports* a submission time is honest and a check that *asserts*
-  on one is measuring the wrong thing. Where a verdict does depend on it,
-  either the check becomes bench-only with a reason naming the hardware
-  (`scripts/bench-checks.json`, the H11 mechanism) or it stops asserting and
-  says so at the line. Nothing may be loosened to make this come out: a
-  threshold that only passes because a submission is cheap is the defect and
-  not the threshold.
-  *done-when:* a census of timed renders in `src/tests/` is in `PROGRESS.md`
-  with a verdict-depends-on-it column, every one that does is either bench-only
-  with a hardware reason or no longer asserting, and a check holds the census
-  the way `tests/breathcensus.js` holds H33's.
+- [x] **H41 (S)** Which other checks time something on this renderer, and do
+  any of them assert on it? — done 2026-10-09, under Done. **Nine clauses in
+  eight modules read a duration and two put a verdict on the size of one**; one
+  was already bench-only (the sweep, H11) and the other is the one the queue
+  predicted. The clock in `frame-budget-under-the-check-29-load` was measured
+  here rather than quoted: **one frame submits in 7.70ms and the fence waits
+  1,159ms for it, 151x** (plant; 5.40ms / 730ms, 135x on the yard), so the
+  verdict moved to `npm run bench` and the gate reports the number. **D71**
+  says what that costs. **H45** is what the run's own hour found.
 - [ ] **H42 (S)** The bench asks for nine samples and nothing proves it got
   them. H36 put the sample count in the URL and
   `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one` holds that
@@ -430,6 +417,29 @@ one setting only Josh can click; everything else here proceeds.
   and the frames to look at, or a measured reason the lag cannot be seen; if it
   can, a `DECISIONS.md` entry with the options, because how the body moves into
   a hang is a look and looks are Josh's.
+- [ ] **H45 (S)** The gate names another runner and builds anyway. `npm run
+  bench` has refused to run beside a suite since H11, with the right argument:
+  a frame timed next to a sustained all-core software-GL load is a reading
+  about a busy machine. The gate has the same exposure and only **warns** —
+  `scripts/watchdog.mjs`'s `otherRunners()` finds them, `suitereport.mjs`
+  prints `OTHER RUNNERS ALIVE: pid N - every timing above was measured against
+  them`, and the run proceeds. H41 paid for that: the 2026-10-08 17:10 run
+  launched a gate at 09:01 and **ended at 09:02 with it still drawing**, so
+  H41's plant gate took **2,215,508ms against 1,105,958ms** and `auto` read
+  10.30ms where this machine reads 5-7ms. F10 does not cover it — a session
+  ending leaves a *healthy* runner, which no heartbeat watchdog will kill — and
+  the orphan had to be cleared by hand (`Stop-Process`, which `TRAPS.md` had
+  wrongly recorded as refused to a scheduled session). Make the suite refuse by
+  default and say the pid and how to clear it, with a flag for the case where
+  somebody means it; a verdict is still honest beside another runner but no
+  timing in the report is, and a run that cannot tell the difference should not
+  be writing numbers into `PROGRESS.md`. Keep the refusal out of the page: the
+  page cannot see processes, so the check reads `scripts/suite.mjs`'s own text
+  the way `benchlist.js` reads `bench.mjs`'s.
+  *done-when:* a suite started beside another `suite.mjs` exits non-zero
+  naming the other pid and the flag that overrides it, proved by starting one;
+  a check holds that the refusal is in `suite.mjs` and that the flag is the
+  only way past it; and `TRAPS.md`'s orphan entry points at the flag.
 - [ ] **H35 (S, the small end)** Three gates with their console-error counts
   written down, then close the `AudioContext` error or name a new hypothesis.
   H32 eliminated the code side of it — one realtime context per page, one owner
@@ -730,6 +740,32 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H41** Which other checks time something on this renderer, and do any of
+  them assert on it. **Nine clauses in eight modules read a duration and two
+  put a verdict on the size of one.** One was already resolved the other way —
+  the 92-viewpoint sweep is bench-only with a hardware reason since H11, so the
+  gate drops its verdict — and the other is the one the queue predicted:
+  `frame-budget-under-the-check-29-load` timed 180 frames of the check-29
+  load and asserted their median against half the frame budget **at every gate
+  since F5**, 3.10ms against an 8.33ms ceiling, 2.7x clear of a ceiling on a
+  number that leaves out the 610-761ms a queued frame really costs here.
+  **Branch two taken, not branch one**: making the whole check bench-only would
+  have dropped its four clock-free clauses off the gate as well (the load
+  assembling, Section 15's caps, the pools, the runtime assertions), which is a
+  loosening and buys nothing. So the clock stops setting the verdict and says
+  so at the line, and the verdict moves to the runner whose clock can price a
+  draw — `npm run bench` refuses software outright and now asks for
+  `?timedVerdict=1`, the second thing in the repo that one URL asks and the
+  gate's does not. That is H36's lesson in a second currency: a sample count
+  that must be affordable is declared by whoever is measuring, and a verdict
+  that needs a trustworthy clock is declared by the runner that has one —
+  neither is sniffed from inside the page. `tests/timedrenders.js` holds the
+  census both ways, every entry's proof, the reader's default of off, the two
+  runners' two URLs, and **the measurement the rule rests on**: drain, time one
+  frame, drain again. Four findings: **H45** (the gate is not refused beside
+  another runner and this run's own plant gate went 2,215s against 1,105s
+  because of one), and three corrections written up in the entry.
+  Done 2026-10-09, commit `PLACEHOLDER`.
 - **H40** Two clauses read the same hands at two different moments, and the
   slow ease was never the pose. H38 left a finding: the shipped glove clause
   reads `|gloveY - lip|` thirty frames after a grab, which its probe of the

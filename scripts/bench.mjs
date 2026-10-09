@@ -53,6 +53,15 @@
 // them, and `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one`
 // holds that it does (H36).
 //
+// And a second, since H41: `?timedVerdict=1`. A wall clock round a render
+// reads the submission and not the drawing, so a check that times a frame
+// reports its number at the gate and may assert on it only where the clock can
+// price one. This runner is that place - the refusal above is what makes it
+// so - and `frame-budget-under-the-check-29-load` holds its CPU median against
+// the budget here and nowhere else. `src/tests/timedrenders.js` is the census
+// of every clock in the suite and holds both ends of the parameter: this file
+// asks for it and `scripts/suite.mjs` does not.
+//
 // The viewport is pinned to the suite's 1280x720 so a number here is
 // comparable with a number there. Playwright sets that by emulation in a
 // headed browser, which changes the size of the drawing buffer and nothing
@@ -204,7 +213,7 @@ async function main() {
           // the URL first), so a level is a load exactly as a map is. The
           // sample count rides the same URL, for the reason in this file's
           // header: a median is a thing only a real GPU can afford.
-          await page.goto(`${origin}?quality=${level}&map=${mapId}&viewpointSamples=9`, { waitUntil: 'load' });
+          await page.goto(`${origin}?quality=${level}&map=${mapId}&viewpointSamples=9&timedVerdict=1`, { waitUntil: 'load' });
           await page.waitForFunction(() => !!window.BLACKLINE, null, { timeout: 60000 });
           // The live loop would play the game under the checks (F4).
           await page.evaluate(() => window.BLACKLINE.loop.stop());

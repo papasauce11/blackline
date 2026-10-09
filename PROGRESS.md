@@ -13154,3 +13154,192 @@ that frame from, are instrument choices with their measurements at the line. No
 rule and no look changed: the smoothing, the pose blend, the breath and the
 glove's 0.15m tolerance are all untouched, and the only constant that moved is
 how long a test waits before looking.
+
+## H41 — nine clocks, two verdicts, and the one that was judging a submission (2026-10-09, scheduled run)
+
+**What it was handed.** H36 had established that no synchronous clock in this
+page can price a draw — nine queued draws submit in 13-24ms, `gl.getError()`
+answers 0.6ms later, and a real `fenceSync` waits **5.5 to 6.9 seconds** for the
+same nine — and had taken the consequence out of one check, the 92-viewpoint
+sweep. The queue's question was how many more there are, and whether any of them
+puts a verdict on such a number. It named `frame-budget-under-the-check-29-load`
+as the obvious second and said what to do about one that does: bench-only with a
+hardware reason, or stop asserting and say so at the line. Nothing to be
+loosened to make it come out.
+
+**The census. Nine clauses in eight modules read a duration; two put a verdict
+on the size of one.** The table is held by
+`every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock`, in
+`tests/timedrenders.js`, both ways — a module that starts calling
+`performance.now()` is red until it is classified, and a declared module that
+stops is red until it is dropped.
+
+| clause | what the clock brackets | verdict rests on it |
+|---|---|---|
+| `the-frame-budget-holds-everywhere-not-just-at-site-a` (soak.js) | `renderOnly()`, 92 viewpoints | **its size** — bench-only since H11, hardware reason, gate drops it |
+| `frame-budget-under-the-check-29-load` (performance.js) | `h.renderFrame()`, 180 frames after 30 warm | **its size, and the gate counted it** — the defect |
+| `every-registered-map-builds-and-the-page-is-on-the-one-its-url-asked-for` (maps.js) | `buildMap()`, every registered map | no: no draw and no GL call in it (`nodraw`) |
+| `the-death-camera-frames-the-killer` (visual.js) | the warming frame + a `readPixels` | no: printed only in the branch that explains a fired guard (`detail`) |
+| `the-bake-yields-the-page-a-frame-to-paint` (boot.js) | the boot's sliced map build | **its sign** — `bake.ms > 0`, liveness, and the bake draws nothing |
+| `the-pipeline-wait-is-the-runs-number-and-not-a-checks` (pipelinewait.js) | the fence itself | **its sign** — finite and ≥ 0; the one duration here that IS the draw, and even that is not asserted by size (D48) |
+| `the-main-menu-draws-a-rendered-thumbnail-for-every-map` (menu.js) | the card strip's bake and draw | no: in the detail line; every clause it asserts is pixels (`detail`) |
+| `the-quality-probe-picks-the-level-its-frame-times-ask-for` (quality.js) | nothing | no: the frame times are fed in, derived from the budget constant (`fed`) |
+| `each-quality-preset-changes-what-a-frame-costs` (quality.js) | nothing | no: the cost it asserts is draw calls, buffer pixels, passes, particles (`counts`) |
+
+Three things in that table are worth more than the row they sit in. **A verdict
+on a number's sign is not a verdict on its size**, which is why the two `sign`
+rows are honest: a clock that reads a submission still reads a positive one, and
+a fence that answers NaN is broken on any renderer. **The one check whose name
+says "what a frame costs" asserts no milliseconds at all** — it reads draw
+calls, buffer pixels, post passes and particles, every one a count this renderer
+answers exactly, which is the shape the other one should have had. And the
+timed draw that matters most in this project **is not in `src/tests/` at all**:
+`main.js` wall-clocks `post.render()` every frame and feeds it to the quality
+probe, so a submission time picks a player's level on `auto`. That is D68 and
+H25's ground, it is a look rather than a verdict, and it is named here so the
+census is not read as complete when it is complete about checks.
+
+**The defect, with its number.** The check-29 clause asserted `cpuMedian >
+budget * cpuBudgetFraction` — **3.10ms against an 8.33ms ceiling**, 2.7x clear —
+at every gate since F5. The frame it was describing costs **610-761ms** on this
+renderer. So the clause cleared its ceiling by a comfortable margin on a
+quantity that leaves out 99.5% of the work, and could not have gone red for the
+reason check 29 exists. On the real GPU the same clause reads **0.90-2.00ms of
+CPU with 0.95-2.08ms of GPU beside it against 16.67ms** over the four benches on
+record, which is what the number looks like when the clock can see.
+
+**Branch two, and why not branch one.** Bench-only was the wrong branch here,
+and the reason is mechanical rather than aesthetic: `benchOnly: true` drops a
+check's **whole** verdict at the gate, and four of this check's clauses are
+clock-free and load-bearing — that 180 frames of smoke, flashbang, sustained
+gunfire and a tumbling ragdoll really did assemble at once, that Section 15's
+sprite cap held under exactly that load, that the particle and footprint pools
+neither grew nor leaked, that no runtime assertion fired. Dropping four honest
+clauses to dodge one dishonest one is a loosening, and the queue forbade
+loosening. So: the clock stops setting the verdict, says so at the line, and
+**the verdict moves to the runner whose clock can price a draw**. `npm run
+bench` runs in a headed Chrome on the real GPU and refuses a software rasteriser
+outright; it now asks for `?timedVerdict=1`, and the clause asserts there.
+
+**That is H36's own lesson in a second currency.** A sample count that has to be
+affordable is *declared by whoever is measuring* rather than measured by a clock
+that cannot see; a verdict that needs a trustworthy clock is *declared by the
+runner that has one*. Neither is sniffed from inside the page — which is what
+`WEBGL_debug_renderer_info` on a throwaway context would cost, sixteen seconds
+of it (view.js), and what a masked renderer string would make unreliable anyway.
+
+**What stops the parameter being a way past.** It is read in exactly one place,
+`timedVerdictAsked()`, exported from the census module and imported by
+performance.js, so the gate and the bench cannot come to two answers. It is off
+unless the value is exactly `1` — a parameter that arrives empty, `0`, `true`
+or `11` buys nothing, which is eight cases asserted. The two runners are read
+from their own source, comments stripped line-locally the way `benchlist.js`
+reads `viewpointSamples`, because bench.mjs's header explains the parameter at
+length and **an explanation is not an ask** — without the strip, the comment
+alone would have satisfied the clause. And the measurement is taken here rather
+than quoted: the check drains the pipeline, times one real frame, drains again,
+and **if the URL asks for a timed verdict on a renderer whose fence outruns its
+clock, it goes red naming both numbers.** Put `timedVerdict=1` in the gate's URL
+to quiet a budget down and the gate tells you.
+
+**And the number H36 had to infer, measured inside the gate.** The census
+check drains the pipeline, times one `h.renderFrame()`, and drains again. Over
+four runs of it on this tree the plant reads **5.70-7.70ms of submission
+against 1,122-1,159ms of fence, 151x to 197x the clock**, over 449 draw calls;
+the yard 5.40-6.20ms against 703-730ms, **113x to 135x**, over 332. H36 arrived
+at 610-761ms a queued draw from a probe of nine, and this is the same fact from
+one frame of the live scene, in the suite's own output, on every run. So the
+clause that was asserting a budget was reading **half a percent of what the
+frame cost**. A ratio at or under 20x would mean this page's clock *can* price
+a draw, and `?timedVerdict=1` is then permitted; at 151x and up it is red if
+asked for.
+
+**Both halves of that were demonstrated rather than argued.** The red: driven
+with `--pre "history.replaceState(null,'',location.search+'&timedVerdict=1')"`,
+which puts the parameter in the page without touching either runner, the check
+goes red on the plant with *"?timedVerdict=1 asks for a verdict on a timed
+draw, and this page submits a frame in 5.70ms that the fence then waits 1122ms
+for (197x the clock); a budget asserted here is a budget on a submission"*. The
+green: `npm run bench` on the GTX 1060, **12 readings on both maps at all three
+levels**, where the same check's detail line reads *"CPU 1.50ms median / 1.90ms
+p95, GPU 1.58ms **against** a 16.67ms budget"* — the word `against` rather than
+`beside ... (reported, H41)` is the page saying `priced` was true, and the
+readings run **0.90-2.00ms of CPU with 0.99-2.02ms of GPU**, eight to eighteen
+times inside the CPU ceiling. The verdict did not evaporate; it moved, and it
+is green where it landed (`bench/2026-10-09.json`).
+
+**One thing found while placing the drain.** The first subset run put
+**226,454ms** of somebody else's pipeline inside this check's own ms, because
+it was the only thing in that run that synchronises. Declaring `glSync: true`
+hands that to the runner, which is what D48 is for: the check's ms fell from
+228,879ms to **1,344ms** on the plant and 147,753ms to **937ms** on the yard,
+and its detail line now reads `0ms was still queued ahead of it`, so the fence
+reading above is about the one frame it timed and nothing else.
+
+**One thing the detail line now shows that nothing ever asserted.** With the
+median reported rather than asserted, the p95 beside it is legible for the
+first time: **25.30ms on the plant and 20.00ms on the yard, against a 16.67ms
+budget**. Nothing has ever been red for it, because the clause only ever read
+the median — and on this instrument a p95 is a submission that got descheduled
+rather than an expensive frame, which is H36's argument for a median in the
+first place. It is in the record because a reader of that line should not
+discover it twice.
+
+**What was verified.** The gate (cold, before anything was written): plant 220
+passed / 1 failed / 8 not for this map, yard 200 / 1 / 28, 0 red, 0 flaky, exit
+0 — and **0 console errors**, which is the number `HANDOFF.md` asks every run to
+write down, and the fourth cold gate in a row to read 0 (H11, H38, H36, this).
+The verify, two runs a map on the finished tree: **plant 221 / 1 / 8
+(1,111,249ms and 1,141,365ms), yard 201 / 1 / 28 (798,017ms and 787,113ms),
+exit 0, 0 red, 0 flaky, 0 unexpectedly green, 0 skips withheld, 0 bench drops
+withheld, 0 context losses, 0 loop frames, 0 re-runs, no other runner on the
+machine — and 0 console errors in all four runs**, with both runs of each map
+agreeing exactly on every count. One check more than the gate on each map,
+which is this job's. The spreads are **30,116ms (3%) on the plant against a
+14,033ms pipeline-wait spread** and 10,904ms (1%) on the yard against 9,407ms,
+so read the 3% against the wait beside it before reading it as work (F16).
+`auto` would have picked **medium on both maps** (6.80ms and 5.90ms), where the
+contended gate read 10.30ms and called for `low` — the same instrument, with
+and without an orphan on the machine, which is the clearest thing anyone has
+measured about what contention does to the probe. Two subset runs and one
+forced-red run sit between the gate and the verify and are described above.
+
+**Three corrections, one of them in a census.** `tests/breathdrawn.js`'s entry
+for performance.js said its clause "is bench-only headless (H11)", which it
+never was — the bench-only sweep is soak.js's, and the gate has counted this one
+all along. H39's census carried a wrong fact about the exact check H41 was
+about, which is the third time in this block that the thing a job went looking
+for was mis-attributed in the record first (H33 named the arm, H40's own first
+answer cleared it, H39 put the death camera in the wrong module). The other two
+corrections are in `TRAPS.md` and are about this run's own machine, below.
+
+**And this run's own hour, which is a finding about the protocol.** The gate
+took **2,215,508ms on the plant against the 1,105,958ms the last four runs
+measured** — twice the time, with `auto` picking `low` off a 10.30ms probe where
+this machine reads 5-7ms. The cause was in the report all along, because the
+runner already looks: `OTHER RUNNERS ALIVE: pid 12200 (2026-10-09T09:01:12) -
+every timing above was measured against them`. The previous scheduled run had
+launched a gate at 09:01 and **ended at 09:02 while it was still running**, so a
+whole second suite was drawing with SwiftShader on four pinned cores for the
+first 38 minutes of mine. Three things come out of it:
+
+  - **F10's teardown does not cover this.** `TRAPS.md` says "since F10 the gate
+    no longer makes them: a run whose heartbeat stands still dies naming the
+    check, and SIGINT/SIGTERM tear the tree down". Both are true and neither
+    fires when the *session* ends while the runner is healthy. This orphan was
+    made after F10, by a session stopping.
+  - **A scheduled session can kill one after all.** `TRAPS.md` says "Josh has to
+    run this himself: a scheduled session's sandbox refuses `taskkill` as
+    interfering with a workload." `Stop-Process -Id <pid> -Force` in PowerShell
+    is **not** refused, and it cleared the whole tree — the `npm` wrapper, the
+    `suite.mjs`, the Chrome parent and its eight children — in one call. The
+    yard run that followed came in at 790,979ms against 765,105ms, 3% over, so
+    the kill worked and the plant's figure was the contention and nothing else.
+  - **And `kill -0 <pid>` lies in this shell.** A Git Bash `kill -0` on a live
+    Win32 pid reported the process gone, which cost one false alarm; it is the
+    same trap `tasklist /FI` is already in, and `Get-Process` /
+    `Wait-Process -Id` are the answers.
+
+**What is left.** **H45**, queued: the gate *names* another runner and carries on
+anyway, where `npm run bench` refuses to run beside a suite for exactly this
+reason. One run of this project's gate has now cost an extra hour to it.

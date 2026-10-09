@@ -78,7 +78,7 @@ const ALLOWED = [
   {
     id: 'frame-budget-under-the-check-29-load',
     benchOnly: false,
-    why: 'the gate counts its CPU median; the bench adds the GPU half the software path cannot give',
+    why: 'the gate counts its clock-free clauses; the bench asks for the verdict on its frame cost, and adds the GPU half the software path cannot give (H41)',
   },
 ];
 

@@ -319,13 +319,31 @@ no cost to asking for more than you need. Then wait on the file in a second
 backgrounded command. And when waiting on the *process* instead, do not use
 `tasklist /FI "PID eq N" | grep N` from the Bash tool: it matched nothing and
 returned "exited" immediately on a process that had half an hour left.
-`Wait-Process -Id N -Timeout <s>` in PowerShell is the one that answers.
+`Wait-Process -Id N -Timeout <s>` in PowerShell is the one that answers. And
+**`kill -0 <pid>` from the Bash tool lies the same way**: H41 used it as a
+liveness guard inside a Monitor loop and it reported a `suite.mjs` with fifteen
+minutes left to run as gone, because Git Bash's `kill` looks in its own process
+table and not Windows'. One false alarm mid-gate, and it would have been a
+wrong conclusion about a dead runner if the file it was watching had not
+disagreed. Liveness is `Get-Process -Id N` or `Get-CimInstance Win32_Process
+-Filter "ProcessId=N"`.
 
 **And an orphaned runner never dies on its own — it has to be killed by hand,
-and a routine cannot do it.** *(Since F10 the gate no longer makes them: a run
-whose heartbeat stands still dies naming the check, and SIGINT/SIGTERM tear
-the tree down. The two below predate that, are still alive, and are named at
-the start of every run since.)* The 09-18 17:00 build's runner was still alive
+and a scheduled session can do it.** *(F10 closed one way of making them: a run
+whose heartbeat stands still dies naming the check, and SIGINT/SIGTERM tear the
+tree down. **H41 found the way that is still open, and paid for it** — the
+session that launched a healthy runner simply ending. The 2026-10-08 17:10 run
+started a gate at 09:01 and ended at 09:02 with it still drawing, so H41's own
+plant gate ran beside a second full suite for 38 of its minutes and took
+**2,215,508ms against the 1,105,958ms of the four runs before it**, with `auto`
+picking `low` off a 10.30ms probe where this machine reads 5-7ms. **The runner
+already tells you**: `OTHER RUNNERS ALIVE: pid N (started) - every timing above
+was measured against them` is in the summary, and the pid is in the report's
+`otherRunners`. Read that line before reading any timing, and before building:
+H45 is the job to make the gate refuse rather than warn, the way `npm run
+bench` already refuses to run beside a suite. The two pids below are from
+2026-09-23, are no longer on this machine, and the history is kept because it
+is what makes the sentence believable.)* The 09-18 17:00 build's runner was still alive
 on 2026-09-23: `npm run suite` (pid **9608**) → `node scripts/suite.mjs` (pid
 **4792**, a server still listening on 127.0.0.1:54315) → a headless Chrome
 tree (pid **8920**) whose renderer had burned 1,975 CPU-seconds. Resist the
@@ -333,7 +351,12 @@ obvious inference: it does *not* follow that this is why a plant run went 450s
 → 850s, because E6's run and every gate since were measured with it alive.
 Contention is a constant across every timing on record, not something that
 separates them. The clean test is a gate run once the processes are dead, and
-nobody has had one yet. F11's run stopped a verify from the tool and briefly
+**H41 finally had one**: killed mid-gate, the yard run that followed came in 3%
+over the four runs before it while the plant run taken beside the orphan was
+**100% over**. So contention on this machine is worth a factor of two on a
+plant run and nothing measurable on a run taken after it, and the paragraph
+above is right that it does not explain 450s -> 850s - those two were measured
+beside the same thing. F11's run stopped a verify from the tool and briefly
 had a second pair (pids 10316 and 11820, 2026-09-23 18:55): stopping kills
 the `npm` wrapper only, and `suite.mjs` carried on to the end of its four
 runs — about forty minutes — before tearing its own tree down and exiting.
@@ -346,10 +369,19 @@ it. Find them with
 Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Select ProcessId,CreationDate,CommandLine
 ```
 
-and end one with `taskkill /PID <suite.mjs pid> /T /F` — **Josh has to run
-this himself**: a scheduled session's sandbox refuses `taskkill` as
-interfering with a workload. Be sure of the pid first; the ordinary
-`chrome.exe` tree is Josh's own browser.
+and end one with **`Stop-Process -Id <pid> -Force` in PowerShell**. This entry
+used to say `taskkill /PID <pid> /T /F` and that **Josh had to run it himself**,
+because a scheduled session's sandbox refuses `taskkill` as interfering with a
+workload. That refusal is real and `Stop-Process` is **not** refused: H41
+cleared a whole orphan tree with it in one call — the `npm` wrapper, the
+`suite.mjs`, the Chrome parent and its eight children, eleven pids named
+explicitly — and the yard run that followed came in at 790,979ms against
+765,105ms, 3% over, which is how we know the contention was the whole of the
+plant's doubled figure. Take the tree off `ParentProcessId` first
+(`Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Select
+ProcessId,ParentProcessId,CreationDate`) and be sure of the pids: the ordinary
+`chrome.exe` tree is Josh's own browser, the desktop app's renderers are in it,
+and a stray `npx serve` from another chat is not a suite.
 
 **A new setting must join H7's round-trip census, and a subset that does not
 name it will not tell you.** `changedValues()` in `tests/settingsstore.js` builds

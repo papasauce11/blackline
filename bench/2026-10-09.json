@@ -1,0 +1,366 @@
+{
+  "date": "2026-10-09",
+  "runs": [
+    {
+      "at": "2026-10-09T14:29:09.719Z",
+      "commit": "d2272d1",
+      "branch": "phases-14-45",
+      "machine": {
+        "platform": "win32",
+        "cpu": "Intel(R) Core(TM) i7-2600 CPU @ 3.40GHz",
+        "logicalCpus": 8,
+        "memGb": 13
+      },
+      "browser": {
+        "channel": "chrome",
+        "headless": false,
+        "viewport": [
+          1280,
+          720
+        ]
+      },
+      "gpu": {
+        "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 1060 6GB (0x00001C03) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "vendor": "Google Inc. (NVIDIA)",
+        "unmasked": true
+      },
+      "maps": [
+        "plant",
+        "yard"
+      ],
+      "levels": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "checks": [
+        {
+          "id": "the-frame-budget-holds-everywhere-not-just-at-site-a",
+          "benchOnly": true,
+          "reason": "Times the draw at 92 viewpoints against an 8.33ms ceiling, which is a reading about this machine's GPU. Headless draws with SwiftShader, a software rasteriser, at roughly 400ms a frame, so the gate cannot ask the question at all. `npm run bench` asks it in a headed Chrome on the real GPU, on every map at every level, and writes the answer to bench/<date>.json."
+        },
+        {
+          "id": "frame-budget-under-the-check-29-load",
+          "benchOnly": false,
+          "reason": "Not bench-only: the gate runs it and counts everything in it that is clock-free - the load assembling, Section 15's caps, the pools, the runtime assertions. What the bench adds is the verdict on the frame cost. A wall clock round a draw on a software rasteriser reads the submission and not the drawing (H36), so `npm run bench` asks for `?timedVerdict=1` on the real GPU and the CPU median is asserted there - with the GPU half beside it, which needs a real driver for EXT_disjoint_timer_query_webgl2 (H41)."
+        }
+      ],
+      "ok": true,
+      "consoleErrors": [],
+      "scenes": [
+        {
+          "map": "plant",
+          "level": "low",
+          "repeat": 1,
+          "buffer": [
+            896,
+            503
+          ],
+          "devicePixelRatio": 1,
+          "quality": {
+            "level": "low",
+            "from": "?quality=low",
+            "pin": "low",
+            "pixelRatio": 0.7,
+            "buffer": [
+              896,
+              503
+            ],
+            "shadowMapSize": 512,
+            "post": false,
+            "postRow": true,
+            "impactSparks": 2,
+            "outlines": {
+              "shown": 0,
+              "hidden": 13
+            },
+            "source": "?quality=low",
+            "hold": null,
+            "probe": {
+              "pick": "high",
+              "medianMs": 3.3,
+              "samples": 40,
+              "skipped": 10,
+              "why": "3.30ms median CPU over 40 frames, against the 8.33ms a CPU frame is allowed"
+            }
+          },
+          "contextLosses": 0,
+          "checks": [
+            {
+              "id": "the-frame-budget-holds-everywhere-not-just-at-site-a",
+              "pass": true,
+              "ms": 1205,
+              "detail": "92 viewpoints across 23 places, 828 timed draws (median of 9-9): mean 1.27ms, worst 2.20ms at \"stair-hall-foot@1\" (357 calls) against a 8.33ms draw ceiling; busiest stair-hall-foot@1 2.20, site-a@1 1.90, deck-nw@1 1.90; worst single draw 4.50ms at \"stair-hall-foot@1\", reported not asserted (H36); peak 359 calls / 8790 triangles"
+            },
+            {
+              "id": "frame-budget-under-the-check-29-load",
+              "pass": true,
+              "ms": 437,
+              "detail": "180 frames with 100 smoke sprites, a live flashbang, a ragdoll and 26 rounds: CPU 1.50ms median / 1.90ms p95, GPU 1.58ms against a 16.67ms budget; peak 228 draw calls, 5982 triangles, 116 live effects; pools held and drained to 0"
+            }
+          ]
+        },
+        {
+          "map": "plant",
+          "level": "medium",
+          "repeat": 1,
+          "buffer": [
+            1280,
+            720
+          ],
+          "devicePixelRatio": 1,
+          "quality": {
+            "level": "medium",
+            "from": "?quality=medium",
+            "pin": "medium",
+            "pixelRatio": 1,
+            "buffer": [
+              1280,
+              720
+            ],
+            "shadowMapSize": 1024,
+            "post": true,
+            "postRow": true,
+            "impactSparks": 5,
+            "outlines": {
+              "shown": 13,
+              "hidden": 0
+            },
+            "source": "?quality=medium",
+            "hold": null,
+            "probe": {
+              "pick": "high",
+              "medianMs": 3.7,
+              "samples": 40,
+              "skipped": 10,
+              "why": "3.70ms median CPU over 40 frames, against the 8.33ms a CPU frame is allowed"
+            }
+          },
+          "contextLosses": 0,
+          "checks": [
+            {
+              "id": "the-frame-budget-holds-everywhere-not-just-at-site-a",
+              "pass": true,
+              "ms": 1604,
+              "detail": "92 viewpoints across 23 places, 828 timed draws (median of 9-9): mean 1.72ms, worst 4.10ms at \"deck-south@1\" (321 calls) against a 8.33ms draw ceiling; busiest deck-south@1 4.10, site C@2 3.30, deck-nw@1 2.60; worst single draw 4.70ms at \"deck-south@1\", reported not asserted (H36); peak 387 calls / 10950 triangles"
+            },
+            {
+              "id": "frame-budget-under-the-check-29-load",
+              "pass": true,
+              "ms": 508,
+              "detail": "180 frames with 100 smoke sprites, a live flashbang, a ragdoll and 26 rounds: CPU 2.00ms median / 2.30ms p95, GPU 2.02ms against a 16.67ms budget; peak 237 draw calls, 5188 triangles, 137 live effects; pools held and drained to 0"
+            }
+          ]
+        },
+        {
+          "map": "plant",
+          "level": "high",
+          "repeat": 1,
+          "buffer": [
+            1600,
+            900
+          ],
+          "devicePixelRatio": 1,
+          "quality": {
+            "level": "high",
+            "from": "?quality=high",
+            "pin": "high",
+            "pixelRatio": 1.25,
+            "buffer": [
+              1600,
+              900
+            ],
+            "shadowMapSize": 2048,
+            "post": true,
+            "postRow": true,
+            "impactSparks": 5,
+            "outlines": {
+              "shown": 13,
+              "hidden": 0
+            },
+            "source": "?quality=high",
+            "hold": null,
+            "probe": {
+              "pick": "high",
+              "medianMs": 4,
+              "samples": 40,
+              "skipped": 10,
+              "why": "4.00ms median CPU over 40 frames, against the 8.33ms a CPU frame is allowed"
+            }
+          },
+          "contextLosses": 0,
+          "checks": [
+            {
+              "id": "the-frame-budget-holds-everywhere-not-just-at-site-a",
+              "pass": true,
+              "ms": 1579,
+              "detail": "92 viewpoints across 23 places, 828 timed draws (median of 9-9): mean 1.69ms, worst 2.50ms at \"stair-hall-foot@1\" (385 calls) against a 8.33ms draw ceiling; busiest stair-hall-foot@1 2.50, deck-nw@1 2.50, stair-corridor-head@2 2.40; worst single draw 3.30ms at \"deck-office@0\", reported not asserted (H36); peak 387 calls / 10950 triangles"
+            },
+            {
+              "id": "frame-budget-under-the-check-29-load",
+              "pass": true,
+              "ms": 516,
+              "detail": "180 frames with 100 smoke sprites, a live flashbang, a ragdoll and 26 rounds: CPU 1.90ms median / 2.30ms p95, GPU 1.98ms against a 16.67ms budget; peak 237 draw calls, 5188 triangles, 137 live effects; pools held and drained to 0"
+            }
+          ]
+        },
+        {
+          "map": "yard",
+          "level": "low",
+          "repeat": 1,
+          "buffer": [
+            896,
+            503
+          ],
+          "devicePixelRatio": 1,
+          "quality": {
+            "level": "low",
+            "from": "?quality=low",
+            "pin": "low",
+            "pixelRatio": 0.7,
+            "buffer": [
+              896,
+              503
+            ],
+            "shadowMapSize": 512,
+            "post": false,
+            "postRow": true,
+            "impactSparks": 2,
+            "outlines": {
+              "shown": 0,
+              "hidden": 13
+            },
+            "source": "?quality=low",
+            "hold": null,
+            "probe": {
+              "pick": "high",
+              "medianMs": 3.2,
+              "samples": 40,
+              "skipped": 10,
+              "why": "3.20ms median CPU over 40 frames, against the 8.33ms a CPU frame is allowed"
+            }
+          },
+          "contextLosses": 0,
+          "checks": [
+            {
+              "id": "the-frame-budget-holds-everywhere-not-just-at-site-a",
+              "pass": true,
+              "ms": 1089,
+              "detail": "96 viewpoints across 24 places, 864 timed draws (median of 9-9): mean 1.11ms, worst 2.30ms at \"gate@0\" (252 calls) against a 8.33ms draw ceiling; busiest gate@0 2.30, store-west@1 2.20, mid-east@3 2.20; worst single draw 3.80ms at \"bay-b-north@3\", reported not asserted (H36); peak 267 calls / 7248 triangles"
+            },
+            {
+              "id": "frame-budget-under-the-check-29-load",
+              "pass": true,
+              "ms": 267,
+              "detail": "180 frames with 100 smoke sprites, a live flashbang, a ragdoll and 26 rounds: CPU 0.90ms median / 1.30ms p95, GPU 0.99ms against a 16.67ms budget; peak 123 draw calls, 3268 triangles, 116 live effects; pools held and drained to 0"
+            }
+          ]
+        },
+        {
+          "map": "yard",
+          "level": "medium",
+          "repeat": 1,
+          "buffer": [
+            1280,
+            720
+          ],
+          "devicePixelRatio": 1,
+          "quality": {
+            "level": "medium",
+            "from": "?quality=medium",
+            "pin": "medium",
+            "pixelRatio": 1,
+            "buffer": [
+              1280,
+              720
+            ],
+            "shadowMapSize": 1024,
+            "post": true,
+            "postRow": true,
+            "impactSparks": 5,
+            "outlines": {
+              "shown": 13,
+              "hidden": 0
+            },
+            "source": "?quality=medium",
+            "hold": null,
+            "probe": {
+              "pick": "high",
+              "medianMs": 3.6,
+              "samples": 40,
+              "skipped": 10,
+              "why": "3.60ms median CPU over 40 frames, against the 8.33ms a CPU frame is allowed"
+            }
+          },
+          "contextLosses": 0,
+          "checks": [
+            {
+              "id": "the-frame-budget-holds-everywhere-not-just-at-site-a",
+              "pass": true,
+              "ms": 1552,
+              "detail": "96 viewpoints across 24 places, 864 timed draws (median of 9-9): mean 1.55ms, worst 2.80ms at \"mid-east@3\" (289 calls) against a 8.33ms draw ceiling; busiest mid-east@3 2.80, gate@0 2.70, site-b@3 2.70; worst single draw 28.20ms at \"site A@1\", reported not asserted (H36); peak 300 calls / 9456 triangles"
+            },
+            {
+              "id": "frame-budget-under-the-check-29-load",
+              "pass": true,
+              "ms": 353,
+              "detail": "180 frames with 100 smoke sprites, a live flashbang, a ragdoll and 26 rounds: CPU 1.40ms median / 1.60ms p95, GPU 1.41ms against a 16.67ms budget; peak 133 draw calls, 3322 triangles, 137 live effects; pools held and drained to 0"
+            }
+          ]
+        },
+        {
+          "map": "yard",
+          "level": "high",
+          "repeat": 1,
+          "buffer": [
+            1600,
+            900
+          ],
+          "devicePixelRatio": 1,
+          "quality": {
+            "level": "high",
+            "from": "?quality=high",
+            "pin": "high",
+            "pixelRatio": 1.25,
+            "buffer": [
+              1600,
+              900
+            ],
+            "shadowMapSize": 2048,
+            "post": true,
+            "postRow": true,
+            "impactSparks": 5,
+            "outlines": {
+              "shown": 13,
+              "hidden": 0
+            },
+            "source": "?quality=high",
+            "hold": null,
+            "probe": {
+              "pick": "high",
+              "medianMs": 3.9,
+              "samples": 40,
+              "skipped": 10,
+              "why": "3.90ms median CPU over 40 frames, against the 8.33ms a CPU frame is allowed"
+            }
+          },
+          "contextLosses": 0,
+          "checks": [
+            {
+              "id": "the-frame-budget-holds-everywhere-not-just-at-site-a",
+              "pass": true,
+              "ms": 1522,
+              "detail": "96 viewpoints across 24 places, 864 timed draws (median of 9-9): mean 1.55ms, worst 2.80ms at \"gate@0\" (286 calls) against a 8.33ms draw ceiling; busiest gate@0 2.80, mid-west@1 2.70, mid-east@3 2.70; worst single draw 3.40ms at \"bay-b-north@0\", reported not asserted (H36); peak 300 calls / 9456 triangles"
+            },
+            {
+              "id": "frame-budget-under-the-check-29-load",
+              "pass": true,
+              "ms": 358,
+              "detail": "180 frames with 100 smoke sprites, a live flashbang, a ragdoll and 26 rounds: CPU 1.40ms median / 1.60ms p95, GPU 1.43ms against a 16.67ms budget; peak 142 draw calls, 5846 triangles, 137 live effects; pools held and drained to 0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

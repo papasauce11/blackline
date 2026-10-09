@@ -154,7 +154,13 @@ export const DRAWN = [
     module: 'performance.js',
     reach: 'none',
     proof: 'cost',
-    note: 'its one clause is a frame cost in milliseconds, and it is bench-only headless (H11): on the real GPU it clears by 3x to 6x over twelve readings. The breath moves a transform inside the body group and changes no draw call, which is what the proof reads',
+    note: 'its one clause is a frame cost in milliseconds. This entry used to call it bench-only headless; it never was - the bench-only sweep is soak.js\'s, and the gate counts this one (H41 corrected it). What the gate counts of it is now everything clock-free, the frame cost being reported here and asserted where a clock can price a draw. Either way the breath moves a transform inside the body group and changes no draw call, which is what the proof reads',
+  },
+  {
+    module: 'timedrenders.js',
+    reach: 'none',
+    proof: 'cost',
+    note: 'times one frame of the live scene and drains the pipeline behind it, to measure what a wall clock round a draw is worth on this renderer (H41). Its verdicts are a submission time, a fence time and the text of other modules; the breath moves a transform and changes no draw call, so it cannot reach any of them',
   },
 ];
 

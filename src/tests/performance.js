@@ -12,18 +12,38 @@
  * What this can and cannot prove is worth stating plainly, because a
  * performance check that overclaims is worse than none:
  *
- *  - It CAN prove the stress load really assembled (200 smoke sprites, a live
+ *  - It CAN prove the stress load really assembled (**at least 100** smoke
+ *    sprites, which is what the clause below actually requires - half of
+ *    `GA.smoke.spriteCap`, because the two grenades share it - a live
  *    flashbang, a tumbling ragdoll, a magazine going downrange), and it can
  *    time the CPU cost of a real frame and the GPU cost of the draw when
- *    EXT_disjoint_timer_query_webgl2 is available.
+ *    EXT_disjoint_timer_query_webgl2 is available. This line said "200 smoke
+ *    sprites" until H41, which is the cap and not the bar; the realised peak
+ *    here is 100, and a check's own doc overstating what it requires is the
+ *    same fault in prose that H41 came to fix in a clause.
  *  - It CANNOT prove a vsync-paced frame rate on Josh's integrated GPU. This
  *    machine is not that machine, and a backgrounded tab is not a presented
  *    frame. The final word on check 29 stays HUMAN.
+ *  - And it CANNOT price the frame it times, which is why the budget below is
+ *    reported here and asserted elsewhere (H41). A wall clock round a render
+ *    reads the *submission*: headless a frame submits in a few milliseconds
+ *    and the fence behind it waits several hundred, so a median held against
+ *    half the budget here was 2.7x clear of a ceiling on a number that leaves
+ *    out almost all of what the frame cost (H36, `TRAPS.md`). The verdict
+ *    belongs to the runner whose clock can price a draw: `npm run bench` runs
+ *    this check in a headed Chrome on the real GPU, refuses a software
+ *    rasteriser outright, and asks for it with `?timedVerdict=1`.
+ *    Everything else here is clock-free and still the gate's: that the load
+ *    assembled, that Section 15's caps held under it, that the pools neither
+ *    grew nor leaked, that no runtime assertion fired.
+ *    `tests/timedrenders.js` is the census of every clock in the suite and
+ *    holds both ends of that parameter.
  *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
 import { CONFIG } from '../config.js';
+import { timedVerdictAsked } from './timedrenders.js';
 
 const PERF = CONFIG.performance;
 const GA = CONFIG.gadgets;
@@ -286,14 +306,29 @@ export function register(debugTools) {
 
       // The budget. CPU only: the GPU number is reported when the driver gives
       // one, but it is this machine's GPU, not the target's.
+      //
+      // **And asserted only where the clock can price a draw** (H41). The two
+      // lines below are built either way, so the numbers reach the reader
+      // whichever runner is asking; what the parameter decides is whether they
+      // are a verdict. One reader for that, `tests/timedrenders.js`'s, so the
+      // gate and the bench cannot come to two answers about it.
+      const priced = timedVerdictAsked(typeof location !== 'undefined' ? location.search : '');
+      const over = [];
       if (cpuMedian > cpuCeiling) {
-        problems.push(
+        over.push(
           `CPU frame ${cpuMedian.toFixed(2)}ms is over the ${cpuCeiling.toFixed(2)}ms ceiling `
           + `(${(PERF.cpuBudgetFraction * 100)}% of the ${budget.toFixed(2)}ms budget for ${PERF.targetFps}fps)`
         );
       }
       if (gpuMs !== null && cpuMedian + gpuMs > budget) {
-        problems.push(`CPU ${cpuMedian.toFixed(2)}ms + GPU ${gpuMs.toFixed(2)}ms exceeds the ${budget.toFixed(2)}ms budget`);
+        over.push(`CPU ${cpuMedian.toFixed(2)}ms + GPU ${gpuMs.toFixed(2)}ms exceeds the ${budget.toFixed(2)}ms budget`);
+      }
+      if (priced) problems.push(...over);
+      else if (over.length) {
+        // Over budget on a clock that cannot price a draw is still worth
+        // saying, and saying loudly: it is a submission that got expensive,
+        // which is a real regression about something other than a frame rate.
+        notes.push(`not asserted on this clock (H41): ${over.join('; ')}`);
       }
       if (gpuMs === null) notes.push('no GPU timer (EXT_disjoint_timer_query_webgl2 unavailable or disjoint)');
 
@@ -318,12 +353,16 @@ export function register(debugTools) {
       if (effects.ragdolls.length !== 0) problems.push(`${effects.ragdolls.length} ragdolls never froze`);
 
       const gpuText = gpuMs !== null ? `, GPU ${gpuMs.toFixed(2)}ms` : '';
+      // Which of the two the budget is, in the line a reader actually reads.
+      const budgetPhrase = priced
+        ? `against a ${budget.toFixed(2)}ms budget`
+        : `beside a ${budget.toFixed(2)}ms budget (reported, H41)`;
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${PERF.benchmarkFrames} frames with ${peakSprites} smoke sprites, a live flashbang, a ragdoll `
             + `and ${shotsFired} rounds: CPU ${cpuMedian.toFixed(2)}ms median / ${cpu95.toFixed(2)}ms p95${gpuText} `
-            + `against a ${budget.toFixed(2)}ms budget; peak ${peakCalls} draw calls, `
+            + `${budgetPhrase}; peak ${peakCalls} draw calls, `
             + `${peakTriangles} triangles, ${peakEffects} live effects; pools held and drained to 0`
             + (notes.length ? ` [${notes.join('; ')}]` : '')
           : problems.join('; '),

@@ -95,6 +95,45 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The stress test was judging a number it cannot see (H41, 2026-10-09)
+
+**Nothing visible changed and nothing was broken** — this is about who is
+allowed to judge a stopwatch. Two tests in this project time how long a frame
+takes. One of them, the sweep that walks the camera to ninety-odd places on
+each map, has only counted on the real graphics card since H11, for exactly the
+right reason. The other is the big stress test: smoke, a flashbang, sustained
+gunfire and a ragdoll all at once, 180 frames timed, judged against half the
+budget a 60fps frame gets. That one has been judged in the automated suite at
+every single run.
+
+**The catch is the one H36 found.** When the suite draws without a graphics
+card, asking the page "how long did that frame take?" gets you the time it took
+to *hand the frame over*, not the time to draw it — a couple of milliseconds,
+where the real cost of that frame is about two thirds of a second. So the test
+was clearing its limit by 2.7x on a number that leaves out almost everything
+the frame actually cost. It could not have failed for the reason it exists.
+
+**So the verdict moved to the machine that can see it.** The suite now
+*reports* the frame cost and says so on the line; `npm run bench`, which runs in
+a real window on your GTX 1060 and refuses to run without a graphics card,
+*judges* it. On that card the same test reads **0.9ms to 2.0ms of CPU with
+0.95ms to 2.1ms of GPU beside it, against 16.7ms** — four to five times inside
+the budget, on both maps at all three quality levels. Everything about that test
+that does not need a clock is still judged every run: that the smoke, the
+flashbang, the gunfire and the ragdoll really did all happen at once, that the
+sprite cap held under them, that the pools drained to zero, that nothing went
+non-finite.
+
+**And a census, so this cannot quietly come back.** Nine clauses in the suite
+read a duration of some kind. Every one of them now declares what it does with
+it: one judges how big it is (the sweep — the bench's), one reports, two assert
+only that a number exists at all, and five cannot reach a clock. A new check
+that starts timing a frame is red until it says which it is, the same way
+`every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it`
+holds the breathing census.
+
+**Nothing for you to look at.**
+
 ### The Shade breathes, and that is now a number the suite holds (H33, 2026-10-07)
 
 **Nothing changed; this is one look detail you have never been told about,
