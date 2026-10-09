@@ -765,7 +765,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   frame, drain again. Four findings: **H45** (the gate is not refused beside
   another runner and this run's own plant gate went 2,215s against 1,105s
   because of one), and three corrections written up in the entry.
-  Done 2026-10-09, commit `PLACEHOLDER`.
+  Done 2026-10-09, commit `76c6e50`.
 - **H40** Two clauses read the same hands at two different moments, and the
   slow ease was never the pose. H38 left a finding: the shipped glove clause
   reads `|gloveY - lip|` thirty frames after a grab, which its probe of the
