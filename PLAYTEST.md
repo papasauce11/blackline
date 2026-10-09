@@ -95,6 +95,57 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The drawn body is always a little behind itself, and the pose photographs catch it (H43, 2026-10-09)
+
+**Nothing visible changed, and nothing was broken.** This is a measurement, and
+one line of it is for your eyes rather than for a test.
+
+The bodies are drawn where they were a moment ago, on purpose. The simulation
+runs at a fixed 60 steps a second, and if the drawing followed it exactly then
+on a 120Hz or 144Hz screen you would see the same position twice and then a
+jump. So the drawn body eases toward where the simulation has it — about 14% of
+the remaining distance each frame — which on a fast screen reads as smooth
+motion instead of a stutter. That part is doing its job correctly.
+
+What it also means is that whenever the game moves a body a long way *at once*,
+the drawing takes about three quarters of a second to catch all the way up.
+H40 found that while measuring something else, and H43 went through every
+automated test that reads where a body is *drawn* to see which of them were
+reading one that had not arrived yet. Twelve do; eleven of them turn out not to
+care, for reasons the test now proves one by one rather than asserts.
+
+**The one that does care is the pose gallery** — `npm run shot`, the thing that
+photographs the Shade in each of her twelve states so you can look at the
+animation. It photographs the instant the state begins, deliberately, so that a
+vault is caught part way over rather than finished. Measured, every one of those
+twelve photographs catches the body still travelling:
+
+| the shot | how far behind the body is |
+|---|---|
+| landing | **0.79m** |
+| slide | 0.68m |
+| sprint | 0.65m |
+| mantle, pull-up, grab, vault | 0.40m to 0.50m |
+| walk | 0.35m |
+| jumping up, falling | 0.16m to 0.21m |
+| hanging, crouching | under 1.5cm |
+
+The *pictures are still honest about the pose* — the camera is placed relative
+to the drawn body, so the figure is the right size in the right part of the
+frame and the limbs are where they really are. What is off is the body's
+position in the **world**: in the landing shot the Shade is drawn about 0.79m
+below the floor she is actually standing on, catching up.
+
+**For your eyes.** If you have looked at a pose gallery and thought a body
+seemed to be sunk into the ground or hanging in the air, that is what you were
+seeing, and it is the photograph rather than the game. **H44** is the related
+question that is genuinely about play and genuinely yours: whether the same
+easing reads badly when you *grab a ledge* — the body is 0.80m low one frame in
+and 0.20m low a tenth of a second later, which is about a quarter of a second
+of the Shade visibly rising into a hang she is already in. Nobody has looked at
+that yet, and if it reads badly the fix is a quicker ease for climbs only,
+because the smoothing is right for everything else.
+
 ### The speed test on your graphics card now refuses to average one reading (H42, 2026-10-09)
 
 **Nothing visible changed.** This is about `npm run bench`, the thing that

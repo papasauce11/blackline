@@ -520,6 +520,14 @@ break-and-revert loop is **keep your own copy and restore from that**: `cp
 <scratchpad>/good.js <file>` after each one, and diff the two at the end of
 every iteration. `git checkout` is the right tool only when the thing you
 want back is what is committed, which during a job it never is.
+**And copy every file you intend to break, not only the new ones.** H43 obeyed
+the entry above — it copied the two modules it had just written before the
+first break — and then broke a *tracked* file it had edited that same hour and
+reverted it with `git checkout --`, losing the job's own two edits to it. The
+next proof run still reported that file carrying the thing the job had removed,
+which reads like a second bug rather than like a lost edit. Partial compliance
+with these two entries is the shape the trap takes now: the rule is about every
+file the loop touches, whatever git thinks of it.
 
 **A coverage check cannot see a connectivity fault.** Three times now: the A1
 constant that stayed green with the step at 2m, the HUD check that was green

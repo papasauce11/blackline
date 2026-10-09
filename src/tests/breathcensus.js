@@ -91,12 +91,16 @@ import { DRAWN } from './breathdrawn.js';
 const SELF = 'every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it';
 
 /**
- * The modules that drive `updateVisual` to prove things ABOUT the two phases
- * rather than to read a clause off a posed body, and are excluded from the
- * census for that reason. Each is held below to still be driving it, so an
- * exclusion cannot come to cover a module that proves nothing.
+ * The modules that drive `updateVisual` to prove things ABOUT an ease rather
+ * than to read a clause off a posed body, and are excluded from the census for
+ * that reason. Each is held below to still be driving it, so an exclusion
+ * cannot come to cover a module that proves nothing.
+ *
+ * `positioncensus.js` is here since H43: it drives the frame to measure the
+ * **position chase**, the third ease that survives nothing, and its own table
+ * is the census of who reads a world position off a drawn body.
  */
-const OWN_FILES = ['breathcensus.js', 'breathdrawn.js'];
+const OWN_FILES = ['breathcensus.js', 'breathdrawn.js', 'positioncensus.js'];
 
 /** The breath's own period, from the look table rather than a number copied out of it. */
 const BREATH_SECONDS = (2 * Math.PI) / POSE.breath.rate;

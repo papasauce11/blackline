@@ -72,6 +72,22 @@ export function blendFactor(wallDt) {
 }
 
 /**
+ * How much of the way to the capsule the DRAWN body goes this frame: all of
+ * it when there is no time, for the reason `blendFactor` answers 1 to a reset.
+ *
+ * The slowest ease between a state change and the drawn body (H40): 0.1423 of
+ * the gap a frame at 60Hz, so 45 frames to 99.9% against the pose blend's
+ * twelve, and a grab that lifts the capsule a metre leaves the drawn body 9mm
+ * out at frame thirty. It is here rather than in `agentvisual.js` for the
+ * reason `headBobLift` is - both bodies chase, and `enforcer.js` carried its
+ * own copy of the expression until H43 - and it is exported so a check can
+ * argue a settle from the law rather than from a copy of its result.
+ */
+export function positionSmoothing(wallDt) {
+  return wallDt > 0 ? 1 - Math.pow(0.0001, wallDt) : 1;
+}
+
+/**
  * Head-bob (H9): metres the camera rides above its rest height this frame.
  *
  * The same phase the legs swing on, so the camera rises as a foot plants

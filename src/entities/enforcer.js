@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import { CONFIG, SETTINGS } from '../config.js';
 import { applyGravity } from '../physics.js';
 import { buildWardenMesh, buildGroundBlob, WARDEN_FIGURE } from './wardenmesh.js';
-import { blendFactor, createPoseTarget, easePose, headBobLift, restPose } from './pose.js';
+import { blendFactor, createPoseTarget, easePose, headBobLift, positionSmoothing, restPose } from './pose.js';
 
 const W = CONFIG.warden;
 /** The carry (E2): where the arms rest, and the rifle with them. */
@@ -338,7 +338,10 @@ export class Warden {
       this._updateGroundBlob(this.mesh.position.y);
       return;
     }
-    const smoothing = wallDt > 0 ? 1 - Math.pow(0.0001, wallDt) : 1;
+    // The Shade's law, not a copy of it: this line carried its own
+    // `1 - Math.pow(0.0001, wallDt)` until H43, which is the shape pose.js's
+    // header warns about for the head bob.
+    const smoothing = positionSmoothing(wallDt);
     this._smoothPosition.lerp(this.position, smoothing);
 
     const feet = this._smoothPosition.y - this.half.y;

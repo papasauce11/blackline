@@ -13462,3 +13462,222 @@ reading in the gate's own summary is now **2026-10-09, 12 readings, OK**.
 **What is left.** Nothing queued by this job. The one thing a reader should know
 is that the stored `samples` field starts today: a file written before H42 has
 the counts only in its detail lines, and the parser above is how to get them.
+
+## H43 — the drawn body arrives late, and the census of who reads it on the way (2026-10-09, scheduled run)
+
+**What it was handed.** H40 found the slowest ease in the project while
+measuring a different one: `updateVisual` lerps `_smoothPosition` toward the
+capsule at `positionSmoothing(wallDt)`, 0.1423 of the gap a frame at 60Hz, so
+**45 frames** to 99.9% against the pose blend's twelve — and a grab that lifts
+the capsule a metre leaves the drawn body 9mm out at frame thirty. Two jobs in
+a row measured the pose and concluded about this one (H38 named the arm, H40's
+own first answer cleared the arm and stopped there), so the queue asked for
+H33's treatment in a second currency: every check that reads a **world**
+position off a drawn body, with how many frames of the chase separate it from
+the state change before it, and a check holding the census the way
+`tests/breathcensus.js` holds H33's.
+
+**What was built.** `tests/positioncensus.js` (538) and its table and
+instruments `tests/positionreads.js` (247), registered beside
+`breathcensus.js` and `breathdrawn.js`. The criterion is a grep for three
+expressions — `getWorldPosition`, `mesh.position`, `cameraRig.position` — which
+is what makes the list checkable rather than a matter of opinion, and it is
+held **both ways** against the registrar's own import list, so a module that
+starts reading a world position is red until it is classified. Twelve modules
+are in it: **three handle the chase, one is measured, eight are out of reach by
+six proofs.**
+
+**One: the suite cannot advance the chase by accident, and that is most of the
+answer.** `updateVisual` is called from exactly two places outside
+`src/tests/` — `main.js`'s render frame, and `reset()` with a `wallDt` of 0,
+which the law answers 1 to and so snaps — and the harness's `stepFrames()` runs
+`fixedStep` and nothing else. So a check that drives a state change with
+`stepFrames` and then reads a world position off a mesh is **not** reading a
+body 9mm out; it is reading a body that has not moved at all, and the gap is
+the whole displacement. That is sharper than the queue's framing and it is
+measured here: with a metre of gap open, sixty of `stepFrames` moved the drawn
+body **0.000000000m**, while the same body closed the same metre exactly on the
+law — every frame of ninety within 1e-9 of `positionSmoothing()`'s own
+prediction — when frames were drawn through it. Six entries are out of reach
+for that reason rather than for being late, and a seventh — `animation.js`,
+whose rifle-hand world heights are read sixty and seventy frames after a
+`reset()` — is past the band because a reset leaves no gap to close. The snap is
+measured on both bodies: a metre open, then `reset()`, then **0.000000000m**.
+
+**Two: there is one read inside the band, it is deliberate, and the gap is far
+deeper than nine millimetres.** `look.js`'s `photographPose` says so in its own
+header — *"nothing is stepped between the strike and the frame, so a vault is
+photographed part way over"* — and anchors its eye on `actor.mesh.position`.
+Measured by driving `strike` (imported, not reconstructed) into all twelve
+states it reaches and reading the gap at the frame `look.js` would read it,
+**all twelve read with the gap open**:
+
+| state | plant | yard |
+|---|---|---|
+| landing | **0.794** | **0.794** |
+| slide | 0.675 | 0.675 |
+| sprint | 0.653 | 0.653 |
+| mantle | 0.498 | 0.398 |
+| pullup | 0.492 | 0.492 |
+| grab | 0.462 | 0.425 |
+| vault | 0.427 | 0.427 |
+| walk | 0.352 | 0.352 |
+| rise | 0.207 | 0.207 |
+| fall | 0.157 | 0.157 |
+| hang | 0.014 | 0.012 |
+| crouch | 0.004 | 0.004 |
+
+Metres, both maps, identical between the two runs of each. **Nine of the twelve
+rows agree between the maps to the millimetre**, because the lag of a body that
+is still travelling is its speed over 0.1423 a frame and those speeds are in
+`config.js`; only the three that depend on a ledge — `mantle`, `grab`, `hang` —
+differ, and by 0.10m at most. The table divides by **motion rather than by
+climbing**, which is not where the queue was looking: the deep ones are
+`landing`, `slide` and `sprint`, where the capsule is still going, and the
+climbs are read half way through a *shorter* move. Only the two states `strike`
+really settles come in under a centimetre and a half, and `hang`'s 0.014m is
+the number H40 predicted from the other end.
+
+**The argument that leaves it passing, and what it does not cover.** The eye
+and the focus are **both** offsets from the one read of the drawn body, so the
+body-to-eye geometry carries no lag at all and the pixel floors `look.js`
+asserts are about a body the right size in the right part of the frame. That is
+not left as prose: the census holds `y: feet.y + EYE` and `y: feet.y + FOCUS`
+against `look.js`'s source, because a draft that anchored the eye on
+`actor.position` and the focus on the mesh would aim a camera off the body by
+the whole lag and pass every other clause in the file. What the lag can still
+reach is the **surroundings** — which of six candidate eyes is in open air, and
+what occludes the body from it — and that residual is not measured here, because
+measuring it needs a settle hook `photographPose` does not have. **H46.**
+
+**Three: both bodies chase and only one of them read the law.** `enforcer.js`
+carried its own `1 - Math.pow(0.0001, wallDt)` and `agentvisual.js` a third
+copy of the same expression for the camera's pull-out. That is precisely the
+shape `pose.js`'s own header warns about for the head bob — *"both bodies want
+one rule, and two copies of it is how the Shade's camera and the Warden's come
+to disagree"* — so the law moved to `pose.js` beside `blendFactor` and
+`headBobLift`, both bodies import it, `agentvisual.js`'s pull-out reads
+`positionSmoothing(1 / 60)` (identical arithmetic; `Math.max(0, 1/60)` was
+always 1/60) and `hang.js` imports it from its new home. The census holds that
+neither body carries a copy, so a job that slows the chase slows it for both
+and this census reds rather than ageing. **No behaviour changed**: the same
+expression, one home.
+
+**The hole it reports rather than fixes.** `deathcam.js`'s
+`death-camera-watches-the-killer` reads `shade.mesh.position` before and after
+a free-look and asserts the body did not move. Nothing in that check advances
+the chase, so the clause catches a **direct write to the mesh** and would not
+see a free-look move the capsule a mile. Nothing was loosened to make the
+census come out and the clause was left exactly as it is; **H47** is the job to
+give it the reading it means to take.
+
+**Proved by breaking it, seven ways, each naming its own line.** This is the
+second half HANDOFF.md demands of any check that picks its own inputs.
+`feel.js` renamed out of the table reds **both** directions at once (*"feel.js
+reads a world position off a drawn body and this census does not declare it"*
+and *"feelXX.js is declared here (none) and no longer reads a world
+position"*); `look.js`'s eye re-anchored on `actor.position` reds the lag-free
+clause; `enforcer.js` put back on its own copy of the law reds both halves of
+clause 3; the law itself slowed from `0.0001` to `0.01` reds the recorded
+settle (*"closes to 0.001 of a displacement in 90 frames and this census was
+measured at 45"*) **and** the `look.js` ceiling, which is the pair that sends
+the table back to be re-measured rather than letting it age at a different
+band; `animation.js`'s snapper pointed at a reset it does not call reds the
+`snaps` proof; and `visual.js`'s `combat:death` moved below its mesh reads reds
+the `ragdoll` proof with both offsets (*"reads the drawn position before the
+ragdoll takes it (15881 against 15944)"*). Every behavioural proof carries its
+control: the dip and the outline pair are each read once settled and once with
+0.86m of lag in flight *and* the drawn body is required to have moved between
+the two reads, and the ragdoll clause requires the mesh to move again the
+moment the ragdoll lets go.
+
+**The two proofs that were asserted rather than held, and why they are not
+now.** A first pass had `ragdoll` and `snaps` resting on mechanisms the check
+proves — a ragdolled body's `updateVisual` writes nothing; `reset()` leaves no
+gap — without anything saying that the modules declared by them **sit under**
+those mechanisms. `visual.js` could have read the mesh before the Shade was
+killed and passed every clause in the file. So each of the six proofs now has a
+per-entry half as well as a mechanism: `visual.js`'s `combat:death` must come
+before its read (by offset in its own source), the two `snaps` entries name the
+expression they close their own gap with, and `feedback.js`'s control was
+tightened from `getWorldQuaternion` to `applyQuaternion(camera.getWorldQuaternion`
+so the position and the rotation are held to be the same camera's. The check's
+header now also says plainly what it does **not** hold, which is that a note is
+a complete account of a clause.
+
+**Two self-inflicted finds, both caught by the check's own structure.**
+
+The first is H42's lesson in a third currency: **a census that greps for an
+expression a module may no longer carry will find it in the comment saying it
+used to.** The first run of this census reported `enforcer.js` for a copy of
+the chase law, and the copy was in the sentence *"this line carried its own
+`1 - Math.pow(0.0001, wallDt)` until H43"* — written four minutes earlier by
+this job. `timedrenders.js` already owns the fix for the mirror case (an
+explanation is not an ask) and its line-local stripper is lifted here:
+comments come out of every source once, before any clause looks at it.
+
+The second is **a control catching the instrument**, the same shape as H39's
+first draft. The ragdoll clause reported *"with the ragdoll let go the chase
+still did not move the mesh, so the clause above is about a body nothing
+drives"* — and the mechanism is arithmetic the job built for itself. The clause
+before it had left the Shade's drawn body exactly one frame into a metre of
+gap; re-opening the gap to exactly a metre and drawing one frame landed the
+mesh on the same float it started from, so a correct body read a dead zero. It
+settles before it opens the gap now. **Both are only visible because the clause
+asserting the mechanism works sits beside the clause asserting it is reached**;
+either alone would have been green.
+
+**The split nobody planned, which is now the third one in three jobs.** The
+check with its table and its instruments came to **672 lines of a 600
+allowance** — `soak.js` was at 589 last run and `tests/quality.js` reached 606
+in H23 — so the twelve entries came out whole into `tests/positionreads.js`
+along with the eight small readers and drivers the clauses are written in, and
+the module header stopped repeating this entry. 538 and 247, with the header
+pointing at PROGRESS.md for the argument rather than carrying it twice.
+
+**And two traps on the record paid for themselves, one of them twice.** This
+run reverted a deliberate break with `git checkout -- src/entities/enforcer.js`
+on a file **tracked but modified by this very job**, which is the second of
+`TRAPS.md`'s two break-and-revert entries, written in those words by H36. It
+threw away the job's own two edits, and the next proof run still reported
+`enforcer.js` carrying its own law — which nearly read as a second bug rather
+than as a lost edit. This run had obeyed the *first* entry, copying the two new
+modules to the scratchpad before breaking anything, and read the second as
+though it were about somebody else's file. The sharpening, added to that entry:
+**copy every file you intend to break, not only the new ones.** The other trap
+cost minutes instead of an hour precisely because it is written down: stopping
+this run's own first verify from the tool killed the npm wrapper and left
+`node scripts/suite.mjs` **alive and drawing**, exactly as the orphan entry
+says it does, so it was cleared with `Stop-Process` and a process listing
+before the next run started rather than being discovered in a doubled timing
+afterwards. That is a third mechanism for the orphan H45 is queued to prevent —
+not a session ending and not a timeout, but a deliberate stop — and the gate's
+`otherRunners` was empty in every run on either side of it.
+
+**What was verified.** GATE on a clean tree at `79320bb`: plant 221 passed, 1
+failed (the bench-only sweep), 8 not for this map, 1,117,721ms; yard 201 / 1 /
+28, 774,076ms; exit 0, 0 red, 0 flaky, **0 console errors**, no other runner on
+the machine. That is the **fifth cold gate in a row at 0**, which H35 should
+read with the four before it.
+
+VERIFY, two runs of each map: **plant 222 passed, 1 failed, 8 not for this map (1,102,818ms and 1,116,929ms), yard 202 / 1 / 28 (771,764ms and 773,104ms), exit 0, 0 red, 0
+flaky, 0 unexpectedly green, 0 skips withheld, 0 bench drops withheld, no
+other runner on the machine — and 0 console errors in all four runs.** Both
+runs of each map agree exactly on every count, and each map is **one check**
+more than this run's gate, which is this census. About 40% of each run is the
+renderer's pipeline tail (446,687ms and 455,693ms on the plant, 339,131ms and
+333,459ms on the yard, 43% of the yard's), and the spread between runs is
+**plant 14,111ms (1%) and yard 1,340ms (0%)** against pipeline-wait spreads of
+9,006ms and 5,672ms — read the spread against the wait beside it (F16). `auto`
+would pick `medium` on both, 6.10ms on the plant and 5.50ms on the yard.
+
+The census costs about **1.8s on the plant and 1.1s on the yard** — twelve
+strikes and some six hundred drawn frames, with no GL in any of it. One check
+more than the gate on each map.
+
+**What was left.** **H46** (the pixel residual `look.js`'s structural argument
+does not cover, which needs a settle hook in `photographPose`) and **H47**
+(`deathcam.js`'s free-look clause reads a frozen mesh). Both are queued and
+sized S. `positioncensus.js` is at **538 of its 600** with the table and the
+instruments already split out, so there is room for the clause H46 or H47 will
+want.

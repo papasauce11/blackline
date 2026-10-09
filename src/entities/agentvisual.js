@@ -11,7 +11,7 @@
 
 import { CONFIG } from '../config.js';
 import { SHADE_STATE } from './agentstate.js';
-import { blendFactor, easePose, headBobLift, restPose } from './pose.js';
+import { blendFactor, easePose, headBobLift, positionSmoothing, restPose } from './pose.js';
 
 const S = CONFIG.shade;
 /** The knife lives in combat config; the arc that draws it reads the same
@@ -23,15 +23,6 @@ const KNIFE_SWING_TIME = CONFIG.combat.knife.swingAnimTime;
  * a shade short of it keeps the elbows in front of the head.
  */
 export const HANG_ARM_ANGLE = -3.05;
-
-/**
- * How much of the way the drawn body closes on the capsule in one frame of
- * `wallDt`. Exported so a check can argue a settle from the law rather than
- * from a copy of its result (H40).
- */
-export function positionSmoothing(wallDt) {
-  return wallDt > 0 ? 1 - Math.pow(0.0001, wallDt) : 1;
-}
 
 /**
  * The poses (E3), in radians about each group's pivot - x forward for a
@@ -96,7 +87,8 @@ export const VISUAL = {
     // 0.1423 a frame at 60Hz, so 45 frames to 99.9% against the pose blend's
     // twelve (H40). A grab lifts the capsule about a metre, so a check that
     // reads a world position off this mesh must wait for it and not for the
-    // pose - `positionSmoothing` is exported for the one that does.
+    // pose - the law is `pose.js`'s, where both bodies read it (H43), and
+    // `tests/positioncensus.js` is the census of who reads this mesh when.
     const smoothing = positionSmoothing(wallDt);
     this._smoothPosition.lerp(this.position, smoothing);
 
@@ -381,7 +373,9 @@ export const VISUAL = {
     if (desired < this._cameraDistance) {
       this._cameraDistance = desired;
     } else {
-      const rate = 1 - Math.pow(0.0001, Math.max(0, 1 / 60));
+      // The same law the body chases on, at one frame of 60Hz: a third copy
+      // of the expression lived here until H43.
+      const rate = positionSmoothing(1 / 60);
       this._cameraDistance += (desired - this._cameraDistance) * Math.min(1, rate * (1 / cam.pullOutSmoothing) * (1 / 60));
     }
 
