@@ -781,7 +781,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   reported rather than fixed (**H47**). Seven breaks, each naming its own
   line; two self-inflicted finds (a census grepping for a banned expression
   found it in the comment saying it used to be there; the ragdoll clause's
-  control caught the instrument). Split at 672 of 600. — commit H43_HASH
+  control caught the instrument). Split at 672 of 600. — commit `b31428a`
 
 - **H42** The bench asks for nine samples and nothing proves it got them. Built
   as the bench's **fourth honesty clause**: `sampleSummary()` in the new
