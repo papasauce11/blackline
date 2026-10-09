@@ -758,7 +758,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   The reader reaches back to H36's wording and no further, measured: 10-08 gives
   7 counts all 9, 10-07 gives none because at `e95fe4b` the sweep still timed
   one draw and said so by saying nothing.
-  Done 2026-10-09, commit `PLACEHOLDER42`.
+  Done 2026-10-09, commit `f0ba7b5`.
 - **H41** Which other checks time something on this renderer, and do any of
   them assert on it. **Nine clauses in eight modules read a duration and two
   put a verdict on the size of one.** One was already resolved the other way —
