@@ -42,8 +42,9 @@
 
 import { CONFIG } from '../config.js';
 import {
-  VIEWPOINT_SAMPLES, VIEWPOINT_BUDGET_MS, VIEWPOINT_SAMPLES_PARAM, viewpointCost, viewpointSamples,
-} from './soak.js';
+  VIEWPOINT_SAMPLES, VIEWPOINT_BUDGET_MS, VIEWPOINT_SAMPLES_PARAM,
+  MIN_SAMPLES_FOR_A_MEDIAN, sampleSummary, viewpointCost, viewpointSamples,
+} from './viewpointsamples.js';
 
 /** This check's own id: the policeman is not exemptible, here either. */
 const SELF = 'the-bench-only-list-holds-only-checks-the-bench-itself-runs';
@@ -55,12 +56,26 @@ const SELF = 'the-bench-only-list-holds-only-checks-the-bench-itself-runs';
  * max-of-N never agreed at all (H36). It is a floor on the sample count and not
  * a promise of reproducibility - a fourth bench read one viewpoint 2.6ms high
  * across all nine of its draws, because a stall longer than the sampling window
- * is inside every sample in it, and `tests/soak.js` has that arithmetic.
+ * is inside every sample in it, and `tests/viewpointsamples.js` has that
+ * arithmetic.
+ *
+ * **Imported rather than copied** since H42, which gave the same number a
+ * second reader in `scripts/bench.mjs`: a check that holds a constant against
+ * its own copy of it holds nothing (H29's rule).
  */
-const MIN_VIEWPOINT_SAMPLES = 5;
+const MIN_VIEWPOINT_SAMPLES = MIN_SAMPLES_FOR_A_MEDIAN;
 
 /** F15's policeman, which may not be dropped by this route either. */
 const SKIP_GUARD = 'the-headless-skip-list-holds-only-the-check-it-declares';
+
+/**
+ * The spike this check proves a median survives: **13.80ms at `bay-a-north`**
+ * was a real reading on this PC's GPU at a place whose median over fifteen
+ * draws is 2.30ms, and it turned the sweep red (H36). Named once since H42,
+ * because the detail line quotes it and a second copy of a measurement is a
+ * second thing to forget.
+ */
+const SPIKE_MS = 13.8;
 
 /**
  * Every check `npm run bench` runs, and whether the gate drops it. A new
@@ -281,12 +296,12 @@ export function register(debugTools) {
       //    at a place whose median is 2.30ms, and it reddened this check.
       const quiet = new Array(VIEWPOINT_SAMPLES).fill(2);
       const spiked = quiet.slice();
-      spiked[VIEWPOINT_SAMPLES - 1] = 13.8;
+      spiked[VIEWPOINT_SAMPLES - 1] = SPIKE_MS;
       if (!(Math.max(...spiked) > ceiling)) {
         problems.push(`the spike this check uses is ${Math.max(...spiked)}ms against a ${ceiling.toFixed(2)}ms ceiling, so it is not one the old clause would have failed on and proves nothing`);
       }
       if (viewpointCost(spiked) !== 2) {
-        problems.push(`${VIEWPOINT_SAMPLES} draws of 2ms with one of 13.8ms cost ${viewpointCost(spiked)}ms; a descheduled frame is reaching the verdict`);
+        problems.push(`${VIEWPOINT_SAMPLES} draws of 2ms with one of ${SPIKE_MS}ms cost ${viewpointCost(spiked)}ms; a descheduled frame is reaching the verdict`);
       }
 
       // 3. And the second half, without which the clause above is satisfied by
@@ -367,11 +382,26 @@ export function register(debugTools) {
       //    it: bench.mjs's header explains the parameter at length, and an
       //    explanation is not an ask.
       const code = (body) => body.replace(/^[\t ]*(\/\/|\/\*|\*).*$/gm, '');
-      const asking = `${VIEWPOINT_SAMPLES_PARAM}=${VIEWPOINT_SAMPLES}`;
+      // H42 put the count behind a `--samples` flag so the refusal below can be
+      // driven from the command line, so the URL is a template now and the
+      // literal nine is in the default beside it. Both halves are asserted,
+      // because either alone would pass a bench that asks for one draw: the
+      // URL must carry the flag's value, and the flag must default to the
+      // page's own constant rather than to a typed number.
+      const asking = `${VIEWPOINT_SAMPLES_PARAM}=\${SAMPLES}`;
+      const defaulting = 'args.samples ?? VIEWPOINT_SAMPLES';
+      /** The URL a reader would type, which `asking` stopped being at H42. */
+      const askedNine = `${VIEWPOINT_SAMPLES_PARAM}=${VIEWPOINT_SAMPLES}`;
       const bench = await text(location.origin, '/scripts/bench.mjs');
       if (bench.error) problems.push(`${bench.error}; it is the one runner that may ask for a median`);
-      else if (!code(bench.body).includes(asking)) {
-        problems.push(`scripts/bench.mjs does not put ${asking} in the page URL, so the bench times one draw a viewpoint and calls it a median`);
+      else {
+        const benchCode = code(bench.body);
+        if (!benchCode.includes(asking)) {
+          problems.push(`scripts/bench.mjs does not put ${asking} in the page URL, so the bench times one draw a viewpoint and calls it a median`);
+        }
+        if (!benchCode.includes(defaulting)) {
+          problems.push(`scripts/bench.mjs's sample count does not default to \`${defaulting}\`; then the ${VIEWPOINT_SAMPLES} two benches agreed at is a number typed into a runner rather than the one this page reads`);
+        }
       }
       const gate = await text(location.origin, '/scripts/suite.mjs');
       if (gate.error) problems.push(`${gate.error}; it is the runner that must NOT ask for a median`);
@@ -379,13 +409,53 @@ export function register(debugTools) {
         problems.push(`scripts/suite.mjs asks for ${VIEWPOINT_SAMPLES_PARAM} in code; headless a sample costs 610-761ms of queued pipeline and the gate drops this verdict anyway (H36)`);
       }
 
+      // 7. And the fourth honesty clause's reader (H42). The bench learns a
+      //    viewpoint's sample count by reading `sampleSummary()`'s own wording
+      //    back out of a detail line, and a regex over somebody else's prose
+      //    is the one thing that cannot hold itself: the day that sentence is
+      //    reworded the bench silently stops finding a count and every
+      //    reading passes. So the pattern comes out of bench.mjs's source,
+      //    runs in this page against both forms that function actually
+      //    produces, and must answer the count each one was built from.
+      if (!bench.error) {
+        const found = /const SWEEP_SAMPLES = (\/.*\/);/.exec(bench.body);
+        if (!found) {
+          problems.push('scripts/bench.mjs has no SWEEP_SAMPLES pattern, so nothing reads a sample count out of a reading and a one-draw median is filed as a median (H42)');
+        } else {
+          let reader = null;
+          try { reader = new RegExp(found[1].slice(1, -1)); } catch (err) { problems.push(`scripts/bench.mjs's SWEEP_SAMPLES does not compile here (${err.message})`); }
+          if (reader) {
+            // One below the floor, one at it, one well over, and the count
+            // the gate itself produces - which is the form that says NOT a
+            // median and is the one a reader must still get a number out of.
+            for (const leanest of [1, 4, MIN_VIEWPOINT_SAMPLES, VIEWPOINT_SAMPLES]) {
+              const said = sampleSummary(leanest, VIEWPOINT_SAMPLES);
+              const hit = reader.exec(said);
+              const got = hit ? Number(hit[1] ?? hit[2]) : null;
+              if (got !== leanest) {
+                problems.push(`the bench reads ${got} out of "${said}", which rests on ${leanest}; its reader and tests/viewpointsamples.js's wording have come apart (H42)`);
+              }
+            }
+          }
+        }
+        const benchCode = code(bench.body);
+        // The floor it judges against is this page's, not a second copy of a
+        // five, and the verdict is in the file rather than only in a comment.
+        if (!benchCode.includes('MIN_SAMPLES_FOR_A_MEDIAN')) {
+          problems.push(`scripts/bench.mjs does not read MIN_SAMPLES_FOR_A_MEDIAN, so the ${MIN_VIEWPOINT_SAMPLES} it judges a median by is its own number`);
+        }
+        if (!benchCode.includes('UNDERSAMPLED')) {
+          problems.push('scripts/bench.mjs no longer ends non-zero on an undersampled sweep; the fourth honesty clause is gone and a one-draw reading is filed as a median (H42)');
+        }
+      }
+
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `a viewpoint costs the median of up to ${VIEWPOINT_SAMPLES} timed draws inside ${VIEWPOINT_BUDGET_MS}ms, which affords all ${VIEWPOINT_SAMPLES} at the ${ceiling.toFixed(2)}ms ceiling (${affords.toFixed(0)}ms); `
-            + `a 13.8ms spike among 2ms draws costs ${viewpointCost(spiked)}ms and ${ceiling.toFixed(2)}ms+ draws still read over; `
-            + `${asks.length} URLs buy what they should (nothing asked buys 1, ${asking} buys ${VIEWPOINT_SAMPLES}, 500 clamps to ${VIEWPOINT_SAMPLES}); `
-            + 'the sweep calls the statistic, takes its count from the URL and declares no glSync; bench.mjs asks and suite.mjs does not'
+          ? `a viewpoint is the median of up to ${VIEWPOINT_SAMPLES} draws inside ${VIEWPOINT_BUDGET_MS}ms, all ${VIEWPOINT_SAMPLES} affordable at the ${ceiling.toFixed(2)}ms ceiling (${affords.toFixed(0)}ms); `
+            + `a ${SPIKE_MS}ms spike cannot reach the verdict and ${ceiling.toFixed(2)}ms+ draws still read over; `
+            + `${asks.length} URLs buy what they should (${askedNine} buys ${VIEWPOINT_SAMPLES}, nothing buys 1, 500 clamps); `
+            + `no glSync; bench.mjs asks and suite.mjs does not, and its reader gets ${MIN_VIEWPOINT_SAMPLES} and ${VIEWPOINT_SAMPLES} out of both of this page's sentences (H42)`
           : problems.join('; '),
       };
     },

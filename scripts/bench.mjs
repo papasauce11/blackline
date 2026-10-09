@@ -5,7 +5,7 @@
 //   npm run bench -- [--map plant,yard] [--quality low,medium,high]
 //                    [--channel chrome|msedge] [--out bench] [--runs 1]
 //                    [--window-position -2400,-2400] [--onscreen]
-//                    [--stall SECONDS]
+//                    [--stall SECONDS] [--samples 9]
 //
 // Everything else in this repo is measured headless on SwiftShader, which
 // draws a frame in about 400ms and therefore says nothing whatever about a
@@ -26,7 +26,7 @@
 // cost of running this while somebody is at the machine, and `--onscreen` is
 // for watching it.
 //
-// Three honesty clauses, because a bench that lies is worse than no bench:
+// Four honesty clauses, because a bench that lies is worse than no bench:
 //
 //  1. **It refuses to bench software.** If the page's unmasked renderer names
 //     SwiftShader or a software rasteriser, nothing is written and the exit
@@ -43,6 +43,24 @@
 //     `the-bench-only-list-holds-only-checks-the-bench-itself-runs` holds
 //     both ends of that from inside the page (src/tests/benchlist.js) -
 //     including that no id is written in this file's own source.
+//
+//  4. **It refuses to file a one-sample reading as a median.** The sweep asks
+//     for `--samples` timed draws a viewpoint (nine, the page's own
+//     `VIEWPOINT_SAMPLES`) and costs the viewpoint the MEDIAN of however many
+//     the 120ms per-viewpoint cap afforded - which on a card slow enough to
+//     need 15ms a frame is eight, and on a much slower one fewer than the five
+//     two benches agreed a median within 0.2ms at. Below that floor the
+//     reading is not the median its field name calls it, so the count is read
+//     back out of each check's detail line, written into every scene, and the
+//     bench ends non-zero naming the scene and the count (H42). **A judgement
+//     about the count and never about the ms**: a slow card is allowed to be
+//     slow. `--samples` exists to drive this from the command line, because a
+//     GPU that always gets all nine cannot otherwise prove the clause fires.
+//     The floor and the default both come from
+//     `src/tests/viewpointsamples.js`, which node and the browser read as the
+//     same module, and the wording the parser matches comes from
+//     `sampleSummary()` in it - held at both ends by
+//     `the-bench-only-list-holds-only-checks-the-bench-itself-runs`.
 //
 // And one thing this runner asks the page for that no other may:
 // `?viewpointSamples=9`. The frame-budget sweep costs a viewpoint the MEDIAN
@@ -79,6 +97,10 @@ import { chromium } from 'playwright-core';
 import { ROOT, parseArgs, listArg, registeredMapIds, serve } from './headless.mjs';
 import { createGuard, otherRunners } from './watchdog.mjs';
 import { benchChecks } from './suitereport.mjs';
+// The page's own sampling numbers, imported rather than copied (H42).
+// `src/tests/viewpointsamples.js` has no imports of its own, so node can read
+// the same module the browser does and this file cannot drift from it.
+import { MIN_SAMPLES_FOR_A_MEDIAN, VIEWPOINT_SAMPLES } from '../src/tests/viewpointsamples.js';
 
 const args = parseArgs(process.argv.slice(2));
 const CHANNEL = args.channel ?? 'chrome';
@@ -94,11 +116,42 @@ const REPEATS = Number(args.runs ?? 1);
 const POSITION = String(args['window-position'] ?? '-2400,-2400');
 const ONSCREEN = !!args.onscreen;
 const STALL_MS = Number(args.stall ?? 240) * 1000;
+/**
+ * Timed draws a viewpoint of the frame-budget sweep is asked for. Nine, the
+ * page's own `VIEWPOINT_SAMPLES`, because nine is where two benches of this
+ * PC's GPU agreed to 0.2ms (H36). `--samples` is here to drive the refusal
+ * below from the command line, which is the only way to prove it on hardware
+ * fast enough to always get all nine: a card is allowed to be slow, and this
+ * flag is how a slow one is simulated on a quick one.
+ */
+const SAMPLES = Number(args.samples ?? VIEWPOINT_SAMPLES);
 /** The suite's viewport, so a reading here sits beside a reading there. */
 const VIEWPORT = { width: 1280, height: 720 };
 
 /** A renderer string that means nobody's GPU drew anything. */
 const SOFTWARE = /swiftshader|software|llvmpipe|basic render|microsoft basic/i;
+
+/**
+ * The two forms `sampleSummary()` writes into a detail line, and the count
+ * inside each (H42). The producer is `src/tests/viewpointsamples.js` and
+ * `the-bench-only-list-holds-only-checks-the-bench-itself-runs` holds that this
+ * pattern still matches both of them - the one thing a regex over somebody
+ * else's prose cannot do for itself.
+ *
+ * No check id appears here on purpose: whichever check reports a sample count
+ * is the check this reads, so the fourth honesty clause cannot drift from the
+ * list the way a hard-coded id would (the clause above about ids is the same
+ * argument).
+ */
+const SWEEP_SAMPLES = /median of (\d+)-\d+|(\d+) samples?, NOT a median/;
+
+/** The leanest viewpoint a check's detail line declares, or null if it declares none. */
+function sweepSamples(detail) {
+  const found = SWEEP_SAMPLES.exec(String(detail ?? ''));
+  if (!found) return null;
+  const count = Number(found[1] ?? found[2]);
+  return Number.isFinite(count) ? count : null;
+}
 
 const guard = createGuard({
   stallMs: STALL_MS,
@@ -196,6 +249,8 @@ async function main() {
   const scenes = [];
   let gpu = null;
   let ok = true;
+  /** Scenes whose sweep came back on too few draws to call a median (H42). */
+  const undersampled = [];
   try {
     const page = await browser.newPage({ viewport: VIEWPORT });
     const at = { map: null, level: null };
@@ -213,7 +268,7 @@ async function main() {
           // the URL first), so a level is a load exactly as a map is. The
           // sample count rides the same URL, for the reason in this file's
           // header: a median is a thing only a real GPU can afford.
-          await page.goto(`${origin}?quality=${level}&map=${mapId}&viewpointSamples=9&timedVerdict=1`, { waitUntil: 'load' });
+          await page.goto(`${origin}?quality=${level}&map=${mapId}&viewpointSamples=${SAMPLES}&timedVerdict=1`, { waitUntil: 'load' });
           await page.waitForFunction(() => !!window.BLACKLINE, null, { timeout: 60000 });
           // The live loop would play the game under the checks (F4).
           await page.evaluate(() => window.BLACKLINE.loop.stop());
@@ -292,6 +347,25 @@ async function main() {
             if (!c.pass) ok = false;
             process.stderr.write(`    ${c.pass ? 'pass' : 'RED '} ${c.id} (${c.ms}ms)\n      ${c.detail}\n`);
           }
+          // The fourth honesty clause (H42). The sweep asks for SAMPLES timed
+          // draws a viewpoint and takes the MEDIAN of what the 120ms
+          // per-viewpoint cap afforded, which on a slow enough card is fewer -
+          // and a reading on one draw is still called a median by its field
+          // name. So the count comes out of the detail line, into the stored
+          // scene, and under the floor it ends the bench. **A judgement about
+          // the count and never about the ms**: a slow card is allowed to be
+          // slow, and what is not allowed is a one-sample reading filed as a
+          // median.
+          const counted = scene.checks
+            .map((c) => ({ id: c.id, asked: SAMPLES, leanest: sweepSamples(c.detail) }))
+            .filter((c) => c.leanest !== null);
+          for (const c of counted) {
+            if (c.leanest < MIN_SAMPLES_FOR_A_MEDIAN) {
+              undersampled.push(`${mapId} ${level}: "${c.id}" asked ${c.asked} timed draws a viewpoint`
+                + ` and its leanest came back on ${c.leanest}, under the ${MIN_SAMPLES_FOR_A_MEDIAN}`
+                + ' two benches agreed a median within 0.2ms at (H36)');
+            }
+          }
           scenes.push({
             map: mapId,
             level,
@@ -300,6 +374,8 @@ async function main() {
             devicePixelRatio: scene.devicePixelRatio,
             quality: scene.quality,
             contextLosses: scene.contextLosses,
+            // Per scene, so an old file can be read the same way this run was.
+            samples: counted,
             checks: scene.checks,
           });
         }
@@ -307,6 +383,17 @@ async function main() {
     }
   } finally {
     await guard.teardown();
+  }
+
+  // The fourth honesty clause's verdict (H42), taken BEFORE the record is
+  // built so `ok` in the file and the exit code cannot disagree. The file is
+  // still written: it is the record of what happened, and every reading in it
+  // is now labelled with the count it rests on, so a bench that ends here is
+  // readable. What it is not is a pass.
+  if (undersampled.length) {
+    process.stderr.write(`bench: UNDERSAMPLED - ${undersampled.length} reading(s) rest on fewer draws than the median they are filed as needs:\n`);
+    for (const line of undersampled) process.stderr.write(`    ${line}\n`);
+    ok = false;
   }
 
   const stamped = versionStamp();
@@ -325,6 +412,9 @@ async function main() {
     maps: MAPS,
     levels: LEVELS,
     checks: wanted,
+    asked: SAMPLES,
+    minSamples: MIN_SAMPLES_FOR_A_MEDIAN,
+    undersampled,
     ok,
     consoleErrors,
     scenes,
@@ -334,7 +424,7 @@ async function main() {
   appendRun(file, run);
   const readings = scenes.reduce((n, s) => n + s.checks.length, 0);
   process.stderr.write(`bench: ${ok ? 'OK' : 'RED'} - ${readings} readings on ${MAPS.join(', ')}`
-    + ` at ${LEVELS.join(', ')} -> ${path.relative(ROOT, file)}\n`);
+    + ` at ${LEVELS.join(', ')}, ${SAMPLES} draws asked a viewpoint -> ${path.relative(ROOT, file)}\n`);
   if (consoleErrors.length) {
     process.stderr.write(`bench: console errors: ${consoleErrors.length}\n`);
     for (const line of consoleErrors.slice(0, 5)) process.stderr.write(`    ${line}\n`);

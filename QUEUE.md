@@ -361,27 +361,15 @@ one setting only Josh can click; everything else here proceeds.
   1,159ms for it, 151x** (plant; 5.40ms / 730ms, 135x on the yard), so the
   verdict moved to `npm run bench` and the gate reports the number. **D71**
   says what that costs. **H45** is what the run's own hour found.
-- [ ] **H42 (S)** The bench asks for nine samples and nothing proves it got
-  them. H36 put the sample count in the URL and
-  `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one` holds that
-  `scripts/bench.mjs` asks (`viewpointSamples=9`) and that `scripts/suite.mjs`
-  does not. But the 120ms budget is still a live cap inside the sweep, by
-  design, so a bench on a card slow enough to need 15ms a frame quietly reads
-  eight samples — and on a much slower one, fewer than the five two benches
-  agreed at, at which point the detail line says `NOT a median` and the stored
-  reading is still called a median by its field name. The bench is the one
-  runner whose whole output is those numbers, and it already has three honesty
-  clauses that stop it writing a reading it cannot stand behind: it refuses
-  software, refuses to run beside a suite, and runs exactly what
-  `bench-checks.json` names. This is the fourth. Read each scene's detail line
-  and exit 1 when a scene the bench asked nine samples of came back on fewer
-  than five, naming the scene and the count. Keep it a judgement about the
-  count and never about the ms — a slow card is allowed to be slow, and what is
-  not allowed is a one-sample reading filed as a median.
-  *done-when:* a bench whose sweep fell under five samples a viewpoint exits
-  non-zero and says which scene and how many it got, proved by forcing the
-  count down once; `bench/<date>.json` carries the count per scene so an old
-  file can be read the same way.
+- [x] **H42 (S)** The bench asks for nine samples and nothing proves it got
+  them. — done 2026-10-09, under Done. Built as the bench's **fourth honesty
+  clause**: the count comes back out of each check's detail line, into every
+  scene of `bench/<date>.json`, and under five it ends the bench non-zero
+  naming the scene and what it got. Proved both ways with a new `--samples`
+  flag, which exists because a card that always affords nine cannot show the
+  clause firing. One exported line took `soak.js` to 589 of 600, so the
+  sampling statistics are `tests/viewpointsamples.js` now and `bench.mjs`
+  imports the floor rather than copying it.
 - [ ] **H43 (S)** Which checks read a world position off a mesh before the
   drawn body has got there? H40 found the slowest ease in the project and it is
   not one anybody had named: `updateVisual` lerps `_smoothPosition` toward the
@@ -740,6 +728,37 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H42** The bench asks for nine samples and nothing proves it got them. Built
+  as the bench's **fourth honesty clause**: `sampleSummary()` in the new
+  `tests/viewpointsamples.js` owns the two sentences the sweep has ever written,
+  `scripts/bench.mjs` reads the count back out of each check's detail line with
+  one pattern, stores `{id, asked, leanest}` per scene, and ends **non-zero**
+  naming the scene, the check, what it asked and what it got — the verdict taken
+  before the run record so `ok` in the file and the exit code cannot disagree,
+  and no check id in that code, so the clause cannot drift from the list the
+  gate dropped. **A judgement about the count and never about the ms.** Proved
+  from both ends: `--samples 2` exits 1 naming `plant medium ... asked 2 ...
+  came back on 2, under the 5`, and the flag exists for exactly that, because a
+  card that always affords nine cannot show the clause firing; without it, 92
+  viewpoints, **828 timed draws, `median of 9-9`**, exit 0, and a full bench of
+  **12 readings with `asked 9 / leanest 9` in all six scenes**. The page holds
+  the reader, which is the half a regex over somebody else's prose cannot do
+  for itself: `the-bench-only-list-holds-only-checks-the-bench-itself-runs`
+  lifts the pattern out of `bench.mjs`'s source, compiles it here and requires
+  the right count out of both forms at 1, 4, 5 and 9, plus that the floor is the
+  page's constant and not a second five. **One exported line took `soak.js` to
+  589 of 600**, so the sampling statistics moved out whole into
+  `tests/viewpointsamples.js` (134), taking soak.js to **478** — and because
+  that module has no imports, node and the browser read the same file, so the
+  floor and the default are imported by `bench.mjs` rather than copied and
+  `benchlist.js`'s duplicate five became an import. Two self-inflicted finds
+  written up: the **400-character cut** hid H42's own sentence in its own
+  detail line (403 → rebuilt at 384, `SPIKE_MS` named once), and `asking` doing
+  two jobs leaked `viewpointSamples=${SAMPLES}` into a sentence a human reads.
+  The reader reaches back to H36's wording and no further, measured: 10-08 gives
+  7 counts all 9, 10-07 gives none because at `e95fe4b` the sweep still timed
+  one draw and said so by saying nothing.
+  Done 2026-10-09, commit `PLACEHOLDER42`.
 - **H41** Which other checks time something on this renderer, and do any of
   them assert on it. **Nine clauses in eight modules read a duration and two
   put a verdict on the size of one.** One was already resolved the other way —

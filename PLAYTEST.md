@@ -95,6 +95,34 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The speed test on your graphics card now refuses to average one reading (H42, 2026-10-09)
+
+**Nothing visible changed.** This is about `npm run bench`, the thing that
+measures frame times on your actual GTX 1060 rather than on the software
+renderer the automated suite uses.
+
+That test walks the camera to ninety-odd places on each map and times nine
+frames at each one, then takes the middle number — nine, because two benches
+agreed to within a fifth of a millisecond at nine (H36). But it also has a time
+limit per place, on purpose, so that a *slow* card is not asked to sit through
+nine frames when nine would take forever. On your card nine always fit. On a
+much slower one, fewer would, and the number would still have been filed under
+the word "median" — which at one or two readings it simply is not.
+
+So the bench now reads back how many frames each place actually got, writes
+that number beside every reading in `bench/<date>.json`, and **stops with an
+error if any place came back on fewer than five**, naming which map, which
+quality level and what it got. It is a judgement about the *count* and never
+about the milliseconds: a slow card is allowed to be slow, and what is not
+allowed is one frame filed as a median.
+
+**What your card does**, from today's run: all nine frames at every one of the
+ninety-two places, on both maps, at all three quality levels — 828 timed draws
+on the plant, and the busiest view costs **2.6ms against the 8.3ms a frame is
+allowed**. Nothing to look at, and nothing to do.
+
+**Nothing for you to look at.**
+
 ### The stress test was judging a number it cannot see (H41, 2026-10-09)
 
 **Nothing visible changed and nothing was broken** — this is about who is

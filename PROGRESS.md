@@ -13343,3 +13343,122 @@ first 38 minutes of mine. Three things come out of it:
 **What is left.** **H45**, queued: the gate *names* another runner and carries on
 anyway, where `npm run bench` refuses to run beside a suite for exactly this
 reason. One run of this project's gate has now cost an extra hour to it.
+
+## H42 — the bench's fourth honesty clause, and the file that was at 589 of 600 (2026-10-09, scheduled run)
+
+**What it was handed.** H36 put the sweep's sample count in the URL and left a
+hole it named: the 120ms per-viewpoint cap is still live by design, so a card
+slow enough to need 15ms a frame quietly reads eight draws instead of nine, and
+a much slower one fewer than the five two benches agreed a median within 0.2ms
+at — at which point the detail line says `NOT a median` and the stored number is
+still called one by its field name. The bench is the one runner whose whole
+output is those numbers and it already had three clauses that stop it writing a
+reading it cannot stand behind. This is the fourth: read the count back, store
+it per scene, and end non-zero under the floor. **A judgement about the count
+and never about the ms** — a slow card is allowed to be slow.
+
+**What was built.** The wording is now one function. `sampleSummary(leanest,
+wanted)` produces the two sentences the sweep has ever had — `median of N-M`, or
+`N samples, NOT a median - a median wants ?viewpointSamples=9` — and
+`scripts/bench.mjs` reads the count back out of each check's detail line with
+one pattern, stores `{id, asked, leanest}` per scene, and ends non-zero naming
+the scene, the check, what it asked for and what it got. **No check id appears
+in that code**, which matters because `benchlist.js` forbids one: the clause
+reads whichever check reports a count, so it cannot drift from the list the
+gate dropped. The verdict is taken **before** the run record is built, so `ok`
+in the file and the exit code cannot disagree — and the file is still written,
+because it is the record of what happened and every reading in it now carries
+the count it rests on.
+
+**Proved from both ends, which is what the done-when asked for.** `--samples`
+exists for exactly that: a GPU that always affords all nine cannot otherwise
+show the clause firing. `npm run bench -- --map plant --quality medium --samples
+2` exits **1** with
+
+> `bench: UNDERSAMPLED - 1 reading(s) rest on fewer draws than the median they
+> are filed as needs:` / `plant medium: "the-frame-budget-holds-everywhere-not-just-at-site-a"
+> asked 2 timed draws a viewpoint and its leanest came back on 2, under the 5
+> two benches agreed a median within 0.2ms at (H36)`
+
+and the file it wrote says `ok: false`, `asked: 2`, `minSamples: 5`,
+`undersampled: 1`. The honest path, same card, no flag: **92 viewpoints, 828
+timed draws, `median of 9-9`**, exit 0 — and a full bench is **12 readings on
+both maps at all three levels with `asked 9 / leanest 9` in every one of the six
+scenes**. This card never misses a sample; what the clause buys is that a slower
+one cannot file a miss as a median.
+
+**And the page holds the reader, because a regex over somebody else's prose
+cannot hold itself.** The day that sentence is reworded, a parser elsewhere
+silently stops finding a count and every reading passes. So
+`the-bench-only-list-holds-only-checks-the-bench-itself-runs` now lifts the
+pattern **out of `bench.mjs`'s own source**, compiles it in the page, and runs
+it against both forms `sampleSummary()` actually produces at four counts — 1, 4,
+5 and 9 — requiring the number each was built from. It also holds that the
+floor the bench judges by is the page's `MIN_SAMPLES_FOR_A_MEDIAN` and not a
+second copy of a five, and that `UNDERSAMPLED` is still in the file at all.
+
+**The split nobody planned.** One exported line took `tests/soak.js` to **589 of
+its 600**, and `HANDOFF.md` is explicit that the job which touches a file near
+the line splits it rather than discovering this halfway through a verify. The
+sampling statistics went out whole — the constants, `viewpointCost`,
+`viewpointSamples`, `sampleSummary` and the floor, with the H36 argument they
+belong to — into **`tests/viewpointsamples.js` (134)**, taking soak.js to
+**478**. The module has **no imports of its own**, which turned out to be worth
+more than the line count: node and the browser read the same file, so
+`bench.mjs` imports the floor and the default sample count instead of copying
+them, and `benchlist.js`'s own `MIN_VIEWPOINT_SAMPLES = 5` — a duplicate of a
+measured number — became an import. One producer of these numbers, three
+readers.
+
+**Two things this job did to itself, both worth the space.**
+
+  - **The 400-character cut bit the job that was adding to the line.** The new
+    sentence about the reader went on the end of `benchlist.js`'s detail, which
+    was already 403 characters, so the clause H42 exists to announce was
+    **invisible in its own report** — a passing check's numbers are only in the
+    detail line, and the detail line is cut at 400 with no ellipsis (H29,
+    `TRAPS.md`). Measured and rebuilt at **384**, with the spike's arithmetic
+    moved into the comment that argues it and `SPIKE_MS` named once rather than
+    written twice.
+  - **A variable doing two jobs leaked a template into prose.** `asking` was
+    both the text `bench.mjs` must contain and the URL quoted in the detail
+    line. Once the count moved behind a flag the first became
+    `viewpointSamples=${SAMPLES}`, and the report started telling a reader that
+    "`viewpointSamples=${SAMPLES}` buys 9". Split in two: `asking` for the
+    source match, `askedNine` for the sentence.
+
+**How far back the reader reaches, measured rather than assumed.** The
+done-when wants an old file readable the same way, and it is — from H36's
+wording onwards and no further. Parsed with the bench's own pattern:
+`bench/2026-10-08.json` gives **7 readable counts, all 9**;
+`bench/2026-10-09.json` gives 13, all 9; and `bench/2026-10-07.json` gives
+**none at all**, because at commit `e95fe4b` the sweep still timed one draw a
+viewpoint and its detail line says nothing about counts (*"92 viewpoints across
+23 places: mean 1.32ms, worst 1.90ms..."*). That is the correct answer rather
+than a gap: those readings genuinely were one draw each, which is the thing H36
+replaced, and a parser that invented a count for them would be the defect this
+job is about.
+
+**What was verified.** H41's verify stands as this job's gate, as step 8 of the
+protocol says it does, and it was green on the same tree an hour earlier. Two
+subset runs and three benches sit between: `--samples 2` (exit 1, the refusal),
+`--map plant --quality medium` (exit 0, 828 draws, `median of 9-9`) and a full
+bench (exit 0, 12 readings, every scene `asked 9 / leanest 9`). The verify, two
+runs a map on the finished tree: **plant 221 passed / 1 failed / 8 not for this
+map (1,134,007ms and 1,111,631ms), yard 201 / 1 / 28 (764,346ms and
+774,358ms), exit 0, 0 red, 0 flaky, 0 unexpectedly green, 0 skips withheld, 0
+bench drops withheld, 0 context losses, 0 loop frames, 0 re-runs, no other
+runner on the machine — and 0 console errors in all four runs**, with both runs
+of each map agreeing exactly on every count. The check count is unchanged at
+221 and 201 because this job **extended** a check rather than adding one:
+clause 7 of `the-bench-only-list-holds-only-checks-the-bench-itself-runs` and
+its two new assertions in the sibling, each of which goes red if H42 is
+reverted — `bench.mjs` would have no `SWEEP_SAMPLES` pattern and no
+`UNDERSAMPLED`. The spreads are **22,376ms (2%) on the plant against an
+8,465ms pipeline-wait spread** and 10,012ms (1%) on the yard against 7,901ms.
+`auto` would have picked medium on both (6.90ms and 5.10ms). The newest bench
+reading in the gate's own summary is now **2026-10-09, 12 readings, OK**.
+
+**What is left.** Nothing queued by this job. The one thing a reader should know
+is that the stored `samples` field starts today: a file written before H42 has
+the counts only in its detail lines, and the parser above is how to get them.
