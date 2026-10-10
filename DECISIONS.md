@@ -110,6 +110,40 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D73 — A device error is reported and a suspended device is red, which is a line D67 drew somewhere else
+
+**Raised by:** H35, 2026-10-10. Taken rather than asked, because it changes
+nothing a player can do: it is a rule about what the gate stops for.
+
+**The two sides.** D67 settled that the `AudioContext` **console error** is
+counted, printed in the summary and does **not** fail the gate — it would have
+failed correct runs of a correct game, and the message is Chrome's audio
+service talking about itself. H35 adds four clauses that *can* fail for an
+environmental reason: one device per page, the sample rate it opened at, the
+state `running`, and no state the game did not ask for. Consistency with D67
+would argue for reporting all four and asserting none.
+
+**Why they are asserted.** The line is what the player gets. A line in
+Chrome's log is a line in Chrome's log; a context that has **suspended itself**
+is a game with no sound in it, whoever's fault that is, and a suite that stayed
+green through that would be lying about the build. The same for a second device
+context (every sound goes to the wrong graph) and for a sample rate that moved
+(the graph was built for a device that is gone). None has happened in the
+thirty-six runs on record. If one ever does, that red is the most valuable
+thing this project could learn here, because it is the occurrence H35 could not
+attribute, caught in the act — where a report would be a seventh anecdote.
+
+**What was deliberately left reported** is the one quantity that *would* have
+failed correct runs: the ratio of the device's clock to the wall clock, which
+measured **0.5665 on a full plant run** — the output device unrendered for
+353.1s of 814.7s, 43% of the page, with the context reading `running`
+throughout. A floor on that is a floor on how busy the machine was. H50 sets
+one if a verify's four runs say it can be set honestly.
+
+**Override by** making the four clauses report instead of assert, which is four
+`problems.push` calls in `tests/audiodevice.js`. The cost of overriding is that
+the fault H35 is about becomes unobservable again from inside the page.
+
 ### D72 — The Shade trails her own climb by a quarter of her height, and whether that reads wrong is a look
 
 **Raised by:** H44, 2026-10-09. The measuring, the viewer and the pinned

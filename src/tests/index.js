@@ -95,6 +95,7 @@ import { register as registerSkipList } from './skiplist.js';
 import { register as registerBenchList } from './benchlist.js';
 import { register as registerRunnerGuard } from './runnerguard.js';
 import { register as registerTimedRenders } from './timedrenders.js';
+import { register as registerAudioDevice } from './audiodevice.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -212,6 +213,10 @@ export function registerAutoTests(debugTools) {
   // (H36, H41). After fuzz.js and pipelinewait.js, so its own two drains
   // answer in milliseconds rather than re-measuring the run's tail.
   registerTimedRenders(debugTools);
+  // Late on purpose: the device journal's whole value is the window it covers,
+  // and every check before this one is window. The unlock is up at
+  // registerAudio, so by here it is most of a run (H35).
+  registerAudioDevice(debugTools);
   // Last: it is the heaviest check and it leaves the world in a known state.
   registerPerformance(debugTools);
 }

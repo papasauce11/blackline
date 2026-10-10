@@ -95,6 +95,55 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The audio error: the sound card is being starved, and that closes the guessing (H35, 2026-10-10)
+
+**Nothing in the game changed and there is nothing here to judge.** This
+finishes the story the H32 section further down started, and it ends somewhere
+nobody expected.
+
+**What was asked for.** That line in the test output — *"The AudioContext
+encountered an error from the audio device or the WebAudio renderer."* — had
+been written off once and brought back once, and the plan was to settle it by
+writing down the error count from the test run that happens at the **start** of
+each session, on a cold machine, three times. Six of those now exist and **all
+six are clean.** The error sits at three runs out of thirty-six, and the clean
+ones are no longer bunched anywhere, so "the machine is warm by then" was never
+really an explanation — it was a description of where three occurrences
+happened to sit.
+
+**What was built instead, and what it found.** The game now keeps a small
+logbook of the sound device while it runs: when it changed state, what rate it
+is running at, and — the useful one — **how much of the time it was actually
+being fed sound.** A sound device advances its own clock only while it is
+playing, so comparing that clock to a wall clock says what fraction of the time
+it kept up.
+
+On a full test run of the plant, **the sound device was unrendered for 353 of
+815 seconds. Forty-three per cent.** It never reported an error and it never
+said it had stopped; it simply did not keep up. On a 16-second version of the
+same test it lost 0.8 seconds, so this is not a slow start — it builds up as
+the run goes on.
+
+**Why that is the answer.** A test run is half an hour of this PC drawing the
+whole game in software on four pinned cores, which is about the most hostile
+thing you can do to a sound device that wants a steady trickle of work. A
+device being starved like that, occasionally, for a moment too long, is
+*exactly* a device that occasionally complains — intermittent, no explanation
+attached, always mid-run, never in the first seconds, and invisible to the
+code. That is now the leading explanation, and it is written down rather than
+guessed at.
+
+**It is not "fixed" and it is not "closed."** It is explained, and the game now
+carries the instrument that would catch it in the act. If it ever happens again,
+the device's own logbook will be sitting right next to it.
+
+**What is left for you: one thing, and it is small.** Play with the sound on for
+a few minutes. **Does the audio ever cut out, crackle, or go silent and come
+back?** Everything above is about this machine under a test load, not about you
+playing — a real browser doing nothing but running the game should never be
+short of room. If you do hear a drop, that is worth telling me, because it would
+mean the starvation reaches ordinary play too.
+
 ### For your eyes: the Shade trails her own climb by a quarter of her height (H44, 2026-10-09)
 
 **Nothing changed, on purpose.** This is a measurement and a question, and the

@@ -395,52 +395,11 @@ one setting only Josh can click; everything else here proceeds.
   Exit 3 is deliberate: 1 is red, 2 is a crash, and a run that declined to
   measure is neither. Proved both ways on a live pid. **H49** is what it
   found: the build task's own prompt does not know about the third code.
-- [ ] **H35 (S, the small end)** Three gates with their console-error counts
-  written down, then close the `AudioContext` error or name a new hypothesis.
-  H32 eliminated the code side of it — one realtime context per page, one owner
-  module, the seventeen offline renders all correct in every run on record — and
-  found that the cold run H27 asked for **has been happening twice a day all
-  along and was never recorded**: every one of the seven observations is an
-  end-of-session verify (two showed it, five did not, the last **four in a row**),
-  and the GATE is the cold run. `HANDOFF.md` now asks
-  every run to write its gate's console-error count into its `PROGRESS.md`
-  entry, and the runner stamps each error with the map, the run and the seconds
-  into it, so a single occurrence is now attributable. This job is the reading,
-  not a build: collect three gates' counts and decide. If it never appears on a
-  cold gate but keeps appearing on end-of-session verifies, that is the machine
-  warming up and `TRAPS.md`'s entry stands as written. If it appears on a cold
-  gate, it is a defect and the entry says so and reopens the code side with the
-  attribution the runner now gives.
-  **Do not start this one early.** Its evidence is three gates, which is three
-  runs; picking it up before they exist would produce exactly the premature
-  "that closes it" that H28 wrote and H29 had to retract.
-  **The three gates exist now, and all three read 0** — H11's, H38's and the
-  one H36 opened with (2026-10-08, plant and yard, 0 console errors on a cold
-  run). So this job is ready, and it is worth naming what it is deciding
-  between rather than letting the next session rediscover it: three clean cold
-  gates, against an error that has appeared at three of the last twelve
-  *end-of-session verifies*, is the warming-machine hypothesis holding and not
-  the error closing. Read `HANDOFF.md`'s standing warning before writing the
-  word closed — an intermittent fault is not closed by an absence, however
-  long, and that warning has already predicted its own violation once.
-  **And one fact from that same run which cuts the other way, recorded here
-  rather than left in `PROGRESS.md` because it changes what this job decides.**
-  The hypothesis on the record is that the error belongs to *end-of-session
-  verifies* and not to cold gates — three of the last twelve verifies had it.
-  That run added **eight more end-of-session runs across two verifies, every
-  one of them 0**, on top of its cold gate at 0: nine clean runs in a session.
-  The count is now three of twenty verifies, and the clean ones are no longer
-  concentrated anywhere. That does not support the warming hypothesis so much
-  as **weaken the pattern the hypothesis was built on** — an error at 3 of 20
-  runs with nothing about position in the session predicting it is simply
-  intermittent, where "the machine warming up" was a story about where the
-  occurrences happened to sit. Weigh that before adopting either branch this
-  entry's own text offers: the honest third answer may be that neither the code
-  (H32 closed that side) nor the session position explains it, and that what is
-  left to look at is the device, which H32 left reading 48000Hz.
-  *done-when:* three runs' gate console-error counts are on the record and the
-  entry either closes the error with that evidence or names what to look at
-  next.
+- [x] **H35 (S)** Three gates with their console-error counts written down,
+  then close the `AudioContext` error or name a new hypothesis. — done
+  2026-10-10, under Done. **Six** cold gates exist and all six read 0; the
+  error is at 3 of 36 runs with no pattern left, and what the job found is
+  the device: it goes **unrendered for 43% of a run** on this machine.
 - [ ] **H46 (S)** What the chase does to a pose photograph's *surroundings*.
   H43 measured the gap at the frame `look.js` reads it for all twelve states
   `strike` reaches and found **all twelve read with the gap open** — worst
@@ -527,6 +486,58 @@ one setting only Josh can click; everything else here proceeds.
   in two files, and H37's dry run is the harder half.
   *done-when:* the build task's prompt routes exit 3 to "clear the pid and
   re-gate" rather than to BROKEN BASE, and says which code means what.
+- [ ] **H50 (S)** A floor on the device's fed ratio, if one can be set
+  honestly — and the `sign` count H35 found short. H35 measured the audio
+  device unrendered for **353.1s of 814.7s** on a full plant run (`fed`
+  0.5665) against 0.8s on a 16.5-second subset of the same tree, so the
+  loss accumulates with the run and is starvation rather than a startup
+  offset. The ratio is therefore **reported and not judged** (D73), for
+  D71's reason one layer over: a floor on it is a floor on how busy the
+  machine was. **H35's own verify did not record its readings** — it ran
+  without `--details`, which is now a `TRAPS.md` entry — so the record is a
+  plant run and a yard pair taken on the same tree, and the table is in
+  `PROGRESS.md`: **fed 0.5665** on the plant over 814.7s, **0.7119** and
+  **0.6844** on the yard over 538.4s and 1,348.5s, against 0.9530 and
+  0.9673 on two short subsets. Decide whether a floor exists that catches
+  *the device stopping* without catching *a loaded morning*. The arithmetic
+  is there to argue from: a device that stops at the halfway point of a run
+  roughly halves the ratio, so 0.28-0.36 is what a stop looks like against
+  0.57-0.71 healthy, and something near **0.45** separates them on every
+  reading so far. **Take a fourth and a fifth before writing it** — there
+  are three full-run readings and only one is of the plant, which is the
+  worse map. And note that the contended case which would break such a
+  floor is no longer measurable: since H45 a run beside another runner
+  refuses rather than reporting doubled timings, so the worst honest load
+  is a solo suite run, which is what all three readings are. If no honest
+  floor exists, say so and leave the number reported — that is a real
+  answer, and it belongs in `TRAPS.md` beside the starvation sentence.
+  **Second half, found in passing and left on purpose.**
+  `tests/timedrenders.js`'s summary counts `sign` verdicts with
+  `READS.filter((e) => e.verdict === 'sign')`, so a `sign` entry in the
+  `CLOCKED` group would be counted nowhere and the detail line would
+  under-report the census. Nothing is wrong today because no such entry
+  exists; H35 wanted one and took `reported` instead, which is how it was
+  found. Count it across both groups, and the header's vocabulary note
+  moves up so `sign` is documented for both.
+  *done-when:* the ratio either carries a measured floor proved by a break
+  that stops the device, or carries a recorded reason it cannot; and the
+  census counts `sign` across both groups, proved by an entry that uses it.
+- [ ] **H51 (S)** `src/systems/audio.js` is at 589 of 600. H35 put three
+  lines in it and the file has eleven left; the next job to touch it
+  discovers that halfway through a verify, which is the thing H42, H43 and
+  H44 each did **before** being forced to. `AudioSystem.BUILDERS` is the
+  seam: 145 lines of Section 14 sound recipes, called in exactly one shape
+  (`AudioSystem.BUILDERS[name].call(this, …)`, three call sites), so it
+  comes out whole into `src/systems/audiosounds.js` and takes audio.js to
+  about 450. The layering is unchanged — a sibling import inside
+  `systems/` is what `ai.js` does with `aistate.js` and `gadgets.js` with
+  `gadgeteffects.js` — and `one-module-owns-the-audio-device-...` stays
+  green because a recipe names no constructor. The sixteen sound checks in
+  `tests/soak.js` render through the same `renderOffline`, so they are the
+  proof the move changed nothing.
+  *done-when:* no module in `src/` outside `config.js` is over 500 lines
+  except the ones already named in `HANDOFF.md`, audio.js is under 500, and
+  the sixteen rendered sounds match Section 14 exactly as before.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -780,6 +791,41 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H35** The device answers for itself, and it is being starved. The job
+  was a reading: three cold gates' console-error counts, then close the
+  `AudioContext` device error or name what to look at next. **Six** cold
+  gates are on the record and every one reads 0 (H11, H38, H36, H42, H43,
+  this run's), against the error at **3 of 36 runs** — and the clean runs
+  are no longer concentrated anywhere, so the warming-machine hypothesis
+  did not hold up: it was a story about where three occurrences sat, and
+  nine clean end-of-session runs in one session dissolved the pattern
+  under it. Not closed either. What the queue told the job to weigh third
+  was the **device**, which had nothing on the record at all, and that is
+  what was built: `systems/audiodevice.js` (124) keeps a journal from the
+  unlock — every `statechange` with its millisecond, any `error` event, the
+  rate it opened at, its own clock — and `tests/audiodevice.js` (173) reads
+  it late in the run. **The reading is the finding**: the device clock
+  gained 461.6s of 814.7s on a full plant run, so the output device went
+  **unrendered for 353.1s, 43% of the page**, with the context reading
+  `running` throughout and no error event — against 0.8s lost on a
+  16.5-second subset, so it accumulates and is starvation, not a startup
+  offset. This machine does not feed its audio device while the suite
+  rasterises on four pinned cores, which fits every property of the error
+  (intermittent, no stack, mid-run, invisible to code, never in a cold
+  gate's first seconds). The ratio is **reported and never judged** for
+  D71's reason (D73; H50 sets a floor if one can be set honestly); the
+  four clauses that decide the check touch no duration — one context, the
+  state `running`, the rate it opened at, no state nobody asked for.
+  Four breaks, each naming its own line, including the **count
+  `audiocontext.js`'s own header says a browser test cannot take** (it can
+  now: the one module allowed to name the constructor counts what it
+  builds) and a journal catching a device that went away for 875ms and came
+  back while the state at read time was `running`. H41's clock census went
+  red on the new module and was right to; the entry is `reported` and the
+  wall-clock half of the ratio moved into the check so the one
+  `performance.now()` sits beside the clause it feeds.
+  — commit `H35_COMMIT`
 
 - **H45** The gate refuses rather than warns, and exit 3 is a third kind of
   morning. `npm run bench` has refused to run beside a suite since H11 with

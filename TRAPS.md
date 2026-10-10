@@ -107,6 +107,18 @@ Do not copy a number out of an earlier entry instead: H28 did, from notes that
 disagreed with each other, and the time went on deciding which was a typo when
 the answer was that two instruments had been quoted in one sentence.
 
+**And a job whose own finding *is* a number runs its VERIFY with `--details`.**
+H35 is the worked example and it cost an extra pair of runs. Its whole result
+was a ratio the new check measures, it ran the verify the way every other job
+runs it, all four runs passed - and because a passing check's detail is not in
+the report, **the four readings the verify took do not exist**. Only the fact
+that they were inside a band nothing asserted. The follow-up the job wrote
+asked the next session to read numbers that had never been written down, which
+is worse than not having them, and a second map's pair had to be run
+afterwards to make that follow-up answerable. The verify is the only reading
+this project takes on a finished tree; if what the job found is a quantity,
+that is the run to capture it from, and `--details <path>` costs nothing.
+
 **A loaded machine can take the GPU away mid-suite.** One verify came back
 with *eight* pixel checks flaky at once and never reproduced. F1 found it: a
 **lost WebGL context**. Chrome kills a starved SwiftShader GPU process and
@@ -259,8 +271,28 @@ end-of-session verify, 336s into a run, on a session whose own cold GATE
 reported **0** console errors that morning. H35 is still three gates, and this
 is not one of them.
 
-**What is still unknown, and it is cheap to settle.** Whether it ever happens on
-a *cold* machine. All six recorded observations are **end-of-session verifies**,
+**And H35 asked the device, which turned out to be starved.** The cold-run
+census closed at **six gates, every one at 0** (H11, H38, H36, H42, H43 and
+H35's own), so the error sits at 3 of 36 runs with the clean ones no longer
+concentrated anywhere - which does not confirm the warming story below so much
+as dissolve the pattern it was built on. What H35 built instead is a journal the
+device keeps from the unlock (`systems/audiodevice.js`), and the number it
+produced is the entry worth remembering: **this machine does not feed its audio
+device while the suite is rasterising.** On a full plant run the context's own
+`currentTime` gained **461.6s of 814.7s** - the output device went unrendered
+for **353.1s, 43% of the page** - with the state reading `running` the whole
+way and no error event at all. A 16.5-second subset of the same tree lost 0.8s,
+so it is not a startup offset: it accumulates with the run. Two consequences.
+**A duration measured against this page's audio clock is a reading about four
+pinned cores**, the same way a wall clock round a draw is (F11, D71), so no
+verdict rests on it and `H50` decides whether one honestly can. And the
+starvation is now the leading candidate for the error itself, which fits every
+property of the thing - intermittent, no stack, mid-run, invisible to code,
+never in a cold gate's first seconds. It is **not** a closure, and the
+paragraphs below stand as the account of why nobody should write that word.
+
+**What was still unknown before H35, and it was cheap to settle.** Whether it
+ever happens on a *cold* machine. All six recorded observations are **end-of-session verifies**,
 taken after an hour or more of driving Chrome — so the cold run H27 asked for has
 never been recorded. And the joke is that it happens twice a day already: **the
 GATE is a cold run**, and no session has ever written its console-error count

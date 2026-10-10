@@ -13908,3 +13908,190 @@ refusal means a scheduled session that fires while a previous one's orphan is
 alive now **stops at the gate with exit 3 instead of building**, which is the
 intended behaviour and not a broken base — read the stderr line, clear the pid
 it names, and start again.
+
+## H35 — the device answers for itself, and it is being starved (2026-10-10, scheduled run)
+
+**What it was handed.** *"The AudioContext encountered an error from the audio
+device or the WebAudio renderer."* H27 called it environmental, H28 called it
+closed after one clean verify, H29 brought it back, H32 closed the **code**
+side of it and asked every run to write its gate's console-error count down,
+and this job was the reading: collect three cold gates and either close the
+error or name what to look at next. The entry warned twice over against
+writing the word *closed*, and `HANDOFF.md` carries the standing version of
+that warning, which has predicted its own violation once already.
+
+**The census, which is the half the job was asked for.** Six cold gates are now
+on the record and **every one of them reads 0 console errors**: H11, H38, H36,
+H42, H43 and this run's (plant 224 passed / 1 failed / 8 not for this map,
+1,129,809ms; yard 204 / 1 / 28, 771,077ms; exit 0, 0 red, 0 flaky, no other
+runner, `auto` would have picked `medium` at 5.90ms and 5.80ms). Three were
+asked for and six exist. Against them the error sits at **three of thirty-six
+runs** — H27 yard, H29 plant, H39 plant — with the clean runs no longer
+concentrated anywhere in a session.
+
+**So the warming-machine hypothesis is not what is left, and neither is a
+closure.** The hypothesis was a story about *where* the three occurrences
+happened to sit: all of them were end-of-session verifies, so the machine was
+said to be warm. H33's and H36's runs then added nine clean end-of-session runs
+in one session, which does not confirm the story so much as dissolve the pattern
+it was built on. An error at 3 of 36 with nothing about position predicting it
+is **intermittent**, and an intermittent fault is not closed by an absence
+however long. The third answer the queue told this job to weigh is the
+**device**, which H32 left reading 48000Hz and otherwise unexamined, and the
+device was the one party to the error with nothing at all on the record.
+
+**What was built, therefore: the page's half of the stamp.** The error arrives
+asynchronously from Chrome's audio service with no stack, attributed to the page
+URL. `scripts/suite.mjs` stamps it with the map, the run and the seconds into
+the run — the most the Node end can know — and until now nothing had asked the
+context whether it was still running when it arrived. A check cannot ask: every
+occurrence came minutes into a run that was otherwise fine, so a question put at
+one moment answers about that moment. `src/systems/audiodevice.js` (124) keeps a
+journal from the unlock — every `statechange` with its millisecond, any `error`
+event, the sample rate it opened at, the device's own clock — and
+`src/tests/audiodevice.js` (173) reads it near the end of the run, where it
+covers the most ground. Three lines in `audio.js` call it: open the journal at
+the unlock, say so before a deliberate close, hand the report out.
+
+**And the reading is the finding, which nobody expected.** The device's
+`currentTime` is advanced by the thread that renders to the output device, so
+the wall clock it has not gained since the unlock is time the device was not
+being fed. On a full plant run the clock gained **461.6s of 814.7s**: the output
+device went **unrendered for 353.1s, 43% of the page**, with the context reading
+`running` the whole way and not one error event. A 16.5-second subset of the
+same tree read 0.8s lost, so this is not a startup offset — it accumulates with
+the run. **This machine does not feed its audio device while the suite is
+rasterising on four pinned cores.** That is a far better candidate for an
+intermittent device error than anything left in H32's list, and it fits every
+property of the thing: it is intermittent, it has no stack, it arrives mid-run,
+it never appears in a cold gate's first seconds, and it is invisible to code.
+
+**What is asserted and what is only reported**, which is D73. The ratio is
+**reported and never judged**, because a floor on it is a floor on how busy the
+machine was — red on a loaded morning, green on a quiet one, which is the shape
+of check that teaches a session to ignore reds. That is H41's lesson in a second
+place: a wall clock here cannot price a draw (D71) and it cannot price the audio
+device either. **H50** sets a floor if the four runs of a verify say one can be
+set honestly. What *is* asserted is the four things that are true whether or not
+the device is starved — exactly one context, the state `running`, the sample
+rate it opened at, and no state nobody asked for — and D73 argues why those are
+asserted where D67 decided the console message is not: a line in Chrome's log is
+Chrome's, and a context that has suspended itself is a game with no sound in it.
+
+**Four breaks, each naming its own line**, every file copied to the scratchpad
+first and restored from the copy (`TRAPS.md`'s rule, which has bitten twice):
+
+- the unlock stops guarding, so a second call builds a second device →
+  *"3 realtime contexts have been opened on this page"*, and
+  `one-module-owns-the-audio-device-...` went red beside it. **This is the
+  count that check's own header says a test inside a browser cannot take** — it
+  can now, because the one module allowed to name the constructor counts what it
+  builds.
+- the journal records a rate the device never opened at → *"the device opened at
+  48100Hz and now reports 48000Hz, so the output device is not the one the graph
+  was built for"*.
+- the context suspends itself → *"the device context is "suspended", want
+  "running""*.
+- the context suspends and resumes, with checks between it and the read →
+  *"4ms after the unlock: the device context suspended itself after the unlock
+  resumed it"*, off a journal reading `running@0ms -> suspended@4ms ->
+  suspended@4ms -> running@879ms`. **This is the clause worth the module**: the
+  device went away for 875ms, came back, and the state at read time was
+  `running` — so nothing but a journal would have seen it. The third break needs
+  the fourth beside it because `suspend()` is a promise: run alone, the state
+  clause catches it first and the transition list never gets the chance.
+
+**One thing the job had to fix on the way, and it is a census working.**
+`every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` —
+H41's — went red on the new module the first time a full map ran. It was right
+to: this check does put a clock-derived number in its detail line. The entry is
+declared `reported`, and the wall-clock half of the ratio was **moved out of the
+journal and into the check** so that the one `performance.now()` sits in the same
+file as the clause it feeds, which is what that census is for. The census now
+counts ten clauses reading a duration, two of them reported.
+
+**And one gap in that census, found and left**, because fixing it is a change to
+a check this job was not asked to touch: its summary counts `sign` verdicts out
+of the read group only (`READS.filter`), so a `sign` in the `CLOCKED` group
+would be silently uncounted. Nothing is wrong today — there is no such entry —
+and **H50** carries it.
+
+**What was verified.** GATE on a clean tree at `0c5e3aa`, cold: plant 224
+passed, 1 failed (the bench-only sweep), 8 not for this map, 1,129,809ms; yard
+204 / 1 / 28, 771,077ms; exit 0, 0 red, 0 flaky, **0 console errors**, no other
+runner. That is the **sixth cold gate in a row at 0**, and it is this job's own
+sixth data point.
+
+VERIFY, two runs of each map on the finished tree: **plant 225 passed, 1
+failed, 8 not for this map (1,103,249ms and 1,120,784ms), yard 205 / 1 / 28
+(775,061ms and 782,646ms), exit 0, 0 red, 0 flaky, 0 unexpectedly green, 0
+skips withheld, 0 bench drops withheld, no other runner on the machine - and 0
+console errors in all four runs.** Both runs of each map agree exactly on every
+count, and each map is **one check** more than this run's gate, which is this
+job's. The spread between runs is plant 17,535ms (2%) and yard 7,585ms (1%)
+against pipeline-wait spreads of 3,389ms and 8,079ms - the yard's spread is
+inside its own wait, so read it as the instrument (F16). About 41% of each run
+is the renderer's pipeline tail. `auto` would have picked `medium` on both maps,
+5.30ms and 5.10ms.
+
+**And the one thing this verify did not capture, said plainly rather than left
+to be discovered.** It was run without `--details`, and the report carries a
+detail only for a check that went red or flaky - so the four device readings
+the verify took are **not** on the record, only the fact that all four passed.
+That is the trap `TRAPS.md` names as *a passing check's numbers are not in the
+report at all*, walked into by the job that needed those numbers most. A yard
+pair was run afterwards on the same tree to get the second map's readings, and
+H50 is written from what exists rather than from what was intended. **A job
+whose own finding is a number runs its verify with `--details`**; that sentence
+is now in `TRAPS.md` beside the entry it belongs to.
+
+**And the paragraph above was itself written twice**, for the other reason
+`TRAPS.md` gives: the first draft of it went through an inline
+`python -c "..."`, bash ran `auto`, `medium`, `--details` and `TRAPS.md` as
+commands, substituted the empty string for each, and the script printed `ok`
+over prose reading *"would have picked  on both"*. H38 wrote that entry; this
+run proved it still bites, on markdown about this project, in the same session
+that had read the warning. Every markdown patch goes to a file, and the patched
+lines get read back.
+
+**The four readings, which are the record H50 needs.** The verify did not keep
+them, so a plant run and a yard pair were taken on the same tree with
+`--details`:
+
+| run | window | unfed | fed |
+|---|---|---|---|
+| plant, run 1 | 814.7s | **353.1s** | **0.5665** |
+| yard, run 1 | 538.4s | 155.1s | 0.7119 |
+| yard, run 2 | 1,348.5s | 425.6s | 0.6844 |
+| plant subset, 7 checks | 16.5s | 0.8s | 0.9530 |
+| plant subset, 1 check | 1.8s | 0.1s | 0.9673 |
+
+Three things in that table are worth more than the headline number. **It
+accumulates at a steady rate rather than happening once**: the yard's second run
+extended the window by 810.1s and the loss by 270.5s, which is a marginal rate
+of 33.4% against the first run's 28.8%, so this is a constant tax on the device
+and not an incident. **The plant is worse than the yard** - 43% against 29-33% -
+and the plant run is the longer and heavier of the two, which is the direction
+starvation predicts and the opposite of what a fixed offset would do. And **the
+two subsets are the control**: 0.95 and 0.97 over seconds, so a short run barely
+loses anything and the loss is bought by sustained load.
+
+**What that means for a floor, which is H50's to decide.** Every healthy
+full-run reading is between **0.5665 and 0.7119**. A device that stopped at the
+halfway point of a run would read about half its healthy value - 0.28 to 0.36 -
+so a floor somewhere near 0.45 separates *the device stopping* from *a busy
+morning* on every reading taken so far. Two cautions against taking that from
+this entry rather than measuring it: there are **three** full-run readings here
+and one of them is the only plant one, and the contended case that would break
+such a floor (H41's run beside an orphan, with timings doubled) is now refused
+outright by H45 rather than measured - so the worst honest load is a solo suite
+run, which is what these three are. H50 should take a fourth and a fifth before
+writing a constant.
+
+**What was left.** **H50**, which is this job's own follow-up and has two
+halves: a measured floor on the device's fed ratio if the readings support one,
+and the `sign` count in H41's census. And `src/systems/audio.js` is at **589 of
+600** after three lines landed in it — `AudioSystem.BUILDERS` is 145 lines of
+Section 14 recipes with one caller shape (`.call(this, …)`), so it comes out
+into a sibling cleanly; **H51** is that split, before the next line forces it
+halfway through somebody's verify.

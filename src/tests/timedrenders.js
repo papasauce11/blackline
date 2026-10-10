@@ -131,6 +131,12 @@ const CLOCKED = [
     note: 'times `renderOnly()` at 92 viewpoints and asserts the worst viewpoint\'s median against the 8.33ms draw ceiling. Bench-only since H11 with a reason naming the hardware, so the gate runs it and drops the verdict; the worst single draw is reported and never asserted, and the 120ms per-viewpoint budget is a cap on sampling rather than a verdict (H36)',
   },
   {
+    module: 'audiodevice.js',
+    check: 'the-audio-device-keeps-its-clock-and-journals-the-states-it-enters',
+    verdict: 'reported',
+    note: 'takes the wall-clock end of the audio device\'s own clock - `performance.now()` against the `currentTime` the journal in `systems/audiodevice.js` has watched since the unlock - and prints how much of the page the output device went unrendered for. Nothing rests on it, for the reason this census exists one layer over: measured at 353.1s unfed of 814.7s on a full plant run, 43% of the page, against 0.8s on a 16.5s subset of the same tree, so a floor on the ratio would be a floor on how busy the machine was. H35 is the finding and H50 sets a floor once a verify has both maps. The four clauses that do decide this check - one context, the sample rate held, the state running, no state nobody asked for - touch no duration at all',
+  },
+  {
     module: 'performance.js',
     check: 'frame-budget-under-the-check-29-load',
     verdict: 'reported',

@@ -19,6 +19,7 @@
  */
 
 import { CONFIG, mulberry32 } from '../config.js';
+import { openDeviceJournal } from './audiodevice.js';
 
 const A = CONFIG.audio;
 /** Seed of the offline render's noise texture, so a rendered sound is the same samples every time. */
@@ -38,6 +39,8 @@ export class AudioSystem {
     this.listener = listener || null;
 
     this.context = null;
+    /** The device's own account of itself, opened with the context (H35). */
+    this.device = null;
     this.master = null;
     this.buses = null;
     this.voices = new Set();
@@ -72,6 +75,7 @@ export class AudioSystem {
 
     const context = new Ctor();
     this.context = context;
+    this.device = openDeviceJournal(context);
 
     // One master, three buses (Section 14).
     this.master = context.createGain();
@@ -99,6 +103,15 @@ export class AudioSystem {
 
     if (this.context.state === 'suspended') this.context.resume();
     return context;
+  }
+
+  /**
+   * What the one device context says about itself, or null before the unlock:
+   * the page's half of the stamp `scripts/suite.mjs` puts on a console error
+   * (H35). `tests/audiodevice.js` is what reads it.
+   */
+  deviceReport() {
+    return this.device ? this.device.report() : null;
   }
 
   setMasterVolume(value) {
@@ -195,6 +208,9 @@ export class AudioSystem {
     for (const off of this._unsubscribe) off();
     this._unsubscribe.length = 0;
     this.reset();
+    // Said before the close, so the journal can tell a `closed` state the game
+    // asked for from one the device entered on its own (H35).
+    if (this.device) this.device.closing();
     if (this.context) this.context.close();
     this.context = null;
   }
