@@ -855,7 +855,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   and invented two eye moves - and it was caught only because the new
   readings were held against H43's table, which they now match to the
   millimetre on both maps.
-  — commit `H46_COMMIT`
+  — commit `9974109`
 
 - **H35** The device answers for itself, and it is being starved. The job
   was a reading: three cold gates' console-error counts, then close the
