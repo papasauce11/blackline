@@ -862,7 +862,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   quietly stop holding. `presentation.js` is the only module under `frozen`
   now and the clause that holds it still does, and
   `positioncensus.js`'s header no longer claims a hole it no longer has.
-  — commit `H47_COMMIT`
+  — commit `b008641`
 
 - **H46** The chase moves three eyes, and all three are climbs. H43 left
   the question: the eye a pose is photographed from is the first of six
