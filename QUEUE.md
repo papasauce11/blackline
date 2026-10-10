@@ -812,7 +812,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   including the exact second-way-past this is written against, making
   `otherRunners()` itself conditional on the flag. One inconsistency named
   and left: the bench refuses with 2 where the suite now refuses with 3.
-  — commit H45_HASH
+  — commit `0de451e`
 
 - **H44** The grab's slide, and the shape the queue had wrong. The entry
   carried H40's numbers — the drawn body 0.80m low one frame in, 0.20m at a
