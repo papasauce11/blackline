@@ -867,7 +867,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   census was miscounting itself in prose, "nine clauses in eight modules"
   against ten in nine, corrected here and in `HANDOFF.md`. **H54** is the
   measurement that would make D74's floor writable.
-  — commit `H50_COMMIT`
+  — commit `d7d9848`
 
 - **H47** The death camera's clause reads the body it could actually move.
   `death-camera-watches-the-killer`'s *"free-look moved the body"* clause
