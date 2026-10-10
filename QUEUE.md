@@ -803,7 +803,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   split out of `photographPose` so a sequence can be photographed mid-flight,
   which is the seam H46 wants too. Two breaks, each naming its own line — and
   the smoothing break instructively does **not** red frame 1, because that
-  frame's drop is the capsule's own travel. — commit H44_HASH
+  frame's drop is the capsule's own travel. — commit `31c0b1e`
 
 - **H43** The drawn body arrives after the capsule, and the census of who
   reads it on the way. `tests/positioncensus.js` (538) and its table and
