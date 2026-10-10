@@ -336,12 +336,17 @@ session that launched a healthy runner simply ending. The 2026-10-08 17:10 run
 started a gate at 09:01 and ended at 09:02 with it still drawing, so H41's own
 plant gate ran beside a second full suite for 38 of its minutes and took
 **2,215,508ms against the 1,105,958ms of the four runs before it**, with `auto`
-picking `low` off a 10.30ms probe where this machine reads 5-7ms. **The runner
-already tells you**: `OTHER RUNNERS ALIVE: pid N (started) - every timing above
-was measured against them` is in the summary, and the pid is in the report's
-`otherRunners`. Read that line before reading any timing, and before building:
-H45 is the job to make the gate refuse rather than warn, the way `npm run
-bench` already refuses to run beside a suite. The two pids below are from
+picking `low` off a 10.30ms probe where this machine reads 5-7ms. **Since H45 the runner refuses
+rather than telling you**: it exits **3** before launching anything, naming the
+other pid, two ways to end it, and `--allow-other-runners`, which is the only
+way past and exists for the reader who means it and will read the report
+knowing. **Exit 3 is a refusal, 2 is a crash and 1 is red** - three different
+mornings, and until H45 the third did not exist, so a run beside an orphan came
+back green with its timings doubled. If you pass the flag you get the old
+`OTHER RUNNERS ALIVE: pid N (started) - every timing above was measured against
+them` in the summary, `otherRunners` in the report and `besideOtherRunners`
+true; read that line before reading any timing. The warning alone was read past
+twice before it became a refusal. The two pids below are from
 2026-09-23, are no longer on this machine, and the history is kept because it
 is what makes the sentence believable.)* The 09-18 17:00 build's runner was still alive
 on 2026-09-23: `npm run suite` (pid **9608**) → `node scripts/suite.mjs` (pid

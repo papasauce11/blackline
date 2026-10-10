@@ -22,6 +22,17 @@
 //                          [--cores N] [--cooldown SECONDS] [--details FILE]
 //                          [--stall SECONDS] [--stall-wait SECONDS]
 //                          [--url https://papasauce11.github.io/blackline/]
+//                          [--allow-other-runners]
+//
+// It REFUSES to start beside another suite.mjs (H45) and exits 3 naming the
+// other pid and the flag above. `npm run bench` has refused the same way
+// since H11, with the same argument: a sustained all-core software-GL load
+// next door makes every timing in the report a number about a busy machine,
+// and the warning this replaced had been read past twice, each time for a
+// doubled plant run (2,215,508ms against 1,105,958ms, with `auto` calling for
+// `low` off a 10.30ms probe where this machine reads 5-7ms). The verdicts are
+// still honest beside another runner; no timing is, and a run that cannot tell
+// the difference should not be writing numbers into PROGRESS.md.
 //
 // It stamps `version.json` first (H3, scripts/version.mjs) and says what it
 // did on stderr. That only ever writes from a clean tree, so a gate stamps
@@ -110,6 +121,10 @@ const QUERY = args.query ?? null; // e.g. "seed=20260908", appended to the page 
 /** A deployed origin to test instead of this checkout, always ending in a slash. */
 const BASE_URL = args.url ? String(args.url).replace(/\/*$/, '/') : null;
 const REGRESSION = !!args.regression;
+// H45: the one way past the refusal below. Named once and read once, so the
+// check that holds the refusal can hold that too - a second reader, or a
+// second condition on that exit, is a second way past it.
+const ALLOW_OTHER_RUNNERS = !!args['allow-other-runners'];
 const MAPS = args.map
   ? String(args.map).split(',').map(s => s.trim()).filter(Boolean)
   : registeredMapIds();
@@ -265,13 +280,28 @@ const bootErrors = [];
 
 async function main() {
   // Before anything is launched: an older runner's Chrome invalidates every
-  // timing below, and a routine cannot clear one (the sandbox refuses
-  // taskkill), so the report has to name it rather than leave the reader to
-  // infer why a run was slow.
+  // timing below. This WARNED until H45 and now refuses, because the warning
+  // was read past twice and each time cost a doubled plant run - the argument
+  // `npm run bench` has made since H11, in the runner that produces the
+  // numbers rather than the one that spot-checks them.
+  //
+  // A verdict is still honest beside another runner: a check that counts draw
+  // calls counts the same number on a busy machine. No *timing* is, and the
+  // report is full of them - so this refuses rather than annotating, and the
+  // flag exists for the reader who means it and will read the report knowing.
   const leaked = otherRunners();
+  if (leaked.length && !ALLOW_OTHER_RUNNERS) {
+    for (const r of leaked) {
+      process.stderr.write(`suite: REFUSED: another suite.mjs is still running (pid ${r.pid}, started ${r.started}).`
+        + ` Its headless Chrome competes for the same cores, so every timing in this report would be measured against it.`
+        + ` End it with: taskkill /PID ${r.pid} /T /F  (or Stop-Process -Id ${r.pid} -Force),`
+        + ` or run anyway with --allow-other-runners.\n`);
+    }
+    process.exit(3);
+  }
   for (const r of leaked) {
-    process.stderr.write(`suite: WARNING: another suite.mjs is still running (pid ${r.pid}, started ${r.started}).`
-      + ` Its headless Chrome competes for the same cores, so every timing below is measured against it.`
+    process.stderr.write(`suite: WARNING: another suite.mjs is still running (pid ${r.pid}, started ${r.started}),`
+      + ` and --allow-other-runners was given. Every timing below is measured against it.`
       + ` End it with: taskkill /PID ${r.pid} /T /F\n`);
   }
 
@@ -447,6 +477,7 @@ async function main() {
 
     report = judge(runs, renderer, consoleErrors);
     report.otherRunners = leaked;
+    report.besideOtherRunners = leaked.length > 0;
     report.throttle = {
       cores: CORES && CORES < os.cpus().length ? CORES : os.cpus().length,
       of: os.cpus().length,

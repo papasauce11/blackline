@@ -93,6 +93,7 @@ import { register as registerTraversalFuzz } from './traversalfuzz.js';
 import { register as registerRegistry } from './registry.js';
 import { register as registerSkipList } from './skiplist.js';
 import { register as registerBenchList } from './benchlist.js';
+import { register as registerRunnerGuard } from './runnerguard.js';
 import { register as registerTimedRenders } from './timedrenders.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
@@ -205,6 +206,7 @@ export function registerAutoTests(debugTools) {
   // Beside it, the other list of checks the gate does not count: the ones
   // `npm run bench` answers on the real GPU instead (H11).
   registerBenchList(debugTools);
+  registerRunnerGuard(debugTools);
   // And the census of the clocks themselves: which checks time a render, and
   // which of them put a verdict on a number this renderer cannot measure
   // (H36, H41). After fuzz.js and pipelinewait.js, so its own two drains

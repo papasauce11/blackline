@@ -389,29 +389,12 @@ one setting only Josh can click; everything else here proceeds.
   up to 0.46m under it — and whether it reads wrong is **D72**, with the
   frames to look at in `PLAYTEST.md` and `npm run shot -- --slide`. **H48** is
   the fix, blocked on his word.
-- [ ] **H45 (S)** The gate names another runner and builds anyway. `npm run
-  bench` has refused to run beside a suite since H11, with the right argument:
-  a frame timed next to a sustained all-core software-GL load is a reading
-  about a busy machine. The gate has the same exposure and only **warns** —
-  `scripts/watchdog.mjs`'s `otherRunners()` finds them, `suitereport.mjs`
-  prints `OTHER RUNNERS ALIVE: pid N - every timing above was measured against
-  them`, and the run proceeds. H41 paid for that: the 2026-10-08 17:10 run
-  launched a gate at 09:01 and **ended at 09:02 with it still drawing**, so
-  H41's plant gate took **2,215,508ms against 1,105,958ms** and `auto` read
-  10.30ms where this machine reads 5-7ms. F10 does not cover it — a session
-  ending leaves a *healthy* runner, which no heartbeat watchdog will kill — and
-  the orphan had to be cleared by hand (`Stop-Process`, which `TRAPS.md` had
-  wrongly recorded as refused to a scheduled session). Make the suite refuse by
-  default and say the pid and how to clear it, with a flag for the case where
-  somebody means it; a verdict is still honest beside another runner but no
-  timing in the report is, and a run that cannot tell the difference should not
-  be writing numbers into `PROGRESS.md`. Keep the refusal out of the page: the
-  page cannot see processes, so the check reads `scripts/suite.mjs`'s own text
-  the way `benchlist.js` reads `bench.mjs`'s.
-  *done-when:* a suite started beside another `suite.mjs` exits non-zero
-  naming the other pid and the flag that overrides it, proved by starting one;
-  a check holds that the refusal is in `suite.mjs` and that the flag is the
-  only way past it; and `TRAPS.md`'s orphan entry points at the flag.
+- [x] **H45 (S)** The gate names another runner and builds anyway. — done
+  2026-10-09, under Done. It **refuses** now and exits **3**, naming the pid,
+  two ways to end it and `--allow-other-runners`, which is the only way past.
+  Exit 3 is deliberate: 1 is red, 2 is a crash, and a run that declined to
+  measure is neither. Proved both ways on a live pid. **H49** is what it
+  found: the build task's own prompt does not know about the third code.
 - [ ] **H35 (S, the small end)** Three gates with their console-error counts
   written down, then close the `AudioContext` error or name a new hypothesis.
   H32 eliminated the code side of it — one realtime context per page, one owner
@@ -526,6 +509,24 @@ one setting only Josh can click; everything else here proceeds.
   re-measured with their new numbers in `PROGRESS.md`; `PLAYTEST.md`'s H44
   section says what changed and `npm run shot -- --slide` shows it; and the
   60Hz jitter the smoothing exists for is shown still smoothed outside a move.
+- [ ] **H49 (S)** The *build* task's prompt does not know about exit 3.
+  H45 gave `npm run suite` a third exit code: **1 is red, 2 is a crash, 3 is
+  "another runner is alive and this run declined to measure"**. The scheduled
+  task's own prompt, at `~/.claude/scheduled-tasks/blackline-build/SKILL.md`,
+  says only that a non-zero gate means write the red text under `## BROKEN
+  BASE` and that "exit code 2 means the runner itself crashed". A refusal
+  filed as a broken base is a wrong verdict in the record: the base is fine,
+  the machine is busy, and the right move is to read the pid out of the
+  stderr line, clear it, and start the gate again rather than to commit a
+  BROKEN BASE and stop. Add the third branch, and the two ways to clear a pid
+  that `TRAPS.md` now carries.
+  **This is the second job in Block H that edits a file outside this repo**,
+  and the same rule applies as to **H37**: a scheduled session with nobody
+  present should not change another standing prompt, including its own. A
+  session Josh is watching can take both in one sitting — they are two lines
+  in two files, and H37's dry run is the harder half.
+  *done-when:* the build task's prompt routes exit 3 to "clear the pid and
+  re-gate" rather than to BROKEN BASE, and says which code means what.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -779,6 +780,39 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H45** The gate refuses rather than warns, and exit 3 is a third kind of
+  morning. `npm run bench` has refused to run beside a suite since H11 with
+  the right argument; the suite had the same exposure and only warned, and
+  **the warning was read past twice** — H41's gate took 2,215,508ms against
+  the 1,105,958ms of the four runs before it, on the same tree with the same
+  instrument, with `auto` calling for `low` off a 10.30ms probe where this
+  machine reads 5-7ms. `scripts/suite.mjs` now refuses before it launches
+  anything and exits **3**, naming the other pid, `taskkill` **and**
+  `Stop-Process` (H41 found the first is not refused to a scheduled session,
+  which `TRAPS.md` had wrong), and `--allow-other-runners`. **Exit 3 is the
+  argued part**: 1 is red, 2 is a crash, a refusal is neither, and a
+  scheduled session reads a code before it reads anything else. With the flag
+  it warns, proceeds, and the report carries `besideOtherRunners` beside
+  `otherRunners`. The distinction it rests on: a **verdict** is honest beside
+  another runner (a draw-call count is the same number on a busy machine), no
+  **timing** is, and the report is full of them. **Proved by starting one**:
+  refused at pid 14004 with exit 3 before a browser existed, and the same
+  command with the flag came back exit 0 with the warning, the summary's
+  `OTHER RUNNERS ALIVE` line and `besideOtherRunners: true`.
+  `tests/runnerguard.js` (252) holds the mechanism where it lives, the way
+  `benchlist.js` holds `bench.mjs`'s — the page has no processes and the
+  module says so rather than pretending: the exit is an exit and not a
+  warning, it names the pid and the flag, the code is 3, `ALLOW_OTHER_RUNNERS`
+  is read **exactly twice** so a third reader is a second way past it,
+  `package.json` does not carry the flag, `bench.mjs` still refuses so the
+  pair cannot drift, `otherRunners()` still looks for `suite.mjs` at all, and
+  `TRAPS.md` names the flag. Every grep reads the source with its comments
+  stripped (H41's rule, H43's bite). Three breaks, each naming its own line —
+  including the exact second-way-past this is written against, making
+  `otherRunners()` itself conditional on the flag. One inconsistency named
+  and left: the bench refuses with 2 where the suite now refuses with 3.
+  — commit H45_HASH
 
 - **H44** The grab's slide, and the shape the queue had wrong. The entry
   carried H40's numbers — the drawn body 0.80m low one frame in, 0.20m at a

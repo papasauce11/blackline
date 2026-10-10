@@ -13799,3 +13799,112 @@ measured constants in three modules rest on today's profile — `hang.js`'s
 ceiling and its twelve-state table, and this module's own profile — and all
 four would go red, correctly, and want re-measuring. That is a job rather than
 an edit, and doing it once after he has looked is cheaper than doing it twice.
+
+## H45 — the gate refuses rather than warns, and exit 3 is a third kind of morning (2026-10-09, scheduled run)
+
+**What it was handed.** `npm run bench` has refused to run beside a suite
+since H11, with the right argument: a frame timed next to a sustained all-core
+software-GL load is a reading about a busy machine. `npm run suite` had exactly
+the same exposure and only **warned** — `otherRunners()` found them,
+`suitereport.mjs` printed `OTHER RUNNERS ALIVE: pid N`, and the run went ahead
+and wrote its numbers into the record. The warning was read past twice, each
+time for a doubled plant run, and this run made the evidence a third time.
+
+**What it costs when it is read past**, which is the whole argument: H41's gate
+took **2,215,508ms against the 1,105,958ms** of the four runs before it, on the
+same tree with the same instrument, because 38 of its minutes were measured
+beside a runner a previous session had left healthy — and `auto` read 10.30ms
+there and called for `low` where every uncontended run on this machine reads
+5-7ms. A report that wrong in a column nobody re-reads is worse than no report.
+
+**What was built.** `scripts/suite.mjs` refuses before it launches anything and
+exits **3**, naming the other pid, two ways to end it (`taskkill` and
+`Stop-Process`, because `TRAPS.md` had the first recorded as refused to a
+scheduled session and H41 found it is not), and `--allow-other-runners`.
+With the flag it prints the old warning instead, proceeds, and the report
+carries `besideOtherRunners: true` beside `otherRunners`, so a reader of the
+JSON can tell an allowed run from a clean one without reading stderr.
+
+**Exit 3 is the part worth arguing for.** The runner already had two codes and
+they meant different things — **1 is red, 2 is a crash** — and a refusal is
+neither. A scheduled session reads an exit code before it reads anything else,
+and the task prompt routes a 2 to `## BROKEN BASE`; a run that declined to
+measure is not a broken base and should not be filed as one. So the refusal
+took a code of its own, the check below holds that it is distinct from both,
+and `TRAPS.md` says which is which.
+
+**The distinction the refusal rests on, and why there is a flag at all.** A
+*verdict* is still honest beside another runner: a check that counts draw calls
+counts the same number on a busy machine, and one that reads pixels reads the
+same pixels. No **timing** is, and the report is full of them. So the default
+is to decline, and a reader who means it — benching a hypothesis about
+contention, say, which is exactly what H41 wanted and could not have — passes
+the flag and gets the warning.
+
+**Proved by starting one.** With a `suite.mjs` alive at pid 14004:
+
+> `suite: REFUSED: another suite.mjs is still running (pid 14004, started
+> 2026-10-09T21:35:20). Its headless Chrome competes for the same cores, so
+> every timing in this report would be measured against it. End it with:
+> taskkill /PID 14004 /T /F  (or Stop-Process -Id 14004 -Force), or run anyway
+> with --allow-other-runners.`
+
+and **exit 3**, before a browser or a server existed. The same command with
+`--allow-other-runners` came back **exit 0** with the old
+`suite: WARNING: ... and --allow-other-runners was given`, the summary's
+`OTHER RUNNERS ALIVE: pid 14004`, and `"besideOtherRunners": true` in the
+report. Both paths, on this machine, with the pid in the text.
+
+**What the check holds, and what it honestly cannot.** The page has no
+processes: it cannot start a second runner, see one, or read an exit code. So
+`tests/runnerguard.js` holds the mechanism where it lives, the way
+`tests/benchlist.js` holds `bench.mjs`'s rules by reading its source — that the
+refusal is in `suite.mjs`, that it is an **exit** and not a warning, that it
+names the pid and the flag, that the exit code is 3 and distinct from 1 and 2,
+that `ALLOW_OTHER_RUNNERS` is read **exactly twice** (the command line and the
+guard) so a third reader is a second way past it, that `package.json` does not
+carry the flag in the command every gate runs, that `bench.mjs` still refuses
+the same way so the pair cannot drift, that `otherRunners()` still looks for
+`suite.mjs` at all, and that `TRAPS.md` names the flag. Every grep is taken
+against the source with its **comment lines stripped**, which is H41's rule and
+the half H43 was bitten by — this module's whole subject is a runner whose
+header describes its refusal at length.
+
+**Proved by breaking it, three ways, each naming its own line.** Commenting out
+the `process.exit(3)` reds the exit clause ("finds another runner and does not
+exit 3 for it"); making `otherRunners()` itself conditional on the flag — the
+exact second-way-past this is written against — reds the use-count clause
+("read 3 times ... a third reader is a second way past the refusal"); and
+taking the flag's name out of `TRAPS.md` reds the pointer clause.
+
+**What was verified.** The GATE was H44's VERIFY on this branch (D19). VERIFY,
+two runs of each map: **plant 224 passed, 1 failed, 8 not for this map (1,103,620ms and
+1,117,541ms), yard 204 / 1 / 28 (776,142ms and 795,815ms), exit 0, 0 red, 0
+flaky, 0 unexpectedly green, 0 skips withheld, 0 bench drops withheld, no
+other runner on the machine - and 0 console errors in all four runs.** Both
+runs of each map agree exactly on every count, and each map is **one check**
+more than H44's, which is this one. `besideOtherRunners` reads **false** in
+the report, which is the new field saying so rather than leaving a reader to
+infer it from an empty list. The spread between runs is plant 13,921ms (1%)
+and yard 19,673ms (2%), against pipeline-wait spreads of 4,738ms and
+5,361ms - read the spread against the wait beside it (F16) - and about 40%
+of each run is the renderer's pipeline tail. `auto` would pick `medium` on
+both, 5.60ms on the plant and 4.80ms on the yard.
+
+**Two things left, both named rather than done.** `npm run bench` has refused
+since H11 and exits **2** for it, where the suite now exits 3 for the same
+refusal — a cosmetic inconsistency in a manual tool rather than a defect, since
+nothing in the repo reads the bench's exit code, but a reader who learns "3 is
+a refusal" from `TRAPS.md` will meet a 2 there. It was left alone because
+H45 is about the gate and changing a second runner's contract is not in this
+job. And the **build task's own prompt does not know about exit 3** — it routes
+every non-zero gate to  and names 2 as a crash — so a refusal
+would be filed as a broken base, which is a wrong verdict in the record. That
+prompt is outside this repo, which is H37's rule, so it is **H49** for a
+session Josh is watching.
+
+One thing a future run should know: the
+refusal means a scheduled session that fires while a previous one's orphan is
+alive now **stops at the gate with exit 3 instead of building**, which is the
+intended behaviour and not a broken base — read the stderr line, clear the pid
+it names, and start again.
