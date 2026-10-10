@@ -38,19 +38,41 @@
  * candidate for an intermittent device error than anything in H32's list.
  * H35's `PROGRESS.md` entry argues it; `TRAPS.md` carries the sentence.
  *
- * **So no verdict here rests on the number**, and this is H41's lesson in a
- * second place: a wall clock on this machine cannot price a draw (D71), and it
- * cannot price the audio device either. A floor on the ratio would be a floor
- * on how busy the machine was, red on a loaded morning and green on a quiet
- * one, which is the kind of check that teaches a session to ignore it. The
- * number is printed - every run from now on puts the device's own account on
- * the record beside the Node-side stamp - and **H50** sets a measured floor
- * once a verify has the ratio for both maps and both runs of each.
+ * **No floor rests on the ratio, and H50 measured before saying so** (D74).
+ * H41's lesson applies one layer over - a wall clock on this machine cannot
+ * price a draw (D71) and it cannot price the audio device either - but the
+ * queue asked for readings rather than for that argument, and eleven full-run
+ * readings now exist, each a solo suite run of one map: `fed` 0.5665, 0.6220,
+ * 0.6411, 0.6503 and 0.6856 on the plant, 0.6844, 0.6844, 0.6941, 0.7119,
+ * 0.7132 and 0.7481 on the yard. The arithmetic a floor would be argued from
+ * is real - a device that stopped at a run's halfway point reads about half
+ * its healthy value, 0.28 to 0.36, and 0.45 would separate that from every
+ * reading taken - and it is still refused, because **the ratio is a total and
+ * a total has no shape**. 0.57 is this machine with a device that stops
+ * feeding and resumes some hundreds of times; 0.28 is a device that stopped
+ * once and stayed stopped; 0.28 is also a *healthy* device on a machine twice
+ * as loaded as this one. The total cannot tell the first from the second
+ * without the shape it does not keep, and cannot tell the second from the
+ * third at all - and the solo spread already on record is 32% wide with no
+ * cause attributed, so 0.45 is 1.26x under the lowest healthy reading rather
+ * than a margin. A false red here costs a whole run (the gate routes it to
+ * `## BROKEN BASE`), which is the price of guessing. D74 is the page.
  *
- * What is asserted is the four things about the device that are true whether or
- * not it is being starved: there is exactly one of it, it is still running, it
- * is still the device the graph was built for, and it entered no state nobody
- * asked for. Nothing else in this suite holds any of them.
+ * **What a total does support is a sign, and that is asserted** (H50): over a
+ * window of minutes the device's clock has advanced at all. A device that was
+ * never fed reads exactly zero and goes red naming the window; a device
+ * starved for 43% of the page gains 461.6s and says nothing, which is the
+ * difference between a verdict about the build and a verdict about the
+ * morning. It is the weakest clause this number carries and deliberately so:
+ * `readDeviceClock()` is it, `CLOCK_CASES` puts it to all eleven readings, to
+ * the halfway stop and to a dead device, and the halfway case is asserted
+ * **green** - which is where a later job that wants a floor meets D74.
+ *
+ * What is asserted is therefore five things, four of them true whether or not
+ * the device is being starved: there is exactly one of it, it is still
+ * running, it is still the device the graph was built for, it entered no state
+ * nobody asked for, and its clock has moved. Nothing else in this suite holds
+ * any of them.
  *
  * **Those four can go red for an environmental reason, and they are asserted
  * anyway** (D73). D67 decided the other way about the console message - a
@@ -62,6 +84,14 @@
  * It has not happened in thirty-six runs. If it ever does, that red is the most
  * valuable thing this project could learn about this question, because it is
  * the occurrence H35 could not attribute, caught in the act.
+ *
+ * **The fifth clause is on the same line and well inside it.** A clock that
+ * never moved is a device that never played a sample, which is the same game
+ * with no sound in it that a suspended context is, read from the one side a
+ * `running` context does not cover. What it would take to red it falsely is a
+ * machine whose audio thread was starved for *all* of a window of minutes,
+ * where this machine - the worst on record - still feeds 57% of the longest
+ * run it has. The override is the same shape as D73's: one `problems.push`.
  *
  * An empty `errors` list is reported, not read as health: `error` on a context
  * is young enough that it may never fire here, and the absence of an event
@@ -79,7 +109,9 @@
  * is minutes - but a subset that reaches this check without reaching that one
  * unlocks the device here, and a window of milliseconds is a reading about the
  * first buffer. A check should know the difference between a measurement and
- * the lack of one, even where it puts no verdict on either.
+ * the lack of one - and since H50 one verdict rests on that difference, so the
+ * constant is load-bearing rather than cosmetic: under this window a clock that
+ * has not moved is a clock that has not been asked, and nothing is said.
  */
 const MIN_WINDOW_SECONDS = 30;
 
@@ -92,11 +124,79 @@ const UNASKED = {
   suspended: 'the device context suspended itself after the unlock resumed it, which is the device going away under a running page',
 };
 
+/**
+ * The device's clock against the wall clock, and the one verdict a total of it
+ * supports.
+ *
+ * Pure, and exported so that `CLOCK_CASES` can put the clause to the readings
+ * on record rather than to whatever this machine answers this morning - the
+ * shape `timedrenders.js` uses for `timedVerdictAsked()`, and for the same
+ * reason: a clause whose subject is intermittent needs a table under it.
+ *
+ * `stopped` is the whole of the verdict and it is a **sign**. The clock
+ * advanced, or it did not. How far it advanced is `fed`, which is reported and
+ * carries no floor (D74) - and the honest limit of a sign is in the table: a
+ * device fed for one buffer of a quarter-hour run answers `stopped: false`,
+ * because 2.7ms and 461.6s are the same sign and only a floor tells them
+ * apart. Under `MIN_WINDOW_SECONDS` there is no reading to have, so `measured`
+ * is false and `stopped` cannot be true: a subset that reaches this check
+ * unlocks the device at it, and a window of milliseconds is a question about
+ * the first buffer rather than about the device.
+ *
+ * @param {number} clockGained seconds the device's own clock has gained
+ * @param {number} wallSeconds seconds of wall clock over the same window
+ * @returns {{ measured: boolean, lost: number, fed: number|null, stopped: boolean }}
+ */
+export function readDeviceClock(clockGained, wallSeconds) {
+  const measured = wallSeconds >= MIN_WINDOW_SECONDS;
+  return {
+    measured,
+    lost: wallSeconds - clockGained,
+    fed: wallSeconds > 0 ? clockGained / wallSeconds : null,
+    stopped: measured && !(clockGained > 0),
+  };
+}
+
+/**
+ * The clause above, put to every reading on record and to the breaks it exists
+ * to tell apart. `gained` and `wall` are seconds, `stopped` is what
+ * `readDeviceClock()` must answer, and `why` is printed when it answers the
+ * other way.
+ *
+ * The eleven healthy rows are H35's, H46's and H47's verifies, each a solo
+ * suite run of one map (`PROGRESS.md`); `gained` is the recorded `fed` times
+ * the recorded window, so the fourth decimal of the quotient is rounding and
+ * nothing here reads it. They are the floor's evidence and the sign's at once:
+ * every one must stay green, and **so must the halfway stop**, because the
+ * total cannot tell it from a loaded machine. A job that writes a floor turns
+ * that row red and has D74 to answer.
+ */
+const CLOCK_CASES = [
+  { gained: 461.6, wall: 814.7, stopped: false, why: 'the plant run H35 measured: fed 0.5665, the lowest full-run reading on record, 353.1s of the page unfed' },
+  { gained: 525.6, wall: 808.3, stopped: false, why: "H46's first plant run, fed 0.6503" },
+  { gained: 1222.9, wall: 1966.0, stopped: false, why: "H46's second plant run, fed 0.6220 over a window of half an hour" },
+  { gained: 563.8, wall: 822.4, stopped: false, why: "H47's first plant run, fed 0.6856" },
+  { gained: 1287.3, wall: 2007.9, stopped: false, why: "H47's second plant run, fed 0.6411 over the longest window on record" },
+  { gained: 383.3, wall: 538.4, stopped: false, why: "H35's yard run, fed 0.7119" },
+  { gained: 922.9, wall: 1348.5, stopped: false, why: "H35's second yard run, fed 0.6844" },
+  { gained: 399.1, wall: 533.5, stopped: false, why: "H46's first yard run, fed 0.7481, the highest full-run reading on record" },
+  { gained: 941.2, wall: 1355.9, stopped: false, why: "H46's second yard run, fed 0.6941" },
+  { gained: 384.0, wall: 538.4, stopped: false, why: "H47's first yard run, fed 0.7132" },
+  { gained: 925.2, wall: 1351.6, stopped: false, why: "H47's second yard run, fed 0.6844" },
+  { gained: 230.8, wall: 814.7, stopped: false, why: 'a device that stopped at the halfway point of H35\'s plant run: fed 0.283, and green on purpose - 0.283 is also a healthy device on a machine twice as loaded, so no floor separates them (D74)' },
+  { gained: 0.0027, wall: 814.7, stopped: false, why: 'a device fed for one 128-sample buffer of a quarter-hour run: green, and this is the whole of what a sign cannot do' },
+  { gained: 0, wall: 814.7, stopped: true, why: 'a device never fed at all over a window of minutes, which is the one thing a total proves and the reason this clause exists' },
+  { gained: 0, wall: MIN_WINDOW_SECONDS, stopped: true, why: `a dead device at exactly the ${MIN_WINDOW_SECONDS}s window, which is a measurement and must be judged` },
+  { gained: 0, wall: MIN_WINDOW_SECONDS - 0.1, stopped: false, why: 'a dead device a tenth of a second under the window: no measurement to have, so no verdict' },
+  { gained: 0, wall: 1.8, stopped: false, why: "the 1.8s subset window H35 took as a control, with nothing fed in it - still not a reading about the device" },
+  { gained: 0, wall: 0, stopped: false, why: 'the check reached before the unlock has had any wall clock at all, where fed is null and nothing is known' },
+];
+
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'the-audio-device-keeps-its-clock-and-journals-the-states-it-enters',
-    spec: 'Section 14 / Section 15 / H35',
-    name: 'There is one realtime audio context, it is running, it is still the device the graph was built for, it entered no state nobody asked for, and its clock against the wall clock is on the record',
+    spec: 'Section 14 / Section 15 / H35 / H50',
+    name: 'There is one realtime audio context, it is running, it is still the device the graph was built for, it entered no state nobody asked for, its clock has moved at all over a window of minutes, and how much of that window it was fed for is on the record without a floor',
     run: (h) => {
       const problems = [];
       const audio = h.audio;
@@ -115,7 +215,7 @@ export function register(debugTools) {
       // The wall-clock end of the ratio, taken here rather than in the journal
       // so that the one clock reading sits in the same file as the clause it
       // feeds - which is what H41's census is for, and this entry is declared
-      // there as `reported`.
+      // there as `sign` since H50.
       const wallSeconds = (performance.now() - report.openedAtMs) / 1000;
 
       // 1. One device, counted from the live side. `audiocontext.js` holds the
@@ -147,10 +247,23 @@ export function register(debugTools) {
         problems.push(`${entry.atMs}ms after the unlock: ${why}`);
       }
 
-      // 4. The clock, reported and not judged - see the header, and H50.
-      const lost = wallSeconds - report.clockGained;
-      const fed = wallSeconds > 0 ? report.clockGained / wallSeconds : null;
-      const measured = wallSeconds >= MIN_WINDOW_SECONDS;
+      // 4. The clock: the sign asserted, the size reported (H50, D74). The
+      //    clause is a function so that the table below can ask it about the
+      //    eleven readings on record and about the breaks, which is the
+      //    only way a check whose subject has never occurred can be known to
+      //    answer - every other clause here is in the same position and has no
+      //    such table (the standing warning: the absence of an event nobody
+      //    has seen fire is not evidence).
+      const { lost, fed, measured, stopped } = readDeviceClock(report.clockGained, wallSeconds);
+      if (stopped) {
+        problems.push(`the device's clock has not advanced at all in ${wallSeconds.toFixed(1)}s since the unlock, so the output device has played nothing; the context reads "${report.state}" and ${report.errors.length} error events, which is a game with no sound in it from the one side a running context does not cover`);
+      }
+      for (const probe of CLOCK_CASES) {
+        const answer = readDeviceClock(probe.gained, probe.wall);
+        if (answer.stopped !== probe.stopped) {
+          problems.push(`readDeviceClock(${probe.gained}, ${probe.wall}) answered stopped=${answer.stopped}, want ${probe.stopped}: ${probe.why}`);
+        }
+      }
 
       const latency = report.baseLatency === null && report.outputLatency === null
         ? 'no latency offered'
@@ -161,7 +274,8 @@ export function register(debugTools) {
         : shown;
       const account = `${report.opened} device${report.opened === 1 ? '' : 's'} at ${report.sampleRate}Hz, ${latency}; ${states}`
         + `; unfed ${lost.toFixed(1)}s of ${wallSeconds.toFixed(1)}s, fed ${fed === null ? 'n/a' : fed.toFixed(4)}`
-        + `${measured ? '' : `, window under ${MIN_WINDOW_SECONDS}s`}, no verdict on it (H50)`
+        + `${measured ? '' : `, window under ${MIN_WINDOW_SECONDS}s`}, no floor on it (D74)`
+        + `; the clock moved, asserted as a sign over ${CLOCK_CASES.length} cases`
         + `; ${report.errors.length} error events, a count and not health`;
 
       return {

@@ -452,52 +452,17 @@ one setting only Josh can click; everything else here proceeds.
   in two files, and H37's dry run is the harder half.
   *done-when:* the build task's prompt routes exit 3 to "clear the pid and
   re-gate" rather than to BROKEN BASE, and says which code means what.
-- [ ] **H50 (S)** A floor on the device's fed ratio, if one can be set
-  honestly — and the `sign` count H35 found short. H35 measured the audio
-  device unrendered for **353.1s of 814.7s** on a full plant run (`fed`
-  0.5665) against 0.8s on a 16.5-second subset of the same tree, so the
-  loss accumulates with the run and is starvation rather than a startup
-  offset. The ratio is therefore **reported and not judged** (D73), for
-  D71's reason one layer over: a floor on it is a floor on how busy the
-  machine was. **H35's own verify did not record its readings** — it ran
-  without `--details`, which is now a `TRAPS.md` entry — so the record is a
-  plant run and a yard pair taken on the same tree, and the table is in
-  `PROGRESS.md`: **fed 0.5665** on the plant over 814.7s, **0.7119** and
-  **0.6844** on the yard over 538.4s and 1,348.5s, against 0.9530 and
-  0.9673 on two short subsets. **H46's verify added four more**, because it
-  was run with `--details`: 0.6503 and 0.6220 on the plant over 808.3s and
-  1,966.0s, 0.7481 and 0.6941 on the yard over 533.5s and 1,355.9s. So the
-  record is **eleven full-run readings between 0.5665 and 0.7481** (H47’s
-  verify added 0.6856, 0.6411, 0.7132 and 0.6844), every one
-  a solo suite run, and the second run of a map always reads lower than the
-  first because the loss keeps accruing over a window that keeps growing.
-  Decide whether a floor exists that catches
-  *the device stopping* without catching *a loaded morning*. The arithmetic
-  is there to argue from: a device that stops at the halfway point of a run
-  roughly halves the ratio, so 0.28-0.36 is what a stop looks like against
-  0.57-0.71 healthy, and something near **0.45** separates them on every
-  reading so far — half of the lowest (0.283) sits clear of nothing else on
-  the record, and the highest healthy reading is 0.7481. **Seven readings is
-  enough to write it from**, which the entry could not say before H46's
-  verify; three of the seven are of the plant, the worse map, and the two
-  maps overlap rather than separating, so one floor serves both. And note
-  that the contended case which would break such a
-  floor is no longer measurable: since H45 a run beside another runner
-  refuses rather than reporting doubled timings, so the worst honest load
-  is a solo suite run, which is what all seven readings are. If no honest
-  floor exists, say so and leave the number reported — that is a real
-  answer, and it belongs in `TRAPS.md` beside the starvation sentence.
-  **Second half, found in passing and left on purpose.**
-  `tests/timedrenders.js`'s summary counts `sign` verdicts with
-  `READS.filter((e) => e.verdict === 'sign')`, so a `sign` entry in the
-  `CLOCKED` group would be counted nowhere and the detail line would
-  under-report the census. Nothing is wrong today because no such entry
-  exists; H35 wanted one and took `reported` instead, which is how it was
-  found. Count it across both groups, and the header's vocabulary note
-  moves up so `sign` is documented for both.
-  *done-when:* the ratio either carries a measured floor proved by a break
-  that stops the device, or carries a recorded reason it cannot; and the
-  census counts `sign` across both groups, proved by an entry that uses it.
+- [x] **H50 (S)** A floor on the device's fed ratio, if one can be set
+  honestly - and the `sign` count H35 found short. - done 2026-10-10, under
+  Done. **No floor, and the readings are why rather than the argument**
+  (D74): fifteen solo full-run readings between `fed` 0.5665 and 0.7481, a
+  halfway stop would read 0.28-0.36, and 0.45 would separate them - but the
+  ratio is a **total** and 0.28 is also a healthy device on a machine twice
+  as loaded, so the line divides machines rather than faults. What is
+  asserted is the sign: the clock moved at all over a window of minutes,
+  over eighteen cases including the halfway stop, green on purpose. The
+  census counts `sign` across both groups now and its tally must add up.
+  **H54** is the measurement that would make a floor possible.
 - [ ] **H51 (S)** `src/systems/audio.js` is at 589 of 600. H35 put three
   lines in it and the file has eleven left; the next job to touch it
   discovers that halfway through a verify, which is the thing H42, H43 and
@@ -588,6 +553,35 @@ one setting only Josh can click; everything else here proceeds.
   whose **code** calls either is still caught, proved the same way; and
   H47's workaround comment in `deathcam.js` comes out, with the identifiers
   written back into its prose where they belong.
+- [ ] **H54 (M)** The device journal keeps a total and no shape, which is
+  the only reason no floor can be written. D74 refused a floor on `fed`
+  because the ratio cannot tell *one* stall of 353s from *a thousand*
+  stalls adding to 353s, and the first of those is a device that died while
+  the second is this machine on an ordinary morning. A **worst single
+  stretch** would tell them apart, and it is the one statistic that would
+  make the floor D74 refused writable: a device that is gone has one open
+  stretch running to the end of the run, and a starved one has many short
+  ones however bad the total.
+  `systems/audiodevice.js` takes no clock of its own today, by design, and
+  this is the reason to give it one sampler rather than a clock: `AudioSystem.step(dt, state)`
+  is already called every frame from `main.js:401` with the wall delta, so
+  the journal can be handed a `sample()` from there and keep, per page, the
+  longest wall interval across which `currentTime` did not move, with the
+  millisecond it started at. Three lines in `step()` and a field in
+  `report()`; nothing new is constructed and the layering is unchanged.
+  **Measure before setting any constant**, which is H35's own lesson and
+  D71's: take a full plant run and a yard pair, print the worst stretch and
+  its position in the run, and only then decide whether a ceiling on it is
+  honest. It may not be - a 40-second stretch on a machine swapping is not
+  a dead device either - in which case this job ends the way H50 did, with
+  the number reported and a page saying why. Sized M because the readings
+  are most of it.
+  *done-when:* the journal reports a worst unfed stretch with its start,
+  the number is in the detail line beside `fed`, at least three full-run
+  readings of it are in `PROGRESS.md`, and D74's page says whether the
+  shape it now has makes a floor writable; `tests/audiodevice.js`'s
+  `CLOCK_CASES` gains the stretch's own cases, and the entry in
+  `timedrenders.js` says which verdict the new number carries.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -841,6 +835,39 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H50** The floor that cannot be written, and the word a census could not
+  count. The queue asked whether the audio device's `fed` ratio - the share
+  of a run its own clock gained, which H35 measured at 0.5665 on a plant
+  run with the context reading `running` throughout - can carry an honest
+  floor, and said seven readings were enough to write one from. Fifteen
+  exist now - eleven when the clause was written and four more from this
+  job's own verify - every one a solo suite run, every one between 0.5665
+  and 0.7481, windows 533.5s to 2,007.9s, and the answer is **no** (D74), on a sharper
+  objection than the one the queue expected: **a total has no shape.** 0.28
+  is a device that stopped once and stayed stopped, and 0.28 is also a
+  healthy device on a machine twice as loaded, so a line at 0.45 divides
+  *machines* rather than *faults* - and the solo spread is already 32% wide
+  with nothing attributed, putting 0.45 at 1.26x under the lowest healthy
+  reading, against a false red that costs a whole run. **What is asserted
+  instead is the sign**: over a window of at least 30s the clock moved at
+  all, which catches a device that played nothing and stays quiet about one
+  merely starved. `readDeviceClock()` holds it and `CLOCK_CASES` runs it
+  over **eighteen** readings - the eleven real ones, the halfway stop
+  (green on purpose, so a later floor turns a row red and lands on D74), a
+  device fed for one buffer of a quarter-hour run, and a dead one at and
+  either side of the window. **And that made the second half bite**: the
+  audio device's entry in H41's clock census moved `reported` to **`sign`**,
+  the census's first `sign` entry in `CLOCKED`, where `sign` was counted as
+  `READS.filter(...)` because the word was documented over `READS` alone -
+  so the detail line would have said nine clauses of ten with nothing red.
+  The four words moved up into one `VERDICTS` constant, every verdict is
+  counted over both groups, and **the tally must add up**, which is the
+  clause that would fail if this job were reverted. Found in passing: the
+  census was miscounting itself in prose, "nine clauses in eight modules"
+  against ten in nine, corrected here and in `HANDOFF.md`. **H54** is the
+  measurement that would make D74's floor writable.
+  — commit `H50_COMMIT`
 
 - **H47** The death camera's clause reads the body it could actually move.
   `death-camera-watches-the-killer`'s *"free-look moved the body"* clause

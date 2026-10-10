@@ -19,9 +19,12 @@
  * wrong thing, however green it comes out - and green is exactly how it comes
  * out, because a submission is cheap no matter what the frame really costs.
  *
- * Nine clauses in eight modules read a duration; **two of them put a verdict
- * on the size of one**, and the tables below carry all nine with what each
- * does. The two:
+ * Ten clauses in nine modules read a duration and the tables below carry all
+ * ten with what each does; the detail line counts them, so the count in this
+ * paragraph is the one that goes stale and the printed one is the record - it
+ * said "nine clauses in eight modules" until H50 counted it against the
+ * tables, having added nothing to either. **Two of them put a verdict on the
+ * size of one when H41 looked**, and those two are:
  *
  *   - `the-frame-budget-holds-everywhere-not-just-at-site-a` (soak.js) times
  *     92 viewpoints against the 8.33ms ceiling and asserts the worst median.
@@ -111,8 +114,11 @@ const TRUST_RATIO = 20;
 const TAKES_A_CLOCK = /performance\.now\(\)/;
 
 /**
- * Every clause in `src/tests/` that **takes** a clock reading round a render
- * or a GL call. `verdict` is one of:
+ * The four verdicts, which partition both groups below and are counted across
+ * both in the summary. The vocabulary lives here rather than half here and
+ * half over `READS`, because a word documented for one group is a word the
+ * other group's entries get wrong - `sign` was described over `READS` alone
+ * until H50, and the summary counted it there alone too.
  *
  *   size      the verdict rests on how big the number is - the only kind H36's
  *             finding makes dishonest, and allowed only where the gate drops
@@ -120,7 +126,17 @@ const TAKES_A_CLOCK = /performance\.now\(\)/;
  *   reported  the number reaches the detail line and the pass does not rest on
  *             it here; a runner with a clock that can price a draw asks for the
  *             verdict by URL
+ *   sign      the verdict is that a number exists and is positive, never how
+ *             big it is - which H36's finding does not touch: a clock that
+ *             reads a submission still reads a positive one, and a fence that
+ *             answers NaN is broken on any renderer
  *   none      no verdict touches it, for the reason in `proof`
+ */
+const VERDICTS = ['size', 'reported', 'sign', 'none'];
+
+/**
+ * Every clause in `src/tests/` that **takes** a clock reading round a render
+ * or a GL call, with its verdict from `VERDICTS`.
  */
 const CLOCKED = [
   {
@@ -133,8 +149,8 @@ const CLOCKED = [
   {
     module: 'audiodevice.js',
     check: 'the-audio-device-keeps-its-clock-and-journals-the-states-it-enters',
-    verdict: 'reported',
-    note: 'takes the wall-clock end of the audio device\'s own clock - `performance.now()` against the `currentTime` the journal in `systems/audiodevice.js` has watched since the unlock - and prints how much of the page the output device went unrendered for. Nothing rests on it, for the reason this census exists one layer over: measured at 353.1s unfed of 814.7s on a full plant run, 43% of the page, against 0.8s on a 16.5s subset of the same tree, so a floor on the ratio would be a floor on how busy the machine was. H35 is the finding and H50 sets a floor once a verify has both maps. The four clauses that do decide this check - one context, the sample rate held, the state running, no state nobody asked for - touch no duration at all',
+    verdict: 'sign',
+    note: 'takes the wall-clock end of the audio device\'s own clock - `performance.now()` against the `currentTime` the journal in `systems/audiodevice.js` has watched since the unlock - and asserts that the clock moved at all over a window of at least 30s, which is a device that played something. Nothing rests on how far it moved, and H50 measured before settling that: eleven solo full-run readings between fed 0.5665 and 0.7481, where a device stopped at a run\'s halfway point reads 0.28-0.36 and so does a healthy device on a machine twice as loaded, so the total has no shape to put a floor on (D74). The ratio is printed and the sign is run over eighteen recorded and synthetic readings in `CLOCK_CASES`. The four clauses that decide the rest of that check - one context, the sample rate held, the state running, no state nobody asked for - touch no duration at all',
   },
   {
     module: 'performance.js',
@@ -159,15 +175,11 @@ const CLOCKED = [
 ];
 
 /**
- * And the clauses that **read** a duration something else measured. Keyed by
- * check rather than by module, because two of them are in one module, and each
- * names the expression it reads so that a clause which stops reading a clock
- * stops being in this census in the same diff.
- *
- *   sign      the verdict is that a number exists and is positive, never how
- *             big it is - which H36's finding does not touch: a clock that
- *             reads a submission still reads a positive one, and a fence that
- *             answers NaN is broken on any renderer
+ * And the clauses that **read** a duration something else measured, with the
+ * same `VERDICTS` as the group above. Keyed by check rather than by module,
+ * because two of them are in one module, and each names the expression it
+ * reads so that a clause which stops reading a clock stops being in this
+ * census in the same diff.
  */
 const READS = [
   {
@@ -432,14 +444,43 @@ export function register(debugTools) {
         readings.push(`timed verdicts ${asked ? 'asked for' : 'not asked for'}`);
       }
 
-      const sized = CLOCKED.filter((e) => e.verdict === 'size').length;
-      const reported = [...CLOCKED, ...READS].filter((e) => e.verdict === 'reported').length;
-      const sign = READS.filter((e) => e.verdict === 'sign').length;
-      const none = [...CLOCKED, ...READS].filter((e) => e.verdict === 'none').length;
+      // ------------------------------------------------------------------
+      // 6. And the summary counts every declared clause once. Each verdict is
+      //    counted across BOTH groups, which `sign` was not until H50: it was
+      //    described over `READS` and counted there, so the first `sign` entry
+      //    in `CLOCKED` - the audio device's clock, which asserts that the
+      //    device played something and never how much - would have been
+      //    counted nowhere and the detail line would have under-reported this
+      //    census by one with nothing red. A tally that must add up is what
+      //    makes that a failure rather than a sentence missing from a line,
+      //    and it is cheap: the four words partition the census, so the four
+      //    counts are its length.
+      // ------------------------------------------------------------------
+      const census = [...CLOCKED, ...READS];
+      const sized = census.filter((e) => e.verdict === 'size').length;
+      const reported = census.filter((e) => e.verdict === 'reported').length;
+      const sign = census.filter((e) => e.verdict === 'sign').length;
+      const none = census.filter((e) => e.verdict === 'none').length;
+      for (const entry of census) {
+        if (!VERDICTS.includes(entry.verdict)) {
+          problems.push(`"${entry.check}" is declared "${entry.verdict}", which is not one of the ${VERDICTS.length} verdicts this census counts (${VERDICTS.join(', ')})`);
+        }
+      }
+      if (sized + reported + sign + none !== census.length) {
+        problems.push(`the summary counts ${sized + reported + sign + none} of ${census.length} declared clauses; a verdict counted in one group only under-reports this census and nothing else would have said so (H50)`);
+      }
+      // A size verdict is the one kind that may not be in the read group: a
+      // clause that reads a duration it did not measure cannot be the one the
+      // bench takes over, because `bench-checks.json` drops whole checks.
+      for (const entry of READS) {
+        if (entry.verdict === 'size') {
+          problems.push(`"${entry.check}" reads a duration it did not measure and puts a verdict on its size; H41's only resolution for that is bench-only, which drops the whole check`);
+        }
+      }
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${CLOCKED.length + READS.length} clauses read a duration: ${sized} assert a size and are bench-only, `
+          ? `${census.length} clauses read a duration (${CLOCKED.length} take it, ${READS.length} read it): ${sized} assert a size and are bench-only, `
             + `${reported} report one, ${sign} assert only that a number exists, ${none} out of reach by ${Object.keys(PROOFS).length} proofs; `
             + `bench.mjs asks for ${TIMED_VERDICT_PARAM} and suite.mjs does not. ${readings.join('; ')}`
           : problems.join('; '),

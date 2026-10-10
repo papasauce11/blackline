@@ -119,6 +119,23 @@ afterwards to make that follow-up answerable. The verify is the only reading
 this project takes on a finished tree; if what the job found is a quantity,
 that is the run to capture it from, and `--details <path>` costs nothing.
 
+**The gate reads the tree it is running against, live, so do not edit `src/`
+while it is up.** `scripts/suite.mjs` serves the repo in-process and every page
+load fetches from disk, so a file changed at minute ten is loaded by the second
+map's run and **fetched as text by the three censuses that grep sources** even
+in the run already in flight. A gate that half-measures the base and half
+measures the job is a gate that proves neither, and a red in it cannot be
+attributed. H50 started its gate in the background and began writing the job
+beside it, which is the right instinct for an hour-long run and the wrong files
+to spend it on: write the **markdown** while a gate is up, and touch `src/`
+only once it has exited. It is also why the first thing a red gate wants is
+`git status --short`.
+
+**And do not pipe a background gate through `tail`.** `npm run suite … | tail
+-60` buffers the whole run and shows **nothing** until the process exits, so a
+thirty-minute gate is thirty minutes with no idea whether it has reached the
+yard. Redirect to a file, or let the tool capture it, and read the tail of that.
+
 **A loaded machine can take the GPU away mid-suite.** One verify came back
 with *eight* pixel checks flaky at once and never reproduced. F1 found it: a
 **lost WebGL context**. Chrome kills a starved SwiftShader GPU process and
@@ -285,7 +302,18 @@ way and no error event at all. A 16.5-second subset of the same tree lost 0.8s,
 so it is not a startup offset: it accumulates with the run. Two consequences.
 **A duration measured against this page's audio clock is a reading about four
 pinned cores**, the same way a wall clock round a draw is (F11, D71), so no
-verdict rests on it and `H50` decides whether one honestly can. And the
+verdict rests on it. **H50 asked whether one honestly could and the answer is
+no** (D74): fifteen solo full-run readings now sit between `fed` 0.5665 and
+0.7481, a band four more runs did not widen, a device that stopped at a run's halfway point would read 0.28-0.36,
+and 0.45 would separate them — but **the ratio is a total and a total has no
+shape**. 0.28 is a device that stopped once and stayed stopped, and 0.28 is
+also a healthy device on a machine twice as loaded as this one, and the solo
+spread is already 32% wide with nothing attributed. So the ratio is printed for
+ever and judged never, and the one clause it carries is a **sign**: over a
+window of thirty seconds the clock moved at all. Do not write a floor on this
+number without reading D74 first; `CLOCK_CASES` in `tests/audiodevice.js`
+asserts the halfway stop **green** so that writing one turns a row red and
+sends you there. And the
 starvation is now the leading candidate for the error itself, which fits every
 property of the thing - intermittent, no stack, mid-run, invisible to code,
 never in a cold gate's first seconds. It is **not** a closure, and the

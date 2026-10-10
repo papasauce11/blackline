@@ -14396,3 +14396,200 @@ between 0.5665 and 0.7481**, which is the band H50 argues its floor from.
 than fixed. The open follow-ups are H35's (**H50**
 the device floor, **H51** the `audio.js` split) and H46's (**H52**, which has a
 rule in it: two strikes of a moving state land the capsule 0.975m apart).
+
+## H50 — the floor that cannot be written, and the word a census could not count (2026-10-10, scheduled run)
+
+**Two halves, and the first one is a no.** H50 asked whether the audio device's
+`fed` ratio can carry an honest floor, and the second half was a counting
+defect H35 found in passing. They turned out to be one job rather than two,
+because the answer to the first is what gave the second its proof: refusing the
+floor and asserting a **sign** instead put the census's first `sign` entry in
+the group the census was not counting that word in.
+
+**The readings H50 inherited.** `fed` is the fraction of a run's wall clock that
+the output device's own `currentTime` gained — the one number in this page that
+moves only while the device is being fed. Eleven full-run readings now exist,
+every one a solo suite run of one map, taken by H35's, H46's and H47's verifies:
+
+| map | `fed`, sorted | windows |
+|---|---|---|
+| plant | 0.5665, 0.6220, 0.6411, 0.6503, 0.6856 | 808.3s to 2,007.9s |
+| yard | 0.6844, 0.6844, 0.6941, 0.7119, 0.7132, 0.7481 | 533.5s to 1,355.9s |
+
+with two controls at 0.9530 over 16.5s and 0.9673 over 1.8s, so the loss is
+bought by sustained load rather than paid at startup.
+
+**The floor the queue expected is a real argument.** A device that stopped at a
+run's halfway point reads about half its healthy value, 0.28 to 0.36; half the
+lowest reading is 0.283 and the highest is 0.7481, so a line at 0.45 sits clear
+of everything on the record and would separate *the device stopping* from *a
+busy morning* on all eleven. The queue said seven readings were enough to write
+that from, and eleven exist.
+
+**It is refused, and not for the reason the queue anticipated.** The queue
+expected the objection to be D71's — a floor on the ratio is a floor on how
+busy the machine was — and treated more readings as the answer to it. The
+objection that actually decides it is sharper, and more readings make it worse
+rather than better: **the ratio is a total, and a total has no shape.** 0.57 is
+this machine with a device that stops feeding and resumes some hundreds of
+times across a quarter of an hour. 0.28 is a device that stopped once and never
+came back. 0.28 is *also* a perfectly healthy device on a machine twice as
+loaded as this one. A floor cannot tell the first from the second without the
+shape the journal does not keep, and cannot tell the second from the third at
+all — so a line at 0.45 does not divide *stopped* from *loaded*, it divides
+*this machine* from *some other machine*, which is the one thing a gate must
+never assert.
+
+Two further facts price it. The **solo** spread already on record is 32% wide
+(0.5665 to 0.7481) with no cause attributed to any of it, so 0.45 is **1.26x**
+under the lowest healthy reading — not a margin in a project that argues its
+thresholds in multiples, where H38 argued 2.26x for a glove. And the cost of a
+false red here is a **whole run**: this task's own prompt routes a non-zero
+gate to `## BROKEN BASE` and stops without building, so a floor that is wrong
+one morning in twenty spends a session to learn nothing. D74 is the page, with
+the override and what overriding costs; `TRAPS.md` carries the sentence beside
+H35's starvation one, and `PLAYTEST.md` has it in Josh's language.
+
+**What is asserted instead, and it is deliberately the weakest clause the
+number carries.** Over a window of at least `MIN_WINDOW_SECONDS` the device's
+clock must have advanced **at all**. A device that was never fed reads exactly
+zero and goes red naming the window; a device starved for 43% of the page gains
+461.6s and says nothing. That is the one statement a total supports, and it is
+the same line D73 drew from the other side: a context that reads `running`
+while its clock stands still is a game with no sound in it, and none of the
+four existing clauses covers it.
+
+`readDeviceClock(clockGained, wallSeconds)` is the clause, pure and exported,
+and `CLOCK_CASES` runs it over **eighteen** readings: the eleven real ones, the
+halfway stop, a device fed for one 128-sample buffer of a quarter-hour run, a
+dead device over a full window, and a dead device at the window exactly, a
+tenth of a second under it, over H35's 1.8s control, and over no window at all.
+The table asserts the **sign** and never `fed`, because `gained` is the recorded
+ratio times the recorded window and the fourth decimal of the quotient is
+rounding (0.5666 against the recorded 0.5665).
+
+**Two of those rows are this job's argument held by a check rather than by this
+entry.** The halfway stop is asserted **green** on purpose, so that a later job
+writing a floor turns a row red and arrives at D74 before it arrives at a
+constant. And the one-buffer device is green too, which is the honest limit of
+a sign written down: 2.7ms and 461.6s are the same sign, and only a floor tells
+them apart. A clause that catches a device which is gone and misses a device
+which is nearly gone is what this number can pay for, and **H54** is the
+measurement that would change that.
+
+### The second half: a census that could not count its own word
+
+`tests/timedrenders.js` keeps H41's census of every clause in `src/tests/` that
+reads a duration, in two groups — `CLOCKED` for the clauses that take a clock
+reading, `READS` for the ones that read a duration something else measured —
+and four verdict words. Three were counted across both groups and `sign` was
+counted as `READS.filter(...)`, because the word was *documented* over `READS`
+alone. H35 found that while wanting a `sign` entry in `CLOCKED` and taking
+`reported` instead, and the queue carried it as "nothing is wrong today because
+no such entry exists".
+
+H50 is the day it existed: the audio device's entry moved from `reported` to
+**`sign`**, and the detail line would have reported nine clauses of ten with
+nothing red. The fix is three lines and the guard is the point:
+
+- the four words moved up into one `VERDICTS` constant above `CLOCKED`, so a
+  word documented for one group cannot be a word the other group gets wrong;
+- every verdict is counted over `[...CLOCKED, ...READS]`;
+- and **the tally must add up**: the four counts partition the census, so
+  `sized + reported + sign + none` is its length, and a verdict counted in one
+  group only is red rather than a sentence missing from a line. Reverting only
+  the count makes it say "9 of 10 declared clauses", which is the clause this
+  job would fail without.
+
+Two smaller clauses came with it, both about what the census's shape allows: an
+entry whose verdict is not one of the four is named, and a `size` verdict in
+the read group is refused, because H41's only resolution for a size verdict is
+bench-only and `bench-checks.json` drops whole checks rather than clauses.
+
+**And the census was miscounting itself in prose.** The module header said
+"nine clauses in eight modules read a duration" and the tables hold **ten in
+nine** — stale since whichever job added the tenth, and visible all along in
+the check's own detail line, which counts them. Both corrected, the header now
+says which of the two numbers is the record, and `HANDOFF.md`'s H41 line
+carried the same stale pair and is corrected too.
+
+### What was verified
+
+**The GATE was a cold 31-minute run** (17:11 to 17:43): plant 226 passed, 1
+failed, 8 not for this map in 1,154,401ms, yard 206 / 1 / 28 in 790,111ms, exit
+0, 0 red, 0 flaky, **0 console errors** - the seventh cold gate in a row at 0,
+and H35's own seventh data point. The one failure on each map is the bench-only
+frame-budget sweep the gate drops by design (H11).
+
+**The VERIFY passed on its first attempt**, which the last two jobs' did not:
+plant **226 / 1 / 8** twice (1,123,386ms, 1,108,451ms), yard **206 / 1 / 28**
+twice (775,588ms, 772,843ms), exit 0, 0 red, 0 flaky, 0 context losses, 0 loop
+frames, 0 skips withheld, 0 bench drops withheld, 0 unexpectedly green, 0
+re-runs, no other runner on the machine - and **0 console errors in all four
+runs**. Both runs of each map agree exactly on every count, and the spreads are
+14,935ms on the plant (1% of the longest) and 2,745ms on the yard (0%), inside
+F16's band. The counts match the gate's exactly, because this job added no
+check: it extended two.
+
+**Run with `--details`** (H35's trap, honoured for the third job in a row), so
+the four device readings exist: `fed` **0.5965** on the plant over 817.9s and
+**0.6404** over 1,974.3s, **0.7391** on the yard over 538.0s and **0.7023**
+over 1,350.8s. **Fifteen full-run readings now, and the band has not moved** -
+still 0.5665 to 0.7481, with these four landing inside it and the pattern
+holding that a map's second run reads lower than its first. Four more readings
+did not weaken D74 and could not have: the objection is about shape, not about
+sample size, which is the thing the queue entry had the wrong way round.
+
+**The new clause ran in all four and said so**: *"the clock moved, asserted as
+a sign over 18 cases"* in every detail line, with all eighteen rows agreeing.
+And the census's own line reads identically in all four runs - *"10 clauses
+read a duration (5 take it, 5 read it): 1 assert a size and are bench-only, 1
+report one, 3 assert only that a number exists, 5 out of reach by 4 proofs"* -
+which is 1 + 1 + 3 + 5 = 10, the tally the new clause requires.
+
+**And the revert was proved rather than argued.** With only the count line put
+back to `READS.filter(...)` and nothing else changed, the census goes red on
+the plant naming it: *"the summary counts 9 of 10 declared clauses; a verdict
+counted in one group only under-reports this census and nothing else would have
+said so"*. Restored, the same subset is 2 passed, 0 failed. That is the check
+this job would fail without, measured both ways on the finished tree.
+
+### What was found, and what was left
+
+**H54 is the follow-up and it is the interesting one** (M, in `QUEUE.md`). D74
+refuses a floor because the ratio cannot tell *one* stall of 353s from *a
+thousand* stalls adding to 353s — and a **worst single stretch** would tell
+them apart, because a device that is gone has one open stretch running to the
+end of the run however short the run, and a starved one has many short ones
+however bad the total. That is the statistic that would make D74's floor
+writable, and the seam for it is already there: `AudioSystem.step(dt, state)`
+is called every frame from `main.js:401` with the wall delta, so the journal
+can be handed a `sample()` from there and keep the longest interval across
+which `currentTime` did not move. The job is sized M because the readings are
+most of it, and it is written to end the way this one did if the numbers say so.
+
+**Two traps, one of them this run's own.** The gate serves the tree it is
+running against, live — `scripts/suite.mjs` serves the repo in-process and
+every page load fetches from disk — so a file changed at minute ten of a
+31-minute gate is loaded by the second map's run and fetched as text by the
+three censuses that grep sources even in the run already in flight. This run
+started its gate in the background and began writing the job beside it, which
+is the right instinct for an hour-long run and the wrong files to spend it on:
+the markdown is safe, `src/` is not. Nothing was lost here — the plant run is a
+clean base reading, the yard run is a first pass on the job, and both were
+green — but a red in a half-measured gate cannot be attributed, which is the
+whole value of the step. And the second: `npm run suite … | tail -60` in the
+background buffers the entire run and prints **nothing** until it exits, so the
+first twenty minutes were spent with no idea whether the gate had reached the
+yard. Both are in `TRAPS.md`.
+
+**What was not done, for the fifth and second time respectively.** **H37** and
+**H49** each want a line added to a scheduled task's own standing prompt, at
+`~/.claude/scheduled-tasks/blackline-audit/SKILL.md` and
+`~/.claude/scheduled-tasks/blackline-build/SKILL.md`, outside this repo. Four
+runs have now declined H37 and this is the fifth; H49 was created by H45 two
+runs ago and this is the second to pass it over. Both are two lines in two
+files and a session Josh is watching can take them in one sitting. H49 is the
+one with a cost attached: until it lands, a gate that exits 3 because another
+runner is alive will be filed as a `## BROKEN BASE` by a prompt that only knows
+about 1 and 2, and the base will be fine.

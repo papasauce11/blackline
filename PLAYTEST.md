@@ -95,6 +95,42 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The sound-device number stays a reading, and here is why it cannot be a pass mark (H50, 2026-10-10)
+
+**Nothing in the game changed and there is nothing here to judge.** This is the
+last paragraph of the H35 section further down, and it is a *no*.
+
+**The question.** H35 found that this PC starves its sound device while the
+test suite runs — on a full plant run the device was being fed for only 57% of
+the time, and it never once said so. That number is printed in every run now.
+The obvious next step was to make it a **pass mark**: if the device is being fed
+for less than, say, 45% of a run, call the run broken. Fifteen runs' worth of
+readings exist to set the line from, between 57% and 75%, and a device that
+quit halfway through a run would read about 28% — so 45% looked like a clean
+line between "the device stopped" and "the morning was busy".
+
+**Why it was refused.** Because the number is a **total**, and a total cannot
+tell you *when* the time was lost. 28% is what you would read from a device
+that stopped once and never came back — and 28% is also what you would read
+from a perfectly healthy device on a PC twice as busy as this one. The test
+cannot tell those two apart, and the healthy readings already swing by a
+third with nothing explaining the swing. A pass mark set there would go red on
+a busy Tuesday and, because the morning routine treats any red test run as a
+broken build and stops, it would cost a whole session's work to learn nothing.
+
+**What it got instead, which is the honest version.** The run now fails if the
+sound device's clock has not moved **at all** over a window of minutes — a
+device that played nothing. That is the one thing a total genuinely proves: it
+catches a device that is gone, and it stays quiet about a device that is merely
+starved. Eighteen worked examples are written into the check itself, including
+the eleven real readings and the "stopped halfway" case, and that case is
+deliberately recorded as **passing**, so that anyone who later tries to write a
+pass mark trips over it and has to read the argument first.
+
+**What is left for you: nothing new.** The one thing still worth your ears is
+the line already in the H35 section — play with the sound on for a few minutes
+and say if it ever cuts out, crackles, or goes quiet and comes back.
+
 ### A test that guarded the death camera was watching the wrong body (H47, 2026-10-10)
 
 **Nothing in the game changed and there is nothing here to judge.** The death

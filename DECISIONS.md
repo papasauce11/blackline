@@ -110,6 +110,72 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D74 — The audio device's fed ratio carries no floor, because a total has no shape; what it carries is a sign
+
+**Raised by:** H50, 2026-10-10. Taken rather than asked, for D73's reason: it
+is a rule about what the gate stops for and it changes nothing a player can do.
+D73 left the ratio reported and named this page's job — *"H50 sets one if a
+verify's four runs say it can be set honestly"* — and the answer is that it
+cannot, with the readings rather than with an argument.
+
+**The readings.** Eleven full-run readings now exist, each a solo suite run of
+one map, taken by H35's, H46's and H47's verifies:
+
+| map | `fed`, sorted | n |
+|---|---|---|
+| plant | 0.5665, 0.5965, 0.6220, 0.6404, 0.6411, 0.6503, 0.6856 | 7 |
+| yard | 0.6844, 0.6844, 0.6941, 0.7023, 0.7119, 0.7132, 0.7391, 0.7481 | 8 |
+
+Windows from 533.5s to 2,007.9s; the controls are 0.9530 over 16.5s and 0.9673
+over 1.8s, so the loss is bought by sustained load and not by a startup offset.
+**Fifteen**, because H50's own verify took four more (0.5965 and 0.6404 on the
+plant, 0.7391 and 0.7023 on the yard) and **the band did not move**: they all
+land inside the eleven. The clause's `CLOCK_CASES` table holds the first eleven,
+which are the readings it was written from; a job that adds the rest re-verifies.
+
+**The floor the queue expected, and it is a real argument.** A device that
+stopped at a run's halfway point reads about half its healthy value, 0.28 to
+0.36, and something near **0.45** separates that from all eleven. Half of the
+lowest reading is 0.283 and the highest is 0.7481, so a line through 0.45 is
+clear of everything on the record.
+
+**Why it is refused.** **The ratio is a total, and a total has no shape.** 0.57
+is this machine with a device that stops feeding and resumes some hundreds of
+times across a quarter of an hour; 0.28 is a device that stopped once and
+stayed stopped; and 0.28 is also a perfectly healthy device on a machine twice
+as loaded as this one. A floor cannot tell the first case from the second
+without the shape the journal does not keep, and it cannot tell the second from
+the third at all — which is D71 one layer over, and this time measured rather
+than reasoned. Two things make it worse than D71's case. The **solo** spread
+already on record is 32% wide (0.5665 to 0.7481) with no cause attributed to
+any of it, so 0.45 sits 1.26x under the lowest healthy reading, which is not a
+margin in a project that argues its thresholds in multiples. And the **cost of
+a false red here is a whole run**: the build task routes a non-zero gate to
+`## BROKEN BASE` and stops, so a floor that is wrong one morning in twenty
+buys nothing and spends a session.
+
+**What is asserted instead, and it is deliberately the weakest clause the
+number carries.** Over a window of at least 30 seconds the device's clock must
+have advanced **at all** — a sign, never a size. A device that was never fed
+reads exactly zero and goes red naming the window; a device starved for 43% of
+the page gains 461.6s and says nothing. That is the one statement a total
+supports, it is the same line D73 drew (a context that has gone is a game with
+no sound in it, whoever's fault that is, and this is the side of it a `running`
+context does not cover), and its limit is in the check: a device fed for one
+128-sample buffer of a quarter-hour run passes, because 2.7ms and 461.6s are
+the same sign and only a floor tells them apart.
+
+**Held by** `readDeviceClock()` in `tests/audiodevice.js`, with `CLOCK_CASES`
+putting it to all eleven readings, to the halfway stop — asserted **green**, on
+purpose, so that a job which writes a floor turns that row red and arrives
+here — to a one-buffer device, and to a dead one at and either side of the
+window.
+
+**Override by** writing the floor into `readDeviceClock()` and the number into
+`CLOCK_CASES`' halfway row. The cost of overriding is a gate whose verdict
+depends on what else the machine was doing, and the cost of a wrong one is a
+morning filed as a broken base.
+
 ### D73 — A device error is reported and a suspended device is red, which is a line D67 drew somewhere else
 
 **Raised by:** H35, 2026-10-10. Taken rather than asked, because it changes
