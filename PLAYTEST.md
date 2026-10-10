@@ -95,6 +95,44 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### For your eyes, eventually: a vault is photographed from whichever side the lag lands on (H46, 2026-10-10)
+
+**Nothing in the game changed.** This is about the pose gallery - the pictures
+the tests take of the Shade mid-move, which `npm run shot -- --pose vault`
+writes - and there is a small decision in it for you, but not yet and not
+urgently.
+
+**The mechanism, in one go.** The drawn body is always slightly behind the
+physics body, by design, so movement looks smooth. When the tests photograph a
+pose they put the camera 4.5m from the body and try six positions around it -
+front-left, front-right, left, right, back-left, back-right - taking the first
+one that is in open air and can actually see the body. Because the camera is
+placed relative to the **drawn** body, and the drawn body can be up to 0.8m
+from where the physics body is, the lag can change **which of the six** gets
+picked.
+
+**It does, in three cases, and all three are climbs** - which makes sense,
+because a climb is the one time the Shade is pressed up against a crate, so a
+camera position 4.5m away is the one time something is in the way. On the
+plant it is the **vault**, photographed from front-left where the physics body
+would have chosen front-right. On the yard it is the **mantle** and the
+**pull-up**. The other nine poses are photographed from the same side either
+way, on both maps.
+
+**It is not a bug and nothing is broken.** The picture is always of the body it
+framed, from a camera that can see it - it is self-consistent whichever side
+wins. What it means is only that a vault gets photographed from whichever
+three-quarter angle the lag happens to land on, rather than from one somebody
+chose. A test now records exactly which three poses this happens to, on which
+map, and complains if a fourth joins them or one stops.
+
+**What is left for you, when you next look at the pose pictures:** take a look
+at `vault` on the plant and `mantle` on the yard and say whether the angle
+reads well. If it does, nothing needs doing and I will write that down. If
+you would rather the camera always picked the side the physics body would
+have, that is a one-line change - but it would move every pose picture in the
+gallery, so it wants your word first rather than mine.
+
 ### The audio error: the sound card is being starved, and that closes the guessing (H35, 2026-10-10)
 
 **Nothing in the game changed and there is nothing here to judge.** This

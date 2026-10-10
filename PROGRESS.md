@@ -14095,3 +14095,204 @@ and the `sign` count in H41's census. And `src/systems/audio.js` is at **589 of
 Section 14 recipes with one caller shape (`.call(this, …)`), so it comes out
 into a sibling cleanly; **H51** is that split, before the next line forces it
 halfway through somebody's verify.
+
+## H46 — the chase moves three eyes, and all three are climbs (2026-10-10, scheduled run)
+
+**What it was handed.** H43 found that `look.js`'s `photographPose` reads its
+eye off the drawn body at a frame where the drawn body is up to 0.794m behind
+the capsule, in all twelve states a strike reaches. It then passed on a
+structural argument for why that is harmless, and the argument is sound as far
+as it goes: the eye and the focus are both offsets from **one** read of the
+drawn body, so camera and subject carry the same lag and the pixel floors are
+about a body the right size in the right part of the frame. H43 also said what
+that does not cover and named this job: the eye is chosen as the first of six
+candidates that `world.isClear` and `world.lineOfSight` both accept, and both
+are asked about a point placed off a body that is not where the capsule is.
+Neither function knows a drawn body exists. So the lag can change **which eye**
+is picked and **what occludes** the body from it.
+
+**The answer is that it does, in three places, and every one of them is a
+climb.** On the plant, `vault`: the drawn body is 0.43m behind and the eye
+chosen off it is `front-left` where off the capsule it would be `front-right`.
+On the yard, `mantle` (0.40m, `right` against `front-right`) and `pullup`
+(0.49m, `left` against `front-left`). Nine of the twelve states agree on both
+maps. The set being climbs is the shape of the finding rather than a
+coincidence: a climb is the one place the body is up against something, so a
+candidate eye 4.5m off it is where `isClear` has a crate to disagree about -
+the same division H43's own table found, where only the ledge-dependent states
+differed between the maps.
+
+**And it is the lag that causes it, proved rather than inferred.** One of the
+three breaks below snaps the chase (`_smoothPosition.copy(position)`) before
+the comparison, and `vault`'s eye stops moving. With the gap closed the two
+answers are the same answer; with it open they are not. That is the mechanism
+H43 described, caught doing the thing it was said to be able to do.
+
+**Why it is a census and not a fix.** Choosing the eye off the drawn body is
+**correct for this photograph**: the subject of the frame is the body as drawn,
+so an eye in open air with sight of *that* body is the eye the picture needs,
+and the frame is self-consistent whichever candidate wins. What the flip costs
+is the *angle* - a vault seen from `front-left` rather than `front-right`,
+chosen by a lag rather than by anything anybody intended. So the handling is
+`positioncensus.js`'s for the hole it reports: declare the set, hold it both
+ways, and let the next map say so. `EYE_MOVES` is keyed by map, because the set
+is a property of the geometry; a state joining it reds, and a declared state
+that stops moving reds too. **H52** is the fix if Josh wants one, and it is a
+look rather than a rule: choosing the eye off the capsule while photographing
+the drawn body frames a vault from where the move is going rather than from
+where the body is.
+
+**The queue's method was built first and does not work, for two measured
+reasons.** H46 asked for a state photographed twice - shipped and settled - with
+the eye and the pixel coverage compared. `photographPose` now has the `settle`
+option that needs (frames of `updateVisual` and nothing else, so the capsule
+stays where the strike left it; it defaults to **zero**, so `npm run shot` is
+unchanged, and it returns `drift` and the `capsule` it photographed). Then:
+
+1. **`updateVisual` is not only the position chase.** 150 frames of it also
+   advance the breath, which is H33's quantity and moves the silhouette. On the
+   plant, `landing` covered **9,451 pixels shipped and 9,996 settled - 5.77%
+   apart from the same eye**, and that 5.77% is a body at a different point in
+   its breath rather than an occluder. A pixel count cannot tell the two apart,
+   so it cannot answer this question.
+2. **Two strikes of a moving state do not land in the same place.** The control
+   caught it on the first run - `photographPose` returns the capsule it
+   photographed exactly so a caller comparing two frames can check, which is
+   `camerasettings.js`'s rule - and the two `sprint` photographs were of
+   capsules **0.975m apart**. They were never two frames of one moment. **H52**
+   carries it.
+
+So the check asks the geometry **directly and once**: strike the state, take the
+drawn feet and the capsule's feet off the same frame, and run `chooseEye` -
+`look.js`'s own function, exported rather than copied, so the comparison is not
+a comparison with a copy - against both. Those two calls are the entire
+mechanism by which the lag could reach the surroundings, so this is a
+**complete** answer rather than a sampled one. It costs no frame and no pixel,
+it has no breath in it, and all twelve states are free rather than the three the
+queue named - which matters, because `vault` is not one of the three the queue
+named.
+
+**The hour this cost, and the sentence that is now in `TRAPS.md`.**
+`shade.position` is the capsule's **centre**; `mesh.position` is written as
+`_smoothPosition.y - half.y`, which is its **feet**. Subtracting the two raw
+vectors adds the capsule's half-height to every gap. The first measurement
+therefore read `hang` at **0.94m** where H43's table says 0.014m, and `crouch`
+at exactly half the standing states - which is the tell, and the reason it was
+caught. Worse than wrong numbers: the eye comparison was placing its candidate
+eyes 0.9m too high, and it *found* `mantle` and `pullup` moving on the plant,
+which they do not. **A gap between a drawn body and its capsule is a gap
+between two feet or two centres, never one of each.** `feetY` is the accessor
+the entity already had.
+
+**What says the instrument is right now.** The gaps agree with H43's
+independently measured table **to the millimetre, on both maps**: walk 0.35
+against 0.352, sprint 0.65 against 0.653, crouch 0.00 against 0.004, slide 0.68
+against 0.675, rise 0.21 against 0.207, fall 0.16 against 0.157, landing 0.79
+against 0.794, vault 0.43 against 0.427, mantle 0.50 against 0.498, grab 0.46
+against 0.462, hang 0.01 against 0.014, pullup 0.49 against 0.492 on the plant;
+on the yard the four ledge-dependent rows read 0.43, 0.40, 0.43 and 0.01
+against H43's 0.427, 0.398, 0.425 and 0.012. Ten of twelve above 0.05m, where
+H43 counted ten. Two measurements of the same quantity a job apart, by
+different code, agreeing - which is worth more than either of them alone, and
+is how the half-height error was found rather than shipped.
+
+**One thing reported and deliberately not asserted.** A candidate eye whose
+verdict flips **without** changing the winner changes no picture, so it is not
+in `EYE_MOVES` and does not red; the detail line marks it with a second eye
+name (the plant's `mantle` reads `L/L`). It is the same mechanism one step from
+arriving, which is worth seeing and not worth a red.
+
+**Three breaks, each naming its own line**, every file copied to the scratchpad
+first and restored from the copy:
+
+- the capsule read as a centre rather than as feet - the job's own bug, put
+  back - and the census grew: *"2 state(s) photographed from an eye the lag
+  chose and not declared in EYE_MOVES: mantle L/FL 1.39m, pullup L/FL 1.39m"*.
+- `chooseEye` accepting no candidate at all → *"walk: no candidate eye is in
+  open air with sight of the drawn body, so this state is photographed from
+  nowhere"*, for every state. That clause is the invariant that actually has to
+  hold for a photograph to mean anything and nothing held it before.
+- the chase snapped before the comparison → both the staleness branch and the
+  instrument's own floor, in one line: *"vault declared in EYE_MOVES and no
+  longer moving"* and *"only 0 of 12 states carried a gap of 0.05m or more,
+  under the 8 this reading rests on"*. This is the causal proof above.
+
+The two remaining census branches were both seen red on the way, from real
+disagreements rather than from injected ones: *"2 state(s) ... not declared"*
+when the set was first empty, and *"EYE_MOVES is stale: mantle declared R/FL,
+read R/FR"* when the plant's set was assumed to hold on the yard.
+
+**What was verified.** The GATE was H35's VERIFY on this branch (D19: the
+verify stands as the next job's gate), which read **0 console errors on all
+four runs** - and the yard pair taken after it on the same tree came back 205 /
+1 / 28 twice, so the base was proved twice over.
+
+**The first verify failed, and it was right to.** Five checks red on both maps,
+identically in all four runs, and every one of them a thing the subsets could
+not see. It is worth the space because three of the four are the suite catching
+this job rather than this job catching the suite.
+
+**One was a real bug I put in.** Factoring the eye choice out of
+`photographHere` into `chooseEye` moved `focus` with it - the point the eye is
+required to see - and left `lens.look(eye, focus)` behind, pointing a lens at an
+undefined variable. `a-look-at-a-pose-photographs-the-state-named` and H44's
+`a-grab-slides-the-drawn-body-up-into-the-hang-by-a-measured-amount` both threw
+*"Cannot read properties of undefined (reading 'isVector3')"*. That is
+`TRAPS.md`'s **a moved method can reference a constant that did not move**, and
+the reason my own subsets were green is that I ran only the new check, which
+never calls `photographHere`. The fix is that `chooseEye` returns the focus with
+the eye, because the two are one decision: the point the eye was required to see
+is the point the lens must be pointed at. **A subset that exercises the new
+check is not a subset that exercises the function it was carved out of** - run
+the checks that call the thing you moved, not the thing you wrote.
+
+**Three were censuses doing their job.** `poseeye.js` poses a body and reads a
+world position off a drawn one, so H33's breath census and H43's position census
+both went red until it was classified - which is exactly the hole F14 and those
+two checks exist to report, arriving the day the module landed rather than the
+day somebody remembered. It is `reach: 'none'` by a new proof **`root`** in the
+breath census (every clause reads `mesh.position` or `position`, the root and the
+capsule, and the breath never reaches `mesh.position` - H39's finding, and this
+is the first entry to rest on it), and `reach: 'held'` in the position census by
+a new `how`, **`reads both`**. That third `how` is the one piece of another
+check's vocabulary this job had to widen, and it earns the word: `waits` and
+`snaps` are two ways of *closing* the gap, and a module whose subject **is** the
+gap does neither - it takes the drawn end and the capsule end off one frame and
+compares them. It is held by the entry naming that expression and by the
+module's own floor requiring ten of twelve states to carry a gap, so a tree with
+the chase snapped cannot pass it.
+
+**And the fourth was the stale regex that proves the rule.** The position
+census names the expression each entry is about, and `look.js`'s entry read
+`/const feet = actor\.mesh\.position/` - the line this job replaced. It went
+red with *"the clause the entry describes has moved"*, in the same diff that
+moved it, which is the whole design of that column.
+
+VERIFY (the second one), two runs of each map on the finished tree: **plant 226
+passed, 1 failed, 8 not for this map (1,107,779ms and 1,114,324ms), yard 206 /
+1 / 28 (778,894ms and 776,454ms), exit 0, 0 red, 0 flaky, 0 unexpectedly green,
+0 skips withheld, 0 bench drops withheld, no other runner on the machine - and 0
+console errors in all four runs.** Both runs of each map agree exactly on every
+count, and each map is **one check** more than H35's verify, which is this one.
+The spread is plant 6,545ms (1%) and yard 2,440ms (0%) against pipeline waits of
+1,331ms and 225ms, about 41% of each run is the renderer's tail, and `auto` would
+have picked `medium` on both (5.40ms, 5.20ms).
+
+**The new check's own output is byte-identical between the two runs of each
+map**, which is the thing worth checking about a census of twelve states: same
+gaps, same eye, same verdict counts, both runs, both maps. A check that answers
+differently between two runs is a bug in the check, and this one does not.
+
+**And this verify was run with `--details`**, which is H35's trap one job later
+and the first time it has been honoured. It therefore keeps four more device
+readings for H50 - `fed` 0.6503 and 0.6220 on the plant over 808.3s and 1,966.0s,
+0.7481 and 0.6941 on the yard over 533.5s and 1,355.9s - taking the record to
+**seven full-run readings between 0.5665 and 0.7481**, all of them a solo suite
+run. H50's queue entry carries them. Nothing in this job touched audio; they are
+free because the flag was set, which is the whole argument of that trap.
+
+**What was left.** **H52**, which this job found twice: two strikes of a moving
+state land the capsule 0.975m apart, so no check may compare two photographs of
+one state and `positionreads.js`'s table is reproducible only within a single
+strike; and the eye flip itself, which is Josh's call on an angle. Both are in
+`QUEUE.md`. H50 and H51 are still H35's.

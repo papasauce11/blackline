@@ -566,6 +566,24 @@ which reads like a second bug rather than like a lost edit. Partial compliance
 with these two entries is the shape the trap takes now: the rule is about every
 file the loop touches, whatever git thinks of it.
 
+**A gap between a drawn body and its capsule is a gap between two feet or two
+centres, never one of each.** `agent.position` is the capsule's **centre**;
+`agent.mesh.position` is written as `_smoothPosition.y - half.y`, which is its
+**feet** (`positionreads.js`'s `feel.js` entry quotes the expression).
+Subtracting the two raw vectors adds the capsule's half-height to every reading,
+and the arithmetic is silent about it. H46 measured all twelve strike states
+that way and got `hang` at **0.94m** where H43's table says 0.014m, with
+`crouch` at exactly half the standing states - that halving is the tell, because
+a crouched capsule is half as tall and nothing else in this model scales with
+posture. The wrong numbers were the cheap half of it. The expensive half is that
+the same check was placing six candidate eyes off that point to ask `isClear`
+about them, so its eyes were 0.9m too high and it **found two states moving that
+do not move**, which read exactly like a finding. `feetY` is the accessor the
+entity already has. And the reason this was caught rather than shipped is worth
+as much as the rule: the new reading was held against H43's independently
+measured table and disagreed with it everywhere. **Measure something a previous
+job measured, and compare, before you measure the thing nobody has.**
+
 **A coverage check cannot see a connectivity fault.** Three times now: the A1
 constant that stayed green with the step at 2m, the HUD check that was green
 only because of who ran before it, and A1's ground that was two islands while
@@ -661,6 +679,21 @@ boot failures were this (`P`, `THREE` used in `mapgen.js` without an import);
 `node --check` cannot see it and only the code path that runs at boot reports
 it. After moving code between modules, grep the new file for every bare
 identifier the old module declared at top level.
+
+**And the mirror of it, which is what the subset misses.** H46 carved the eye
+choice out of `photographHere` into `chooseEye`, inside the same file. `focus`
+moved with it; `lens.look(eye, focus)` stayed behind, pointing a lens at an
+undefined variable. Every check that photographs a pose threw *"Cannot read
+properties of undefined (reading 'isVector3')"* - and the job's own subsets were
+all green, because they ran the **new** check, which never calls the function
+the code came out of. Two rules. **A function extracted from another is a change
+to the caller**, so the identifiers to grep for are the ones the caller still
+uses and the extraction took away - and if the extracted piece decides two
+things together (where the eye is *and* what it was required to see), it returns
+both or the second one is lost. And **the subset to run after moving code is the
+one that exercises what you moved it out of**, not the one that exercises what
+you wrote; it cost a 65-minute verify to learn which of those two is the real
+test.
 
 **`MultiplyBlending` needs `premultipliedAlpha: true` on the material in
 r180.** Without it three logs a warning once a frame and draws the mesh with

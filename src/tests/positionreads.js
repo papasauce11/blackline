@@ -76,8 +76,16 @@ export const CENSUS = [
     module: 'look.js',
     reach: 'measured',
     frames: '0-30, and all twelve states read with the gap open',
-    reads: /const feet = actor\.mesh\.position/,
-    note: 'anchors the eye and the focus on `actor.mesh.position` at the frame the strike arrived, deliberately and in its own header. Measured: all twelve states read with the gap open, worst `landing` at 0.794m, the moving states deeper than the climbs and only `hang` (0.014m) and `crouch` (0.004m) settled. Both the eye and the focus come from the same read, so the lag moves camera and subject together and the pixel floors are about a body the right size in the right part of the frame; what it can still reach is which of six eyes is in open air and what occludes the body from it. The table is in PROGRESS.md; H46 is the residual',
+    reads: /chooseEye\(world, actor\.mesh\.position, actor\.yaw\)/,
+    note: 'anchors the eye and the focus on `actor.mesh.position` at the frame the strike arrived, deliberately and in its own header. Measured: all twelve states read with the gap open, worst `landing` at 0.794m, the moving states deeper than the climbs and only `hang` (0.014m) and `crouch` (0.004m) settled. Both the eye and the focus come from the same read, so the lag moves camera and subject together and the pixel floors are about a body the right size in the right part of the frame; what it can still reach is which of six eyes is in open air and what occludes the body from it. The table is in PROGRESS.md. **H46 measured that residual and it is not zero**: the lag changes the chosen eye on three state-map pairs, every one a climb - the plant\'s `vault` (0.43m, front-left where the capsule says front-right) and the yard\'s `mantle` (0.40m, right against front-right) and `pullup` (0.49m, left against front-left). Nine of twelve states agree on both maps. It is a census (`the-position-chase-moves-one-pose-photograph-eye-and-this-is-which`) and not a fix: choosing off the drawn body is correct for a photograph of the drawn body, so what the flip costs is the angle and H52 is the fix if one is wanted',
+  },
+  {
+    module: 'poseeye.js',
+    reach: 'held',
+    how: 'reads both',
+    frames: '0, the frame the strike arrived',
+    reads: /shade\.mesh\.position\.x, y: shade\.mesh\.position\.y/,
+    note: 'the one module whose subject **is** the gap: it reads the drawn feet and the capsule\'s feet off the same frame and runs `look.js`\'s `chooseEye` against each, so the lag is not something it has to deal with - it is the quantity. `held` by `reads both` rather than by waiting or snapping. Its own instrument is held two ways: the gaps agree with H43\'s table to the millimetre on both maps, and a clause requires ten of the twelve states to carry a gap over 0.05m, so a tree where the chase has been snapped cannot pass it. The one arithmetic trap is in TRAPS.md and cost this job an hour - `position` is a capsule centre and `mesh.position` is feet, so `feetY` is the comparison and subtracting the raw vectors adds half a height to every gap',
   },
   {
     module: 'grabslide.js',
@@ -183,8 +191,20 @@ export const PROOFS = {
   writes: 'the module writes the drawn position and reads none',
 };
 
-/** The two ways a module may deal with the chase rather than be out of reach of it. */
-export const HOWS = ['waits', 'snaps'];
+/**
+ * The ways a module may deal with the chase rather than be out of reach of it.
+ *
+ * `waits` and `snaps` were H43's two: close the gap by waiting for it, or close
+ * it by assignment. **H46 added the third**, which is not a way of closing the
+ * gap at all - `reads both` is a module whose subject *is* the gap, so it takes
+ * the drawn end and the capsule end off the same frame and compares them.
+ * Clause 4 of `positioncensus.js` holds `snaps` against `reset()` and clause 5
+ * holds `waits` against the law; `reads both` is held by the entry naming the
+ * expression that takes both reads, and by the module's own floor on how many
+ * states must carry a gap - a tree with the chase snapped fails it, which is
+ * the same shape of guarantee from the other side.
+ */
+export const HOWS = ['waits', 'snaps', 'reads both'];
 
 /** Read a file from the origin the way breathcensus.js and timedrenders.js do. */
 export async function text(origin, rel) {

@@ -144,12 +144,32 @@ const POSE_DISTANCE = 4.5;
  * between the strike and the frame, so a vault is photographed part way
  * over. The match is left as `quiesce` leaves it.
  *
- * @returns {{ pose: string, reached: boolean, why: string, state: string, eye: string|null, covered: number, buffer: object|null, dataUrl: string|null }}
+ * **`settle`** drives that many `updateVisual` frames between the strike and
+ * the frame, and **defaults to zero so `npm run shot` is unchanged**. It is
+ * H46's instrument and it exists because H43 measured the gap this function
+ * reads its eye across: the drawn body trails the capsule by up to 0.794m at
+ * the frame a pose is photographed, and while the eye and the focus come from
+ * the same read of the drawn body - so the body is the right size in the right
+ * part of the frame whatever the lag - `isClear` and `lineOfSight` are asked
+ * about a point placed off a body that is **not where the capsule is**. The lag
+ * can therefore change *which* of six eyes is picked and *what occludes* the
+ * body from it. Settling advances no simulation: only the chase, so the capsule
+ * stays exactly where the strike left it and the drawn body catches up to it.
+ * The comparison between `settle: 0` and a settled frame is the residual.
+ *
+ * @param {object} h
+ * @param {string} name a pose from `POSES`
+ * @param {{ settle?: number }} [options] `settle` frames of the position chase
+ *   driven before the frame; 0, the default, is what ships
+ * @returns {{ pose: string, reached: boolean, why: string, state: string, settled: number, drift: number, eye: string|null, covered: number, buffer: object|null, dataUrl: string|null }}
  *   `state` is what the body was in for the frame; `reached` whether that
  *   is the state named, `why` what stopped it when not; `eye` null when
- *   no eye had sight of the body
+ *   no eye had sight of the body; `settled` the frames actually driven and
+ *   `drift` how far the drawn body moved while they ran, which is the gap the
+ *   shipped frame is taken across
  */
-export function photographPose(h, name) {
+export function photographPose(h, name, options = {}) {
+  const settle = Math.max(0, Math.floor(options.settle || 0));
   const { shade, warden } = h;
   const restore = quiesce(h);
   let actor;
@@ -184,11 +204,83 @@ export function photographPose(h, name) {
     state = shade.state + (shade.crouching ? ' (crouching)' : '') + (shade._move ? ` ${(shade._move.timer / shade._move.duration * 100).toFixed(0)}%` : '');
   }
 
+  // The chase, and nothing else. `updateVisual` is the only thing driven, so
+  // the capsule is left exactly where the strike put it and what moves is the
+  // drawn body closing its own gap (H46). `drift` is how far it moved, which
+  // is the lag the shipped frame - `settle: 0` - is taken across.
+  const before = actor.mesh.position.clone();
+  for (let i = 0; i < settle; i++) actor.updateVisual(1 / 60);
+  const drift = actor.mesh.position.distanceTo(before);
+  // Where the capsule actually is, which is the **control** a caller comparing
+  // two of these needs: the strike is seeded and must land the body in the same
+  // place both times, or a difference in the frame is a difference in where the
+  // body was rather than in what the chase did to the picture. The same control
+  // `camerasettings.js` takes before reading a difference between two sprints.
+  const capsule = { x: actor.position.x, y: actor.position.y, z: actor.position.z };
+
   const shot = photographHere(h, actor);
   h.input.clearAll();
   restore();
-  return { pose: name, reached, why, state, ...shot };
+  return { pose: name, reached, why, state, settled: settle, drift, capsule, ...shot };
 }
+
+/**
+ * Which of `POSE_EYES` a body drawn with its feet at `feet`, facing `yaw`,
+ * would be photographed from: the first candidate that is in open air and has
+ * sight of the body's middle, by the world's own `isClear` and `lineOfSight`.
+ *
+ * **Exported so H46 can ask the question twice without copying the geometry.**
+ * `photographHere` calls it for the body as drawn; `tests/poseeye.js` calls it
+ * for the drawn body *and* for the capsule the drawn body is chasing, and
+ * compares the two answers - which is the one thing H43's cancellation
+ * argument cannot reach, because these two functions are asked about a point
+ * placed off a body up to 0.8m from where the capsule is and neither of them
+ * knows a drawn body exists. A copy of the six directions and the two offsets
+ * in the checking module would make that comparison a comparison with a copy,
+ * which is the mistake `positioncensus.js` clause 3 exists to catch one layer
+ * over.
+ *
+ * `accepted` is every candidate's verdict in order, not only the winner: a lag
+ * that changes the *first* acceptable eye is the visible failure, and a lag
+ * that changes a later one is the same mechanism not yet arrived.
+ *
+ * `focus` comes back with the eye because the two are one decision: the point
+ * the eye was required to see is the point the lens must be pointed at, and
+ * returning only the eye is how this function's first version left
+ * `photographHere` pointing a lens at an undefined focus (TRAPS.md's *a moved
+ * method can reference a constant that did not move*).
+ *
+ * @param {object} world the map's collision, for `isClear` and `lineOfSight`
+ * @param {{x: number, y: number, z: number}} feet where the body's feet are
+ * @param {number} yaw the body's facing
+ * @returns {{ name: string|null, eye: object|null, focus: object, accepted: boolean[] }}
+ */
+export function chooseEye(world, feet, yaw) {
+  const focus = { x: feet.x, y: feet.y + FOCUS, z: feet.z };
+  const forward = { x: -Math.sin(yaw), z: -Math.cos(yaw) };
+  const left = { x: -Math.cos(yaw), z: Math.sin(yaw) };
+  const eyeHalf = { x: 0.2, y: 0.2, z: 0.2 };
+  const accepted = [];
+  let eye = null;
+  let name = null;
+  for (const spec of POSE_EYES) {
+    const candidate = {
+      x: feet.x + (forward.x * spec.along + left.x * spec.across) * POSE_DISTANCE,
+      y: feet.y + EYE,
+      z: feet.z + (forward.z * spec.along + left.z * spec.across) * POSE_DISTANCE,
+    };
+    const ok = world.isClear(candidate, eyeHalf) && world.lineOfSight(candidate, focus);
+    accepted.push(ok);
+    if (ok && !eye) {
+      eye = candidate;
+      name = spec.name;
+    }
+  }
+  return { name, eye, focus, accepted };
+}
+
+/** The names of the candidate eyes, in the order `chooseEye` tries them. */
+export const POSE_EYE_NAMES = POSE_EYES.map((spec) => spec.name);
 
 /**
  * The half of `photographPose` that does not drive anything: frame the actor
@@ -214,24 +306,12 @@ export function photographHere(h, actor) {
 
   // The eye, from the body's facing: the first in open air that sees the
   // body's middle (a vault is over a crate, and an eye can be in it).
-  const feet = actor.mesh.position;
-  const focus = { x: feet.x, y: feet.y + FOCUS, z: feet.z };
-  const forward = { x: -Math.sin(actor.yaw), z: -Math.cos(actor.yaw) };
-  const left = { x: -Math.cos(actor.yaw), z: Math.sin(actor.yaw) };
-  const eyeHalf = { x: 0.2, y: 0.2, z: 0.2 };
-  let eye = null;
-  let eyeName = null;
-  for (const spec of POSE_EYES) {
-    const candidate = {
-      x: feet.x + (forward.x * spec.along + left.x * spec.across) * POSE_DISTANCE,
-      y: feet.y + EYE,
-      z: feet.z + (forward.z * spec.along + left.z * spec.across) * POSE_DISTANCE,
-    };
-    if (!world.isClear(candidate, eyeHalf) || !world.lineOfSight(candidate, focus)) continue;
-    eye = candidate;
-    eyeName = spec.name;
-    break;
-  }
+  const chosen = chooseEye(world, actor.mesh.position, actor.yaw);
+  const eye = chosen.eye;
+  const eyeName = chosen.name;
+  // The point the eye was required to see, which is the point the lens is
+  // pointed at. One decision, so it travels with the eye.
+  const focus = chosen.focus;
 
   let covered = 0;
   let dataUrl = null;

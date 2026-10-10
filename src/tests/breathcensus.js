@@ -148,6 +148,12 @@ const POSED = [
     note: 'pixel-count floors only. The gait, not the breath, is what moves them: the walk and sprint poses read 7,891-9,818px and 8,065-9,788px against a floor of 3,000, where every other pose moves 1-5%. The five-eye check moves 1.1% and its thinnest eye reads 877-887px over 300',
   },
   {
+    module: 'poseeye.js',
+    reach: 'none',
+    proof: 'root',
+    note: 'poses all twelve strike states and asserts nothing about any body part: every clause reads `mesh.position` or `position`, the drawn body\'s root and the capsule, and runs `chooseEye` off them. The breath writes group rotations and a torso lift and **never reaches `mesh.position`** (H39\'s finding, which this is the first entry to rest on), and the gait moves limbs rather than the root - so neither phase can move an eye candidate placed off it. Its readings are the proof as well as the claim: the twelve gaps agree with H43\'s table to the millimetre on both maps, and H43 took them without a breath in them either',
+  },
+  {
     module: 'bufferscale.js',
     reach: 'measured',
     note: 'the count at 8m moves 3.3% at each of three pixel ratios, and the scaling law it asserts is a ratio BETWEEN those counts, so the common part cancels: measured 1.7% of spread against a 10% tolerance',

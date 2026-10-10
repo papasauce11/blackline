@@ -400,29 +400,10 @@ one setting only Josh can click; everything else here proceeds.
   2026-10-10, under Done. **Six** cold gates exist and all six read 0; the
   error is at 3 of 36 runs with no pattern left, and what the job found is
   the device: it goes **unrendered for 43% of a run** on this machine.
-- [ ] **H46 (S)** What the chase does to a pose photograph's *surroundings*.
-  H43 measured the gap at the frame `look.js` reads it for all twelve states
-  `strike` reaches and found **all twelve read with the gap open** — worst
-  `landing` at 0.794m, the moving states deeper than the climbs, and only
-  `hang` (0.014m) and `crouch` (0.004m) settled. Its entry passes on a
-  structural argument the census holds against the source: the eye and the
-  focus are both offsets from the **one** read of the drawn body, so the
-  body-to-eye geometry carries no lag and the pixel floors are about a body
-  the right size in the right part of the frame. What that argument does not
-  cover is the *world*: the eye is chosen as the first of six candidates that
-  `isClear` and `lineOfSight` both accept, and both are asked about a point
-  placed off a body up to 0.8m from where the capsule is — so the lag can
-  change **which eye** is picked and **what occludes** the body from it.
-  Measure it: photograph a state twice, once as shipped and once with the
-  chase settled, and compare the eye chosen and the pixels covered. It needs a
-  settle option on `photographPose` (a count of `updateVisual` frames before
-  the frame, defaulting to today's zero so `npm run shot` is unchanged), which
-  is the hook H43 did not build. `landing`, `slide` and `sprint` are the three
-  to measure; H43's table says why.
-  *done-when:* the residual is measured for the three deepest states on both
-  maps and `tests/positionreads.js`'s `look.js` entry carries the number, or a
-  measured reason it is zero; if an eye changes, a line in `PROGRESS.md`
-  saying which and a follow-up for the fix.
+- [x] **H46 (S)** What the chase does to a pose photograph's *surroundings*.
+  — done 2026-10-10, under Done. **It moves three eyes and every one is a
+  climb**: the plant's `vault`, the yard's `mantle` and `pullup`. A census
+  holds the set per map; **H52** is the fix if Josh wants one.
 - [ ] **H47 (S)** `deathcam.js` asserts the body did not move, and reads a
   mesh nothing could have moved. `death-camera-watches-the-killer` reads
   `shade.mesh.position` x and z before and after `deathCam.look()` plus a
@@ -498,17 +479,26 @@ one setting only Josh can click; everything else here proceeds.
   plant run and a yard pair taken on the same tree, and the table is in
   `PROGRESS.md`: **fed 0.5665** on the plant over 814.7s, **0.7119** and
   **0.6844** on the yard over 538.4s and 1,348.5s, against 0.9530 and
-  0.9673 on two short subsets. Decide whether a floor exists that catches
+  0.9673 on two short subsets. **H46's verify added four more**, because it
+  was run with `--details`: 0.6503 and 0.6220 on the plant over 808.3s and
+  1,966.0s, 0.7481 and 0.6941 on the yard over 533.5s and 1,355.9s. So the
+  record is **seven full-run readings between 0.5665 and 0.7481**, every one
+  a solo suite run, and the second run of a map always reads lower than the
+  first because the loss keeps accruing over a window that keeps growing.
+  Decide whether a floor exists that catches
   *the device stopping* without catching *a loaded morning*. The arithmetic
   is there to argue from: a device that stops at the halfway point of a run
   roughly halves the ratio, so 0.28-0.36 is what a stop looks like against
   0.57-0.71 healthy, and something near **0.45** separates them on every
-  reading so far. **Take a fourth and a fifth before writing it** — there
-  are three full-run readings and only one is of the plant, which is the
-  worse map. And note that the contended case which would break such a
+  reading so far — half of the lowest (0.283) sits clear of nothing else on
+  the record, and the highest healthy reading is 0.7481. **Seven readings is
+  enough to write it from**, which the entry could not say before H46's
+  verify; three of the seven are of the plant, the worse map, and the two
+  maps overlap rather than separating, so one floor serves both. And note
+  that the contended case which would break such a
   floor is no longer measurable: since H45 a run beside another runner
   refuses rather than reporting doubled timings, so the worst honest load
-  is a solo suite run, which is what all three readings are. If no honest
+  is a solo suite run, which is what all seven readings are. If no honest
   floor exists, say so and leave the number reported — that is a real
   answer, and it belongs in `TRAPS.md` beside the starvation sentence.
   **Second half, found in passing and left on purpose.**
@@ -538,6 +528,48 @@ one setting only Josh can click; everything else here proceeds.
   *done-when:* no module in `src/` outside `config.js` is over 500 lines
   except the ones already named in `HANDOFF.md`, audio.js is under 500, and
   the sixteen rendered sounds match Section 14 exactly as before.
+- [ ] **H52 (S)** Two strikes of a moving state land the capsule a metre
+  apart, and the pose eye that a lag chooses. Two findings from H46, which
+  is why they share a job: both are about `strike` and `photographPose` and
+  one of them is a look.
+  **The reproducibility one is the rule and comes first.** H46 photographed
+  `sprint` twice in one check and the control it had just added caught the
+  two frames being of capsules **0.975m apart** - so a second strike of the
+  same state in the same run does not put the body where the first one did.
+  It is path dependence rather than randomness (`strike`'s moving cases run
+  to a stride-phase condition, and `reset()` snaps the position but the
+  phase a state is reached at depends on what ran before), and nothing is
+  known to be wrong today because no shipped check strikes a state twice.
+  What it costs is a method: **no check may compare two photographs of one
+  state**, and `positionreads.js`'s twelve-state table is reproducible only
+  within a single strike. Find the carried state, name it, and either reset
+  it so a strike is a function of its argument or write the restriction
+  into `animation.js`'s header where the next job will read it.
+  *done-when:* a check strikes one moving state twice and asserts the two
+  capsules agree to 1e-9, or `strike`'s header says in so many words that
+  they will not and why, with the 0.975m in it.
+  **The look, second, and it is Josh's.** The position chase changes which
+  of six candidate eyes a pose is photographed from, on three state-map
+  pairs: the plant's `vault` (0.43m behind, `front-left` where the capsule
+  says `front-right`), the yard's `mantle` (0.40m, `right` against
+  `front-right`) and `pullup` (0.49m, `left` against `front-left`). Every
+  one is a climb, which is where the body is against geometry.
+  `the-position-chase-moves-one-pose-photograph-eye-and-this-is-which`
+  declares the set per map and reds if it grows or goes stale, so nothing
+  is hidden; the question is only whether it should be **fixed**. It is a
+  look rather than a rule - the frame is self-consistent either way,
+  because an eye chosen off the drawn body can see the drawn body - and the
+  options are: leave it (a vault is photographed from whichever
+  three-quarter the lag lands on), or choose the eye off the capsule and
+  photograph the drawn body, which frames a climb from where the move is
+  going rather than from where the body is. `npm run shot -- --pose vault`
+  on each map writes the two frames to compare. **Raise it as a Provisional
+  with the two PNGs named rather than deciding it from the code**, and do
+  not change `photographHere` until he has looked: nine of twelve states
+  are unaffected and the change would move every pose gallery.
+  *done-when:* either the census is unchanged and a `DECISIONS.md` entry
+  says on whose word, or the eye is chosen off the capsule, the census is
+  empty on both maps, and `PLAYTEST.md` says which galleries moved.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -791,6 +823,39 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H46** The chase moves three eyes, and all three are climbs. H43 left
+  the question: the eye a pose is photographed from is the first of six
+  candidates `isClear` and `lineOfSight` both accept, and both are asked
+  about a point placed off a body up to 0.794m from where the capsule is,
+  so the lag can change which eye is picked and what occludes the body from
+  it. **It does.** The plant's `vault` (0.43m, `front-left` where the
+  capsule says `front-right`), the yard's `mantle` (0.40m, `right` against
+  `front-right`) and `pullup` (0.49m, `left` against `front-left`); nine of
+  twelve states agree on both maps, and the three that move are **climbs**,
+  which is where the body is up against something for a candidate eye to be
+  inside. Proved causal rather than coincident: snap the chase and `vault`'s
+  eye stops moving. Held as a census keyed by map, on
+  `positioncensus.js`'s model - a state joining reds, a declared state that
+  stops moving reds - because choosing off the drawn body is *correct* for a
+  photograph of the drawn body and what the flip costs is the angle; **H52**
+  is the fix on Josh's word. **The queue's method was built and does not
+  work**, measured twice: settling 150 frames of `updateVisual` also
+  advances the breath, so `landing` covered 9,451 pixels shipped and 9,996
+  settled, 5.77% apart from the same eye and none of it occlusion; and two
+  strikes of `sprint` are of capsules 0.975m apart, so two photographs are
+  never two frames of one moment (**H52** again). The sound instrument asks
+  the geometry once, through `look.js`'s own `chooseEye` exported rather
+  than copied, for all twelve states rather than the three the queue named -
+  and `vault` is not one of the three. `photographPose` has the `settle`
+  option the queue asked for anyway, defaulting to zero so `npm run shot` is
+  unchanged. One hour lost and one `TRAPS.md` entry bought: `position` is a
+  capsule centre and `mesh.position` is feet, so subtracting them adds
+  half a height to every gap - it read `hang` at 0.94m against H43's 0.014m
+  and invented two eye moves - and it was caught only because the new
+  readings were held against H43's table, which they now match to the
+  millimetre on both maps.
+  — commit `H46_COMMIT`
 
 - **H35** The device answers for itself, and it is being starved. The job
   was a reading: three cold gates' console-error counts, then close the
