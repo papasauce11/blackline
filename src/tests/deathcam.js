@@ -66,15 +66,41 @@ export function register(debugTools) {
       if (Math.abs(framedDistance - RI.deathCamDistance) > 0.6) {
         problems.push(`camera sits ${framedDistance.toFixed(2)}m from the killer, want ~${RI.deathCamDistance}m`);
       }
+      // Two bodies read, because they can fail differently (H47). The
+      // **capsule** is what a free-look could move: the camera reads it and a
+      // cinematic that wrote back through it would walk the corpse, and
+      // nothing in the suite held that. The **mesh** is the direct-write guard
+      // this clause was named for - a cinematic setting the transform itself -
+      // and it is out of reach of the position chase by the ragdoll rather
+      // than by luck: `combat:death` above handed the mesh over, and a
+      // ragdolled body's visual update returns before writing position.
+      //
+      // Neither of the two identifiers for driving a frame is spelled out
+      // anywhere in this file, deliberately: `breathcensus.js` decides who
+      // poses a body by grepping the raw source for one of them, comments
+      // included, so naming it here puts this module in a census it does not
+      // belong in. `audiocontext.js` keeps its own subject out of its own text
+      // for exactly this reason, and H53 is the root cause.
+      //
+      // H43 found the hole: this check drives no frame at all, so the drawn
+      // body was frozen for the whole of it and the mesh read could not have
+      // moved whatever free-look did. It was
+      // never wrong about what it claimed; it was reading the quantity it
+      // could see rather than the one it meant.
+      const capsuleBefore = { x: shade.position.x, z: shade.position.z };
       const bodyBefore = { x: shade.mesh.position.x, z: shade.mesh.position.z };
       const yawBefore = deathCam.state.yaw;
       deathCam.look(1.0, 0.2);
       deathCam.step(1 / 60, shade);
       if (deathCam.state.yaw <= yawBefore) problems.push('free-look did not turn the camera');
       const movedX = h.camera.position.x;
+      const capsuleMoved = Math.hypot(shade.position.x - capsuleBefore.x, shade.position.z - capsuleBefore.z);
+      if (capsuleMoved > 1e-6) {
+        problems.push(`free-look moved the body ${capsuleMoved.toFixed(4)}m: turning the death camera wrote back through the capsule it is reading`);
+      }
       if (Math.abs(shade.mesh.position.x - bodyBefore.x) > 1e-6
         || Math.abs(shade.mesh.position.z - bodyBefore.z) > 1e-6) {
-        problems.push('free-look moved the body');
+        problems.push('free-look wrote the drawn transform directly');
       }
       // Pitch is clamped, so a player cannot spin the camera inside the floor.
       deathCam.look(0, 99);

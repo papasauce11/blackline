@@ -404,25 +404,10 @@ one setting only Josh can click; everything else here proceeds.
   — done 2026-10-10, under Done. **It moves three eyes and every one is a
   climb**: the plant's `vault`, the yard's `mantle` and `pullup`. A census
   holds the set per map; **H52** is the fix if Josh wants one.
-- [ ] **H47 (S)** `deathcam.js` asserts the body did not move, and reads a
-  mesh nothing could have moved. `death-camera-watches-the-killer` reads
-  `shade.mesh.position` x and z before and after `deathCam.look()` plus a
-  `deathCam.step()`, and asserts they agree to 1e-6 — "free-look moved the
-  body". H43 found that **nothing in that check advances the position chase**:
-  `updateVisual` is driven only by a test calling it or by `renderFrame`, and
-  that check calls neither, so the drawn body is frozen for the whole of it.
-  The clause therefore catches a direct write to the mesh and would **not** see
-  free-look move the capsule a metre. It is not loosened and it is not wrong
-  about anything it claims; it is simply reading the quantity it can see rather
-  than the one it means. Give it the one it means — the capsule, or the mesh
-  with a frame drawn between the reads — and keep the mesh clause too, because
-  a cinematic writing the transform directly is the bug the check's own name
-  came from. `tests/positioncensus.js`'s census entry for `deathcam.js` moves
-  from `frozen` to whatever the new shape is, in the same diff.
-  *done-when:* the clause reads a quantity a free-look could move, proved by
-  making `deathCam.look()` move the capsule and watching it red; the census
-  entry re-classified; the `frozen` proof still held by `presentation.js`,
-  which is the other module under it.
+- [x] **H47 (S)** `deathcam.js` asserts the body did not move, and reads a
+  mesh nothing could have moved. — done 2026-10-10, under Done. It reads the
+  **capsule** now as well; proved by walking the corpse 0.75m, which the old
+  clause did not notice. The census entry moved `frozen` → `ragdoll`.
 - [ ] **H48 (M)** No position smoothing while a timed move owns the body.
   **blocked: D72** — it is a look, Josh has the numbers and the frames, and
   nobody should do this until he has said the slide reads wrong.
@@ -482,7 +467,8 @@ one setting only Josh can click; everything else here proceeds.
   0.9673 on two short subsets. **H46's verify added four more**, because it
   was run with `--details`: 0.6503 and 0.6220 on the plant over 808.3s and
   1,966.0s, 0.7481 and 0.6941 on the yard over 533.5s and 1,355.9s. So the
-  record is **seven full-run readings between 0.5665 and 0.7481**, every one
+  record is **eleven full-run readings between 0.5665 and 0.7481** (H47’s
+  verify added 0.6856, 0.6411, 0.7132 and 0.6844), every one
   a solo suite run, and the second run of a map always reads lower than the
   first because the loss keeps accruing over a window that keeps growing.
   Decide whether a floor exists that catches
@@ -570,6 +556,38 @@ one setting only Josh can click; everything else here proceeds.
   *done-when:* either the census is unchanged and a `DECISIONS.md` entry
   says on whose word, or the eye is chosen off the capsule, the census is
   empty on both maps, and `PLAYTEST.md` says which galleries moved.
+- [ ] **H53 (S)** Two censuses decide membership by grepping prose. Both
+  `breathcensus.js` (`POSES_A_BODY = /updateVisual/`) and
+  `timedrenders.js` (`TAKES_A_CLOCK = /performance\.now\(\)/`) test the
+  **raw** file text, comments included, so a module is in the census the
+  moment its header *mentions* the identifier. It has cost two jobs in one
+  run: **H35** was pulled into the clock census by a sentence explaining
+  what its clock measures (it belonged there anyway, by a different route,
+  so it declared itself and the entry is honest), and **H47** was pulled
+  into the breath census by a comment saying that a ragdolled body's visual
+  update writes nothing - a module that drives no frame at all and would
+  have been a **false entry** in a census whose whole value is that its
+  membership is checkable. H47 worked around it by not spelling the
+  identifier and left a comment saying why, which is `audiocontext.js`'s
+  trick and is a workaround, not a fix: it means every future header in
+  `src/tests/` has two words it may not use, and nothing enforces that or
+  explains it at the point somebody types one.
+  Give both censuses a comment-and-string-stripped read. `audiocontext.js`
+  already has the reader - its `codeOnly(line)`, decided line-locally and
+  never by parsing, which is `donedef.js`'s rule - so this is one shared
+  export rather than three copies; H41's own rule is that every grep reads
+  source with its comments stripped, and these two are the ones that do
+  not. **Keep each census's instrument clause**: both must still prove they
+  can see a real member before their answer of "none new" means anything
+  (`audiocontext.js`'s `MUST_MATCH` / `MUST_NOT_MATCH` is the model), and
+  the obvious hole in a stripped read is that it now cannot see a call
+  inside a template literal.
+  *done-when:* a module whose **comment** names `updateVisual` or
+  `performance.now()` while its code does neither is in neither census,
+  proved by adding such a comment and watching both stay green; a module
+  whose **code** calls either is still caught, proved the same way; and
+  H47's workaround comment in `deathcam.js` comes out, with the identifiers
+  written back into its prose where they belong.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -823,6 +841,28 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H47** The death camera's clause reads the body it could actually move.
+  `death-camera-watches-the-killer`'s *"free-look moved the body"* clause
+  read `shade.mesh.position` across a free-look, and H43 found that nothing
+  in that check advances the position chase - so the drawn body was frozen
+  for the whole of it and the clause could only catch a write that went
+  straight to the mesh transform. A free-look that walked the **capsule** a
+  metre passed it. It reads both now: the capsule, which is what the camera
+  is actually holding and what a cinematic writing back through it would
+  move, and the mesh, kept as the direct-write guard the clause was named
+  for. **Proved by walking the corpse**: `deathCam.step()` was made to move
+  the capsule 0.75m and the check went red naming the distance - with **no
+  complaint from the mesh clause in the same report**, which is H43's
+  finding demonstrated rather than argued. The census entry moved from proof
+  `frozen` to proof **`ragdoll`**, the stronger reason and always the true
+  one: `combat:death` hands the mesh to the ragdoll forty lines before the
+  read and a ragdolled `updateVisual` returns before writing position, which
+  holds even if somebody adds a frame to the check where `frozen` would
+  quietly stop holding. `presentation.js` is the only module under `frozen`
+  now and the clause that holds it still does, and
+  `positioncensus.js`'s header no longer claims a hole it no longer has.
+  — commit `H47_COMMIT`
 
 - **H46** The chase moves three eyes, and all three are climbs. H43 left
   the question: the eye a pose is photographed from is the first of six

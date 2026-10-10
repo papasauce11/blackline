@@ -47,11 +47,17 @@
  * `pose.js` now, both bodies import it, and clause 3 holds that neither
  * carries a copy.
  *
- * And one hole this census reports rather than fixes: `deathcam.js`'s
- * `free-look moved the body` clause reads `shade.mesh.position` across a
- * free-look that advances no frame, so it catches a direct write to the mesh
- * and would not see free-look move the **capsule** a mile. Nothing was
- * loosened to make the census come out; **H47** is that job.
+ * **The hole this census used to report is closed (H47).** `deathcam.js`'s
+ * `free-look moved the body` clause read `shade.mesh.position` across a
+ * free-look that advances no frame, so it caught a direct write to the mesh and
+ * would not have seen free-look move the **capsule** a mile. It now reads the
+ * capsule as well - the quantity the camera is actually holding - and the mesh
+ * read stays as the direct-write guard it was named for. Its entry moved from
+ * proof `frozen` to proof `ragdoll` in the same diff, which is the stronger
+ * reason and was always the true one: `combat:death` hands the mesh over before
+ * the read, so the chase cannot write it even in a check that does advance a
+ * frame. `presentation.js` is the only module under `frozen` now, and the
+ * clause below still holds it.
  *
  * **What this check holds, and what it does not.** It holds the set, both
  * ways; that every entry still names a live expression; that the four

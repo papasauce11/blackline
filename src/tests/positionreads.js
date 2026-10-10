@@ -141,10 +141,10 @@ export const CENSUS = [
   {
     module: 'deathcam.js',
     reach: 'none',
-    proof: 'frozen',
+    proof: 'ragdoll',
     frames: '-',
     reads: /bodyBefore/,
-    note: 'reads the body\'s x and z before and after a free-look and asserts they did not move. Its own check calls neither `updateVisual` nor `renderFrame`, so the drawn body cannot move between the two reads - which is also the hole the census reports rather than fixes: the clause catches a direct write to the mesh and would not see free-look move the capsule. H47',
+    note: 'reads the body\'s x and z before and after a free-look and asserts they did not move. **H47 closed the hole this entry used to report**: the clause now reads the **capsule** too, which is the quantity a free-look could actually move - the camera reads it, a cinematic writing back through it would walk the corpse, and nothing in the suite held that - and the mesh read stays as the direct-write guard the clause was named for. Proved by making `deathCam.look()` move the capsule and watching it red, which the old clause did not notice. Re-classified `frozen` to **`ragdoll`** in the same diff: `frozen` was true and weak, resting on the check happening to advance no frame, where the real reason the drawn read cannot move is that `combat:death` handed the mesh to the ragdoll forty lines earlier and a ragdolled `updateVisual` returns before writing position. That holds even if somebody adds a frame to this check, which `frozen` would not. `presentation.js` is now the only module under `frozen`',
   },
   {
     module: 'presentation.js',

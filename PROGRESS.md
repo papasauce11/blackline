@@ -14296,3 +14296,103 @@ state land the capsule 0.975m apart, so no check may compare two photographs of
 one state and `positionreads.js`'s table is reproducible only within a single
 strike; and the eye flip itself, which is Josh's call on an angle. Both are in
 `QUEUE.md`. H50 and H51 are still H35's.
+
+## H47 — the death camera's clause reads the body it could actually move (2026-10-10, scheduled run)
+
+**What it was handed.** `death-camera-watches-the-killer` has a clause named
+*"free-look moved the body"*: it reads `shade.mesh.position` x and z before and
+after a `deathCam.look()` plus a `deathCam.step()`, and asserts they agree to
+1e-6. H43's census found that **nothing in that check advances the position
+chase** - it calls neither `updateVisual` nor `renderFrame` - so the drawn body
+is frozen for the whole of it, and the clause could only ever have caught a
+write that went straight to the mesh transform. A free-look that walked the
+capsule a metre would have passed it. The clause was not loosened and it was
+never wrong about anything it claimed; it was reading the quantity it could see
+rather than the one it meant, and H43 declared that hole rather than quietly
+fixing the census to come out.
+
+**What was built.** The clause reads **both** bodies now, because they can fail
+in different ways and only one of them was held:
+
+- the **capsule** (`shade.position`), which is what a free-look could move. The
+  death camera reads it every frame, and a cinematic that wrote back through it
+  would walk the corpse across the floor while the player watched. Nothing in
+  the suite held that.
+- the **mesh**, kept, which is the direct-write guard the clause was named for -
+  a cinematic setting the drawn transform itself.
+
+**Proved the way the queue asked, and the absence is the better half of the
+proof.** `deathCam.step()` was made to move the Shade's capsule 0.75m, and the
+check went red naming it: *"free-look moved the body 0.7500m: turning the death
+camera wrote back through the capsule it is reading"*. The report carries that
+one problem and **no complaint from the mesh clause** - so the body walked three
+quarters of a metre and the clause that has guarded this since Section 10.2 saw
+nothing. That is H43's finding demonstrated rather than argued, in the same run
+that closes it.
+
+**The census entry moved from `frozen` to `ragdoll`, which is the stronger
+reason and was always the true one.** `frozen` rests on the check happening to
+advance no frame - true, and weak, because it is a fact about what the check
+does not do rather than about what the code cannot do. The real reason the drawn
+read cannot move is forty lines above it: `combat:death` hands the mesh to the
+ragdoll, and a ragdolled body's `updateVisual` returns before writing position.
+That holds even if somebody adds a frame to this check, where `frozen` would
+silently stop holding - and `positioncensus.js`'s `ragdoll` clause checks
+exactly the thing that could go wrong with it, that the emit comes *before* the
+read rather than after. `presentation.js` is now the only module under `frozen`,
+which the queue asked for, and the clause that holds it still does.
+
+`positioncensus.js`'s header no longer says this census has a hole it reports
+rather than fixes, because it does not.
+
+**What was verified.** The GATE was H46's VERIFY on this branch (D19), which
+read 0 console errors on all four runs and was itself the second attempt - the
+first found five red, which is written up under H46.
+
+**The first verify failed on one red in all four runs, and it is a false
+positive worth more than the fix.** `every-check-that-poses-a-body-declares-
+what-the-breath-and-the-gait-do-to-it` said *"deathcam.js poses a body and this
+census does not declare it"*. It does not pose a body: `breathcensus.js` decides
+membership with `POSES_A_BODY = /updateVisual/` tested against the **raw** file
+text, and the comment this job added - explaining that a ragdolled body's visual
+update returns before writing position - **names the identifier in prose**. The
+module drives no frame at all, which is the whole premise of the clause being
+fixed.
+
+**Declaring it would have been the wrong fix**, and it was tempting because it
+is one line: a census whose entire value is that membership is checkable rather
+than a matter of opinion would then have carried an entry for a module that
+poses nothing. The clause was reworded instead so the two identifiers appear
+nowhere in that file, with a comment saying why - which is exactly what
+`audiocontext.js` does with its own subject, and is a workaround rather than a
+fix. **H53** is the root cause, and the run has now paid for it twice:
+`timedrenders.js` pulled H35 in the same way, by a sentence explaining what its
+clock measures. There it was honest - that check does put a clock-derived number
+in its detail line, so it declared itself and the entry stands - and here it
+would not have been, which is the difference that makes this worth a job rather
+than a shrug. Both censuses should read source with the comments stripped;
+`audiocontext.js` already owns the reader (`codeOnly`), and H41's own rule says
+every grep in this suite does that.
+
+VERIFY (the second one), two runs of each map on the finished tree: **plant 226
+passed, 1 failed, 8 not for this map (1,125,260ms and 1,140,801ms), yard 206 / 1
+/ 28 (773,185ms and 769,196ms), exit 0, 0 red, 0 flaky, 0 unexpectedly green, 0
+skips withheld, 0 bench drops withheld, no other runner on the machine - and 0
+console errors in all four runs.** Both runs of each map agree exactly on every
+count, and the counts are **the same as H46's verify** rather than one more,
+which is right: this job fixed a clause inside an existing check and added no
+check of its own. The clause's own detail line now reads *"free-look turned it
+to x=-20.96 without moving the body"*. Spread plant 15,541ms (1%) and yard
+3,989ms (1%) against pipeline waits of 4,928ms and 4,908ms - both inside their
+own wait (F16) - about 41% of each run the renderer's tail, and `auto` would
+have picked `medium` on both (5.80ms, 4.60ms).
+
+Run with `--details`, so it keeps four more device readings for H50: `fed`
+0.6856 and 0.6411 on the plant over 822.4s and 2,007.9s, 0.7132 and 0.6844 on
+the yard over 538.4s and 1,351.6s. **Eleven full-run readings now, every one
+between 0.5665 and 0.7481**, which is the band H50 argues its floor from.
+
+**What was left.** **H53**, which this job found and worked around rather
+than fixed. The open follow-ups are H35's (**H50**
+the device floor, **H51** the `audio.js` split) and H46's (**H52**, which has a
+rule in it: two strikes of a moving state land the capsule 0.975m apart).

@@ -95,6 +95,39 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A test that guarded the death camera was watching the wrong body (H47, 2026-10-10)
+
+**Nothing in the game changed and there is nothing here to judge.** The death
+camera behaves exactly as it did. This is about a test that has been passing for
+weeks while being unable to fail.
+
+**The guard.** When you die you get a camera that looks at whoever killed you,
+and you can turn it with the mouse. The obvious thing that must never happen is
+that turning the camera also drags your corpse around the floor. A test has
+checked that since the death camera was built.
+
+**What it was actually checking.** There are two copies of every body: the
+physics one, which is where the game thinks you are, and the drawn one, which is
+what you see, trailing slightly behind so movement looks smooth. The test was
+reading the **drawn** body - and in that particular test nothing ever redraws,
+so the drawn body cannot move no matter what happens. The guard was real, the
+code it guards is fine, and the test could not have caught the thing it was
+named after.
+
+**How we know, rather than think.** The death camera was deliberately broken to
+shove the body three quarters of a metre sideways every time you turn the
+camera. The old test did not notice. The new one says *"free-look moved the body
+0.7500m"*.
+
+**It now watches both** - the physics body, which is what a mistake like that
+would move, and the drawn one, in case something ever writes straight to what
+you see. Nothing was weakened to make this pass; a test that could not fail was
+given something it can fail on.
+
+**What is left for you: nothing.** Worth knowing only because it is the sort of
+thing that would have been found the hard way, by you, in a round where the
+corpse slid off down a corridor.
+
 ### For your eyes, eventually: a vault is photographed from whichever side the lag lands on (H46, 2026-10-10)
 
 **Nothing in the game changed.** This is about the pose gallery - the pictures
