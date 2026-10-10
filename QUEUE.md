@@ -825,7 +825,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   red on the new module and was right to; the entry is `reported` and the
   wall-clock half of the ratio moved into the check so the one
   `performance.now()` sits beside the clause it feeds.
-  — commit `H35_COMMIT`
+  — commit `383dddc`
 
 - **H45** The gate refuses rather than warns, and exit 3 is a third kind of
   morning. `npm run bench` has refused to run beside a suite since H11 with
