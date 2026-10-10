@@ -80,6 +80,14 @@ export const CENSUS = [
     note: 'anchors the eye and the focus on `actor.mesh.position` at the frame the strike arrived, deliberately and in its own header. Measured: all twelve states read with the gap open, worst `landing` at 0.794m, the moving states deeper than the climbs and only `hang` (0.014m) and `crouch` (0.004m) settled. Both the eye and the focus come from the same read, so the lag moves camera and subject together and the pixel floors are about a body the right size in the right part of the frame; what it can still reach is which of six eyes is in open air and what occludes the body from it. The table is in PROGRESS.md; H46 is the residual',
   },
   {
+    module: 'grabslide.js',
+    reach: 'measured',
+    frames: '1 to 15 from the grab',
+    reads: /shade\.mesh\.position\.y/,
+    control: /the grab lifted the capsule/,
+    note: 'the one module whose clause is **about** the gap rather than exposed to it (H44). It drives whole frames at a hangable ledge and pins the drop at frames 1, 6, 10 and 15 - 0.80m to 0.04m - because `PLAYTEST.md` and D72 quote those numbers to a human and a shortened smoothing should send them back to be measured rather than quietly make them wrong. Its control is the one every entry here needs: the capsule must really have risen half a metre, or the profile is a table about a body standing still',
+  },
+  {
     module: 'animation.js',
     reach: 'held',
     how: 'snaps',

@@ -95,6 +95,61 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### For your eyes: the Shade trails her own climb by a quarter of her height (H44, 2026-10-09)
+
+**Nothing changed, on purpose.** This is a measurement and a question, and the
+question is yours — D72 has the same thing with the options written out.
+
+Every climb moves the Shade a long way quickly, and the drawn body eases toward
+where the simulation has her (the section below this one says why that easing
+exists and why it is right in general). The question was whether that reads
+badly when you **grab a ledge**. It was expected to look like the body starting
+a metre low and rising. It does not. A grab does not teleport her; it carries
+her up over about a fifth of a second, so the drawn body falls **further and
+further behind while she is climbing** and only catches up after she stops:
+
+| frames after the grab | 1 | 4 | **7** | 10 | 15 | 45 |
+|---|---|---|---|---|---|---|
+| how far low, plant | 0.16m | 0.36m | **0.46m** | 0.36m | 0.15m | 1.5mm |
+| how far low, yard | 0.16m | 0.33m | **0.42m** | 0.31m | 0.13m | 1.3mm |
+
+Sixty frames is a second. The grab lifts her 0.81m to 0.90m, the worst of it is
+in the **middle** of the climb, and it is a quarter of a second before it is
+back under 0.15m. She is 1.8m tall, so the peak is about a quarter of her own
+height.
+
+**There is a good argument that you will not see it.** The camera follows the
+same smoothed position the body does, so the body holds its place on screen —
+nothing wobbles, nothing stutters, and what is displaced is the body against
+the world behind her rather than against the frame.
+
+**And a good argument that you will.** Her gloves are part of her body, so they
+carry the lag too: for about a quarter of a second the hands drawn gripping the
+ledge are **up to 0.46m below that ledge**. For comparison, once she has
+settled a test holds those gloves to within 0.15m of the lip, and would fail
+the game if they were not. She also reaches the hang *state* at frame 11 with
+0.28m still to close, so she is hanging, drawn short of it, for a sixth of a
+second after the climb is over. This happens on every grab, vault, mantle and
+pull-up, which is most of what she does.
+
+**What to run, and what to look at:**
+
+```
+npm run shot -- --slide
+```
+
+One PNG per frame of the first fifteen, into `shots/look-<map>-slide-f01.png`
+upward, each line printing how far low she is in that frame. **Frames 5 to 10
+are the ones to look at, and frame 7 is the worst.** Compare any of them with
+`shots/look-<map>-slide-f15.png`, which is nearly settled.
+
+**What to say.** Just whether it reads wrong. If it does, D72 has three ways to
+fix it and recommends one — no smoothing at all while a timed climb owns the
+body, because the smoothing is there to hide a 60-per-second step and a climb
+has no step to hide. It is queued as **H48** and nobody should do it until you
+have looked, because four measured numbers in three tests rest on today's
+behaviour and all four would have to be taken again.
+
 ### The drawn body is always a little behind itself, and the pose photographs catch it (H43, 2026-10-09)
 
 **Nothing visible changed, and nothing was broken.** This is a measurement, and
@@ -138,13 +193,10 @@ below the floor she is actually standing on, catching up.
 
 **For your eyes.** If you have looked at a pose gallery and thought a body
 seemed to be sunk into the ground or hanging in the air, that is what you were
-seeing, and it is the photograph rather than the game. **H44** is the related
-question that is genuinely about play and genuinely yours: whether the same
-easing reads badly when you *grab a ledge* — the body is 0.80m low one frame in
-and 0.20m low a tenth of a second later, which is about a quarter of a second
-of the Shade visibly rising into a hang she is already in. Nobody has looked at
-that yet, and if it reads badly the fix is a quicker ease for climbs only,
-because the smoothing is right for everything else.
+seeing, and it is the photograph rather than the game. **H44** asked the related question that is
+genuinely about play, measured it the same day, and **the shape turned out to
+be different from what was expected** — the section above this one has it, and
+the frames to look at.
 
 ### The speed test on your graphics card now refuses to average one reading (H42, 2026-10-09)
 

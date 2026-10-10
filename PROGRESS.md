@@ -13681,3 +13681,121 @@ does not cover, which needs a settle hook in `photographPose`) and **H47**
 sized S. `positioncensus.js` is at **538 of its 600** with the table and the
 instruments already split out, so there is room for the clause H46 or H47 will
 want.
+
+## H44 — the grab's slide, and the shape the queue had wrong (2026-10-09, scheduled run)
+
+**What it was handed.** H40 found the position chase while measuring something
+else and left a *look* question behind it: does the slide read as the body
+floating up into the hang? The queue carried H40's numbers with it — "the drawn
+body is **0.80m** under the capsule one frame in, **0.20m** at a tenth of a
+second, 0.09m at a sixth and 9mm at half a second" — and asked for a shot per
+frame of the first fifteen, with the answer going to `PLAYTEST.md` and, if it
+can be seen, to `DECISIONS.md`, because how a body moves into a hang is a look
+and looks are Josh's.
+
+**The queue's premise was wrong, and that is the finding.** Those four numbers
+describe an *instantaneous* metre of displacement, which is how H40 produced
+one: `_smoothPosition` moved by hand and then drawn. A real grab does not
+teleport the capsule. It carries it up over the move's own duration, so the
+drawn body falls **further and further behind while the climb is happening**
+and only catches up after it stops. Driven in whole frames of the real loop —
+one step and one draw, both bodies — at a hangable ground ledge through the
+keys:
+
+| frame | 1 | 2 | 3 | 4 | 5 | 6 | **7** | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 45 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| plant | 0.16 | 0.22 | 0.29 | 0.36 | 0.41 | 0.45 | **0.46** | 0.45 | 0.42 | 0.36 | 0.28 | 0.24 | 0.21 | 0.18 | 0.15 | 0.0015 |
+| yard | 0.16 | 0.21 | 0.28 | 0.33 | 0.38 | 0.41 | **0.42** | 0.40 | 0.37 | 0.31 | 0.24 | 0.20 | 0.18 | 0.15 | 0.13 | 0.0013 |
+
+Metres the drawn feet are below the capsule's. The grab lifts **0.90m** on the
+plant and **0.81m** on the yard, the lag **peaks in the middle of the climb**
+rather than at its start, and it is a quarter of a second before it is back
+under 0.15m. Every frame of it is identical between the two runs of each map.
+
+**So the complaint is not what H44 thought it was.** It is not a body starting
+low and rising into a static hang; it is a body trailing its own climb by up to
+**a quarter of its own height** — the Shade is 1.8m — in the middle of it. And
+the state reaches `hang` at frame 11 with 0.28m still to close, so she is in
+the hang, drawn short of it, for a sixth of a second after the climb is over.
+
+**Two arguments, which is why this is D72 and not a fix.** Against its
+mattering: every camera that follows the Shade is derived from the *same*
+`_smoothPosition` — the third-person pivot is
+`_smoothPosition.y - half.y + up + dip + bob` — so the camera carries the
+identical lag and the body holds its place on screen. Nothing wobbles and
+nothing stutters; what is displaced is the body against the world behind her.
+For its mattering: the gloves are part of the body and carry the lag with it,
+so for a quarter of a second the hands drawn gripping the lip are **up to 0.46m
+below that lip**, against the **0.15m** `tests/hang.js` enforces once she has
+settled. It happens on every grab, vault, mantle and pull-up.
+
+**What was built.** `tests/grabslide.js` (342). `grabSlide()` drives the Shade
+at a hangable ledge through `input.heldCodes` and a tapped Space in **whole
+frames**, and from the frame the grab begins reports the state, the chase gap
+and the drop per frame; `photograph: true` adds a PNG a frame through
+`photographHere()`. `scripts/shot.mjs --slide` is the viewer Josh runs: fifteen
+PNGs into `shots/look-<map>-slide-fNN.png`, each line printing the drop, and
+the frame count comes from this module rather than from a copy of fifteen.
+
+**Whole frames is the whole point**, and it is H43's census in a second
+currency: `stepFrames()` advances the simulation and draws nothing, so a grab
+driven with it leaves the drawn body exactly where it was; a draw with no step
+moves the body and not the game. Only `frame()` — one step, one draw, both
+bodies — is what a player gets, and it is exported from `tests/animation.js`
+for this.
+
+**`photographPose` was split rather than copied.** `photographHere(h, actor)`
+is the half that frames an actor where it stands, with the eye and the focus
+both offsets from one read of the drawn body — the clause H43's census holds
+against `look.js`. `photographPose` still quiesces, strikes and restores around
+it, so F7 is unchanged, and `grabslide.js` takes as many photographs as it
+likes mid-sequence. H46 will want the same seam.
+
+**What the check holds.** The five pinned frames (1, 4, 7, 11, 15) within
+0.08m, which covers the two maps' 0.04m of difference and reds on a smoothing
+changed by anything like D72's factor; the **shape**, because four sizes would
+pass a plateau — the peak must be at frame 7 ± 2, and each end must be under
+60% of it, so a profile peaking at frame 1 (the displacement H44 expected) is
+red; that it **arrives**, 0.0015m at the chase's own settle computed from
+`positionSmoothing()` rather than from a copy of 45; and that the frames
+`PLAYTEST.md` sends a human to really exist, by reading `shot.mjs`'s own source
+for `grabSlide(` and `SLIDE_FRAMES` with its comment lines out first — H41's
+rule, and the half H43 was bitten by. Its control is the one H43's census is
+full of: **the grab must have lifted the capsule half a metre**, or every drop
+in the table is a reading about a body standing still.
+
+**Proved by breaking it.** The smoothing sped up from `0.0001` to `1e-9` reds
+the profile at frames 4, 7 and 11 — and, instructively, **not at frame 1**,
+because that frame's drop is the capsule's own travel in one step rather than
+anything the ease has done yet. Renaming `grabSlide` out of `shot.mjs`'s import
+reds the viewer clause naming the pattern it looked for.
+
+**Declared in H43's census the same day it landed**, which is what that census
+is for: `grabslide.js` reads `shade.mesh.position.y` and is the first entry in
+it whose clause is **about** the gap rather than exposed to it, so it is
+`measured` with its control named. It is in neither of `breathcensus.js`'s two
+lists, correctly — it drives no pose of its own and renders no frame of its
+own, it asks `animation.js` for whole frames — and the breath never reaches
+`mesh.position` anyway, which is H39's finding.
+
+**What was verified.** The GATE was H43's VERIFY on this branch (D19: the
+verify stands as the next job's gate), which read 0 console errors on all four
+runs. VERIFY, two runs of each map: **plant 223 passed, 1 failed, 8 not for this map (1,102,425ms and 1,105,035ms), yard 203 / 1 / 28 (771,114ms and 769,999ms), exit 0, 0 red, 0
+flaky, 0 unexpectedly green, 0 skips withheld, 0 bench drops withheld, no
+other runner on the machine - and 0 console errors in all four runs.** Both
+runs of each map agree exactly on every count, and each map is **one check**
+more than H43's, which is this one. The spread between runs is the tightest
+on record - **plant 2,610ms and yard 1,115ms, 0% of the longest either way**,
+against pipeline-wait spreads of 1,556ms and 695ms - and about 40% of each run
+is the renderer's pipeline tail (445,521ms and 443,965ms on the plant,
+330,471ms and 329,776ms on the yard). `auto` would pick `medium` on both,
+6.10ms on the plant and 5.00ms on the yard. The check itself costs about 20s
+on the plant and 14s on the yard: four grabs driven in whole frames, one of
+them photographed.
+
+**What was left.** **H48**, the fix, on Josh's word and not before: four
+measured constants in three modules rest on today's profile — `hang.js`'s
+150-frame settle and the 2.26x argued from it, `positionreads.js`'s 0.794m
+ceiling and its twelve-state table, and this module's own profile — and all
+four would go red, correctly, and want re-measuring. That is a job rather than
+an edit, and doing it once after he has looked is cheaper than doing it twice.

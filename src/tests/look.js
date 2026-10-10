@@ -151,7 +151,6 @@ const POSE_DISTANCE = 4.5;
  */
 export function photographPose(h, name) {
   const { shade, warden } = h;
-  const world = h.map.collision;
   const restore = quiesce(h);
   let actor;
   let reached;
@@ -184,6 +183,34 @@ export function photographPose(h, name) {
     why = struck.why;
     state = shade.state + (shade.crouching ? ' (crouching)' : '') + (shade._move ? ` ${(shade._move.timer / shade._move.duration * 100).toFixed(0)}%` : '');
   }
+
+  const shot = photographHere(h, actor);
+  h.input.clearAll();
+  restore();
+  return { pose: name, reached, why, state, ...shot };
+}
+
+/**
+ * The half of `photographPose` that does not drive anything: frame the actor
+ * **where it stands**, from the first of `POSE_EYES` in open air with sight of
+ * its middle, and answer the PNG and how much of the buffer the body covers.
+ *
+ * Split out at H44, which wants a photograph a frame through a grab rather
+ * than one at the end of a strike, and drives its own frames to get there
+ * (`tests/grabslide.js`). Neither the match nor the input is touched here, so
+ * the caller owns both - `photographPose` still quiesces and restores around
+ * it, and a caller mid-sequence can take as many of these as it likes.
+ *
+ * The eye and the focus are both offsets from **one** read of the drawn body,
+ * which is the clause H43's census holds against this file: the camera and its
+ * subject carry the same position lag, so a body the chase has not caught up
+ * with is still photographed the right size in the right part of the frame.
+ *
+ * @returns {{ eye: string|null, covered: number, buffer: object|null, dataUrl: string|null }}
+ */
+export function photographHere(h, actor) {
+  const { shade, warden } = h;
+  const world = h.map.collision;
 
   // The eye, from the body's facing: the first in open air that sees the
   // body's middle (a vault is over a crate, and an eye can be in it).
@@ -226,9 +253,7 @@ export function photographPose(h, name) {
     actor.mesh.visible = wasVisible.actor;
     other.mesh.visible = wasVisible.other;
   }
-  h.input.clearAll();
-  restore();
-  return { pose: name, reached, why, state, eye: eyeName, covered, buffer, dataUrl };
+  return { eye: eyeName, covered, buffer, dataUrl };
 }
 
 export function register(debugTools) {

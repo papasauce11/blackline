@@ -110,6 +110,81 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D72 — The Shade trails her own climb by a quarter of her height, and whether that reads wrong is a look
+
+**Raised by:** H44, 2026-10-09. The measuring, the viewer and the pinned
+profile were taken rather than asked, because none of them changes anything a
+player sees. **What was deliberately *not* taken is the fix**, and this page is
+why: how a body moves into a hang is a look, and looks are Josh's.
+
+**What the queue expected, and what is actually there.** H44 was written from
+H40's numbers — the drawn body "0.80m under the capsule one frame in, 0.20m at
+a tenth of a second" — and those describe an *instantaneous* metre of
+displacement, which is how H40 produced one. A real grab does not teleport the
+capsule; it carries it up over the move. So the drawn body falls progressively
+further behind **while the climb is happening** and only then catches up.
+Measured in whole frames of the real loop, at a hangable ledge, driven through
+the keys:
+
+| frame | 1 | 4 | 7 | 10 | 15 | 45 |
+|---|---|---|---|---|---|---|
+| plant | 0.16 | 0.36 | **0.46** | 0.36 | 0.15 | 0.0015 |
+| yard | 0.16 | 0.33 | **0.42** | 0.31 | 0.13 | 0.0013 |
+
+Metres the drawn feet are below the capsule's. The grab lifts 0.90m on the
+plant and 0.81m on the yard, the lag **peaks in the middle of the climb**
+rather than at its start, and it is a quarter of a second before it is back
+under 0.15m. The Shade is 1.8m tall, so the peak is about a quarter of her own
+height.
+
+**The reason it may not matter, and it is a real reason.** Every camera that
+follows the Shade is derived from the *same* `_smoothPosition`. The
+third-person rig's pivot is `_smoothPosition.y - half.y + up + dip + bob`, so
+the camera carries the identical lag and **the body holds its place on
+screen**. Nothing wobbles, nothing stutters, and the smoothing is doing exactly
+the job it was put there to do for a 144Hz screen. What is displaced is the
+body against the *world*, and the world is behind her.
+
+**The reason it may matter, and it is also a real reason.** The gloves are part
+of the body, so they carry the lag with it: for about a quarter of a second
+the hands drawn gripping the lip are **up to 0.46m below that lip** — three
+times the 0.15m that `tests/hang.js` calls "on the lip" once the body has
+settled, and which it enforces. And the state reaches `hang` at frame 11 with
+0.28m still to close, so the body is in the hang, drawn short of it, for a
+sixth of a second after the climb is over. It happens on every grab, every
+vault, every mantle and every pull-up, which is most of what the Shade does.
+
+**What to look at.** `npm run shot -- --slide` writes one PNG per frame of the
+first fifteen to `shots/look-<map>-slide-f01.png` upward, each line printing
+the drop. **Frames 5 to 10 are the ones**; frame 7 is the worst.
+
+**The options, if it reads wrong.**
+
+1. **Leave it.** No cost anywhere, and the numbers above are what a player
+   gets on every climb.
+2. **A faster smoothing while a climb state owns the body** — a second
+   constant, used when the state is one of GRAB, HANG, PULLUP, VAULT, MANTLE.
+   Cheap and blunt: it also drops the jitter smoothing for the frames after a
+   climb ends, where the body is moving normally again.
+3. **No smoothing at all while a *timed move* owns the body**, which is the
+   principled version of 2. The smoothing exists to hide a 60Hz step on a
+   faster screen; a timed move (`_move`, with its own timer and duration)
+   already interpolates the capsule smoothly, so there is no step to hide and
+   nothing to gain by lagging it. Outside a move everything behaves as today.
+4. **Shorten the smoothing everywhere.** Refused before it is offered: it is
+   right as it is for the case it was written for, and H25 and H9 are both
+   about not changing a thing for everyone to fix it for one.
+
+**Recommendation: 3, as a job of its own (H48), on his word.** The cost of
+doing it is the reason it is not a line in H44: four measured constants in
+three modules rest on today's profile — `tests/hang.js`'s 150-frame settle and
+the margin argued from it, `tests/positionreads.js`'s 0.794m ceiling and its
+twelve-state table, and `tests/grabslide.js`'s own profile. Every one of them
+would go red, correctly, and want re-measuring. That is a job, not an edit, and
+it should be done once, after he has looked.
+
+**decided:**
+
 ### D71 — The gate reports a frame cost it used to assert, because no clock in this page can price a draw
 
 **Raised by:** H41, 2026-10-09. Taken rather than asked because it changes no

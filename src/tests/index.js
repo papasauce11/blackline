@@ -28,6 +28,7 @@ import { register as registerMovement } from './movement.js';
 import { register as registerScuff } from './scuff.js';
 import { register as registerFeel } from './feel.js';
 import { register as registerHang } from './hang.js';
+import { register as registerGrabSlide } from './grabslide.js';
 import { register as registerReadability } from './readability.js';
 import { register as registerDeck } from './deck.js';
 import { register as registerRoutes } from './routes.js';
@@ -112,6 +113,7 @@ export function registerAutoTests(debugTools) {
   registerScuff(debugTools);
   registerFeel(debugTools);
   registerHang(debugTools);
+  registerGrabSlide(debugTools);
   registerReadability(debugTools);
   registerDeck(debugTools);
   registerRoutes(debugTools);

@@ -380,22 +380,15 @@ one setting only Josh can click; everything else here proceeds.
   than nine millimetres** (all twelve states open, worst `landing` 0.794m).
   It also found the Warden chasing on its own copy of the law. **H46** and
   **H47** are what it found and left alone.
-- [ ] **H44 (S)** Does the grab's slide read as the body floating up into the
-  hang? The position smoothing is sized for 60Hz jitter on a faster screen, and
-  it is doing something rather different when a grab moves the capsule a metre:
-  measured on the plant, the drawn body is **0.80m** under the capsule one
-  frame in, **0.20m** at a tenth of a second, **0.09m** at a sixth and 9mm at
-  half a second. That is the body visibly catching up to a hang it is already
-  in, for about a quarter of a second, and nobody has looked at it — H40 found
-  it while measuring something else and it is a *look* question, so it wants
-  eyes rather than a threshold. A shot per frame of the first fifteen, through
-  `npm run shot`, is enough to see it; if it reads badly the fix is a shorter
-  smoothing for a traversal state change rather than a shorter one everywhere,
-  because the 60Hz smoothing is doing its own job correctly.
-  *done-when:* `PLAYTEST.md`'s eyes list carries the question with the numbers
-  and the frames to look at, or a measured reason the lag cannot be seen; if it
-  can, a `DECISIONS.md` entry with the options, because how the body moves into
-  a hang is a look and looks are Josh's.
+- [x] **H44 (S)** Does the grab's slide read as the body floating up into
+  the hang? — done 2026-10-09, under Done. **No, and the shape this entry
+  expected was wrong**: a grab carries the capsule over its move rather than
+  teleporting it, so the drawn body trails the climb and the lag **builds**
+  to 0.42-0.46m at frame 7 before closing, where this entry predicted 0.80m
+  at frame 1 decaying. It can be seen — the gloves drawn gripping the lip are
+  up to 0.46m under it — and whether it reads wrong is **D72**, with the
+  frames to look at in `PLAYTEST.md` and `npm run shot -- --slide`. **H48** is
+  the fix, blocked on his word.
 - [ ] **H45 (S)** The gate names another runner and builds anyway. `npm run
   bench` has refused to run beside a suite since H11, with the right argument:
   a frame timed next to a sustained all-core software-GL load is a reading
@@ -507,6 +500,32 @@ one setting only Josh can click; everything else here proceeds.
   making `deathCam.look()` move the capsule and watching it red; the census
   entry re-classified; the `frozen` proof still held by `presentation.js`,
   which is the other module under it.
+- [ ] **H48 (M)** No position smoothing while a timed move owns the body.
+  **blocked: D72** — it is a look, Josh has the numbers and the frames, and
+  nobody should do this until he has said the slide reads wrong.
+  H44 measured what a grab does: the drawn body trails the climb by 0.16m at
+  frame 1, **0.46m at frame 7**, 0.15m at frame 15 and 1.5mm at 45, so for a
+  quarter of a second the gloves drawn gripping a lip are up to 0.46m under
+  it, against the 0.15m `tests/hang.js` enforces once settled. D72 has the
+  four options and recommends the third: `positionSmoothing` exists to hide a
+  60Hz step on a faster screen, and a timed move (`_move`, with its own timer
+  and duration) already interpolates the capsule smoothly — there is no step
+  to hide and nothing to gain by lagging it. Outside a move, unchanged.
+  **Sized M because of what it moves, not because of the edit**, which is one
+  branch in `updateVisual` on each body. Four measured constants in three
+  modules rest on today's profile and all four go red, correctly:
+  `tests/hang.js`'s `SETTLE_FRAMES` of 150 and the 2.26x margin argued from
+  it (H38, H40); `tests/positionreads.js`'s `LOOK_GAP_CEILING` of 1.2m and the
+  twelve-state table under it (H43) — four of those twelve states are timed
+  moves and their gaps should collapse; and `tests/grabslide.js`'s own
+  `PROFILE` and `PEAK_FRAME`, which is the point. Re-measure each rather than
+  widening any, and the Warden gets the same branch as the Shade or
+  `positioncensus.js`'s one-law clause is a lie.
+  *done-when:* a grab's drop is under the band D72 settles on at every frame
+  of the first fifteen, measured the same way; the four constants above are
+  re-measured with their new numbers in `PROGRESS.md`; `PLAYTEST.md`'s H44
+  section says what changed and `npm run shot -- --slide` shows it; and the
+  60Hz jitter the smoothing exists for is shown still smoothed outside a move.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -760,6 +779,31 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H44** The grab's slide, and the shape the queue had wrong. The entry
+  carried H40's numbers — the drawn body 0.80m low one frame in, 0.20m at a
+  tenth of a second — and those describe an **instantaneous** metre of
+  displacement, which is how H40 produced one. A real grab carries the
+  capsule up over its move, so the drawn body falls further behind **while
+  the climb is happening** and only then catches up: 0.16m at frame 1, a peak
+  of **0.46m (plant) and 0.42m (yard) at frame 7**, under 0.15m by frame 15,
+  1.5mm at 45. The Shade is 1.8m, so the peak is a quarter of her height, and
+  the `hang` state arrives at frame 11 with 0.28m still to close. **Two real
+  arguments, so it is D72 and not a fix**: every camera that follows her is
+  derived from the same `_smoothPosition`, so the body holds its place on
+  screen — but the gloves carry the lag too, so the hands drawn gripping the
+  lip are up to 0.46m under it, against the 0.15m `hang.js` enforces settled.
+  `tests/grabslide.js` (342) is the instrument and the check: whole frames of
+  the real loop (`stepFrames` draws nothing and a draw steps nothing, which
+  is H43's census in a second currency), five pinned frames within 0.08m, the
+  **shape** held as well as the sizes because four numbers would pass a
+  plateau, the arrival read at the chase's own settle, and `shot.mjs`'s
+  source read for the viewer `PLAYTEST.md` sends a human to.
+  `scripts/shot.mjs --slide` writes fifteen PNGs; `photographHere()` was
+  split out of `photographPose` so a sequence can be photographed mid-flight,
+  which is the seam H46 wants too. Two breaks, each naming its own line — and
+  the smoothing break instructively does **not** red frame 1, because that
+  frame's drop is the capsule's own travel. — commit H44_HASH
 
 - **H43** The drawn body arrives after the capsule, and the census of who
   reads it on the way. `tests/positioncensus.js` (538) and its table and

@@ -72,8 +72,13 @@ function apart(a, b) {
   return { most, where };
 }
 
-/** One fixed step and one drawn frame, the way the loop runs at 60Hz, for both bodies. */
-function frame(h) {
+/**
+ * One fixed step and one drawn frame, the way the loop runs at 60Hz, for both
+ * bodies. Exported since H44, which needs a frame of the real loop rather than
+ * a step (which draws nothing) or a draw (which moves nothing) - the two
+ * halves H43's census is about.
+ */
+export function frame(h) {
   h.stepFrames(1);
   h.input.clearEdges();
   h.shade.updateVisual(DT);
