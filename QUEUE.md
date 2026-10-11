@@ -901,7 +901,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   a 600 beside a 600 does not read as a warning. **H55** (S) makes the line
   report headroom and the nearest three; **H56** (M) splits physics.js, and
   names the two seams and the re-export mechanism already in the file.
-  — commit `H51_COMMIT`
+  — commit `72cabaa`
 
 - **H50** The floor that cannot be written, and the word a census could not
   count. The queue asked whether the audio device's `fed` ratio - the share
