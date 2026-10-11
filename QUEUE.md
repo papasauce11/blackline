@@ -472,49 +472,27 @@ one setting only Josh can click; everything else here proceeds.
   recipe list. **H55** and **H56** are what it found: `src/physics.js` is at
   exactly 600 with zero headroom, and the gate's detail line has been saying
   so at every run.
-- [ ] **H52 (S)** Two strikes of a moving state land the capsule a metre
-  apart, and the pose eye that a lag chooses. Two findings from H46, which
-  is why they share a job: both are about `strike` and `photographPose` and
-  one of them is a look.
-  **The reproducibility one is the rule and comes first.** H46 photographed
-  `sprint` twice in one check and the control it had just added caught the
-  two frames being of capsules **0.975m apart** - so a second strike of the
-  same state in the same run does not put the body where the first one did.
-  It is path dependence rather than randomness (`strike`'s moving cases run
-  to a stride-phase condition, and `reset()` snaps the position but the
-  phase a state is reached at depends on what ran before), and nothing is
-  known to be wrong today because no shipped check strikes a state twice.
-  What it costs is a method: **no check may compare two photographs of one
-  state**, and `positionreads.js`'s twelve-state table is reproducible only
-  within a single strike. Find the carried state, name it, and either reset
-  it so a strike is a function of its argument or write the restriction
-  into `animation.js`'s header where the next job will read it.
-  *done-when:* a check strikes one moving state twice and asserts the two
-  capsules agree to 1e-9, or `strike`'s header says in so many words that
-  they will not and why, with the 0.975m in it.
-  **The look, second, and it is Josh's.** The position chase changes which
-  of six candidate eyes a pose is photographed from, on three state-map
-  pairs: the plant's `vault` (0.43m behind, `front-left` where the capsule
-  says `front-right`), the yard's `mantle` (0.40m, `right` against
-  `front-right`) and `pullup` (0.49m, `left` against `front-left`). Every
-  one is a climb, which is where the body is against geometry.
-  `the-position-chase-moves-one-pose-photograph-eye-and-this-is-which`
-  declares the set per map and reds if it grows or goes stale, so nothing
-  is hidden; the question is only whether it should be **fixed**. It is a
-  look rather than a rule - the frame is self-consistent either way,
-  because an eye chosen off the drawn body can see the drawn body - and the
-  options are: leave it (a vault is photographed from whichever
-  three-quarter the lag lands on), or choose the eye off the capsule and
-  photograph the drawn body, which frames a climb from where the move is
-  going rather than from where the body is. `npm run shot -- --pose vault`
-  on each map writes the two frames to compare. **Raise it as a Provisional
-  with the two PNGs named rather than deciding it from the code**, and do
-  not change `photographHere` until he has looked: nine of twelve states
-  are unaffected and the change would move every pose gallery.
-  *done-when:* either the census is unchanged and a `DECISIONS.md` entry
-  says on whose word, or the eye is chosen off the capsule, the census is
-  empty on both maps, and `PLAYTEST.md` says which galleries moved.
-- [ ] **H53 (S)** Two censuses decide membership by grepping prose. Both
+- [x] **H52 (S)** Two strikes of a moving state land the capsule a metre
+  apart, and the pose eye that a lag chooses. - done 2026-10-10, under Done.
+  **The carried quantity is `_animTime`, the drawn gait's phase, and D66
+  keeps it on purpose** - `breathcensus.js` holds a clause that `reset()`
+  does not move it - so the fix is test-side and the restriction is now in
+  `animation.js`'s header with the 0.975m. Which states it applies to is
+  measured every run by a new census: **two**, `walk` and `sprint`, not the
+  climbs and **not the slide**, which was declared on the argument and
+  measured out. The look is **D75**, Provisional with six PNGs named and
+  `decided:` empty on purpose; `photographHere` untouched. **H57**, **H58**
+  and **H59** are what it found.
+- [ ] **H53 (S)** Two censuses decide membership by grepping prose. **Three
+  jobs in two runs have now paid for it, and the third cost a whole
+  seventy-minute verify**: H52's new `tests/strikerepeat.js` explains
+  `_animTime` by naming the function that advances it, in comments, and
+  `every-check-that-poses-a-body-...` went red on both maps and both runs.
+  That one was **not** a false positive - the module really does pose bodies,
+  through `strike` - so it was fixed by declaring it, which is the right
+  answer and says nothing about the grep. The grep is still wrong, and the
+  cost is now measured rather than argued: **do this before the next job
+  that adds a module to `src/tests/`.** Both
   `breathcensus.js` (`POSES_A_BODY = /updateVisual/`) and
   `timedrenders.js` (`TAKES_A_CLOCK = /performance\.now\(\)/`) test the
   **raw** file text, comments included, so a module is in the census the
@@ -620,6 +598,99 @@ one setting only Josh can click; everything else here proceeds.
   different leader, and the movement, traversal and route checks are green
   with identical numbers - a solver that answers differently has failed this
   job however green it is.
+- [ ] **H57 (M)** Make a strike a function of its argument, which D66 makes
+  possible rather than hard. H52 named the restriction and declined to
+  remove it: `strike`'s `walk` and `sprint` run to a peak of the drawn leg,
+  which is a condition on the carried `_animTime`, so the ground covered
+  getting there is whatever the last check to walk a body left behind
+  (measured at walk 1.167m / sprint 0.217m on one run of the plant and walk
+  0.292m / sprint 0.000m on the next).
+  **The shape of the fix, and it uses D66 rather than fighting it.**
+  `reset()` keeps both phases and snaps the position, so the order can be
+  inverted: drive the body on the held key until the drawn leg turns round
+  (the phase is then a known value whatever it started at), `reset()` to the
+  lane (position snaps, phase survives), then drive a **pinned** number of
+  frames from a known phase at a known place. Both ends are then functions
+  of the argument. The frame count is a measured constant per band, and the
+  thing to measure is which count lands the legs where a gallery frame wants
+  them - the peak is what `strike` promises today, so the pinned count has to
+  be chosen to land near one, which is arithmetic on the speed ramp and the
+  stride, both deterministic.
+  **The cost, which is why this is M and was not a line in H52.** H33
+  measured the gait's phase moving a walk frame's silhouette by **24%**
+  (7,891-9,818px against a floor of 3,000), so `tests/look.js`'s pixel
+  floors want re-measuring from the new phase, and every walk and sprint
+  gallery frame moves. Re-measure rather than widen (F15's rule), and say
+  in `PROGRESS.md` what each floor read before and after.
+  *done-when:* `a-strike-of-a-state-puts-the-capsule-in-the-same-place-twice-except-where-the-gait-is-carried`
+  has an empty `CARRIED` and asserts all twelve states to 1e-9 over two
+  runs of both maps, `animation.js`'s header says the restriction is gone
+  and when, `tests/look.js`'s floors are re-measured with their old and new
+  numbers written down, and `PLAYTEST.md` says which galleries moved.
+- [ ] **H58 (S)** `npm run shot` takes the last `--pose` and silently drops
+  the rest. `npm run shot -- --pose mantle --pose pullup` wrote only the
+  pull-up, on both maps, and printed *"1 poses"* while doing it - so a
+  session asking for three poses gets one and a line of output that agrees
+  with itself. H52 lost two runs to it (about 80s each) and worked around it
+  by running three times. `scripts/headless.mjs` has `listArg` for exactly
+  this and `shot.mjs` already imports it, so the fix is one call changed;
+  the interesting half is that **nothing said so**.
+  Check every repeated flag the three runners take the same way (`--pose`,
+  `--map`, `--subset`, `--quality`) and make a repeated flag that is read as
+  a scalar either collect or **refuse**, because a runner that drops an
+  argument it was given is the same class of defect as a gate that warns and
+  builds anyway (H45).
+  *done-when:* `--pose a --pose b` writes both on both maps and says "2
+  poses"; a check or the runner's own self-test holds that each repeatable
+  flag collects, proved by passing one twice; and any flag that is
+  deliberately scalar refuses a second value rather than ignoring it.
+- [ ] **H59 (S)** A strike's **success** is not a function of its argument
+  either, and a skipped state is a check measuring eleven things while
+  saying twelve. One subset run of H52's census reported *"2 not on this
+  map: crouch (holding crouch did not crouch (state ground)); slide (a
+  crouch at 0.3 m/s did not slide (state ground))"* on the **plant**, while
+  three other runs of the same subset on the same map struck all twelve. It
+  is pre-existing - `poseeye.js` strikes the same twelve and would skip the
+  same way, silently, and `look.js` would photograph eleven states - and
+  H52's census reports it rather than asserting it, which is how it was
+  seen at all.
+  The suspect is in the message: the crouch was attempted at **0.3 m/s**
+  after a `stand()` that resets and runs five frames with the keys cleared,
+  so the body was still carrying speed from whatever ran before, and
+  `strike('crouch')` holds `ControlLeft` for `SETTLE + 10` frames and then
+  asks `shade.crouching`. **Measure before changing anything**: run the
+  census subset enough times to see it fail, print the speed and the state
+  at the moment the crouch is asked for, and only then decide whether
+  `stand()` should wait for the body to be still (a frame count, no rule in
+  it) or whether the crouch is genuinely refused above a speed (a rule, and
+  then it belongs in the header rather than in a longer wait).
+  *done-when:* the cause is named with numbers in `PROGRESS.md`; either
+  every state strikes on both maps over four runs, or the ones that cannot
+  are declared per map the way `poseeye.js` declares its pairs; and a
+  skipped state is red somewhere rather than reported everywhere.
+- [ ] **H60 (S)** A census whose headline counts one set and whose tally
+  counts another. `breathcensus.js` prints *"15 pose a body: 2 held at the
+  worst phase, 4 measured, 6 out of reach by proof"* - fifteen against a
+  tally of twelve, every run, green. Nothing is wrong: the headline is
+  `poses.length`, every module **found** to drive `updateVisual`, and the
+  three words count `POSED`, the twelve **declared** - the difference being
+  the census modules excluded by name three lines above because they drive
+  the mechanism rather than read a clause off it. The line still invites one
+  subtraction and gets it wrong, which is **H50's finding in a sibling**:
+  there a verdict was counted in one group of two, here a total is counted
+  over a different set from its parts.
+  Make the line say where the others are (*"15 pose a body: 12 declared - 2
+  held, 4 measured, 6 out of reach - and 3 excluded by name"*) and hold the
+  arithmetic the way `timedrenders.js` now does, so a fourth category or a
+  fourth exclusion cannot appear without the sum saying so. **Check the other
+  three censuses for the same shape while there**: `positioncensus.js`,
+  `breathdrawn.js` and `poseeye.js` all print a count and a breakdown, and
+  H50 found one of two to be wrong in the first place it looked.
+  *done-when:* every census whose detail line prints a total and a breakdown
+  either has them over the same set or names the difference, and each holds
+  its own sum, proved the way H50 proved it - put one category back to the
+  narrower set and watch it go red.
+
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -873,6 +944,39 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H52** A strike is reproducible in its pose and not in its place, and
+  which states that is true of. H46's own control caught two `sprint`
+  photographs being of capsules **0.975m apart**; the carried quantity is
+  `_animTime`, the drawn gait's phase, advanced inside `updateVisual` by the
+  ground covered and **deliberately not** cleared by `reset()` - D66, with a
+  clause in `breathcensus.js` holding that refusal, walked forty frames first
+  so that "reset did not move it" is not `0 === 0`. So the obvious fix was
+  closed before it was tried: zeroing the phase reds a shipped clause that is
+  a decision written down, which makes it a change to the game's reset rather
+  than a line in a test-side job. The restriction is named instead, in
+  `animation.js`'s header, with the 0.975m and the D66 reference - **and the
+  half a comment cannot do is a census**:
+  `a-strike-of-a-state-puts-the-capsule-in-the-same-place-twice-except-where-the-gait-is-carried`
+  strikes all twelve states twice every run and asserts the undeclared ones
+  to **1e-9**. Two states a reader would have declared are not in the set and
+  measuring was the only way to know: the **climbs** are reproducible because
+  their position is a function of a probed ledge, and the **slide** reads no
+  phase at all - declared on the argument, measured at 0.000m, taken out. The
+  spread is reported and never asserted, which was also measured: two runs of
+  the plant inside one pass read walk 1.167m / sprint 0.217m and then walk
+  0.292m / **sprint 0.000m**, so a clause reddening when a declared state
+  reproduced would have reddened a correct build - caught by running the
+  subset twice before the verify. The set is held stale-proof from the
+  mechanism instead, reading `strike`'s own peak-detection line out of source.
+  The look is **D75**: the eye a climb is photographed from, Provisional, six
+  PNGs named, `decided:` left empty on purpose, `photographHere` untouched.
+  **Found: H57** (the real fix, M, and it has to re-measure look.js's floors
+  because H33 found the phase moves a walk silhouette 24%), **H58** (`npm run
+  shot` takes the last `--pose` and drops the rest, saying "1 poses") and
+  **H59** (a strike's *success* is not a function of its argument either -
+  crouch and slide failed to reach on one plant run in four).
+  — commit `H52_COMMIT`
 
 - **H51** The Section 14 recipes come out of `audio.js`, and the file at
   exactly 600 that nobody read. `systems/audio.js` stood at 589 of the 600

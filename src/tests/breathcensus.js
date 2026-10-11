@@ -154,6 +154,12 @@ const POSED = [
     note: 'poses all twelve strike states and asserts nothing about any body part: every clause reads `mesh.position` or `position`, the drawn body\'s root and the capsule, and runs `chooseEye` off them. The breath writes group rotations and a torso lift and **never reaches `mesh.position`** (H39\'s finding, which this is the first entry to rest on), and the gait moves limbs rather than the root - so neither phase can move an eye candidate placed off it. Its readings are the proof as well as the claim: the twelve gaps agree with H43\'s table to the millimetre on both maps, and H43 took them without a breath in them either',
   },
   {
+    module: 'strikerepeat.js',
+    reach: 'none',
+    proof: 'root',
+    note: 'strikes all twelve states twice and compares the two **capsules** - `h.shade.position`, and nothing else in the check reads a body at all. Neither phase can reach it, on `poseeye.js`\'s proof one layer simpler: the breath writes group rotations and a torso lift and never reaches the root (H39), and the gait moves limbs rather than the root. That is why this check can assert agreement to **1e-9** rather than to a tolerance, and it is the reason the ten undeclared states agree at all - what the gait does reach is `strike`\'s own termination, which is the finding the check exists for (H52) and is about where a strike stops rather than about where a body part is drawn',
+  },
+  {
     module: 'bufferscale.js',
     reach: 'measured',
     note: 'the count at 8m moves 3.3% at each of three pixel ratios, and the scaling law it asserts is a ratio BETWEEN those counts, so the common part cancels: measured 1.7% of spread against a 10% tolerance',

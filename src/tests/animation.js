@@ -22,6 +22,35 @@
  * `strike` drives the Shade into a named state and leaves it there, for
  * the check here and for the photograph (tests/look.js, F7).
  *
+ * **A strike of a moving state is reproducible in its pose and not in its
+ * position, and no check may compare two photographs of one state** (H52).
+ * H46 struck `sprint` twice in one check and its own control caught the two
+ * capsules **0.975m apart**. The quantity carried between them is
+ * `_animTime`, the drawn gait's phase: `updateVisual` advances it by the
+ * ground covered, the constructor zeroes it and **`reset()` deliberately does
+ * not** - D66, held by a clause of its own in `breathcensus.js`, so that a
+ * reset cannot teleport a walking body's legs. Its sibling
+ * `strideDistance`, the footstep accumulator, *is* zeroed, which makes this
+ * look like an oversight and it is not: they are one quantity in two
+ * currencies and D66 keeps the drawn one.
+ *
+ * The consequence is local to two cases below. `walk` and `sprint` run to
+ * *"the frame after the leg's furthest reach"*, which is a condition on
+ * `sin(_animTime)`, so the ground covered getting there is a function of
+ * whatever the last check to walk a body left behind rather than of the
+ * argument: measured at **1.167m** for the walk and **0.217m** for the sprint
+ * on the plant. The ten other states put the capsule in the same place to
+ * 1e-9 twice - the four climbs because their position is a function of a
+ * probed ledge, and **the slide**, which looks like the worst case and is not,
+ * because it presses crouch after a fixed forty frames and reads no phase: `a-strike-of-a-state-puts-the-capsule-in-the-same-place-twice-except-where-the-gait-is-carried`
+ * measures all twelve every run and declares the three, so this paragraph
+ * cannot go stale in either direction. **H57** is the job that would remove
+ * the restriction, and it has to re-measure `tests/look.js`'s pixel floors to
+ * do it, because H33 found the gait's phase moves a walk frame's silhouette
+ * by 24%. Until then: strike once, read what you need off that one frame -
+ * which is what `poseeye.js` does, and why it asks the geometry rather than
+ * comparing two pictures.
+ *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 

@@ -110,6 +110,74 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D75 — A climb is photographed from whichever three-quarter the lag lands on, and that is left alone until Josh looks
+
+**Raised by:** H52, 2026-10-10, and it is **the look half of that job, left
+undecided on purpose** — the queue's own instruction was to raise it with the
+frames named rather than to settle it from the code, because nine of twelve
+pose galleries are unaffected and changing it moves every one of the other
+three.
+
+**What H46 found.** `photographPose` picks which of six candidate eyes a pose
+is photographed from, and it picks off the **drawn** body. The drawn body
+trails its own capsule during a climb (D72, H44: up to 0.46m at frame 7), so on
+three state-map pairs the lag is enough to change the pick:
+
+| map | state | lag | eye chosen | eye the capsule would choose |
+|---|---|---|---|---|
+| plant | `vault` | 0.43m | `front-left` | `front-right` |
+| yard | `mantle` | 0.40m | `right` | `front-right` |
+| yard | `pullup` | 0.49m | `left` | `front-left` |
+
+Every one is a **climb**, which is where the body is against geometry and where
+D72's lag lives. `the-position-chase-moves-one-pose-photograph-eye-and-this-is-which`
+declares the set per map and goes red if it grows or goes stale, so nothing
+here is hidden; H52 confirmed all three unchanged and shot the frames.
+
+**The frames to look at.** `npm run shot -- --pose vault`, then `--pose mantle`,
+then `--pose pullup` — one `--pose` at a time, because the flag takes the last
+one given. Each writes both maps:
+
+  shots/look-plant-pose-vault.png     vault 44%, 6,237px from the front-left eye
+  shots/look-yard-pose-vault.png      vault 44%, 7,737px from the left eye
+  shots/look-plant-pose-mantle.png    mantle 40%, 6,421px from the left eye
+  shots/look-yard-pose-mantle.png     mantle 40%, 7,835px from the right eye
+  shots/look-plant-pose-pullup.png    pullup 51%, 6,179px from the left eye
+  shots/look-yard-pose-pullup.png     pullup 51%, 6,305px from the left eye
+
+The three rows in the table above are the plant's vault, the yard's mantle and
+the yard's pullup. `shots/` is gitignored (F6), so these are regenerated rather
+than read out of the repo.
+
+**Why it is a look and not a rule.** The frame is self-consistent either way:
+an eye chosen off the drawn body can **see** the drawn body, which is the claim
+`poseeye.js` actually asserts, and it is the drawn body that is in the
+photograph. Nothing a player can do changes, because none of this is in the
+game — it is the pose gallery, which exists for Josh's eyes (F7).
+
+**The two options.**
+
+1. **Leave it.** A vault is photographed from whichever three-quarter the lag
+   lands on. The census holds the set, so if a fourth pair ever joins it the
+   suite says so.
+2. **Choose the eye off the capsule and photograph the drawn body.** One line
+   in `photographHere`. It frames a climb from where the move is *going*
+   rather than from where the body *is*, which is arguably the better picture
+   of a climb — and it would empty the census on both maps.
+
+**Recommendation: 1, until he has looked.** Not because 2 is wrong but because
+nobody can tell from the code which of the two frames is the better picture,
+and 2 moves three galleries to find out. **decided:** is left empty here on
+purpose: this is a Provisional whose recommendation is *to wait*, so no later
+session should read the absence as licence to pick 2. Say the word and it is a
+one-line job.
+
+**Override by** passing the capsule's feet to `chooseEye` in `photographHere`
+instead of the drawn body's, which empties
+`the-position-chase-moves-one-pose-photograph-eye-and-this-is-which` on both
+maps and moves the vault, mantle and pull-up galleries. `PLAYTEST.md` says
+which, and H46's section there already shows Josh the question.
+
 ### D74 — The audio device's fed ratio carries no floor, because a total has no shape; what it carries is a sign
 
 **Raised by:** H50, 2026-10-10. Taken rather than asked, for D73's reason: it

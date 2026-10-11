@@ -75,6 +75,7 @@ import { register as registerPositionCensus } from './positioncensus.js';
 import { register as registerAnimation } from './animation.js';
 import { register as registerLook } from './look.js';
 import { register as registerPoseEye } from './poseeye.js';
+import { register as registerStrikeRepeat } from './strikerepeat.js';
 import { register as registerMaterials } from './materials.js';
 import { register as registerYardMaterials } from './yardmaterials.js';
 import { register as registerQuality } from './quality.js';
@@ -170,6 +171,7 @@ export function registerAutoTests(debugTools) {
   // compares the two frames: what the position chase does to which eye a pose
   // is photographed from (H46).
   registerPoseEye(debugTools);
+  registerStrikeRepeat(debugTools);
   registerMaterials(debugTools);
   registerYardMaterials(debugTools);
   // After the pixel-reading modules: it is the one module that resizes the

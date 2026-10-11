@@ -95,6 +95,49 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### For your eyes: which side a climb gets photographed from (H52, 2026-10-10)
+
+**Nothing in the game changed.** This is about the **pose pictures** — the
+gallery `npm run shot` writes, which exists so you can look at the figures
+without playing — and it is a small question with a one-line answer either way.
+
+**The setup.** A pose picture is taken from one of six camera positions around
+the body, and the code picks whichever one frames the body best. It picks using
+where the body is **drawn**. During a climb the drawn body lags behind where it
+actually is by up to half a metre (that is the H44 item further down, the one
+you still have frames for), and on three of the twelve poses that lag is enough
+to change which camera gets chosen:
+
+| map | pose | chosen | what it would be without the lag |
+|---|---|---|---|
+| plant | vault | front-left | front-right |
+| yard | mantle | right | front-right |
+| yard | pull-up | left | front-left |
+
+All three are climbs. The other nine poses are unaffected.
+
+**What to look at.** Three commands, one pose each — the flag only takes the
+last one you give it, which is its own bug and is queued:
+
+    npm run shot -- --pose vault
+    npm run shot -- --pose mantle
+    npm run shot -- --pose pullup
+
+Each writes both maps into `shots/`. The three in the table are
+`look-plant-pose-vault.png`, `look-yard-pose-mantle.png` and
+`look-yard-pose-pullup.png`.
+
+**The question: does the climb read better from that side, or from the other
+one?** There is no wrong answer here — the picture is honest either way, because
+the camera is chosen off the same body it then photographs. Choosing off the
+body's *real* position instead would frame a climb from where the move is
+**going** rather than from where the body **is**, which might be the better
+picture of a climb or might not. It is one line to change, it moves those three
+galleries and nothing else, and it is written up as **D75**.
+
+**What is left for you: one look, no hurry.** If you have no opinion, leaving it
+is fine and the checks will tell us if a fourth pose ever joins the list.
+
 ### The sound-device number stays a reading, and here is why it cannot be a pass mark (H50, 2026-10-10)
 
 **Nothing in the game changed and there is nothing here to judge.** This is the

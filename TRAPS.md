@@ -119,6 +119,19 @@ afterwards to make that follow-up answerable. The verify is the only reading
 this project takes on a finished tree; if what the job found is a quantity,
 that is the run to capture it from, and `--details <path>` costs nothing.
 
+**A new module under `src/tests/` is a new row in four censuses, so run the
+censuses and not only the new check.** `breathcensus.js`, `breathdrawn.js`,
+`positioncensus.js` and `timedrenders.js` each decide membership by fetching
+every test module's source, so a module lands in all four the day it is
+written - and `breathcensus.js` and `timedrenders.js` test the **raw** text,
+comments included (H53). H52 ran its new check as a subset, twice, on both
+maps, and paid **seventy minutes** of verify to learn that three comments
+naming `updateVisual` had enrolled it in the breath census. The cheap version
+is two minutes: `npm run suite -- --runs 1 --map plant --subset
+"every-check-that-poses-a-body|every-check-that-draws-a-body|every-check-that-reads-a-world-position|every-check-that-times-a-draw|the-registry-holds-every-check|no-source-file-outside-config-is-over-600-lines|no-source-file-calls-math-random|the-regression-set-resolves-to-real-checks"`,
+then the same on the yard. This is H46's lesson (*"run the check the moved
+code came out of, not only the new one"*) in the currency a new file pays in.
+
 **The gate reads the tree it is running against, live, so do not edit `src/`
 while it is up.** `scripts/suite.mjs` serves the repo in-process and every page
 load fetches from disk, so a file changed at minute ten is loaded by the second
