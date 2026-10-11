@@ -39,6 +39,30 @@ const SOURCE_LINE_GUIDANCE = 600;
 const EXEMPT_TABLE = 'src/config.js';
 
 /**
+ * How near the guidance a module has to be to get named, and how many get
+ * named (H55). The check used to print *"the largest outside src/config.js is
+ * src/physics.js at 600 lines (guidance 600)"* and had printed exactly that
+ * for however long physics.js has been at 600 - zero headroom, one line from
+ * a red gate, in a detail line every run writes down. **Nobody read it**,
+ * because a number beside an identical number does not look like a warning,
+ * and the line named one file where four were inside fifty of the ceiling.
+ *
+ * So the report is the **headroom** as its own number and the nearest few
+ * rather than the leader. The guidance stays 600 and the verdict stays "over
+ * 600 is red": this is a report and not a threshold (D71's line), and what
+ * makes it worth its own job is that it is what makes the next H56 visible
+ * before a verify finds it. H53 is the worked example of what it costs
+ * otherwise - it wrote `tests/breathcensus.js` up to exactly 600 and found out
+ * from `wc -l`, because the gate's own line was naming physics.js.
+ *
+ * Fifty, because that is roughly one paragraph of this project's prose plus
+ * the clause it documents: near enough that the next job touching the file
+ * would want to know, far enough that it is not a list of everything.
+ */
+const CROWDED_WITHIN = 50;
+const CROWDED_NAMED = 3;
+
+/**
  * G1 asked for `HANDOFF.md` under 400 lines and reached 533; the arithmetic
  * said the gap was the Environment traps and nothing else, so D47 moved them
  * to `TRAPS.md` and G2 carried it out. 390 lines the day it landed. Held here
@@ -152,7 +176,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'no-source-file-outside-config-is-over-600-lines',
     spec: 'Section 3.1 (split past ~600 lines)',
-    name: 'Every module the game loaded is under the split guidance, config.js excepted',
+    name: 'Every module the game loaded is under the split guidance, config.js excepted, and the detail line names how much headroom the nearest few have left',
     run: async () => {
       // The modules that actually ran, from the same Resource Timing list the
       // network check reads: nothing here guesses the import graph. Each is
@@ -179,13 +203,53 @@ export function register(debugTools) {
       const over = sizes.filter((f) => f.lines > SOURCE_LINE_GUIDANCE && f.path !== EXEMPT_TABLE);
       const largest = sizes.find((f) => f.path !== EXEMPT_TABLE);
       const table = sizes.find((f) => f.path === EXEMPT_TABLE);
+
+      // The cluster, nearest the guidance first, each carrying the one number
+      // the old line never printed: how many lines it has left. `sizes` is
+      // sorted longest-first, so this comes out nearest-first for free - and
+      // the clause below holds that, because "nearest" is the whole claim.
+      const crowded = sizes
+        .filter((f) => f.path !== EXEMPT_TABLE && f.lines > SOURCE_LINE_GUIDANCE - CROWDED_WITHIN)
+        .map((f) => ({ ...f, left: SOURCE_LINE_GUIDANCE - f.lines }));
+      const named = crowded.slice(0, CROWDED_NAMED);
+
+      // The report's own arithmetic, because a detail line nobody checks is a
+      // detail line nobody reads - which is the whole of H55. Three things
+      // have to agree: each module's headroom is the guidance minus its
+      // measured length, the nearest is first, and a module **already over**
+      // the guidance is inside the cluster rather than off the far side of
+      // it, which is the mistake a band written as a distance invites and the
+      // one that would hide the only files that matter.
+      const problems = [];
+      if (!table) problems.push(`${EXEMPT_TABLE} was not loaded, and it is the one module PLAN.md exempts`);
+      for (const file of crowded) {
+        if (file.left !== SOURCE_LINE_GUIDANCE - file.lines) {
+          problems.push(`${file.path} is reported at ${file.lines} lines with ${file.left} left, and ${SOURCE_LINE_GUIDANCE} - ${file.lines} is ${SOURCE_LINE_GUIDANCE - file.lines}`);
+        }
+      }
+      for (let i = 1; i < crowded.length; i++) {
+        if (crowded[i].left < crowded[i - 1].left) {
+          problems.push(`the cluster is reported nearest-first and ${crowded[i].path} (${crowded[i].left} left) is behind ${crowded[i - 1].path} (${crowded[i - 1].left} left)`);
+        }
+      }
+      for (const file of over) {
+        if (!crowded.some((f) => f.path === file.path)) {
+          problems.push(`${file.path} is ${file.lines} lines and over the guidance, and the cluster the detail line names leaves it out`);
+        }
+      }
+
+      const report = crowded.length
+        ? `${sizes.length} modules loaded; ${crowded.length} within ${CROWDED_WITHIN} of the ${SOURCE_LINE_GUIDANCE} guidance`
+          + `, nearest ${named.length}: ${named.map((f) => `${f.path} ${f.lines} (${f.left} left)`).join(', ')}`
+        : `${sizes.length} modules loaded; none within ${CROWDED_WITHIN} of the ${SOURCE_LINE_GUIDANCE} guidance`
+          + `, the largest outside ${EXEMPT_TABLE} being ${largest.path} at ${largest.lines}`;
       return {
-        pass: over.length === 0 && !!table,
-        detail: over.length === 0
-          ? `${sizes.length} modules loaded; the largest outside ${EXEMPT_TABLE} is ${largest.path} at `
-            + `${largest.lines} lines (guidance ${SOURCE_LINE_GUIDANCE}); ${EXEMPT_TABLE} is ${table ? table.lines : '?'} `
-            + 'and is the table PLAN.md exempts'
-          : `over ${SOURCE_LINE_GUIDANCE} lines: ${over.map((f) => `${f.path} (${f.lines})`).join(', ')}`,
+        pass: over.length === 0 && problems.length === 0,
+        detail: [
+          over.length ? `over ${SOURCE_LINE_GUIDANCE} lines: ${over.map((f) => `${f.path} (${f.lines})`).join(', ')}` : '',
+          problems.join('; '),
+          over.length || problems.length ? '' : `${report}; ${EXEMPT_TABLE} is ${table.lines} and is the table PLAN.md exempts`,
+        ].filter(Boolean).join('; '),
       };
     },
   });

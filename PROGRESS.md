@@ -15071,3 +15071,92 @@ on a caller's behalf would put its callers back exactly where H47 was — and
 **H62**, because `positioncensus.js` still decides its own membership off the
 weaker reader, which is the defect this job just fixed twice, and only three of
 its fourteen entries have a reason to want strings.
+
+## H55 — a number beside an identical number, and the cluster nobody had counted (2026-10-11, scheduled run)
+
+**The line had been telling every run for weeks and nobody read it.**
+`no-source-file-outside-config-is-over-600-lines` printed *"the largest outside
+src/config.js is src/physics.js at 600 lines (guidance 600)"* — zero headroom,
+one line from a red gate, in a detail line every run with `--details` writes
+down. The defect is not in the measurement, which was exactly right; it is that
+**a number beside an identical number does not look like a warning**. H53, one
+job earlier in this same run, is the proof of the cost: it wrote
+`tests/breathcensus.js` up to exactly 600, found out from `wc -l` rather than
+from the check whose whole job is to say so, and spent the time to cut it back
+to 569.
+
+**So the report is the headroom as its own number, and the cluster rather than
+the leader.** The guidance stays 600 and the verdict stays "over 600 is red" —
+this is a report and not a threshold, which is D71's line. The line now reads:
+
+> 179 modules loaded; **12 within 50 of the 600 guidance, nearest 3:
+> src/physics.js 600 (0 left), src/tests/movement.js 599 (1 left),
+> src/systems/combat.js 593 (7 left)**; src/config.js is 1974 and is the table
+> PLAN.md exempts
+
+220 characters of the runner's 400 (the cut is invisible, TRAPS.md), identical
+on both runs, and `(0 left)` reads as a zero.
+
+**The cluster is twelve, and both the queue and HANDOFF had it as three.** The
+queue entry's own example named three and HANDOFF said *"three files within
+seven lines of the ceiling"*, which was true of seven lines and not of fifty.
+Measured off disk before anything was written: `src/physics.js` 600 (0 left),
+`src/tests/movement.js` 599 (1), `src/systems/combat.js` 593 (7),
+`src/maps/plant.js` 585 (15), `src/tests/ai.js` 576 (24),
+`src/tests/objective.js` 575 (25), `src/tests/breathcensus.js` 569 (31),
+`src/tests/donedef.js` 568 (32), `src/quality.js` 566 (34), `src/main.js` 557
+(43), `src/tests/difficulty.js` 554 (46), `src/entities/agent.js` 551 (49).
+**Twelve of 179 modules are inside fifty lines of the ceiling, and six of them
+are under `src/tests/`**, where the length is mostly prose arguing for a
+clause. That is the number H56 is really about, and it was not on the record
+anywhere.
+
+**Three clauses hold the report honest, because a detail line nobody checks is
+a detail line nobody reads — which is the whole of this job.** Each module's
+headroom must be the guidance minus its measured length; the nearest must be
+first, since "nearest" is the entire claim; and **a module already over the
+guidance must be inside the cluster rather than off the far side of it**. The
+third is the one worth having: a band written as a distance —
+`Math.abs(600 - lines) <= 50` — looks right, reads right, and silently excludes
+the only files that matter. It is the same shape of defect as every other
+coverage-versus-connectivity trap on the record (*"before believing a check on
+a set, ask whether it would notice the set being cut in half"*), one
+metacharacter wide.
+
+**Four breaks, and the fourth is a control.** Reverting the headroom's
+subtraction reds the arithmetic clause on all twelve modules; sorting the
+cluster longest-last reds the nearest-first clause; and padding
+`src/quality.js` to 666 lines **with** the band written as a distance reds both
+the over-list and *"src/quality.js is 666 lines and over the guidance, and the
+cluster the detail line names leaves it out"*. The fourth break pads the same
+file with the band left correct, and the cluster clause **does not fire** —
+only the over-list does, which is the check doing its original job. Without
+that run the third clause would be a line nobody had seen behave, and a clause
+that fires in every red is not a clause, it is noise.
+
+**Verified.** The gate for this job was H53's verify, by step 8 of the
+protocol. Subset twice on the plant before the verify (H52's lesson): 2 passed
+/ 0 failed twice (66,055ms, 65,187ms), both printing the identical detail line
+above. The verify passed on its first attempt, with
+`--details` because the job's whole result is a detail line: **plant 227 passed
+/ 1 failed / 8 not for this map twice (1,105,670ms, 1,113,823ms), yard 207 / 1 /
+28 twice (770,164ms, 767,085ms), exit 0, 0 red, 0 flaky, 0 unexpectedly green,
+0 context losses, 0 loop frames, 0 re-runs, 0 skips withheld, 0 bench drops
+withheld, no other runner — and 0 console errors in all four runs.** Spreads
+8,153ms on the plant (1% of the longest) and 3,079ms on the yard (0%), the
+tightest yard pair on record, inside F16's band.
+
+And the line itself was **byte-identical in all four runs, on both maps**,
+which is one small fact H63 should not have to re-derive: the check reads the
+modules the *page loaded*, and the plant and the yard turn out to load the same
+179. The caution still stands — print it per run rather than once — but today
+the two maps agree.
+
+**What was left.** **H63**, and it is the gap this job half-closes: *a passing
+check's detail is not in the report at all* (TRAPS.md), so the headroom reaches
+a reader only when the run was asked for `--details`. Every recent run has
+been, which is the only reason the old line was ever read — but the cluster
+belongs on the runner's own summary beside the quality line, where it costs
+nothing and cannot be missed. `nothing for Josh's eyes` again: this job changed
+no game behaviour, so `PLAYTEST.md` is untouched and `DECISIONS.md` has no new
+question.

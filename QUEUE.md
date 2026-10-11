@@ -555,25 +555,29 @@ one setting only Josh can click; everything else here proceeds.
   shape it now has makes a floor writable; `tests/audiodevice.js`'s
   `CLOCK_CASES` gains the stretch's own cases, and the entry in
   `timedrenders.js` says which verdict the new number carries.
-- [ ] **H55 (S)** The ceiling check reports a leader, not a cluster, and a
-  zero does not read as one. `no-source-file-outside-config-is-over-600-lines`
-  prints *"the largest outside src/config.js is src/physics.js at 600 lines
-  (guidance 600)"* and has printed that for however long physics.js has been
-  at 600 - zero headroom, one line from a red gate, in a detail line every
-  run writes down. Nobody read it, because **a number beside an identical
-  number does not look like a warning**, and the line names one file where
-  three are within seven lines of the ceiling (`src/physics.js` 600,
-  `src/tests/movement.js` 599, `src/systems/combat.js` 593).
-  Print the **headroom** as its own number and name the nearest three rather
-  than the leader: *"3 modules within 50 of the 600 guidance: physics.js 600
-  (0 left), tests/movement.js 599 (1), systems/combat.js 593 (7)"*. Sorted
-  already, so it is a slice and a map. The guidance stays 600 and the verdict
-  stays "over 600 is red" - this is a report, not a threshold (D71's line),
-  and the reason it is worth a job of its own is that it is what makes H56
-  and the next four of its kind visible before a verify finds them.
-  *done-when:* the detail line names the three nearest modules with each
-  one's remaining lines, a zero reads as a zero, and a check holds that the
-  count it reports matches the sizes it measured.
+- [ ] **H63 (S)** The ceiling cluster is in a detail line, and **a passing
+  check's detail is not in the report at all** (TRAPS.md). H55 made the line
+  worth reading - *"12 within 50 of the 600 guidance, nearest 3:
+  src/physics.js 600 (0 left), ..."* - and it still only reaches a reader who
+  passed `--details`. Every run this month has, which is the only reason the
+  old line was ever read at all, and that is a habit rather than a guarantee:
+  the job that forgets the flag is exactly the job about to write a module up
+  to 600.
+  Put the cluster on the runner's **own summary**, beside the quality line that
+  says what `auto` would have picked - one line per run, from the check's
+  result rather than recomputed, because two answers about a line count is the
+  defect this would be introducing. `scripts/suite.mjs` already reads results
+  it does not report (`benched`, `skipped`), so the shape exists. Keep it to
+  the count and the nearest one: *"ceiling: 12 modules within 50 of 600,
+  nearest src/physics.js at 600 (0 left)"* is sixty characters and says the
+  thing. And the per-map, per-run rule applies - the census is the same on both
+  maps today, but it is read off the modules the **page loaded**, and the two
+  maps do not load the same set, so print it per run rather than once (the
+  `break` in a summary loop that hid a whole map, TRAPS.md).
+  *done-when:* a plain `npm run suite` prints the ceiling cluster per run with
+  no flag; the number it prints is the check's own and not a second
+  measurement; and a check holds that the summary's number and the check's
+  number are the same, so they cannot drift.
 - [ ] **H56 (M)** `src/physics.js` is at exactly 600 of 600. H51 split
   `audio.js` at 589 because eleven lines of headroom is a trap for the next
   job; this file has **none**, and it is the swept solver - the hottest code
@@ -947,6 +951,29 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H55** A number beside an identical number does not look like a warning.
+  The ceiling check printed *"the largest outside src/config.js is
+  src/physics.js at 600 lines (guidance 600)"* and had printed exactly that
+  for weeks, in a detail line every run with `--details` writes down - the
+  measurement right and the report unreadable. **H53, one job earlier in the
+  same run, is the cost**: it wrote `tests/breathcensus.js` up to exactly 600
+  and learned it from `wc -l`. The line is now the **headroom** as its own
+  number and the nearest three rather than the leader, 220 characters of the
+  runner's 400: *"179 modules loaded; 12 within 50 of the 600 guidance,
+  nearest 3: src/physics.js 600 (0 left), src/tests/movement.js 599 (1 left),
+  src/systems/combat.js 593 (7 left)"*. The guidance stays 600 and the
+  verdict stays "over 600 is red" (D71). **And the cluster is twelve, where
+  this entry and HANDOFF both said three** - twelve of 179 modules inside
+  fifty lines of the ceiling, six of them under `src/tests/`, which is the
+  number H56 is really about and was on no record anywhere. Three clauses
+  hold the report honest: the arithmetic, the nearest-first order, and that a
+  module **already over** the guidance is inside the cluster rather than off
+  the far side of it - the last being the mistake a band written as a
+  distance invites, `Math.abs(600 - lines) <= 50`, which looks right and
+  hides the only files that matter. Four breaks, the fourth a control that
+  pads a file over the line with the band correct and shows the cluster
+  clause staying silent. Follow-up H63, because a passing check's detail is
+  not in the report at all. — done 2026-10-11, H55_HASH.
 - **H53** Two censuses decided membership by grepping prose, and the
   stripped read was half the repair. Both read the **raw** text of every
   module, so a comment naming the identifier enrolled it: H35, H47 and H52
