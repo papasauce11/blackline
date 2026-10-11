@@ -14593,3 +14593,120 @@ files and a session Josh is watching can take them in one sitting. H49 is the
 one with a cost attached: until it lands, a gate that exits 3 because another
 runner is alive will be filed as a `## BROKEN BASE` by a prompt that only knows
 about 1 and 2, and the base will be fine.
+
+## H51 — the recipes come out, and the file at exactly 600 that nobody read (2026-10-10, scheduled run)
+
+**The job was eleven lines of headroom.** `systems/audio.js` stood at 589 of
+the 600 `no-source-file-outside-config-is-over-600-lines` allows; H35 had spent
+three of those on the device journal's three call sites, and the next job to
+touch the file would have found out halfway through a verify. H42, H43 and H44
+each split a file **before** being forced to, which is the cheaper order, and
+this is the fourth.
+
+**The seam the queue named was the right one and cut clean.**
+`AudioSystem.BUILDERS` is 142 lines of Section 14 sound recipes, and a recipe
+is the most movable thing in the module: it is called as
+`builder.call(audioSystem, position)` from three sites, so `this` is the one
+`AudioSystem` and the two shapes every recipe is written in — `this._noiseBurst()`
+and `this._tone()` — stay where the graph is. A recipe therefore reaches
+nothing but those two helpers and its own row of `CONFIG.audio`. It moved
+**verbatim**: the 142 lines are byte-identical, diffed against `HEAD` rather
+than eyeballed, into `src/systems/audiosounds.js` (184 lines with its header),
+and `audio.js` is **450** — the queue predicted "about 450". The table keeps the
+name it had: `AudioSystem.BUILDERS = SOUND_BUILDERS`, so the three call sites
+and `tests/audio.js`'s `Object.keys(audio._builders)` enumeration are untouched.
+
+Layering is unchanged (Section 3.1): the new module imports config only, like
+the one it came out of, and a sibling import inside `systems/` is what `ai.js`
+does with `aistate.js` and `gadgets.js` with `gadgeteffects.js`. And
+`one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` stays
+green for the reason the queue gave: a recipe names no constructor, so the new
+module is not a second device owner.
+
+**A split nothing asserts is a split the next edit undoes**, and that check is
+where the clause belongs rather than in a new module of its own: it is already
+the check that decides which module may do what with the audio graph. It now
+holds three things, written against the **live** enumeration rather than a list
+of sixteen names, so a seventeenth sound is covered the day it is written:
+every recipe the live system answers to is declared in `audiosounds.js`, none
+is declared in `audio.js`, and `audio.js` reaches the table through an import
+rather than a copy. The import clause is spelled loosely on purpose — any of
+the three import forms satisfies it — because what matters is that there is one
+table, not which syntax fetches it. And it carries its own instrument, on F8's
+model and beside the one the device-constructor pattern already has: the clause
+answers "none misplaced" both when it works and when the spelling it looks for
+has gone, so it first proves it can find a recipe where the live system says
+one is.
+
+### What was verified
+
+**The GATE was H50's VERIFY on this branch** (D19), which read 0 console errors
+on all four runs and passed on its first attempt.
+
+**This verify passed on its first attempt too**: plant **226 passed, 1 failed,
+8 not for this map** twice (1,114,332ms, 1,118,165ms), yard **206 / 1 / 28**
+twice (780,606ms, 763,507ms), exit 0, 0 red, 0 flaky, 0 context losses, 0 loop
+frames, 0 skips withheld, 0 bench drops withheld, 0 unexpectedly green, 0
+re-runs, no other runner on the machine - and **0 console errors in all four
+runs**. Both runs of each map agree exactly on every count, the spreads are
+3,833ms on the plant (0% of the longest) and 17,099ms on the yard (2%), inside
+F16's band, and the counts are H50's exactly: this job added no check and
+extended one. The one failure per map is the bench-only frame-budget sweep the
+gate drops by design (H11).
+
+**The new clause's line, identical in all four runs**: *"177 modules under src/
+scanned, 1 names the device constructor and it is src/systems/audio.js (3
+lines); 3 modules name the offline one, which opens no device; **all 16 Section
+14 recipes are declared in src/systems/audiosounds.js and none in the owner**
+(H51); the live context is running, 48000Hz and is the same object after
+rendering a sound offline"*. The sixteen rendered sounds in `tests/soak.js`
+match Section 14 exactly as before, which is the queue's own proof that the
+move changed nothing, and so do `audio-voices-are-capped-and-released` (which
+plays every row through the moved table) and `audio-graph-is-one-master-three-buses`.
+
+**And the revert was proved rather than argued.** A `plantBeep` recipe planted
+back into `audio.js` as a class method - the exact shape the split comes undone
+in - turns the check red naming it: *"1 recipe(s) are declared in
+src/systems/audio.js: plantBeep; H51 moved the Section 14 table out of it and
+that file has 150 lines of headroom, not 11"*. Removed, the same thirteen-check
+subset is 13 passed, 0 failed.
+
+**Run with `--details`**, so four more device readings are free (H35's trap):
+`fed` **0.6345** on the plant over 816.9s and **0.5925** over 1,973.1s,
+**0.7122** on the yard over 541.6s and **0.6743** over 1,354.9s. **Nineteen
+full-run readings now and the band still has not moved** - 0.5665 to 0.7481 -
+with eight readings added since D74 was written and not one of them outside it.
+Nothing in this job touched the device; they are free because the flag was set.
+
+### What was found, and what was left
+
+**`src/physics.js` is at exactly 600 lines**, which is zero headroom against a
+ceiling of 600, and `src/tests/movement.js` is at 599 and `src/systems/combat.js`
+at 593. The next line added to any of the three turns the gate red mid-verify —
+which is precisely the thing H51 exists to prevent, sitting in three other
+files and **worse in one of them than it ever was in `audio.js`**, where there
+were eleven lines to play with. Two follow-ups, **H55** (S) and **H56** (M).
+
+**And the gate has been saying so at every run.** The check's own detail line
+reads *"the largest outside src/config.js is src/physics.js at 600 lines
+(guidance 600)"* and has for however long physics.js has been at 600. Nobody
+read it, because a number beside an identical number does not look like a
+warning — which is H55: the line names the three nearest files and prints the
+**headroom** as a number, so a zero is a zero rather than a coincidence of two
+600s. That is the cheap half, and it is the half that makes the rest visible.
+
+**The done-when's line limit is not this project's.** H51's entry asked that
+"no module in `src/` outside `config.js` is over 500 lines except the ones
+already named in `HANDOFF.md`". **Thirty-one modules are over 500** and
+`HANDOFF.md` names a handful, so that sentence describes a tree that has never
+existed: the rule is **600**, in PLAN.md and in the check, and 500 appears
+nowhere else. Read as written it would have made this job a twenty-file
+refactor. Taken as what it must have meant — `audio.js` under 500 and nothing
+new over 600 — it is satisfied: audio.js is 450 and the largest module outside
+`config.js` is unchanged at `physics.js`, 600. Recorded here rather than acted
+on, because narrowing a project-wide limit from 600 to 500 is a rule change and
+not a line in a split.
+
+**No `PLAYTEST.md` section**, which H45 set the precedent for: a file split
+changes nothing a player could see, judge or be asked about, and a "nothing
+changed" paragraph for one costs Josh a page of reading for no question.

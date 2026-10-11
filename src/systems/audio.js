@@ -20,6 +20,7 @@
 
 import { CONFIG, mulberry32 } from '../config.js';
 import { openDeviceJournal } from './audiodevice.js';
+import { SOUND_BUILDERS } from './audiosounds.js';
 
 const A = CONFIG.audio;
 /** Seed of the offline render's noise texture, so a rendered sound is the same samples every time. */
@@ -436,153 +437,13 @@ export class AudioSystem {
 }
 
 /**
- * One entry per row of the Section 14 table. Kept off the instance so the
- * lookup is a shared object rather than rebuilt per call.
+ * The Section 14 recipes, which live in their own module since H51 - this
+ * file was at 589 of the 600 a module may be. `AudioSystem.BUILDERS` is still
+ * the name they are reached through, so the three call sites above and
+ * `tests/audio.js`'s enumeration are unchanged, and `audiocontext.js` holds a
+ * clause that the table is there rather than back here.
  */
-AudioSystem.BUILDERS = {
-  shadeFootstep(position) {
-    const c = A.shadeFootstep;
-    return this._noiseBurst(position, {
-      filterType: 'highpass', frequency: c.highpass, duration: c.duration, gain: c.gain,
-    });
-  },
-
-  wardenFootstep(position) {
-    const c = A.wardenFootstep;
-    const body = this._noiseBurst(position, {
-      filterType: 'lowpass', frequency: c.lowpass, duration: c.duration, gain: c.gain,
-    });
-    // Plus the metallic click that makes it read as armour, not a shoe.
-    this._tone(position, {
-      type: 'square', frequency: c.clickFreq, duration: 0.02, gain: c.clickGain,
-    });
-    return body;
-  },
-
-  gunfire(position) {
-    const c = A.gunfire;
-    const fired = this._noiseBurst(position, {
-      filterType: 'lowpass', frequency: c.sweepFrom, sweepTo: c.sweepTo,
-      duration: c.duration, gain: c.gain,
-    });
-    // Section 14: a tail from delayed lower-gain copies rather than a
-    // convolver, which would need an impulse response file.
-    for (let i = 1; i <= c.tailCount; i++) {
-      this._noiseBurst(position, {
-        filterType: 'lowpass', frequency: c.sweepFrom * 0.5, sweepTo: c.sweepTo,
-        duration: c.duration * 1.6, gain: c.gain * Math.pow(c.tailFalloff, i),
-      });
-    }
-    return fired;
-  },
-
-  knifeSwing(position) {
-    const c = A.knifeSwing;
-    return this._noiseBurst(position, {
-      filterType: 'bandpass', frequency: c.bandpass, duration: c.duration, gain: c.gain,
-    });
-  },
-
-  takedown(position) {
-    const c = A.takedown;
-    this._noiseBurst(position, {
-      filterType: 'bandpass', frequency: 900, duration: c.crackDuration, gain: c.gain * 0.6,
-    });
-    return this._tone(position, {
-      frequency: c.subFreq, duration: c.subDuration, gain: c.gain, sweepTo: c.subFreq * 0.6,
-    });
-  },
-
-  landing(position) {
-    const c = A.wardenFootstep;
-    return this._noiseBurst(position, {
-      filterType: 'lowpass', frequency: c.lowpass * 0.8, duration: c.duration * 2, gain: c.gain,
-    });
-  },
-
-  lightBreak(position) {
-    return this._noiseBurst(position, {
-      filterType: 'highpass', frequency: 2600, duration: 0.18, gain: 0.3,
-    });
-  },
-
-  /** B2: hands slapping a face they cannot get over. Dull, short, unmistakably a body. */
-  scuff(position) {
-    const c = A.scuff;
-    return this._noiseBurst(position, {
-      filterType: 'lowpass', frequency: c.lowpass, duration: c.duration, gain: c.gain,
-    });
-  },
-
-  reload() {
-    return this._tone(null, {
-      bus: 'ui', type: 'square', frequency: 320, duration: 0.06, gain: 0.12,
-    });
-  },
-
-  taser(position) {
-    const c = A.taser;
-    return this._tone(position, {
-      type: 'square', frequency: c.freq, duration: c.duration, gain: c.gain,
-    });
-  },
-
-  alarm(position) {
-    const c = A.alarm;
-    this._tone(position, { type: 'square', frequency: c.freqLow, duration: c.toneDuration, gain: c.gain });
-    return this._tone(position, {
-      type: 'square', frequency: c.freqHigh, duration: c.toneDuration, gain: c.gain,
-    });
-  },
-
-  /** Section 14: sustained noise with a slow low-pass sweep over 1.5s. */
-  smoke(position) {
-    const c = A.smoke;
-    return this._noiseBurst(position, {
-      filterType: 'lowpass', frequency: c.sweepFrom, sweepTo: c.sweepTo,
-      duration: c.duration, gain: c.gain,
-    });
-  },
-
-  /** Section 14: a sharp transient plus the 4kHz ring that decays over 4s. */
-  flashbang(position) {
-    const c = A.flashbang;
-    const crack = this._noiseBurst(position, {
-      filterType: 'highpass', frequency: 1200, duration: c.transientDuration, gain: c.gain,
-    });
-    // The ring is what the player is left with, so it is the longer voice.
-    this._tone(position, {
-      frequency: c.ringFreq, duration: c.ringDuration, gain: c.gain * 0.35,
-    });
-    return crack;
-  },
-
-  /** Section 14: a low noise burst with a pitched-down tail. */
-  grenade(position) {
-    const c = A.grenade;
-    const blast = this._noiseBurst(position, {
-      filterType: 'lowpass', frequency: c.sweepFrom, sweepTo: c.sweepTo,
-      duration: c.duration, gain: c.gain,
-    });
-    this._tone(position, {
-      frequency: c.sweepFrom * 0.25, sweepTo: c.sweepTo * 0.5,
-      duration: c.duration * 1.5, gain: c.gain * 0.5,
-    });
-    return blast;
-  },
-
-  plantBeep(position) {
-    const c = A.plantBeep;
-    return this._tone(position, { frequency: c.freq, duration: c.duration, gain: c.gain });
-  },
-
-  lifeLost() {
-    const c = A.lifeLost;
-    return this._tone(null, {
-      bus: 'ui', frequency: c.freqStart, sweepTo: c.freqEnd, duration: c.duration, gain: c.gain,
-    });
-  },
-};
+AudioSystem.BUILDERS = SOUND_BUILDERS;
 
 export function createAudio(options) {
   return new AudioSystem(options);

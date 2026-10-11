@@ -463,22 +463,15 @@ one setting only Josh can click; everything else here proceeds.
   over eighteen cases including the halfway stop, green on purpose. The
   census counts `sign` across both groups now and its tally must add up.
   **H54** is the measurement that would make a floor possible.
-- [ ] **H51 (S)** `src/systems/audio.js` is at 589 of 600. H35 put three
-  lines in it and the file has eleven left; the next job to touch it
-  discovers that halfway through a verify, which is the thing H42, H43 and
-  H44 each did **before** being forced to. `AudioSystem.BUILDERS` is the
-  seam: 145 lines of Section 14 sound recipes, called in exactly one shape
-  (`AudioSystem.BUILDERS[name].call(this, …)`, three call sites), so it
-  comes out whole into `src/systems/audiosounds.js` and takes audio.js to
-  about 450. The layering is unchanged — a sibling import inside
-  `systems/` is what `ai.js` does with `aistate.js` and `gadgets.js` with
-  `gadgeteffects.js` — and `one-module-owns-the-audio-device-...` stays
-  green because a recipe names no constructor. The sixteen sound checks in
-  `tests/soak.js` render through the same `renderOffline`, so they are the
-  proof the move changed nothing.
-  *done-when:* no module in `src/` outside `config.js` is over 500 lines
-  except the ones already named in `HANDOFF.md`, audio.js is under 500, and
-  the sixteen rendered sounds match Section 14 exactly as before.
+- [x] **H51 (S)** `src/systems/audio.js` is at 589 of 600. - done
+  2026-10-10, under Done. `AudioSystem.BUILDERS` came out **verbatim** (142
+  lines, diffed against HEAD) into `src/systems/audiosounds.js` and audio.js
+  is **450**. The table keeps its name, so the three call sites and
+  `tests/audio.js`'s enumeration are untouched, and
+  `one-module-owns-the-audio-device-...` now holds the seam against the live
+  recipe list. **H55** and **H56** are what it found: `src/physics.js` is at
+  exactly 600 with zero headroom, and the gate's detail line has been saying
+  so at every run.
 - [ ] **H52 (S)** Two strikes of a moving state land the capsule a metre
   apart, and the pose eye that a lag chooses. Two findings from H46, which
   is why they share a job: both are about `strike` and `photographPose` and
@@ -582,6 +575,51 @@ one setting only Josh can click; everything else here proceeds.
   shape it now has makes a floor writable; `tests/audiodevice.js`'s
   `CLOCK_CASES` gains the stretch's own cases, and the entry in
   `timedrenders.js` says which verdict the new number carries.
+- [ ] **H55 (S)** The ceiling check reports a leader, not a cluster, and a
+  zero does not read as one. `no-source-file-outside-config-is-over-600-lines`
+  prints *"the largest outside src/config.js is src/physics.js at 600 lines
+  (guidance 600)"* and has printed that for however long physics.js has been
+  at 600 - zero headroom, one line from a red gate, in a detail line every
+  run writes down. Nobody read it, because **a number beside an identical
+  number does not look like a warning**, and the line names one file where
+  three are within seven lines of the ceiling (`src/physics.js` 600,
+  `src/tests/movement.js` 599, `src/systems/combat.js` 593).
+  Print the **headroom** as its own number and name the nearest three rather
+  than the leader: *"3 modules within 50 of the 600 guidance: physics.js 600
+  (0 left), tests/movement.js 599 (1), systems/combat.js 593 (7)"*. Sorted
+  already, so it is a slice and a map. The guidance stays 600 and the verdict
+  stays "over 600 is red" - this is a report, not a threshold (D71's line),
+  and the reason it is worth a job of its own is that it is what makes H56
+  and the next four of its kind visible before a verify finds them.
+  *done-when:* the detail line names the three nearest modules with each
+  one's remaining lines, a zero reads as a zero, and a check holds that the
+  count it reports matches the sizes it measured.
+- [ ] **H56 (M)** `src/physics.js` is at exactly 600 of 600. H51 split
+  `audio.js` at 589 because eleven lines of headroom is a trap for the next
+  job; this file has **none**, and it is the swept solver - the hottest code
+  in the game and the one module where a behaviour change is a rule change.
+  So: a move that changes no behaviour, verified by the traversal and
+  movement checks that already drive it, and nothing else in the same job.
+  **Two candidate seams, and the mechanism is already in the file.** Line 25
+  is `export { CollisionBox } from './collisionbox.js';` - a re-export, so a
+  moved symbol needs **no importer changed**, which matters here because
+  `classifyReach` is imported by fourteen modules and `applyGravity` by four.
+  (a) The **gravity and reach** section, lines 573-600: two free functions
+  with no reference to `CollisionWorld` at all, 28 lines, out into
+  `src/physicsreach.js` and re-exported - cheap, safe, and buys 27 lines,
+  which is honest headroom and not much more than audio.js had. (b) The
+  **read-only queries**, `raycast`, `lineOfSight` and `defaultSightFilter`,
+  lines 505-572: 68 lines that read the world and move nothing, but they are
+  methods of `CollisionWorld` and reach `this.query`, so moving them needs a
+  decision about shape (free functions taking the world, as `mapclimb.js`
+  does with the map, is the one that fits this codebase) rather than a cut.
+  Take (a) if the session is short and (b) if it is not; (b) is the one that
+  leaves the file comfortable.
+  *done-when:* `src/physics.js` is under 560, no importer of `classifyReach`
+  or `applyGravity` changed, the detail line of the ceiling check names a
+  different leader, and the movement, traversal and route checks are green
+  with identical numbers - a solver that answers differently has failed this
+  job however green it is.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -835,6 +873,35 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H51** The Section 14 recipes come out of `audio.js`, and the file at
+  exactly 600 that nobody read. `systems/audio.js` stood at 589 of the 600
+  the ceiling check allows, with H35 having spent three of the eleven left,
+  so the next job to touch it would have found out mid-verify - the thing
+  H42, H43 and H44 each avoided by splitting early, and this is the fourth.
+  `AudioSystem.BUILDERS` was the seam the queue named and it cut clean: a
+  recipe is called as `builder.call(audioSystem, position)` from three
+  sites, so it reaches nothing but `this._noiseBurst()`, `this._tone()` and
+  its own row of `CONFIG.audio`. The 142 lines moved **verbatim**, diffed
+  against HEAD rather than eyeballed, into `src/systems/audiosounds.js`
+  (184 with its header); `audio.js` is **450**; the table keeps its name
+  (`AudioSystem.BUILDERS = SOUND_BUILDERS`) so the three call sites and
+  `tests/audio.js`'s `Object.keys(audio._builders)` are untouched. The
+  seam is **asserted** rather than left to hold itself, in
+  `one-module-owns-the-audio-device-...` because that is already the check
+  deciding which module may do what with the audio graph: every recipe the
+  live system answers to is declared in `audiosounds.js`, none in
+  `audio.js`, and `audio.js` reaches the table through an import - written
+  against the live enumeration, so a seventeenth sound is covered the day
+  it is written, and carrying its own instrument clause. Proved by planting
+  a `plantBeep` back into `audio.js`, which reds it by name. **Found:**
+  `src/physics.js` is at **exactly 600**, with `tests/movement.js` at 599
+  and `systems/combat.js` at 593 - zero headroom where audio.js had eleven,
+  and the gate's own detail line has been printing it at every run because
+  a 600 beside a 600 does not read as a warning. **H55** (S) makes the line
+  report headroom and the nearest three; **H56** (M) splits physics.js, and
+  names the two seams and the re-export mechanism already in the file.
+  — commit `H51_COMMIT`
 
 - **H50** The floor that cannot be written, and the word a census could not
   count. The queue asked whether the audio device's `fed` ratio - the share

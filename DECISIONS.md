@@ -130,7 +130,11 @@ Windows from 533.5s to 2,007.9s; the controls are 0.9530 over 16.5s and 0.9673
 over 1.8s, so the loss is bought by sustained load and not by a startup offset.
 **Fifteen**, because H50's own verify took four more (0.5965 and 0.6404 on the
 plant, 0.7391 and 0.7023 on the yard) and **the band did not move**: they all
-land inside the eleven. The clause's `CLOCK_CASES` table holds the first eleven,
+land inside the eleven. **Nineteen** after H51's verify, which touched no audio
+and took four more for free (0.6345, 0.5925 plant; 0.7122, 0.6743 yard) - eight
+readings added since this page was written and not one outside 0.5665-0.7481,
+which is the band holding rather than the argument weakening: more readings
+make a floor *better* only if the objection were sample size, and it is shape. The clause's `CLOCK_CASES` table holds the first eleven,
 which are the readings it was written from; a job that adds the rest re-verifies.
 
 **The floor the queue expected, and it is a real argument.** A device that

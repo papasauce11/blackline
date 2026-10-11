@@ -53,6 +53,19 @@
  * one of which has rendered correct samples in every run on record, which is
  * what rules the renderer out and leaves the device.
  *
+ * **And since H51 it holds where the Section 14 recipes live**, which is the
+ * same question as the ban one step over: this check already decides which
+ * module may do what with the audio graph, and the recipes came out of
+ * `systems/audio.js` into `systems/audiosounds.js` to get that file off 589 of
+ * 600 before a job was forced to do it mid-verify. A split nothing asserts is
+ * a split the next edit undoes without noticing - the table is 145 lines and
+ * reads perfectly well pasted back - so the clause is: every recipe the live
+ * system answers to is declared in `audiosounds.js`, none is declared in
+ * `audio.js`, and `audio.js` imports the table rather than keeping a copy.
+ * **It is written against the live enumeration** (`audio._builders`, which is
+ * what `tests/audio.js` plays every row of) rather than against a list here,
+ * so a seventeenth sound is in this clause the day it is written.
+ *
  * Registered from tests/index.js beside the other census checks: it reads
  * source text and draws no frame. Nothing here imports main.js (Section 3.1).
  */
@@ -65,6 +78,15 @@ const OWNER = {
   path: 'src/systems/audio.js',
   why: 'AudioSystem.unlock() builds the one graph, guarded on this.context, and dispose() closes it',
 };
+
+/**
+ * Where the Section 14 recipes live since H51, and where they may not (the
+ * owner above). `RECIPE` is how a recipe is spelled in either file: a method
+ * shorthand at the table's own indent, which is the one form all sixteen are
+ * written in. Built per name from the live enumeration rather than listed.
+ */
+const RECIPES = { path: 'src/systems/audiosounds.js', exports: 'SOUND_BUILDERS' };
+const RECIPE = (name) => new RegExp(`^  ${name}\\(`, 'm');
 
 /**
  * The identifiers a device context is reached through. **Built from pieces on
@@ -117,8 +139,8 @@ function codeOnly(line) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'one-module-owns-the-audio-device-and-an-offline-render-gives-it-back',
-    spec: 'Section 14 / Section 15 / H32',
-    name: 'Only src/systems/audio.js names the realtime audio constructor, that owner still names it, and rendering a sound offline leaves the live context the same object',
+    spec: 'Section 14 / Section 15 / H32 / H51',
+    name: 'Only src/systems/audio.js names the realtime audio constructor, that owner still names it, every Section 14 recipe is declared in systems/audiosounds.js and none in the owner, and rendering a sound offline leaves the live context the same object',
     run: async (h) => {
       const problems = [];
       const audio = h.audio;
@@ -168,7 +190,53 @@ export function register(debugTools) {
       }
 
       // ------------------------------------------------------------------
-      // 2. The live context survives an offline render, by identity.
+      // 2. Where the Section 14 recipes live (H51). The names come from the
+      //    live system, so this clause covers a sound written tomorrow; the
+      //    two files come off the origin the way the ban above reads modules.
+      //    Both halves are asserted, because a split has two ways to come
+      //    undone: the table moves back, or a copy is left behind.
+      // ------------------------------------------------------------------
+      const recipeNames = Object.keys(audio._builders);
+      if (recipeNames.length < 1) {
+        problems.push('the live audio system answers to no recipe at all, so there is nothing to say about where they live');
+      }
+      const [ownerText, recipeText] = await Promise.all(
+        [OWNER.path, RECIPES.path].map((path) => fetch(`${origin}/${path}`).then((r) => (r.ok ? r.text() : null))),
+      );
+      if (recipeText === null) {
+        problems.push(`${RECIPES.path} is not served; H51 moved the Section 14 table there to get ${OWNER.path} off 589 of 600`);
+      } else if (ownerText === null) {
+        problems.push(`${OWNER.path} is not served, and it is this check's named owner`);
+      } else {
+        // The instrument first, on F8's model and the pattern clause above:
+        // this clause answers "none misplaced" both when it works and when
+        // the spelling it looks for has gone, so it proves it can see a
+        // recipe where one is before trusting it about where one is not.
+        const first = recipeNames[0];
+        if (first && !RECIPE(first).test(recipeText)) {
+          problems.push(`the recipe pattern cannot find "${first}" in ${RECIPES.path}, where the live system says it is - the two clauses below read zero whether they work or not`);
+        }
+        const missing = recipeNames.filter((name) => !RECIPE(name).test(recipeText));
+        const strays = recipeNames.filter((name) => RECIPE(name).test(ownerText));
+        if (missing.length) {
+          problems.push(`${missing.length} recipe(s) the live system answers to are not declared in ${RECIPES.path}: ${missing.join(', ')}`);
+        }
+        if (strays.length) {
+          problems.push(`${strays.length} recipe(s) are declared in ${OWNER.path}: ${strays.join(', ')}; H51 moved the Section 14 table out of it and that file has 150 lines of headroom, not 11`);
+        }
+        // The seam itself, and spelled loosely on purpose: what matters is
+        // that the owner reaches the table through an import rather than
+        // keeping a copy, not which of the three import forms it uses.
+        if (!/^import .*from '\.\/audiosounds\.js';$/m.test(ownerText)) {
+          problems.push(`${OWNER.path} imports nothing from ./audiosounds.js, so either the table is reached some other way or there are two of it`);
+        }
+        if (!new RegExp(`^export const ${RECIPES.exports} = \\{$`, 'm').test(recipeText)) {
+          problems.push(`${RECIPES.path} does not export ${RECIPES.exports} as the table, which is the name ${OWNER.path} and tests/audio.js both read it through`);
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // 3. The live context survives an offline render, by identity.
       // ------------------------------------------------------------------
       const context = audio.unlock();
       if (!context) {
@@ -197,6 +265,7 @@ export function register(debugTools) {
         detail: problems.length === 0
           ? `${modules.size} modules under src/ scanned, ${namers.length} names the device constructor and it is ${OWNER.path}`
             + ` (${owner ? owner.lines : 0} lines); ${offlineNamers} modules name the offline one, which opens no device`
+            + `; all ${recipeNames.length} Section 14 recipes are declared in ${RECIPES.path} and none in the owner (H51)`
             + `; the live context is ${state} and is the same object after rendering a sound offline`
           : problems.join('; '),
       };
