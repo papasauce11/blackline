@@ -976,7 +976,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   shot` takes the last `--pose` and drops the rest, saying "1 poses") and
   **H59** (a strike's *success* is not a function of its argument either -
   crouch and slide failed to reach on one plant run in four).
-  — commit `H52_COMMIT`
+  — commit `7de81bc`
 
 - **H51** The Section 14 recipes come out of `audio.js`, and the file at
   exactly 600 that nobody read. `systems/audio.js` stood at 589 of the 600
