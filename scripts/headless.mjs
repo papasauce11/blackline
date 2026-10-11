@@ -28,27 +28,14 @@ export const MIME = {
   '.wav': 'audio/wav',
 };
 
-/**
- * `--key value` pairs and bare `--flag`s into an object; anything that is
- * not an option is a positional, under `_`.
- */
-export function parseArgs(argv) {
-  const out = { _: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (!a.startsWith('--')) { out._.push(a); continue; }
-    const key = a.slice(2);
-    const next = argv[i + 1];
-    if (next === undefined || next.startsWith('--')) out[key] = true;
-    else { out[key] = next; i++; }
-  }
-  return out;
-}
-
-/** A comma-separated option as a list of trimmed names, or null if absent. */
-export function listArg(value) {
-  return value ? String(value).split(',').map(s => s.trim()).filter(Boolean) : null;
-}
+// The command line is `scripts/args.mjs` since H58, and re-exported here so
+// that shot.mjs, probe.mjs and bench.mjs keep importing it from one place.
+// It moved because the parser kept the **last** of a repeated flag and threw
+// the rest away silently, and because suite.mjs had a second copy of it: a
+// parser is exactly the part where "keep the two in step" is not something a
+// reader can see. It has no node builtin in it, so the AUTO suite imports it
+// and tests the behaviour (`tests/args.js`) rather than grepping its shape.
+export { parseArgs, listArg, scalarArg, ARG_CASES } from './args.mjs';
 
 /**
  * Every map the registry lists, in its order, read as text: the module

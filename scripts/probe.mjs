@@ -26,13 +26,25 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, parseArgs, registeredMapIds, serve, launch, openPage, loadMap, writePng } from './headless.mjs';
+import { ROOT, parseArgs, scalarArg, registeredMapIds, serve, launch, openPage, loadMap, writePng } from './headless.mjs';
 
 const args = parseArgs(process.argv.slice(2));
-const CHANNEL = args.channel ?? 'chrome';
-const OUT = path.resolve(ROOT, String(args.out ?? 'shots'));
-const QUERY = args.query ? String(args.query) : '';
-const MAP = args.map ? String(args.map) : registeredMapIds()[0];
+// Every flag here takes one value and refuses a second (H58). This runner
+// asks one question of one map, so `--map` is deliberately scalar - and a
+// deliberate scalar is exactly the kind that used to swallow the extra.
+let CHANNEL;
+let OUT;
+let QUERY;
+let MAP;
+try {
+  CHANNEL = scalarArg(args, 'channel') ?? 'chrome';
+  OUT = path.resolve(ROOT, String(scalarArg(args, 'out') ?? 'shots'));
+  QUERY = args.query ? String(scalarArg(args, 'query')) : '';
+  MAP = args.map ? String(scalarArg(args, 'map')) : registeredMapIds()[0];
+} catch (err) {
+  process.stderr.write(`probe: REFUSED: ${err.message}\n`);
+  process.exit(2);
+}
 const FILES = args._;
 
 if (!FILES.length) {

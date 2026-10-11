@@ -75,7 +75,7 @@ say" and you want to see the same frame, that is the command. **`npm run
 shot -- --pose all`** (F7, 2026-09-20) does the same for a pose: the
 Shade driven into each state (walk, sprint, crouch, slide, rise, fall,
 landing, vault, mantle, grab, hang, pullup) and the Warden aiming, one
-PNG each, `--pose vault,aim` for a few.
+PNG each, `--pose vault,aim` or `--pose vault --pose aim` for a few (H58).
 
 **`npm run bench`** (H11, 2026-10-07) is the one that needed you until now.
 Everything else here is measured headless on software GL, which draws a frame
@@ -116,12 +116,10 @@ to change which camera gets chosen:
 
 All three are climbs. The other nine poses are unaffected.
 
-**What to look at.** Three commands, one pose each — the flag only takes the
-last one you give it, which is its own bug and is queued:
+**What to look at.** One command, since H58 fixed the flag that only kept the
+last pose you gave it:
 
-    npm run shot -- --pose vault
-    npm run shot -- --pose mantle
-    npm run shot -- --pose pullup
+    npm run shot -- --pose vault --pose mantle --pose pullup
 
 Each writes both maps into `shots/`. The three in the table are
 `look-plant-pose-vault.png`, `look-yard-pose-mantle.png` and

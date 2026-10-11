@@ -108,31 +108,46 @@ import { createGuard, otherRunners } from './watchdog.mjs';
 // The verdict and the printing (H10): the half of this file with no Chrome in it.
 import { judge, summary } from './suitereport.mjs';
 import { stampVersion, VERSION_FILE } from './version.mjs';
+// The command line, shared with headless.mjs and the three runners (H58).
+import { parseArgs, listArg, scalarArg } from './args.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const args = parseArgs(process.argv.slice(2));
-const RUNS = Number(args.runs ?? 2);
-const CHANNEL = args.channel ?? 'chrome';
-const TIMEOUT = Number(args.timeout ?? 600000);
-const SUBSET = args.subset ? new RegExp(args.subset) : null;
-const PRE = args.pre ?? null;
-const QUERY = args.query ?? null; // e.g. "seed=20260908", appended to the page URL
+// Every flag says at the line whether it collects or takes one value (H58).
+// `--map` is the only one here that repeats; the rest refuse a second value
+// rather than keeping one of two silently. `--subset` is the one that would
+// have hurt most: two regexes, one of them used, and a report naming the
+// checks the other one would have run.
+const one = (key) => {
+  try { return scalarArg(args, key); } catch (err) {
+    process.stderr.write(`suite: REFUSED: ${err.message}\n`);
+    process.exit(2);
+  }
+  return undefined;
+};
+const RUNS = Number(one('runs') ?? 2);
+const CHANNEL = one('channel') ?? 'chrome';
+const TIMEOUT = Number(one('timeout') ?? 600000);
+const SUBSET = args.subset ? new RegExp(one('subset')) : null;
+const PRE = one('pre') ?? null;
+const QUERY = one('query') ?? null; // e.g. "seed=20260908", appended to the page URL
 /** A deployed origin to test instead of this checkout, always ending in a slash. */
-const BASE_URL = args.url ? String(args.url).replace(/\/*$/, '/') : null;
-const REGRESSION = !!args.regression;
+const BASE_URL = args.url ? String(one('url')).replace(/\/*$/, '/') : null;
+const REGRESSION = !!one('regression');
 // H45: the one way past the refusal below. Named once and read once, so the
 // check that holds the refusal can hold that too - a second reader, or a
 // second condition on that exit, is a second way past it.
-const ALLOW_OTHER_RUNNERS = !!args['allow-other-runners'];
-const MAPS = args.map
-  ? String(args.map).split(',').map(s => s.trim()).filter(Boolean)
-  : registeredMapIds();
-const DETAILS = args.details ?? null;
+const ALLOW_OTHER_RUNNERS = !!one('allow-other-runners');
+// The one repeatable flag here, and it had the comma-split written out by
+// hand rather than calling the shared reader - which is how the two parsers
+// came to disagree in the first place (H58).
+const MAPS = listArg(args.map) ?? registeredMapIds();
+const DETAILS = one('details') ?? null;
 // Half the logical CPUs by default, never fewer than two - one core cannot
 // run a browser and a compositor without the page timing out.
-const CORES = Number(args.cores ?? Math.max(2, Math.floor(os.cpus().length / 2)));
-const COOLDOWN_MS = Number(args.cooldown ?? 45) * 1000;
+const CORES = Number(one('cores') ?? Math.max(2, Math.floor(os.cpus().length / 2)));
+const COOLDOWN_MS = Number(one('cooldown') ?? 45) * 1000;
 // How long the page's heartbeat may stand still before the run is called
 // hung. A check runs to completion without yielding to the watcher, so the
 // gap between two beats is one whole check, and the slowest single check is
@@ -143,12 +158,12 @@ const COOLDOWN_MS = Number(args.cooldown ?? 45) * 1000;
 // the suite's own now (F11), it polls a fence so it beats while it waits, and
 // it carries its own budget below. Read the per-check ms in --details before
 // tightening this.
-const STALL_MS = Number(args.stall ?? 240) * 1000;
+const STALL_MS = Number(one('stall') ?? 240) * 1000;
 // And the budget while the beat says the suite is waiting on the renderer
 // rather than running a check. Separate because the two are different things:
 // this one is a wait that is allowed to be minutes long and says so, and it
 // is still bounded, so a GL call that never returns is still called hung.
-const WAIT_STALL_MS = Number(args['stall-wait'] ?? 600) * 1000;
+const WAIT_STALL_MS = Number(one('stall-wait') ?? 600) * 1000;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -173,18 +188,11 @@ const MIME = {
   '.woff2': 'font/woff2',
 };
 
-function parseArgs(argv) {
-  const out = {};
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (!a.startsWith('--')) continue;
-    const key = a.slice(2);
-    const next = argv[i + 1];
-    if (next === undefined || next.startsWith('--')) out[key] = true;
-    else { out[key] = next; i++; }
-  }
-  return out;
-}
+// The parser used to be a second copy of headless.mjs's, right here, and a
+// parser is exactly the part where headless.mjs's "keep the two in step" is
+// not something a reader can see - the two had already drifted on whether a
+// positional is kept. It is `scripts/args.mjs` since H58, imported by both,
+// with no node builtin in it so the AUTO suite can test it (tests/args.js).
 
 // Every map the registry lists, in its order: the `{ id: '...' }` entries of
 // REGISTRY in src/maps/index.js, read as text because that module imports

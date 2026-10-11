@@ -35,15 +35,30 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, parseArgs, listArg, registeredMapIds, serve, launch, openPage, loadMap, writePng } from './headless.mjs';
+import { ROOT, parseArgs, listArg, scalarArg, registeredMapIds, serve, launch, openPage, loadMap, writePng } from './headless.mjs';
 
 const args = parseArgs(process.argv.slice(2));
-const CHANNEL = args.channel ?? 'chrome';
-const OUT = path.resolve(ROOT, String(args.out ?? 'shots'));
-const QUERY = args.query ? String(args.query) : '';
-const POSES = listArg(args.pose);
-const SLIDE = args.slide !== undefined && args.slide !== 'false';
-const MAPS = listArg(args.map) ?? registeredMapIds();
+// Every flag says at the line whether it collects or takes one value (H58).
+// `--pose` and `--map` repeat; the rest refuse a second rather than keeping
+// one of two silently, which is what this runner did with `--pose` until H58
+// and why it wrote one pose while printing a count that agreed with itself.
+let CHANNEL;
+let OUT;
+let QUERY;
+let POSES;
+let SLIDE;
+let MAPS;
+try {
+  CHANNEL = scalarArg(args, 'channel') ?? 'chrome';
+  OUT = path.resolve(ROOT, String(scalarArg(args, 'out') ?? 'shots'));
+  QUERY = args.query ? String(scalarArg(args, 'query')) : '';
+  POSES = listArg(args.pose);
+  SLIDE = scalarArg(args, 'slide') !== undefined && scalarArg(args, 'slide') !== 'false';
+  MAPS = listArg(args.map) ?? registeredMapIds();
+} catch (err) {
+  process.stderr.write(`shot: REFUSED: ${err.message}\n`);
+  process.exit(2);
+}
 
 async function main() {
   const { server, port } = await serve();

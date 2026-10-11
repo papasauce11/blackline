@@ -633,23 +633,31 @@ one setting only Josh can click; everything else here proceeds.
   runs of both maps, `animation.js`'s header says the restriction is gone
   and when, `tests/look.js`'s floors are re-measured with their old and new
   numbers written down, and `PLAYTEST.md` says which galleries moved.
-- [ ] **H58 (S)** `npm run shot` takes the last `--pose` and silently drops
-  the rest. `npm run shot -- --pose mantle --pose pullup` wrote only the
-  pull-up, on both maps, and printed *"1 poses"* while doing it - so a
-  session asking for three poses gets one and a line of output that agrees
-  with itself. H52 lost two runs to it (about 80s each) and worked around it
-  by running three times. `scripts/headless.mjs` has `listArg` for exactly
-  this and `shot.mjs` already imports it, so the fix is one call changed;
-  the interesting half is that **nothing said so**.
-  Check every repeated flag the three runners take the same way (`--pose`,
-  `--map`, `--subset`, `--quality`) and make a repeated flag that is read as
-  a scalar either collect or **refuse**, because a runner that drops an
-  argument it was given is the same class of defect as a gate that warns and
-  builds anyway (H45).
-  *done-when:* `--pose a --pose b` writes both on both maps and says "2
-  poses"; a check or the runner's own self-test holds that each repeatable
-  flag collects, proved by passing one twice; and any flag that is
-  deliberately scalar refuses a second value rather than ignoring it.
+- [ ] **H64 (S)** The flag census in `tests/args.js` is written down by hand,
+  which is the shape of list H53 spent a whole job repairing twice over. Four
+  runners and twenty-seven flags are named in `FLAGS`, each declared
+  repeatable or scalar, and the clauses hold every one of them against the
+  runner's source - so a flag that is **in** the table cannot drift. A flag
+  that is not in the table is invisible: `scripts/watchdog.mjs` and
+  `scripts/version.mjs` take no flags today and are outside the census for
+  that reason, and the day either grows one nothing says it is unclassified.
+  The same hole, one level down, is a flag added to a runner that **is** in the
+  census - `--foo` read as `args.foo` with neither reader touching it passes
+  every clause there is.
+  Read the flags off the runners instead: every `args.<name>` and
+  `args['<name>']` in a runner's source is a flag, and each one must appear in
+  `FLAGS` as repeatable or scalar - both ways, so a flag added without a
+  decision is red and a table entry for a flag nobody reads any more is red
+  too. That is `breathcensus.js`'s own rule (*"a grep for the call is the whole
+  of it, which is what makes the census checkable rather than a matter of
+  opinion"*) and it wants H53's stripped readers, because a flag name is a
+  **string** - `said` and not `code`, which this job learned the expensive way.
+  The runner list wants the same treatment: every `.mjs` under `scripts/` is a
+  runner, rather than five named here.
+  *done-when:* the flag set is read off the tree and not a literal; a flag
+  added to any runner without a reader is red; an entry naming a flag no runner
+  reads is red; `watchdog.mjs` and `version.mjs` are in the census with zero
+  flags rather than absent from it; each proved by a break-and-revert.
 - [ ] **H59 (S)** A strike's **success** is not a function of its argument
   either, and a skipped state is a check measuring eleven things while
   saying twelve. One subset run of H52's census reported *"2 not on this
@@ -951,6 +959,32 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H58** A runner that drops an argument it was given, and the parser
+  nobody could test. `npm run shot -- --pose mantle --pose pullup` wrote the
+  pull-up and printed *"1 poses"* while doing it, on both maps: `parseArgs`
+  did `out[key] = next`, so a repeated flag kept the last value and the
+  earlier one was gone before `listArg` ever saw it. **The queue's "one call
+  changed" was the one thing it was not** - the repair is in the parser. Two
+  ways to read a flag now, chosen at the line: `listArg` for one that may
+  repeat, `scalarArg` for one that takes a single value and **refuses** a
+  second, printing `<runner>: REFUSED: --runs was given 2 times (1, 2)` and
+  exiting 2 - a bad command line is the runner failing to run, not a red
+  check (1) and not H45's refusal to measure (3). Twenty-seven flags across
+  four runners, every one decided about. **And there were two parsers**,
+  one in `headless.mjs` and one inside `suite.mjs` under a header asking for
+  the two to be kept in step - which they were not: one kept positionals and
+  the other discarded them. Both import `scripts/args.mjs` now, the one
+  module in `scripts/` with no node builtin in it, which is what lets
+  `tests/args.js` **import the parser and test the behaviour** where
+  `runnerguard.js` can only read source. Ten cases, four giving a flag
+  twice, with their own instrument: fewer than two repeats in the table is
+  red. Five breaks, five reds, the first restoring the original defect.
+  Found on the way: `benchlist.js` asserted `bench.mjs`'s exact spelling of
+  a read this job changed (H46's lesson, caught by grepping every test for a
+  quoted runner expression), and carried a **fifth** copy of the comment
+  stripper H53 collapsed four of. D75's six frames are unblocked and
+  `PLAYTEST.md`'s three commands are one. Follow-up H64, because the flag
+  census is written down by hand. — done 2026-10-11, H58_HASH.
 - **H55** A number beside an identical number does not look like a warning.
   The ceiling check printed *"the largest outside src/config.js is
   src/physics.js at 600 lines (guidance 600)"* and had printed exactly that

@@ -15160,3 +15160,140 @@ belongs on the runner's own summary beside the quality line, where it costs
 nothing and cannot be missed. `nothing for Josh's eyes` again: this job changed
 no game behaviour, so `PLAYTEST.md` is untouched and `DECISIONS.md` has no new
 question.
+
+## H58 — a runner that drops an argument it was given, and the parser nobody could test (2026-10-11, scheduled run)
+
+**`npm run shot -- --pose mantle --pose pullup` wrote the pull-up and printed
+"1 poses" while doing it.** On both maps. The cause is four characters:
+`parseArgs` did `out[key] = next` for every option, so a repeated flag kept the
+last value and the earlier one was gone before `listArg` ever saw it. A session
+asking for three poses got one, and a line of output that agreed with itself.
+H52 lost two runs to it (about 80s each) and worked around it by running three
+times; H44's D72 slide and H52's D75 pose pairs are both documented in
+`PLAYTEST.md` as *"one `--pose` at a time until H58 lands"*.
+
+**The queue said the fix was one call changed, and that was the one thing it
+was not.** The entry reasoned that `headless.mjs` has `listArg` for exactly
+this and `shot.mjs` already imports it. But `listArg` splits a comma; it never
+saw a second occurrence, because the parser had already thrown it away. The
+repair is in the parser, and the interesting half is the one the queue did get
+right: **nothing said so.** A runner that drops an argument it was given is the
+same class of defect as a gate that warns and builds anyway — H45 — and the
+answer is the same shape. Collect it, or refuse it.
+
+So there are exactly two ways to read a flag now, and every runner picks one at
+the line:
+
+- `listArg(args.pose)` — a flag that may repeat, or carry a comma-separated
+  value, or both. Flattened, in the order given.
+- `scalarArg(args, 'runs')` — a flag that takes one value and **throws** on a
+  second. Each runner catches it, prints `<runner>: REFUSED: --runs was given
+  2 times (1, 2) and takes one value`, and exits **2**: a bad command line is
+  this runner failing to run, not a red check (1) and not H45's refusal to
+  measure (3).
+
+**Twenty-seven flags across four runners, every one of them decided about.**
+`--map` repeats everywhere it appears except in `probe.mjs`, which asks one
+question of one map and so refuses a second — and a deliberate scalar is
+exactly the kind that used to swallow the extra quietly. `--pose` and
+`--quality` repeat. The other nineteen refuse.
+
+**And there were two parsers, which is the part that will not come back.**
+`headless.mjs` had one for the three small runners and `suite.mjs` carried its
+own copy inside it, under a header asking for the two to be kept in step — and
+a parser is precisely the part where "in step" is not something a reader can
+see. **They had already drifted**: `headless.mjs` kept positionals under `_`
+and `suite.mjs` silently discarded them. Both now import
+`scripts/args.mjs`, which is the only module in `scripts/` **with no node
+builtin in it**, and that is deliberate: it is what lets the AUTO suite import
+the parser and test the behaviour instead of grepping its shape.
+
+**That is the difference between this check and `runnerguard.js`.** That one
+holds `suite.mjs`'s refusal by reading its source, because the page has no
+processes and cannot start a runner or read an exit code, and it says so rather
+than pretending. A command line is not like that: it is a pure function from an
+array of strings to an object. The only reason it had never been tested was
+that it lived in a module full of `node:http`. `tests/args.js` runs
+`scripts/args.mjs`'s own `ARG_CASES` — ten of them, four giving a flag twice,
+each carrying the sentence saying what it is for, which is the sentence that
+gets printed when it fails. The cases live beside the code they describe so the
+behaviour and its examples cannot drift, and the table carries its own
+instrument: **fewer than two cases giving a flag twice is red**, because a case
+table without a repeat in it would pass every other clause while testing
+nothing about the defect this check exists for.
+
+**H53's trap, one job later, in the same session.** The check's grep clauses
+all came back broken on their first probe — all thirty-one of them. Flag names,
+module paths and the `REFUSED:` line are **strings**, and `codeOf` takes
+strings out; H53 documented that hole in `sourcetext.js`'s header four hours
+earlier and this job still walked into it. The clause asking what a module
+*does* — declares a parser — reads `code`; everything else reads `said`. It
+cost two minutes because the probe ran off disk; it would have cost a
+sixty-five-minute verify a week ago.
+
+**And the one the probe did not catch, which is H46's lesson again.**
+`benchlist.js` holds `bench.mjs`'s sample-count default by asserting the
+literal string `args.samples ?? VIEWPOINT_SAMPLES` appears in its source — and
+this job changed that read to `one('samples')`. The probe tested the new
+check's clauses and not the neighbours' claims about the files it had edited,
+which is exactly *"run the check the moved code came out of, not only the new
+one"*. The constant is updated and the clause's claim is unchanged: what it is
+about is the `?? VIEWPOINT_SAMPLES`, that the default is the number this page
+reads rather than one typed into a runner. Found by grepping every test module
+for a quoted runner expression, which took one command and should be the first
+thing any job editing `scripts/` runs.
+
+**A fifth copy of the stripper, and H53 collapsed four.** `benchlist.js` had
+its own `const code = (body) => body.replace(...)` inline, which H53's census
+of copies missed because it was looking at the modules that grep **source** and
+this one greps a URL parameter. It points at `sourcetext.js`'s `uncommented`
+now. Five copies in two strengths is a better argument for the shared module
+than four was.
+
+**Five breaks, five reds, each naming its own case.** Break 1 restores
+`out[key] = value` — H58's original defect, exactly — and the check reds with
+*"the H58 case: a flag given twice keeps both values:
+parseArgs(["--pose","mantle","--pose","pullup"]).pose is "pullup", want
+["mantle","pullup"]"*. Break 2 makes the refusal return instead of throwing, and
+four cases report a flag read as a scalar with nobody told. Break 3 stops
+`listArg` flattening. Break 4 reads `--pose` through the scalar reader in
+`shot.mjs`. Break 5 puts a second parser back in `headless.mjs`.
+
+**Verified.** The gate for this job was H55's verify, by step 8 of the
+protocol. The done-when, run for real: `node scripts/shot.mjs --pose mantle
+--pose pullup` wrote **four** PNGs — `look-plant-pose-mantle.png`,
+`look-plant-pose-pullup.png` and the two yard ones — and printed *"shot: plant:
+2 poses, 50430ms"* and *"shot: yard: 2 poses, 32608ms"*. The three refusals
+were read off the real runners: `suite: REFUSED: --runs was given 2 times (1,
+2)`, `bench: REFUSED: --samples was given 2 times (1, 2)`, `probe: REFUSED:
+--map was given 2 times (plant, yard)`. Census subsets twice on each map before
+the verify, because a new module in `src/tests/` is a new row in four censuses
+(TRAPS.md): plant 10 passed / 0 failed twice (116,795ms, 116,229ms), yard 12 /
+0 twice (74,936ms, 74,202ms), 0 red, 0 flaky, 0 console errors.
+
+The verify passed on its first attempt: **plant 228 passed / 1 failed / 8 not
+for this map twice (1,105,616ms, 1,114,534ms), yard 208 / 1 / 28 twice
+(768,296ms, 776,285ms), exit 0, 0 red, 0 flaky, 0 unexpectedly green, 0 context
+losses, 0 loop frames, 0 re-runs, 0 skips withheld, 0 bench drops withheld, no
+other runner — and 0 console errors in all four runs.** Spreads 8,918ms on the
+plant (1% of the longest) and 7,989ms on the yard (1%), inside F16's band, and
+both runs of each map agree exactly on every count.
+
+**The counts moved for the first time this run: 227 → 228 and 207 → 208.** H53
+and H55 added no rows — H53's module is a helper and H55 extended a check — and
+this one is a registered check, so it is one row per map. `scripts/args.mjs` is
+not under `src/`, so the ceiling census reads **180** modules rather than 181,
+and H55's line was byte-identical in all four runs: twelve within fifty,
+`src/physics.js` still at 600 with nothing left. The new check's own line was
+identical in all four too: *"10 parser cases (4 giving a flag twice), one
+parser in /scripts/args.mjs and none in the 5 runners, 27 flags across 4
+runners each read as a list or refused as a scalar"*.
+
+**What was left.** **D75's six frames are unblocked** — `npm run shot -- --pose
+vault --pose mantle --pose pullup` is now one run of about 80 seconds instead
+of three, which is what `PLAYTEST.md` said to wait for. `PLAYTEST.md` is
+updated for that one line and nothing else; no game behaviour changed and
+`DECISIONS.md` has no new question. One follow-up: **H64**, because
+`watchdog.mjs` and `version.mjs` take no flags today and so are outside this
+job's census, and the census is written down by hand - a runner that grows a
+flag is not in it until somebody remembers.

@@ -45,6 +45,7 @@ import {
   VIEWPOINT_SAMPLES, VIEWPOINT_BUDGET_MS, VIEWPOINT_SAMPLES_PARAM,
   MIN_SAMPLES_FOR_A_MEDIAN, sampleSummary, viewpointCost, viewpointSamples,
 } from './viewpointsamples.js';
+import { uncommented } from './sourcetext.js';
 
 /** This check's own id: the policeman is not exemptible, here either. */
 const SELF = 'the-bench-only-list-holds-only-checks-the-bench-itself-runs';
@@ -381,7 +382,12 @@ export function register(debugTools) {
       //    never by parsing, exactly as clause 5 of the check above decides
       //    it: bench.mjs's header explains the parameter at length, and an
       //    explanation is not an ask.
-      const code = (body) => body.replace(/^[\t ]*(\/\/|\/\*|\*).*$/gm, '');
+      // The weaker of the two readers `tests/sourcetext.js` owns: comments
+      // out, strings kept, because every clause here is looking for a URL
+      // parameter or an expression quoted as text. This was the **fifth**
+      // copy of it - H53 collapsed four and did not find this one, which is
+      // the argument for the shared module rather than against it.
+      const code = uncommented;
       // H42 put the count behind a `--samples` flag so the refusal below can be
       // driven from the command line, so the URL is a template now and the
       // literal nine is in the default beside it. Both halves are asserted,
@@ -389,7 +395,12 @@ export function register(debugTools) {
       // URL must carry the flag's value, and the flag must default to the
       // page's own constant rather than to a typed number.
       const asking = `${VIEWPOINT_SAMPLES_PARAM}=\${SAMPLES}`;
-      const defaulting = 'args.samples ?? VIEWPOINT_SAMPLES';
+      // The spelling changed in H58 and the claim did not: `one('samples')`
+      // is `scalarArg(args, 'samples')` with the runner's own exit around it,
+      // so `--samples` given twice is refused rather than half-kept. What
+      // this clause is about is the `?? VIEWPOINT_SAMPLES` - the default is
+      // the number this page reads and not one typed into a runner.
+      const defaulting = "one('samples') ?? VIEWPOINT_SAMPLES";
       /** The URL a reader would type, which `asking` stopped being at H42. */
       const askedNine = `${VIEWPOINT_SAMPLES_PARAM}=${VIEWPOINT_SAMPLES}`;
       const bench = await text(location.origin, '/scripts/bench.mjs');

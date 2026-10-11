@@ -94,7 +94,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
-import { ROOT, parseArgs, listArg, registeredMapIds, serve } from './headless.mjs';
+import { ROOT, parseArgs, listArg, scalarArg, registeredMapIds, serve } from './headless.mjs';
 import { createGuard, otherRunners } from './watchdog.mjs';
 import { benchChecks } from './suitereport.mjs';
 // The page's own sampling numbers, imported rather than copied (H42).
@@ -103,8 +103,19 @@ import { benchChecks } from './suitereport.mjs';
 import { MIN_SAMPLES_FOR_A_MEDIAN, VIEWPOINT_SAMPLES } from '../src/tests/viewpointsamples.js';
 
 const args = parseArgs(process.argv.slice(2));
-const CHANNEL = args.channel ?? 'chrome';
-const OUT = path.resolve(ROOT, String(args.out ?? 'bench'));
+// Every flag says at the line whether it collects or takes one value (H58).
+// `--map` and `--quality` repeat; everything else refuses a second value,
+// and a bench whose `--samples` was given twice is the exact shape of run
+// whose number nobody should be able to misread afterwards.
+const one = (key) => {
+  try { return scalarArg(args, key); } catch (err) {
+    process.stderr.write(`bench: REFUSED: ${err.message}\n`);
+    process.exit(2);
+  }
+  return undefined;
+};
+const CHANNEL = one('channel') ?? 'chrome';
+const OUT = path.resolve(ROOT, String(one('out') ?? 'bench'));
 const MAPS = listArg(args.map) ?? registeredMapIds();
 // Every level the preset table has, by default. The gate has only ever drawn
 // `medium` (H10's pin) and H24 priced `low` and `high` in software; what
@@ -112,10 +123,10 @@ const MAPS = listArg(args.map) ?? registeredMapIds();
 // clears the budget all three together are a couple of minutes. `--quality`
 // narrows it.
 const LEVELS = listArg(args.quality) ?? ['low', 'medium', 'high'];
-const REPEATS = Number(args.runs ?? 1);
-const POSITION = String(args['window-position'] ?? '-2400,-2400');
-const ONSCREEN = !!args.onscreen;
-const STALL_MS = Number(args.stall ?? 240) * 1000;
+const REPEATS = Number(one('runs') ?? 1);
+const POSITION = String(one('window-position') ?? '-2400,-2400');
+const ONSCREEN = !!one('onscreen');
+const STALL_MS = Number(one('stall') ?? 240) * 1000;
 /**
  * Timed draws a viewpoint of the frame-budget sweep is asked for. Nine, the
  * page's own `VIEWPOINT_SAMPLES`, because nine is where two benches of this
@@ -124,7 +135,7 @@ const STALL_MS = Number(args.stall ?? 240) * 1000;
  * fast enough to always get all nine: a card is allowed to be slow, and this
  * flag is how a slow one is simulated on a quick one.
  */
-const SAMPLES = Number(args.samples ?? VIEWPOINT_SAMPLES);
+const SAMPLES = Number(one('samples') ?? VIEWPOINT_SAMPLES);
 /** The suite's viewport, so a reading here sits beside a reading there. */
 const VIEWPORT = { width: 1280, height: 720 };
 
