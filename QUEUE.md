@@ -973,7 +973,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   hides the only files that matter. Four breaks, the fourth a control that
   pads a file over the line with the band correct and shows the cluster
   clause staying silent. Follow-up H63, because a passing check's detail is
-  not in the report at all. — done 2026-10-11, H55_HASH.
+  not in the report at all. — done 2026-10-11, `7295313`.
 - **H53** Two censuses decided membership by grepping prose, and the
   stripped read was half the repair. Both read the **raw** text of every
   module, so a comment naming the identifier enrolled it: H35, H47 and H52
