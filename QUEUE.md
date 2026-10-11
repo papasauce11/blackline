@@ -483,47 +483,49 @@ one setting only Josh can click; everything else here proceeds.
   measured out. The look is **D75**, Provisional with six PNGs named and
   `decided:` empty on purpose; `photographHere` untouched. **H57**, **H58**
   and **H59** are what it found.
-- [ ] **H53 (S)** Two censuses decide membership by grepping prose. **Three
-  jobs in two runs have now paid for it, and the third cost a whole
-  seventy-minute verify**: H52's new `tests/strikerepeat.js` explains
-  `_animTime` by naming the function that advances it, in comments, and
-  `every-check-that-poses-a-body-...` went red on both maps and both runs.
-  That one was **not** a false positive - the module really does pose bodies,
-  through `strike` - so it was fixed by declaring it, which is the right
-  answer and says nothing about the grep. The grep is still wrong, and the
-  cost is now measured rather than argued: **do this before the next job
-  that adds a module to `src/tests/`.** Both
-  `breathcensus.js` (`POSES_A_BODY = /updateVisual/`) and
-  `timedrenders.js` (`TAKES_A_CLOCK = /performance\.now\(\)/`) test the
-  **raw** file text, comments included, so a module is in the census the
-  moment its header *mentions* the identifier. It has cost two jobs in one
-  run: **H35** was pulled into the clock census by a sentence explaining
-  what its clock measures (it belonged there anyway, by a different route,
-  so it declared itself and the entry is honest), and **H47** was pulled
-  into the breath census by a comment saying that a ragdolled body's visual
-  update writes nothing - a module that drives no frame at all and would
-  have been a **false entry** in a census whose whole value is that its
-  membership is checkable. H47 worked around it by not spelling the
-  identifier and left a comment saying why, which is `audiocontext.js`'s
-  trick and is a workaround, not a fix: it means every future header in
-  `src/tests/` has two words it may not use, and nothing enforces that or
-  explains it at the point somebody types one.
-  Give both censuses a comment-and-string-stripped read. `audiocontext.js`
-  already has the reader - its `codeOnly(line)`, decided line-locally and
-  never by parsing, which is `donedef.js`'s rule - so this is one shared
-  export rather than three copies; H41's own rule is that every grep reads
-  source with its comments stripped, and these two are the ones that do
-  not. **Keep each census's instrument clause**: both must still prove they
-  can see a real member before their answer of "none new" means anything
-  (`audiocontext.js`'s `MUST_MATCH` / `MUST_NOT_MATCH` is the model), and
-  the obvious hole in a stripped read is that it now cannot see a call
-  inside a template literal.
-  *done-when:* a module whose **comment** names `updateVisual` or
-  `performance.now()` while its code does neither is in neither census,
-  proved by adding such a comment and watching both stay green; a module
-  whose **code** calls either is still caught, proved the same way; and
-  H47's workaround comment in `deathcam.js` comes out, with the identifiers
-  written back into its prose where they belong.
+- [ ] **H61 (S)** The breath census's criterion is two greps now, and the one
+  thing neither of them proves is that `animation.js`'s `strike` is still the
+  only way to pose a body without naming the call. H53 found the census wrong
+  in **both** directions: the raw read let a module in on a comment, and the
+  stripped read dropped `poseeye.js`, `strikerepeat.js` and
+  `positioncensus.js`, every one of which poses twelve states through `strike`
+  and calls `updateVisual` nowhere in its own code. The fix was to grep for
+  the proxy as well, which is honest about today and silent about tomorrow: a
+  second helper that drove a frame on a caller's behalf - `figure.js`'s
+  `standAndEyes`, say, or a `pose()` written next week - would put its callers
+  back where H47 was, in a census by accident or out of one by accident, and
+  nothing would say so.
+  Hold the proxy list against the tree instead of listing it: every module
+  under `src/tests/` that **exports** a function whose own code calls
+  `updateVisual` is a proxy, and the census's criterion is the call or any of
+  them. `animation.js` is the only one today (`strike`, through `frame`), which
+  is the reading that makes the clause cheap to write and worth having - it
+  turns "and `strike`" from a name in a regex into a set the tree decides.
+  *done-when:* the proxy set is read off the exports rather than written down,
+  `animation.js` is in it, a second module exporting a frame driver is in it
+  the day it lands, and a module that calls neither the call nor any proxy is
+  in neither group - each proved by a break-and-revert.
+- [ ] **H62 (S)** `positioncensus.js` reads source through the weaker of the
+  two readers and nothing says which it is getting. H53 put both in
+  `tests/sourcetext.js` with their difference documented - `codeOf` takes
+  comments **and** strings out, `uncommented` takes only comments - and the
+  position census uses `uncommented` because three of its entries are held
+  against the *wording* of the problem a module reports (`the grab lifted the
+  capsule`, `it is not presentation only`), which H53 measured: both vanish
+  under `codeOf`. That is a real reason and it covers three entries; it does
+  not cover the other eleven, whose `reads` patterns are expressions, nor
+  `READS_A_WORLD_POSITION` and `ADVANCES_THE_CHASE`, which are membership
+  criteria and have the same defect H53 just fixed twice - a module that
+  *mentions* `mesh.position` in a comment is in that census today.
+  Split the question: membership and the expression entries read `codeOf`, the
+  three prose entries say in the entry that they are prose (a `says:` field
+  rather than a `reads:` one) and read `uncommented`. Measure first, as H53
+  did - a probe over the live tree, before a line is written, naming every
+  module whose membership moves.
+  *done-when:* the census's membership is decided off a comment-and-string
+  stripped read, an entry whose evidence is prose declares that it is, no
+  entry's meaning changed in the move, and the census's own instrument clause
+  proves both readers can still see what they are for.
 - [ ] **H54 (M)** The device journal keeps a total and no shape, which is
   the only reason no floor can be written. D74 refused a floor on `fed`
   because the ratio cannot tell *one* stall of 353s from *a thousand*
@@ -945,6 +947,28 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H53** Two censuses decided membership by grepping prose, and the
+  stripped read was half the repair. Both read the **raw** text of every
+  module, so a comment naming the identifier enrolled it: H35, H47 and H52
+  each paid for that, the last with a seventy-minute verify. A probe over
+  the live tree before anything was written found the other half - the
+  stripped read dropped `poseeye.js`, `strikerepeat.js` and
+  `positioncensus.js`, every one of which poses all twelve strike states
+  through `animation.js`'s `strike` and calls `updateVisual` nowhere in its
+  own code, so each had been in the census by its comments alone. So the
+  criterion is the call **or the one proxy that makes it for you**, and the
+  membership under both together is 15/15, 13/13 and 6/6 against the raw
+  read: narrower, and the same answer. `tests/sourcetext.js` owns what were
+  four copies of the stripper in two strengths - `codeOf` (comments and
+  strings out) and `uncommented` (comments only, for a clause whose evidence
+  **is** a string) - plus `readerProblems`, the instrument both censuses run
+  before trusting themselves. H47's workaround is out of `tests/deathcam.js`
+  and that file is the live proof: two sentences naming both calls, code
+  calling neither, in neither census. Two holes in a stripped read are now
+  documented and one of them cost a subset run - a `${...}` is kept because
+  an interpolation is code, and a module **path** cannot be seen at all,
+  because a path is a string. Five breaks, five reds. Follow-ups H61, H62.
+  — done 2026-10-11, H53_HASH.
 - **H52** A strike is reproducible in its pose and not in its place, and
   which states that is true of. H46's own control caught two `sprint`
   photographs being of capsules **0.975m apart**; the carried quantity is

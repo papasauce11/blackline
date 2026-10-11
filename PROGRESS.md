@@ -14919,3 +14919,155 @@ shape of defect H50 made red in `timedrenders.js` an hour earlier - there it
 was a verdict counted in one group only, here it is a total counted over a
 different set from its parts. **H60** (S) says the line should name the
 excluded ones and hold its own arithmetic.
+
+## H53 — a census that grepped its own explanation, and was wrong in both directions (2026-10-11, scheduled run)
+
+**The queue asked for a stripped read and the stripped read turned out to be
+half the repair.** Two censuses decided membership by grepping the **raw** text
+of every module in `src/tests/`, comments included, so a module was in a census
+the moment its header *mentioned* the identifier. Three jobs in two runs had
+paid for it: **H35** was pulled into the clock census by a sentence explaining
+what its clock measures, **H47** into the breath census by a comment saying
+that a ragdolled body's `updateVisual` writes nothing — a module that drives no
+frame at all, and so a false entry in a census whose whole value is that its
+membership is checkable — and **H52** paid a whole seventy-minute verify to
+learn that three such comments had enrolled its new module. H47's workaround
+was to never spell the word, which left every future header in `src/tests/`
+with two words it may not use and nothing to say so.
+
+**Measured before a line was written, which is how the other half was found.**
+A probe over the live tree (`node`, off disk, no browser) read every registered
+module under both the raw grep and a comment-and-string-stripped one and
+printed the difference. The raw census had 15 modules posing a body; the
+stripped one had **12**. The three that fell out are `poseeye.js`,
+`strikerepeat.js` and `positioncensus.js` — and every one of them really does
+pose a body, all twelve strike states of it, through `animation.js`'s `strike`,
+which calls `updateVisual` on their behalf. **None of the three calls
+`updateVisual` anywhere in its own code.** Each had been in the census by its
+comments alone, which is to say the grep had been answering correctly by
+accident. So `POSES_A_BODY` is now two patterns — the call, and the one proxy
+that makes the call for you — and under both together the membership is
+**15 and 15, 13 and 13, 6 and 6: nothing lost, nothing gained** against the raw
+read. The criterion is narrower and the answer is identical, which is the only
+shape of evidence that says a grep was wrong rather than merely different.
+
+**One reader, four copies collapsed into two named ones.** The queue said three
+copies; there were four, and they came in two strengths, which is the part
+nobody could see at the call site. `tests/sourcetext.js` now owns both:
+
+- `codeOnly` / `codeOf` — comments **and** quoted strings out, for a census
+  asking *does this module make this call*. `audiocontext.js`'s, moved whole.
+- `uncommented` — comments out, strings kept, for a clause whose evidence *is*
+  a string. `positionreads.js`'s `code`, renamed for what it does; three of
+  `positioncensus.js`'s entries are held against the **wording** of the problem
+  a module reports (*"the grab lifted the capsule"*, *"it is not presentation
+  only"*), and H53 measured both of those out of existence under `codeOf`. The
+  fourth copy was inline in `timedrenders.js`'s clause 4, looking for a
+  parameter inside a URL.
+
+The two are not interchangeable and the names are the documentation: nothing
+about a reader tells you which one you were handed.
+
+**The reader gained one thing in the move, and it was not a free
+simplification.** A `${...}` inside a template literal is kept, because an
+interpolation is code. `timedrenders.js` holds `menu.js` to reading `record.ms`
+and the only place `menu.js` reads it is inside the detail line it builds, so a
+reader that emptied the whole span turned that entry stale — and would have
+been "fixed" by rewriting the clause instead of the reader. The probe caught
+that before it was written; break 3 below holds it.
+
+**And the hole the probe did not catch cost a subset run.** An import's module
+path is a **string**, so `codeOf` cannot see one by construction.
+`timedrenders.js` holds `performance.js` to importing the shared reader from
+this module, and that clause went red on both runs of the first plant subset —
+the only red of the job. The fix is two readings per module rather than one:
+`code` for every clause asking what a module does, `said` for the one asking
+what it imports, each named at the line. That is now the second documented hole
+in a stripped read, beside the template literal, in `sourcetext.js`'s header.
+
+**H47's workaround came out of `tests/deathcam.js`, and that file is now the
+live proof.** Its prose names `updateVisual` and `renderFrame` in two
+sentences, its code calls neither, and it is in neither census. Break 1 is the
+same fact from the other side: with the raw read put back, the breath census
+goes red naming `deathcam.js` — *"renders a frame and is in neither list"*. The
+done-when asked for a module whose comment names the call while its code does
+not; it is in the tree permanently rather than as an experiment.
+
+**The instruments.** Each census answers "nothing new" both when its greps work
+and when they have stopped seeing anything, and a **stripped** read can fail by
+stripping too much as easily as too little — the three dropped modules are how
+close that is. So `readerProblems` lives beside the two readers and takes what
+the census makes of a line: lines of real code each criterion must classify,
+lines of real prose it must not. Shared rather than written twice, which also
+bought `breathcensus.js` thirteen lines it needed (below).
+
+**Five breaks, five reds, each reverted from this job's own copies.**
+`git checkout` is the wrong tool during a job — H36 and H43 both lost work to
+it — and this run found the mirror of that trap: the script took its copies
+**before the last two edits of the job** and its own restore reverted them. The
+loss was visible immediately (the fifth break's anchor was not found) and both
+edits were re-applied, but the rule now has a sharper edge: **the copies are
+the revert, so a stale copy is a lost edit.** `prove.py` refuses to break
+anything unless every copy is byte-identical to the tree's file.
+
+| Break | Red |
+|---|---|
+| 1. the raw read is back | `deathcam.js` renders a frame and is in neither list |
+| 2. the proxy is gone | the instrument catches `strike(h, 'walk')` read as nothing, then `poseeye.js` falls out of POSED |
+| 3. the reader empties a template literal | the fourth instrument case misreads, and `menu.js` no longer reads `record.ms` |
+| 4. the criterion matches nothing | the instrument catches a criterion that sees no member |
+| 5. the import clause reads code | `performance.js` does not import the reader from this module |
+
+And one false start worth the line: the first proof driver ran `npm run suite`
+through `subprocess`, which goes through `cmd.exe`, **which read the `|` in the
+subset regex as a pipe**. Five runs exited 255 in under a second apiece with
+*"'every-check-that-times-a-draw' is not recognized as an internal or external
+command"*, and the exit code alone would have read as five crashed suites. It
+calls `node scripts/suite.mjs` directly now. The same shell hazard that
+`TRAPS.md` records for backticks in markdown patches, one metacharacter over.
+
+**Verified.** Cold gate before the job, on `66ccd6d`: plant 227 passed / 1
+failed / 8 not for this map (1,117,483ms), yard 207 / 1 / 28 (779,151ms),
+exit 0, 0 red, 0 flaky, 0 context losses, 0 loop frames, no other runner, and
+**0 console errors on both maps** — the eighth cold gate in a row at zero, and
+H35's eighth data point. Census subsets, twice on each map before the verify
+(H52's lesson): plant 11 passed / 0 failed twice (122,987ms, 121,276ms), yard
+11 / 0 twice (78,525ms, 81,180ms), 0 red, 0 flaky, 0 console errors.
+The verify passed on its
+first attempt, run with `--details` because the job's own finding is a count:
+**plant 227 passed / 1 failed / 8 not for this map twice (1,112,549ms,
+1,118,666ms), yard 207 / 1 / 28 twice (762,642ms, 775,535ms), exit 0, 0 red, 0
+flaky, 0 unexpectedly green, 0 context losses, 0 loop frames, 0 re-runs, 0
+skips withheld, 0 bench drops withheld, no other runner — and 0 console errors
+in all four runs.** Spreads 6,117ms on the plant (1% of the longest) and
+12,893ms on the yard (2%), inside F16's band, and both runs of each map agree
+exactly on every count.
+
+**The counts did not move, which is the point.** A helper is not a check:
+`sourcetext.js` is not registered in `tests/index.js`, so it is in no census's
+membership and adds no row — the suite is the same 227 and 207 it was at the
+gate, with two checks extended and none added. What did move is the ceiling
+check's own reading, from 178 modules loaded to **179**. And the three census
+detail lines were identical in all four runs, which is the measurement this
+job was for: *"15 pose a body: 2 held at the worst phase, 4 measured, 6 out of
+reach by proof; 13 render one"* and *"10 clauses read a duration (5 take it, 5
+read it)"* — 15, 13 and 10, the same numbers the probe predicted off disk
+before a line was written.
+
+**Nothing for Josh's eyes, and nothing in `DECISIONS.md`.** This job changed no
+game behaviour at all - it changed what two checks grep and what one of them
+grepped wrongly - so `PLAYTEST.md` is deliberately untouched, and no choice in
+it was a choice about what a player can do, see or hear.
+
+**What was left.** `breathcensus.js` came to **exactly 600 of 600** on the
+first pass — the ceiling, one line from a red gate — and the prose was cut and
+the instrument shared until it landed at **569**. That is 31 lines of headroom
+on a file that had 83 before the job, and it is the fourth file inside 50 of
+the guidance; **H55**, queued before this job and now the next one, is what
+makes that visible in a detail line rather than in a surprised commit message.
+Two follow-ups are queued: **H61**, because "and `strike`" is a name in a regex
+where it should be a set the tree decides — a second helper that drove a frame
+on a caller's behalf would put its callers back exactly where H47 was — and
+**H62**, because `positioncensus.js` still decides its own membership off the
+weaker reader, which is the defect this job just fixed twice, and only three of
+its fourteen entries have a reason to want strings.

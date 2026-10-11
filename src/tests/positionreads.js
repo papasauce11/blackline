@@ -214,21 +214,25 @@ export async function text(origin, rel) {
 }
 
 /**
- * A module's text with its comment lines taken out, decided line-locally and
- * never by parsing - timedrenders.js's stripper, used here for the same reason
- * it exists there and for one of its own.
+ * A module's text with its comment lines taken out, which this census greps
+ * through and `positioncensus.js` imports as `uncommented`.
  *
- * The reason it exists there: an explanation is not an ask, so a comment
- * naming a parameter must not satisfy a clause about the code asking for it.
- * The reason this check needs it: every clause below greps for an expression a
- * module is **not** allowed to carry any more, and the first run of this census
- * reported `enforcer.js` for a copy of the chase law that was in the comment
- * saying it used to have one. A census that reds on its own explanation is a
- * census about prose.
+ * It lived here as `code` until H53, which found the same stripper written
+ * three times in three strengths and moved all of it into
+ * `tests/sourcetext.js`: `codeOf` takes comments **and** strings out, and
+ * `uncommented` takes only comments. This census wants the weaker one and the
+ * name now says so, because nothing about a reader tells you which it is.
+ *
+ * Why comments go: every clause below greps for an expression a module is
+ * **not** allowed to carry any more, and the first run of this census reported
+ * `enforcer.js` for a copy of the chase law that was in the comment saying it
+ * used to have one. A census that reds on its own explanation is a census
+ * about prose. Why strings stay: three of the entries below are held against
+ * the *wording* of the problem a module reports, and H53 measured both of
+ * those out of existence under `codeOf` - so the two readers are not
+ * interchangeable here, and H62 is the job that splits the question properly.
  */
-export function code(body) {
-  return body.replace(/^[\t ]*(\/\/|\/\*|\*).*$/gm, '');
-}
+export { uncommented } from './sourcetext.js';
 
 /**
  * One registered check's own text: from its id to the next one in the file. A

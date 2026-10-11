@@ -77,6 +77,10 @@
  * it cannot be kept twice, and the census below is still held both ways, so a
  * new module in either group is red until it is classified.
  *
+ * **Since H53 the two criteria read code and not prose** (`tests/sourcetext.js`
+ * owns the reader), and one of them grew a proxy. The criteria below say what
+ * the raw read cost and what it hid.
+ *
  * Registered from tests/index.js beside tests/breath.js. Nothing here imports
  * main.js (Section 3.1).
  */
@@ -87,6 +91,7 @@ import { QUALITY_FALLBACK, pixelRatioNow } from '../quality.js';
 import { createLens, quiesce } from './pixels.js';
 import { standAndEyes, flatShadeSilhouette, HOOD_OVER_NECK } from './figure.js';
 import { DRAWN } from './breathdrawn.js';
+import { codeOf, readerProblems } from './sourcetext.js';
 
 const SELF = 'every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it';
 
@@ -106,14 +111,50 @@ const OWN_FILES = ['breathcensus.js', 'breathdrawn.js', 'positioncensus.js'];
 const BREATH_SECONDS = (2 * Math.PI) / POSE.breath.rate;
 
 /**
- * The criterion for being in `POSED`: a module that drives the pose itself.
- * A grep for the one call is the whole of it, which is what makes the census
- * checkable rather than a matter of opinion.
+ * The criterion for being in `POSED`: a module whose **code** drives the pose
+ * itself - `updateVisual`, or `animation.js`'s `strike`, which makes that call
+ * on its behalf. A grep for the two is the whole of it, which is what makes
+ * the census checkable rather than a matter of opinion.
+ *
+ * **Both halves are H53's**, which found this criterion wrong in both
+ * directions at once. It read the raw file until then, so a module was in the
+ * census the moment a comment *mentioned* the call (`sourcetext.js`'s header
+ * has what that cost). And the moment the read was stripped, **three real
+ * members fell out** - `poseeye.js`, `strikerepeat.js` and
+ * `positioncensus.js`, each of which poses all twelve strike states and calls
+ * `updateVisual` nowhere in its own code, so each had been here by its
+ * comments alone. The stripped read did not narrow this criterion; it showed
+ * the grep had been answering by accident either way.
  */
-const POSES_A_BODY = /updateVisual/;
+const POSES_A_BODY = /updateVisual\(/;
+const POSES_BY_PROXY = /\bstrike\(/;
+const posesABody = (code) => POSES_A_BODY.test(code) || POSES_BY_PROXY.test(code);
 
 /** And for `ALSO_DRAWN`: a module that renders a frame and reads what is in it. */
 const RENDERS_A_FRAME = /renderFrame/;
+
+/**
+ * The criteria's own cases, read by `readerProblems`, which says why a
+ * stripped grep needs them: lines of real code each criterion must classify,
+ * and lines of real prose it must not. The three modules above are how close
+ * a reader that strips too much is.
+ *
+ * The fourth `sees` case is the hole H53 named and the reason `codeOnly` keeps
+ * a `${...}`: a call inside a template literal is still a call, and
+ * `timedrenders.js` holds `menu.js` to a number it reads only inside the
+ * detail line it builds.
+ */
+const READER_SEES = [
+  ['        shade.updateVisual(1 / 60);', 'poses'],
+  ["      const struck = strike(h, 'walk');", 'poses'],
+  ['        h.renderFrame(1 / 60);', 'renders'],
+  ['        problems.push(`a frame moved ${shade.updateVisual(1 / 60)}m`);', 'poses'],
+];
+const READER_IGNORES = [
+  ' * `updateVisual` runs on the wall clock from the render frame, never from',
+  '      // this check never calls strike(h, name), so nothing here is posed',
+  ' * Drive frames with `h.renderFrame(1 / 60)`, never by waiting for rAF.',
+];
 
 /**
  * Every module under `src/tests/` that poses a body, what the two phases do to
@@ -276,24 +317,35 @@ export function register(debugTools) {
       }
       const declared = new Map(POSED.map((entry) => [entry.module, entry]));
       const alsoDrawn = new Set(ALSO_DRAWN);
+      // The criteria's own instrument before the census is believed (H53).
+      problems.push(...readerProblems(
+        (code) => (posesABody(code) ? 'poses' : RENDERS_A_FRAME.test(code) ? 'renders' : ''),
+        READER_SEES,
+        READER_IGNORES,
+      ));
+
       const poses = [];
       const renders = [];
       for (const file of files) {
-        const text = await (await fetch(`${origin}/src/tests/${file}`)).text();
-        if (POSES_A_BODY.test(text)) poses.push(file);
-        else if (RENDERS_A_FRAME.test(text)) renders.push(file);
+        // Code and not prose (H53). `tests/deathcam.js` is the live proof of
+        // this line: its two sentences name both calls and it makes neither,
+        // and between H47 and H53 it could not spell either word.
+        const code = codeOf(await (await fetch(`${origin}/src/tests/${file}`)).text());
+        if (posesABody(code)) poses.push(file);
+        else if (RENDERS_A_FRAME.test(code)) renders.push(file);
       }
       for (const file of poses) {
-        // The two census modules drive `updateVisual` to prove things ABOUT
-        // the two phases rather than to read a clause off a posed body, so
-        // they are excluded by name - and the clause below holds that they
-        // stay out, because a census that declares itself is a census of one
-        // thing.
+        // The three census modules drive the pose to prove things ABOUT the
+        // two phases rather than to read a clause off a posed body, so they
+        // are excluded by name - and the clause below holds that they stay
+        // out, because a census that declares itself is a census of one
+        // thing. (`positioncensus.js` drives it through `strike`, which is
+        // why H53's stripped read dropped it until the proxy was added.)
         if (OWN_FILES.includes(file)) continue;
         if (!declared.has(file)) problems.push(`${file} poses a body and this census does not declare it; what the breath and the gait do to its thinnest clause is the whole point of the list`);
       }
       for (const entry of POSED) {
-        if (!poses.includes(entry.module)) problems.push(`${entry.module} is declared here (${entry.reach}) and no longer calls updateVisual; drop it from POSED`);
+        if (!poses.includes(entry.module)) problems.push(`${entry.module} is declared here (${entry.reach}) and its code calls neither updateVisual nor strike; drop it from POSED`);
       }
       for (const file of renders) {
         if (!alsoDrawn.has(file)) problems.push(`${file} renders a frame and is in neither list; classify it in POSED or ALSO_DRAWN (H39 is the group that is declared and unmeasured)`);
@@ -301,14 +353,14 @@ export function register(debugTools) {
       for (const file of ALSO_DRAWN) {
         if (!renders.includes(file)) problems.push(`${file} is in ALSO_DRAWN and no longer renders a frame of its own; drop it`);
       }
-      // The two census modules are in neither list: they drive updateVisual to
+      // The three census modules are in neither list: they drive the pose to
       // prove things about it, which is not reading a clause off a posed body.
       // Named so the exclusion is deliberate rather than an oversight nobody
       // can see, and each held to still be driving it.
       for (const own of OWN_FILES) {
         if (declared.has(own)) problems.push(`${own} declares itself; it proves the mechanism rather than reading a clause off it`);
         if (alsoDrawn.has(own)) problems.push(`${own} is in the drawn table; it proves the mechanism rather than reading a clause off it`);
-        if (!poses.includes(own)) problems.push(`${own} no longer drives updateVisual, so its proofs are not reading a body that moved`);
+        if (!poses.includes(own)) problems.push(`${own} drives neither updateVisual nor strike any more, so its proofs are not reading a body that moved`);
       }
 
       const { shade, warden } = h;

@@ -85,7 +85,7 @@ import { quiesce } from './pixels.js';
 import { strike, STRIKES } from './animation.js';
 import {
   CENSUS, PROOFS, HOWS, READS_A_WORLD_POSITION, ADVANCES_THE_CHASE, THE_LAW,
-  chaseGap, checkSlice, code, draw, framesToClose, hulledMesh, openTheGap, text,
+  chaseGap, checkSlice, draw, framesToClose, hulledMesh, openTheGap, text, uncommented,
 } from './positionreads.js';
 
 const S = CONFIG.shade;
@@ -175,8 +175,11 @@ export function register(debugTools) {
         if (read.error) { problems.push(read.error); continue; }
         // Comments out of every source here, once: a module that only
         // *mentions* a world read is not one, and a clause below greps for
-        // expressions a module may no longer carry.
-        sources.set(file, code(read.body));
+        // expressions a module may no longer carry. Strings stay, which is
+        // the weaker of the two readers `tests/sourcetext.js` owns and is
+        // named for it since H53 - three entries below are held against the
+        // wording of a reported problem, and H62 splits that question.
+        sources.set(file, uncommented(read.body));
         if (READS_A_WORLD_POSITION.test(sources.get(file))) worldReaders.push(file);
       }
       const declared = new Map(CENSUS.map((entry) => [entry.module, entry]));
@@ -322,13 +325,13 @@ export function register(debugTools) {
       // ------------------------------------------------------------------
       const pose = await text(origin, '/src/entities/pose.js');
       if (pose.error) problems.push(`${pose.error}; it is the law's home`);
-      else if (!/export function positionSmoothing/.test(code(pose.body))) {
+      else if (!/export function positionSmoothing/.test(uncommented(pose.body))) {
         problems.push('pose.js does not export positionSmoothing; the chase law has moved and the two bodies may be reading two of them');
       }
       for (const rel of ['/src/entities/agentvisual.js', '/src/entities/enforcer.js']) {
         const body = await text(origin, rel);
         if (body.error) { problems.push(body.error); continue; }
-        const source = code(body.body);
+        const source = uncommented(body.body);
         if (!/positionSmoothing\(/.test(source)) {
           problems.push(`${rel} does not call positionSmoothing(); its body chases on a law of its own`);
         }

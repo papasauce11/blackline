@@ -72,7 +72,17 @@
  * Registered after benchlist.js and before performance.js: late enough that
  * the run's own tail has been paid by fuzz.js and pipelinewait.js, so the
  * first drain here answers in milliseconds (F11, D48).
+ *
+ * **Since H53 the census reads code and not prose.** It grepped the raw file
+ * until then, so a module was in this census the moment a sentence *mentioned*
+ * the clock - which is how **H35** got here, by a header explaining what its
+ * clock measures. It belonged here anyway by a different route and declared
+ * itself, so the entry is honest and says nothing about the grep.
+ * `tests/sourcetext.js` owns the reader and the instrument that proves it can
+ * still see a reading.
  */
+
+import { codeOf, readerProblems, uncommented } from './sourcetext.js';
 
 /**
  * The URL parameter that says the clock on this page can price a draw, and so
@@ -110,8 +120,20 @@ const OWN_FILE = 'timedrenders.js';
  */
 const TRUST_RATIO = 20;
 
-/** A module takes its own reading if it calls the clock. The only clock here. */
+/**
+ * A module takes its own reading if its **code** calls the clock. The only
+ * clock here, and read off a comment-and-string-stripped source since H53.
+ */
 const TAKES_A_CLOCK = /performance\.now\(\)/;
+
+/**
+ * The criterion's own cases, read by `readerProblems`: a line of real code it
+ * must see, and a line of this suite's own prose it must not. A stripped grep
+ * needs both, because it can fail by stripping too much as easily as too
+ * little and either way this census reports "nothing new".
+ */
+const CLOCK_SEES = '      const t0 = performance.now();';
+const CLOCK_IGNORES = ' * rather than guessing: a module that calls performance.now() is in here.';
 
 /**
  * The four verdicts, which partition both groups below and are counted across
@@ -266,13 +288,28 @@ export function register(debugTools) {
       if (files.length < 50) {
         return { pass: false, detail: `tests/index.js imports ${files.length} modules; the suite is 50+` };
       }
+      // The criterion's own instrument before the census is believed (H53).
+      problems.push(...readerProblems(
+        (code) => (TAKES_A_CLOCK.test(code) ? 'a clock reading' : ''),
+        [[CLOCK_SEES, 'a clock reading']],
+        [CLOCK_IGNORES],
+      ));
+
       const sources = new Map();
       const clocked = [];
       for (const file of files) {
         const read = await text(origin, `/src/tests/${file}`);
         if (read.error) { problems.push(read.error); continue; }
-        sources.set(file, read.body);
-        if (TAKES_A_CLOCK.test(read.body)) clocked.push(file);
+        // Two readings of every module, because two clauses below ask two
+        // different questions of it (H53). `code` has the comments **and the
+        // strings** out, for every clause asking what a module does: the
+        // membership grep here and every `reads` pattern in the read group.
+        // `said` has only the comments out, for the one clause that asks what
+        // a module *imports* - a module path is a string literal, and the
+        // stronger reader is blind to it by construction. That is the second
+        // hole in a stripped read and it cost this job a subset run.
+        sources.set(file, { code: codeOf(read.body), said: uncommented(read.body) });
+        if (TAKES_A_CLOCK.test(sources.get(file).code)) clocked.push(file);
       }
       const declared = new Map(CLOCKED.map((entry) => [entry.module, entry]));
       for (const file of clocked) {
@@ -287,7 +324,7 @@ export function register(debugTools) {
       }
       for (const entry of CLOCKED) {
         if (!clocked.includes(entry.module)) {
-          problems.push(`${entry.module} is declared here (${entry.verdict}) and no longer calls performance.now(); drop it from CLOCKED`);
+          problems.push(`${entry.module} is declared here (${entry.verdict}) and its code no longer calls performance.now(); drop it from CLOCKED`);
         }
       }
       if (!clocked.includes(OWN_FILE)) {
@@ -311,8 +348,9 @@ export function register(debugTools) {
         }
       }
       for (const entry of READS) {
-        const source = sources.get(entry.module);
-        if (!source) { problems.push(`${entry.module} is in the read group and was not served`); continue; }
+        const read = sources.get(entry.module);
+        if (!read) { problems.push(`${entry.module} is in the read group and was not served`); continue; }
+        const source = read.code;
         if (!entry.reads.test(source)) {
           problems.push(`${entry.module} no longer reads ${entry.reads} for "${entry.check}"; the entry is stale and the clause it describes has moved`);
         }
@@ -356,30 +394,34 @@ export function register(debugTools) {
       // ------------------------------------------------------------------
       // Comment lines come out of both files first, decided line-locally and
       // never by parsing, exactly as benchlist.js decides it for
-      // `viewpointSamples` - and the stripper is its, because this clause and
-      // that one are the same clause about a second parameter. bench.mjs's
-      // header explains this one at length, and an explanation is not an ask:
-      // without the strip, the comment alone would satisfy the clause below.
-      const code = (body) => body.replace(/^[\t ]*(\/\/|\/\*|\*).*$/gm, '');
+      // `viewpointSamples` - because this clause and that one are the same
+      // clause about a second parameter. bench.mjs's header explains this one
+      // at length, and an explanation is not an ask: without the strip, the
+      // comment alone would satisfy the clause below. The **weaker** of the
+      // two readers `tests/sourcetext.js` owns, and a fourth copy of it until
+      // H53: what it looks for is a parameter inside a URL, which is a string.
       const asking = `${TIMED_VERDICT_PARAM}=1`;
       const bench = await text(origin, '/scripts/bench.mjs');
       if (bench.error) problems.push(`${bench.error}; it is the one runner that may ask for a timed verdict`);
-      else if (!code(bench.body).includes(asking)) {
+      else if (!uncommented(bench.body).includes(asking)) {
         problems.push(`scripts/bench.mjs does not put ${asking} in the page URL, so the budget verdict H41 moved off the gate is asserted by nobody`);
       }
       const suiteRunner = await text(origin, '/scripts/suite.mjs');
       if (suiteRunner.error) problems.push(`${suiteRunner.error}; it is the runner that must NOT ask`);
-      else if (new RegExp(`${TIMED_VERDICT_PARAM}=`).test(code(suiteRunner.body))) {
+      else if (new RegExp(`${TIMED_VERDICT_PARAM}=`).test(uncommented(suiteRunner.body))) {
         problems.push(`scripts/suite.mjs asks for ${TIMED_VERDICT_PARAM} in code; the gate draws with a software rasteriser, where a wall clock round a frame reads the submission, so it may not ask for a verdict on one (H36)`);
       }
       // And the clause itself reads the shared reader rather than a local copy
       // of the parameter, which is what keeps the gate and the bench from
       // coming to two answers about who may assert on a clock.
+      // The call is read as code and the import as text, for the reason the
+      // two readings exist: a clause looking for `from './timedrenders.js'`
+      // is looking for a module path, and a path is a string.
       const perf = sources.get('performance.js');
-      if (perf && !/timedVerdictAsked\(/.test(perf)) {
+      if (perf && !/timedVerdictAsked\(/.test(perf.code)) {
         problems.push('performance.js does not call timedVerdictAsked(); its budget clause is gated on something other than the shared reader');
       }
-      if (perf && !/from '\.\/timedrenders\.js'/.test(perf)) {
+      if (perf && !/from '\.\/timedrenders\.js'/.test(perf.said)) {
         problems.push('performance.js does not import the reader from this module, so there are two answers to who may assert on a clock');
       }
 

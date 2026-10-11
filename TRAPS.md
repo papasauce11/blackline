@@ -598,6 +598,34 @@ break-and-revert loop is **keep your own copy and restore from that**: `cp
 <scratchpad>/good.js <file>` after each one, and diff the two at the end of
 every iteration. `git checkout` is the right tool only when the thing you
 want back is what is committed, which during a job it never is.
+**And the copies ARE the revert, so a stale copy is a lost edit.** The third
+side of the same trap, and H53 paid it inside the script written to avoid the
+other two. It copied the seven files it was about to break, correctly - and
+then found two more defects, fixed them in two of those files, and ran the
+break-and-revert loop. Every restore reverted the two fixes, because the copies
+predated them. The loss was loud by luck rather than by design: the fifth
+break's anchor was in one of the reverted lines and the script refused, which
+is the only reason it was not five proofs taken against a tree missing the
+job's own last edits. **Re-copy after every edit, or assert it:** `prove.py`
+now refuses to break anything unless every copy is byte-identical to the
+tree's file, which is three lines and would have caught it before the first
+run. The rule in one line: a break-and-revert loop is only as current as its
+copies, and the copies do not notice you editing the tree.
+
+**`cmd.exe` reads the `|` in a `--subset` regex as a pipe, and the exit code
+reads like a crashed suite.** H53's proof driver ran `npm run suite` through
+Python's `subprocess`, which on Windows runs `npm.cmd` through the shell. The
+subset regex is eight check ids joined by `|`, so the shell took the first one
+as a command and the rest as a pipeline: five runs exited **255** in under a
+second each, having never launched a browser, and the log held
+*"'every-check-that-times-a-draw' is not recognized as an internal or external
+command"*. A non-zero exit from the runner means **red** (or 2 crashed, 3
+refused, H45), so five instant 255s are easy to read as five broken runs of a
+broken tree. From a script, call **`node scripts/suite.mjs`** directly with
+`shell=False` - no npm, no cmd, and the `--` dance of `npm run` disappears with
+it. From the Bash tool, `npm run suite -- --subset "..."` is fine: the quotes
+hold, which is why this has never bitten an interactive run.
+
 **And copy every file you intend to break, not only the new ones.** H43 obeyed
 the entry above — it copied the two modules it had just written before the
 first break — and then broke a *tracked* file it had edited that same hour and

@@ -66,9 +66,21 @@
  * what `tests/audio.js` plays every row of) rather than against a list here,
  * so a seventeenth sound is in this clause the day it is written.
  *
+ * **And since H53 the reader this check greps with lives next door.** The ban
+ * below has always read code and not prose - the constructor's name is in
+ * sentences and in error strings all over this suite and none of those is a
+ * construction - and `codeOnly` was this file's own function. Two other
+ * censuses turned out to be grepping the **raw** text and paying for it by the
+ * verify, so the reader came out whole into `tests/sourcetext.js` where all
+ * three read it from. It gained one thing in the move, which this check wants
+ * too: a `${...}` inside a template literal is kept, because an interpolation
+ * is code and a constructor called in one would be a second device.
+ *
  * Registered from tests/index.js beside the other census checks: it reads
  * source text and draws no frame. Nothing here imports main.js (Section 3.1).
  */
+
+import { codeOnly } from './sourcetext.js';
 
 /**
  * The one module that may name the realtime constructor, and why. Read back
@@ -119,22 +131,6 @@ const MUST_NOT_MATCH = `typeof ${'OfflineAudio'}${'Context'} !== 'undefined'`;
  * empty or filtered list would otherwise read as a clean sweep of nothing.
  */
 const MIN_MODULES = 60;
-
-/**
- * Code, with comments and string literals taken out, decided line-locally and
- * never by parsing - `donedef.js`'s rule, because the thing being looked for
- * appears in prose and in error strings all over this suite (*"no ... available
- * in this browser"*) and none of those is a construction.
- */
-function codeOnly(line) {
-  const trimmed = line.trim();
-  if (trimmed.startsWith('*') || trimmed.startsWith('/*') || trimmed.startsWith('//')) return '';
-  return line
-    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
-    .replace(/`(?:[^`\\]|\\.)*`/g, '``')
-    .replace(/\/\/.*$/, '');
-}
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
