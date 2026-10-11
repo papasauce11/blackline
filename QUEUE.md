@@ -968,7 +968,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   documented and one of them cost a subset run - a `${...}` is kept because
   an interpolation is code, and a module **path** cannot be seen at all,
   because a path is a string. Five breaks, five reds. Follow-ups H61, H62.
-  — done 2026-10-11, H53_HASH.
+  — done 2026-10-11, `9911b18`.
 - **H52** A strike is reproducible in its pose and not in its place, and
   which states that is true of. H46's own control caught two `sprint`
   photographs being of capsules **0.975m apart**; the carried quantity is
