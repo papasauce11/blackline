@@ -15297,3 +15297,181 @@ updated for that one line and nothing else; no game behaviour changed and
 `watchdog.mjs` and `version.mjs` take no flags today and so are outside this
 job's census, and the census is written down by hand - a runner that grows a
 flag is not in it until somebody remembers.
+
+---
+
+## Audit — 2026-10-11
+
+**Landed.** Window 2026-10-03 → 10-11; oldest commit `ca5b762` (H23,
+2026-10-05 03:56). **71 commits** in the window, 93 since the last audit
+(`c5856f8`, 09-27) — this audit is **fourteen days** after the last one,
+because the 10-04 firing never ran, so the 22 commits of 09-28 → 10-04 (F17,
+F18, H5–H10) are counted here and not read. The Done section of QUEUE.md
+grew from 77 entries at `ca5b762` to **106**: **30 jobs in the window** —
+H23 (at `ca5b762` itself), H24, H25, H27–H36, H38–H47, H50–H53, H55, H58 —
+38 since the last audit. 31 `Record <job>` commits; runs landed on every day
+of the window (10 / 14 / 12 / 5 / 12 / 12 / 6 commits, 10-05 → 10-11). Queued
+during the window, by id, against the queue at `ca5b762`: **38** — H27 to
+H64 — 26 of them already done and 12 open (H37, H48, H49, H54, H56, H57,
+H59–H64). At HEAD: **68 `[ ]` open** (59 at `ca5b762`), 24 of them in Block
+H; **0 `[~]` WIP**; 1 blocked (H48 on D72, a Provisional look). One WIP in
+the window: `3baf549 WIP: H36` (10-07) — parked out of the tree the same
+night (`a17a862`) and done the next run (`181a7f3`, 10-08): **WIP for one
+run**. One stop note: `79320bb` (10-09), a run that stopped at two jobs
+rather than three and said why in HANDOFF. No job is WIP at HEAD, as at every
+audit since B5c.
+
+**Blocked on Josh.** **One entry under the Blocking heading has an empty
+`decided:`**: **D56** (should the Warden be playable competitively?), added
+2026-09-28 by H5 (`841c66c`) — **13 days**. Its own text says nothing is
+blocked on it (recommendation 1, leave the role row as built; option 3, a
+Shade AI, is a block after K), so it is a question and not a stall. Forty-two
+Provisional entries carry no `decided:` by design. The two HANDOFF names as
+looks, both new this window and neither holding a job up except H48: **D72**
+(H44, 10-09): a grab carries the capsule up over its move and the drawn body
+trails the climb by up to **0.46m at frame 7** — `npm run shot -- --slide`
+writes the fifteen frames; **H48 (M)** waits on it. **D75** (H52, 10-10): the
+eye a climb's pose picture is taken from is chosen off that lagging body on
+three pairs — `npm run shot -- --pose vault --pose mantle --pose pullup`
+writes all six PNGs in one run since H58.
+
+**Suite health.** HEAD `f669d7d`, `npm run suite -- --runs 1`, both maps,
+`quality=medium` pinned on a 1280x720 buffer: plant **228 passed, 1 failed,
+8 not for this map** (1,124,714ms, 449,704 of it the pipeline tail); yard
+**208 passed, 1 failed, 28 not for this map** (783,375ms, 344,516 tail);
+red [], flaky [], expectedRed [], unexpectedGreen [], skipped [],
+skipsWithheld [], benchDropsWithheld [], consoleErrors 0, contextLosses 0,
+otherRunners [], exit 0. Matches HANDOFF.md (228/1/8, 208/1/28) and the
+empty Deliberately-red list: **pass**. The one failure per map is the
+bench-only 92-viewpoint sweep the gate drops by design (H11); the last bench
+is **2026-10-09** (`76c6e50`, H41) on the GTX 1060, OK, 12 readings, and
+**28 commits** have landed since it — the line H37 wants this audit to
+carry, so here it is. Against the last audit that is +44 checks on the
+plant and +43 on the yard. Diff `ca5b762..HEAD -- src/tests
+scripts/suite-skips.json`: 42 files, **+7,682 / −285**; eighteen new test
+modules registered in `tests/index.js` (grabslide, outline, breath,
+breathcensus, breathdrawn, positioncensus, poseeye, strikerepeat,
+bufferscale, smallwindow, pixelfloors, audiocontext, autopick, args,
+benchlist, runnerguard, timedrenders, audiodevice). Every one of the 285
+removed lines read:
+- **The skip list is empty, and that is the check moving, not vanishing**
+  (H11): `scripts/suite-skips.json` went from its one entry to `[]` and
+  `tests/skiplist.js` from `const ALLOWED = [ { id:
+  'the-frame-budget-holds-everywhere-not-just-at-site-a', ... } ]` to
+  `const ALLOWED = [];`. The check now lives in `scripts/bench-checks.json`
+  as `benchOnly: true`, held by `tests/benchlist.js`; the gate still runs it
+  and reports it (the 1 failed per map above), and `npm run bench` takes the
+  verdict headed. No check was added to any skip list.
+- **One assertion became conditional, and it is argued** (H41, **D71**):
+  `tests/performance.js` `frame-budget-under-the-check-29-load`,
+  `- problems.push(`CPU ${cpuMedian.toFixed(2)}ms + GPU ${gpuMs.toFixed(2)}ms
+  exceeds the ${budget.toFixed(2)}ms budget`)` → `+ over.push(...)`, then
+  `if (priced) problems.push(...over); else notes.push(`not asserted on this
+  clock (H41): ...`)`, where `priced` is `?timedVerdict=1`. Headless, the
+  frame cost is **reported and not asserted**; the clock-free half (the load
+  assembled, Section 15's caps, the pools) still is, and `npm run bench`
+  asks for the verdict on the real GPU. This is the one line this week that
+  a gate used to go red on and now does not; `tests/timedrenders.js` (532
+  lines, new) holds the census of which checks time a render and which put
+  a verdict on it.
+- **Worst → median, bench-only** (H36): `tests/soak.js` `- name: 'Sweep
+  viewpoints across the whole map and report the worst frame'` → `+ '...
+  assert the worst viewpoint's median frame, not its unluckiest one'`; the
+  ceiling is now compared against `viewpointCost(each)` over a declared
+  sample count rather than one draw. Looser per viewpoint on purpose — a
+  single draw on this renderer reads the submission — and the single worst
+  draw is still reported. The check is the bench-only one above.
+- **Every pixel floor is a fraction of the buffer** (H28, H30; D63–D65):
+  `scaledCount(lens, N)` = N·(height/720)² replaced the bare numbers, e.g.
+  `tests/visual.js` `- if (body.count < 400)` → `+ if (body.count <
+  scaledCount(lens, 400))`; `tests/look.js` `- if (look.covered < 3000)` →
+  `+ scaledCount(look.buffer, 3000)`; `tests/figure.js` `- s.count <
+  (distance <= 8 ? 2000 : 150)` → `+ silhouetteFloor(lens, distance)` with
+  `COVERS = { 8: 2000, 25: 150 }`; smoke `- diff.count < 5000` → `+ covered <
+  SMOKE_COVERS` with `SMOKE_COVERS = 5000 / (1280 * 720)`; legibility 400
+  and 200, presentation 500 and 200, post 20 and 500, deathcam 300 the same
+  way. The gate pins medium (`resolutionScale: 1`) on 1280x720, so **every
+  floor equals its old number at the gate**; at low's 0.7 they would be
+  49%. `tests/pixelfloors.js` (new) greps every module for a bare floor and
+  allows two existence tripwires (visual.js 10, feedback.js 20); the figure
+  checks read at the fallback level's pixel ratio (`createLens(h, {
+  pixelRatio: READ_AT() })`, D63) whatever level is pinned. Not loosened.
+- **Moved, not removed** (H28): `the-outline-darkens-the-silhouette-edge`
+  left `tests/visual.js` for `tests/outline.js` with `EDGE_STEP = 5`,
+  `EDGE_OVER_CORE` (edge > 2× interior) and `BODY_PIXELS = 400` intact, and
+  a new clause that the hulls shown match what the level draws.
+- **Tighter**: `tests/hang.js` the glove clause's bare `0.15` is
+  `GLOVE_ON_LIP = 0.15` and the settle before the read went from 30 frames
+  to `SETTLE_FRAMES = 150`, argued by a new check from the slowest ease
+  (H38, H40), plus a sweep over eight phases of the breath (H33).
+  `tests/deathcam.js` `- 'free-look moved the body'` is now two clauses, the
+  capsule and the drawn transform. `tests/donedef.js` the ceiling check's
+  `- pass: over.length === 0 && !!table` → `+ over.length === 0 &&
+  problems.length === 0` with the table clause inside `problems` and three
+  new ones about the headroom line (H55). `tests/keylight.js` the
+  instrument's own control changed from "every row crosses more than
+  CEILING with the fix off" to "every row swings ≥ 2.5× with the fix off";
+  the asserted clause, `row.crossings > CEILING` (6) with the fix on, is
+  unchanged. `tests/post.js` bloom, vignette and marker clauses sit under
+  `if (drawsPost)` with "no post drew" clauses for the other branch (D60);
+  medium draws post, so the gate runs the originals. `tests/map.js` the
+  shadow map is compared to `qualityPreset().shadowMapSize` instead of
+  `CONFIG.render.shadowMapSize`; both were 1024 at medium.
+- **No check deleted, no threshold loosened at the gate's buffer, nothing
+  added to the skip list.**
+
+**Drift.** 180 modules under `src/`. Over 600 lines: `src/config.js`
+**1,974** (was 1,665 at the last audit; exempt). The cluster H55 measured is
+real: `src/physics.js` **600 (0 left)**, `tests/movement.js` 599,
+`systems/combat.js` 593, `maps/plant.js` 585, `tests/ai.js` 576,
+`tests/objective.js` 575, `tests/breathcensus.js` 569, `tests/donedef.js`
+568, `quality.js` 566, `main.js` 557, `tests/difficulty.js` 554,
+`entities/agent.js` 551 — **twelve within fifty of the ceiling**, six of
+them under `tests/`; H56 (M) is the split and is fourth in line. TODO/FIXME:
+**0**. `Math.random`: 1 real use, `systems/audio.js:102`, the noise buffer.
+`setTimeout`: 0 in `src/` outside tests; 1 in `tests/performance.js:102`,
+the yield for the GPU fence, allowed by name at `tests/donedef.js:97`. Both
+as documented and held by F13's census.
+
+**The live site** (H2, H3). `npm run suite -- --runs 1 --regression --url
+https://papasauce11.github.io/blackline/`: plant **29 passed, 0 failed**
+(95,959ms), yard **29 passed, 0 failed** (62,136ms), 0 console errors, exit
+0 — the deploy agrees with this checkout's rules on both maps. Pages
+`builds/latest`: status `built`, commit `f669d7d` = HEAD, created
+2026-10-11T11:26:03Z, done 24s later, error null. Live `version.json` reads
+`48ca405` (the H58 job commit) against HEAD `f669d7d` (its Record commit):
+**one behind**, which is D52's normal, and the committed `version.json` at
+HEAD is `48ca405` too, so the live copy is exactly what is committed and no
+record commit skipped `npm run stamp`.
+
+**Fresh seeds.** `--subset "fuzz|soak" --query "seed=20261011"`: 2 checks
+per map (`shade-invariants-under-fuzz`,
+`traversal-fuzz-ten-thousand-steps-never-sticks`; the soak sweep is
+bench-only), **4 passed, 0 failed**, 68,561ms plant / 40,626ms yard, 0
+console errors, exit 0. Widened, as the last two audits did, to `fuzz|soak|stall|stuck|leaks-nothing|random-real-input|never-climbs|difficulty|seed` with the same seed: 12 checks per map, plant **12 passed**, yard **12 passed**, 0 failed, 0 console errors, exit 0 — the yard difficulty red the 09-27 audit found under its seed (F17) does not recur under this one. Nothing to queue.
+
+**Broken base.** No. No `BROKEN BASE` heading in HANDOFF.md; the last two
+build commits (`48ca405` H58, `f669d7d` its record) are neither WIP nor stop
+notes; 0 `[~]`.
+
+**Environment.** **No other runner on the machine**: `otherRunners []` in
+every one of this audit's runs. The 09-18 orphans the last two audits
+reported are gone (cleared at H23), and since H45 a gate started beside a
+live runner refuses with exit 3 rather than measuring beside it. The one
+Chrome alive from before the audit (pid 3140, 10-08) is the desktop app's
+own, not a runner. Note for the next audit: the first `npm run suite` stamps
+`version.json` to HEAD, which dirties the tree against the committed
+one-behind stamp; this audit put it back with `git checkout -- version.json`
+before committing, and the later runs said "the working tree is dirty" and
+left it alone.
+
+**Recommendation.** Two S jobs have been passed over by every unattended run
+because they edit a scheduled task's prompt outside this repo: **H37**
+(six runs; the bench-age line this audit carried by hand above) and **H49**
+(three runs; the build prompt files H45's exit 3 as a BROKEN BASE, so the
+first busy-machine morning will write a false broken base into the record).
+One sitting with Josh present takes both. While there: the two looks,
+`npm run shot -- --slide` (D72; H48 is the fix and waits on the look) and
+`npm run shot -- --pose vault --pose mantle --pose pullup` (D75), about
+eighty seconds each. And the audit itself missed 10-04 — if the app was
+closed that Sunday, that is the local-task cost PLAN.md names.
