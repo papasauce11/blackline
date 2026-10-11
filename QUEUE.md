@@ -984,7 +984,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   quoted runner expression), and carried a **fifth** copy of the comment
   stripper H53 collapsed four of. D75's six frames are unblocked and
   `PLAYTEST.md`'s three commands are one. Follow-up H64, because the flag
-  census is written down by hand. — done 2026-10-11, H58_HASH.
+  census is written down by hand. — done 2026-10-11, `48ca405`.
 - **H55** A number beside an identical number does not look like a warning.
   The ceiling check printed *"the largest outside src/config.js is
   src/physics.js at 600 lines (guidance 600)"* and had printed exactly that
