@@ -326,7 +326,24 @@ ever and judged never, and the one clause it carries is a **sign**: over a
 window of thirty seconds the clock moved at all. Do not write a floor on this
 number without reading D74 first; `CLOCK_CASES` in `tests/audiodevice.js`
 asserts the halfway stop **green** so that writing one turns a row red and
-sends you there. And the
+sends you there. **H54 built the shape that page said the total had none of**,
+and it carries two traps of its own. The journal is sampled a frame at a time
+from `AudioSystem.step()`, and **the rAF loop drives no frames while the AUTO
+suite runs** (F4) - so every mark comes from a check that drove one, they
+arrive in bursts, and the widest gap between two of them in a full run is
+**167 to 275 seconds**. A stretch therefore closes at the **last mark that
+still read the stale clock** and never at the mark that saw it move, and a gap
+with no unmoved mark in it is a stretch of **zero**: break that and the check
+reports a 15.8-second stall on a device that was fine throughout, which is
+exactly the statistic D74 is waiting for, invented. `samples`, `sampledToMs`
+and `maxGapMs` are in the detail line for this reason - a concentration is a
+concentration over what was watched. And **the window that check reports is
+not the length of the run**: it is the wall clock between the audio unlock and
+the read, so a 532-second subset run gave it **18.9s**, because the
+237-second `frame-budget-under-the-check-29-load` and the 225-second pipeline
+tail both land *after* it. Four subset runs went into finding one over the
+30-second window, and the one that works is written down in H54's
+`PROGRESS.md` entry. And the
 starvation is now the leading candidate for the error itself, which fits every
 property of the thing - intermittent, no stack, mid-run, invisible to code,
 never in a cold gate's first seconds. It is **not** a closure, and the

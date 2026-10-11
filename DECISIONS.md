@@ -248,6 +248,51 @@ window.
 depends on what else the machine was doing, and the cost of a wrong one is a
 morning filed as a broken base.
 
+**What H54 measured, and what it changes on this page (2026-10-11).** The
+objection above is shape, so H54 built the shape. `systems/audiodevice.js` now
+keeps the longest wall interval across which `currentTime` is **known** not to
+have moved, the millisecond it started at and how many marks fell inside it,
+sampled once a frame from `AudioSystem.step()`; `readUnfedShape()` in
+`tests/audiodevice.js` holds it against the loss. The statistic that answers
+this page is the **concentration** — the worst stretch over everything lost —
+and it separates every pair above:
+
+| case | `fed` | concentration | shape |
+|---|---|---|---|
+| this machine, losing seconds a frame at a time | 0.5665 | 0.0022 | many-stretches |
+| a device that stopped once and stayed stopped | 0.5665 | 1.00 | one-stretch |
+| the halfway stop | 0.283 | 1.00 | one-stretch |
+| a healthy device on a machine twice as loaded | 0.283 | 0.0015 | many-stretches |
+
+Rows one and two are identical in the ratio and opposite here, which is the
+first thing this page says a total cannot do. Rows three and four are the pair
+it says a total cannot tell apart **at all**, and row four lands with row one,
+which is the right side. All four are in `CLOCK_CASES`, now twenty-seven cases.
+
+**So the floor is writable in principle, and it is still not written.** The
+reason has moved from shape to **coverage**. The marks come from checks that
+drive frames, because the rAF loop drives none under the AUTO suite (F4), so
+the concentration a run reports is a concentration over what that run happened
+to watch. H54's four full-run readings took **191, 652, 186 and 642** marks over
+windows of 860s to 2,023s, with a single widest unwatched gap of **167 to 275
+seconds** — one mark every three to four and a half seconds, and about four
+minutes of page nobody looked at. A threshold on a number whose coverage moves
+3.4x between two runs of the same map is D71's mistake one layer over, measured
+rather than reasoned, and the cost of a wrong one here is still a whole run. So
+`readUnfedShape()` is **reported**, what is asserted of the stretch is
+arithmetic only — a stretch inside the window its own marks measured, and marks
+arriving at all over a window of minutes — and **H66** is the job that writes
+the floor once there are readings to write it from, with **H65** the one that
+makes them worth more.
+
+**And the ratio's own band widened, which strengthens this page.** H54's first
+plant run read `fed` **0.5225**, the lowest full-run reading on record, under
+the 0.5665 this page was written from. Twenty-three readings now sit between
+**0.5225 and 0.7481**, so the 0.45 line considered above is **1.16x** under the
+lowest healthy reading where this page said 1.26x. More data made that floor
+worse rather than better, which is what a 32%-wide spread with no cause
+attributed to it should be expected to do.
+
 ### D73 — A device error is reported and a suspended device is red, which is a line D67 drew somewhere else
 
 **Raised by:** H35, 2026-10-10. Taken rather than asked, because it changes

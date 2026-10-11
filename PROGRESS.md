@@ -15475,3 +15475,155 @@ One sitting with Josh present takes both. While there: the two looks,
 `npm run shot -- --pose vault --pose mantle --pose pullup` (D75), about
 eighty seconds each. And the audit itself missed 10-04 — if the app was
 closed that Sunday, that is the local-task cost PLAN.md names.
+
+## H54 — the shape the total had none of, and a new low on the ratio (2026-10-11, scheduled run)
+
+**D74 refused a floor on the audio device's `fed` ratio for one reason: a total
+has no shape.** 0.57 is this machine losing seconds a frame at a time; 0.28 is a
+device that stopped once and stayed stopped; 0.28 is also a healthy device on a
+machine twice as loaded. The ratio cannot tell the first from the second, and
+cannot tell the second from the third at all. H54 was the measurement that would
+make that floor writable: a **worst single stretch** tells one stall from a
+thousand, because a device that is gone has one stretch running to the end of
+the run and a starved one has many short ones however bad the total.
+
+It is built, it works, and it separates every pair D74 names. The floor is still
+not written, for a reason that is not shape — and on the way the job found a
+**new low on `fed` itself, 0.5225**, under the 0.5665 that was the record.
+
+**The whole of the design is one decision about what a mark can prove.**
+`systems/audiodevice.js` gets a `sample()` and `AudioSystem.step()` calls it
+once a frame, which is the three lines the queue entry predicted. The part the
+entry could not predict is the arithmetic, and getting it wrong would have
+manufactured exactly the statistic D74 is waiting for. Two marks that read the
+**same** `currentTime` prove the clock did not move between them: that interval
+is known unfed, and it is the only kind that is. A mark that reads a *larger*
+`currentTime` proves only that the device was fed somewhere in the gap and
+nothing about where. So a stretch **closes at the last mark that still read the
+stale value, never at the mark that saw it move**, and a stretch with no unmoved
+mark inside it is a stretch of zero rather than the width of the gap.
+
+That matters here and not in the game, because **the rAF loop drives no frames
+while the AUTO suite runs** (F4). Every mark in a suite run comes from a check
+that drove one, so the marks arrive in bursts with minutes of unwatched page
+between them — and the naive version would charge each of those minutes to a
+device that was fine throughout. The probe measured it before a single subset
+ran: a 265-second gap while the renderer's pipeline tail drained (F11), and the
+worst stretch across the whole probe came out **0.132s**. The gap contributed
+nothing. Three numbers go out beside the stretch so the blind spot is on the
+record with it — `samples`, `sampledToMs` and `maxGapMs`.
+
+**The four readings.** `npm run suite --details`, two runs per map on one page
+each, so runs 2 and 4 are the cumulative pair and directly comparable to the
+half-hour rows already in `CLOCK_CASES`:
+
+| run | map | window | `fed` | lost | worst stretch | marks in it | concentration | shape | marks | widest gap |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | plant | 860.3s | **0.5225** | 410.8s | **0.077s** @456.6s | 12 | 0.0002 | many-stretches | 191 | 248.6s |
+| 2 | plant | 2023.4s | 0.5789 | 852.0s | **2.211s** @1185.2s | 2 | 0.0026 | many-stretches | 652 | 274.5s |
+| 3 | yard | 540.6s | 0.7424 | 139.3s | 0.076s @59.4s | 6 | 0.0005 | many-stretches | 186 | 167.2s |
+| 4 | yard | 1405.4s | 0.6388 | 507.6s | 0.153s @915.9s | 7 | 0.0003 | many-stretches | 642 | 240.9s |
+
+**The finding, and it is the answer D74 asked for.** All four read
+`many-stretches`, with concentrations of **0.0002 to 0.0026** — three to four
+orders of magnitude under the 1.0 a device that stopped once and stayed stopped
+must read. This machine loses **42% to 48% of a plant page** and the worst
+single stretch in any of it is **2.2 seconds**; the worst with more than two
+marks inside it is **0.153s**. So the starvation H35 found is now described
+rather than merely totalled: it is thousands of sub-frame stalls, not a device
+that goes away. That is the statement the ratio could not make, and it is made
+in one word in the detail line.
+
+**And the pair separates every case D74 says a total cannot.** Four rows went
+into `CLOCK_CASES`, which is now **twenty-seven**: H35's plant run at `fed`
+0.5665 with its loss spread (0.0022) against the *same* `fed` from a device that
+died (1.00), and the halfway stop (1.00) against a healthy device on a machine
+twice as loaded at the same 0.283 (0.0015). Identical in the ratio, opposite in
+the shape. The third case — the one D74 says the total cannot tell from the
+second **at all** — lands with the first, which is the right side.
+
+**The floor is still not written, and the reason has moved.** It is no longer
+shape; it is **coverage**. The instrument watched 191 marks of one 860-second
+run and 652 of the 2,023-second one — one mark every 3 to 4.5 seconds on
+average, with a single widest gap of **167 to 275 seconds**, about four minutes
+of page nobody looked at. A threshold on a number whose coverage moves 3.4x
+between two runs of the same map is D71's mistake one layer over, measured
+rather than reasoned, and a false red here still costs a whole run. So
+`readUnfedShape()` is **reported** and asserted only as arithmetic, D74 carries
+the table and the answer, and **H66** is the job that writes the floor once the
+readings are there. **H65** is what makes them worth more.
+
+**H65 is the half-hour this job paid for, and it is worth knowing.** The
+*import* order in `tests/index.js` is not the *registration* order.
+`audiodevice.js` is imported at 101 and `performance.js` at 88, which reads as
+though the 210 frames of `frame-budget-under-the-check-29-load` — the densest
+run of marks in the suite and the only block dense enough to resolve a stretch
+to the frame — arrive before the journal is read. They do not:
+`registerAudioDevice(debugTools)` is called at **84 of 86** and
+`registerPerformance(debugTools)` at **85**. Fifteen frame-driving modules land
+before the read and that one lands after it. Two subset runs were spent on the
+wrong model of the run before the register calls were counted instead of the
+imports. Swapping the two calls is H65.
+
+**The ratio's own band widened, which strengthens D74 rather than weakening
+it.** Run 1's **0.5225** is the lowest full-run reading on record, under H35's
+0.5665. The band is now **0.5225 to 0.7481** across twenty-three readings, and
+the 0.45 line D74 considered sits **1.16x** under the lowest healthy reading
+where that page says 1.26x. The margin a floor on the total would have had has
+got worse with more data, exactly as a spread with no cause attributed to it
+should be expected to.
+
+**Five breaks, five reds**, three of them in the suite on a subset built to
+clear the 30-second window (`audio-graph|each-quality-preset-changes|the-quality-
+level-cannot-move|every-menu-card-is-baked|a-zero-size-viewport|a-lost-gl-context-
+is-caught|every-check-that-times-a-draw|the-audio-device`, 33.4s of window on the
+plant) and two against the live table in node:
+
+- the sampler unwired in `audio.js` → *"33.4s since the unlock and the journal
+  has been handed 0 marks, so AudioSystem.step() is not sampling and the shape
+  is a reading about nothing"*. It took four subset runs to find a subset with a
+  window over 30s: a run of 532s had a window of 18.9s, because the window is
+  only the check time **between the unlock and the read**, and the 237-second
+  frame-budget check and the 225-second pipeline tail are both after it.
+- a stretch closed at the mark that saw the clock move, with the unmoved-mark
+  guard dropped → *"the worst unfed stretch is **15778ms** long with no mark
+  inside it, which is a gap between marks rather than a stretch the device is
+  known to have gone unfed across"*. The invented 15.8-second stall, caught in
+  the act, against the 0.008s the honest arithmetic read on the same subset.
+- the open stretch bounded by the moment of reading instead of by the last mark
+  → *"the worst unfed stretch ends at 33348ms and the sampling only reached
+  32219ms, so the journal is charging the device time nobody looked at"*. A
+  compound break: it trips the no-mark clause too, and the ends-past clause is
+  the one that names it.
+- `CONCENTRATED` 0.5 → 0.001: two rows red, both `many-stretches` rows.
+- the `MIN_SHAPE_SAMPLES` guard dropped: the 29-mark row red.
+
+**Verified.** `npm run suite`, both maps twice: plant **228 passed, 1 failed, 8
+not for this map** (1,161,282ms and 1,115,111ms), yard **208 / 1 / 28**
+(785,851ms and 813,703ms), exit 0, **0 red, 0 flaky, 0 skipped, 0 context
+losses, 0 loop frames, 0 re-runs, 0 unexpectedly green, 0 skips withheld, 0
+bench drops withheld, no other runner — and 0 console errors in all four
+runs**, the tenth cold run in a row at zero and H35's ninth and tenth data
+points. Spreads 46,171ms on the plant (4% of the longest) and 27,852ms on the
+yard (3%), inside F16's band. The one failure per map is the bench-only
+frame-budget sweep the gate drops by design (H11). Passed on the first attempt.
+The gate before the job read the same counts: plant 228/1/8 (1,113,841ms), yard
+208/1/28 (769,229ms), exit 0, 0 console errors. **The counts did not move**:
+H54 extended a check rather than adding one, so 228/208 stands.
+
+**And the queue and the handoff disagreed about which job this was.** The PICK
+rule is *the first `[ ]` job in QUEUE.md, in block order*, and `HANDOFF.md`'s
+Next-job row said H54. In the file, **H61 (486) and H62 (508) both sat above
+H54 (529)** and neither is blocked, so file order made H61 next. The last run
+queued H61 to H64 and listed them in its handoff *after* H56, H57, H59 and
+H60, while inserting two of them above H54 - so the two records have disagreed
+since that run, and this one read the handoff. H54 was queued, unblocked and
+sized as it said, so nothing is wasted; the row now names the **file order**
+rather than a remembered order, because the rule reads the file. H61 is next.
+
+**What was left.** No floor (H66 is the job and it may end the way H50 did).
+The densest block of marks still lands after the read (H65). And the shape is a
+shape of what was watched, which the detail line now says in three numbers
+rather than leaving to a reader — the lesson being the one this project keeps
+relearning: an instrument that cannot say what it did not see is not an
+instrument, it is a number.

@@ -136,6 +136,50 @@ galleries and nothing else, and it is written up as **D75**.
 **What is left for you: one look, no hurry.** If you have no opinion, leaving it
 is fine and the checks will tell us if a fourth pose ever joins the list.
 
+### The sound device is being starved in thousands of blinks, not going away (H54, 2026-10-11)
+
+**Nothing in the game changed and there is nothing to judge here either.** This
+finishes the question the two sections below opened, and it is the first good
+news in it.
+
+**What was missing.** The section below refused a pass mark because the number
+was a *total*: "the device was fed 57% of the time" cannot tell you whether it
+lost that time in one long outage or in thousands of blinks. One of those is a
+sound card that died; the other is a busy PC. So the test now also records the
+**longest single stretch** where the device went quiet, and that one number
+tells them apart — a card that has died has one stretch running to the end of
+the run, and a starved one has many short ones however bad the total.
+
+**What it says about this PC, and it is reassuring.** Four full test runs:
+
+| run | fed | longest single quiet stretch |
+|---|---|---|
+| plant, first | 52% | **0.08s** |
+| plant, second | 58% | **2.21s** |
+| yard, first | 74% | 0.08s |
+| yard, second | 64% | 0.15s |
+
+So the device loses nearly half of a test run **a fraction of a frame at a
+time**, thousands of times over — and the worst single interruption in any of
+it was 2.2 seconds, with the usual worst being under two tenths. A card that
+had actually quit would show one stretch hundreds of seconds long. It does not.
+**This PC's sound device is not failing; it is being out-competed** by a test
+suite drawing a 3D game on four pinned processor cores with no graphics card
+helping. That is a far better explanation of the error message than anything
+about the game's code.
+
+**One number got worse, and it is worth knowing.** The lowest "fed" reading on
+record is now **52%**, under the 57% the section below was argued from. That
+makes the pass mark it refused *less* safe rather than more, which is why there
+still is not one.
+
+**What is left for you: the same one thing, and now with a size on it.** Play
+with the sound on for a few minutes and say if it ever cuts out, crackles, or
+goes quiet and comes back. If it does, the interesting question is **how long
+for** — a blink you could mistake for nothing is this PC being busy, and a
+second or more of silence is something new. Your PC is not running a test suite
+while you play, so it should be better off than any number above.
+
 ### The sound-device number stays a reading, and here is why it cannot be a pass mark (H50, 2026-10-10)
 
 **Nothing in the game changed and there is nothing here to judge.** This is the

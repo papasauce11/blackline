@@ -276,6 +276,13 @@ export class AudioSystem {
   step(dt, state = {}) {
     if (!this.context) return;
 
+    // The device journal's one mark (H54). The journal keeps no clock of its
+    // own and the shape of what the device loses can only be seen by somebody
+    // who looks repeatedly, so the frame that is already here does the looking
+    // - `main.js` drives this on the wall delta. What a mark can prove, and
+    // why a gap between two of them proves nothing, is systems/audiodevice.js.
+    if (this.device) this.device.sample();
+
     // Section 14: a low sine pad that fades in as the accumulator rises above
     // 50. It is the one sound that is not spatialised, because it is telling
     // the player about the AI's mind, not about a place.

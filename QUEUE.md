@@ -526,35 +526,6 @@ one setting only Josh can click; everything else here proceeds.
   stripped read, an entry whose evidence is prose declares that it is, no
   entry's meaning changed in the move, and the census's own instrument clause
   proves both readers can still see what they are for.
-- [ ] **H54 (M)** The device journal keeps a total and no shape, which is
-  the only reason no floor can be written. D74 refused a floor on `fed`
-  because the ratio cannot tell *one* stall of 353s from *a thousand*
-  stalls adding to 353s, and the first of those is a device that died while
-  the second is this machine on an ordinary morning. A **worst single
-  stretch** would tell them apart, and it is the one statistic that would
-  make the floor D74 refused writable: a device that is gone has one open
-  stretch running to the end of the run, and a starved one has many short
-  ones however bad the total.
-  `systems/audiodevice.js` takes no clock of its own today, by design, and
-  this is the reason to give it one sampler rather than a clock: `AudioSystem.step(dt, state)`
-  is already called every frame from `main.js:401` with the wall delta, so
-  the journal can be handed a `sample()` from there and keep, per page, the
-  longest wall interval across which `currentTime` did not move, with the
-  millisecond it started at. Three lines in `step()` and a field in
-  `report()`; nothing new is constructed and the layering is unchanged.
-  **Measure before setting any constant**, which is H35's own lesson and
-  D71's: take a full plant run and a yard pair, print the worst stretch and
-  its position in the run, and only then decide whether a ceiling on it is
-  honest. It may not be - a 40-second stretch on a machine swapping is not
-  a dead device either - in which case this job ends the way H50 did, with
-  the number reported and a page saying why. Sized M because the readings
-  are most of it.
-  *done-when:* the journal reports a worst unfed stretch with its start,
-  the number is in the detail line beside `fed`, at least three full-run
-  readings of it are in `PROGRESS.md`, and D74's page says whether the
-  shape it now has makes a floor writable; `tests/audiodevice.js`'s
-  `CLOCK_CASES` gains the stretch's own cases, and the entry in
-  `timedrenders.js` says which verdict the new number carries.
 - [ ] **H63 (S)** The ceiling cluster is in a detail line, and **a passing
   check's detail is not in the report at all** (TRAPS.md). H55 made the line
   worth reading - *"12 within 50 of the 600 guidance, nearest 3:
@@ -704,6 +675,47 @@ one setting only Josh can click; everything else here proceeds.
   either has them over the same set or names the difference, and each holds
   its own sum, proved the way H50 proved it - put one category back to the
   narrower set and watch it go red.
+
+- [ ] **H65 (S)** The shape's densest block of marks lands after the journal
+  is read. H54 gave the device journal a sampler on `AudioSystem.step()`, and
+  the marks reach it only from checks that drive frames, because the rAF loop
+  drives none under the AUTO suite (F4). Fifteen modules drive frames before
+  the read and **one after it**: `tests/index.js` calls `registerAudioDevice`
+  at **84 of 86** and `registerPerformance` at **85**, so the 210 frames of
+  `frame-budget-under-the-check-29-load` - the densest run of marks in the
+  suite, and the only block dense enough to resolve a stretch to the frame -
+  arrive after the device check has read its journal. **The import order says
+  the opposite and is not the registration order**, which is the half-hour
+  H54's measurement paid for: `audiodevice.js` is imported before
+  `performance.js` and registered after it. Swapping the two calls costs
+  nothing else - the device check reads near the end either way, and its own
+  header already says why it is late. Measure the mark count both ways, because
+  the value of the change is the number and not the argument.
+  *done-when:* `registerAudioDevice` runs after `registerPerformance`, the
+  check's detail line shows `samples` and the widest gap moving by what that
+  block drives, both readings are in `PROGRESS.md`, and a check holds the order
+  so it cannot drift back on an import.
+- [ ] **H66 (S)** The floor D74 refused, on the pair rather than on the total.
+  H54 built the shape, and the **concentration** - the worst unfed stretch over
+  everything lost - separates every pair D74 says a total cannot: H35's plant
+  run at `fed` 0.5665 reads 0.0022 where a device that died at the same ratio
+  reads 1.00, and the halfway stop reads 1.00 where a healthy device on a
+  machine twice as loaded at the same 0.283 reads 0.0015. All four are rows in
+  `CLOCK_CASES`. So the floor is writable in principle - red when `fed` is low
+  **and** the loss is concentrated - and H54 did not write it, for a reason
+  that is no longer shape but **coverage**: the concentration a run reports is
+  a concentration over the marks that run happened to take, and H54's own four
+  readings took 191 and 652 marks of two runs of the same map, with a widest
+  unwatched gap of 167 to 275 seconds. A threshold on a number whose coverage
+  moves 3.4x run to run is D71's mistake one layer over. Readings first, then:
+  eight full-run concentrations, H65's wider reach if it has landed, and only
+  then the constant. **It may end the way H50 did**, and that is a result.
+  *done-when:* at least eight full-run readings of the concentration with
+  their mark counts and widest gaps are in `PROGRESS.md`, and D74's page either
+  carries the pair-floor with its constant argued in multiples or records what
+  the coverage would have to be worth; if a floor is written, `CLOCK_CASES`'
+  halfway row goes red and the entry in `timedrenders.js` moves the stretch's
+  verdict off `reported`.
 
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
@@ -958,6 +970,35 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H54** The shape the total had none of, and a new low on the ratio. D74
+  refused a floor on the audio device's `fed` ratio because **a total has no
+  shape** - 0.57 is this machine losing seconds a frame at a time, 0.28 is a
+  device that stopped once and stayed stopped, and 0.28 is also a healthy
+  device on a machine twice as loaded. The journal now keeps the **longest wall
+  interval across which `currentTime` is known not to have moved**, where it
+  started and how many marks fell inside it, sampled once a frame from
+  `AudioSystem.step()`. **The whole of the design is one decision about what a
+  mark can prove**: two marks reading the same clock prove it did not move
+  between them, a mark reading a larger one proves only that the device was fed
+  somewhere in the gap - so a stretch closes at the **last stale mark**, never
+  at the mark that saw it move, and a gap with no unmoved mark in it is a
+  stretch of zero. That is load-bearing rather than fussy, because the rAF loop
+  drives no frames under the suite (F4): the probe measured a **265-second**
+  gap while the pipeline tail drained and the honest arithmetic charged the
+  device none of it. **Four full-run readings, every one `many-stretches`**,
+  concentration **0.0002 to 0.0026** against the 1.00 a device that died must
+  read - so this machine's 42-48% loss is thousands of sub-frame stalls and the
+  worst single stretch in any of it is **2.211s**. The pair separates all four
+  of D74's cases and `CLOCK_CASES` is now **twenty-seven**. **The floor is
+  still not written and the reason moved from shape to coverage** (191 and 652
+  marks, widest gap 167-275s); D74 carries the answer and **H66** is the job.
+  Found on the way: **`fed` 0.5225**, a new low under H35's 0.5665, which puts
+  0.45 at 1.16x under the lowest healthy reading where D74 said 1.26x - more
+  data made that floor worse, not better. And the *import* order in
+  `tests/index.js` is not the registration order, which cost two subset runs
+  and is **H65**. Five breaks, five reds, three in the suite and two against
+  the live table. — done 2026-10-11.
 
 - **H58** A runner that drops an argument it was given, and the parser
   nobody could test. `npm run shot -- --pose mantle --pose pullup` wrote the
