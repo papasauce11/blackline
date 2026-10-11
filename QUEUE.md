@@ -998,7 +998,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   data made that floor worse, not better. And the *import* order in
   `tests/index.js` is not the registration order, which cost two subset runs
   and is **H65**. Five breaks, five reds, three in the suite and two against
-  the live table. — done 2026-10-11.
+  the live table. — done 2026-10-11, `85acd36`.
 
 - **H58** A runner that drops an argument it was given, and the parser
   nobody could test. `npm run shot -- --pose mantle --pose pullup` wrote the
