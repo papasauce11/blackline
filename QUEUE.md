@@ -1005,7 +1005,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   joined `READER_IGNORES` and `sourcetext.js` says an ignore may be code naming
   something that is not the call. Found in passing: the page makes **250
   requests** against a Resource Timing buffer whose default size is 250, which
-  three censuses read and nothing raises - **H67**. — done 2026-10-11.
+  three censuses read and nothing raises - **H67**. — done 2026-10-11, `6a791e8`.
 
 - **H54** The shape the total had none of, and a new low on the ratio. D74
   refused a floor on the audio device's `fed` ratio because **a total has no
