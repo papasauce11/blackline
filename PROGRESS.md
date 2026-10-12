@@ -15627,3 +15627,124 @@ shape of what was watched, which the detail line now says in three numbers
 rather than leaving to a reader — the lesson being the one this project keeps
 relearning: an instrument that cannot say what it did not see is not an
 instrument, it is a number.
+
+## H61 — a name in a regex became a set the tree decides, and there were five of them (2026-10-11, scheduled run)
+
+**The breath census's membership rule was two greps: `updateVisual`, or
+`animation.js`'s `strike`.** H53 wrote the second one, and wrote down why it is
+not enough in the same breath - it is honest about today and silent about
+tomorrow. A second helper that drove a frame on a caller's behalf would put its
+callers back where H47 was, in a census by accident or out of one by accident,
+and nothing in the suite would say so. H61 is the clause that closes that.
+
+**The criterion now reads the proxy set off the tree.** Every module under
+`src/tests/` that **exports** a function whose own code reaches `updateVisual` is
+a proxy, and membership is that call or any of them. Two halves earn their keep:
+
+- **The module list is Resource Timing**, which is `donedef.js`'s rule - *the
+  modules that actually ran, never a guess at the import graph*. That is what
+  makes this cover **helpers**: `animation.js` happens to be in the registrar's
+  import list, but a proxy is exactly the kind of module that registers no check
+  of its own, and H53's own module is the worked example of a helper that is in
+  no census's membership.
+- **The reach is transitive inside the module.** `frame` makes the call and
+  `strike` calls `frame`, so a reader that only looked for the call would miss
+  the name every caller actually writes. A chain that leaves the file is a chain
+  through another module's exports, and that module is in the set on its own
+  account.
+
+**And the reading is the finding: five names in three modules, where the entry
+said one in one.**
+
+| module | exports that pose a body |
+|---|---|
+| `animation.js` | `frame` (makes the call), `strike` (through `frame`) |
+| `look.js` | `photograph`, `photographPose` |
+| `positionreads.js` | `draw` |
+
+**Membership did not move.** Fifteen modules pose a body - twelve declared and
+the three censuses excluded by name - and not one is new, not one is lost,
+because every caller of all five proxies already calls `updateVisual` or
+`strike` in its own code. So the criterion changed and the census did not, which
+is the right kind of change: it buys nothing today and it cannot be wrong
+tomorrow. H55's lesson in a second currency - a number nobody has measured is a
+number nobody should quote, and the queue, this file and `HANDOFF.md` all said
+one proxy.
+
+**The entry's own example of a second proxy is not one, and that is worth as
+much.** It offered `figure.js`'s `standAndEyes`. Every `updateVisual` in that
+module is inside its `register`, so nothing `figure.js` exports poses a body - a
+correct negative, and the case a hand-written list gets wrong in the other
+direction.
+
+**`register` is exempt by name, and break D is why.** Every module here exports
+one, and a `register` whose checks drive frames reaches `updateVisual` like any
+other function. Without the exemption the set gains `register`, and **`engine.js`
+and `boot.js` join the breath census by accident** - the exact failure this job
+exists to prevent, produced on demand.
+
+**Where it lives, and the file got smaller.** `tests/posecriterion.js` (313) is
+the criterion, the discovery, **seven source cases** for the proxy that does not
+exist yet, and both reader tables. It is its own module for one reason: a census
+is worth exactly what its membership rule is worth, and this one's has been
+wrong twice. `breathcensus.js` went **569 to 550**, and the 600-line cluster
+H55 measured went **twelve to eleven**.
+
+**Five breaks, five reds - and the fifth was meant to be a control and was a
+finding.**
+
+- the enumeration handed no tree: three clauses at once - *"Resource Timing
+  lists 0 modules under src/tests/ and the suite is 50+"*, the empty set, and
+  *"the proxy set is [empty] and animation.js is not in it"*.
+- the transitive half removed: two proxy cases red, and `strike` leaves the live
+  set - which is H53's regression reproduced, the one that dropped `poseeye.js`,
+  `strikerepeat.js` and `positioncensus.js`.
+- the `const f = (h) => ...` form dropped from the declaration reader: the
+  seventh case red, which is the form this suite writes its small helpers in and
+  so the likeliest shape of the second proxy.
+- the `register` exemption removed: the fourth case red, and `engine.js` and
+  `boot.js` in the census.
+- **the control that found something.** The lookbehind in `calls` makes a proxy
+  call a **free** call - never a method, never a longer word - and dropping it
+  left the census **green**, because no module today calls `.draw(` or
+  `.frame(` as a method. So nothing was holding that clause. Two **code** cases
+  went into `READER_IGNORES` (`lens.draw(mesh, eye, focus);` and
+  `const n = drawCalls(h, lens, mesh);`), the break reds now, and
+  `sourcetext.js` says what it had not: an `ignores` line may be **code that
+  names something which is not the call**, where until now it meant prose that
+  names the call. That is H53's instrument gaining a second kind of case, and
+  the message both censuses print was reworded to cover it.
+
+**Found in passing, and it is the follow-up: three censuses read a buffer that
+is full.** `no-network-beyond-the-three-cdn`'s detail line reads **"250
+requests: 248 same-origin, 2 from cdn.jsdelivr.net"**, and **250 is the Resource
+Timing buffer's default size**. Nothing in `src/` calls
+`setResourceTimingBufferSize()` or listens for `resourcetimingbufferfull`, so
+the page is at the cap and an entry past it is dropped in silence. Three
+censuses read that buffer now - the network one, the 600-line one (181 modules)
+and H61's discovery (95 modules) - and all three readings are intact **because
+modules load at boot and sit at the front of the buffer**, which is luck rather
+than design. The check actually exposed is the **network** one: a request made
+after the buffer filled is invisible to the one census whose whole job is to see
+every request. The historical reading in this file is **47**, so the cap was
+crossed somewhere in the last forty jobs and no line said so. **H67** is the
+job.
+
+**Verified.** `npm run suite`, both maps twice: plant **228 passed, 1 failed, 8
+not for this map** (1,114,245ms and 1,127,910ms), yard **208 / 1 / 28**
+(796,202ms and 780,304ms), exit 0, **0 red, 0 flaky, 0 skipped, 0 context
+losses, 0 loop frames, 0 re-runs, 0 unexpectedly green, 0 skips withheld, 0
+bench drops withheld, no other runner - and 0 console errors in all four
+runs**, the eleventh and twelfth runs in a row at zero. Spreads 13,665ms on the
+plant (1% of the longest) and 15,898ms on the yard (2%), inside F16's band, and
+**all four runs agree exactly on the census's reading** - fifteen posing, five
+proxies off ninety-five modules, the same three modules named in the same order.
+Passed on the first attempt. **The counts did not move**: `posecriterion.js`
+registers no check, so it is in no census's membership and added no row, which
+is H53's finding doing its work - 228/208 stands.
+
+**What was left.** The buffer (H67). And the one thing this job could not do
+from inside the page: the proxy set is read off modules the page **loaded**, so
+a proxy in a module nothing imports is invisible - which is the right answer,
+because a module nothing imports poses nothing, but it is worth saying out loud
+rather than leaving for somebody to rediscover.

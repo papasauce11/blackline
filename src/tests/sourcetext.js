@@ -119,9 +119,12 @@ export function uncommented(text) {
  *
  * `classify` is what the census's greps make of a module's code, as a word or
  * the empty string; `sees` is lines of real code with the word each must come
- * back as; `ignores` is lines of real prose that must come back as nothing.
- * The problems are returned rather than thrown, so each census reports them
- * the way it reports its own.
+ * back as; `ignores` is lines that must come back as **nothing**, and there are
+ * two kinds of those - prose that names the call, which is H53's subject, and
+ * **code that names something which is not it**, which is H61's: a method or a
+ * longer word that happens to start with a proxy's name. The problems are
+ * returned rather than thrown, so each census reports them the way it reports
+ * its own.
  */
 export function readerProblems(classify, sees, ignores) {
   const problems = [];
@@ -134,7 +137,7 @@ export function readerProblems(classify, sees, ignores) {
   for (const line of ignores) {
     const got = classify(codeOf(line));
     if (got) {
-      problems.push(`the criteria take the comment "${line.trim()}" for ${got}, so a module that only mentions the call is in this census (H53's whole subject)`);
+      problems.push(`the criteria read "${line.trim()}" as ${got} and nothing is the only right answer, so a module is in this census for naming the call rather than for making it (H53's whole subject, and H61's for a name that is not the call)`);
     }
   }
   return problems;

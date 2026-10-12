@@ -809,6 +809,38 @@ example in `HANDOFF.md` has the `--` in it; copy one rather than typing it. And
 when a run is meant to produce a file, check the file exists before reading the
 run as the measurement you asked for.
 
+**The import order in `tests/index.js` is not the registration order.** The
+imports are grouped by subject and the `register...(debugTools)` calls at the
+bottom set the order checks actually run in, and the two disagree. H54 read the
+imports and concluded that `performance.js`'s 210-frame check ran *before*
+`audiodevice.js` read its journal, because `audiodevice.js` is imported at 101
+and `performance.js` at 88. The calls say the opposite -
+`registerAudioDevice(debugTools)` at **84 of 86** and
+`registerPerformance(debugTools)` at **85** - so the densest block of frames in
+the whole suite lands *after* that read, which is the finding the job filed as
+**H65**. Two subset runs were spent on the wrong model of the run. Any question
+about what runs before what is answered by the calls:
+
+```
+node -e "const fs=require('fs');const i=fs.readFileSync('src/tests/index.js','utf8');const m=new Map([...i.matchAll(/import \{ register as (\w+) \} from '\.\/([a-z0-9]+\.js)';/g)].map(x=>[x[1],x[2]]));console.log([...i.matchAll(/^\s*(register\w+)\(debugTools\);/gm)].map(x=>m.get(x[1])).join(' '))"
+```
+
+**Three censuses read a Resource Timing buffer that is full, and the default is
+250.** `performance.getEntriesByType('resource')` is the right instrument for
+"what did this page really load" - `donedef.js`'s rule, *the modules that
+actually ran, never a guess at the import graph* - and
+`no-network-beyond-the-three-cdn`'s own detail line reads **"250 requests"**.
+That is exactly the buffer's default size, nothing in `src/` calls
+`setResourceTimingBufferSize()`, and nothing listens for
+`resourcetimingbufferfull`, so the page sits at the cap and an entry past it is
+dropped in silence. The three readings are intact today only because modules
+load at boot and sit at the **front** of the buffer (181 of 181 under `src/`,
+95 of 95 under `src/tests/`), which is luck. The census actually exposed is the
+**network** one, whose whole job is to see every request. The reading in
+`PROGRESS.md` used to be **47**, so the cap was crossed in the last forty jobs
+and no line said so. **H67** raises it and holds it. Until then: a count of 250
+in that detail line is not a measurement, it is a ceiling.
+
 **An object spread copies a getter's value, not the getter.** H27 split the
 seeded rng into two streams and built the simulation's as
 `export const rng = { ...streamOver(rngState), reseed, get seed() {} }`. The

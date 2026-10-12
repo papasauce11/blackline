@@ -483,28 +483,6 @@ one setting only Josh can click; everything else here proceeds.
   measured out. The look is **D75**, Provisional with six PNGs named and
   `decided:` empty on purpose; `photographHere` untouched. **H57**, **H58**
   and **H59** are what it found.
-- [ ] **H61 (S)** The breath census's criterion is two greps now, and the one
-  thing neither of them proves is that `animation.js`'s `strike` is still the
-  only way to pose a body without naming the call. H53 found the census wrong
-  in **both** directions: the raw read let a module in on a comment, and the
-  stripped read dropped `poseeye.js`, `strikerepeat.js` and
-  `positioncensus.js`, every one of which poses twelve states through `strike`
-  and calls `updateVisual` nowhere in its own code. The fix was to grep for
-  the proxy as well, which is honest about today and silent about tomorrow: a
-  second helper that drove a frame on a caller's behalf - `figure.js`'s
-  `standAndEyes`, say, or a `pose()` written next week - would put its callers
-  back where H47 was, in a census by accident or out of one by accident, and
-  nothing would say so.
-  Hold the proxy list against the tree instead of listing it: every module
-  under `src/tests/` that **exports** a function whose own code calls
-  `updateVisual` is a proxy, and the census's criterion is the call or any of
-  them. `animation.js` is the only one today (`strike`, through `frame`), which
-  is the reading that makes the clause cheap to write and worth having - it
-  turns "and `strike`" from a name in a regex into a set the tree decides.
-  *done-when:* the proxy set is read off the exports rather than written down,
-  `animation.js` is in it, a second module exporting a frame driver is in it
-  the day it lands, and a module that calls neither the call nor any proxy is
-  in neither group - each proved by a break-and-revert.
 - [ ] **H62 (S)** `positioncensus.js` reads source through the weaker of the
   two readers and nothing says which it is getting. H53 put both in
   `tests/sourcetext.js` with their difference documented - `codeOf` takes
@@ -716,6 +694,31 @@ one setting only Josh can click; everything else here proceeds.
   the coverage would have to be worth; if a floor is written, `CLOCK_CASES`'
   halfway row goes red and the entry in `timedrenders.js` moves the stretch's
   verdict off `reported`.
+- [ ] **H67 (S)** Three censuses read a buffer that is full. `no-network-
+  beyond-the-three-cdn`, `no-source-file-outside-config-is-over-600-lines` and
+  H61's proxy discovery all read `performance.getEntriesByType('resource')`,
+  which is the right instrument - *the modules that actually ran, never a guess
+  at the import graph* - and the network check's own detail line now reads
+  **"250 requests"**. 250 is the Resource Timing buffer's **default size**, and
+  nothing in `src/` calls `setResourceTimingBufferSize()` or listens for
+  `resourcetimingbufferfull`. So the page is at the cap and an entry past it is
+  dropped in silence. Today the three readings are intact because modules load
+  at boot and sit at the **front** of the buffer - 181 of 181 under `src/`, 95
+  of 95 under `src/tests/` - which is luck rather than design, and the check
+  actually exposed is the **network** one: a request made after the buffer
+  filled is invisible to the one census whose whole job is to see every request.
+  The historical reading was **47** (`PROGRESS.md`), so this crossed the cap
+  some time in the last forty jobs and no line said so.
+  Raise it at boot to something with room - the page's own number times a
+  margin, argued in multiples the way this project argues a threshold - and
+  **hold it**: a check that reads the buffer's size and the page's request count
+  and goes red while the second is within reach of the first, so the next
+  crossing is a red rather than a silence.
+  *done-when:* `setResourceTimingBufferSize()` is called once at boot with the
+  size argued from a measured request count, a check holds the count clear of
+  the buffer by a stated multiple and names all three censuses that depend on
+  it, and the number is in `PROGRESS.md`; proved by setting the buffer to the
+  page's own count and watching it go red.
 
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
@@ -970,6 +973,39 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H61** A name in a regex became a set the tree decides, and there were
+  five of them. The breath census's membership rule was *"calls `updateVisual`,
+  or `animation.js`'s `strike`"* - H53's fix for a criterion it had found wrong
+  in **both** directions, and honest about today while silent about tomorrow: a
+  second helper that drove a frame on a caller's behalf would put its callers in
+  the census by accident or out of it by accident, and nothing would say so. The
+  proxy set is now read off the tree: **every module under `src/tests/` that
+  exports a function whose own code reaches `updateVisual`**, with the module
+  list from Resource Timing (`donedef.js`'s rule - the modules that actually
+  ran, never a guess at the import graph), which is the half that covers
+  **helpers**, and a proxy is exactly the kind of module that registers no check
+  of its own. **The reading is the finding: five names in three modules where
+  the entry said one in one** - `animation.frame`, `animation.strike`,
+  `look.photograph`, `look.photographPose`, `positionreads.draw` - and
+  **membership did not move**, because every caller of all five already calls
+  `updateVisual` or `strike` in its own code. So the criterion changed and the
+  census did not, which is the right kind of change: it buys nothing today and
+  it cannot be wrong tomorrow. The entry's own example of a second proxy,
+  `figure.js`'s `standAndEyes`, **is not one** - every `updateVisual` in that
+  module is inside its `register` - which is the case a hand-written list gets
+  wrong in the other direction. `register` is exempt by name and **break D
+  shows why**: without it `engine.js` and `boot.js` join the census by accident.
+  `posecriterion.js` (313) is the criterion, its discovery, seven source cases
+  for the proxy it does not have yet, and both reader tables; `breathcensus.js`
+  **shrank 569 to 550** and the 600-line cluster went twelve to eleven. Five
+  breaks, five reds - and **the fifth was meant to be a control and was a
+  finding**: dropping the lookbehind that makes a proxy call a free call left
+  the census green with `lens.draw(` and `drawCalls(`, so two **code** cases
+  joined `READER_IGNORES` and `sourcetext.js` says an ignore may be code naming
+  something that is not the call. Found in passing: the page makes **250
+  requests** against a Resource Timing buffer whose default size is 250, which
+  three censuses read and nothing raises - **H67**. — done 2026-10-11.
 
 - **H54** The shape the total had none of, and a new low on the ratio. D74
   refused a floor on the audio device's `fed` ratio because **a total has no

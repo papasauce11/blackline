@@ -136,6 +136,31 @@ galleries and nothing else, and it is written up as **D75**.
 **What is left for you: one look, no hurry.** If you have no opinion, leaving it
 is fine and the checks will tell us if a fourth pose ever joins the list.
 
+### A test that decides which other tests it watches now works that out for itself (H61, 2026-10-11)
+
+**Nothing in the game changed and there is nothing to judge here.** This is
+about one test's bookkeeping, and it is here only because every job in this
+block gets a line.
+
+**What it was.** One test keeps a register of every other test that poses a
+character's body, so that nobody can quietly add a test whose measurements are
+thrown off by the breathing or the walk cycle. To decide who belongs on that
+register it searched each test for two things by name. Searching **by name** is
+the problem: the day somebody writes a new helper that poses a body on another
+test's behalf, every test using it joins the register silently or misses it
+silently, and nothing says which.
+
+**What it is now.** It works out the list for itself by looking at what each
+file actually does, so a new helper is accounted for the day it is written.
+
+**The surprising part.** Everything written down about this said there was one
+such helper. There are **five, in three files**. The register itself did not
+change by a single entry - everything that uses those five was already on it
+for another reason - so this is a case of the paperwork having been right by
+luck and now being right on purpose.
+
+**What is left for you: nothing.**
+
 ### The sound device is being starved in thousands of blinks, not going away (H54, 2026-10-11)
 
 **Nothing in the game changed and there is nothing to judge here either.** This
