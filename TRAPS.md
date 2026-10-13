@@ -144,6 +144,35 @@ to spend it on: write the **markdown** while a gate is up, and touch `src/`
 only once it has exited. It is also why the first thing a red gate wants is
 `git status --short`.
 
+**H62 is the third occurrence, and the advice above is half wrong.** It did the
+same thing for the same reason — a thirty-minute run is a long time to sit still,
+so the gate went into the background and the job was written beside it — which is
+worth knowing about a trap recorded in **two** places by the time it bit again:
+the note is not the control. What stops it is doing the ORIENT reading while the
+gate runs and nothing else, or accepting that the previous job's VERIFY is the
+base's proof and skipping the gate deliberately rather than compromising it by
+accident. H62 killed its own gate once it was no use, which cost nothing it had
+not already lost.
+
+**And "write the markdown while a gate is up" is only true of two files.** Four
+markdown files are `fetch`ed as text **at check time**, so a half-written one
+reds a check that has nothing to do with the job:
+
+- `HANDOFF.md` — read twice. A hard limit of **400 lines**
+  (`HANDOFF_LINE_LIMIT`, and the file sits at 399), and it must contain the
+  strings `PLAYTEST.md` and `TRAPS.md`. An edit that crosses the limit for one
+  minute reds `traps-md-holds-the-traps-and-handoff-points-at-it`.
+- `TRAPS.md` — read twice. A floor of **25** traps counted as `^\*\*` openers
+  (`TRAPS_FLOOR`; this file has 86), and it must name
+  `--allow-other-runners`, which `runnerguard.js` holds because the orphan entry
+  is where a reader of an exit-3 refusal is sent.
+- `PLAYTEST.md` — four `##` sections by name, and **every backticked kebab word
+  of four or more parts must be a registered check id**. So writing a new
+  check's id into it before the check is registered reds `playtest-md-exists-
+  is-linked-and-names-real-checks`, and does it from a file that is not code.
+- `PROGRESS.md` and `QUEUE.md` are read by **no check**. Those two are the
+  genuinely safe ones, and they are where a run's writing mostly goes anyway.
+
 **And do not pipe a background gate through `tail`.** `npm run suite … | tail
 -60` buffers the whole run and shows **nothing** until the process exits, so a
 thirty-minute gate is thirty minutes with no idea whether it has reached the

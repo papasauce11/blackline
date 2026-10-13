@@ -136,6 +136,38 @@ galleries and nothing else, and it is written up as **D75**.
 **What is left for you: one look, no hurry.** If you have no opinion, leaving it
 is fine and the checks will tell us if a fourth pose ever joins the list.
 
+### A test that was reading comments as if they were code now tells the two apart (H62, 2026-10-13)
+
+**Nothing in the game changed and there is nothing to judge here.** Another
+piece of one test's bookkeeping, here only because every job in this block gets
+a line.
+
+**What it was.** One test keeps a register of every other test that measures
+where a character's *drawn* body is, because the drawn body arrives a fraction
+of a second after the body the game actually simulates, and a measurement taken
+in that gap is a measurement of the wrong thing. To decide who belongs on the
+register, it searched each file's text for the names of those measurements - but
+with the **comments** stripped out and the **quoted words** left in. That is a
+real distinction: a file that merely *mentions* a measurement in the sentence it
+prints when something goes wrong is not a file that takes one.
+
+**What it is now.** The register is decided off what each file actually does,
+with both the comments and the quoted words out of the way. The handful of
+places that genuinely are looking for a quoted phrase - and there are four of
+them, including the one that has to find a test's own name - now say so on the
+line, and a new check holds both kinds of reading to what they are for, so
+neither can quietly start answering the other's question.
+
+**The surprising part, and it is the same surprise as last time.** The register
+did not change by a single entry. The same fifteen files belong on it under
+either way of reading, so this is paperwork that was right by luck and is now
+right on purpose. The one thing that did have to change was a piece of
+arithmetic: one entry proved its point by comparing *where* two things appear in
+a file, and once the two were being read two different ways those positions
+stopped being comparable. It counts lines now instead.
+
+**What is left for you: nothing.**
+
 ### A test that decides which other tests it watches now works that out for itself (H61, 2026-10-11)
 
 **Nothing in the game changed and there is nothing to judge here.** This is

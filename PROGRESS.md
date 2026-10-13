@@ -15748,3 +15748,186 @@ from inside the page: the proxy set is read off modules the page **loaded**, so
 a proxy in a module nothing imports is invisible - which is the right answer,
 because a module nothing imports poses nothing, but it is worth saying out loud
 rather than leaving for somebody to rediscover.
+
+## H62 — a census right by luck, and the two string reads nobody had counted (2026-10-13, scheduled run)
+
+**H53 gave this project two readers and a rule about naming them, and left one
+census holding both questions through the weaker one.** `codeOf` takes comments
+**and** quoted strings out; `uncommented` takes only comments. H53 moved the
+position census to the second and wrote down why in two places: two of its
+entries are held against the *wording* of the problem a module reports — *"the
+grab lifted the capsule"*, *"it is not presentation only"* — and a reader that
+strips strings cannot see one. That reason is sound and it covers two clauses of
+seventeen. It does not cover the **membership** grep, which asks what a module
+*does*, and a module that names `mesh.position` in a problem message does none
+of it. H62 splits the question.
+
+**The probe came first, as the queue entry demanded, and its answer is the
+finding: the census was right by luck.** Both readers put **the same fifteen
+modules** in it — fourteen declared and the check itself, excluded by name. Not
+one joins under the strong reader and not one leaves. Every `reads`, `control`
+and `snapper` pattern in the table still matches as code. So the defect was real
+in principle and had **no member on this tree**, which is the best state a
+criterion change can be found in and the only one in which it is cheap: the
+criterion moved and the census did not. H61's lesson in a second currency, one
+run later.
+
+**What the probe found that the queue entry had wrong is where the strings are.**
+The entry said *three* entries are held against prose and named two. There is no
+third entry. There are two **clauses**, and they are worse than an entry would
+have been, because each is a clause that would have broken silently or loudly on
+the obvious move:
+
+| the string | what reads it | what `codeOf` does to it |
+|---|---|---|
+| `say`ings, ×2 | `grabslide.js` and `camerasettings.js`'s controls | both vanish — H53's measurement, confirmed |
+| `id: '<check id>'` | the `frozen` proof's slice | **all seven** of `presentation.js`'s ids vanish, so the slice is never cut and the proof reports *"0 of its checks hold the read"* |
+| `combat:death` | the `ragdoll` proof's ordering | vanishes, so a held proof becomes *"nothing in it emits combat:death"* — a reported problem where there is none |
+
+A census that reads its own explanation is a census about prose, which is H53's
+sentence; a census whose **membership** reads a string is a census about
+mentions, which is H62's; and a clause whose evidence *is* a string literal is
+neither, and has to say so at the line. Three different things wearing one
+reader.
+
+**So the split, and it is declared rather than inferred.** Membership and every
+expression pattern read `codeOf`. An entry whose evidence is prose carries a
+**`says`** field instead of a `control` one — the field name is the declaration,
+and a `control` that is code keeps the old name (`feedback.js`'s is one). The two
+clause-level string reads take `uncommented` and say at the line that they are
+reading text and why the strong reader is blind to it by construction.
+
+**The `frozen` proof now cuts with one reader and tests with the other**, which
+is the split inside a single clause: the slice is cut out of the string-keeping
+read by its `id: '...'`, and then read **as code** before the `reads` pattern and
+`ADVANCES_THE_CHASE` are put to it. Both readers are line-local, so running one
+over a slice is as safe as running it over a file. Same answer as before: one of
+seven checks owns the read, and it advances no frame.
+
+**The one clause whose arithmetic had to change is the `ragdoll` ordering, and
+that is the real cost of the job.** It held *the mesh was handed over before the
+read* by comparing `source.indexOf('combat:death')` with `source.search(reads)` —
+two character offsets into **one** string. The moment the two ends come from two
+readers the offsets are not comparable, because `codeOf` empties a string span
+and every offset after it shifts. A **line number** is comparable: both readers
+are line-local and neither drops a line, measured before the clause was written —
+`deathcam.js` is 238 lines raw, uncommented and as code, and `visual.js` 515. So
+`lineOf(text, pattern)` is in `positionreads.js` and the clause reads *the emit is
+on line 45 and the read on line 94*, which is also what a problem would have to
+name. `deathcam.js` 45 < 94 and `visual.js` 443 < 493, as before.
+
+**The instrument the queue asked for is three questions and not two.** On H53's
+`readerProblems` model, which now takes **the reader it is instrumenting** as an
+argument — it defaulted to the strong one before H62 and still does, so the four
+callers that pass three arguments are untouched. The one thing a reader cannot do
+is say which it is, so the problems name it, and `read.name` is the whole
+difference between *"this line is prose and the strong reader drops it"*, which
+is the point, and *"this line is prose and the weak reader drops it"*, which is a
+broken clause.
+
+- `codeOf` **must see** a real `actor.mesh.position` read, and **must not see**
+  one named inside a reported problem or inside a comment. The second case is
+  H62's whole subject written as a line that could really land: it is the exact
+  shape of this check's own `problems.push` messages.
+- `uncommented` **must see** the wording of a reported problem, and **must not
+  see** a comment that quotes the same wording — which is H53's `enforcer.js`
+  finding, the law found in the comment saying the file used to carry one.
+- and the **same wording, read as code, must come back as nothing**. H53
+  measured that by hand; this is it as a clause, and it is what makes the split
+  load-bearing rather than a pair of names.
+
+**All three red when the readers are swapped**, measured off disk against the
+shipped `sourcetext.js` rather than a copy of it — so the instrument cannot pass
+by being vacuous, which is the failure it exists to catch in everything else.
+
+**Three things found by auditing rather than by probing, and the first would have
+shipped a false red.**
+
+- `entry.snapper.test(source)` was the one use site the two readings missed.
+  `source` became `{ code, said }`, and a regex put to an object tests
+  `"[object Object]"` — so **both** `snaps` entries would have reported *"is
+  declared to snap the chase and no longer does it"*, a false problem about a
+  module that had not changed. A probe over the tree cannot find this; reading
+  every use site of a value whose type changed can, and that is the whole of the
+  method.
+- `readerProblems` has **four** callers and the record said three: `posecriterion.js`
+  is H61's module, one run old. The default argument is what covers it.
+- `positionreads.js`'s header claimed nothing but `positioncensus.js` imports it.
+  `grabslide.js` takes `chaseGap`.
+
+**And a fourth, outside this job: `benchlist.js` names the weak reader `code`.**
+`const code = uncommented;` — with four lines above it explaining, correctly, that
+it wants the weaker reader because its clauses look for URL parameters and
+expressions quoted as text. The argument is right and the name contradicts it, so
+`code(bench.body)` reads as the strong reader at every one of its use sites. That
+is the misnomer H53's naming rule exists to prevent, and it survived the one job
+that would have caught it: **H58 found this as the fifth copy of the stripper**
+and collapsed it into the shared module, which is why the line is an alias and
+not a function. The copy is gone; the name it was given is not. **H68.**
+
+**The gate was compromised, and it is the third occurrence of a trap this file
+records twice.** `TRAPS.md` says it in two places — the runner serves the live
+tree, so a file changed at minute ten is fetched as text by the censuses that
+grep sources *in the run already in flight*; write markdown while a gate is up
+and touch `src/` only once it has exited. H9 paid forty minutes for it and H50
+paid again. This run started the gate in the background and then wrote the job
+beside it, for the same reason both of them did: a thirty-minute run is a long
+time to sit still. So the gate's verdict was about a tree that half existed and
+it was not read. `TRAPS.md` already says what to do about exactly that, and it is
+what was done: **the base's proof is the previous job's VERIFY** — H61's, two
+runs, 0 red and 0 flaky — which is what step 8 of the protocol says stands as the
+next job's gate anyway. The runner was then killed by hand, because a stopped
+gate is not a stopped gate: `TaskStop` took the `npm` wrapper and `suite.mjs`
+(pid 9580) carried on with two headless Chrome processes, and a second runner
+beside it exits 3 since H45. Nothing was measured beside an orphan.
+
+**What the subset cost and what it bought.** One subset over the three censuses,
+the 600-line check and `presentation.js`'s frozen check: **5 passed, 0 failed per
+map**, 84s and 54s. Its `--details` is the proof that no entry's meaning moved —
+the census's own reading came back **byte-identical** to the record: *14 modules,
+4 handle the chase, 2 measured, 8 out of reach by 6 proofs; closes 0.1423/frame,
+45f to 0.001, band 90f; 1f 0.8577, 30f 0.0100, 45f 0.0010; look.js 12/12 open,
+worst landing 0.79m*. A criterion change that leaves every number where it was is
+the one you want.
+
+**Verified.** `npm run suite`, two runs per map on the finished tree, **first
+attempt**: plant **228 passed / 1 failed / 8 not for this map** (1,117,645ms and
+1,111,675ms), yard **208 / 1 / 28** (774,677ms and 773,239ms), exit 0. **0 red, 0
+flaky, 0 skipped, 0 skips withheld, 0 bench drops withheld, 0 unexpectedly green,
+0 context losses, 0 loop frames, 0 console errors in all four runs, and no other
+runner on the machine.** Spreads 5,970ms on the plant (1% of the longest) and
+1,438ms on the yard (0%), inside F16's band. The one failure per map is the
+bench-only frame-budget sweep the gate drops by design (H11); the last bench is
+still 2026-10-09 (`76c6e50`), which is H37's line. **The counts have not moved in
+three jobs** - H62 extended a check and added no module, so H58's 228/208 stands,
+and the thirteenth to sixteenth consecutive runs at zero console errors are H35's
+thirteenth to sixteenth data points.
+
+**What it cost in lines.** `positioncensus.js` **547 → 593**, so the ceiling
+cluster H55 counted goes **eleven to twelve** and this module joins it with 7
+lines of headroom. Most of the growth is argument, not code, and the argument's
+home is the sibling: `positionreads.js` 279 → 368 holds the split, what was
+measured before it was written, the instrument and `lineOf`. **H69** is the job
+that moves the rest of the header the way H51, H53, H58 and H61 moved theirs —
+the cheapest way out of that cluster, five times over now, is to move the
+argument to the thing it is about.
+
+**One wart, left deliberately rather than shipped unverified.** The prose
+classifier reads its pattern out of the table - `CENSUS.find(... 'grabslide.js').says`
+- so it cannot drift from the entry it instruments, and the cost is that removing
+that entry makes `criteriaProblems()` throw a `TypeError` instead of reporting.
+That is a **failure and not a false green**, and clause 1 would report the same
+removal as an undeclared module a moment later, so the worst case is an ugly red
+rather than a silent one. The guard is one line; it was not written, because the
+VERIFY had already started and a line added after it is a line nothing ran. The
+trap this run walked into is exactly the habit of editing `src/` beside a live
+runner, and paying for it twice in one job would have been a poor way to learn it.
+
+**What is left.** Nothing in the entry. The census's membership rule is now
+decided off a comment-and-string-stripped read, two entries declare that their
+evidence is prose, two clauses declare that their evidence is a string literal,
+and the instrument holds all three readings. The one thing it still cannot hold
+is the limit the header already states: an entry names an expression, so a module
+that grows a *second* world read its first one's classification does not cover
+reads as declared. That is `breathcensus.js`'s limit with the same answer, and
+H62 did not change it.

@@ -483,27 +483,6 @@ one setting only Josh can click; everything else here proceeds.
   measured out. The look is **D75**, Provisional with six PNGs named and
   `decided:` empty on purpose; `photographHere` untouched. **H57**, **H58**
   and **H59** are what it found.
-- [ ] **H62 (S)** `positioncensus.js` reads source through the weaker of the
-  two readers and nothing says which it is getting. H53 put both in
-  `tests/sourcetext.js` with their difference documented - `codeOf` takes
-  comments **and** strings out, `uncommented` takes only comments - and the
-  position census uses `uncommented` because three of its entries are held
-  against the *wording* of the problem a module reports (`the grab lifted the
-  capsule`, `it is not presentation only`), which H53 measured: both vanish
-  under `codeOf`. That is a real reason and it covers three entries; it does
-  not cover the other eleven, whose `reads` patterns are expressions, nor
-  `READS_A_WORLD_POSITION` and `ADVANCES_THE_CHASE`, which are membership
-  criteria and have the same defect H53 just fixed twice - a module that
-  *mentions* `mesh.position` in a comment is in that census today.
-  Split the question: membership and the expression entries read `codeOf`, the
-  three prose entries say in the entry that they are prose (a `says:` field
-  rather than a `reads:` one) and read `uncommented`. Measure first, as H53
-  did - a probe over the live tree, before a line is written, naming every
-  module whose membership moves.
-  *done-when:* the census's membership is decided off a comment-and-string
-  stripped read, an entry whose evidence is prose declares that it is, no
-  entry's meaning changed in the move, and the census's own instrument clause
-  proves both readers can still see what they are for.
 - [ ] **H63 (S)** The ceiling cluster is in a detail line, and **a passing
   check's detail is not in the report at all** (TRAPS.md). H55 made the line
   worth reading - *"12 within 50 of the 600 guidance, nearest 3:
@@ -719,6 +698,49 @@ one setting only Josh can click; everything else here proceeds.
   the buffer by a stated multiple and names all three censuses that depend on
   it, and the number is in `PROGRESS.md`; proved by setting the buffer to the
   page's own count and watching it go red.
+
+- [ ] **H68 (S)** `benchlist.js` calls the weak reader `code`. One line -
+  `const code = uncommented;` - with four correct lines above it explaining
+  that this check wants comments out and **strings kept**, because every clause
+  in it looks for a URL parameter or an expression quoted as text. The argument
+  is right; the name contradicts it, so `code(bench.body)` reads as the
+  comment-**and**-string-stripped reader at every use site, which is the one
+  thing `sourcetext.js` says a reader cannot tell you about itself. **H58 found
+  this as the fifth copy of the stripper** and collapsed it into the shared
+  module, which is why the line is an alias and not a function - so the copy is
+  gone and the name it was given survived the one job that would have caught
+  it.
+  Rename the alias to say which reader it is, or drop the alias and call
+  `uncommented` at the three use sites - the second is smaller and leaves no
+  name to get wrong again. Then check the other censuses the same way: H62
+  read every `codeOf`/`uncommented`/`codeOnly` site in `src/tests/` and found
+  this the only one whose **name** disagrees with its reader, but that was a
+  grep and not a clause.
+  *done-when:* no local name in `src/tests/` binds one reader under the other's
+  name, every clause in `benchlist.js` answers as it did (it is a URL-parameter
+  census and its readings are quoted in `PROGRESS.md`), and a check holds the
+  rule rather than a run of `grep` - the shape is H61's: read the thing off the
+  tree so the next copy cannot be written silently.
+
+- [ ] **H69 (S)** `positioncensus.js` is at 593 of 600 and its argument has a
+  home. H62 took it 547 to 593 and the ceiling cluster back to **twelve**;
+  almost none of the growth is code, because the clauses that moved are two
+  reader swaps and a line count, and the rest is the paragraph saying why. The
+  sibling exists for exactly this - `positionreads.js` was cut out when the
+  check reached 672 of a 600 allowance - and it now holds the reader split,
+  what H62 measured before writing it, the instrument and `lineOf`, while the
+  check's own header still carries a hundred lines of argument about H40, H43,
+  H44, H46 and H47.
+  Move the argument to the thing it is about, which is the cheapest way out of
+  that cluster five times over now (H51 a split, H53, H58 and H61 shared
+  extractions). The header paragraphs that belong to an **entry** belong in
+  that entry's `note`, which the table already is; the ones that belong to a
+  **mechanism** belong beside the mechanism's instrument. What must stay in the
+  check is the sentence saying what it holds and what it does not.
+  *done-when:* `positioncensus.js` is out of the 600-line cluster (under 550),
+  no argument was deleted rather than moved, every reading in the detail line is
+  unchanged, and the cluster count in `HANDOFF.md` is re-read rather than
+  assumed.
 
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
@@ -973,6 +995,55 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H62** A census right by luck, and the two string reads nobody had counted.
+  H53 gave this project two source readers and a rule about naming them, and
+  left the position census asking both its questions through the weaker one:
+  `codeOf` takes comments **and** quoted strings out, `uncommented` takes only
+  comments. The documented reason covers two clauses of seventeen - two entries
+  are held against the *wording* of a reported problem and a string-stripping
+  reader cannot see one - and does not cover **membership**, which asks what a
+  module *does*. **The probe came first and its answer is the finding: both
+  readers put the same fifteen modules in the census.** None joins, none
+  leaves, every `reads`, `control` and `snapper` pattern still matches as code,
+  so the defect was real in principle with **no member on this tree** - the
+  criterion moved and the census did not, which is H61's shape one run later.
+  **What the entry had wrong is where the strings are**: there is no third
+  prose *entry*, there are two prose entries and two **clauses**, each of which
+  would have broken on the obvious move - a check's own `id: '...'` (all seven
+  of `presentation.js`'s vanish under `codeOf`, so the `frozen` slice is never
+  cut) and `combat:death` (vanishes, turning a held `ragdoll` proof into a
+  reported problem). So membership and every expression pattern read `codeOf`;
+  an entry whose evidence is prose carries a **`says`** field, the field name
+  being the declaration; the two clause-level string reads keep `uncommented`
+  and say at the line why the strong reader is blind to them. The `frozen`
+  proof **cuts with one reader and tests with the other**. **The one clause
+  whose arithmetic had to change is the `ragdoll` ordering**: it compared two
+  character offsets into one string, which stop being comparable once the two
+  ends come from two reads, and now compares two **line numbers** - both
+  readers are line-local and neither drops a line, measured (`deathcam.js` 238
+  lines raw, uncommented and as code; `visual.js` 515). The instrument is
+  **three** questions, not two, and `readerProblems` now takes the reader it is
+  instrumenting (defaulting to the strong one, so all four callers before H62
+  are untouched): `codeOf` must see a real read and miss one named in a string
+  or a comment, `uncommented` must see a reported problem's wording and still
+  miss a comment quoting it, and **the same wording read as code must come back
+  as nothing** - H53's hand measurement as a clause. All three red when the
+  readers are swapped. Found by auditing rather than probing, and the first
+  would have shipped a **false red**: `entry.snapper.test(source)` was the use
+  site the two readings missed, and a regex put to `{ code, said }` tests
+  `"[object Object]"`, so both `snaps` entries would have reported a module
+  that had not changed. `readerProblems` has **four** callers and the record
+  said three (`posecriterion.js`, one run old). Found in passing:
+  `benchlist.js` names the weak reader `code` - **H68**. `positioncensus.js`
+  **547 to 593** and the cluster back to twelve, the argument's home being the
+  sibling (`positionreads.js` 279 to 368) - **H69**. And the **gate was
+  compromised**, the third occurrence of a trap `TRAPS.md` records twice: the
+  background gate was read past and the job written beside it, so its verdict
+  was about a tree that half existed and was **not read** - the base's proof is
+  H61's VERIFY, which step 8 says stands as this job's gate anyway - and the
+  runner was killed by hand, because `TaskStop` takes the `npm` wrapper and
+  `suite.mjs` carries on. — done 2026-10-13, `H62_HASH`.
 
 - **H61** A name in a regex became a set the tree decides, and there were
   five of them. The breath census's membership rule was *"calls `updateVisual`,

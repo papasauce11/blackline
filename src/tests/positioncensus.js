@@ -73,6 +73,17 @@
  * answer - the entry names an expression, so the day a clause moves this goes
  * red and somebody reads the note again.
  *
+ * **Two readers, and the question each is for** (H62). H53 left this census
+ * on the weaker of `tests/sourcetext.js`'s two whole, for a reason that
+ * covered two of its clauses and not the membership grep: a module that names
+ * `mesh.position` in a problem message makes no such call. Membership and
+ * every expression pattern read `codeOf` now, an entry whose evidence is prose
+ * declares it with a `says` field, and the four questions whose answer is a
+ * **string literal** read `uncommented` and say so at the line. The split,
+ * what was measured before it was written, and the instrument that holds both
+ * readers to what they are for are in `positionreads.js`; the one clause whose
+ * arithmetic had to change is the ragdoll ordering, below.
+ *
  * Registered from tests/index.js beside tests/breathcensus.js and
  * tests/breathdrawn.js, which are this shape about the two phases.
  * Nothing here imports main.js (Section 3.1).
@@ -85,7 +96,8 @@ import { quiesce } from './pixels.js';
 import { strike, STRIKES } from './animation.js';
 import {
   CENSUS, PROOFS, HOWS, READS_A_WORLD_POSITION, ADVANCES_THE_CHASE, THE_LAW,
-  chaseGap, checkSlice, draw, framesToClose, hulledMesh, openTheGap, text, uncommented,
+  chaseGap, checkSlice, codeOf, criteriaProblems, draw, framesToClose, hulledMesh,
+  lineOf, openTheGap, text, uncommented,
 } from './positionreads.js';
 
 const S = CONFIG.shade;
@@ -168,19 +180,25 @@ export function register(debugTools) {
       if (files.length < 50) {
         return { pass: false, detail: `tests/index.js imports ${files.length} modules; the suite is 50+` };
       }
+      // Both criteria against both readers before the census is believed
+      // (H62, on H53's model): a census answers "nothing new" when its greps
+      // work and when they have stopped seeing anything.
+      problems.push(...criteriaProblems());
+
       const sources = new Map();
       const worldReaders = [];
       for (const file of files) {
         const read = await text(origin, `/src/tests/${file}`);
         if (read.error) { problems.push(read.error); continue; }
-        // Comments out of every source here, once: a module that only
-        // *mentions* a world read is not one, and a clause below greps for
-        // expressions a module may no longer carry. Strings stay, which is
-        // the weaker of the two readers `tests/sourcetext.js` owns and is
-        // named for it since H53 - three entries below are held against the
-        // wording of a reported problem, and H62 splits that question.
-        sources.set(file, uncommented(read.body));
-        if (READS_A_WORLD_POSITION.test(sources.get(file))) worldReaders.push(file);
+        // Two readings of every module, because the clauses below ask two
+        // different questions of it (H62). `code` has the comments **and the
+        // strings** out, for everything asking what a module does: membership
+        // here, and every `reads`, `control` and `snapper` pattern. `said`
+        // has only the comments out, for the four questions whose answer is a
+        // string literal - the two `says` controls, a check's own id, and the
+        // emit the ragdoll proof is ordered against.
+        sources.set(file, { code: codeOf(read.body), said: uncommented(read.body) });
+        if (READS_A_WORLD_POSITION.test(sources.get(file).code)) worldReaders.push(file);
       }
       const declared = new Map(CENSUS.map((entry) => [entry.module, entry]));
       for (const file of worldReaders) {
@@ -211,11 +229,19 @@ export function register(debugTools) {
       for (const entry of CENSUS) {
         const source = sources.get(entry.module);
         if (!source) { problems.push(`${entry.module} is in the census and was not served`); continue; }
-        if (!entry.reads.test(source)) {
+        if (!entry.reads.test(source.code)) {
           problems.push(`${entry.module} no longer reads ${entry.reads} for its census entry; the clause the entry describes has moved`);
         }
-        if (entry.control && !entry.control.test(source)) {
+        if (entry.control && !entry.control.test(source.code)) {
           problems.push(`${entry.module}'s entry rests on ${entry.control} and the module no longer has it; the proof is vacuous without its control`);
+        }
+        // And the control whose evidence is the *wording* of a reported
+        // problem rather than an expression, asked of the reader that can see
+        // a string. The field name is the declaration (H62): a `says` pattern
+        // read as code comes back as nothing, and the instrument above holds
+        // that it does, so this clause cannot quietly become vacuous.
+        if (entry.says && !entry.says.test(source.said)) {
+          problems.push(`${entry.module} no longer reports "${entry.says.source}" and its entry rests on that wording; the proof is vacuous without its control`);
         }
         if (entry.reach === 'none' && !PROOFS[entry.proof]) {
           problems.push(`${entry.module} is out of reach by proof "${entry.proof}", which is not one of the ${Object.keys(PROOFS).length} this check holds`);
@@ -229,22 +255,29 @@ export function register(debugTools) {
       // Proof `frozen` is the one a file-wide grep cannot hold: both modules
       // it covers render frames in other checks of the same file. So it is
       // held against the entry's own check, sliced out of the source by its id.
+      //
+      // The **cut** is a string read and the **tests** are code reads, which
+      // is the split in one clause (H62): a check's id is `id: '...'`, a
+      // string literal the strong reader erases - all seven of
+      // `presentation.js`'s, measured - so the slice is cut out of `said` and
+      // then read as code, which a line-local reader can do to a slice as
+      // safely as to a file.
       const live = new Set(h.debugTools._autoTests.map((test) => test.id));
       for (const entry of CENSUS) {
         if (entry.proof !== 'frozen') continue;
         const source = sources.get(entry.module);
         if (!source) continue;
-        const ids = [...source.matchAll(/id: '([a-z0-9-]+)'/g)].map((m) => m[1]);
+        const ids = [...source.said.matchAll(/id: '([a-z0-9-]+)'/g)].map((m) => m[1]);
         const owning = ids.filter((id) => {
-          const slice = checkSlice(source, id);
-          return slice && entry.reads.test(slice);
+          const slice = checkSlice(source.said, id);
+          return slice && entry.reads.test(codeOf(slice));
         });
         if (owning.length !== 1) {
-          problems.push(`${entry.module}: ${owning.length} of its checks hold ${entry.reads}, so the slice the frozen proof is about is not one check`);
+          problems.push(`${entry.module}: ${owning.length} of its ${ids.length} checks hold ${entry.reads}, so the slice the frozen proof is about is not one check`);
           continue;
         }
         if (!live.has(owning[0])) problems.push(`"${owning[0]}" holds ${entry.module}'s frozen read and no module registers it`);
-        if (ADVANCES_THE_CHASE.test(checkSlice(source, owning[0]))) {
+        if (ADVANCES_THE_CHASE.test(codeOf(checkSlice(source.said, owning[0])))) {
           problems.push(`${entry.module}'s "${owning[0]}" is declared frozen and now advances the chase inside itself; the drawn body moves between its reads and the entry wants re-measuring`);
         }
       }
@@ -255,7 +288,7 @@ export function register(debugTools) {
       for (const entry of CENSUS) {
         if (entry.proof !== 'writes') continue;
         const source = sources.get(entry.module);
-        if (source && /mesh\.position(?!\.set\()/.test(source)) {
+        if (source && /mesh\.position(?!\.set\()/.test(source.code)) {
           problems.push(`${entry.module} is declared to write the drawn position and read none, and now reads one; classify it`);
         }
       }
@@ -266,16 +299,25 @@ export function register(debugTools) {
       // Shade with `combat:death` and the ragdoll takes the mesh there, so a
       // read taken BEFORE that emit would be of a live body the chase still
       // owns - and would pass clause 7 and every clause above it.
+      //
+      // Ordered by **line** and not by character offset (H62). The emit is an
+      // event name, a string the strong reader erases, and the read is an
+      // expression the weak reader should not be asked for - so the two ends
+      // of this comparison come from two reads, and an offset into one is not
+      // comparable with an offset into the other. A line number is: both
+      // readers are line-local and neither drops a line, which `deathcam.js`
+      // (238 lines raw, uncommented and as code) and `visual.js` (515) were
+      // measured against before this clause was written.
       for (const entry of CENSUS) {
         if (entry.proof !== 'ragdoll') continue;
         const source = sources.get(entry.module);
         if (!source) continue;
-        const owned = source.indexOf(TAKES_THE_MESH);
-        const read = source.search(entry.reads);
-        if (owned < 0) {
+        const owned = lineOf(source.said, new RegExp(TAKES_THE_MESH));
+        const read = lineOf(source.code, entry.reads);
+        if (owned === 0) {
           problems.push(`${entry.module} is out of reach by the ragdoll and nothing in it emits ${TAKES_THE_MESH}; the mesh it reads is one the chase still owns`);
         } else if (owned > read) {
-          problems.push(`${entry.module} reads the drawn position before the ragdoll takes it (${read} against ${owned}); the entry's proof is about a body the chase still owns`);
+          problems.push(`${entry.module} reads the drawn position on line ${read}, before the ragdoll takes it on line ${owned}; the entry's proof is about a body the chase still owns`);
         }
       }
 
@@ -285,7 +327,7 @@ export function register(debugTools) {
       for (const entry of CENSUS) {
         if (entry.how !== 'snaps') continue;
         const source = sources.get(entry.module);
-        if (source && !entry.snapper.test(source)) {
+        if (source && !entry.snapper.test(source.code)) {
           problems.push(`${entry.module} is declared to snap the chase and no longer does it with ${entry.snapper}; its readings are at whatever gap the run arrived with`);
         }
       }
@@ -300,7 +342,7 @@ export function register(debugTools) {
       const lookSource = sources.get('look.js');
       if (lookSource) {
         for (const anchored of [/y: feet\.y \+ EYE/, /y: feet\.y \+ FOCUS/]) {
-          if (!anchored.test(lookSource)) {
+          if (!anchored.test(lookSource.code)) {
             problems.push(`look.js no longer builds ${anchored} off the one read of the drawn body; its entry is argued on the eye and the subject carrying the same lag`);
           }
         }
@@ -312,7 +354,7 @@ export function register(debugTools) {
         problems.push('hang.js\'s arrival check is not registered, so nothing holds the settle the `waits` entry rests on');
       }
       const hangSource = sources.get('hang.js');
-      if (hangSource && !/positionSmoothing/.test(hangSource)) {
+      if (hangSource && !/positionSmoothing/.test(hangSource.code)) {
         problems.push('hang.js does not read positionSmoothing, so its settle is argued from a copy of 45 rather than from the law');
       }
 
@@ -325,13 +367,17 @@ export function register(debugTools) {
       // ------------------------------------------------------------------
       const pose = await text(origin, '/src/entities/pose.js');
       if (pose.error) problems.push(`${pose.error}; it is the law's home`);
-      else if (!/export function positionSmoothing/.test(uncommented(pose.body))) {
+      else if (!/export function positionSmoothing/.test(codeOf(pose.body))) {
         problems.push('pose.js does not export positionSmoothing; the chase law has moved and the two bodies may be reading two of them');
       }
       for (const rel of ['/src/entities/agentvisual.js', '/src/entities/enforcer.js']) {
         const body = await text(origin, rel);
         if (body.error) { problems.push(body.error); continue; }
-        const source = uncommented(body.body);
+        // As code, not merely uncommented: H53's finding was this census
+        // reporting `enforcer.js` for a law that was in the comment saying it
+        // used to carry one, and a law written into a string would read the
+        // same way. All three answer identically today, measured.
+        const source = codeOf(body.body);
         if (!/positionSmoothing\(/.test(source)) {
           problems.push(`${rel} does not call positionSmoothing(); its body chases on a law of its own`);
         }

@@ -29,15 +29,19 @@
  *                          the call cannot be in a string, and the identifier
  *                          turns up in error messages all over this suite.
  *   `uncommented`          comments out, strings kept. The reader for a clause
- *                          whose evidence **is** a string: `positioncensus.js`
- *                          holds three entries against the wording of the
- *                          problem a module reports, and a census that greps
+ *                          whose evidence **is** a string - the wording of a
+ *                          reported problem, a check's own `id: '...'`, an
+ *                          event name, a module path - and a census that greps
  *                          its own explanation is a census about prose.
  *
  * The one thing a reader of either kind cannot do is tell you which it is, so
  * the names are the documentation: a grep written against `codeOf` is a grep
  * about code, and one written against `uncommented` is a grep that wanted the
- * strings and said so.
+ * strings and said so. **H62 is the worked example of a census holding clauses
+ * on both** - `positioncensus.js` decides its membership and every expression
+ * entry off `codeOf` and asks `uncommented` only the four questions whose
+ * answer is a string literal - and it is why `readerProblems` takes the reader
+ * it is instrumenting rather than assuming the strong one.
  *
  * Imported by `audiocontext.js`, `breathcensus.js`, `timedrenders.js` and
  * `positioncensus.js`. A helper rather than a check, so it is not registered
@@ -98,12 +102,22 @@ export function codeOf(text) {
  *
  * The weaker reader, and deliberately so. `positioncensus.js` grepped
  * `enforcer.js` for a copy of the chase law and found it in the comment saying
- * the file used to have one, which is why the comments go; three of its own
+ * the file used to have one, which is why the comments go; two of its own
  * entries are held against the wording of the problem a module reports
  * (*"the grab lifted the capsule"*, *"it is not presentation only"*), which is
  * why the strings stay. H53 measured both against `codeOf` and both vanish
  * from it, so the two readers are not interchangeable and the difference is
  * not a tidy-up waiting to happen.
+ *
+ * **It is the right reader for four questions and the wrong one for the rest**
+ * (H62). A census asking what a module *does* wants `codeOf`, because an
+ * identifier inside a string is not a call - and H62 measured that, on this
+ * tree, as a defect with no member: both readers put the same fifteen modules
+ * in the position census, so the weak read was wrong in principle and right by
+ * luck. The four it is genuinely for are the two prose entries above, a
+ * check's own `id: '...'` (which `codeOf` erases, taking all seven of
+ * `presentation.js`'s with it) and an event name like `combat:death` (which
+ * `codeOf` erases, turning a held proof into a reported problem).
  */
 export function uncommented(text) {
   return text.replace(/^[\t ]*(\/\/|\/\*|\*).*$/gm, '');
@@ -117,27 +131,37 @@ export function uncommented(text) {
  * read can fail by stripping too much as easily as too little - H53 found
  * three real members one strip away from falling out of one census.
  *
- * `classify` is what the census's greps make of a module's code, as a word or
- * the empty string; `sees` is lines of real code with the word each must come
- * back as; `ignores` is lines that must come back as **nothing**, and there are
- * two kinds of those - prose that names the call, which is H53's subject, and
- * **code that names something which is not it**, which is H61's: a method or a
- * longer word that happens to start with a proxy's name. The problems are
- * returned rather than thrown, so each census reports them the way it reports
- * its own.
+ * `classify` is what the census's greps make of a line, as a word or the empty
+ * string; `sees` is lines with the word each must come back as; `ignores` is
+ * lines that must come back as **nothing**, and there are two kinds of those -
+ * prose that names the call, which is H53's subject, and **code that names
+ * something which is not it**, which is H61's: a method or a longer word that
+ * happens to start with a proxy's name. The problems are returned rather than
+ * thrown, so each census reports them the way it reports its own.
+ *
+ * **`read` is the reader being instrumented, and it is an argument because a
+ * census may hold clauses on both of them** (H62). It defaults to `codeOf`,
+ * which is what the three callers before H62 wanted and the only reader a
+ * membership grep should ever get. The one thing a reader cannot do is say
+ * which it is, so the problems name it: `read.name` is the whole difference
+ * between "this line is prose and the strong reader drops it", which is the
+ * point, and "this line is prose and the weak reader drops it", which is a
+ * broken clause. The same line is usually a `sees` for one reader and an
+ * `ignores` for the other, and a census that asks both ways has proved its two
+ * readers are not interchangeable rather than assumed it.
  */
-export function readerProblems(classify, sees, ignores) {
+export function readerProblems(classify, sees, ignores, read = codeOf) {
   const problems = [];
   for (const [line, want] of sees) {
-    const got = classify(codeOf(line));
+    const got = classify(read(line));
     if (got !== want) {
-      problems.push(`the criteria read "${line.trim()}" as ${got || 'nothing'} and not ${want}; this census reads whatever it reads whether they work or not`);
+      problems.push(`${read.name} read "${line.trim()}" as ${got || 'nothing'} and not ${want}; this census reads whatever it reads whether its criteria work or not`);
     }
   }
   for (const line of ignores) {
-    const got = classify(codeOf(line));
+    const got = classify(read(line));
     if (got) {
-      problems.push(`the criteria read "${line.trim()}" as ${got} and nothing is the only right answer, so a module is in this census for naming the call rather than for making it (H53's whole subject, and H61's for a name that is not the call)`);
+      problems.push(`${read.name} read "${line.trim()}" as ${got} and nothing is the only right answer, so a module is in this census for naming the call rather than for making it (H53's whole subject, H61's for a name that is not the call, and H62's for a call named inside a string)`);
     }
   }
   return problems;

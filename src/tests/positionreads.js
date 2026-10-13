@@ -15,14 +15,16 @@
  * `tests/viewpointsamples.js` owns H36's wording and its statistics together,
  * which is the shape this one copies.
  *
- * Nothing here is imported by anything but `positioncensus.js`, which holds
- * every entry below against the live tree - both ways, so a module that starts
- * reading a world position is red until it is classified. The argument for
- * each entry is in that module's header and in PROGRESS.md's H43.
+ * `positioncensus.js` is what reads it, and holds every entry below against
+ * the live tree - both ways, so a module that starts reading a world position
+ * is red until it is classified. `grabslide.js` takes `chaseGap` and nothing
+ * else. The argument for each entry is in that module's header and in
+ * PROGRESS.md's H43.
  */
 
 import * as THREE from 'three';
 import { positionSmoothing } from '../entities/pose.js';
+import { codeOf, readerProblems, uncommented } from './sourcetext.js';
 
 /**
  * The criterion for being in the census: a module that reads a world position
@@ -62,6 +64,17 @@ export const THE_LAW = /Math\.pow\(0\.0001/;
  * one; and `snapper` names the expression a `snaps` entry closes its own gap
  * with, because proving that a reset leaves no gap does not say that this
  * module took one.
+ *
+ * **Every pattern above is code, and `says` is the one that is not** (H62).
+ * `reads`, `control` and `snapper` are expressions, asked of a source with its
+ * comments **and its strings** out, because an identifier inside a string is
+ * not a call; `says` is a control identified by the *wording* of the problem
+ * the module reports, asked of a source with only the comments out, because
+ * the string is the whole evidence. Two entries carry one - `grabslide.js`'s
+ * lift floor and `camerasettings.js`'s capsule-track control - and H53
+ * measured both out of existence under the strong reader, so the field name is
+ * load-bearing rather than decorative. A control that is code stays `control`;
+ * `feedback.js`'s is one.
  */
 export const CENSUS = [
   {
@@ -92,7 +105,7 @@ export const CENSUS = [
     reach: 'measured',
     frames: '1 to 15 from the grab',
     reads: /shade\.mesh\.position\.y/,
-    control: /the grab lifted the capsule/,
+    says: /the grab lifted the capsule/,
     note: 'the one module whose clause is **about** the gap rather than exposed to it (H44). It drives whole frames at a hangable ledge and pins the drop at frames 1, 6, 10 and 15 - 0.80m to 0.04m - because `PLAYTEST.md` and D72 quote those numbers to a human and a shortened smoothing should send them back to be measured rather than quietly make them wrong. Its control is the one every entry here needs: the capsule must really have risen half a metre, or the profile is a table about a body standing still',
   },
   {
@@ -119,7 +132,7 @@ export const CENSUS = [
     proof: 'paired',
     frames: 'every frame of a sprint',
     reads: /b\.camY - a\.camY/,
-    control: /it is not presentation only/,
+    says: /it is not presentation only/,
     note: 'reads the camera\'s world height every frame of a 150-frame sprint, where the chase lags a moving capsule the whole way - and takes the bob as the difference between two frame-matched runs of that sprint with the setting off and on. The lag is identical in both, so it cancels frame for frame, and the check asserts the two capsule tracks agreed to 1e-9 before reading the difference, which is the control the cancellation needs',
   },
   {
@@ -214,25 +227,102 @@ export async function text(origin, rel) {
 }
 
 /**
- * A module's text with its comment lines taken out, which this census greps
- * through and `positioncensus.js` imports as `uncommented`.
+ * **Both readers, because this census asks both questions** (H62).
  *
- * It lived here as `code` until H53, which found the same stripper written
- * three times in three strengths and moved all of it into
+ * One stripper lived here as `code` until H53, which found the same thing
+ * written three times in three strengths and moved all of it into
  * `tests/sourcetext.js`: `codeOf` takes comments **and** strings out, and
- * `uncommented` takes only comments. This census wants the weaker one and the
- * name now says so, because nothing about a reader tells you which it is.
+ * `uncommented` takes only comments. H53 left this census on the weak one
+ * whole, for a reason that covered two of its clauses and not the other
+ * fifteen, and H62 split it:
  *
- * Why comments go: every clause below greps for an expression a module is
- * **not** allowed to carry any more, and the first run of this census reported
- * `enforcer.js` for a copy of the chase law that was in the comment saying it
- * used to have one. A census that reds on its own explanation is a census
- * about prose. Why strings stay: three of the entries below are held against
- * the *wording* of the problem a module reports, and H53 measured both of
- * those out of existence under `codeOf` - so the two readers are not
- * interchangeable here, and H62 is the job that splits the question properly.
+ *   `codeOf`       membership, and every `reads`, `control` and `snapper`
+ *                  pattern. These ask what a module **does**, and a module
+ *                  that mentions `mesh.position` in a problem message does
+ *                  none of it. The defect H62 fixed had no member on this
+ *                  tree - both readers put the same fifteen modules in the
+ *                  census, measured before a line was written - so this is
+ *                  the clause being right on purpose rather than by luck.
+ *   `uncommented`  the two `says` controls, a check's own `id: '...'` and the
+ *                  `combat:death` an event-ordered proof rests on. Every one
+ *                  of those is a **string literal**, and the strong reader is
+ *                  blind to them by construction: `codeOf` erases all seven
+ *                  of `presentation.js`'s check ids, and erases the emit the
+ *                  ragdoll proof is ordered against, which would turn a held
+ *                  proof into a reported problem.
+ *
+ * Why comments go either way: every clause below greps for an expression a
+ * module is **not** allowed to carry any more, and the first run of this
+ * census reported `enforcer.js` for a copy of the chase law that was in the
+ * comment saying it used to have one. A census that reds on its own
+ * explanation is a census about prose.
  */
-export { uncommented } from './sourcetext.js';
+export { codeOf, uncommented } from './sourcetext.js';
+
+/**
+ * The reader instrument's own cases, read by `readerProblems` (H62, on H53's
+ * model). A census answers "nothing new" both when its criteria work and when
+ * they have stopped seeing anything, and the split above adds a second way to
+ * be wrong: a clause written for one reader and asked of the other.
+ *
+ * So each line below is put to **both** readers, and the pair of answers is
+ * the proof that they are not interchangeable here. `CODE_IGNORES` carries
+ * H62's whole subject - a `mesh.position` inside a reported problem, which
+ * `codeOf` drops and `uncommented` enrols - and it is the exact shape of this
+ * check's own problem messages, so it is a line that could really land.
+ */
+export const CODE_SEES = '        const eye = actor.mesh.position.clone();';
+export const CODE_IGNORES = [
+  '          problems.push(`${file} reads a world position and this census does not declare it; mesh.position is the whole of the criterion`);',
+  '       * reads the eye off `actor.mesh.position` at the frame the strike arrived.',
+];
+export const PROSE_SEES = '            problems.push(`the grab lifted the capsule ${run.lift.toFixed(3)}m, under the ${LIFT_FLOOR}m this profile was measured against`);';
+export const PROSE_IGNORES = ['      // than a profile: the grab lifted the capsule, and the drop below is of a body that rose.'];
+
+/**
+ * What the census's criteria make of a line, as the word `readerProblems`
+ * wants: the membership grep, and the one `says` pattern the prose cases are
+ * written against. Two classifiers because they are two instruments - the
+ * membership criterion is this census's own and a `says` pattern belongs to an
+ * entry - and a single one would let either answer stand in for the other.
+ */
+const SEEN_AS_A_WORLD_READ = (line) => (READS_A_WORLD_POSITION.test(line) ? 'a world read' : '');
+const SEEN_AS_THE_WORDING = (line) => (CENSUS.find((entry) => entry.module === 'grabslide.js').says.test(line) ? 'the wording' : '');
+
+/**
+ * Both criteria against both readers, before the census below is believed.
+ *
+ * Three questions and not two: the strong reader must see a real world read
+ * and drop one named in a string or in a comment; the weak reader must see a
+ * reported problem's wording and still drop a comment that quotes it; and the
+ * **same** wording, read as code, must come back as nothing - which is what
+ * makes the split load-bearing rather than a pair of names. H53 measured that
+ * third one by hand and this is it as a clause.
+ */
+export function criteriaProblems() {
+  return [
+    ...readerProblems(SEEN_AS_A_WORLD_READ, [[CODE_SEES, 'a world read']], CODE_IGNORES, codeOf),
+    ...readerProblems(SEEN_AS_THE_WORDING, [[PROSE_SEES, 'the wording']], PROSE_IGNORES, uncommented),
+    ...readerProblems(SEEN_AS_THE_WORDING, [], [PROSE_SEES], codeOf),
+  ];
+}
+
+/**
+ * The 1-based line a pattern first matches on, or 0 for nowhere (H62).
+ *
+ * The `ragdoll` proof is an **ordering** - the mesh was handed over before the
+ * read - and it was held on character offsets into one string until the two
+ * readers were split, at which point the two ends of the comparison came from
+ * two reads and the offsets stopped being comparable. Both readers are
+ * line-local and neither drops a line, so a line number survives either of
+ * them: `deathcam.js` measures 238 lines raw, uncommented and as code, and
+ * `visual.js` 515. A line is also what a problem would have to name.
+ */
+export function lineOf(text, pattern) {
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) if (pattern.test(lines[i])) return i + 1;
+  return 0;
+}
 
 /**
  * One registered check's own text: from its id to the next one in the file. A
