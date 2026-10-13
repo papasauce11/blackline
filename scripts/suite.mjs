@@ -475,6 +475,12 @@ async function main() {
               // rests on: the slowest single check is the longest gap
               // between two beats (F10).
               ms: Math.round(x.ms),
+              // A check may hand the runner numbers beside its verdict, and
+              // one does: the source ceiling's cluster, which the summary
+              // prints per run so a passing check's finding reaches a reader
+              // with no flag (H63). Spread only where it exists, so the other
+              // two-hundred-odd results do not each gain a null in --details.
+              ...(x.ceiling ? { ceiling: x.ceiling } : {}),
             })),
           };
         }, [SUBSET ? SUBSET.source : null, REGRESSION]), `map ${mapId}, run ${i + 1}`);

@@ -483,29 +483,6 @@ one setting only Josh can click; everything else here proceeds.
   measured out. The look is **D75**, Provisional with six PNGs named and
   `decided:` empty on purpose; `photographHere` untouched. **H57**, **H58**
   and **H59** are what it found.
-- [ ] **H63 (S)** The ceiling cluster is in a detail line, and **a passing
-  check's detail is not in the report at all** (TRAPS.md). H55 made the line
-  worth reading - *"12 within 50 of the 600 guidance, nearest 3:
-  src/physics.js 600 (0 left), ..."* - and it still only reaches a reader who
-  passed `--details`. Every run this month has, which is the only reason the
-  old line was ever read at all, and that is a habit rather than a guarantee:
-  the job that forgets the flag is exactly the job about to write a module up
-  to 600.
-  Put the cluster on the runner's **own summary**, beside the quality line that
-  says what `auto` would have picked - one line per run, from the check's
-  result rather than recomputed, because two answers about a line count is the
-  defect this would be introducing. `scripts/suite.mjs` already reads results
-  it does not report (`benched`, `skipped`), so the shape exists. Keep it to
-  the count and the nearest one: *"ceiling: 12 modules within 50 of 600,
-  nearest src/physics.js at 600 (0 left)"* is sixty characters and says the
-  thing. And the per-map, per-run rule applies - the census is the same on both
-  maps today, but it is read off the modules the **page loaded**, and the two
-  maps do not load the same set, so print it per run rather than once (the
-  `break` in a summary loop that hid a whole map, TRAPS.md).
-  *done-when:* a plain `npm run suite` prints the ceiling cluster per run with
-  no flag; the number it prints is the check's own and not a second
-  measurement; and a check holds that the summary's number and the check's
-  number are the same, so they cannot drift.
 - [ ] **H56 (M)** `src/physics.js` is at exactly 600 of 600. H51 split
   `audio.js` at 589 because eleven lines of headroom is a trap for the next
   job; this file has **none**, and it is the swept solver - the hottest code
@@ -995,6 +972,43 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H63** A passing check's number reaches a reader, and the control that was
+  a finding. The runner's stderr summary is all a reader of a run sees without
+  a flag, and **a passing check's detail is not in the report at all** - so
+  H55's ceiling line, the one that says which modules are near the 600
+  guidance, reached only a reader who passed `--details`, which every run this
+  month happened to do. It is on the summary now, **per run, with no flag**:
+  *"ceiling: 12 modules within 50 of 600, nearest src/physics.js at 600 (0
+  left) - of 181 this run loaded"*. **The number is the check's own and that
+  was free**: `_runOne` already spread a check's result into the report, so an
+  extra field had always survived and nothing in the harness changed - only
+  the JSDoc, which promised `{pass, detail}` while the spread said otherwise.
+  Nothing in the report measures a line, and `suitereport.mjs` quotes **neither
+  threshold**, because both arrive inside the object. A new check in
+  `runnerguard.js` - no new module, so no new row in four censuses, measured -
+  holds the chain in five clauses, the load-bearing one being that the check's
+  **prose and its object agree on all seven numbers**, parsed back out of its
+  own detail line: one measurement rendered twice, and nothing else in the
+  suite could say they had stopped agreeing. **Five breaks, five reds - and the
+  one meant to be a control was a finding, which is the second run in a row.**
+  The clause grepped the per-run loop for the substring `run.ceiling`, and a
+  break reading `run.ceilingButNotRead` printed nothing and **passed**: one
+  name contains the other, which is H61's finding one job later in a different
+  currency. Fixed with the idiom the module already had - `GUARD` and
+  `positionreads.js`'s `snapper` hold **named expressions**, not names - so
+  `PRINTS_THE_CLUSTER` holds the whole shape and the break reds. Measured and
+  contrary to the entry: **both maps report 181 and an identical cluster**, so
+  the per-run line prints the same sentence twice today and the shape is for
+  the day they diverge. Stated rather than papered over: `suitereport.mjs`
+  reads files, so the page cannot import and run it, and three of the five
+  clauses are readings of text. `donedef.js` 568 to 587, `runnerguard.js` 252
+  to 438, the cluster still twelve. And **an hour lost to reverting a break
+  with `git checkout --`**, which reverts to HEAD and threw away the
+  uncommitted job, so four breaks ran against a tree that had lost the work
+  they tested - recovered from the scratchpad patch scripts, and `TRAPS.md`
+  gains the hazard, the remedy and the lesson that a break must red for **its
+  own** clause. — done 2026-10-13, `H63_HASH`.
 
 - **H62** A census right by luck, and the two string reads nobody had counted.
   H53 gave this project two source readers and a rule about naming them, and

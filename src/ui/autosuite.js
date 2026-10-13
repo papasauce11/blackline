@@ -44,6 +44,10 @@ export class AutoSuite {
    *   before it and charges the wait to the run rather than to the check
    *   (F11, D48; `drainPipeline` says why)
    * @param {(harness: object) => Promise<{pass: boolean, detail: string}>} test.run
+   *   `_runOne` spreads whatever this resolves to, so a check may carry extra
+   *   fields out beside the verdict and the runner may read them: the source
+   *   ceiling's cluster travels that way to `suitereport.mjs`'s own summary,
+   *   as `ceiling` (H63). Only `pass` is enforced.
    */
   registerAutoTest(test) {
     this.tests.push(test);

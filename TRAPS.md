@@ -570,6 +570,29 @@ in the report.** A diagnostic that matters goes at the front of the failure
 line, compact; D5 lost two runs to a trace cut off before the interesting
 part. `debugTools.logResult()` reaches the F4 panel in a tab, never the runner.
 
+**`git checkout -- <file>` reverts a break to HEAD, which is not where your
+job is.** H63 ran five breaks in a loop - apply a break, run the check, revert -
+and reverted with `git checkout --`, which threw away the **uncommitted job**
+along with the break. Breaks B, C, D and E then ran against a tree that had
+already lost the work they were testing, so every one of them reported the
+*first* break's problem and three of the four readings were worthless. Nothing
+was permanently lost, because every edit in this project is made by a python
+patch script in the scratchpad and the scripts were still there - which is the
+second reason to write patches to a file rather than type them.
+
+**So snapshot before you break, and restore from the snapshot.** `cp` the files
+you are about to break into the scratchpad, break, run, `cp` back, and `diff -q`
+every one of them against the snapshot before the VERIFY. The alternative -
+committing the job before breaking it - works too and costs a commit nobody
+wants in the log. A `git stash` round trip is the third option and the worst:
+one of these loops runs the suite in between, and a stash is exactly the state
+a half-finished run should not be in.
+
+**And read a break's output for the clause you broke, not for a red.** H63's
+loop printed a red for all five and four of them were the same red. A break
+that reds for the *wrong reason* is a break that proved nothing, and the way to
+tell is the detail line: it must name the clause the break was aimed at.
+
 **The working copy is mixed CRLF and LF**, with `core.autocrlf` true. A patch
 script that assumes one fails silently on the other. Detect per file: read with
 `newline=""`, note whether `\r\n` is in it, work in LF, write back the way it

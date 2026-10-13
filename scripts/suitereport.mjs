@@ -119,6 +119,20 @@ export function latestBench(dir = path.join(ROOT, 'bench')) {
   }
 }
 
+/**
+ * The one check that hands this file numbers beside its verdict (H63): the
+ * source-line ceiling, whose cluster is printed on every run's summary because
+ * a **passing** check's detail reaches nobody without `--details`.
+ *
+ * Named here and nowhere else, and the thresholds it measures against are
+ * deliberately **not** repeated in this file - they arrive in the object, so a
+ * guidance changed in `config`'s neighbourhood cannot leave this summary
+ * quoting the old one. `runnerguard.js` holds that from the page: it runs the
+ * check, compares its prose against its own object, and reads this source for
+ * the two literals that must not be here.
+ */
+const CEILING_CHECK = 'no-source-file-outside-config-is-over-600-lines';
+
 // Judged per map: "flaky" is a check answering differently between two runs
 // on the SAME map, and a check red on one map and green on another is red
 // there, with the map named.
@@ -206,6 +220,12 @@ export function judge(runs, renderer, consoleErrors) {
       // `low` under software WebGL every time; recording the pick anyway is
       // what keeps that decision visible instead of buried in a query string.
       quality: r.quality,
+      // Per **run** and not per map (H63). The cluster is read off the
+      // modules the page loaded, and the two maps do not load the same set,
+      // so one answer for the suite would be one map's answer printed twice -
+      // which is the `break` in a summary loop that hid a whole map, one
+      // currency over.
+      ceiling: (r.results.find(x => x.id === CEILING_CHECK) || {}).ceiling ?? null,
       contextLosses: r.contextLosses, rerun: r.rerun, loopFrames: r.loopFrames,
     })),
     spreads,
@@ -235,6 +255,14 @@ export function summary(r) {
     }
     if (run.loopFrames) {
       lines.push(`    LOOP RAN ${run.loopFrames} frame(s) under run ${i + 1}: the game played itself underneath the checks (F4)`);
+    }
+    // The source ceiling, on a plain `npm run suite` with no flag (H63). Every
+    // number here is the check's own; nothing in this file measures a line.
+    const c = run.ceiling;
+    if (c) {
+      lines.push(`    ceiling: ${c.count ? `${c.count} modules within ${c.within} of ${c.guidance}`
+        + `, nearest ${c.nearest.path} at ${c.nearest.lines} (${c.nearest.left} left)`
+        : `none within ${c.within} of ${c.guidance}`} - of ${c.modules} this run loaded`);
     }
   }
   for (const s of r.spreads ?? []) {

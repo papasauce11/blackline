@@ -243,8 +243,27 @@ export function register(debugTools) {
           + `, nearest ${named.length}: ${named.map((f) => `${f.path} ${f.lines} (${f.left} left)`).join(', ')}`
         : `${sizes.length} modules loaded; none within ${CROWDED_WITHIN} of the ${SOURCE_LINE_GUIDANCE} guidance`
           + `, the largest outside ${EXEMPT_TABLE} being ${largest.path} at ${largest.lines}`;
+      // The same numbers the line above is built from, carried as **data**
+      // (H63). The runner's own summary prints the cluster from this, because
+      // a passing check's detail reaches nobody without `--details` and every
+      // run this month passing that flag is a habit rather than a guarantee -
+      // the job that forgets it is exactly the job about to write a module up
+      // to 600. The field and not a second count: two answers about a line
+      // number is the defect this would otherwise introduce, and
+      // `runnerguard.js` holds this object against the prose above so the
+      // two cannot drift.
+      const ceiling = {
+        modules: sizes.length,
+        guidance: SOURCE_LINE_GUIDANCE,
+        within: CROWDED_WITHIN,
+        count: crowded.length,
+        nearest: crowded.length
+          ? { path: crowded[0].path, lines: crowded[0].lines, left: crowded[0].left }
+          : null,
+      };
       return {
         pass: over.length === 0 && problems.length === 0,
+        ceiling,
         detail: [
           over.length ? `over ${SOURCE_LINE_GUIDANCE} lines: ${over.map((f) => `${f.path} (${f.lines})`).join(', ')}` : '',
           problems.join('; '),

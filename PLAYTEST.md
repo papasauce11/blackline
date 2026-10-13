@@ -136,6 +136,45 @@ galleries and nothing else, and it is written up as **D75**.
 **What is left for you: one look, no hurry.** If you have no opinion, leaving it
 is fine and the checks will tell us if a fourth pose ever joins the list.
 
+### The build report now tells us when a file is getting too long, without being asked (H63, 2026-10-13)
+
+**Nothing in the game changed and there is nothing to judge here.** This one is
+about the build report rather than a test, and it is here because every job in
+this block gets a line.
+
+**What it was.** There is a rule in this project that a file over about six
+hundred lines gets split, and a test that measures every file and says which
+ones are close. It said so in a place almost nobody looks: the full report,
+which only prints if you ask for it with an extra switch. The short summary at
+the end of a build - the part anyone actually reads - said nothing, because it
+only ever showed what had **failed**. A test that passes has had nothing to say
+for as long as the project has existed.
+
+**What it is now.** The short summary carries one extra line per build:
+
+> ceiling: 12 modules within 50 of 600, nearest src/physics.js at 600 (0 left)
+
+So the file that is one line from the limit is the first thing a build tells
+you, instead of something you find out by going looking. It is the same number
+the test measured - passed along rather than counted again, which matters
+because two separate counts of the same thing eventually disagree, and a new
+test now holds the two to each other so they cannot.
+
+**The surprising part.** It turned out to cost nothing to plumb: the machinery
+for a test to hand numbers to the build report had been there all along and
+nobody had used it. What was wrong was the written description of how a test
+reports, which promised less than the code actually did.
+
+**And one honest note.** One of the five deliberate breakages written to prove
+the new test works **did not** break it - the test was looking for a name, and
+the broken version used a longer name that happened to start with the same
+letters, so a dead line looked alive. That is the second time in two jobs the
+same kind of mistake has turned up, and it is fixed; it is written down because
+a test that cannot fail is worse than no test, and finding one is the point of
+trying to break it.
+
+**What is left for you: nothing.**
+
 ### A test that was reading comments as if they were code now tells the two apart (H62, 2026-10-13)
 
 **Nothing in the game changed and there is nothing to judge here.** Another

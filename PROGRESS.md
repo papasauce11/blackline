@@ -15931,3 +15931,145 @@ is the limit the header already states: an entry names an expression, so a modul
 that grows a *second* world read its first one's classification does not cover
 reads as declared. That is `breathcensus.js`'s limit with the same answer, and
 H62 did not change it.
+
+## H63 — a passing check's number reaches a reader, and the control that was a finding (2026-10-13, scheduled run)
+
+**The runner's stderr summary is the only thing a reader of a run sees without
+a flag, and a passing check's detail is not in the report at all.** H55 made the
+ceiling line worth reading - *"12 within 50 of the 600 guidance, nearest 3:
+src/physics.js 600 (0 left), ..."* - and it still only reached a reader who
+passed `--details`. Every run this month has, which is the only reason the old
+line was ever read, and that is a habit rather than a guarantee: the job that
+forgets the flag is exactly the job about to write a module up to 600. H62, one
+job earlier, took `positioncensus.js` to 593 and put a twelfth module in that
+cluster without anything on the summary saying so.
+
+**It is on the summary now, per run, with no flag.**
+
+```
+  run 1 (plant): 228 passed, 1 failed, 8 not for this map, 1117645ms
+    ceiling: 12 modules within 50 of 600, nearest src/physics.js at 600 (0 left) - of 181 this run loaded
+```
+
+**The number is the check's own, carried as data, and that was free.** The
+ceiling check returns a `ceiling` object beside its verdict; `_runOne` in
+`ui/autosuite.js` already did `{ id, spec, ...result, ms }`, so **any extra
+field a check returns has always survived into the report** and nothing in the
+harness had to change. What had to change is the documentation: the JSDoc
+promised `{pass, detail}` and the spread said otherwise, so the contract now
+says a check may hand the runner numbers beside its verdict and names the one
+that does. `suite.mjs` carries the field through its results map - spread only
+where it exists, so the other two hundred results do not each gain a `null` in
+`--details` - and `suitereport.mjs` lifts it onto the run and prints it.
+
+**Per run and not per map**, which the entry asked for and which is the
+`break`-in-a-summary-loop lesson (H25) in a second currency: the cluster is read
+off the modules the page **loaded**, and the two maps do not load the same
+modules. Measured, and worth writing down because it is not what the entry
+implied: **both maps report 181 and an identical cluster**, so the line prints
+the same sentence twice today. The per-run shape costs nothing and is right for
+the day the two diverge; the claim that they diverge *now* is not one this run
+can make.
+
+**Nothing in the report measures a line, and a check holds that.** The whole
+defect being introduced here would be two answers about a line count, so
+`suitereport.mjs` names the ceiling check once and quotes **neither threshold**:
+the guidance and the band arrive inside the object. A new check in
+`runnerguard.js` - which is where a rule about a runner, held by reading its
+source from a page that cannot read an exit code, already lives - holds the
+chain in five clauses:
+
+1. the check is registered and **really returns** the field, proved by running
+   it rather than grepping for the line that builds it;
+2. its **prose and its object agree**, on all seven numbers, parsed back out of
+   its own detail line;
+3. `suite.mjs` carries the field out of a result;
+4. `suitereport.mjs` names the check and the per-run loop reads the value and
+   prints from it;
+5. `summary()` carries neither `600` nor `50` as a literal.
+
+Clause 2 is the one the entry asked for and the only one that is not a source
+grep: the prose and the object are one measurement rendered twice, and nothing
+else in the suite could tell you they had stopped agreeing. It is brittle on
+purpose - reword the detail line and it reds - because the two are meant to move
+together.
+
+**Five breaks, five reds - and the one meant to be a control was a finding,
+which is the second run in a row that has happened.**
+
+- the field removed from the check's return: *"returned no ceiling field, so the
+  runner's summary has nothing to print and prints nothing - silently, which is
+  the state H63 found"*.
+- the field dropped from `suite.mjs`'s results map: clause 3, named.
+- a threshold written into `summary()` by hand: clause 5, both literals.
+- the detail line's count made `crowded.length + 1`: *"says count is 13 in its
+  detail line and 12 in its ceiling object"* - clause 2 doing exactly its job.
+- **and the line left dead in the loop, which passed.** The clause grepped the
+  per-run loop for the substring `run.ceiling`, and the break read
+  `run.ceilingButNotRead` and printed nothing: **one name contains the other**,
+  so a dead line read as a live one. That is **H61's finding one job later** -
+  a longer word that happens to start with the one you are looking for - in the
+  source-reading currency instead of the proxy-set one, and it is the argument
+  for `sourcetext.js`'s `readerProblems` taking **code** cases as `ignores`,
+  made again by a clause that did not have one.
+
+  The fix is the idiom this module already had: `GUARD` holds the refusal as a
+  **named expression** rather than a name, and `positionreads.js`'s `snapper`
+  patterns do the same. So `PRINTS_THE_CLUSTER` is the whole shape - the value
+  read off the run, the line guarded on it, the guard's body pushing - and the
+  break reds. A grep for a name cannot tell a live line from a dead one, and
+  this is the second clause in two runs to learn it.
+
+**What a source grep still cannot prove, stated rather than papered over.**
+`suitereport.mjs` reads files, so the page cannot import it and run it the way
+`args.js` imports `scripts/args.mjs` (H58's point about the one module in
+`scripts/` with no node builtin in it). Clauses 3, 4 and 5 are therefore
+readings of text, and a determined edit can satisfy the pattern and still print
+nothing - `const c = null; const x = run.ceiling;` would. What is *not* a text
+reading is the half that matters: the number on the summary is the same object
+the check returned, by construction rather than by assertion, and clause 2
+proves the check's two renderings of it agree. The integration itself was proved
+by running it and reading the stderr, which is in this entry above.
+
+**Verified.** `npm run suite`, two runs per map on the finished tree, **first
+attempt**: plant **229 passed / 1 failed / 8 not for this map** (1,110,487ms and
+1,116,419ms), yard **209 / 1 / 28** (797,008ms and 779,199ms), exit 0. **0 red,
+0 flaky, 0 skipped, 0 skips withheld, 0 bench drops withheld, 0 unexpectedly
+green, 0 context losses, 0 loop frames, 0 console errors in all four runs, and
+no other runner.** Spreads 5,932ms on the plant (1% of the longest) and
+17,809ms on the yard (2%), inside F16's band. **The counts moved for the first
+time in four jobs** - 228/208 to **229/209**, one row per map, which is the new
+check and the first count change since H58. The ceiling line printed on **all
+four runs**, and all four read 181 modules and the same twelve-module cluster,
+which is the measurement that says the two maps agree today. The one failure per
+map is the bench-only frame-budget sweep the gate drops by design (H11); the
+last bench is still 2026-10-09 (`76c6e50`), which is H37's line. Seventeenth to
+twentieth consecutive runs at zero console errors.
+
+**What it cost in lines.** `donedef.js` **568 to 587** (13 left) and
+`runnerguard.js` **252 to 438**; `suitereport.mjs` 311 to 339, `suite.mjs` 514
+to 520, `autosuite.js` 499 to 503. The cluster stays at **twelve**: `donedef.js`
+was already in it and `runnerguard.js` is not near it. No new module, which is
+the reason the new check went into `runnerguard.js` rather than a file of its
+own - a new file under `src/tests/` is a new row in four censuses, and this one
+earned none of them (measured: the module trips no census criterion as code).
+
+**One hour lost, and a trap for it.** The five breaks were run in a loop that
+reverted each one with `git checkout -- <file>`, which reverts to **HEAD** - and
+HEAD did not have the job. Breaks B to E then ran against a tree that had
+already lost the work they were testing, and all four reported the first
+break's problem. Nothing was permanently lost, because every edit in this
+project is made by a patch script written to the scratchpad first, and the
+scripts were still there - the second reason for the rule TRAPS.md already
+gives about heredocs. `TRAPS.md` gains the hazard, the remedy (snapshot with
+`cp`, restore from the snapshot, `diff -q` all of them before the VERIFY) and
+the lesson under it: **read a break's detail line for the clause you broke, not
+for a red.** Four reds that all name the same clause are four breaks that
+proved one thing.
+
+**What is left.** Nothing in the entry. A plain `npm run suite` prints the
+cluster per run; the number is the check's own; and the two renderings of it
+cannot drift. The follow-up H63 does not need and did not create: the other
+numbers a reader might want on that summary - the audio device's fed ratio, the
+census counts - now have a worked pattern to follow, and the pattern is one
+field on a check's result and one line in the per-run loop.
