@@ -534,6 +534,59 @@ one setting only Josh can click; everything else here proceeds.
   runs of both maps, `animation.js`'s header says the restriction is gone
   and when, `tests/look.js`'s floors are re-measured with their old and new
   numbers written down, and `PLAYTEST.md` says which galleries moved.
+  **Measured 2026-10-13 by the H56 run, which sized this job and then declined
+  to start it.** Three readings off `npm run probe` on the plant, in 172ms and
+  46ms, so that the next session starts from numbers rather than from a probe:
+
+  1. **The gait's half-period in frames, which is what a pinned count is made
+     of.** Tracing `legL.rotation.x` for 150 frames of held forward from a
+     standing reset: the **walk** reaches a peak of `|leg|` every **36 frames**
+     and of the *signed* leg every **72**; the **sprint** every **24** and
+     **48**. Ground covered is 0.058m a frame at the walk's 3.5m/s and 0.108m
+     at the sprint's 6.5m/s, both at full speed by frame ~10.
+  2. **A signed-peak search does not fit the budget the shipped case gives
+     it, and that is a trap in the obvious implementation.** `strike` runs 30
+     frames to speed and then `frameUntil(..., 60)`. The walk's signed period
+     is **72 frames**, so swapping `Math.abs(...)` for a signed test makes the
+     walk's termination **depend on the incoming phase for whether it is
+     reached at all** - on one traced run the first `|leg|` peak was frame 57
+     and the first signed peak frame 93, three frames past the limit. A walk
+     that is not reached is reported by `strikerepeat.js` as **skipped**, not
+     as red, so this would go quiet rather than loud. Raise the limit with the
+     test, or terminate on a zero crossing in a named direction, which comes
+     round twice as often.
+  3. **The restriction is wider than the header says, and this is the part
+     worth a decision.** `animation.js` says a strike of a moving state is
+     *"reproducible in its pose and not in its position"*. The pose half is
+     true only up to a **mirror**: because the shipped detector reads
+     `Math.abs`, it stops at whichever half-cycle arrives first, so two strikes
+     of a walk in one run ended at phases **4.8869** and **1.7453** mod 2pi -
+     exactly pi apart, `legL` -0.5626 against +0.5626, **the other leg
+     forward**. Same silhouette area, mirrored stride. That is why `look.js`'s
+     3,000-pixel floor never caught it and why H33 read the gait as moving a
+     walk frame's silhouette by 24%.
+     **Recommendation, a look question and so takeable: pin the parity.**
+     Terminate on the leg furthest *forward* rather than furthest from
+     vertical, so `_animTime` is pinned mod 2pi and a gallery frame of a walk
+     is the same photograph every time. It costs the budget in (2). Say in
+     `PROGRESS.md` which galleries moved and why, because this changes every
+     walk and sprint frame **once**, deliberately, and a later diff against an
+     old PNG should find the reason here.
+
+  **And the floors are not the obstacle the entry above expects.** `look.js`
+  has one pose floor, `scaledCount(look.buffer, 3000)`, against readings of
+  7,891-9,818px - a margin of 2.6x to 3.3x - and its other floors (300 / 2,000
+  / 6,000) are read from a fixed lane stand and not from a strike at all. So
+  "re-measure rather than widen" is a `--details` read and a paragraph, not a
+  measurement campaign. The expensive half is (2) and (3).
+
+  **One more clause moves with it.** `strikerepeat.js` holds the set from the
+  mechanism, `TERMINATES_ON_THE_DRAWN_LEG` = `/const peak = rising && now <
+  last;/`, read out of `animation.js`'s source - so that line going away is
+  itself a red until the clause is rewritten to assert the **new** mechanism.
+  And its instrument clause reds on an empty `CARRIED`: *"neither of the 0
+  declared states was struck on this map"*. Both are by design and both are
+  this job's to change, which is most of why it is an M.
 - [ ] **H64 (S)** The flag census in `tests/args.js` is written down by hand,
   which is the shape of list H53 spent a whole job repairing twice over. Four
   runners and twenty-seven flags are named in `FLAGS`, each declared

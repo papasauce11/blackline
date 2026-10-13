@@ -16246,5 +16246,18 @@ runs of each map**, and the gate before the job was plant 229 / 1 / 8
 (1,165,135ms) and yard 209 / 1 / 28 (783,979ms), 0 red, 0 flaky, 0 console
 errors.
 
-**Left:** H70 (above). Nothing else; `physics.js` has 80 lines of headroom and
-the solver answers exactly as it did.
+**Left:** H70 (above), and **H57 measured but not started**. With H56 landed
+the run had time for an S and the next job in file order is an M, so rather
+than skip the order or park `strike()` - the function twelve checks and every
+gallery drive through - the remaining time went on **sizing H57 with two
+probes**, 172ms and 46ms. Both readings are in its queue entry and neither is
+the shape the entry assumed. The gait's **signed** half-period at the walk is
+**72 frames** against the 60 `frameUntil` is given, so the obvious fix makes
+the walk's termination depend on the incoming phase for whether it is reached
+at all - and an unreached walk is reported **skipped**, not red, so it would
+go quiet. And the restriction is wider than `animation.js`'s header claims:
+two strikes of a walk ended exactly **pi apart**, `legL` -0.5626 against
++0.5626, the same silhouette with **the other leg forward**. "Reproducible in
+its pose" is true only up to a mirror, and a 3,000-pixel floor against
+7,891-9,818px could never have caught it. Nothing else; `physics.js` has 80
+lines of headroom and the solver answers exactly as it did.
