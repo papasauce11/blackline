@@ -1043,7 +1043,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   was about a tree that half existed and was **not read** - the base's proof is
   H61's VERIFY, which step 8 says stands as this job's gate anyway - and the
   runner was killed by hand, because `TaskStop` takes the `npm` wrapper and
-  `suite.mjs` carries on. — done 2026-10-13, `H62_HASH`.
+  `suite.mjs` carries on. — done 2026-10-13, `b3cda3d`.
 
 - **H61** A name in a regex became a set the tree decides, and there were
   five of them. The breath census's membership rule was *"calls `updateVisual`,
