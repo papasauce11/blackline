@@ -16073,3 +16073,178 @@ cannot drift. The follow-up H63 does not need and did not create: the other
 numbers a reader might want on that summary - the audio device's fed ratio, the
 census counts - now have a worked pattern to follow, and the pattern is one
 field on a check's result and one line in the per-run loop.
+
+## H56 — the solver's read-only half moves out, and the clause that caught what identity could not (2026-10-13, scheduled run)
+
+**`src/physics.js` was at exactly 600 of 600**, and had been for long enough
+that H55 built a report about it and H63 put that report on every build's
+summary. One line of headroom in the swept solver: the hottest code in the
+game, the one module where a behaviour change is a rule change, and the worst
+possible place for the next job to discover it has to stop and split something
+first. H63's line, every run until this one:
+
+```
+ceiling: 12 modules within 50 of 600, nearest src/physics.js at 600 (0 left) - of 181 this run loaded
+```
+
+**Option (b), and not the shape the queue recommended for it.** The entry named
+two seams and preferred the read-only queries — `raycast`, `lineOfSight` and
+`defaultSightFilter`, 69 lines that read the world and move nothing — over the
+28-line gravity-and-reach tail, because (b) leaves the file comfortable. It also
+said those two are methods reaching `this.query`, so moving them needs a
+decision about shape, and named free functions taking the world (`mapclimb.js`'s
+shape) as the one that fits this codebase. **The number settles it the other
+way: there are 53 call sites of `world.raycast` and `world.lineOfSight` under
+`src/`.** Free functions mean 53 edits through the hot path, in the job whose
+entire promise is that nothing behaves differently afterwards. F3's three class
+splits — `agenttraversal.js`, `ainav.js`, `mapgen.js` — exist for exactly this
+case: the sibling exports a table of methods, the class file ends with
+`Object.assign(X.prototype, …)`, `this` is the same object, and no caller knows.
+`physics.js` now ends that way and **not one of the 53 changed**.
+
+**Three files, because the scratch is shared and that is load-bearing.**
+
+| | lines |
+|---|---|
+| `src/physics.js` | 600 → **520** |
+| `src/physicsquery.js` | 113 — `raycast`, `lineOfSight`, `defaultSightFilter`, exported as `QUERY` |
+| `src/physicsscratch.js` | 46 — the five scratch vectors and `set` |
+
+The third file is the part worth arguing. The five vectors exist so that a
+query allocates nothing, and they are **aliases**: `raycast` writes
+`scratch.delta`, `scratch.min` and `scratch.max`, and `sweep` writes `min` and
+`max` too. A sibling with its own copies would be a behaviour change in the
+swept solver wearing the clothes of a file move — and it would be invisible,
+because every existing check would still pass. HANDOFF's own rule says a moved
+method takes a module constant from a shared sibling and never from the class
+file, which would be a cycle; this is that rule applied to state rather than to
+a constant. Re-entrancy was already impossible here and not by accident:
+`CollisionWorld.query()` hands back one reused candidate array, so a filter that
+asked the world a second question would clobber the list it was being asked
+about. One set of scratch for both halves is therefore exactly enough, and the
+aliasing after the move is the aliasing before it, object for object.
+
+**Everything moved is byte-identical to HEAD**, diffed rather than asserted:
+`raycast` verbatim, `lineOfSight` verbatim, the `scratch` literal and `set`
+verbatim. The only non-move is that `defaultSightFilter` is now exported, so
+the new check can ask the live sight rule instead of restating it — a check
+that rewrites the default can only ever agree with itself. One stale prose line
+in the header was corrected in passing: it said `physics.js` imports config
+only, which stopped being true when `collisionbox.js` was split out at F3.
+
+**The new check, `the-solvers-read-only-queries-live-next-door-and-share-its-scratch`,
+in `src/tests/solverquery.js`.** Four clauses, on `audiocontext.js`'s model —
+that file is where H51's split clause lives, for the same reason:
+
+1. **Installed, and installed as a mixin.** `CollisionWorld.prototype.raycast`
+   is the function `physicsquery.js` exports, by identity, and is an
+   *enumerable* own property. Its instrument runs first: six methods that did
+   **not** move must read non-enumerable on the same prototype, or the
+   distinction the clause rests on has gone and the clause reads green whether
+   it works or not.
+2. **One scratch, read off the running game.** Drive `sweep`, then `raycast`,
+   then `lineOfSight`, and after each read the one exported object back — the
+   swept bounds, the ray's delta, the sight line's normal. Not a grep.
+3. **Where the three files say they are.** `codeOf` for a declaration,
+   `uncommented` for an import (H62's division); exactly one of the three may
+   declare scratch of its own; and `physics.js` must still declare `sweep`,
+   because an allowance for something that has moved is an allowance the next
+   line inherits without arguing.
+4. **They still answer.** A ray dropped 2m onto a box's top face lands on that
+   box at exactly 2m with `ny` exactly 1; a point inside a sight-blocking box
+   cannot be seen from above it; and `lineOfSight` agrees with `raycast` under
+   the live default filter on every pair — having been seen to answer **both**
+   ways, because an agreement clause that only sees one answer is agreeing
+   about nothing.
+
+**Readings, from the verify.** Plant: 8 of 12 dropped rays landed on their own
+box at 2m with ny 1, 15 blocked and 9 clear lines agreed. Yard: 12 of 12, 12
+blocked and 12 clear. The four plant misses are honest geometry and not a
+fault — a vent floor has a vent roof two metres over it, so the drop starts
+inside the roof and the clause does not count that box. Both were read with
+`npm run probe` in **31ms and 10ms** before a line of the check was trusted,
+which is the cheap half of what H52 paid a seventy-minute verify to learn.
+
+**Five breaks, five reds, and each named its own clause** — the thing H63 found
+one run earlier, that a break reddening for the wrong reason has proved
+nothing:
+
+- the installed `raycast` wrapped so it is no longer the exported object:
+  *"CollisionWorld.prototype.raycast is not the function physicsquery.js
+  exports"*.
+- `sweep` made enumerable: *"a class method and a mixed-in one are no longer
+  being told apart - every clause below reads green whether it works or not"*.
+- `raycast` allocating its own delta instead of the shared one: *"raycast()
+  wrote its delta (0, -0.08, 0) into a scratch the solver does not share"* —
+  and `(0, -0.08, 0)` is `GROUND_PROBE`, the last thing the **solver** wrote
+  there, which is the clause showing its work.
+- the default sight filter stopped blocking: *"12 of 12 sight-blocking boxes
+  were seen into from 2m above their own top face"*.
+
+**And the fifth break was the finding.** A dead `raycast()` pasted back into
+the class body with the `Object.assign` left in place was written expecting the
+identity clause to stay green and the *source* clause to catch it. The identity
+clause did stay green. **The enumerability clause went red, and it should not
+have been able to** — on the model in this file's own header, a class body
+makes the property and `Object.assign` then replaces it. It does not:
+`Object.assign` writes through `[[Set]]`, which changes an existing writable
+data property's **value and not its attributes**, so the prototype ends up
+holding the exported function in a slot the class body shaped. Identity cannot
+see that and enumerability can. The two clauses are therefore not redundant and
+the enumerability one is the stronger of the pair, which is the opposite of
+what was written down before the break ran. The header says so now, with the
+measurement rather than the reasoning.
+
+**One thing the proof script got wrong, and it is a shape worth naming.** Each
+break run printed `consoleErrors=2` where the gate had printed 0, which read as
+a new console error in every break. It was the driver doing
+`len(report['consoleErrors'])` on `{count, first}` — the length of a dict is its
+number of keys, so **2 was the shape of the object and not a count of
+anything**. Re-running one break and printing the field verbatim gives
+`{"count": 0, "first": []}`. A number that is constant across five runs of five
+different breaks was the tell, and the general form is one this project already
+knows from the other side: before believing a count, check that it came from
+counting.
+
+**The ceiling line, which is this job's done-when and now reads:**
+
+```
+ceiling: 11 modules within 50 of 600, nearest src/tests/movement.js at 599 (1 left) - of 184 this run loaded
+```
+
+Twelve to eleven, 181 modules to 184, and a different leader — **with one line
+of headroom**, which is H56 again one file over and is queued as **H70**.
+`movement.js` is not the prose kind: its header is seventeen lines and the
+length is all check body, so the seam there is the subject — two of its five
+checks are about one key and are 267 of the 599.
+
+**And the done-when's hardest clause was measured rather than argued.** *"A
+solver that answers differently has failed this job however green it is."* The
+byte-identical diff against HEAD is an argument, not a measurement, so the
+eighteen solver-driven checks — the five in `movement.js`, the tunnelling
+drive, the climb census, the climb rule, the eight declared routes, the mantle,
+the hang, the vault, the parkour gate and the rest — were run **on a tree
+reverted to HEAD** (snapshot first, restore after, every file diffed back;
+never a bare `git checkout --`, which is H36's and H63's hour) and their detail
+lines diffed against the finished tree's. **18 of 18 answer identically, over
+both plant runs, to the character**: the same `0 breaches; 6.5m/s -> x=-24.659,
+50m/s -> x=-24.659, 200m/s -> x=-24.659, 1000m/s -> x=-24.659`; the same 57
+climbable surfaces, 126 approaches, 105 climbs, 21 needing a leg up; the same 8
+routes, 31 climbs; the same hang at 2.05m under the lip. That cost one
+66-second subset run and is the only evidence this job's central risk admits.
+
+**Verified.** `npm run suite`, exit 0: plant **230 passed, 1 failed, 8 not for
+this map** (1,113,707ms and 1,109,034ms), yard **210 / 1 / 28** (795,603ms and
+767,883ms). 0 red, 0 flaky, 0 unexpectedly green, 0 skips, 0 bench drops
+withheld, 0 context losses, 0 loop frames, no other runner, and **0 console
+errors in all four runs**. Spreads 4,673ms on the plant (0% of the longest) and
+27,720ms on the yard (3%), inside F16's band. The counts move 229/209 to
+**230/210** — the one new check, which runs on both maps and costs **7-8ms**.
+The one failure per map remains the bench-only frame-budget sweep the gate
+drops by design. The new check's detail line is **byte-identical across both
+runs of each map**, and the gate before the job was plant 229 / 1 / 8
+(1,165,135ms) and yard 209 / 1 / 28 (783,979ms), 0 red, 0 flaky, 0 console
+errors.
+
+**Left:** H70 (above). Nothing else; `physics.js` has 80 lines of headroom and
+the solver answers exactly as it did.

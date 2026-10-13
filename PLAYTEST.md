@@ -136,6 +136,49 @@ galleries and nothing else, and it is written up as **D75**.
 **What is left for you: one look, no hurry.** If you have no opinion, leaving it
 is fine and the checks will tell us if a fourth pose ever joins the list.
 
+### The file the build report was warning us about has been split (H56, 2026-10-13)
+
+**Nothing in the game changed and there is nothing to judge here.** This is the
+job H63's new line asked for, one run later, and it is here because every job in
+this block gets a line.
+
+**What it was.** There is a rule in this project that a file over about six
+hundred lines gets split, and since last run the build report says which file is
+closest. It said this, every build:
+
+> ceiling: 12 modules within 50 of 600, nearest src/physics.js at 600 (0 left)
+
+`physics.js` is the collision solver - the code that stops the Shade walking
+through a wall, and the busiest code in the game. Nought left means the next
+person to add a line to it has to stop and split it first, in the middle of
+whatever they were doing, in the one file where getting it wrong changes how the
+game plays.
+
+**What it is now.** The two parts of it that only ever *read* the world - "what
+does this ray hit" and "can these two points see each other" - moved into a file
+of their own, and the five little reusable vectors both halves scribble in moved
+into a third. `physics.js` is 520 lines now, and the report says:
+
+> ceiling: 11 modules within 50 of 600, nearest src/tests/movement.js at 599 (1 left)
+
+**Nothing that calls them had to change**, which was the point of doing it this
+way: there are 53 places in the game that ask the world one of those two
+questions, and all 53 still read exactly as they did. The methods are handed
+back to the world at the bottom of `physics.js`, which is the same trick already
+used for the Shade's climbing and the Warden's navigation.
+
+**The part worth saying out loud.** The one way a move like this could have
+*broken* something is subtle, and it is what the new test is mostly about. Those
+five little vectors are shared on purpose - reusing them is why asking the world
+a question costs no memory - so if the new file had quietly made its own copies,
+the game would have behaved differently in a way no existing test would have
+caught and nobody would have thought to look for. So the new test drives the
+solver and both queries in turn and checks that all three wrote *the same*
+vectors, which is a fact about the running game rather than about how the files
+are arranged.
+
+**What is left for you: nothing.**
+
 ### The build report now tells us when a file is getting too long, without being asked (H63, 2026-10-13)
 
 **Nothing in the game changed and there is nothing to judge here.** This one is

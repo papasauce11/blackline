@@ -483,32 +483,28 @@ one setting only Josh can click; everything else here proceeds.
   measured out. The look is **D75**, Provisional with six PNGs named and
   `decided:` empty on purpose; `photographHere` untouched. **H57**, **H58**
   and **H59** are what it found.
-- [ ] **H56 (M)** `src/physics.js` is at exactly 600 of 600. H51 split
-  `audio.js` at 589 because eleven lines of headroom is a trap for the next
-  job; this file has **none**, and it is the swept solver - the hottest code
-  in the game and the one module where a behaviour change is a rule change.
-  So: a move that changes no behaviour, verified by the traversal and
-  movement checks that already drive it, and nothing else in the same job.
-  **Two candidate seams, and the mechanism is already in the file.** Line 25
-  is `export { CollisionBox } from './collisionbox.js';` - a re-export, so a
-  moved symbol needs **no importer changed**, which matters here because
-  `classifyReach` is imported by fourteen modules and `applyGravity` by four.
-  (a) The **gravity and reach** section, lines 573-600: two free functions
-  with no reference to `CollisionWorld` at all, 28 lines, out into
-  `src/physicsreach.js` and re-exported - cheap, safe, and buys 27 lines,
-  which is honest headroom and not much more than audio.js had. (b) The
-  **read-only queries**, `raycast`, `lineOfSight` and `defaultSightFilter`,
-  lines 505-572: 68 lines that read the world and move nothing, but they are
-  methods of `CollisionWorld` and reach `this.query`, so moving them needs a
-  decision about shape (free functions taking the world, as `mapclimb.js`
-  does with the map, is the one that fits this codebase) rather than a cut.
-  Take (a) if the session is short and (b) if it is not; (b) is the one that
-  leaves the file comfortable.
-  *done-when:* `src/physics.js` is under 560, no importer of `classifyReach`
-  or `applyGravity` changed, the detail line of the ceiling check names a
-  different leader, and the movement, traversal and route checks are green
-  with identical numbers - a solver that answers differently has failed this
-  job however green it is.
+- [x] **H56 (M)** `src/physics.js` is at exactly 600 of 600. - done
+  2026-10-13, under Done. **Option (b), and not the shape this entry
+  recommended for it.** The queue named free functions taking the world
+  (`mapclimb.js`'s shape) as the one that fits this codebase; the number says
+  otherwise, because there are **53** call sites of `world.raycast` and
+  `world.lineOfSight` under `src/` and that is 53 edits through the hot path
+  in the job whose whole promise is that nothing behaves differently. So the
+  two went out as a **prototype mixin** on F3's model, as `agenttraversal.js`,
+  `ainav.js` and `mapgen.js` already are, and **not one caller changed**.
+  `physics.js` **600 to 520**, `physicsquery.js` 113, `physicsscratch.js` 46;
+  both method bodies and the scratch literal diffed **byte-identical** against
+  HEAD. **The third file is the point**: the five scratch vectors are
+  *aliases* shared with the sweep, and a sibling with its own copies would be
+  a behaviour change in the swept solver that no existing check could see.
+  The new check holds that by driving each half and reading the one exported
+  object back. **Five breaks, five reds, each naming its own clause - and the
+  fifth was a finding**: a `raycast()` pasted back into the class body leaves
+  the identity clause **green**, because `Object.assign` writes through
+  `[[Set]]` and changes an existing property's value and not its attributes,
+  so only the enumerability clause can see it. The ceiling line now reads
+  *"11 modules within 50 of 600, nearest src/tests/movement.js at 599 (1
+  left) - of 184 this run loaded"*, which is **H70**.
 - [ ] **H57 (M)** Make a strike a function of its argument, which D66 makes
   possible rather than hard. H52 named the restriction and declined to
   remove it: `strike`'s `walk` and `sprint` run to a peak of the drawn leg,
@@ -718,6 +714,37 @@ one setting only Josh can click; everything else here proceeds.
   no argument was deleted rather than moved, every reading in the detail line is
   unchanged, and the cluster count in `HANDOFF.md` is re-read rather than
   assumed.
+
+- [ ] **H70 (S)** `src/tests/movement.js` is at 599 of 600 and becomes the
+  leader of the ceiling cluster the moment H56 lands - **one line**, in the
+  file holding the solver's own behaviour checks, which is the worst place to
+  find that out. H56 is the worked example of what zero headroom costs when
+  the file is code; this is the same job one file over, and it is **not** the
+  prose kind: the header is seventeen lines and the length is all check body.
+  **The seam is already in the file, and it is the subject.** Five checks:
+  `sprint-into-a-wall-never-clips-or-jitters` (85 lines),
+  `slide-into-a-vent-lowers-the-capsule` (123) and
+  `an-eight-metre-fall-lands-loud-and-clean` (92) are the mechanical halves of
+  Section 16's checks 1, 5 and 7, which is what the header says the file is
+  for. The other two - `a-climb-is-a-press-of-space-never-a-side-effect` (48)
+  and `tap-space-grabs-the-ledge-hold-space-climbs-it` (219) - are about one
+  key, arrived later, and are **267 of the 599**. Out into
+  `src/tests/climbpress.js` leaves ~333 and ~285, both comfortable, and
+  neither file has to explain the other.
+  **Rules the move inherits.** The two checks that move drive the real
+  controller through `input.heldCodes` / `input.pressedCodes` - the lesson
+  `HANDOFF.md` says keeps repeating - so not a line of what they drive may
+  change; `halfOf()` and the `S` / `N` aliases are shared by both halves and
+  go wherever the move needs them, as `climbprobe.js` and `sourcetext.js` are
+  shared today. A **registered** new module is a new row in four censuses
+  (`TRAPS.md`), so run the census subset that trap names before the verify,
+  and the new module needs its import and its one `register...(debugTools)`
+  call in `tests/index.js`, which `the-registry-holds-every-check-its-modules-declare`
+  will hold the moment it exists.
+  *done-when:* `movement.js` is out of the cluster (under 550), all five
+  checks are registered and green with **identical detail lines** over two
+  runs of both maps, the ceiling line on the runner's own summary names a
+  different leader again, and `PROGRESS.md` says what each file holds.
 
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
@@ -972,6 +999,45 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H56** The solver's read-only half moves out, and the clause that caught
+  what identity could not. `src/physics.js` stood at **600 of 600** - the
+  number H63 had been printing on every build's summary - in the swept solver,
+  the hottest code in the game and the one module where a behaviour change is
+  a rule change. `raycast`, `lineOfSight` and `defaultSightFilter` went out to
+  `src/physicsquery.js` (113) and the five scratch vectors to
+  `src/physicsscratch.js` (46); `physics.js` is **520**. **Not the shape the
+  entry recommended**: free functions taking the world would have been **53**
+  edits to call sites through the hot path, so the two went out as a
+  **prototype mixin** on F3's model - `Object.assign(CollisionWorld.prototype,
+  QUERY)` at the foot of the file - and **not one of the 53 changed**. Both
+  method bodies and the scratch literal were diffed **byte-identical** against
+  HEAD rather than eyeballed. **The third file is the argument**: the vectors
+  are *aliases* the sweep writes too, and a sibling with its own copies would
+  be a behaviour change no existing check could see, so
+  `the-solvers-read-only-queries-live-next-door-and-share-its-scratch` proves
+  the sharing by **driving each half and reading the one exported object
+  back** - the swept bounds, the ray's delta, the sight line's normal - rather
+  than by grepping an import list. Its live clause came off `npm run probe` in
+  **31ms and 10ms** before a line of it was trusted: plant 8/12 drops land
+  own-box at 2m with ny 1, 15 blocked and 9 clear agree; yard 12/12 and 12/12.
+  **Five breaks, five reds, each naming its own clause - and the fifth was a
+  finding.** A dead `raycast()` pasted back into the class body was written as
+  the control, expected to leave the identity clause green and be caught by
+  the source grep. It did leave identity green, and the **enumerability**
+  clause caught it, which the file's own header said it could not:
+  `Object.assign` writes through `[[Set]]`, which changes an existing writable
+  data property's **value and not its attributes**, so the prototype holds the
+  exported function in a slot the class body shaped. The two clauses are not
+  redundant and enumerability is the stronger; the header now says so with the
+  measurement rather than the reasoning. One self-inflicted scare written down
+  because the shape recurs: the proof driver printed `consoleErrors=2` on all
+  five breaks, which was `len()` of a `{count, first}` **object** - two keys,
+  not two errors - and a number constant across five different breaks was the
+  tell. The ceiling line now reads *"11 modules within 50 of 600, nearest
+  src/tests/movement.js at 599 (1 left) - of 184 this run loaded"*, a
+  different leader with one line of headroom, which is **H70**. — done
+  2026-10-13, `COMMIT`.
 
 - **H63** A passing check's number reaches a reader, and the control that was
   a finding. The runner's stderr summary is all a reader of a run sees without

@@ -1,8 +1,9 @@
 /**
  * BLACKLINE — physics.js
  *
- * Swept AABB collision, gravity integration, ground checks and raycasting.
- * Layering (Section 3.1): imports from config only. Operates on plain
+ * Swept AABB collision, gravity integration and ground checks.
+ * Layering (Section 3.1): imports config and its own siblings below, and
+ * nothing above itself. Operates on plain
  * {x, y, z} objects so it has no Three.js dependency — a THREE.Vector3 is
  * structurally compatible and can be passed straight in.
  *
@@ -16,11 +17,16 @@
  * that runs first, an actor cannot pass through a wall at any speed.
  *
  * `CollisionBox` and the ray-slab test are `collisionbox.js` (F3); the box is
- * re-exported here so nothing else has to know.
+ * re-exported here so nothing else has to know. The two methods that only
+ * *read* the world — `raycast` and `lineOfSight` — are `physicsquery.js` and
+ * are installed on the prototype at the foot of this file, and the scratch
+ * vectors both halves write are `physicsscratch.js` (H56).
  */
 
 import { CONFIG } from './config.js';
 import { CollisionBox, EPSILON, raySlab } from './collisionbox.js';
+import { scratch, set } from './physicsscratch.js';
+import { QUERY } from './physicsquery.js';
 
 export { CollisionBox } from './collisionbox.js';
 
@@ -32,25 +38,6 @@ const MAX_SLIDE_ITERATIONS = 4;
 const CELL_SIZE = 4;
 /** Downward probe length used for the ground check. */
 const GROUND_PROBE = 0.08;
-
-// ---------------------------------------------------------------------------
-// Small vector helpers on plain objects. No allocation in the hot paths.
-// ---------------------------------------------------------------------------
-
-const scratch = {
-  min: { x: 0, y: 0, z: 0 },
-  max: { x: 0, y: 0, z: 0 },
-  delta: { x: 0, y: 0, z: 0 },
-  remaining: { x: 0, y: 0, z: 0 },
-  normal: { x: 0, y: 0, z: 0 },
-};
-
-function set(out, x, y, z) {
-  out.x = x;
-  out.y = y;
-  out.z = z;
-  return out;
-}
 
 // ---------------------------------------------------------------------------
 // CollisionWorld
@@ -485,76 +472,6 @@ export class CollisionWorld {
     return true;
   }
 
-  // -------------------------------------------------------------------------
-  // Raycast
-  // -------------------------------------------------------------------------
-
-  /**
-   * Cast a ray and return the nearest hit.
-   *
-   * Used by light sampling (Section 7.1), AI perception (Section 11), hitscan
-   * (Section 8.1), and the per-step grenade tunnelling check (Section 9).
-   *
-   * @param {object} origin
-   * @param {object} direction assumed normalised
-   * @param {number} maxDistance
-   * @param {(box: CollisionBox) => boolean} [filter]
-   * @returns {{distance:number, box:CollisionBox, nx:number, ny:number,
-   *            nz:number, x:number, y:number, z:number}|null}
-   */
-  raycast(origin, direction, maxDistance, filter) {
-    const delta = set(scratch.delta, direction.x * maxDistance, direction.y * maxDistance, direction.z * maxDistance);
-
-    const min = scratch.min;
-    const max = scratch.max;
-    min.x = Math.min(origin.x, origin.x + delta.x);
-    min.y = Math.min(origin.y, origin.y + delta.y);
-    min.z = Math.min(origin.z, origin.z + delta.z);
-    max.x = Math.max(origin.x, origin.x + delta.x);
-    max.y = Math.max(origin.y, origin.y + delta.y);
-    max.z = Math.max(origin.z, origin.z + delta.z);
-
-    const candidates = this.query(min, max);
-    let best = null;
-
-    for (let i = 0; i < candidates.length; i++) {
-      const box = candidates[i];
-      if (filter && filter(box) === false) continue;
-      const hit = raySlab(origin, delta, box.min, box.max);
-      if (!hit || hit.t < 0) continue;
-      if (!best || hit.t < best.t) best = { t: hit.t, nx: hit.nx, ny: hit.ny, nz: hit.nz, box };
-    }
-
-    if (!best) return null;
-    return {
-      distance: best.t * maxDistance,
-      box: best.box,
-      nx: best.nx,
-      ny: best.ny,
-      nz: best.nz,
-      x: origin.x + delta.x * best.t,
-      y: origin.y + delta.y * best.t,
-      z: origin.z + delta.z * best.t,
-    };
-  }
-
-  /**
-   * Is the straight line between two points unobstructed?
-   * The workhorse for light sampling and AI perception.
-   */
-  lineOfSight(from, to, filter) {
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const dz = to.z - from.z;
-    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    if (distance < EPSILON) return true;
-    const inv = 1 / distance;
-    const direction = set(scratch.normal, dx * inv, dy * inv, dz * inv);
-    const sightFilter = filter || defaultSightFilter;
-    const hit = this.raycast(from, direction, distance, sightFilter);
-    return hit === null;
-  }
-
   /** Total solid boxes. Surfaced in the debug overlay. */
   get boxCount() {
     return this.boxes.length;
@@ -566,9 +483,12 @@ export class CollisionWorld {
   }
 }
 
-function defaultSightFilter(box) {
-  return box.blocksSight;
-}
+/**
+ * The read-only queries, installed from `physicsquery.js` (H56) on F3's model:
+ * the sibling exports the methods, the class file owns the prototype, so `this`
+ * is the world and not one of the 53 call sites had to change.
+ */
+Object.assign(CollisionWorld.prototype, QUERY);
 
 // ---------------------------------------------------------------------------
 // Gravity

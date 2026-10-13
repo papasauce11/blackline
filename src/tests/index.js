@@ -84,6 +84,7 @@ import { register as registerBufferScale } from './bufferscale.js';
 import { register as registerSmallWindow } from './smallwindow.js';
 import { register as registerPixelFloors } from './pixelfloors.js';
 import { register as registerAudioContext } from './audiocontext.js';
+import { register as registerSolverQuery } from './solverquery.js';
 import { register as registerAutoPick } from './autopick.js';
 import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
@@ -202,6 +203,10 @@ export function registerAutoTests(debugTools) {
   // device's constructor, and an offline render gives the live context back
   // (H32).
   registerAudioContext(debugTools);
+  // And the same shape one layer down: the swept solver's read-only queries
+  // live in physicsquery.js, the world answers them from there, and both
+  // halves write the one scratch set physicsscratch.js owns (H56).
+  registerSolverQuery(debugTools);
   registerDoneDef(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);
