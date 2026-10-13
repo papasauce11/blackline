@@ -1008,7 +1008,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   uncommitted job, so four breaks ran against a tree that had lost the work
   they tested - recovered from the scratchpad patch scripts, and `TRAPS.md`
   gains the hazard, the remedy and the lesson that a break must red for **its
-  own** clause. — done 2026-10-13, `H63_HASH`.
+  own** clause. — done 2026-10-13, `a706543`.
 
 - **H62** A census right by luck, and the two string reads nobody had counted.
   H53 gave this project two source readers and a rule about naming them, and
