@@ -1037,7 +1037,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   tell. The ceiling line now reads *"11 modules within 50 of 600, nearest
   src/tests/movement.js at 599 (1 left) - of 184 this run loaded"*, a
   different leader with one line of headroom, which is **H70**. — done
-  2026-10-13, `COMMIT`.
+  2026-10-13, `553d9a1`.
 
 - **H63** A passing check's number reaches a reader, and the control that was
   a finding. The runner's stderr summary is all a reader of a run sees without
