@@ -1062,7 +1062,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   of off what was struck, and a "declared but no longer carrying" clause that
   could never fire - removed rather than fixed, because H52 had already
   measured that redding on it reddens a correct build. — done 2026-10-14,
-  `PENDING`.
+  `e99064c`.
 
 - **H56** The solver's read-only half moves out, and the clause that caught
   what identity could not. `src/physics.js` stood at **600 of 600** - the
