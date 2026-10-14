@@ -1123,7 +1123,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   tree rather than reciting today's wording. The entry was wrong about one
   number for the fourth time in this block - three callers is **twenty**, and
   twelve of them name `initMatch` nowhere - which is **H74**; the five-frame
-  margin is **H73**. — done 2026-10-14, `HASH_H71`.
+  margin is **H73**. — done 2026-10-14, `e8a2296`.
 
 - **H64** The flag census reads the tree, and the seven flags nobody had
   decided about. `FLAGS` was four runners and twenty-seven flags typed out by
