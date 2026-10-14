@@ -83,6 +83,7 @@ import { register as registerQualityHold } from './qualityhold.js';
 import { register as registerBufferScale } from './bufferscale.js';
 import { register as registerSmallWindow } from './smallwindow.js';
 import { register as registerPixelFloors } from './pixelfloors.js';
+import { register as registerQuiesce } from './quiesce.js';
 import { register as registerAudioContext } from './audiocontext.js';
 import { register as registerSolverQuery } from './solverquery.js';
 import { register as registerAutoPick } from './autopick.js';
@@ -199,6 +200,10 @@ export function registerAutoTests(debugTools) {
   // Beside the other census checks, because it reads source text and draws no
   // frame: every pixel floor in this suite is a fraction of the buffer (H30).
   registerPixelFloors(debugTools);
+  // And beside that one, because its subject is the helper all of those checks
+  // frame a body with: what `quiesce()` says about the AI is what its body
+  // passes, and the match it leaves is live in fact (H71).
+  registerQuiesce(debugTools);
   // Beside it, and a census of the same shape: one module owns the audio
   // device's constructor, and an offline render gives the live context back
   // (H32).

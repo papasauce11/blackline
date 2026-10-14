@@ -16602,3 +16602,132 @@ giving a flag twice), one parser in /scripts/args.mjs and none in the other 8,
 and each classified and read as a list or refused as a scalar"* — 27 flags
 across 5 named files to **34 across 9 derived** ones. `tests/args.js` is 224
 lines to 361.
+
+## H71 — the sentence a dozen checks trusted, and the five frames that made it harmless (2026-10-14, scheduled run)
+
+**The defect, which is one sentence.** `tests/pixels.js`'s `quiesce()` opened
+with *"Put both actors somewhere harmless and stop the AI interfering, so a
+measurement is of the thing being measured"*, and its body asked `initMatch`
+for `ai: true` — **twice**, once on the way in and once in the restore it hands
+back. So the one helper in this suite whose stated job is to take the Warden
+out of a measurement hands you a fresh match with a live one in it. H57 paid for
+that the expensive way one job earlier: `strikerepeat.js` runs after
+`poseeye.js`, inherited this restore, walked the Shade down a lit lane and had
+her shot dead in the middle of a strike — twenty-two combat events inside one
+sprint, and a strike that reports what the body did not do, so the afternoon
+went on the gait.
+
+**Which of the two options, and why.** The entry offered passing `ai: false`
+or correcting the sentence, and recommended the second. Taken, and the
+measurement behind it is this job's own: at the moment `quiesce` returns the
+Warden is **0.000m off its spawn on both maps**, because the AI takes about
+twenty-five frames to start walking and `quiesce` settles **twenty**. So the
+frame a pixel check draws next is the same frame either way, and passing
+`ai: false` would have been a change to what the suite measures — twenty-three
+modules under `src/tests/` import this helper — in exchange for a comment. The
+honest fix for a false comment is a true one.
+
+**And that 0.000m is the finding, not the reassurance.** The three callers the
+entry worried about have been safe for a reason none of them states and nothing
+watches: a **five-frame margin** between the frames `quiesce` settles and the
+frames the AI needs to start moving. It is reported in the detail line and
+asserted nowhere, because a number asserted the morning it is first measured is
+a rule nobody argued; **H73** is the queue entry that asks whether it should be
+pinned.
+
+**What holds the sentence now.** `tests/quiesce.js` (332) reads the flag off
+`pixels.js`'s source as **code** and the sentence out of the comment directly
+above the body as **prose**, and requires each to name the other's answer. The
+table is keyed by the flag, so which reading is demanded is read off the tree:
+flip the body to `ai: false` and the sentence is red until it is rewritten;
+rewrite the sentence to claim the AI is stopped and it is red until the body
+agrees. Three things about it are worth the lines:
+
+- **It is the one clause in this suite whose subject really is a comment.**
+  H41's rule is that a grep over source strips the comments first and every
+  census here obeys it. This one breaks the rule in one direction and on
+  purpose, and the division is load-bearing rather than tidy: the corrected
+  sentence **names the flag it passes**, so a reader that kept the prose would
+  count that mention as a third flag and read a disagreement as agreement. The
+  instrument says so every run — `codeOf` must see the flag in a line of the
+  body and must make **nothing** of the same flag quoted in the sentence above
+  it.
+- **A banned phrasing is banned outright, negated or not.** These readers decide
+  line-locally and never by parsing (`donedef.js`'s rule), and no line-local
+  reader can see a *not* in front of a claim — so the comment may not say "stop
+  the AI" even to deny it. That is a real constraint on the comment and it is
+  the honest one: the sentence says what the helper does, in the positive, and
+  what it does not do is the check's to say and this entry's to explain.
+- **The behavioural half, because a clause about a comment is still a clause
+  about text.** The match `quiesce` leaves is asked whether its AI is on, after
+  the call **and after the restore** — the restore being the half H57 was bitten
+  by — and then the Warden's own body is asked: with nothing held it covered
+  **9.9m and 12.7m** on the plant and **15.3m** on the yard over 420 frames,
+  turning 0.8 to 2.8 radians, and **0.000m and 0.000rad** every single time in a
+  match this check starts with `ai: false` itself. Moved **or** turned, because
+  a live AI is not only a patrol — it pauses two to four seconds at each node of
+  its circuit and scans from the spot — so there is no number of frames in which
+  a live Warden must have *walked*. What it never does is nothing.
+
+**Four breaks, each reverted, each naming its own line.** (1) The old sentence
+put back: red with all three prose faults, including the phrase itself. (2) The
+restore's flag flipped and the call's left alone: *"passes ai: true and then
+ai: false — one match on the way in and another in the restore, so a caller
+measures in one and leaves the next check in the other"*. (3) **Both** flipped,
+the sentence untouched: red with the **`false` row** applied — *"it does not
+contain /stops? the AI/"*, *"it contains /\blive\b/"* — which is the break that
+proves the table is keyed off the tree and not a recital of today's wording, and
+the behavioural half swapped sides with it in silence, exactly as it should. (4)
+The control started with the same flag as the subject: *"with ai: false the
+Warden moved 12.682m and 2.821rad over the same 420 frames, against 0.01m and
+0.001rad"*.
+
+**The entry was wrong about one number, which is the fourth time in this
+block.** It says three callers rest on the sentence (`look.js`,
+`positioncensus.js`, `poseeye.js`). Counted: **twenty** modules under
+`src/tests/` import `quiesce` and call it **thirty** times, and **twelve of the
+twenty never mention `initMatch` anywhere in the file** — `breath.js`,
+`bufferscale.js`, `figure.js`, `keylight.js`, `legibility.js`, `materials.js`,
+`outline.js`, `post.js`, `smallwindow.js`, `visual.js`, `yardlight.js`,
+`yardmaterials.js`. Those twelve take whatever match the helper leaves, at its
+word, and that word was wrong. Nothing is wrong with any of them today, for the
+0.000m reason above: each draws a frame off a body it placed itself and the
+Warden has not moved when the frame is drawn. But the exposure the entry sized
+at three is twelve, and it is the twelve who read the sentence rather than the
+code.
+
+**What this cost, and the order that bought it.** Probe, subset, break, verify.
+Two probes of 49ms gave every number above before a line of the check existed;
+one nine-check census subset per map (117s plant, 77s yard) paid the price a new
+module under `src/tests/` owes four censuses, the registry and the ceiling, and
+all nine were green on both maps first time; and the four breaks were **42
+seconds each** because they ran the real check through the real runner inside a
+probe (`h.debugTools._autoTests`, TRAPS.md's recipe from H57) rather than
+through a 2.6-minute `--subset`.
+
+**Verified.** `npm run suite` exit 0, **plant 231 / 1 / 8 not for this map**
+(1,119,984ms and 1,113,407ms), **yard 211 / 1 / 28** (791,144ms and
+771,134ms). 0 red, 0 flaky, 0 skipped, 0 skips withheld, 0 bench drops
+withheld, 0 unexpectedly green, 0 context losses, 0 loop frames, 0 re-runs, no
+other runner, **0 console errors in all four runs**. Spreads 6,577ms on the
+plant (1% of the longest) and 20,010ms on the yard (3%), inside F16's band. The
+counts move 230/210 to **231/211** and the module list 184 to **185**, because
+this job registers one check; the ceiling line is unchanged at eleven.
+
+**The new check costs 22 to 27ms and its asserted half is byte-identical in all
+four runs**: *"ai: true x2 (the call, the restore), sentence says a live match
+with the AI in it, read as prose off the 1357-char comment above a body read as
+code; aiEnabled=true after the call and true after the restore; Shade 0.000m
+off spawn, Warden 0.000m off its own after 20 settling frames"*. What differs
+between runs is the one quantity that is reported and not asserted - the
+distance the live Warden covered, **8.598m and 9.940m** on the plant and
+**15.302m** twice on the yard - which is why the clause is a floor of 0.5m or
+0.1rad and not a number.
+
+**Left.** **H73**: the five-frame margin between `quiesce`'s twenty settling
+frames and the twenty-five the AI takes to start walking is what makes every
+quiesced pixel reading reproducible, and nothing watches it. **H74**: twelve of
+the twenty callers never open a match of their own, and whether each wants the
+other eight's `initMatch({ ai: false })` line is a question per check rather
+than a sweep — it would move pixel numbers, which is the cost the entry named
+and the reason this job did not take it.

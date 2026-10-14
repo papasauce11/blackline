@@ -520,8 +520,19 @@ one setting only Josh can click; everything else here proceeds.
   and the longer alignment got the Shade shot dead, intermittently, on the
   frame count. **H71** and **H72** are what that left behind.
 
-- [ ] **H71 (S)** `quiesce()` says it stops the AI interfering and does the
-  opposite. `src/tests/pixels.js`: the docstring is *"Put both actors somewhere
+- [x] **H71 (S)** `quiesce()` says it stops the AI interfering and does the
+  opposite. - done 2026-10-14, under Done. **The sentence moved and the flag
+  did not**, which is what the entry recommended, and the measurement behind
+  it is the job's own finding: at the moment `quiesce` returns the Warden is
+  **0.000m** off its spawn on both maps, because the AI takes about
+  twenty-five frames to start walking and this settles twenty - so the frame a
+  pixel check draws next is the same frame either way. The entry's "three
+  callers" is **twenty callers and thirty calls**, twelve of which never name
+  `initMatch` anywhere. `tests/quiesce.js` (337) reads the flag off the source
+  as code and the sentence out of the comment above the body as prose, with
+  the table keyed by the flag so flipping the body swaps which reading is
+  demanded; four breaks, each naming its own line. **H73** and **H74** are
+  what it left. `src/tests/pixels.js`: the docstring is *"Put both actors somewhere
   harmless and stop the AI interfering, so a measurement is of the thing being
   measured"*, and the body is `initMatch({ ai: true, objective: true })` -
   twice, once on the way in and once in the restore. So a check that quiesces
@@ -559,6 +570,45 @@ one setting only Josh can click; everything else here proceeds.
   *done-when:* a strike whose body died reports the death rather than the
   stillness, with health in the text, and a check drives a strike beside a
   Warden that kills the Shade and asserts the reported reason names it.
+
+- [ ] **H73 (S)** The five frames that make every quiesced reading
+  reproducible, and nothing watches them. H71 measured why a live Warden in
+  `quiesce()`'s match has never shown up in a pixel reading: at the moment the
+  helper returns the Warden is **0.000m** off its spawn on both maps, because
+  the AI takes about twenty-five frames to start walking and `quiesce` settles
+  **twenty**. Twelve of its twenty callers draw a frame straight after it and
+  name `initMatch` nowhere, so that five-frame margin is the whole reason their
+  numbers are stable - and it is a coincidence of two constants in two files,
+  with no clause on it. Measure the margin properly first (the frame the Warden
+  first moves on, both maps, over several runs - it is 20 to 30 from one probe
+  and that is not a measurement), then decide: pin it as a relation the way
+  `the-frame-budget-asserts-a-median-frame-and-not-an-unlucky-one` pins its
+  budget against its samples, or leave it reported with the reason. **A floor
+  on a number first measured this morning is a rule nobody argued**, which is
+  why H71 reported it and queued this.
+  *done-when:* the frame the Warden first leaves its spawn on is measured on
+  both maps over at least four runs and written in `PROGRESS.md`; either a
+  clause holds the margin as a relation between `quiesce`'s settle and that
+  frame, or the entry says why it is reported and not asserted.
+
+- [ ] **H74 (S)** Twelve checks take the match `quiesce()` leaves, and none of
+  them says so. H71 counted the callers: **twenty** modules call it thirty
+  times, and twelve of them - `breath.js`, `bufferscale.js`, `figure.js`,
+  `keylight.js`, `legibility.js`, `materials.js`, `outline.js`, `post.js`,
+  `smallwindow.js`, `visual.js`, `yardlight.js`, `yardmaterials.js` - never
+  name `initMatch` at all. The other eight open one of their own, three of them
+  with the AI off. Nothing is wrong today (H73 is why), but "every check that
+  needs the Warden elsewhere says so itself" is now a claim about twelve files
+  that has never been read. Ask it per check and not as a sweep: what each of
+  the twelve draws, whether a Warden walking into its frame could change its
+  reading, and for the ones where it could, the `initMatch({ ai: false })` line
+  the eight already have. **It moves pixel numbers** - the cost H71's entry
+  named and the reason H71 left the flag alone - so a check whose floors move
+  wants re-measuring in the same job rather than widening.
+  *done-when:* each of the twelve is classified in `PROGRESS.md` as "a Warden
+  could not reach this frame, because ..." or "it could, and here is the line
+  added"; every floor that moved is re-measured and named; and the suite is
+  green on both maps with no floor loosened.
 
 - [x] **H64 (S)** The flag census in `tests/args.js` is written down by hand. -
   done 2026-10-14, under Done. **Both holes the entry predicted were already
@@ -1040,6 +1090,40 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H71** The sentence a dozen checks trusted, and the five frames that made it
+  harmless. `quiesce()` in `tests/pixels.js` opened *"Put both actors somewhere
+  harmless and stop the AI interfering"* and its body asked `initMatch` for
+  `ai: true` **twice**, once on the way in and once in the restore - so the one
+  helper whose stated job is to take the Warden out of a measurement handed back
+  a match with a live one in it, which is what shot the Shade dead in the middle
+  of H57's strike. **The entry's second option, taken for a measured reason**:
+  at the moment `quiesce` returns the Warden is **0.000m** off its spawn on both
+  maps, because the AI takes about twenty-five frames to start walking and this
+  settles twenty, so passing `ai: false` would have changed what thirty calls
+  measure in exchange for a comment. `tests/quiesce.js` (337) holds the sentence
+  against the flag: the flag read off the source as **code**, the sentence
+  sliced out of the comment directly above the body and read as **prose**, each
+  required to name the other's answer, and the table **keyed by the flag** so
+  that flipping the body swaps which reading is demanded. It is the one clause
+  in this suite whose subject really is a comment, and the division is
+  load-bearing rather than tidy - the corrected sentence names the flag it
+  passes, so a reader that kept the prose would count that mention as a third
+  flag and read a disagreement as agreement. A banned phrasing is banned
+  outright, **negated or not**, because no line-local reader can see a *not* in
+  front of a claim. Plus the behavioural half: `aiEnabled` after the call and
+  after the restore, and the Warden's own body - 9.9m, 12.7m (plant) and 15.3m
+  (yard) over 420 frames with nothing held, against **0.000m and 0.000rad**
+  every time in a control match this check starts with `ai: false` itself, moved
+  **or** turned because a live AI pauses two to four seconds at every node of
+  its circuit and there is no number of frames in which it must have walked.
+  Four breaks, each reverted and each naming its own line, the third of them the
+  one worth having: both flags flipped with the sentence untouched went red with
+  the **`false` row** applied, which is the proof that the table is read off the
+  tree rather than reciting today's wording. The entry was wrong about one
+  number for the fourth time in this block - three callers is **twenty**, and
+  twelve of them name `initMatch` nowhere - which is **H74**; the five-frame
+  margin is **H73**. — done 2026-10-14, `HASH_H71`.
 
 - **H64** The flag census reads the tree, and the seven flags nobody had
   decided about. `FLAGS` was four runners and twenty-seven flags typed out by

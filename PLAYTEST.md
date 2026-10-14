@@ -95,6 +95,46 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A comment in the test code said the opposite of what the code did (H71, 2026-10-14)
+
+**Nothing in the game changed.** This is about a helper the tests use to set
+up a shot — the thing that puts the two characters somewhere tidy before a test
+takes a picture and measures it.
+
+**What was wrong.** The note at the top of that helper said it *stops the
+computer-controlled Warden from interfering*. It does not. It starts a fresh
+round with the Warden fully alive and hunting, and it has always done that. One
+note, false, sitting above the one piece of code that twenty different tests
+lean on — and last night's job is what it cost: a test walked the Shade down a
+lit corridor, the Warden shot her dead in the middle of it, and the test
+reported that her legs had not moved. An afternoon went on her legs.
+
+**What was done, and why it was the note rather than the code.** The note now
+says what the helper does. Changing the *code* instead — actually switching the
+Warden off — would have changed what twenty tests measure in order to fix a
+sentence, and there is a measured reason it was not needed: when the helper
+hands control back, **the Warden is still standing exactly on its spawn**, to
+the millimetre, because it takes about twenty-five frames to start walking and
+the helper waits twenty. So the picture those tests take is the same picture
+either way.
+
+**That margin is now the interesting part.** Five frames is the whole reason
+those twenty tests give the same numbers every run, and nothing was watching
+it. It is written down in the record as **H73** to decide whether it should be
+pinned, and the new test prints it in its own result line every run so a change
+would at least be visible.
+
+**What the new test does.** It reads the flag out of the code and the sentence
+out of the comment above it, and makes each name the other's answer — so a
+future change to one without the other goes red and says which. Then it checks
+the claim for real: the Warden walked **8.6m to 15.3m** in seven seconds with
+nobody touching the controls, and **0.000m** in a round the test starts with the
+AI switched off. Four deliberate breaks, each reverted, each going red on its
+own line.
+
+**Nothing for you here** — it is a test about tests, and the game is byte for
+byte what it was.
+
 ### A test that checked a list of command-line options now reads the list off the tools (H64, 2026-10-14)
 
 **Nothing in the game changed, and nothing you run changed either.** This is

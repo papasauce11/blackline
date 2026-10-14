@@ -265,8 +265,26 @@ export function erode(source, width, height) {
 }
 
 /**
- * Put both actors somewhere harmless and stop the AI interfering, so a
- * measurement is of the thing being measured. Returns a restore function.
+ * Put both actors back on their spawns in a **live** match - it passes
+ * `ai: true` - with no menu, nothing paused, every held key dropped and twenty
+ * frames of settling, so a measurement is of the thing being measured and not
+ * of a half-finished one. The restore it returns starts another the same way.
+ *
+ * **The AI is running throughout, and until H71 this sentence said it was
+ * not.** The Warden hunts on its own frames while a check measures. That is
+ * harmless to a reading taken off one drawn frame - measured, the Warden is
+ * **0.000m** off its spawn at the moment this returns, because the AI takes
+ * about twenty-five frames to start walking and this settles twenty - and it is
+ * not harmless to anything driven for longer: H57 is what the old wording cost,
+ * where `strikerepeat.js` inherited this restore, walked the Shade down a lit
+ * lane and had her shot dead in the middle of a strike. A check that needs the
+ * Warden out of it asks `initMatch` for a match with no AI itself, which is
+ * what eight of this helper's twenty callers already do; the other twelve name
+ * `initMatch` nowhere and take the match this leaves.
+ *
+ * `quiesce-says-what-it-does-about-the-ai` reads the flag below out of this
+ * file as code and holds these two paragraphs against it, so the sentence and
+ * the call cannot drift apart again.
  */
 export function quiesce(h) {
   h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
