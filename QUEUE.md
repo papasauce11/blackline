@@ -1046,7 +1046,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   breaks, each reverted and each naming its own clause, including the one the
   entry asked for by name: a flag declared **and** read with neither reader
   touching it. 27 flags across 5 named files to **34 across 9 derived**;
-  `tests/args.js` 224 to 361 lines. — done 2026-10-14, `PENDING64`.
+  `tests/args.js` 224 to 361 lines. — done 2026-10-14, `29aee97`.
 
 - **H57** A strike becomes a function of its argument, and the live match
   nobody had declared. `strike`'s `walk` and `sprint` ran to a condition on the
