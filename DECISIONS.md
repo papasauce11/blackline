@@ -110,6 +110,53 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D76 — A walk and a sprint are photographed at the same point of the stride every time, and the yard's walk changed sides
+
+**Raised by:** H57, 2026-10-14, and **taken** rather than asked: it changes what
+a gallery frame looks like and nothing a player can do. The queue entry said so
+in advance — *"a look question and so takeable"* — and named the recommendation
+this followed.
+
+**What it was.** `strike('walk')` and `strike('sprint')` ran until the drawn leg
+reached its furthest point from the vertical, which is a condition on the
+carried gait phase. Two consequences, and only the first was written down. The
+ground covered getting there was whatever the last check to walk a body left
+behind, measured between **0.292m and 1.167m** apart on two runs inside one
+pass. And the pose was reproducible **only up to a mirror**: the old detector
+read `Math.abs`, so it stopped at whichever half-cycle arrived first, and two
+strikes of a walk in one run ended exactly pi apart — `legL` **-0.5626** against
+**+0.5626**, the same silhouette with *the other leg forward*.
+
+**Taken: pin the parity.** The strike drives to the leg furthest **forward**
+(signed), resets to the lane, and runs a measured count of frames from there —
+37 at the walk, 27 at the sprint. Both land on the leg's furthest reach, which
+is what the old one promised, and the pose is now the same photograph every
+time: over five different incoming phases the drawn leg read **-0.5636 rad with
+a spread of 0.00000** at the walk and **-0.8482 with 0.00145** at the sprint.
+
+**What moved, once, deliberately.** Every walk and sprint gallery frame on both
+maps. They were already moving run to run; they have stopped, at a pinned
+phase, and the leg that leads is now always the same one. A later diff against
+an older PNG will find this entry as the reason.
+
+**And one frame changed sides, which is the part worth your eye.** The yard's
+walk is now photographed from `front-right` where it used to be `front-left`.
+Nothing about the camera or the lag changed: a walking body carries 0.35m of
+position lag, the strike now asks the question 2.04m down the lane instead of
+wherever the phase left it, and at that point the lag crosses between the two
+front eyes. It is the **fourth** entry in `poseeye.js`'s `EYE_MOVES` and the
+first that is not a climb — D75 said *"the checks will tell us if a fourth pose
+ever joins the list"*, and this is that happening. D75's own three are
+untouched.
+
+**To look:** `npm run shot -- --pose walk --pose sprint` writes four PNGs,
+about a minute. If the yard's walk reads better from the old side, that is
+`poseeye.js`'s `EYE_MOVES` and a one-line change to how the eye is chosen (D75
+option 2) — it would move all four of those pairs and not just this one.
+
+`decided:`
+
+
 ### D75 — A climb is photographed from whichever three-quarter the lag lands on, and that is left alone until Josh looks
 
 **Raised by:** H52, 2026-10-10, and it is **the look half of that job, left

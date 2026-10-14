@@ -722,6 +722,49 @@ as much as the rule: the new reading was held against H43's independently
 measured table and disagreed with it everywhere. **Measure something a previous
 job measured, and compare, before you measure the thing nobody has.**
 
+**A hand-rolled probe is not the suite, and the runner is callable from one.**
+H57 built three probes of 150ms each that drove `strike()` exactly as
+`strikerepeat.js` does - the same twelve states, twice each, in order - and
+every one of them passed while the suite was red. What reproduced it was
+running **the real checks through the real runner** inside a probe:
+`h.debugTools._autoTests` is the live list, so
+
+```
+const want = h.debugTools._autoTests.filter((t) => IDS.includes(t.id));
+const report = await h.debugTools.runAutoTests({ subset: want, label: 'PROBE' });
+return report.results.map((r) => ({ pass: r.pass, detail: r.detail }));
+```
+
+reproduces a check's own verdict, with its detail line, in **42 seconds**
+against a `--subset` run's 2.6 minutes - and it will run the checks *before* it
+too, which is usually where the state that breaks things comes from. Reach for
+this the moment a probe disagrees with the suite: the difference between them is
+never nothing, and it is the difference that is the bug.
+
+**`strike()` drives a body through a LIVE match, and the Warden will kill it.**
+`tests/animation.js`'s `strike` walks the Shade several metres down a lit lane.
+Four rifle rounds kill it, and `combat` lands them: H57 read
+`combat:shot/warden`, `impact`, `damage/body`, `damage/headshot`,
+`combat:death` - twenty-two events inside one sprint, `health` 0, `ragdolled`
+true. **The failure does not look like a death.** `strike` reports what the body
+did not do, so a killed Shade comes back as *"the sprint did not bring a leg
+furthest forward (speed 0.0)"* or *"a crouch at 0.0 m/s did not slide"*, and an
+afternoon goes on the gait. Three of its four callers open with
+`initMatch({ ai: false })` and that is the whole defence; `strikerepeat.js` did
+not, inherited `quiesce()`'s **`ai: true`** restore, and had been getting away
+with it since H52 because every strike was short. **A longer strike, or a slower
+machine, is a longer exposure** - so this is still a matter of time for the
+other three, which is **H72**. Check `shade.health` before believing any
+`strike` failure about speed.
+
+**Two subsets of different sizes are not a before and an after.** H57 read a
+check at HEAD with three ids in `--subset` and again after its change with
+eleven, saw a state stop being reached, and could not tell its own regression
+from a pre-existing skip the smaller subset had never exercised. The answer is
+one more run, not more reasoning: `cp` the changed files aside, put HEAD's back
+from the snapshot, run **the same subset**, and diff the detail lines. It cost
+2.6 minutes and it is the only evidence that separates the two.
+
 **A coverage check cannot see a connectivity fault.** Three times now: the A1
 constant that stayed green with the step at 2m, the HUD check that was green
 only because of who ran before it, and A1's ground that was two islands while

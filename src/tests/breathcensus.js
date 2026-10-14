@@ -153,7 +153,7 @@ const POSED = [
   {
     module: 'look.js',
     reach: 'measured',
-    note: 'pixel-count floors only. The gait, not the breath, is what moves them: the walk and sprint poses read 7,891-9,818px and 8,065-9,788px against a floor of 3,000, where every other pose moves 1-5%. The five-eye check moves 1.1% and its thinnest eye reads 877-887px over 300',
+    note: 'pixel-count floors only, and until H57 the gait rather than the breath was what moved them: the walk and sprint poses read 7,891-9,818px and 8,065-9,788px against a floor of 3,000, where every other pose moved 1-5%. `strike` pins the gait\'s phase now, so what is left in those two is the breath, the same as every other pose - read at 8,119px and 8,167px on the plant and 9,607px and 8,151px on the yard, the walk\'s from the other front eye (H57 moved which one, and poseeye.js declares it). The five-eye check moves 1.1% and its thinnest eye reads 877-887px over 300',
   },
   {
     module: 'poseeye.js',
@@ -165,7 +165,7 @@ const POSED = [
     module: 'strikerepeat.js',
     reach: 'none',
     proof: 'root',
-    note: 'strikes all twelve states twice and compares the two **capsules** - `h.shade.position`, and nothing else in the check reads a body at all. Neither phase can reach it, on `poseeye.js`\'s proof one layer simpler: the breath writes group rotations and a torso lift and never reaches the root (H39), and the gait moves limbs rather than the root. That is why this check can assert agreement to **1e-9** rather than to a tolerance, and it is the reason the ten undeclared states agree at all - what the gait does reach is `strike`\'s own termination, which is the finding the check exists for (H52) and is about where a strike stops rather than about where a body part is drawn',
+    note: 'strikes all twelve states twice and compares the two **capsules** - `h.shade.position`, and nothing else in the check reads a body at all. Neither phase can reach it, on `poseeye.js`\'s proof one layer simpler: the breath writes group rotations and a torso lift and never reaches the root (H39), and the gait moves limbs rather than the root. That is why this check can assert agreement to **1e-9** rather than to a tolerance, and it is the reason all twelve undeclared states agree at all - what the gait reached was `strike`\'s own termination, which is the finding the check existed for (H52) and is about where a strike stops rather than about where a body part is drawn - and since **H57** it does not reach even that: the walk and the sprint run a pinned count of frames from the lane, the declared set is empty, and all twelve states land inside 1e-9m. What the check holds now is that nothing has grown the dependence back',
   },
   {
     module: 'bufferscale.js',

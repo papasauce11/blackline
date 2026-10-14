@@ -16261,3 +16261,214 @@ two strikes of a walk ended exactly **pi apart**, `legL` -0.5626 against
 its pose" is true only up to a mirror, and a 3,000-pixel floor against
 7,891-9,818px could never have caught it. Nothing else; `physics.js` has 80
 lines of headroom and the solver answers exactly as it did.
+
+## H57 — a strike becomes a function of its argument, and the live match nobody had declared (2026-10-14, scheduled run)
+
+**What was wrong.** `strike()` drives the Shade into one of twelve named states
+the way a player does, and twelve checks and every pose gallery go through it.
+Two of the twelve ran to *"the frame after the leg's furthest reach"* — a
+condition on `sin(_animTime)`, the drawn gait's phase, which `reset()`
+deliberately keeps (D66). So the ground the body covered getting there was
+whatever the last check to walk a body had left behind: **1.167m** and
+**0.217m** apart on one run of the plant, **0.292m** and **0.000m** on the next.
+H46 found it by accident when its own control caught two sprints **0.975m
+apart**; H52 named the restriction, declined to remove it, and wrote the clause
+that measures which states it applies to.
+
+**The fix inverts the order rather than replacing the condition, and D66 is
+what makes it possible rather than what stands in the way.** `reset()` keeps the
+phase and snaps the place. So: drive the body on the held key until the drawn
+leg is furthest **forward**, `reset()` to the lane — the capsule and the drawn
+pose snap, the phase survives — and hold the key a **measured count** of frames
+from a known phase at a known place. Both ends are then the argument's, because
+the position reads no phase at all and the phase is the alignment plus a
+deterministic speed ramp.
+
+| | `find` (worst measured) | pinned `frames` | drawn `legL` | spread over 5 incoming phases | along the lane |
+|---|---|---|---|---|---|
+| walk | 80 (65) | **37** | −0.5636 | **0.00000 rad** | 2.04m |
+| sprint | 56 (46) | **27** | −0.8482 | **0.00145 rad** | 2.48m |
+
+Both counts land on the leg's furthest reach, which is what `strike` promised
+its callers all along, and that is not decoration: at a peak the pose is
+insensitive to where *inside* a frame the alignment stopped, because the error
+costs a cosine rather than a sine. The counts are functions of the speed ramp
+and the stride, so they are the same on both maps, and they were read off `npm
+run probe` in **193ms** before a line of the fix was written.
+
+**All three readings H56 sized this job with held, and the third was the prize.**
+(1) The walk's signed period is 72 frames against the 60 `frameUntil` was given
+— so the obvious one-word fix would have made the walk's termination depend on
+the incoming phase for whether it was reached *at all*, and an unreached walk is
+reported **skipped**, not red. Measured worst search: **65** frames. (2) The
+restriction was wider than `animation.js`'s header said. The old detector read
+`Math.abs`, so it stopped at whichever half-cycle arrived first, and two strikes
+of a walk ended exactly pi apart — `legL` **−0.5626** against **+0.5626**, the
+same silhouette with *the other leg forward*. A 3,000-pixel floor against
+7,891–9,818px could never have caught it. Pinning the parity is **D76** and
+moved every walk and sprint gallery frame once, deliberately.
+
+**What it reads now**, through the real runner on the path that had been
+failing: *"12 of 12 states struck twice; 12 put the capsule inside 1e-9m; 2 of 2
+gait-driven struck here, 0 declared as carrying"* — and the agreement is
+**0.000000000m**, not a tolerance met, on both maps. The walk's phase and drawn
+leg are identical to six decimals across two strikes. The sprint's leg differs
+by **0.0007 rad**, 0.08% of its amplitude, because its alignment stops on a
+sub-frame residue; the walk's lattice happens to coincide exactly and the
+sprint's does not.
+
+**And then the afternoon went on something the queue entry never mentioned.**
+
+`strike()` drives a real body through a **live match**. Of its four callers,
+`look.js`, `poseeye.js` and `positioncensus.js` each open with
+`initMatch({ ai: false })`; `strikerepeat.js` opens with nothing and inherits
+whatever ran before it — which is `poseeye.js`, whose `quiesce()` **restore**
+ends `initMatch({ ai: true, objective: true })`. So since H52 this check has
+been driving **twenty-four strikes** down a lit lane in front of a hunting
+Warden, and the only reason it was ever green is that each strike was short
+enough to get away. H57's alignment is some fifty frames longer and it stopped
+getting away with it:
+
+```
+combat:shot/warden, impact, damage/body, combat:death/body,
+combat:shot/warden, impact, damage/headshot, combat:death/headshot
+```
+
+Twenty-two events inside one sprint, `health` 0, `ragdolled` true — and the
+strike reporting *"the sprint did not bring a leg furthest forward"*, because a
+dead body does not walk. **It was intermittent on the frame count**, which is
+the worst way for a check to be wrong: the first subset run lost the *slide*,
+the next lost the *sprint*, a hand-rolled probe of the same twelve pairs lost
+nothing at all, and the difference between reproducing it and not was whether
+twenty extra frames had been stepped first. Fixed with the line the other three
+callers already have, taken per **strike** because this is the only caller that
+strikes twice; `initMatch` resets the Shade through `Agent.reset()`, which D66
+holds to leaving the gait alone, so the second strike of a pair still arrives
+carrying the first one's phase and the check still measures what it exists for.
+
+**How it was found, and the order is the point.** A hand-rolled probe could not
+reproduce it. What did was running the two **real checks through the real
+runner** inside a probe — `h.debugTools.runAutoTests({ subset })` — which
+reproduced the red in 42 seconds against a subset run's 2.6 minutes, and then
+listening to the `combat:*` events while it happened. Three probes of 150ms
+each had already said the mechanism was sound; none of them could have found
+this, because the thing that was wrong was not in the mechanism.
+
+**The controlled comparison, because "my change broke it" needed proving.** The
+before and after subsets were not the same size, so the slide's loss could have
+been my change or could have been a pre-existing skip the smaller subset never
+exercised. The eleven-check subset was run again on a tree put back to HEAD from
+a `cp` snapshot: **HEAD reaches the slide twice, this tree reached it once.**
+That is one 2.6-minute run and it is the only evidence that distinguishes the
+two, which is H56's lesson in the currency a regression pays in.
+
+**Three breaks, and two of them found faults in the new check rather than in
+the tree.**
+
+- **The `Math.abs` read put back**, pinned count left in place: red, naming both
+  source clauses — the signed read *"is gone"* and the unsigned read *"is there
+  and should not be"*.
+- **The reset and the pinned count removed**, signed read kept: red with
+  *"two strikes of \"walk\" left the capsule 1.167m apart"* and *"\"sprint\"
+  … 0.217m apart"* — **the historical numbers exactly** — plus the pinned-count
+  clause naming itself. It also printed *"neither of the 2 states that drive the
+  gait was struck twice on this map"* beside a walk it had just measured at
+  1.167m. That was my own instrument counting off the **verdict** instead of off
+  what was **struck**: a gait-driven state whose two strikes disagreed was
+  measured all the same. Fixed to count off a `struck` list, and the break
+  re-run to confirm the false line is gone.
+- **A state declared as carrying while it demonstrably agrees**: **passed**, and
+  should not have. The clause tested `agreed.includes(name)`, and a declared
+  state is *reported* rather than agreed, so it could never fire at all — the
+  same green-whatever-happens shape H56 found one job earlier. **Removed rather
+  than fixed**, because fixing it would have made it wrong: H52 had already
+  measured that two strikes of a sprint read 0.217m on one run of a pass and
+  0.000m on the next, so a clause that reddened on *"they agreed this morning"*
+  would redden a correct build (D71's shape). What holds that direction is
+  `PINS_THE_GAIT`, read from source — three lines, one of them by its
+  **absence**. A declaration naming a state `strike()` does not know is the one
+  direction a reading can settle, and that break reds for its own reason.
+
+**`look.js`'s floors, re-measured and not widened (F15).** One of its floors
+reads a strike at all: `scaledCount(look.buffer, 3000)` against the pose. Its
+others (300 / 2,000 / 6,000) are read off a fixed lane stand and never saw a
+strike. Nothing was widened and nothing needed to be — the margin was 2.6x to
+3.3x before and is the same shape after.
+
+| | before, range on record | before, this run's HEAD control | after, verify run 1 | run 2 | run-to-run |
+|---|---|---|---|---|---|
+| plant walk | 7,891–9,818px | 7,983px | 8,072px | 8,038px | **0.4%** |
+| plant sprint | 7,891–9,818px | 8,313px | 8,111px | 8,087px | **0.3%** |
+| yard walk | 8,065–9,788px | — | 9,553px | 9,521px | **0.3%** |
+| yard sprint | 8,065–9,788px | — | 8,087px | 8,078px | **0.1%** |
+
+**That collapse is the result, and it is the number H33 went looking for.** H33
+measured the gait moving a walk frame's silhouette by **24%**, which is why this
+job was told to re-measure the floors. Run to run those two poses now move
+**0.1% to 0.4%** — the same band as every other pose in the same four runs
+(crouch 0.02%, mantle 0.02%, grab **0px, identical to the pixel**, landing 0.2%,
+vault 0.3%, pullup 0.7%). They were the two outliers in that list and they are
+not outliers any more. What is left in them is the breath, which is still
+carried on purpose and is what every other row is made of too.
+
+The floor is `scaledCount(look.buffer, 3000)`, which is a flat 3,000 at the
+gate's 1280x720. Margins **2.69x** on the plant and **3.18x** on the yard,
+against the 2.6x to 3.3x the queue entry measured before the change: the same
+shape, nothing widened, nothing moved.
+
+The yard walk's 9,553px is not comparable to the plant's rows and that is the
+finding rather than a caveat — it is a different camera, which is the next
+paragraph.
+
+**The fourth `EYE_MOVES` entry, and the first that is not a climb.** The yard's
+walk is now photographed from `front-right` where it was `front-left`. Nothing
+about the position chase changed — a walking body carries **0.35m** of lag, and
+the strike now asks the question 2.04m down the lane instead of wherever the
+carried phase left it, where that lag crosses between the two front eyes. D75's
+own three pairs (plant `vault`, yard `mantle`, yard `pullup`) are untouched, and
+D75's line that *"the checks will tell us if a fourth pose ever joins the list"*
+is the line that produced this one. Declared with its gap, so a fifth is still
+red and so is this one stopping.
+
+**Two stale declarations corrected in passing**, both in `breathcensus.js`,
+where a note is prose a reader trusts. Its `look.js` entry said *"The gait, not
+the breath, is what moves them"* — true this morning, false now, and the four
+readings above are in its place. Its `strikerepeat.js` entry said the gait
+reaches `strike`'s own termination, and said *"the ten undeclared states"* where
+there are now twelve.
+
+**Verified.** `npm run suite`, exit 0: plant **230 passed, 1 failed, 8 not for
+this map** (1,116,686ms and 1,138,444ms), yard **210 / 1 / 28** (768,622ms and
+777,495ms). 0 red, 0 flaky, 0 skipped, 0 skips withheld, 0 bench drops
+withheld, 0 unexpectedly green, 0 context losses, 0 loop frames, 0 re-runs, no
+other runner — and **0 console errors in all four runs**. Spreads 21,758ms on
+the plant (2% of the longest) and 8,873ms on the yard (1%), inside F16's band.
+The counts are unchanged at 230/210: this job registers no new check, it
+rewrites the clauses of one and corrects the declarations of two others. The
+gate before it read plant 230 / 1 / 8 (1,110,454ms) and yard 210 / 1 / 28
+(779,447ms), 0 red, 0 flaky, 0 console errors.
+
+**The detail line that is this job's done-when is byte-identical in all four
+runs**, on both maps: *"12 of 12 states struck twice; 12 put the capsule inside
+1e-9m; 2 of 2 gait-driven struck here, 0 declared as carrying"*. So is
+`poseeye.js`'s, per map, with the yard's now reading *"3 eye moves (declared on
+yard: mantle,pullup,walk)"* and `walk 0.35 FR/FL` in its place.
+
+**The ceiling line did not move**, and one line of that is luck worth writing
+down: `animation.js` went 492 to **550** and the crowded rule is `lines > 550`,
+strictly, so it sits exactly on the boundary and stays out of the cluster of
+eleven by a single line. `strikerepeat.js` is 203 to 281, `poseeye.js` 271 to
+283, `breathcensus.js` unchanged at 550 (its notes are one line each). The next
+line added to either of the two 550s joins the list that H70 is about.
+
+**Left.** Two jobs, both from the hazard rather than from the mechanism.
+**H71**: `quiesce()`'s docstring says it stops the AI interfering and its body
+passes `ai: true`, twice — three pixel checks rest on that sentence and it is
+false, and the honest fix for a false comment is a true one rather than a code
+change wearing its clothes. **H72**: a strike whose body died reports *"never
+swung a leg"*, which is the symptom; it should name the death, and that single
+sentence would have saved this job an afternoon. Not queued: the sprint's
+sub-frame residue of **0.0007 rad** on the drawn leg, which is 0.08% of its
+amplitude and costs nothing any floor or gallery can see — the walk pins
+exactly and the sprint pins to that, and the asymmetry is the phase lattice,
+written down here so the next reader does not measure it again.

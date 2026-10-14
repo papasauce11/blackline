@@ -505,88 +505,61 @@ one setting only Josh can click; everything else here proceeds.
   so only the enumerability clause can see it. The ceiling line now reads
   *"11 modules within 50 of 600, nearest src/tests/movement.js at 599 (1
   left) - of 184 this run loaded"*, which is **H70**.
-- [ ] **H57 (M)** Make a strike a function of its argument, which D66 makes
-  possible rather than hard. H52 named the restriction and declined to
-  remove it: `strike`'s `walk` and `sprint` run to a peak of the drawn leg,
-  which is a condition on the carried `_animTime`, so the ground covered
-  getting there is whatever the last check to walk a body left behind
-  (measured at walk 1.167m / sprint 0.217m on one run of the plant and walk
-  0.292m / sprint 0.000m on the next).
-  **The shape of the fix, and it uses D66 rather than fighting it.**
-  `reset()` keeps both phases and snaps the position, so the order can be
-  inverted: drive the body on the held key until the drawn leg turns round
-  (the phase is then a known value whatever it started at), `reset()` to the
-  lane (position snaps, phase survives), then drive a **pinned** number of
-  frames from a known phase at a known place. Both ends are then functions
-  of the argument. The frame count is a measured constant per band, and the
-  thing to measure is which count lands the legs where a gallery frame wants
-  them - the peak is what `strike` promises today, so the pinned count has to
-  be chosen to land near one, which is arithmetic on the speed ramp and the
-  stride, both deterministic.
-  **The cost, which is why this is M and was not a line in H52.** H33
-  measured the gait's phase moving a walk frame's silhouette by **24%**
-  (7,891-9,818px against a floor of 3,000), so `tests/look.js`'s pixel
-  floors want re-measuring from the new phase, and every walk and sprint
-  gallery frame moves. Re-measure rather than widen (F15's rule), and say
-  in `PROGRESS.md` what each floor read before and after.
-  *done-when:* `a-strike-of-a-state-puts-the-capsule-in-the-same-place-twice-except-where-the-gait-is-carried`
-  has an empty `CARRIED` and asserts all twelve states to 1e-9 over two
-  runs of both maps, `animation.js`'s header says the restriction is gone
-  and when, `tests/look.js`'s floors are re-measured with their old and new
-  numbers written down, and `PLAYTEST.md` says which galleries moved.
-  **Measured 2026-10-13 by the H56 run, which sized this job and then declined
-  to start it.** Three readings off `npm run probe` on the plant, in 172ms and
-  46ms, so that the next session starts from numbers rather than from a probe:
+- [x] **H57 (M)** Make a strike a function of its argument. - done
+  2026-10-14, under Done. **The order, not a new condition**: drive to the leg
+  furthest *forward*, `reset()` to the lane (D66 keeps the phase, snaps the
+  place), then a measured count of frames - 37 at the walk, 27 at the sprint,
+  both landing on the leg's furthest reach. All twelve states now land
+  **0.000000000m** apart on both maps and `CARRIED` is empty. The three
+  readings this entry was sized with all held, and **the parity was the real
+  prize**: the old `Math.abs` detector made the pose reproducible only up to a
+  mirror, and pinning it moved every walk and sprint gallery frame once (D76).
+  **What cost the afternoon was not in this entry at all** - `strike()` drives
+  a body through a *live* match, and `strikerepeat.js` was the one caller with
+  no match of its own, so twenty-four strikes ran in front of a hunting Warden
+  and the longer alignment got the Shade shot dead, intermittently, on the
+  frame count. **H71** and **H72** are what that left behind.
 
-  1. **The gait's half-period in frames, which is what a pinned count is made
-     of.** Tracing `legL.rotation.x` for 150 frames of held forward from a
-     standing reset: the **walk** reaches a peak of `|leg|` every **36 frames**
-     and of the *signed* leg every **72**; the **sprint** every **24** and
-     **48**. Ground covered is 0.058m a frame at the walk's 3.5m/s and 0.108m
-     at the sprint's 6.5m/s, both at full speed by frame ~10.
-  2. **A signed-peak search does not fit the budget the shipped case gives
-     it, and that is a trap in the obvious implementation.** `strike` runs 30
-     frames to speed and then `frameUntil(..., 60)`. The walk's signed period
-     is **72 frames**, so swapping `Math.abs(...)` for a signed test makes the
-     walk's termination **depend on the incoming phase for whether it is
-     reached at all** - on one traced run the first `|leg|` peak was frame 57
-     and the first signed peak frame 93, three frames past the limit. A walk
-     that is not reached is reported by `strikerepeat.js` as **skipped**, not
-     as red, so this would go quiet rather than loud. Raise the limit with the
-     test, or terminate on a zero crossing in a named direction, which comes
-     round twice as often.
-  3. **The restriction is wider than the header says, and this is the part
-     worth a decision.** `animation.js` says a strike of a moving state is
-     *"reproducible in its pose and not in its position"*. The pose half is
-     true only up to a **mirror**: because the shipped detector reads
-     `Math.abs`, it stops at whichever half-cycle arrives first, so two strikes
-     of a walk in one run ended at phases **4.8869** and **1.7453** mod 2pi -
-     exactly pi apart, `legL` -0.5626 against +0.5626, **the other leg
-     forward**. Same silhouette area, mirrored stride. That is why `look.js`'s
-     3,000-pixel floor never caught it and why H33 read the gait as moving a
-     walk frame's silhouette by 24%.
-     **Recommendation, a look question and so takeable: pin the parity.**
-     Terminate on the leg furthest *forward* rather than furthest from
-     vertical, so `_animTime` is pinned mod 2pi and a gallery frame of a walk
-     is the same photograph every time. It costs the budget in (2). Say in
-     `PROGRESS.md` which galleries moved and why, because this changes every
-     walk and sprint frame **once**, deliberately, and a later diff against an
-     old PNG should find the reason here.
+- [ ] **H71 (S)** `quiesce()` says it stops the AI interfering and does the
+  opposite. `src/tests/pixels.js`: the docstring is *"Put both actors somewhere
+  harmless and stop the AI interfering, so a measurement is of the thing being
+  measured"*, and the body is `initMatch({ ai: true, objective: true })` -
+  twice, once on the way in and once in the restore. So a check that quiesces
+  gets a *fresh* match and a **live** Warden, and `look.js`,
+  `positioncensus.js` and `poseeye.js` all rest on that sentence. H57 found it
+  the expensive way: `strikerepeat.js` runs after `poseeye.js`, inherits that
+  `ai: true` restore, and had the Shade shot dead mid-strike - `combat:shot`,
+  `damage/headshot`, `combat:death`, twenty-two events inside one sprint.
+  Nothing is wrong with the three callers today; what is wrong is that the one
+  sentence a reader would trust is false, and the next check to rely on it
+  pays what H57 paid. Either pass `ai: false` (and measure what moves - the
+  AI's own frames are part of every pixel reading those checks take, so this
+  is not a comment change wearing a code change's clothes) or correct the
+  sentence to say what it does: puts both actors on their spawns and gives you
+  a *live* match. Recommend the second plus a clause, because the first moves
+  numbers in three pixel checks and the honest fix for a false comment is a
+  true one.
+  *done-when:* `quiesce`'s docstring and its body agree about the AI, a clause
+  reads the flag it passes out of `pixels.js`'s source so the two cannot drift
+  apart again, and `PROGRESS.md` says which of the two was done and why.
 
-  **And the floors are not the obstacle the entry above expects.** `look.js`
-  has one pose floor, `scaledCount(look.buffer, 3000)`, against readings of
-  7,891-9,818px - a margin of 2.6x to 3.3x - and its other floors (300 / 2,000
-  / 6,000) are read from a fixed lane stand and not from a strike at all. So
-  "re-measure rather than widen" is a `--details` read and a paragraph, not a
-  measurement campaign. The expensive half is (2) and (3).
+- [ ] **H72 (S)** A strike that fails because the body died says it never
+  swung a leg. `strike()` reports its failures through `why`, and every one of
+  them is about what the body did not do - *"the walk never swung a leg (speed
+  0.0)"*, *"a crouch at 0.0 m/s did not slide"*. H57 spent an afternoon on
+  exactly that sentence while the actual cause was `health` 0 and `ragdolled`
+  true: the Warden had shot the Shade during the run-up, and a dead body
+  reports a stationary one. The cheap fix is a check of its own at the top of
+  `done()`: if the Shade's health is not full, say so first - *"the Shade was
+  killed during the strike (health 0, ragdolled)"* - because that names the
+  cause instead of the symptom, and it is the same shape as H63's lesson that
+  a break reddening for the wrong reason has proved nothing. Worth the lines
+  for every future caller: the three that survive today survive on exposure
+  time, not on a guarantee, and a slower machine is a longer exposure.
+  *done-when:* a strike whose body died reports the death rather than the
+  stillness, with health in the text, and a check drives a strike beside a
+  Warden that kills the Shade and asserts the reported reason names it.
 
-  **One more clause moves with it.** `strikerepeat.js` holds the set from the
-  mechanism, `TERMINATES_ON_THE_DRAWN_LEG` = `/const peak = rising && now <
-  last;/`, read out of `animation.js`'s source - so that line going away is
-  itself a red until the clause is rewritten to assert the **new** mechanism.
-  And its instrument clause reds on an empty `CARRIED`: *"neither of the 0
-  declared states was struck on this map"*. Both are by design and both are
-  this job's to change, which is most of why it is an M.
 - [ ] **H64 (S)** The flag census in `tests/args.js` is written down by hand,
   which is the shape of list H53 spent a whole job repairing twice over. Four
   runners and twenty-seven flags are named in `FLAGS`, each declared
@@ -1052,6 +1025,44 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H57** A strike becomes a function of its argument, and the live match
+  nobody had declared. `strike`'s `walk` and `sprint` ran to a condition on the
+  carried gait phase, so the ground covered getting there was whatever the last
+  check to walk a body left behind - 1.167m and 0.217m on one run of the plant,
+  0.292m and 0.000m on the next. **The fix inverts the order rather than
+  replacing the condition**, and it is D66 that makes it possible: `reset()`
+  keeps the drawn gait's phase and snaps the place, so the strike drives until
+  the drawn leg is furthest **forward**, resets to the lane, and runs a pinned
+  count of frames from a known phase at a known place - 37 at the walk, 27 at
+  the sprint, measured to land on the leg's furthest reach, which is what the
+  old one promised. Position reads no phase at all, so all twelve states land
+  **0.000000000m** apart, on both maps, and `CARRIED` is **empty**.
+  **Signed, because the old header was wrong about its own restriction**: the
+  `Math.abs` read stopped at whichever half-cycle arrived first, so a walk's
+  pose was reproducible only up to a **mirror** - `legL` -0.5626 against
+  +0.5626, the same silhouette with the other leg forward, which a 3,000-pixel
+  floor against 7,891-9,818px could never catch. Pinning the parity moved every
+  walk and sprint gallery frame once, deliberately (**D76**), and moved the
+  yard's walk onto the other front eye - the fourth entry in `EYE_MOVES` and
+  the first that is not a climb. **The afternoon went on something the entry
+  never mentioned.** `strike()` drives a body through a *live* match;
+  `strikerepeat.js` was the one of four callers with no match of its own, and
+  it runs after `poseeye.js`, whose `quiesce()` restore ends `ai: true`. So
+  twenty-four strikes were being driven down a lit lane in front of a hunting
+  Warden, and the fifty extra frames of alignment were enough for it to land
+  four rounds: `combat:shot/warden`, `impact`, `damage/body`,
+  `damage/headshot`, `combat:death` - and the strike reporting *"the sprint did
+  not bring a leg furthest forward"*, because a dead body does not walk. It was
+  **intermittent on the frame count**, which is the worst way for a check to be
+  wrong. Fixed with the line the other three callers already have, per strike;
+  the hazard is now in `strike()`'s own contract, and **H71** and **H72** are
+  the two jobs it left. Three breaks, and two of them found faults in the new
+  check rather than in the tree: an instrument counting off the verdict instead
+  of off what was struck, and a "declared but no longer carrying" clause that
+  could never fire - removed rather than fixed, because H52 had already
+  measured that redding on it reddens a correct build. — done 2026-10-14,
+  `PENDING`.
 
 - **H56** The solver's read-only half moves out, and the clause that caught
   what identity could not. `src/physics.js` stood at **600 of 600** - the

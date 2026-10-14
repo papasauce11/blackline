@@ -22,34 +22,44 @@
  * `strike` drives the Shade into a named state and leaves it there, for
  * the check here and for the photograph (tests/look.js, F7).
  *
- * **A strike of a moving state is reproducible in its pose and not in its
- * position, and no check may compare two photographs of one state** (H52).
- * H46 struck `sprint` twice in one check and its own control caught the two
- * capsules **0.975m apart**. The quantity carried between them is
- * `_animTime`, the drawn gait's phase: `updateVisual` advances it by the
- * ground covered, the constructor zeroes it and **`reset()` deliberately does
- * not** - D66, held by a clause of its own in `breathcensus.js`, so that a
- * reset cannot teleport a walking body's legs. Its sibling
- * `strideDistance`, the footstep accumulator, *is* zeroed, which makes this
- * look like an oversight and it is not: they are one quantity in two
- * currencies and D66 keeps the drawn one.
+ * **A strike is a function of its argument**, since H57 (2026-10-14): strike
+ * any of the twelve twice in one run and the capsule lands in the same place
+ * to 1e-9. It was not always, and the two that did not were `walk` and
+ * `sprint`, which ran to *"the frame after the leg's furthest reach"* - a
+ * condition on `sin(_animTime)`, so the ground covered getting there was
+ * whatever the last check to walk a body left behind. Measured at **1.167m**
+ * and **0.217m** on one run of the plant and **0.292m** and **0.000m** on the
+ * next; H46 found it by accident when its own control caught two sprints
+ * **0.975m apart**.
  *
- * The consequence is local to two cases below. `walk` and `sprint` run to
- * *"the frame after the leg's furthest reach"*, which is a condition on
- * `sin(_animTime)`, so the ground covered getting there is a function of
- * whatever the last check to walk a body left behind rather than of the
- * argument: measured at **1.167m** for the walk and **0.217m** for the sprint
- * on the plant. The ten other states put the capsule in the same place to
- * 1e-9 twice - the four climbs because their position is a function of a
- * probed ledge, and **the slide**, which looks like the worst case and is not,
- * because it presses crouch after a fixed forty frames and reads no phase: `a-strike-of-a-state-puts-the-capsule-in-the-same-place-twice-except-where-the-gait-is-carried`
- * measures all twelve every run and declares the three, so this paragraph
- * cannot go stale in either direction. **H57** is the job that would remove
- * the restriction, and it has to re-measure `tests/look.js`'s pixel floors to
- * do it, because H33 found the gait's phase moves a walk frame's silhouette
- * by 24%. Until then: strike once, read what you need off that one frame -
- * which is what `poseeye.js` does, and why it asks the geometry rather than
- * comparing two pictures.
+ * **What fixed it is the order, and not a new condition.** `_animTime`, the
+ * drawn gait's phase, is advanced by the ground covered inside `updateVisual`;
+ * the constructor zeroes it and **`reset()` deliberately does not** - D66,
+ * held by a clause of its own in `breathcensus.js`, so that a reset cannot
+ * teleport a walking body's legs. That refusal is what makes a pinned strike
+ * possible rather than what stands in its way: drive the body until the drawn
+ * leg is furthest **forward**, `reset()` to the lane - the capsule and the
+ * drawn pose snap, the phase survives - and hold the key a **measured count**
+ * of frames from there. Both ends are then the argument's, because the
+ * position reads no phase at all and the phase is the alignment plus a
+ * deterministic speed ramp. `GAIT_STRIKE` has the counts and their readings.
+ *
+ * **Signed, because the pose half of the old restriction was true only up to
+ * a mirror** - which the header this replaces did not know. The old detector
+ * read `Math.abs`, so it stopped at whichever half-cycle arrived first, and
+ * two strikes of a walk in one run ended exactly pi apart: `legL` **-0.5626**
+ * against **+0.5626**, the same silhouette with the other leg forward. A
+ * 3,000-pixel floor against 7,891-9,818px could never have caught it. Pinning
+ * the parity moved every walk and sprint gallery frame once, deliberately
+ * (D76; `PLAYTEST.md` says which).
+ *
+ * **One carried quantity is left, and it is why no check may still compare
+ * two photographs of one state.** `_breathTime` is carried by the same
+ * refusal and moves a silhouette by 1-5% (H33, H46). So: strike once, read
+ * what you need off that one frame - which is what `poseeye.js` does, and why
+ * it asks the geometry rather than comparing two pictures. `a-strike-of-a-state-puts-the-capsule-in-the-same-place-twice-except-where-the-gait-is-carried`
+ * measures all twelve every run, with an empty `CARRIED` since H57, so
+ * neither of these paragraphs can go stale in either direction.
  *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
@@ -75,6 +85,32 @@ const STILL = 0.05;
 const SETTLE = 20;
 /** How far the ground covered between crossings may be from the stride: the ease lags every crossing alike, so this is the speed ramp and the last frame's rounding. */
 const STRIDE_TOLERANCE = 0.15;
+
+/**
+ * The two gait-driven strikes, by band (H57). Both numbers are functions of
+ * the speed ramp and the stride, so they are the same on every map; they were
+ * measured on the plant over five different incoming phases.
+ *
+ * `find` is how long to look for the drawn leg at its furthest reach forward,
+ * counted from speed. The **signed** cycle comes round once a full period -
+ * 4.2m of ground at the walk's 3.5m/s over a 2.1m stride, which is 72 frames,
+ * and 5.2m at the sprint's 6.5m/s over 2.6m, which is 48 - and the drawn leg
+ * lags its target by two frames, so the worst cases are 74 and 50. Measured
+ * worst: **65** and **46**. The 60 this used to be given was under the
+ * walk's, which is the trap in the obvious fix: `frameUntil` running out
+ * reports a walk that was never struck as **skipped** and not as red.
+ *
+ * `frames` is the pinned count from the lane, chosen to land the drawn leg on
+ * a peak - what this function promises its callers, and also where the ease
+ * makes the pose insensitive to where inside a frame the alignment stopped.
+ * At these counts the drawn leg read **-0.5636 rad with a spread of 0.00000**
+ * over the five phases at the walk and **-0.8482 with 0.00145** at the
+ * sprint, both at full speed, 2.04m and 2.48m down the lane.
+ */
+const GAIT_STRIKE = {
+  walk: { find: 80, frames: 37 },
+  sprint: { find: 56, frames: 27 },
+};
 
 /** The rotations of the six groups: what `easePose` writes, read back as a flat record. */
 function readPose(actor) {
@@ -214,6 +250,18 @@ export const STRIKES = ['walk', 'sprint', 'crouch', 'slide', 'rise', 'fall', 'la
  * the way up and on the way down for a jump, while the legs take it for
  * a landing. The frame after is the photograph's (tests/look.js).
  *
+ * **Give this a match with the AI off, and do it per strike if you strike
+ * more than once.** It drives a real body through a **live** match: a walk or
+ * a sprint goes several metres down a lit lane, and a Warden that is hunting
+ * will shoot it - four rounds and the Shade is dead, and a dead body reports
+ * *"never swung a leg"* rather than anything about the gait. All four callers
+ * open with `initMatch({ ai: false })` for this reason; `strikerepeat.js` was
+ * the one that did not, inherited `quiesce`'s **`ai: true`** restore, and got
+ * away with it for five jobs because every strike was short. H57's is fifty
+ * frames longer and it stopped getting away with it. This function does not
+ * do it for you on purpose - `initMatch` reseeds the rng, which is not a side
+ * effect a shared driver should have.
+ *
  * @returns {{ reached: boolean, why: string }} `why` says what stopped it
  */
 export function strike(h, name) {
@@ -233,22 +281,32 @@ export function strike(h, name) {
   switch (name) {
     case 'walk':
     case 'sprint': {
+      // The phase first, then the place (H57). To speed, then to the frame
+      // after the drawn leg's furthest reach **forward** - signed, so the
+      // phase is pinned mod 2pi and the same leg leads every time.
+      const band = GAIT_STRIKE[name];
       stand();
       h.input.heldCodes.add('KeyW');
       if (name === 'sprint') h.input.heldCodes.add('ShiftLeft');
-      // To speed, then to the leg's furthest reach: the frame after a
-      // crossing of the amplitude's sign is as far as the stride goes.
       for (let i = 0; i < 30; i++) frame(h);
-      let last = Math.abs(shade.mesh.userData.parts.legL.rotation.x);
+      let last = shade.mesh.userData.parts.legL.rotation.x;
       let rising = false;
-      const reached = frameUntil(h, () => {
-        const now = Math.abs(shade.mesh.userData.parts.legL.rotation.x);
+      const pinned = frameUntil(h, () => {
+        const now = shade.mesh.userData.parts.legL.rotation.x;
         const peak = rising && now < last;
         rising = now > last;
         last = now;
         return peak;
-      }, 60);
-      return done(reached && shade.speed > 0.2, `the ${name} never swung a leg (speed ${shade.speed.toFixed(1)})`);
+      }, band.find);
+      if (!pinned) return done(false, `the ${name} did not bring a leg furthest forward inside ${band.find} frames of speed, so the gait's phase is not pinned and the ground covered from here would be the last check's (speed ${shade.speed.toFixed(1)})`);
+      // Back to the lane: the capsule snaps, the drawn pose snaps with it
+      // (`reset` draws at wallDt 0 and `blendFactor(0)` is 1), the phase
+      // survives - D66 - and the pinned count runs from a known phase at a
+      // known place, so the ground covered is the argument's and not the run's.
+      shade.reset({ position: rest, yaw: lane.yaw });
+      shade.pitch = 0;
+      for (let i = 0; i < band.frames; i++) frame(h);
+      return done(shade.speed > 0.2, `the ${name} never swung a leg (speed ${shade.speed.toFixed(1)})`);
     }
     case 'crouch': {
       stand();

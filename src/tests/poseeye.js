@@ -142,6 +142,18 @@ const EYE_MOVES = {
   yard: {
     mantle: { drawn: 'right', capsule: 'front-right' },
     pullup: { drawn: 'left', capsule: 'front-left' },
+    // The fourth, and the first that is not a climb (H57, 2026-10-14). The
+    // other three are the timed moves' own lag (D72, up to 0.46m); this one
+    // is the ordinary 0.35m a body walking at 3.5m/s carries, and it is here
+    // because H57 pinned where a walk is photographed from. The strike now
+    // ends 2.04m down the lane instead of wherever the carried phase left it,
+    // and at that place the lag crosses between the two front eyes. Nothing
+    // about the chase changed; what changed is which point of the lane the
+    // question is asked at. D76 has the look half; `PLAYTEST.md` says which
+    // gallery moved. This entry is what a fifth joining would be measured
+    // against, and D75's line that "the checks will tell us if a fourth pose
+    // ever joins the list" is the line that produced it.
+    walk: { drawn: 'front-right', capsule: 'front-left' },
   },
 };
 

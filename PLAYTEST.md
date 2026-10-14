@@ -95,6 +95,47 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### For your eyes: the walk and sprint pictures stopped moving (H57, 2026-10-14)
+
+**Nothing in the game changed.** This is the **pose gallery** again — the
+pictures the tests take of the Shade mid-move, which `npm run shot -- --pose
+walk --pose sprint` writes to `shots/` in about a minute.
+
+**What was wrong.** A picture of the Shade walking was never the same picture
+twice. The tests drive the body into a walk and photograph it at the moment the
+leading leg reaches furthest, and *which* leg that was, and how far down the
+lane it happened, depended on what the test before it had left behind. Two
+walks inside one run came out exactly half a stride apart — the same shape with
+**the other leg forward** — and the body was anywhere from 0.3m to 1.2m further
+along. Every number the pixel checks took of those two poses carried that in it.
+
+**What it does now.** The walk and the sprint are driven to the leg furthest
+*forward*, put back at the start of the lane, and then walked a fixed number of
+frames — 37 for the walk, 27 for the sprint. So the photograph is taken at the
+same point of the same stride with the same leg leading, every run, on both
+maps. Measured over five different starting conditions, the leg lands within
+**0.00000 rad** at the walk and **0.00145** at the sprint, where before it moved
+by a quarter of the whole silhouette.
+
+**So the walk and sprint pictures moved once, deliberately, and will not move
+again.** If you have older copies, they will differ; this is why.
+
+**What is left for you, and it is one look.** On the **yard**, the walk is now
+photographed from the **other front corner** — `front-right` where it used to be
+`front-left`. Nothing about the camera changed: a walking body's drawn position
+trails its real one by 0.35m, the picture is now taken 2.04m down the lane
+instead of wherever the old test happened to stop, and at that spot the trail
+crosses between the two front cameras. It is the fourth pose this has happened
+to and the first that is not a climb — the other three are in the H52 note
+below, and the tests said they would tell us if a fourth ever joined.
+
+    npm run shot -- --pose walk --pose sprint
+
+Four PNGs: `look-plant-pose-walk.png`, `look-plant-pose-sprint.png`,
+`look-yard-pose-walk.png`, `look-yard-pose-sprint.png`. The question is only
+whether the yard's walk reads better from the new side or the old one. Either
+answer is fine and leaving it is a real answer; it is written up as **D76**.
+
 ### For your eyes: which side a climb gets photographed from (H52, 2026-10-10)
 
 **Nothing in the game changed.** This is about the **pose pictures** — the
