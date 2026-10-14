@@ -16472,3 +16472,133 @@ sub-frame residue of **0.0007 rad** on the drawn leg, which is 0.08% of its
 amplitude and costs nothing any floor or gallery can see — the walk pins
 exactly and the sprint pins to that, and the asymmetry is the phase lattice,
 written down here so the next reader does not measure it again.
+
+## H64 — the flag census reads the tree, and the seven flags nobody had decided about (2026-10-14, scheduled run)
+
+**What was wrong, and it was wrong in the way a hand-written list always is.**
+`tests/args.js` held `FLAGS`: four runners and twenty-seven flags, each declared
+repeatable or scalar, and every one of them checked against the runner's own
+source. A flag **in** the table could not drift. A flag **not** in it was
+invisible — and the entry guessed that was a hazard waiting to happen. It had
+already happened, twice over:
+
+- **Five of the nine `.mjs` files under `scripts/` were outside the census
+  altogether.** `watchdog.mjs`, `version.mjs`, `suitereport.mjs`, `args.mjs`
+  and `headless.mjs` were absent, so the day one grew a flag nothing would have
+  said it was unclassified. The entry named two of them and there were five.
+- **Seven flags on two runners that *are* in the census were simply missing
+  from the table**: `--url`, `--regression`, `--query`, `--pre` and
+  `--allow-other-runners` on `suite.mjs`, `--onscreen` and `--window-position`
+  on `bench.mjs`. The suite's own `--allow-other-runners` is the flag
+  `TRAPS.md` sends every reader of an exit-3 refusal to, and the census of
+  command lines did not know it existed.
+
+**And the good news is the measurement that made this an S rather than an M.**
+All seven are already read through `one(...)`, each runner's local wrapper
+around the refusing reader — so every one of them already refuses a second
+value, which is what the census would have asked of them. **No runner's
+behaviour needed to change, and none did.** The table was the only thing out of
+date. That is the whole case for deriving a list rather than typing one: the
+tools were right and the list was wrong, and nothing could tell.
+
+**How the list is derived, given that the page cannot list a directory.**
+`/scripts/` is a **404** from the page — measured in 22ms before any of this was
+designed, because the obvious implementation is a directory read and it is not
+available. So the runners come off the tree a different way: `package.json`'s
+own commands are the entry points, and the `from './<name>.mjs'` graph is the
+rest. **Five commands reach all nine files**, and the closure is exact rather
+than lucky — `suite.mjs` pulls in `args`, `suitereport`, `version` and
+`watchdog`; `bench.mjs` pulls `headless`, `suitereport`, `watchdog`; `shot.mjs`
+and `probe.mjs` pull `headless`; `headless.mjs` pulls `args`. A tenth module
+joins the census the day something runs it rather than the day somebody
+remembers.
+
+**And the flags come off each runner's own source**: every `args.<name>`,
+`args['<name>']`, `scalarArg(args, '<name>')` and `one('<name>')`. Four
+patterns and not one, because a flag read only through its reader never appears
+as `args.<name>` at all — `probe.mjs`'s `--channel` is `scalarArg(args,
+'channel')` and nothing else, so a single-pattern discovery would have dropped
+it and called the table wrong.
+
+**Read from `said` and not from `code`, which is H53's division and the one
+exclusion it cannot make for itself.** A flag name is a **string**, so the
+discovery needs the reading that keeps strings and drops comments. But that
+reading also keeps `from './args.mjs'`, and `args\.mjs` matches `args.<name>`
+— so a bare pattern reports a flag called `mjs` on three files. `NOT_A_FLAG`
+holds the four names that look like a flag read and are not: `_`, which is the
+positionals `parseArgs` collects and no runner declares, and `mjs`/`js`/`json`,
+which are module paths. Measured in a probe before a clause was written against
+it: without the exclusion the discovery returns `js` and `mjs` on `args.mjs`,
+`headless.mjs` and `suite.mjs`.
+
+**The clauses, and every one of them is now both ways.**
+
+1. **The census covers the tree.** A module the graph reaches and `FLAGS` does
+   not name is red, with the number of flags it reads. A `FLAGS` entry naming a
+   module nothing reaches is red too.
+2. **The flag set is the tree's.** A flag a runner reads and the table
+   classifies as neither is red; a flag the table names and the runner no
+   longer reads is red.
+3. **Each flag is still read the way it is classified** — repeatable through
+   `listArg`, scalar through the refusing reader — which is what the check
+   already did and is the clause the other two now feed.
+4. **The crawl's own instrument**, on F8's model: if the import graph reached no
+   more modules than the entry points it started from, the derivation did
+   nothing and every clause above is about five files again. A graph walk that
+   never left home is a hand-written list wearing a derivation.
+
+**Two clauses had to be scoped rather than widened, and the first run of the
+widened census is what said so.** *"The runner imports the command line from
+`./args.mjs` or `./headless.mjs`"* and *"the runner prints `REFUSED:`"* were
+written when every member of the census read a command line. Five of the nine
+read none: `args.mjs` **is** the parser, `headless.mjs` re-exports it, and
+`suitereport.mjs`, `version.mjs` and `watchdog.mjs` take their work from
+whoever imports them. Asked of them, both clauses red on the day the census was
+widened rather than on the day anything was wrong. Both are now asked of a
+module that reads at least one flag, which is the honest form: a module that
+reads a command line must get its parser from the one place and must name a
+refused flag in a sentence; a module that reads none owes neither.
+
+**Four breaks, each reverted, each naming its own clause.**
+
+- **A flag added to a runner and declared by nobody**: `shot.mjs` grown a
+  `const BREAK1 = args.foo;` — red, *"reads --foo and FLAGS classifies it as
+  neither repeatable nor scalar"*, and the message names the seven this job
+  found so the next reader of that red knows what it looks like.
+- **The same flag declared as well, still with no reader** — the hole the queue
+  entry names one level down, *"`--foo` read as `args.foo` with neither reader
+  touching it passes every clause there is"*: red, *"is declared to take one
+  --foo and does not read it through the refusing reader"*. That one is the
+  heart of the job and it is now closed at both levels.
+- **A declaration for a flag nothing reads**: `shot.mjs` back at HEAD with
+  `'foo'` left in the table — red, *"FLAGS says /scripts/shot.mjs takes --foo
+  and nothing in its source reads it"*.
+- **A zero-flag module grown a flag**: `watchdog.mjs` grown
+  `args.spin` — red three times over, the undeclared flag, the parser import
+  and the refusal, which is the proof that the five zero entries are
+  load-bearing. Absent from the census, as `watchdog.mjs` was this morning,
+  **none** of those three would have fired.
+
+**Verified.** `npm run suite`, exit 0: plant **230 passed, 1 failed, 8 not for
+this map** (1,155,222ms and 1,134,176ms), yard **210 / 1 / 28** (774,170ms and
+774,182ms). 0 red, 0 flaky, 0 skipped, 0 skips withheld, 0 bench drops
+withheld, 0 unexpectedly green, 0 context losses, 0 loop frames, 0 re-runs, no
+other runner, **0 console errors in all four runs**. Spreads 21,046ms on the
+plant (2% of the longest) and **12ms** on the yard (0%), inside F16's band. The
+counts are unchanged at 230/210 - this job rewrites one check's clauses and
+registers nothing new - and the ceiling line is unchanged at eleven, because
+`tests/args.js` at 361 is nowhere near it.
+
+**The census reads the same in all four runs, to the character**: *"10 parser
+cases (4 giving a flag twice), one parser in /scripts/args.mjs and none in the
+other 8, 9 modules reached from 5 package.json command(s), 34 flags read off
+the tree and each classified and read as a list or refused as a scalar"*, at
+**30 to 34ms**. Three `fetch`es more than it did before (nine modules and
+`package.json` against six) and the cost is the same to the millisecond.
+
+**Left.** Nothing from this job. The census now says *"10 parser cases (4
+giving a flag twice), one parser in /scripts/args.mjs and none in the other 8,
+9 modules reached from 5 package.json command(s), 34 flags read off the tree
+and each classified and read as a list or refused as a scalar"* — 27 flags
+across 5 named files to **34 across 9 derived** ones. `tests/args.js` is 224
+lines to 361.

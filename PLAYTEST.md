@@ -95,6 +95,40 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A test that checked a list of command-line options now reads the list off the tools (H64, 2026-10-14)
+
+**Nothing in the game changed, and nothing you run changed either.** This is
+about the little command-line tools in `scripts/` - the ones behind `npm run
+suite`, `npm run shot`, `npm run bench`, `npm run probe` and `npm run stamp` -
+and a test that checks each option they accept has been thought about.
+
+**What was wrong.** The test held a list of twenty-seven options, typed out by
+hand. Anything on that list was checked properly. Anything *not* on it was
+invisible - so when seven options had been added to the tools over the months,
+nothing noticed they were missing from the list, and four of the nine files in
+that folder were not being checked at all. The test was passing and it was
+right about everything it looked at; it simply was not looking at everything.
+
+**What it does now.** It works the list out for itself. It reads `package.json`
+to find which tools exist, follows what each one imports to find the rest - five
+commands lead to all nine files - and then reads each file to find every option
+it actually accepts. Then it checks that list against the written-down one in
+**both** directions: an option a tool accepts and nobody has classified is a
+failure, and so is a classification for an option no tool accepts any more.
+
+**What it found, which is the point.** Seven options nobody had classified:
+`--url`, `--regression`, `--query`, `--pre` and `--allow-other-runners` on the
+suite, and `--onscreen` and `--window-position` on the bench. **All seven were
+already being handled correctly** - every one of them refuses a second value, as
+it should - so nothing was broken and nothing needed fixing in the tools. The
+only thing out of date was the list, which is exactly the way a hand-written
+list goes wrong and a worked-out one cannot. The count went from 27 options
+across 5 files to **34 across 9**.
+
+**Nothing for you here** - it is a test about tests. It is in the record as
+H64 because the next person to add an option to one of those tools will now be
+told to say what it does, instead of finding out years later.
+
 ### For your eyes: the walk and sprint pictures stopped moving (H57, 2026-10-14)
 
 **Nothing in the game changed.** This is the **pose gallery** again — the

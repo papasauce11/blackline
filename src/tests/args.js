@@ -30,6 +30,27 @@
  * and each case carries the sentence saying what it is for, which is what
  * gets printed when one fails.
  *
+ * **Nothing in here is written down by hand any more (H64).** The runners and
+ * the flags each one reads are both read off the tree: `package.json`'s own
+ * commands are the entry points, the `from './<name>.mjs'` graph is the rest -
+ * five commands reach **nine** modules, which is every `.mjs` under `scripts/`
+ * - and each module's flags are every `args.<name>`, `args['<name>']`,
+ * `scalarArg(args, '<name>')` and `one('<name>')` in its source. That closes
+ * two holes a hand-written list had, and **both were open**: `watchdog.mjs`,
+ * `version.mjs`, `suitereport.mjs`, `args.mjs` and `headless.mjs` were outside
+ * the census altogether, so the day one grew a flag nothing would have said it
+ * was unclassified; and seven flags on two runners that *are* in the census
+ * were simply missing from the table - `--url`, `--regression`, `--query`,
+ * `--pre` and `--allow-other-runners` on the suite, `--onscreen` and
+ * `--window-position` on the bench. **All seven were already decided about**,
+ * every one of them read through `one()`, so this job changed no runner's
+ * behaviour: the table was the only thing out of date, which is exactly the
+ * failure a hand-written list has and a derived one cannot.
+ *
+ * The page cannot list a directory - `/scripts/` is a 404, measured - so the
+ * import graph is how "every `.mjs` under `scripts/`" is reached, and the
+ * instrument below asserts the crawl got past its own entry points.
+ *
  * **And the clause that keeps the repair.** The parser was written twice:
  * once in `headless.mjs` for the three small runners and once inside
  * `suite.mjs`, whose own header asks for the two to be kept in step. A
@@ -53,7 +74,59 @@ const SELF = 'every-runner-reads-one-command-line-and-a-flag-given-twice-is-kept
 
 /** Where the one parser lives, and where a second one must not appear. */
 const OWNER = '/scripts/args.mjs';
-const RUNNERS = ['/scripts/suite.mjs', '/scripts/headless.mjs', '/scripts/shot.mjs', '/scripts/probe.mjs', '/scripts/bench.mjs'];
+
+/**
+ * Names that look like a flag read and are not. `_` is the positionals, which
+ * `parseArgs` collects and no runner declares; the three extensions are the
+ * one thing reading from `said` cannot tell apart for itself, because
+ * `from './args.mjs'` is a **string** and survives there on purpose (H53).
+ */
+const NOT_A_FLAG = new Set(['_', 'mjs', 'js', 'json']);
+
+/**
+ * Every flag a module reads, off its own source: the two ways a value is
+ * taken (`args.name`, `args['name']`) and the two readers it may be handed to
+ * (`scalarArg(args, 'name')`, the runner's local `one('name')`). A flag read
+ * one way and never the other is the hole this is for - `--foo` taken as
+ * `args.foo` with no reader touching it used to pass every clause there was.
+ */
+function flagsIn(said) {
+  const out = new Set();
+  const add = (name) => { if (name && !NOT_A_FLAG.has(name)) out.add(name); };
+  for (const m of said.matchAll(/(^|[^\w/'"`.])args\.([A-Za-z_][\w]*)/g)) add(m[2]);
+  for (const m of said.matchAll(/args\['([a-z][a-z0-9-]*)'\]/g)) add(m[1]);
+  for (const m of said.matchAll(/scalarArg\(args, '([a-z][a-z0-9-]*)'\)/g)) add(m[1]);
+  for (const m of said.matchAll(/\bone\('([a-z][a-z0-9-]*)'\)/g)) add(m[1]);
+  return [...out].sort();
+}
+
+/**
+ * The runners, read off the tree. `package.json`'s commands are the entry
+ * points and the import graph is the rest, so a tenth module under `scripts/`
+ * joins the census the day something runs it rather than the day somebody
+ * remembers to add it here.
+ *
+ * @returns {Promise<{ sources: Map<string, {code: string, said: string}>, entries: string[], missing: string[] }>}
+ */
+async function discoverRunners(origin, read) {
+  const pkg = await read(origin, '/package.json');
+  if (pkg.error) return { sources: new Map(), entries: [], missing: [`package.json: ${pkg.error}`] };
+  const commands = Object.values(JSON.parse(pkg.body).scripts || {});
+  const entries = [...new Set(commands.flatMap((cmd) => [...cmd.matchAll(/scripts\/([a-z-]+\.mjs)/g)].map((m) => `/scripts/${m[1]}`)))];
+  const sources = new Map();
+  const missing = [];
+  const queue = [...entries];
+  while (queue.length) {
+    const rel = queue.shift();
+    if (sources.has(rel)) continue;
+    const got = await read(origin, rel);
+    if (got.error) { missing.push(got.error); continue; }
+    const said = uncommented(got.body);
+    sources.set(rel, { code: codeOf(got.body), said });
+    for (const m of said.matchAll(/from '\.\/([a-z-]+\.mjs)'/g)) queue.push(`/scripts/${m[1]}`);
+  }
+  return { sources, entries, missing };
+}
 
 /**
  * A declaration of the parser, which is the thing there may be only one of.
@@ -76,10 +149,21 @@ const DECLARES_A_PARSER = /function parseArgs\s*\(/;
  * flag nobody decided about, which is the state every one of them was in.
  */
 const FLAGS = [
-  { runner: '/scripts/suite.mjs', repeat: ['map'], scalar: ['runs', 'channel', 'timeout', 'subset', 'details', 'cores', 'cooldown', 'stall', 'stall-wait'] },
+  { runner: '/scripts/suite.mjs', repeat: ['map'], scalar: ['runs', 'channel', 'timeout', 'subset', 'details', 'cores', 'cooldown', 'stall', 'stall-wait', 'url', 'regression', 'query', 'pre', 'allow-other-runners'] },
   { runner: '/scripts/shot.mjs', repeat: ['pose', 'map'], scalar: ['channel', 'out', 'query', 'slide'] },
   { runner: '/scripts/probe.mjs', repeat: [], scalar: ['channel', 'out', 'query', 'map'] },
-  { runner: '/scripts/bench.mjs', repeat: ['map', 'quality'], scalar: ['runs', 'channel', 'out', 'stall', 'samples'] },
+  { runner: '/scripts/bench.mjs', repeat: ['map', 'quality'], scalar: ['runs', 'channel', 'out', 'stall', 'samples', 'onscreen', 'window-position'] },
+  // The five that read no command line. They are in the census **because**
+  // they read none: an entry saying zero is a claim the clauses below hold
+  // both ways, and absence was not. `args.mjs` is the parser itself and
+  // `headless.mjs` re-exports it; the other three take their work from the
+  // runner that imports them. The day any of them grows a flag, that flag has
+  // nowhere to hide (H64).
+  { runner: '/scripts/args.mjs', repeat: [], scalar: [] },
+  { runner: '/scripts/headless.mjs', repeat: [], scalar: [] },
+  { runner: '/scripts/suitereport.mjs', repeat: [], scalar: [] },
+  { runner: '/scripts/version.mjs', repeat: [], scalar: [] },
+  { runner: '/scripts/watchdog.mjs', repeat: [], scalar: [] },
 ];
 
 /** The refusal each runner prints, so a bad command line is loud and is not a red check. */
@@ -165,24 +249,52 @@ export function register(debugTools) {
       // three are **strings**: read through `code` they vanish, and the
       // first run of this check reported all thirty-one of its clauses
       // broken. `said` keeps them.
-      const sources = new Map();
-      for (const rel of [OWNER, ...RUNNERS]) {
-        const read = await text(origin, rel);
-        if (read.error) { problems.push(read.error); continue; }
-        sources.set(rel, { code: codeOf(read.body), said: uncommented(read.body) });
+      const { sources, entries, missing } = await discoverRunners(origin, text);
+      problems.push(...missing);
+      const runners = [...sources.keys()].sort();
+      const readsFlags = new Map(runners.map((rel) => [rel, flagsIn(sources.get(rel).said)]));
+
+      // The crawl's own instrument, on F8's model: a graph walk that never
+      // left its entry points is a hand-written list wearing a derivation.
+      if (runners.length <= entries.length) {
+        problems.push(`the import graph from package.json's ${entries.length} command(s) reached ${runners.length} module(s) under scripts/, so the crawl followed nothing; every clause below is then about the entry points only`);
       }
+
       const owner = sources.get(OWNER);
-      if (owner && !DECLARES_A_PARSER.test(owner.code)) {
+      if (!owner) {
+        problems.push(`${OWNER} is not reachable from package.json's commands, and it is where the one parser lives; the clause below is about to call every runner an offender`);
+      } else if (!DECLARES_A_PARSER.test(owner.code)) {
         problems.push(`${OWNER} does not declare parseArgs, and it is where the one parser lives; the clause below is about to call every runner an offender`);
       }
-      for (const rel of RUNNERS) {
+      for (const rel of runners) {
+        if (rel === OWNER) continue;
         const read = sources.get(rel);
-        if (!read) continue;
         if (DECLARES_A_PARSER.test(read.code)) {
           problems.push(`${rel} declares a parser of its own; there was a second copy until H58 and the two had already drifted over whether a positional is kept`);
         }
-        if (!/from '\.\/args\.mjs'/.test(read.said) && !/from '\.\/headless\.mjs'/.test(read.said)) {
-          problems.push(`${rel} imports the command line from neither ./args.mjs nor ./headless.mjs, so it is reading one of its own`);
+        // Asked only of a module that reads a command line. The three that
+        // take their work from whoever imports them need no parser, and a
+        // clause that demanded one of them would be noise rather than a claim.
+        if (readsFlags.get(rel).length && !/from '\.\/args\.mjs'/.test(read.said) && !/from '\.\/headless\.mjs'/.test(read.said)) {
+          problems.push(`${rel} reads ${readsFlags.get(rel).length} flag(s) and imports the command line from neither ./args.mjs nor ./headless.mjs, so it is reading one of its own`);
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // 2b. The census covers the tree, both ways (H64). A module the graph
+      //     reaches and the table does not know is the hole that let five
+      //     modules sit outside this check; a table entry naming a module
+      //     nothing runs is the declaration a later reader inherits.
+      // ------------------------------------------------------------------
+      const declared = new Map(FLAGS.map((entry) => [entry.runner, entry]));
+      for (const rel of runners) {
+        if (!declared.has(rel)) {
+          problems.push(`${rel} is reachable from package.json and is in no FLAGS entry, so the ${readsFlags.get(rel).length} flag(s) it reads are unclassified and a flag added to it would be invisible`);
+        }
+      }
+      for (const entry of FLAGS) {
+        if (!sources.has(entry.runner)) {
+          problems.push(`FLAGS declares ${entry.runner}, which nothing under package.json's commands reaches; either it has gone or the graph has, and a census of a file nobody runs holds nothing`);
         }
       }
 
@@ -193,6 +305,24 @@ export function register(debugTools) {
         const read = sources.get(entry.runner);
         if (!read) continue;
         const code = read.said;
+
+        // Both ways against the source (H64). A flag the runner reads and the
+        // table does not name is one nobody decided about, which is how seven
+        // of them arrived; a flag the table names and the runner no longer
+        // reads is a decision about nothing.
+        const names = [...entry.repeat, ...entry.scalar];
+        const reads = readsFlags.get(entry.runner) || [];
+        for (const flag of reads) {
+          if (!names.includes(flag)) {
+            problems.push(`${entry.runner} reads --${flag} and FLAGS classifies it as neither repeatable nor scalar; it is a flag nobody decided about, which is the state --url, --regression, --query, --pre, --allow-other-runners, --onscreen and --window-position were all in until H64`);
+          }
+        }
+        for (const flag of names) {
+          if (!reads.includes(flag)) {
+            problems.push(`FLAGS says ${entry.runner} takes --${flag} and nothing in its source reads it; an entry for a flag no runner reads is a line the next reader inherits without arguing`);
+          }
+        }
+
         for (const flag of entry.repeat) {
           if (!readsAsList(code, flag)) {
             problems.push(`${entry.runner} is declared to let --${flag} repeat and does not read it through listArg; this is H58's own defect, which lost every --pose but the last`);
@@ -206,17 +336,24 @@ export function register(debugTools) {
             problems.push(`${entry.runner} reads --${flag} as both a list and a single value; one of the two is wrong and neither says which`);
           }
         }
-        if (!code.includes(REFUSAL)) {
-          problems.push(`${entry.runner} never prints "${REFUSAL}", so a refused flag reaches the reader as a stack trace rather than as a sentence naming the flag`);
+        // Asked of a runner that has something to refuse. The five that read
+        // no command line print no refusal because they never take one, and
+        // a clause demanding it of them would red on the day this census was
+        // widened rather than on the day anything was wrong (H64).
+        if (reads.length && !code.includes(REFUSAL)) {
+          problems.push(`${entry.runner} reads ${reads.length} flag(s) and never prints "${REFUSAL}", so a refused flag reaches the reader as a stack trace rather than as a sentence naming the flag`);
         }
       }
 
       const flags = FLAGS.reduce((sum, e) => sum + e.repeat.length + e.scalar.length, 0);
+      const runnerCount = runners.length;
+      const entryCount = entries.length;
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${ARG_CASES.length} parser cases (${repeats} giving a flag twice), one parser in ${OWNER} and none in the ${RUNNERS.length} runners`
-            + `, ${flags} flags across ${FLAGS.length} runners each read as a list or refused as a scalar`
+          ? `${ARG_CASES.length} parser cases (${repeats} giving a flag twice), one parser in ${OWNER} and none in the other ${runnerCount - 1}`
+            + `, ${runnerCount} modules reached from ${entryCount} package.json command(s)`
+            + `, ${flags} flags read off the tree and each classified and read as a list or refused as a scalar`
           : problems.join('; '),
       };
     },

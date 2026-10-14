@@ -560,31 +560,20 @@ one setting only Josh can click; everything else here proceeds.
   stillness, with health in the text, and a check drives a strike beside a
   Warden that kills the Shade and asserts the reported reason names it.
 
-- [ ] **H64 (S)** The flag census in `tests/args.js` is written down by hand,
-  which is the shape of list H53 spent a whole job repairing twice over. Four
-  runners and twenty-seven flags are named in `FLAGS`, each declared
-  repeatable or scalar, and the clauses hold every one of them against the
-  runner's source - so a flag that is **in** the table cannot drift. A flag
-  that is not in the table is invisible: `scripts/watchdog.mjs` and
-  `scripts/version.mjs` take no flags today and are outside the census for
-  that reason, and the day either grows one nothing says it is unclassified.
-  The same hole, one level down, is a flag added to a runner that **is** in the
-  census - `--foo` read as `args.foo` with neither reader touching it passes
-  every clause there is.
-  Read the flags off the runners instead: every `args.<name>` and
-  `args['<name>']` in a runner's source is a flag, and each one must appear in
-  `FLAGS` as repeatable or scalar - both ways, so a flag added without a
-  decision is red and a table entry for a flag nobody reads any more is red
-  too. That is `breathcensus.js`'s own rule (*"a grep for the call is the whole
-  of it, which is what makes the census checkable rather than a matter of
-  opinion"*) and it wants H53's stripped readers, because a flag name is a
-  **string** - `said` and not `code`, which this job learned the expensive way.
-  The runner list wants the same treatment: every `.mjs` under `scripts/` is a
-  runner, rather than five named here.
-  *done-when:* the flag set is read off the tree and not a literal; a flag
-  added to any runner without a reader is red; an entry naming a flag no runner
-  reads is red; `watchdog.mjs` and `version.mjs` are in the census with zero
-  flags rather than absent from it; each proved by a break-and-revert.
+- [x] **H64 (S)** The flag census in `tests/args.js` is written down by hand. -
+  done 2026-10-14, under Done. **Both holes the entry predicted were already
+  open.** Five of the nine `.mjs` under `scripts/` were outside the census -
+  the entry named two - and **seven flags on two runners that are in it were
+  missing from the table**: `--url`, `--regression`, `--query`, `--pre`,
+  `--allow-other-runners` on the suite, `--onscreen` and `--window-position` on
+  the bench. All seven already go through `one(...)`, so **no runner's
+  behaviour changed**: the table was the only thing out of date, which is the
+  whole case for deriving one. `/scripts/` is a 404 from the page, so the
+  runners come off `package.json`'s commands and the import graph (five
+  commands reach all nine) and the flags off each runner's source, four
+  patterns deep because a flag read only through its reader never appears as
+  `args.<name>`. 27 flags across 5 named files to **34 across 9 derived** ones.
+
 - [ ] **H59 (S)** A strike's **success** is not a function of its argument
   either, and a skipped state is a check measuring eleven things while
   saying twelve. One subset run of H52's census reported *"2 not on this
@@ -1025,6 +1014,39 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H64** The flag census reads the tree, and the seven flags nobody had
+  decided about. `FLAGS` was four runners and twenty-seven flags typed out by
+  hand: anything on the list was held against the runner's own source and
+  anything off it was invisible. **Both ways it could be wrong, it was.** Five
+  of the nine `.mjs` files under `scripts/` were outside the census altogether
+  (`watchdog.mjs`, `version.mjs`, `suitereport.mjs`, `args.mjs`,
+  `headless.mjs` - the entry named two of them), and seven flags on two
+  censused runners were missing from the table, among them the suite's
+  `--allow-other-runners`, which is the flag `TRAPS.md` sends every reader of
+  an exit-3 refusal to. **All seven were already read through `one(...)`**, so
+  every one of them already refused a second value and **no runner's behaviour
+  changed** - the tools were right and the list was wrong and nothing could
+  tell, which is the argument for this job in one sentence. The page cannot
+  list a directory (`/scripts/` is a **404**, measured first), so the runners
+  are derived from `package.json`'s own commands plus the `from './x.mjs'`
+  graph - **five commands reach all nine files** - and each module's flags from
+  its source: `args.<name>`, `args['<name>']`, `scalarArg(args, '<name>')` and
+  `one('<name>')`, four patterns because a flag read only through its reader
+  never appears as `args.<name>` at all. Read from `said` and not `code`, which
+  is H53's division, with `NOT_A_FLAG` holding the four names that look like a
+  flag read and are not - `_` for the positionals and `mjs`/`js`/`json`,
+  because `from './args.mjs'` is a string and survives there on purpose. Every
+  clause is now both ways, and the crawl has an instrument of its own: a graph
+  walk that reached no more than its entry points is a hand-written list
+  wearing a derivation. **Two clauses were scoped rather than widened** - the
+  parser import and the `REFUSED:` sentence are asked of a module that reads a
+  command line, because five of the nine read none and demanding it of them
+  reds on the day the census grew rather than on the day something broke. Four
+  breaks, each reverted and each naming its own clause, including the one the
+  entry asked for by name: a flag declared **and** read with neither reader
+  touching it. 27 flags across 5 named files to **34 across 9 derived**;
+  `tests/args.js` 224 to 361 lines. — done 2026-10-14, `PENDING64`.
 
 - **H57** A strike becomes a function of its argument, and the live match
   nobody had declared. `strike`'s `walk` and `sprint` ran to a condition on the
