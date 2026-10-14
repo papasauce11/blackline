@@ -598,6 +598,32 @@ one setting only Josh can click; everything else here proceeds.
   every state strikes on both maps over four runs, or the ones that cannot
   are declared per map the way `poseeye.js` declares its pairs; and a
   skipped state is red somewhere rather than reported everywhere.
+
+  **H57 found a cause of exactly this, by accident, and it is not the speed
+  (2026-10-14).** The same class of message - *"a crouch at 0.0 m/s did not
+  slide (state ground)"*, and *"the sprint did not bring a leg furthest
+  forward (speed 0.0)"* - came from the Shade being **shot dead** mid-strike.
+  `strike()` drives the body down a lit lane in a **live** match, and the
+  Warden lands four rounds: `combat:shot/warden`, `impact`, `damage/body`,
+  `damage/headshot`, `combat:death`, twenty-two events inside one sprint,
+  leaving `health` 0 and `ragdolled` true. A dead body does not accelerate, so
+  the strike reports a stationary one and the reason reads as a gait or a
+  speed problem. **That fits this entry's own evidence**: it is intermittent
+  on the frame count, it was one subset run of four, and 0.3 m/s is not a body
+  that walked too fast into a crouch - it is a body that could not move.
+  **So start here, and in this order.** (1) Take **H72** first, or at least its
+  one line: report `shade.health` in `strike`'s failures. Without it this job
+  is measuring the symptom, which is the afternoon H57 paid for. (2) Then see
+  whether anything is left: H57 gave `strikerepeat.js` a fresh match with the
+  AI off before **every** strike, which removes the Warden from that check's
+  twenty-four strikes entirely - so if the skip was only ever the Warden, this
+  entry may already be closed there and still open in `poseeye.js` and
+  `look.js`, which take one match per state and are therefore exposed for
+  less time rather than not at all. (3) Only if a skip survives all that is
+  the speed the suspect, and then `stand()`'s five frames are the thing to
+  measure. Also worth knowing: `quiesce()` claims to stop the AI interfering
+  and passes `ai: true` twice, which is **H71** and is why the exposure was
+  there to begin with.
 - [ ] **H60 (S)** A census whose headline counts one set and whose tally
   counts another. `breathcensus.js` prints *"15 pose a body: 2 held at the
   worst phase, 4 measured, 6 out of reach by proof"* - fifteen against a
