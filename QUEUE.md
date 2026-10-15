@@ -1180,7 +1180,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   and reds both clauses at once, and the settle driven with the AI off reds the
   turn clause. The docstring now says the mechanism rather than the effect, and
   H71's "five frames" is **three to four on the plant and sixteen on the yard**.
-  — done 2026-10-14, `HASH_H73`.
+  — done 2026-10-14, `bb82665`.
 
 - **H72** A strike that was shot reports being shot, and the sentence H57
   chased for an afternoon. Every `why` `strike()` reports is about what the body
