@@ -59,6 +59,18 @@
  * in a clause here. A number asserted the morning it is first measured is a
  * rule nobody argued.
  *
+ * **H80 withdrew the first sentence of that paragraph.** 0.000m is what the
+ * Warden is off its spawn for **twenty of the twenty-one circuits** the
+ * shuffle can draw, and the twenty-first - the one starting with the node each
+ * map's Warden spawn already faces - leaves it **0.837m** off on the yard and
+ * **0.368m** on the plant, because a Warden that has nothing to turn walks
+ * instead. `deriveSeed()` hands an unseeded match `Date.now()` and the suite
+ * names no seed, so the circuit is the clock's and the rate is 3.75% a run on
+ * the yard, 4.25% on the plant. That is what reddened this check in H74's
+ * verify, and it is why the two settle bars below are now taken at a seed this
+ * check names and the live call's own reading is held against the census in
+ * `tests/settlecircuit.js` rather than against zero.
+ *
  * **H74 asked the other half of H71's count, and found that the question could
  * not be answered the way it was posed.** Whether a walking Warden changes a
  * reading is not measurable one run at a time on these checks, because **ten of
@@ -77,6 +89,7 @@
 import { CONFIG } from '../config.js';
 import { codeOf, readerProblems } from './sourcetext.js';
 import { quiesce } from './pixels.js';
+import { settleClasses, aCircuitThatOnlyTurns } from './settlecircuit.js';
 
 /** The helper, where it lives, and the id this check reports under. */
 export const HELPER = 'quiesce';
@@ -203,6 +216,15 @@ const UNTURNED = 0.001;
  * live, which is the sentence, and the body is where `initMatch` put it, which
  * is the reading. Both halves asserted, the first moving frame reported.
  *
+ * **H80: stable in a circuit, and the circuit is the clock's.** Both halves are
+ * true of a settle the Warden spends turning and false of the one circuit that
+ * gives it nothing to turn, so they are asserted at a **named seed** taken from
+ * `tests/settlecircuit.js`'s census of which circuits only turn - the premise
+ * measured before it is leaned on, which is the A1/A3 shape this check was
+ * caught by. The angles above are the angle to the circuit's first *node*, and
+ * the thing `_followRoute` steers to is the first point of the route planned to
+ * it, which is why the frames do not follow from them arithmetically.
+ *
  * `SETTLE` is read off `pixels.js`'s own source rather than written here, so a
  * helper that grew its settle past the turn would be driven as it really is and
  * go red - which is the drift H71 queued this for. It is **not** D70's vacuous
@@ -235,9 +257,20 @@ function whatTheBodyDid(h) {
  * happens during it can be read. The same match the helper starts and the same
  * number of frames, taken off its source - then one frame at a time until the
  * body translates, which is reported and not asserted.
+ *
+ * **H80: the seed is named, and that is the whole of the fix.** The two bars
+ * this feeds - the body has not translated, and the yaw has - are true of a
+ * settle the Warden spends turning, which is twenty of the twenty-one circuits
+ * the shuffle can draw. `deriveSeed()` hands an unseeded match `Date.now()` and
+ * the suite names no seed, so this reading used to be taken in whichever
+ * circuit the clock happened to pick, and was red in about one run in
+ * twenty-four: `tests/settlecircuit.js` has the rate and the two readings. The
+ * seed comes from that census, which drives the settle once per circuit and
+ * reports which of them only turn - so the premise is established by
+ * measurement before it is leaned on, rather than inherited from the clock.
  */
-function whatTheSettleDoes(h, flag, settle) {
-  h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: flag === 'true', objective: true });
+function whatTheSettleDoes(h, flag, settle, seed) {
+  h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: flag === 'true', objective: true, seed });
   h.menu.hide();
   h.setPaused(false);
   h.input.clearAll();
@@ -351,15 +384,33 @@ export function register(debugTools) {
       //    leaves the same one, and the Warden does what that flag means.
       // ------------------------------------------------------------------
       const wants = flag === 'true';
+
+      // H80: what the settle does for each circuit the shuffle can draw, before
+      // anything below rests on one of them. The clock chooses the circuit in
+      // every unseeded match, and on both maps one node of twenty-one sends the
+      // Warden walking instead of turning - so which circuit a reading was
+      // taken in is a premise, and this is where it is established.
+      const classes = settleClasses(h, settle);
+      const onlyTurns = aCircuitThatOnlyTurns(classes);
+      if (!onlyTurns) {
+        return {
+          pass: false,
+          detail: `no circuit of ${classes.scanned} leaves the Warden on its spawn over the ${settle} frames ${HELPER}() settles, so the premise the two bars below rest on - and twelve of its callers with them - holds for no patrol circuit at all (H80)`,
+        };
+      }
+      const settleSeed = onlyTurns.seeds[0];
+
       const restore = quiesce(h);
       let afterCall;
       let quiesced;
       let shadeDrift;
       let wardenSettled;
+      let liveCircuit;
       try {
         afterCall = h.match.aiEnabled;
         shadeDrift = flat(h.shade.position, h.map.shadeSpawns[0].position);
         wardenSettled = flat(h.warden.position, h.map.wardenSpawns[0].position);
+        liveCircuit = h.wardenAI._circuit[0];
         quiesced = whatTheBodyDid(h);
       } finally {
         restore();
@@ -377,7 +428,7 @@ export function register(debugTools) {
       // H73: and the settle itself, driven out here where it can be read - the
       // same match, the same frame count off the same source. Twelve callers
       // draw their frame at the end of it.
-      const during = whatTheSettleDoes(h, flag, settle);
+      const during = whatTheSettleDoes(h, flag, settle, settleSeed);
       // And leave the run in the state a restore leaves it, which is what
       // every check after a pixel check already inherits.
       h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: wants, objective: true });
@@ -400,8 +451,19 @@ export function register(debugTools) {
       // Both halves, because either alone is satisfied by the wrong thing: a
       // body that has not moved could be a body nobody is driving, and a yaw
       // that moved could belong to a Warden already walking off its spawn.
-      if (wardenSettled > ON_SPAWN) {
-        problems.push(`the Warden is ${wardenSettled.toFixed(6)}m off its spawn when ${HELPER}() returns, against ${ON_SPAWN}m - twelve of its callers draw their frame here and have never had to say where the Warden was (H73, H74)`);
+      //
+      // H80: the live call above is the one match here nothing can seed - the
+      // helper asks `initMatch` for no seed, as every caller does, so the clock
+      // picks its circuit. "On its spawn" is therefore not true of it: it is
+      // true of twenty circuits out of twenty-one, and the bar is that this
+      // reading is one the census accounts for. An unaccounted distance is a
+      // settle whose end position no circuit explains, which is the defect this
+      // used to catch; a known one is the clock having drawn the walking node,
+      // and the detail line says which was drawn.
+      const accounts = classes.nodes.find((n) => Math.abs(n.moved - wardenSettled) <= ON_SPAWN);
+      if (!accounts) {
+        const known = classes.nodes.map((n) => `${n.moved.toFixed(6)}m (node ${n.node})`).join(', ');
+        problems.push(`the Warden is ${wardenSettled.toFixed(6)}m off its spawn when ${HELPER}() returns on the clock's seed, and no circuit of ${classes.scanned} settles there - the ${classes.nodes.length} that were driven end at ${known}, so this settle is reading something the circuit does not decide (H80)`);
       }
       if (during.moved > ON_SPAWN) {
         problems.push(`over the ${settle} frames ${HELPER}() settles the Warden translated ${during.moved.toFixed(6)}m, against ${ON_SPAWN}m - a settle that outlasts the turn puts a walking Warden in twelve checks' frames, and the frames it takes are map data (${during.firstMove || `>${FIRST_MOVE_CAP}`} after the settle here)`);
@@ -417,7 +479,8 @@ export function register(debugTools) {
         detail: problems.length === 0
           ? `ai: ${flag} x${passed.length} (call, restore); sentence: ${SAYS[flag].reading}, read as prose off its ${cut.doc.length}-char comment; `
             + `aiEnabled=${afterCall} then ${afterRestore}; Shade ${shadeDrift.toFixed(3)}m off spawn; `
-            + `over its ${settle} settling frames the Warden turned ${during.turned.toFixed(4)}rad, translated ${during.moved.toFixed(6)}m, first moved ${during.firstMove || `>${FIRST_MOVE_CAP}`} frames later (H73); `
+            + `the clock drew node ${liveCircuit} and left the Warden ${wardenSettled.toFixed(6)}m off spawn, which is the ${accounts && accounts.moved > ON_SPAWN ? 'walking' : 'turning'} class of ${classes.nodes.length} (H80); `
+            + `at seed ${settleSeed}, over its ${settle} settling frames the Warden turned ${during.turned.toFixed(4)}rad, translated ${during.moved.toFixed(6)}m, first moved ${during.firstMove || `>${FIRST_MOVE_CAP}`} frames later (H73); `
             + `over ${WALK_FRAMES} frames nothing held it moved ${did(driven)} with the AI on, ${did(inert)} off`
           : problems.join('; '),
       };

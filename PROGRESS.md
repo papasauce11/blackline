@@ -17177,3 +17177,136 @@ rng as a *candidate* channel, which wants H79's band first or it measures the
 same fog. **H80**: the flake above, with its reproduction. And on the record
 rather than in the queue: the audio device has now suspended itself once, which
 the next verify should be read against.
+
+## H80 — the thing being inherited was the clock, and the circuit was innocent
+
+**Built.** `src/tests/settlecircuit.js` (243 lines, one new check,
+`the-settle-is-a-function-of-the-circuit-and-the-clock-draws-the-circuit`) and
+the two settle bars in `tests/quiesce.js` moved onto a seed the check names.
+186 modules to 187, 232/212 to 233/213.
+
+**What it was, and it was not what the entry guessed.** H80 was queued as a
+dependence on what had run before the check, with the patrol **circuit** and
+the rng stream position at the moment it is drawn as the thing left to rule
+out. Both are innocent, and ruling them out cost one grep: `initMatch` calls
+`rng.reseed()`, which zeroes `rngState.calls`, and nothing between that and
+`rng.shuffle(this._circuit)` in `ai.reset()` draws from the stream -
+`createMatchState`, `shade.reset`, `warden.reset` and `detection.reset` contain
+no `rng` reference at all - so the shuffle is always a match's first draw and
+the circuit is a function of the seed alone.
+
+**The seed is `Date.now()`.** `deriveSeed()` returns `Date.now() >>> 0` when
+the URL names no `?seed=`, the suite names none, and `initMatch` calls it on
+every match. So the circuit is redrawn from the wall clock thirty-odd times a
+check, and the first probe said so in one column: eight successive
+`initMatch` calls, seeds 1099333811, ...812, ...813, with `_circuit[0]` moving
+with them. There is nothing wrong with that - a new match should draw a new
+patrol order - and it means the reading the check asserted was taken in
+whichever circuit the clock had just handed it.
+
+**The measurement, and it is a census rather than an argument.** The settle
+driven once per seed over seeds 1 to 400 on both maps has exactly **two**
+readings a map:
+
+| | turning | walking | rate |
+|---|---|---|---|
+| yard | 385/400: 0.000000m, 1.1333rad | 15/400: **0.836667m, 0.0435rad** | 3.75% |
+| plant | 383/400: 0.000000m, 1.1333rad | 17/400: **0.368476m, 1.1333rad** | 4.25% |
+
+and in **all 32** of the walking readings the circuit's first node is **node
+1**, which on both maps is the node the Warden's spawn is already facing. A
+Warden with nothing to turn walks. `0.0435rad` is the number in H74's failing
+detail line to four places, so the mechanism is not inferred, it is the same
+reading. Over the four runs of a full verify that is a red about **one time in
+seven**, against the one failure in twelve runs H74 counted.
+
+**And the half nobody had seen.** The plant carries the same defect at the
+higher rate and has never been observed failing, because there the Warden turns
+the full 1.1333rad *and* walks 0.368m, so it trips the position bar alone while
+the yard's case trips both. A flake that only ever fires on one map is not
+therefore a one-map flake.
+
+**Fixed, and what "fixed" is allowed to mean here.** Two bars rested on the
+premise *the settle leaves the Warden on its spawn*, which is true of twenty
+circuits out of twenty-one and was never established by the check that leaned on
+it - the A1/A3 shape again, a clause whose premise is somebody else's to set up,
+and here the somebody else is the clock. So `whatTheSettleDoes` takes a
+**seed**, and the seed comes from the new census: it drives the settle once per
+circuit and hands back the first that only turns. The premise is now measured
+before it is leaned on. **No bar was loosened** - 1e-6m and 0.05rad are
+unchanged, and they are now asserted about a circuit the check chose.
+
+The third bar could not be pinned and should not have been. `wardenSettled` is
+read off the live `quiesce(h)` call, which asks for no seed exactly as all
+thirty callers do, so "on its spawn" is **false** of it one run in twenty-four.
+A false bar is not fixed by pinning what it measures, so it now asserts that the
+reading is one the census **accounts for** - an unaccounted distance is a settle
+no circuit explains, which is the defect the old bar was really for - and the
+detail line names the node the clock drew and which class it fell in. On the
+plant's verify it drew node 6, 0.000000m, the turning class of 17.
+
+**The new check.** It drives the settle for seeds 1 to 48, groups by the
+circuit's first node, and holds three things: that two seeds drawing the same
+first node settle to the same metre and radian (a wall-clock read or an unseeded
+draw under the settle breaks this and nothing else); that at least one circuit
+leaves the Warden on its spawn, which is the premise twelve one-frame sites rest
+on; and that at least one does not, which is the finding and may not quietly
+empty. Forty-eight seeds because the first walking circuit is seed 26 on the
+yard and **36 on the plant**, so a scan stopping at 32 would report an empty
+class on the plant and call it clean. It costs **19ms on the yard, 23ms on the
+plant**.
+
+**Verified.** Gate `--runs 1` at HEAD `2b905ef`: plant 233/1/8
+(1,113,117ms), yard 213/1/28 (771,706ms), exit 0, 0 red, 0 flaky, 0 skipped, 0
+console errors, no other runner. Subset of the new check, the quiesce pair and
+the four censuses plus the two seed checks: **9/9 both maps**, 0 console errors,
+187 modules. The two censuses read identically to the 400-seed probe: plant 48
+seeds / 17 distinct first nodes / 16 on spawn / node 1 at 0.368476m / 2 of 48
+seeds; yard 48 / 19 / 18 / node 1 at 0.836667m / 2 of 48. **The break**: the
+walk gate in `ainav.js._followRoute` widened from `Math.PI / 3` to `Math.PI`,
+so the Warden never turns on the spot, reds both checks with the sentences they
+were written for - *"no circuit of 48 leaves the Warden on its spawn"* - and
+`ainav.js` was restored from its snapshot and `node --check`ed before anything
+else ran.
+
+**The verify.** Four runs, exit 0: plant **234 passed, 1 failed, 8 not for this
+map** (1,119,172ms and 1,128,617ms), yard **214 / 1 / 28** (782,946ms and
+778,470ms), **0 red, 0 flaky, 0 skipped, 0 unexpectedly green, 0 context
+losses, 0 console errors, no other runner**, spreads 9,445ms (1%) and 4,476ms
+(1%). The one failure a map is the bench-only sweep. **And the new check reads
+byte-identically across both runs of each map** - 17 nodes, 16 on spawn, node 1
+at 0.368476m, 2 of 48 seeds on the plant, twice; 19 / 18 / 0.836667m / 2 of 48
+on the yard, twice - which is what a seeded reading looks like and is worth
+noting beside H79, where ten readings in this same neighbourhood do not. The
+quiesce check's own line moves, and that is the instrument working rather than
+drifting: it **reports** the node the clock drew (7, 14, 9 and 4 over the four
+runs) and all four landed in the turning class at 0.000000m, where before the
+fix the reading itself turned on that draw.
+
+**Found, and it is bigger than this job.** Twelve of `quiesce()`'s thirty-one
+sites grab a frame **without stepping one** (H74), which is to say at the end of
+exactly this settle - so in about one run in twenty-four those twelve pixel
+readings are taken with the Warden 0.37m or 0.84m off the spawn their prose
+assumes. That is a second channel into the run-to-run band H74 measured and
+could not attribute, and it is the channel **H77** was queued to look for: the
+rng is not a candidate, it is a confirmed one, and the amount is a Warden a
+third of a metre off its mark rather than a different spark pattern. **H81** is
+the job that follows from it - whether `quiesce()` should name a seed, which
+would make thirty callers' readings reproducible and is a change to what thirty
+checks measure, so it is not a thing to do inside a flake fix.
+
+**And one note on method, because it is what made this cheap.** The entry
+handed the next run a hypothesis and a 28-second reproduction. The reproduction
+did not reproduce - the real check run eight times in a fresh page passed 8/8,
+iteration 0 included - and that was the finding: a failure that moves with the
+clock is not a failure that depends on its predecessor. Had the probe been
+trusted to confirm the hypothesis rather than to measure the quantity, the fix
+would have gone into the wrong file. H74's first lesson said a before-and-after
+is worth nothing until the quantity's own spread is known; this is the same
+lesson about a *reproduction*, and the cheap instrument was a 400-seed scan that
+ran in **205ms** and answered it completely.
+
+**Left.** **H81** above, new. **H76**, **H78**, **H79** and **H77** unchanged -
+and H77 now has its answer's shape, so it should be read against this entry
+before it is started. H37 and H49 declined again, twelve runs and nine: both
+edit a scheduled task's standing prompt and nobody was present.

@@ -85,6 +85,7 @@ import { register as registerSmallWindow } from './smallwindow.js';
 import { register as registerPixelFloors } from './pixelfloors.js';
 import { register as registerQuiesce } from './quiesce.js';
 import { register as registerQuiesceSites } from './quiescesites.js';
+import { register as registerSettleCircuit } from './settlecircuit.js';
 import { register as registerAudioContext } from './audiocontext.js';
 import { register as registerSolverQuery } from './solverquery.js';
 import { register as registerAutoPick } from './autopick.js';
@@ -209,6 +210,11 @@ export function registerAutoTests(debugTools) {
   // says, but which of its thirty-one sites steps the world before it draws,
   // and therefore owes itself a match with no AI in it (H74).
   registerQuiesceSites(debugTools);
+  // And the third of the same subject: not what the helper says, nor which of
+  // its sites steps the world, but which patrol circuit its settle got - the
+  // clock draws it, and one node of twenty-one sends the Warden walking off the
+  // spawn twelve one-frame sites grab it on (H80).
+  registerSettleCircuit(debugTools);
   // Beside it, and a census of the same shape: one module owns the audio
   // device's constructor, and an offline render gives the live context back
   // (H32).

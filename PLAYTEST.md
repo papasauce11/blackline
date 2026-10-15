@@ -95,6 +95,43 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A test was failing about once a dozen runs, and the reason was a coin the clock was tossing (H80, 2026-10-15)
+
+**Nothing in the game changed**, and this one closes the thread the last four
+jobs have been pulling on.
+
+**What was happening.** The Warden's patrol route is shuffled fresh at the start
+of every round, from a number taken off the computer's clock, so no two rounds
+walk the stops in the same order. That is deliberate and it is how it should
+stay. One of the tests measures the third of a second the round is allowed to
+settle before a photograph is taken, and its rule was *the Warden should still be
+standing on its mark at the end of it*. That rule held because the Warden's first
+act is almost always to turn on the spot to face its first stop, which takes
+longer than the third of a second it is given.
+
+**Almost always.** Each map has exactly **one** patrol stop that sits straight
+ahead of where the Warden spawns, and when the shuffle happens to put that one
+first the Warden has nothing to turn and simply walks off — **0.84m in the yard,
+0.37m in the plant**. The rule then fails, the suite reports a red, and the next
+run passes because the clock has moved on. Driven once for every one of 400
+shuffles on each map, that is **15 times in 400 in the yard and 17 in 400 in the
+plant** — about 4% a run, or one full verify in seven. The plant's half had never
+been seen, because there the Warden turns *and* walks and so only trips half the
+rule.
+
+**What was done.** The test now measures every route the shuffle can produce,
+picks one it has shown only turns, and takes its reading in that one — so the
+thing it assumes is something it has established rather than something the clock
+handed it. A new test keeps that census honest:
+`the-settle-is-a-function-of-the-circuit-and-the-clock-draws-the-circuit`
+drives the settle once per route, requires every route to settle the same way
+every time it is drawn, and requires both kinds of route to still exist.
+Breaking the Warden's turn-before-step on purpose reds both of them with the
+right sentence.
+
+**Nothing for you to do.** There is one note in *Known issues* below about the
+photographs this affects.
+
 ### Fourteen tests were photographing a Warden that was free to walk off, and their numbers wander more than I knew (H74, 2026-10-15)
 
 **Nothing in the game changed**, and this is the end of a thread that has run
@@ -2033,6 +2070,17 @@ now. What is not, and why:
 
 ## Known issues and open questions
 
+- **Twelve of the photographs are taken at the one moment the Warden might
+  have walked** (H80, 2026-10-15). Twelve tests take their picture at the end of
+  the settling third of a second described above, without advancing the round
+  first, so the Warden in those twelve photographs is wherever that settle left
+  it. In about **one run in twenty-four** the clock's shuffle picks the route
+  that sends it walking, and those photographs are then taken with the Warden
+  0.37m (plant) or 0.84m (yard) off the mark their descriptions assume. No test
+  is anywhere near failing on it, and nothing in the game is wrong - but it is a
+  second reason those pixel counts wander between runs, on top of the breathing
+  in the note below, and it is the one a job in the queue was already looking
+  for. **Nothing for you to do** - a note about the instrument.
 - **The suite checks that a test agrees with itself, but not that its numbers
   do** (H74, 2026-10-15). Every test runs twice on each map and the suite
   refuses a run where any test *changes its mind*. It does not look at the

@@ -628,38 +628,6 @@ one setting only Josh can click; everything else here proceeds.
   that band. Eleven lines added on the rule's own argument, a thirty-one-site
   census to hold them, and **H79** is the drift the suite cannot see.
 
-- [ ] **H80 (S)** `quiesce-says-what-it-does-about-the-ai` depends on what ran
-  before it, and H74's verify caught it. One of two yard runs read *"over the 20
-  frames `quiesce()` settles the Warden translated **0.836667m**, against
-  0.000001m ... turned **0.0435rad**, against 0.05rad"* - a Warden already round
-  and walking from frame 1, where H73 measured the yard's first node at 1.13 rad
-  off the spawn nose and the first step on frame 17. One failure in twelve runs
-  of that tree. **The reproduction is in hand and costs 28 seconds**: run the
-  real check eight times over through the real runner in one probe on the yard
-  (`h.debugTools._autoTests`, TRAPS.md's recipe) and it fails on iteration **0**
-  and passes on **1 through 7**. So it is a dependence on what has run before
-  it, and the first invocation in a fresh page is the case that trips - which in
-  the suite means the predecessor's leavings decide it, and H74 changed eleven
-  predecessors' leavings without touching this check's own code (`pixels.js` has
-  no executable change in H74; `quiesce.js`'s is `export` on two constants).
-  **Two mechanisms are already ruled out:** `agent.reset()` sets
-  `this.yaw = spawn.yaw || 0`, so the yaw is not inherited from the 420-frame
-  walk the same check runs just before it, and `ai.reset()` clears `_route` and
-  `_routeIndex`, so the A* path is not either. What is left is the patrol
-  **circuit** - which `initMatch`'s reseed is documented to redraw ("a replayed
-  seed reproduces the same patrol order", Section 16 check 28) - and the stream
-  position at the moment it is drawn. Start by reading whether the circuit is
-  built in `ai.reset()` or lazily on the first patrol tick, and print it either
-  side of the `initMatch` in `whatTheSettleDoes`.
-  **This is H73's clause and the bar is not in question** - the Warden does turn
-  before it steps, measured four passes a map twice over. What is in question is
-  whether the check establishes the state its bar assumes, which is the A1/A3
-  shape again: a clause whose premise is set up by somebody else.
-  *done-when:* the probe above passes on iteration 0 as well as 1-7, on both
-  maps; the thing that was being inherited is named in `PROGRESS.md`; the check
-  establishes it itself rather than relying on a predecessor; and the full suite
-  is green twice on both maps with the clause's bars unchanged.
-
 - [ ] **H75 (S)** `src/tests/animation.js` is at 592 of 600, and the seam is
   not prose. It was 550 - one line outside the crowded cluster - and H72's
   forty-two lines put it in, so the ceiling reads **12 modules within 50 of
@@ -787,6 +755,34 @@ one setting only Josh can click; everything else here proceeds.
   commands reach all nine) and the flags off each runner's source, four
   patterns deep because a flag read only through its reader never appears as
   `args.<name>`. 27 flags across 5 named files to **34 across 9 derived** ones.
+
+- [ ] **H81 (S)** Should `quiesce()` name a seed? H80 is why the question
+  exists and deliberately did not answer it. The helper asks `initMatch` for no
+  seed, as every caller does, so `deriveSeed()` hands it `Date.now()` and the
+  patrol circuit is redrawn from the clock on every one of its thirty calls.
+  H80's census is what that costs: the settle has exactly two readings a map,
+  and in **15 of 400 seeds on the yard and 17 of 400 on the plant** the circuit
+  starts with node 1 - the node each Warden spawn already faces - and the
+  Warden walks **0.837m** or **0.368m** off its mark instead of turning on the
+  spot. **Twelve sites grab a frame without stepping one** (H74), which is to
+  say exactly there, so one run in twenty-four those twelve pixel readings are
+  taken with a Warden a third of a metre to five-sixths of a metre out of
+  position. A seed in the helper would make all thirty callers reproducible in
+  one line. **It is not a one-line job, which is why it is its own.** It
+  changes what thirty checks measure, so every pixel floor in that
+  neighbourhood wants re-reading against the pinned circuit, and a floor set
+  just under a reading taken in the *other* class would go red the day it
+  landed. It also answers a question H79 is holding: a reading pinned to a
+  circuit is one less channel in the band, and the breath is the other.
+  **Read H80's PROGRESS entry first** - the 400-seed scan it uses runs in
+  205ms and is the instrument this job wants too. The alternative, and it is a
+  real one, is to leave the helper alone and have the twelve sites that grab
+  one frame assert where the Warden is at the grab, which is H76's shape and
+  costs twelve lines rather than a re-measure.
+  *done-when:* either the helper names a seed and every pixel floor in its
+  thirty callers is re-read and re-recorded against it, or the queue carries
+  the reason it should not and the twelve one-frame sites say where the Warden
+  was instead; the census in `tests/settlecircuit.js` still green either way.
 
 - [ ] **H59 (S)** A strike's **success** is not a function of its argument
   either, and a skipped state is a check measuring eleven things while
@@ -1254,6 +1250,75 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H80** The thing being inherited was the clock, and the circuit was
+  innocent. H74's third verify left `quiesce-says-what-it-does-about-the-ai`
+  flaky - one of two yard runs read a Warden that had translated **0.836667m**
+  against a bar of 0.000001m and turned **0.0435rad** against 0.05rad - and the
+  entry read that as a dependence on what had run before the check, naming the
+  patrol **circuit** and the rng stream position at the moment it is drawn as
+  what was left to rule out. **Both are innocent, and one grep ruled them
+  out**: `initMatch` calls `rng.reseed()`, which zeroes `rngState.calls`, and
+  nothing between that and `rng.shuffle(this._circuit)` in `ai.reset()` draws
+  from the stream - `createMatchState`, `shade.reset`, `warden.reset` and
+  `detection.reset` contain no `rng` reference at all - so the shuffle is
+  always a match's first draw and the circuit is a function of the seed alone.
+  **The seed is the wall clock.** `deriveSeed()` returns `Date.now() >>> 0`
+  when the URL names no `?seed=`, the suite names none, and `initMatch` calls
+  it every match: the first probe printed eight successive seeds 1099333811,
+  ...812, ...813 with `_circuit[0]` moving with them. Nothing is wrong with
+  that - a new match should draw a new patrol order - and it means the asserted
+  reading was taken in whichever circuit the clock had just handed it.
+  **The census, driven once per seed over 400 seeds a map, has exactly two
+  readings:** yard **385/400** at 0.000000m and 1.1333rad against **15/400** at
+  **0.836667m and 0.0435rad**; plant **383/400** at 0.000000m and 1.1333rad
+  against **17/400** at **0.368476m and 1.1333rad**. In **all 32** of the
+  walking readings the circuit's first node is **node 1**, which on both maps is
+  the node the Warden's spawn is already facing - a Warden with nothing to turn
+  walks. `0.0435rad` is H74's failing detail line to four places, so the
+  mechanism is the same reading rather than an inference, and the rate is 3.75%
+  a run on the yard and 4.25% on the plant: about one red in seven full
+  verifies, against H74's one failure in twelve runs. **And the plant's half had
+  never been seen**, at the higher rate, because there the Warden turns the full
+  1.1333rad *and* walks and so trips the position bar alone where the yard's
+  case trips both - a flake observed on one map is not a one-map flake.
+  **The fix is to name the seed, and no bar moved.** Two bars rested on *the
+  settle leaves the Warden on its spawn*, true of twenty circuits of twenty-one
+  and never established by the check that leaned on it - the A1/A3 shape, with
+  the clock as the somebody else - so `whatTheSettleDoes` takes a seed from the
+  new `tests/settlecircuit.js`, whose census drives the settle per circuit and
+  hands back the first that only turns. 1e-6m and 0.05rad are unchanged and are
+  now asserted about a circuit the check chose. **The third bar could not be
+  pinned and should not have been**: `wardenSettled` reads the live `quiesce(h)`
+  call, which asks for no seed exactly as all thirty callers do, so "on its
+  spawn" is **false** of it one run in twenty-four, and a false bar is not fixed
+  by pinning what it measures. It asserts instead that the distance is one the
+  census **accounts for** - an unaccounted distance being a settle no circuit
+  explains, which is what the old bar was really for - and the detail line names
+  the node the clock drew and its class.
+  **The new check**, `the-settle-is-a-function-of-the-circuit-and-the-clock-draws-the-circuit`,
+  holds three things over seeds 1 to 48: that two seeds drawing the same first
+  node settle to the same metre and radian, which a wall-clock read or an
+  unseeded draw under the settle breaks and nothing else here does; that at
+  least one circuit leaves the Warden on its spawn, the premise twelve one-frame
+  sites rest on; and that at least one does not, which is the finding and may
+  not quietly empty. **Forty-eight** because the first walking circuit is seed
+  26 on the yard and **36 on the plant**, so a scan stopping at 32 reports an
+  empty class on the plant and calls it clean. It costs 19ms on the yard and
+  23ms on the plant, and both censuses read identically to the 400-seed probe.
+  **The break**: the walk gate in `ainav.js._followRoute` widened from
+  `Math.PI / 3` to `Math.PI`, so the Warden never turns on the spot, reds both
+  checks with the sentences they were written for.
+  **And the method note, because it is what made this cheap.** The entry handed
+  this run a hypothesis and a 28-second reproduction; the reproduction **did not
+  reproduce** - the real check eight times in a fresh page passed 8/8, iteration
+  0 included - and that was the finding, because a failure that moves with the
+  clock does not depend on its predecessor. H74's rule that a before-and-after
+  is worth nothing until the quantity's spread is known is the same rule about a
+  *reproduction*. The instrument that answered it was a 400-seed scan in
+  **205ms**. **H81** is what follows, and **H77 is half answered**: the rng is
+  no longer a candidate channel into the pixel band but a confirmed one.
+  — done 2026-10-15, `PENDING`.
 
 - **H74** Eleven sites that owe themselves a quiet Warden, and a band nobody
   had measured. H71 counted twelve

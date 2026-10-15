@@ -173,6 +173,33 @@ into — probe, subset, **settle the tree**, verify — where "settle" is its ow
 step with a `git status --short` and a `node --check` in it, and the VERIFY is
 started by a turn that does nothing else.
 
+**Exit 2 is not always a broken base: Chrome can fail to launch and take the
+gate with it.** H80's first gate died about forty seconds in with
+`browserType.launch: Target page, context or browser has been closed`, a
+`<launched> pid=8328` in the call log and that pid gone by the time Playwright
+tried to close it — Chrome started and exited with code 0 before the first page
+existed. The build prompt routes a non-zero gate to `## BROKEN BASE`, and filing
+this one there would have put a wrong verdict in the record and spent the run:
+nothing was broken, the browser just did not come up. **The check that separates
+them costs ten seconds**, which is the whole of this entry: a two-attempt
+`chromium.launch({ executablePath })` against the same Chrome from a scratch
+script, with `playwright-core` imported by absolute `file:///` URL out of the
+project's own `node_modules` because a script outside the repo cannot resolve
+it. Both attempts came up; the re-run of the gate went green and took twenty-six
+minutes. So **read an exit 2 against a launch probe before calling the base
+broken** — an exit 2 whose message is about the *browser* is a machine fault
+like the audio device's, and the answer is to run the gate again rather than to
+write the report. It is the same shape as H45's exit 3 and the audio thread: the
+runner has three ways to fail that are not the game, and a verdict that does not
+tell them apart is worse than no verdict.
+
+A thing worth knowing before the re-run: **the crashed gate had already stamped
+`version.json`**, so the tree was dirty when the second gate started and it said
+so (`suite: version.json: the working tree is dirty`) and carried on. That line
+is not a problem and not this trap — the gate stamping HEAD and the `Record`
+commit stamping the job is D52 — but it is the first thing a `git status --short`
+shows after a gate dies, and it is not evidence of anything.
+
 **And "write the markdown while a gate is up" is only true of two files.** Four
 markdown files are `fetch`ed as text **at check time**, so a half-written one
 reds a check that has nothing to do with the job:
