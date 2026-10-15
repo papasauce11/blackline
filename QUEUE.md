@@ -1161,7 +1161,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   something nothing can drive. And one mistake of its own: the first source
   clause asked the module for the *rendered* sentence and went red with the
   sentence sitting there, because a template literal and the string it renders
-  are not the same text (H53's class). — done 2026-10-14, `HASH_H72`.
+  are not the same text (H53's class). — done 2026-10-14, `655d513`.
 
 - **H71** The sentence a dozen checks trusted, and the five frames that made it
   harmless. `quiesce()` in `tests/pixels.js` opened *"Put both actors somewhere
