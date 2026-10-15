@@ -1317,7 +1317,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   naming its own clause: a line removed names `visual.js:326` and nothing else,
   the driver reader blinded trips its own two vectors and the empty-class
   clause, and the lookbehind removed makes `pixels.js:296` a site.
-  — done 2026-10-15, `H74_HASH`.
+  — done 2026-10-15, `678722c`.
 
 - **H73** The margin was not a wait, it was a turn. H71 left the Warden sitting
   **0.000m** off its spawn when `quiesce()` returns and explained it as the AI
