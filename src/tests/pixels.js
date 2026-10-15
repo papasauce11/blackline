@@ -273,9 +273,14 @@ export function erode(source, width, height) {
  * **The AI is running throughout, and until H71 this sentence said it was
  * not.** The Warden hunts on its own frames while a check measures. That is
  * harmless to a reading taken off one drawn frame - measured, the Warden is
- * **0.000m** off its spawn at the moment this returns, because the AI takes
- * about twenty-five frames to start walking and this settles twenty - and it is
- * not harmless to anything driven for longer: H57 is what the old wording cost,
+ * **0.000m** off its spawn at the moment this returns - and the reason is a
+ * **turn** rather than a delay (H73): the AI is awake on the first frame and a
+ * patrol's first act is to face its first route node, so the body rotates
+ * 0.0567 rad a frame and translates nothing until it is round. The angle is map
+ * data, so the headroom is too: after this returns the Warden first moves on
+ * frame 4 or 5 on the plant and frame 17 on the yard, which is all the room a
+ * caller has before a walking Warden is in its frame. It is **not** harmless to
+ * anything driven for longer: H57 is what the old wording cost,
  * where `strikerepeat.js` inherited this restore, walked the Shade down a lit
  * lane and had her shot dead in the middle of a strike. A check that needs the
  * Warden out of it asks `initMatch` for a match with no AI itself, which is

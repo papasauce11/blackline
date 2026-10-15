@@ -95,6 +95,43 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The Warden's first move is a turn, not a step (H73, 2026-10-14)
+
+**Nothing in the game changed**, and this one is a small fact about the Warden
+that happens to hold twenty of the tests together.
+
+**The question.** Yesterday's job found that the tests which set up a shot leave
+the Warden fully alive and hunting, and that it does not matter, because at the
+moment the setup finishes the Warden is still standing exactly where it spawned.
+That looked like luck — the setup waits twenty frames, the Warden seemed to take
+about twenty-five to get going — so it went in the record as something to
+measure rather than something to rely on.
+
+**What the measurement found.** It is not a delay at all. The Warden is awake on
+the very first frame; what it does first is **turn on the spot** to face the
+first point on its patrol, at a steady 0.0567 radians a frame, and it does not
+take a single step until it is facing the right way. So the pause is a turn, and
+how long it lasts depends on which way the Warden happened to be facing when the
+round started — which is map data. In the plant it is round after about four
+frames; in the yard, where the first patrol point is further off its nose,
+seventeen.
+
+**What is now guaranteed, and what is only reported.** The test asserts the part
+that is the same everywhere — during that setup the Warden **turns** (so the AI
+really is running) and **does not move an inch** (so the picture is the same
+every time). The frame it first steps on is printed in the results each run but
+not required to be any particular number, because it is four or five in one
+place and seventeen in another, and a test that demanded one number would be
+wrong somewhere.
+
+**If you ever watch this.** Start a round and watch the Warden for the first
+quarter of a second: it pivots before it walks. That is the behaviour above, and
+it is the reason the test pictures are reproducible.
+
+**Nothing for you here** — but if the Warden ever looks like it slides off its
+spawn without turning first, that is worth telling me, because twenty tests now
+lean on it turning.
+
 ### A test that said "her legs did not move" now says "she was shot" (H72, 2026-10-14)
 
 **Nothing in the game changed.** This is the test harness telling the truth

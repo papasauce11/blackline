@@ -585,8 +585,22 @@ one setting only Josh can click; everything else here proceeds.
   stillness, with health in the text, and a check drives a strike beside a
   Warden that kills the Shade and asserts the reported reason names it.
 
-- [ ] **H73 (S)** The five frames that make every quiesced reading
-  reproducible, and nothing watches them. H71 measured why a live Warden in
+- [x] **H73 (S)** The five frames that make every quiesced reading
+  reproducible, and nothing watches them. - done 2026-10-14, under Done.
+  **It is not a wait, it is a turn**, which changed what got asserted: the AI
+  is awake on the first frame and a patrol's first act is to face its first
+  route node, so the Warden rotates a flat **0.0567 rad a frame** from frame 1
+  and translates nothing until it is round. The angle is map data, so the
+  frames are: the plant's first node is 1.83 rad off its nose and the body
+  first moves on frame **4 or 5** after the helper returns, the yard's is 1.13
+  rad off and it first moves on frame **17** - and on the plant two probes of
+  the same question read 4 and 5, so an exact frame would have been a flaky
+  bar. **The mechanism is pinned instead of the margin**: over the settle the
+  yaw moves and the position does not, both asserted, the first moving frame
+  reported, and the settle count read off `pixels.js`'s source so a helper that
+  grew it past the turn is driven as it really is. Two breaks - a sixty-frame
+  settle puts the Warden **1.62m** into its patrol and reds both clauses, and
+  the settle driven with the AI off reds the turn clause. H71 measured why a live Warden in
   `quiesce()`'s match has never shown up in a pixel reading: at the moment the
   helper returns the Warden is **0.000m** off its spawn on both maps, because
   the AI takes about twenty-five frames to start walking and `quiesce` settles
@@ -623,6 +637,14 @@ one setting only Josh can click; everything else here proceeds.
   could not reach this frame, because ..." or "it could, and here is the line
   added"; every floor that moved is re-measured and named; and the suite is
   green on both maps with no floor loosened.
+  **H73 sharpened this (2026-10-14).** The question is not whether the Warden
+  is on its spawn - it is, to 1e-6m, and a clause holds that now - but **how
+  many frames each of the twelve drives after the quiesce before it draws**.
+  The Warden's first translation is 4 or 5 frames after the helper returns on
+  the plant and 17 on the yard, so a caller that steps more than three frames
+  before its lens grab has a walking Warden in the shot and does not know it.
+  Read each of the twelve for the frames it drives between `quiesce(h)` and its
+  `createLens`/grab, and that number against those two is the whole answer.
 
 - [ ] **H75 (S)** `src/tests/animation.js` is at 592 of 600, and the seam is
   not prose. It was 550 - one line outside the crowded cluster - and H72's
@@ -1128,6 +1150,37 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H73** The margin was not a wait, it was a turn. H71 left the Warden sitting
+  **0.000m** off its spawn when `quiesce()` returns and explained it as the AI
+  being slow to wake - twenty-five frames to start walking against a settle of
+  twenty - with a five-frame margin nothing watched. Measured one frame at a
+  time, four passes a map: **the AI is awake on the first frame and what it does
+  first is turn.** A patrol's first act is to face its first route node, so the
+  Warden rotates a flat **0.0567 rad a frame** from frame 1, `state` reading
+  `patrol` throughout with no pause timer in it, and translates **nothing** until
+  it is round. The angle is map data, so the frames are too: the plant's first
+  node is **1.83 rad** off its spawn nose and the body first moves on frame **4
+  or 5**, the yard's is **1.13 rad** off and it first moves on frame **17**;
+  over the twenty frames the helper settles the Warden turns **1.1333 rad** on
+  both maps, twenty times the per-frame rate to the digit, and translates
+  **0.000000m**. **So the mechanism is pinned and the margin is not**: an exact
+  frame is map data *and* unstable within a map (two probes of the plant read 4
+  and 5, the crossing falling near a frame boundary), while what twelve callers
+  actually lean on - the yaw moves and the position does not - is exact. Both
+  halves asserted in H71's check, neither alone being enough (a body that has
+  not moved might be a body nobody is driving; a yaw that moved might belong to
+  a Warden already walking), the first moving frame reported per map, and the
+  settle count **read off `pixels.js`'s source** so that a helper which grew its
+  settle past the turn is driven as it really is - not D70's vacuous shape,
+  because the bars are a distance of zero and a turn and only the frame count
+  comes from the tree. H71's hand-written `SETTLE_FRAMES = 20` is gone with it,
+  which was the copy this job existed to find. Two breaks, each naming its own
+  line: a **sixty-frame** settle puts the Warden **1.622576m** into its patrol
+  and reds both clauses at once, and the settle driven with the AI off reds the
+  turn clause. The docstring now says the mechanism rather than the effect, and
+  H71's "five frames" is **three to four on the plant and sixteen on the yard**.
+  — done 2026-10-14, `HASH_H73`.
 
 - **H72** A strike that was shot reports being shot, and the sentence H57
   chased for an afternoon. Every `why` `strike()` reports is about what the body

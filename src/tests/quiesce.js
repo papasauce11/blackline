@@ -164,11 +164,44 @@ const SEEN_AS_A_FLAG = (text) => { FLAG.lastIndex = 0; return FLAG.test(text) ? 
  * that is not near zero but *is* zero.
  */
 const WALK_FRAMES = 420;
-const SETTLE_FRAMES = 20;
 const WALKED = 0.5;
 const TURNED = 0.1;
 const STILL = 0.01;
 const UNTURNED = 0.001;
+
+/**
+ * H73: what the settle is for, and the thing twelve callers actually rest on.
+ *
+ * Twelve of the twenty modules that call this helper draw a frame after it and
+ * never open a match of their own (H74), so every pixel number they report is
+ * taken with a **live** Warden somewhere in the scene. The reason that has
+ * always been reproducible is not that the AI is slow to wake: **it is awake on
+ * the first frame, and what it does first is turn.** Measured one frame at a
+ * time on both maps, four passes each: the Warden rotates a flat **0.0567 rad a
+ * frame** from frame 1 - a patrol's first act is to face its first route node -
+ * and translates **nothing at all** until it is round. The angle is map data,
+ * so the frames are too: the plant's first node is 1.83 rad off its nose and
+ * the body first moves on frame **4 or 5** after the helper returns, the yard's
+ * is 1.13 rad off and it first moves on frame **17**.
+ *
+ * **So the clause is the mechanism and not the margin.** An exact frame is a
+ * bad bar twice over - it is map data, and on the plant two probes of the same
+ * question read 4 and 5, because the crossing falls near a frame boundary. What
+ * is stable, and what the twelve are really leaning on, is that over the frames
+ * the helper settles **the yaw moves and the position does not**: the AI is
+ * live, which is the sentence, and the body is where `initMatch` put it, which
+ * is the reading. Both halves asserted, the first moving frame reported.
+ *
+ * `SETTLE` is read off `pixels.js`'s own source rather than written here, so a
+ * helper that grew its settle past the turn would be driven as it really is and
+ * go red - which is the drift H71 queued this for. It is **not** D70's vacuous
+ * shape: the bar is a distance of zero and a turn, neither derived from the
+ * count, and only the number of frames driven comes from the tree.
+ */
+const SETTLES = /stepFrames\((\d+)\)/;
+const ON_SPAWN = 1e-6;
+const TURNS_BY = 0.05;
+const FIRST_MOVE_CAP = 60;
 
 /** Horizontal distance, because a settling body's travel is all in y. */
 const flat = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -184,6 +217,28 @@ function whatTheBodyDid(h) {
   const from = { x: h.warden.position.x, z: h.warden.position.z, yaw: h.warden.yaw };
   h.stepFrames(WALK_FRAMES);
   return { moved: flat(h.warden.position, from), turned: turn(h.warden.yaw, from.yaw) };
+}
+
+/**
+ * H73: the settle, driven here rather than inside the helper, so that what
+ * happens during it can be read. The same match the helper starts and the same
+ * number of frames, taken off its source - then one frame at a time until the
+ * body translates, which is reported and not asserted.
+ */
+function whatTheSettleDoes(h, flag, settle) {
+  h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: flag === 'true', objective: true });
+  h.menu.hide();
+  h.setPaused(false);
+  h.input.clearAll();
+  const spawn = { x: h.warden.position.x, z: h.warden.position.z, yaw: h.warden.yaw };
+  h.stepFrames(settle);
+  const over = { moved: flat(h.warden.position, spawn), turned: turn(h.warden.yaw, spawn.yaw) };
+  let firstMove = 0;
+  for (let i = 1; i <= FIRST_MOVE_CAP && !firstMove; i++) {
+    h.stepFrames(1);
+    if (flat(h.warden.position, spawn) > ON_SPAWN) firstMove = i;
+  }
+  return { ...over, firstMove };
 }
 
 /**
@@ -260,6 +315,13 @@ export function register(debugTools) {
         };
       }
       const flag = asked[0];
+      // And the frames it settles, off the same body, because the clause below
+      // drives the settle the helper really has rather than a copy of it (H73).
+      const settles = SETTLES.exec(codeOf(cut.body));
+      if (!settles) {
+        return { pass: false, detail: `${HELPER}()'s body no longer steps a fixed number of frames (${SETTLES}), and what happens during that settle is what twelve of its callers draw their frame after (H73)` };
+      }
+      const settle = Number(settles[1]);
       if (passed.length < PASSES_IT_TIMES) {
         problems.push(`${HELPER}()'s body passes ai: ${flag} ${passed.length} time(s) and this check wants ${PASSES_IT_TIMES} - the call and the restore; the restore is what the next check inherits, which is what H57 was bitten by`);
       }
@@ -299,8 +361,12 @@ export function register(debugTools) {
       h.menu.hide();
       h.setPaused(false);
       h.input.clearAll();
-      h.stepFrames(SETTLE_FRAMES);
+      h.stepFrames(settle);
       const control = whatTheBodyDid(h);
+      // H73: and the settle itself, driven out here where it can be read - the
+      // same match, the same frame count off the same source. Twelve callers
+      // draw their frame at the end of it.
+      const during = whatTheSettleDoes(h, flag, settle);
       // And leave the run in the state a restore leaves it, which is what
       // every check after a pixel check already inherits.
       h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: wants, objective: true });
@@ -319,17 +385,29 @@ export function register(debugTools) {
       if (inert.moved > STILL || inert.turned > UNTURNED) {
         problems.push(`with ai: false the Warden moved ${did(inert)} over the same ${WALK_FRAMES} frames, against ${STILL}m and ${UNTURNED}rad - the control is what makes the reading above about the AI rather than about a body that drifts`);
       }
+      // H73: what the settle does, which is what twelve callers draw after.
+      // Both halves, because either alone is satisfied by the wrong thing: a
+      // body that has not moved could be a body nobody is driving, and a yaw
+      // that moved could belong to a Warden already walking off its spawn.
+      if (wardenSettled > ON_SPAWN) {
+        problems.push(`the Warden is ${wardenSettled.toFixed(6)}m off its spawn when ${HELPER}() returns, against ${ON_SPAWN}m - twelve of its callers draw their frame here and have never had to say where the Warden was (H73, H74)`);
+      }
+      if (during.moved > ON_SPAWN) {
+        problems.push(`over the ${settle} frames ${HELPER}() settles the Warden translated ${during.moved.toFixed(6)}m, against ${ON_SPAWN}m - a settle that outlasts the turn puts a walking Warden in twelve checks' frames, and the frames it takes are map data (${during.firstMove || `>${FIRST_MOVE_CAP}`} after the settle here)`);
+      }
+      if (wants && during.turned < TURNS_BY) {
+        problems.push(`over the ${settle} frames ${HELPER}() settles the Warden turned ${during.turned.toFixed(4)}rad, against ${TURNS_BY}rad - with the AI live its first act is to face its first route node, and a body that did not turn either has no AI driving it or is already round, which would make the clause above about nothing`);
+      }
 
       return {
         pass: problems.length === 0,
         // Kept inside the 400 characters the runner keeps, because the numbers
         // below are this check's own finding and H42's were cut out of H42's.
         detail: problems.length === 0
-          ? `ai: ${flag} x${passed.length} (the call, the restore), sentence says ${SAYS[flag].reading}, `
-            + `read as prose off the ${cut.doc.length}-char comment above a body read as code; `
-            + `aiEnabled=${afterCall} after the call and ${afterRestore} after the restore; `
-            + `Shade ${shadeDrift.toFixed(3)}m off spawn, Warden ${wardenSettled.toFixed(3)}m off its own after ${SETTLE_FRAMES} settling frames; `
-            + `over ${WALK_FRAMES} frames with nothing held it moved ${did(driven)} with the AI on and ${did(inert)} with it off`
+          ? `ai: ${flag} x${passed.length} (call, restore); sentence: ${SAYS[flag].reading}, read as prose off its ${cut.doc.length}-char comment; `
+            + `aiEnabled=${afterCall} then ${afterRestore}; Shade ${shadeDrift.toFixed(3)}m off spawn; `
+            + `over its ${settle} settling frames the Warden turned ${during.turned.toFixed(4)}rad, translated ${during.moved.toFixed(6)}m, first moved ${during.firstMove || `>${FIRST_MOVE_CAP}`} frames later (H73); `
+            + `over ${WALK_FRAMES} frames nothing held it moved ${did(driven)} with the AI on, ${did(inert)} off`
           : problems.join('; '),
       };
     },

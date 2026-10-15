@@ -16842,3 +16842,96 @@ outside the crowded cluster, and this job's forty-two lines put it in: the
 ceiling now reads **12 modules within 50 of 600**. **H75** is the split, and it
 has a natural seam the others do not: `strike` and its gait tables are a driver
 that four other modules import, where the rest of the file is the E3 checks.
+
+## H73 — the margin was not a wait, it was a turn (2026-10-14, scheduled run)
+
+**What the entry asked, and the answer is a different shape.** H71 measured the
+Warden 0.000m off its spawn at the moment `quiesce()` returns and explained it
+as *"the AI takes about twenty-five frames to start walking and `quiesce`
+settles twenty"* — a coincidence of two constants, with a five-frame margin
+nothing watched. This job measured it one frame at a time, four passes on each
+map, and **the mechanism is not a delay at all.**
+
+**The AI is awake on the first frame; what it does first is turn.** The Warden
+rotates a flat **0.0567 rad a frame** from frame 1 — a patrol's first act is to
+face its first route node — and translates **nothing** until it is round. Its
+`wardenAI.state` reads `patrol` throughout; there is no pause timer involved
+(`reset()` zeroes it) and nothing is waiting on a path.
+
+**So the frames are map data, because the angle is.** The plant's first node is
+**1.83 rad** off the Warden's spawn nose and the body first moves on frame **4
+or 5** after the helper returns; the yard's is **1.13 rad** off and it first
+moves on frame **17**. Over `quiesce`'s own twenty settling frames the Warden
+turns **1.1333 rad** on both maps — twenty times the per-frame rate, to the
+digit — and translates **0.000000m**.
+
+**Which settles the question the entry left open: pin the mechanism, not the
+margin.** An exact frame is a bad bar twice over. It is map data, so it would be
+two numbers rather than a rule; and it is **not reliably stable within a map** — two
+probes of the same question on the plant read 4 and 5, because the crossing
+falls near a frame boundary (the suite's own four runs then read 4, 4, 17, 17,
+which is stabler than the probes and still two numbers rather than a rule). What *is* stable, and what twelve callers are
+really leaning on, is that over the frames the helper settles **the yaw moves
+and the position does not**. Both halves are asserted now, in H71's check:
+
+- the Warden is within **1e-6m** of its spawn when `quiesce()` returns — the
+  reading H71 reported and deliberately did not assert, now argued and asserted;
+- over the settle, driven out where it can be read, the Warden **translates
+  nothing** and **turns at least 0.05 rad**. Either clause alone would be
+  satisfied by the wrong thing: a body that has not moved might be a body nobody
+  is driving, and a yaw that moved might belong to a Warden already walking.
+- and the first frame it translates is **reported**, per map, so the margin is
+  visible in every run's detail line without being a bar.
+
+**The settle is read off `pixels.js`'s source and not copied.** `SETTLES`
+(`/stepFrames\((\d+)\)/` over the helper's body, as code) gives the count the
+clause drives, so a helper that grew its settle past the turn is driven as it
+really is. That is **not** D70's vacuous shape — the bars are a distance of zero
+and a turn, neither derived from the count; only the number of frames driven
+comes from the tree. H71's hand-written `SETTLE_FRAMES = 20` is gone with it,
+which was the copy this job existed to find.
+
+**Two breaks, each reverted, each naming its own line.** (1) `quiesce` grown to
+settle **sixty** frames — the honest version of the drift this guards — reds
+both new clauses at once with the real number: *"the Warden is 1.622576m off its
+spawn when quiesce() returns"*, and a Warden **1.6m into its patrol** is what
+twelve pixel checks would have been drawing. (2) The settle driven with the AI
+off: *"the Warden turned 0.0000rad, against 0.05rad ... which would make the
+clause above about nothing"* — so the stillness clause cannot pass on a body
+nobody is driving.
+
+**And a correction to H71's own write-up.** Its five-frame margin is **three to
+four frames on the plant and sixteen on the yard**, and the sentence in
+`pixels.js`'s docstring about the AI taking twenty-five frames to start walking
+describes the effect and not the cause. The docstring says the mechanism now.
+H71 was right that the quiesced frame is the same frame either way, and right to
+queue the argument rather than assert the number on the morning it was first
+measured: measuring it properly changed what got asserted.
+
+**Verified.** `npm run suite` exit 0, **plant 232 / 1 / 8 not for this map**
+(1,117,355ms and 1,115,777ms), **yard 212 / 1 / 28** (769,260ms and
+811,349ms). 0 red, 0 flaky, 0 skipped, 0 skips withheld, 0 bench drops
+withheld, 0 unexpectedly green, 0 context losses, 0 loop frames, 0 re-runs, no
+other runner, **0 console errors in all four runs**. The counts are unchanged
+at 232/212 - this job extends a check and registers nothing - and the ceiling
+is unchanged at twelve. Spreads 1,578ms on the plant (0% of the longest) and
+**42,089ms on the yard (5%)**, the widest this session, with the pipeline wait
+spread at **29ms**: the difference is not the renderer's tail, so it is this
+machine, and no check answered differently across it.
+
+**The asserted half is identical in all four runs, on both maps**: *"over its
+20 settling frames the Warden turned 1.1333rad, translated 0.000000m"* - the
+same turn and the same zero on the plant and the yard, which is what makes the
+clause a rule rather than a reading. **The reported half is stable per map and
+differs between them**, which is the point of reporting it: *"first moved 4
+frames later"* twice on the plant and *"17 frames later"* twice on the yard.
+And the one quantity that moves run to run is still the 420-frame walk - 9.940m,
+12.682m, 15.302m - reported and asserted nowhere. So of the three readings in
+this line, one is a rule, one is map data, and one is weather, and the check
+says which is which.
+
+**Left.** Nothing from this job. **H74** is unchanged and is now the sharper
+question for it: with the mechanism known, what each of the twelve callers needs
+is not "is the Warden on its spawn" — it is **how many frames each of them
+drives after the quiesce before it draws**, which is three or four on the plant
+before a Warden starts walking into the shot.
