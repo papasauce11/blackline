@@ -1318,7 +1318,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   *reproduction*. The instrument that answered it was a 400-seed scan in
   **205ms**. **H81** is what follows, and **H77 is half answered**: the rng is
   no longer a candidate channel into the pixel band but a confirmed one.
-  — done 2026-10-15, `PENDING`.
+  — done 2026-10-15, `c8d4b0c`.
 
 - **H74** Eleven sites that owe themselves a quiet Warden, and a band nobody
   had measured. H71 counted twelve
