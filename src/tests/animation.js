@@ -238,6 +238,30 @@ function climb(h, spot, state, hold, mid) {
   return frameUntil(h, through, 90);
 }
 
+/**
+ * What a strike says about a body that did not survive it, and `''` about one
+ * that did (H72).
+ *
+ * **Health and the ragdoll both, because they are two halves of one answer**:
+ * the health is what the rounds did and the ragdoll is what `combat:death`
+ * did, and a reader given only the first cannot tell a wounded body from a
+ * dead one. So a Shade with rounds in her and still standing is *shot* and a
+ * Shade the combat system has handed to the ragdoll is *killed* - which
+ * matters because the two fail a strike in different ways: a wounded body
+ * walks and a dead one does not accelerate at all.
+ *
+ * `a-strike-whose-body-was-killed-reports-the-death-and-not-the-stillness`
+ * drives a strike and lands a round in the middle of it, so this sentence is
+ * held by a check rather than by a comment.
+ */
+function hurtMidStrike(shade) {
+  const dead = shade.ragdolled || shade.health <= 0;
+  if (!dead && shade.health >= S.health) return '';
+  return dead
+    ? `the Shade was killed during the strike (health ${shade.health} of ${S.health}${shade.ragdolled ? ', ragdolled' : ''})`
+    : `the Shade was shot during the strike (health ${shade.health} of ${S.health})`;
+}
+
 /** The states `strike` knows, in the order the check reads them. */
 export const STRIKES = ['walk', 'sprint', 'crouch', 'slide', 'rise', 'fall', 'landing', 'vault', 'mantle', 'grab', 'hang', 'pullup'];
 
@@ -275,7 +299,25 @@ export function strike(h, name) {
     for (let i = 0; i < 5; i++) frame(h);
     h.input.clearAll();
   };
-  const done = (reached, why) => { h.input.clearAll(); return { reached, why: reached ? '' : why }; };
+  /**
+   * What stopped a strike - with one question asked before any of the others:
+   * **was the body still alive?** Every `why` in the switch below is about what
+   * the body did not *do*, and this drives a real Shade through a live match
+   * where four rifle rounds kill her, so a Shade shot dead during the run-up
+   * comes back as *"the walk never swung a leg (speed 0.0)"* and an afternoon
+   * goes on the gait. H57 spent that afternoon; H72 is this line.
+   *
+   * The death is named **first**, because it is the cause and the rest is the
+   * symptom, and the symptom is kept after it rather than replaced: a body that
+   * died may also have failed for a second reason, and the sentence that was
+   * there before this line is still the only evidence of what it was doing.
+   */
+  const done = (reached, why) => {
+    h.input.clearAll();
+    if (reached) return { reached, why: '' };
+    const hurt = hurtMidStrike(shade);
+    return { reached, why: hurt ? `${hurt}; ${why}` : why };
+  };
   const hangMin = S.standHeight * S.hangMinHeightRatio;
   const fullReach = S.reach.standing + S.reach.jumpBonus;
   switch (name) {

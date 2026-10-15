@@ -16731,3 +16731,114 @@ the twenty callers never open a match of their own, and whether each wants the
 other eight's `initMatch({ ai: false })` line is a question per check rather
 than a sweep — it would move pixel numbers, which is the cost the entry named
 and the reason this job did not take it.
+
+## H72 — a strike that was shot reports being shot, and the sentence H57 chased for an afternoon (2026-10-14, scheduled run)
+
+**The defect, and it is one line in the right place.** `strike()` reports why it
+did not reach a state through `why`, and every one of those sentences is about
+what the body did not *do* — *"the walk never swung a leg (speed 0.0)"*, *"a
+crouch at 0.0 m/s did not slide"*. It drives a real Shade through a live match
+where four rifle rounds kill her, so a Shade shot dead during the run-up comes
+back as a body that did not accelerate, and the reader goes looking at the gait.
+H57 went looking at the gait for an afternoon. This is the question asked at the
+top of `done()` before any of the others: **was the body still alive?**
+
+**What it reports now**, measured, on both maps:
+
+> *"the Shade was killed during the strike (health 0 of 100, ragdolled); the
+> walk did not bring a leg furthest forward inside 80 frames of speed, so the
+> gait's phase is not pinned and the ground covered from here would be the last
+> check's (speed 0.0)"*
+
+which is **the exact sentence H59's entry quotes as a mystery**, now with its
+cause in front of it. The symptom is kept rather than replaced, and that is a
+decision: a body that died may also have failed for a second reason, and the
+sentence that was there before this job is still the only evidence of what it
+was doing. 179 characters of gait sentence sit behind the death, and the check
+counts them so that "kept" is a reading and not a claim.
+
+**Two wordings, because health and the ragdoll are two halves of one answer.**
+`hurtMidStrike()` says *killed* for a body the combat system has handed to the
+ragdoll and *shot* for one with rounds in it and still standing — because the
+two fail a strike differently: a wounded body walks and a dead one does not
+accelerate at all, and a reader given only "health 60 of 100" cannot tell which
+they have.
+
+**How a check drives a death on purpose, and why not with a Warden.** The round
+is landed by the check itself, in the middle of the strike, on the simulation's
+own step count: a listener on `sim:step` counts to twenty — `stand()` spends
+five frames resetting and the walk then holds forward for thirty, so twenty is
+inside the run-up — and calls `combat.applyDamage`, **the public door onto the
+very `_damage` the Warden's rifle calls** (`tests/feedback.js` lands its damage
+the same way), with `combat:death` observed as the evidence that it went through
+the combat system rather than into a field. A Warden **cannot** be asked to kill
+on cue: four rounds inside ninety frames is a function of where it is standing
+and what it can see, so a clause that waited for one would be flaky on a slower
+machine — which is the thing H57 was bitten by rather than a way to test for it.
+The match is `strikerepeat.js`'s own `fresh()` (`ai: false, objective: false`),
+so nothing else shoots and no reinsert revives her mid-strike, and god mode is
+forced off for the duration and put back, the way `anymap.js` borrows it,
+because two checks turn it on and `_damage` is a no-op for the Shade while it is
+on.
+
+**The control is the half that makes it mean anything.** The same state, the
+same driver, nobody shooting: it must reach the walk, the Shade must be at 100
+of 100 afterwards, and the wound sentence must be **absent**. Without it the
+clause would be satisfied by a check that always says somebody died.
+
+**Four breaks, each reverted, each naming its own line.** (1) `done()` put back
+to its one-liner — the whole job reverted — reds with *"reported 'the walk did
+not bring a leg furthest forward ...', which does not open with 'the Shade was
+killed during the strike'"*, which is the sentence H57 chased. (2) The death
+**appended** instead of named first: red on the ordering alone, with the death
+present and in the wrong place, so what is asserted is the order and not the
+presence. (3) The health dropped from the killed sentence: red on the number,
+*"the number is what tells a reader it was the rounds and not the legs"*. (4)
+The **shot** branch reworded: red on the source clause.
+
+**Break 3 found a hole and break 4 is the fix.** The first source clause asked
+for *one* sentence of the shape `the Shade was (killed|shot) during the strike
+(health ${shade.health} of ${S.health}` and break 3 left it green — because the
+*shot* branch still matched while the *killed* branch had been gutted. And the
+shot branch is the one with **no runtime case anywhere in this suite**: nothing
+here produces a wounded body that then fails a strike, so a pattern that
+accepted either half would sit green while the half nobody can drive was
+reworded away. Both branches are asked for by name now, which is
+`posecriterion.js`'s rule — a clause about something that cannot be driven is
+the only clause that can hold it.
+
+**And one more mistake of this job's own, worth the line because it is a class.**
+The first source clause asked `animation.js`'s source for the *rendered* shape,
+digits and all, and went red with the sentence sitting right there in the file:
+a template literal and the string it renders are not the same text. `WOUND_SAYS`
+is the reported reason and `WOUND_WRITTEN` is what the module carries, `${...}`
+and all, each asked only of the thing it is about — the same class of error as
+H53's module path, which a stripped read cannot see because it is a string.
+
+**Verified.** `npm run suite` exit 0, **plant 232 / 1 / 8 not for this map**
+(1,110,360ms and 1,130,203ms), **yard 212 / 1 / 28** (774,799ms and
+770,689ms). 0 red, 0 flaky, 0 skipped, 0 skips withheld, 0 bench drops
+withheld, 0 unexpectedly green, 0 context losses, 0 loop frames, 0 re-runs, no
+other runner, **0 console errors in all four runs**. Spreads 19,843ms on the
+plant (2% of the longest) and 4,110ms on the yard (1%), inside F16's band. The
+counts move 231/211 to **232/212** - this job registers one check in a module
+that was already in every census, so nothing else moved - and the ceiling line
+reads **12 modules within 50 of 600** where it read eleven, which is
+`animation.js` at 592.
+
+**The new check costs 9 to 11ms and its detail line is byte-identical in all
+four runs**, 275 characters of a possible 400: *"killed on sim step 20 of a
+'walk' strike, combat:death for shade; it opened with 'the Shade was killed
+during the strike (health 0 of 100, ragdolled)' and kept 179 more characters of
+the gait sentence behind it; control reached=true, health 100 of 100, god mode
+was false"*. Its neighbour is unchanged to the character in all four runs as
+well - *"12 of 12 states struck twice; 12 put the capsule inside 1e-9m; 2 of 2
+gait-driven struck here, 0 declared as carrying"* - which is the evidence that
+a check landing a round mid-strike in the same module leaves the module's other
+check alone.
+
+**Left.** `src/tests/animation.js` is **592 of 600** — it was 550, one line
+outside the crowded cluster, and this job's forty-two lines put it in: the
+ceiling now reads **12 modules within 50 of 600**. **H75** is the split, and it
+has a natural seam the others do not: `strike` and its gait tables are a driver
+that four other modules import, where the rest of the file is the E3 checks.

@@ -554,8 +554,22 @@ one setting only Josh can click; everything else here proceeds.
   reads the flag it passes out of `pixels.js`'s source so the two cannot drift
   apart again, and `PROGRESS.md` says which of the two was done and why.
 
-- [ ] **H72 (S)** A strike that fails because the body died says it never
-  swung a leg. `strike()` reports its failures through `why`, and every one of
+- [x] **H72 (S)** A strike that fails because the body died says it never
+  swung a leg. - done 2026-10-14, under Done. One question at the top of
+  `done()`, and the report is now *"the Shade was killed during the strike
+  (health 0 of 100, ragdolled); the walk did not bring a leg furthest
+  forward..."* - **the exact sentence H59's entry quotes as a mystery, with its
+  cause in front of it**. The symptom is kept behind the death rather than
+  replaced, and the check counts the 179 characters of it so that "kept" is a
+  reading. The death is driven on purpose and not by a Warden: a listener on
+  `sim:step` counts to twenty and lands a round through `combat.applyDamage`,
+  the public door onto the `_damage` the rifle calls, because four rounds
+  inside ninety frames is a function of where a Warden stands and a clause that
+  waited for one would be flaky on a slower machine. Four breaks; break 3 found
+  that the source clause was green on the strength of the `shot` branch while
+  the `killed` one was gutted, and the **`shot` branch has no runtime case in
+  this suite at all**, so both are asked for by name now. **H75** is what it
+  left: `animation.js` is 592 of 600. `strike()` reports its failures through `why`, and every one of
   them is about what the body did not do - *"the walk never swung a leg (speed
   0.0)"*, *"a crouch at 0.0 m/s did not slide"*. H57 spent an afternoon on
   exactly that sentence while the actual cause was `health` 0 and `ragdolled`
@@ -609,6 +623,30 @@ one setting only Josh can click; everything else here proceeds.
   could not reach this frame, because ..." or "it could, and here is the line
   added"; every floor that moved is re-measured and named; and the suite is
   green on both maps with no floor loosened.
+
+- [ ] **H75 (S)** `src/tests/animation.js` is at 592 of 600, and the seam is
+  not prose. It was 550 - one line outside the crowded cluster - and H72's
+  forty-two lines put it in, so the ceiling reads **12 modules within 50 of
+  600**. Unlike H69 this is not an argument that can move to the thing it is
+  about: the file is E3's checks **plus** `strike`, the driver four other
+  modules import (`look.js`, `poseeye.js`, `positioncensus.js`,
+  `strikerepeat.js`), and that is the seam. Take `strike`, `STRIKES`,
+  `GAIT_STRIKE`, `frame`, `frameUntil`, `climb`, `hurtMidStrike` and the lane
+  helpers into `src/tests/strikedrive.js` and leave the registered checks
+  behind, re-exporting from `animation.js` only if a call site needs it -
+  **H56 is the worked example of a move that changed no call site**, and its
+  lesson is the one that matters here: the proof is that every check the moved
+  code drives answers **identically to the character** on a tree reverted to
+  HEAD, which is one `--details` subset run of the four callers plus the E3
+  checks. Watch the four censuses: `strike` is one of the five declared pose
+  **proxies** (H61), read off the tree as *an exported function whose own code
+  reaches `updateVisual`*, so the proxy set moves module with it and
+  `posecriterion.js`'s seven source cases are the clause that will say so.
+  *done-when:* no module outside `config.js` is within 50 of 600 for this
+  reason - `animation.js` and the new file both well under - every caller
+  unchanged or named in `PROGRESS.md`, the eighteen-odd strike-driven checks
+  diffed byte-identical against HEAD's detail lines, and the pose-proxy census
+  green with `strike` found in its new home.
 
 - [x] **H64 (S)** The flag census in `tests/args.js` is written down by hand. -
   done 2026-10-14, under Done. **Both holes the entry predicted were already
@@ -1090,6 +1128,40 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H72** A strike that was shot reports being shot, and the sentence H57
+  chased for an afternoon. Every `why` `strike()` reports is about what the body
+  did not *do*, and it drives a real Shade through a live match where four
+  rounds kill her - so a Shade shot dead in the run-up came back as *"the walk
+  never swung a leg (speed 0.0)"*. One question at the top of `done()` asks
+  whether the body is still alive, and the report is now *"the Shade was killed
+  during the strike (health 0 of 100, ragdolled); the walk did not bring a leg
+  furthest forward ..."*, the death first because it is the cause and the
+  symptom kept behind it because a dead body may have failed for a second
+  reason too. Two wordings - *killed* for a body the ragdoll has, *shot* for one
+  with rounds in it and still standing - because a reader given only a health
+  number cannot tell which they have. **The death is driven and not waited
+  for**: a `sim:step` listener counts twenty steps into the strike and lands a
+  round through `combat.applyDamage`, the public door onto the very `_damage`
+  the rifle calls, with `combat:death` as the evidence it went through combat
+  rather than into a field, in `fresh()`'s match (`ai: false, objective:
+  false`) so nothing else shoots and no reinsert revives her, and with god mode
+  forced off and put back because `_damage` is a no-op for the Shade while it is
+  on. A Warden cannot be asked to kill on cue and a clause that waited for one
+  would be flaky on a slower machine, which is the thing H57 was bitten by
+  rather than a way to test for it. The control is the half that makes it mean
+  anything: the same strike with nobody shooting reaches the walk, leaves her at
+  100 of 100 and names no wound. Four breaks, each reverted and each naming its
+  own line - the fix reverted, the death **appended** instead of first (red on
+  the ordering alone), the health dropped, and the `shot` branch reworded. The
+  third of those **found a hole**: one pattern for both wordings stayed green
+  while the `killed` half was gutted, because the `shot` half still matched -
+  and the `shot` half has **no runtime case in this suite at all**, so both are
+  now asked for by name, which is `posecriterion.js`'s rule for a clause about
+  something nothing can drive. And one mistake of its own: the first source
+  clause asked the module for the *rendered* sentence and went red with the
+  sentence sitting there, because a template literal and the string it renders
+  are not the same text (H53's class). — done 2026-10-14, `HASH_H72`.
 
 - **H71** The sentence a dozen checks trusted, and the five frames that made it
   harmless. `quiesce()` in `tests/pixels.js` opened *"Put both actors somewhere

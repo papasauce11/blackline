@@ -95,6 +95,37 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A test that said "her legs did not move" now says "she was shot" (H72, 2026-10-14)
+
+**Nothing in the game changed.** This is the test harness telling the truth
+about why it failed.
+
+**What was wrong.** Several tests drive the Shade into a particular pose — a
+walk, a sprint, a vault — by holding the real keys, and then check what was
+drawn. When one of those fails, it says what the body did not do: *"the walk
+never swung a leg"*. But it drives her down a lit corridor in a live round, and
+four rifle rounds kill her. A dead Shade does not move, so **a test whose
+subject had been shot reported a problem with her legs**, and the job before
+this one spent an afternoon looking at her legs.
+
+**What it says now.** The report opens with the cause and keeps the symptom
+behind it:
+
+> *the Shade was killed during the strike (health 0 of 100, ragdolled); the walk
+> did not bring a leg furthest forward...*
+
+**How it is tested, which is the part worth knowing.** You cannot ask the Warden
+to kill someone on cue — whether four rounds land inside a second and a half
+depends on where it is standing and what it can see, so a test that waited for
+it would pass on a fast machine and fail on a slow one. Instead the test lands
+the round itself, twenty steps into the walk, through the same damage call the
+Warden's rifle goes through, and then reads what the strike reported. And it runs
+the same strike again with nobody shooting, to prove the sentence only turns up
+when somebody was shot.
+
+**Nothing for you here** — it is a test about tests. It does mean the next
+mysterious failure in the record will say what actually happened.
+
 ### A comment in the test code said the opposite of what the code did (H71, 2026-10-14)
 
 **Nothing in the game changed.** This is about a helper the tests use to set

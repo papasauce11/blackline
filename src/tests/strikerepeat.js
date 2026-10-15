@@ -90,6 +90,7 @@
 
 import { CONFIG } from '../config.js';
 import { strike, STRIKES } from './animation.js';
+import { uncommented } from './sourcetext.js';
 
 /**
  * A match of this check's own before every strike, with the AI off: the same
@@ -172,6 +173,59 @@ async function text(origin, rel) {
   if (!response.ok) return { error: `${rel}: ${response.status}` };
   return { body: await response.text() };
 }
+
+/**
+ * H72's state, and the step of the strike the round lands on.
+ *
+ * The **walk** because it is one of the two the gait drives, so it is struck on
+ * both maps by the clause above and is the state H57 actually watched die; and
+ * step 20 because `stand()` spends five frames resetting and clearing the keys
+ * and the walk then holds forward for thirty, so twenty is inside the run-up
+ * and not before it. Both are reported in the detail line, since a round that
+ * landed before the body started moving would be a different measurement.
+ */
+const HURT_STATE = 'walk';
+const KILL_ON_STEP = 20;
+
+/**
+ * The sentence `strike` opens a failure with when the body did not survive it,
+ * as a shape and not as a copy.
+ *
+ * **The wording lives in `animation.js` and this is read against it**, which is
+ * H62's rule for a clause whose evidence is a string: the same regex is asked
+ * of the reported reason *and* of that module's own source (with the comments
+ * out and the strings kept, because a sentence in a template literal is the
+ * thing being asserted). Reword it there and the clause names the file rather
+ * than failing at runtime with nothing to point at.
+ *
+ * The captures are the health and the full bar, so the numbers in the message
+ * can be held against `config.js` instead of being read as words - a message
+ * that says *"health 100 of 100"* about a corpse is worse than no message.
+ *
+ * **Two currencies, because a template literal and the string it renders are
+ * not the same text.** The first draft of this check asked the source for the
+ * rendered shape and went red with the sentence sitting right there - the same
+ * class of mistake as H53's module path, which a stripped read cannot see
+ * because it is a string. So `WOUND_SAYS` is the reported reason, digits and
+ * all, and `WOUND_WRITTEN` is what `animation.js` actually carries, `${...}`
+ * and all. Each is asked of the thing it is about and neither is asked of the
+ * other.
+ *
+ * **And both branches by name, because only one of them can be driven here.**
+ * A strike this check kills reports the *killed* sentence; a Shade with rounds
+ * in her and still standing reports the *shot* one, and nothing in this suite
+ * produces a wounded body that then fails a strike - so the written clause is
+ * the only thing holding that half, and a pattern that accepted either would
+ * stay green while the one with no runtime case was reworded away. Found by
+ * break 3, which dropped the health from the killed sentence and left the
+ * source clause green on the strength of the shot one.
+ */
+const WOUND_SAYS = /the Shade was (?:killed|shot) during the strike \(health (\d+(?:\.\d+)?) of (\d+)(, ragdolled)?\)/;
+const WOUND_WRITTEN = [
+  /the Shade was killed during the strike \(health \$\{shade\.health\} of \$\{S\.health\}/,
+  /the Shade was shot during the strike \(health \$\{shade\.health\} of \$\{S\.health\}/,
+];
+const KILLED_SAYS = 'the Shade was killed during the strike';
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
@@ -271,6 +325,135 @@ export function register(debugTools) {
       readings.push(`${drivenHere.length} of ${GAIT_DRIVEN.length} gait-driven struck here, ${Object.keys(CARRIED).length} declared as carrying`);
       if (moved.length) readings.push(`declared and reported: ${moved.join(', ')}`);
       if (skipped.length) readings.push(`${skipped.length} not on this map: ${skipped.join('; ')}`);
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0 ? readings.join('; ') : problems.join('; '),
+      };
+    },
+  });
+
+  // -------------------------------------------------------------------------
+  // H72: and what a strike says when the body it drove did not survive it.
+  // -------------------------------------------------------------------------
+  debugTools.registerAutoTest({
+    id: 'a-strike-whose-body-was-killed-reports-the-death-and-not-the-stillness',
+    spec: 'Section 17.1 (the AUTO suite), H57, H72',
+    name: 'A strike that fails because the Shade was killed during it opens its reason with the death and her health, the numbers in that sentence are the config\'s, and the same strike with nobody shooting names neither',
+    run: async (h) => {
+      const origin = location.origin;
+      const problems = [];
+      const readings = [];
+      const deaths = [];
+      const offDeath = h.emitter.on('combat:death', (event) => deaths.push((event && event.target) || 'unknown'));
+      // Section 17.1's god mode makes `_damage` a no-op for the Shade and two
+      // checks turn it on. Forced off for the duration and put back, the way
+      // `anymap.js` borrows it, and **reported**: arriving on, the round below
+      // would land on nothing and this check would be measuring a body nobody
+      // shot.
+      const god = h.debugState.godMode;
+      h.debugState.godMode = false;
+
+      let clean;
+      let cleanHealth;
+      let killed;
+      let killedAt = 0;
+      let steps = 0;
+      try {
+        // The control first, and it is the half that makes the clause mean
+        // anything: the same state, the same driver, nobody shooting. If the
+        // sentence can turn up here, its appearance below says nothing.
+        fresh(h);
+        clean = strike(h, HURT_STATE);
+        cleanHealth = h.shade.health;
+
+        // Then the round, landed in the middle of the strike on the step
+        // count. **Through `combat.applyDamage`**, the public door onto the
+        // very `_damage` the Warden's rifle calls (`tests/feedback.js` lands
+        // its damage the same way), and `combat:death` is the evidence that it
+        // went through the combat system rather than into a field. A Warden
+        // cannot be asked to kill on cue - four rounds inside ninety frames is
+        // a function of where it stands and what it can see, so a clause that
+        // waited for one would be flaky on a slower machine, which is the
+        // thing H57 was bitten by rather than a way to test for it.
+        fresh(h);
+        steps = 0;
+        const offStep = h.emitter.on('sim:step', () => {
+          if (++steps !== KILL_ON_STEP) return;
+          killedAt = steps;
+          h.combat.applyDamage(h.shade, CONFIG.shade.health, 'shade', 'gun', { ...h.warden.position });
+        });
+        try {
+          killed = strike(h, HURT_STATE);
+        } finally {
+          offStep();
+        }
+      } finally {
+        offDeath();
+        h.debugState.godMode = god;
+        // The death took the camera and handed the body to the ragdoll;
+        // `initMatch` resets both, so the next check gets what it would have.
+        fresh(h);
+      }
+
+      if (!killedAt) {
+        problems.push(`the strike never reached sim step ${KILL_ON_STEP}, so no round was landed and nothing here was measured`);
+      }
+      if (!deaths.includes('shade')) {
+        problems.push(`a full bar of damage was applied to the Shade mid-strike and combat emitted no death for her (${deaths.length ? deaths.join(', ') : 'no combat:death at all'}); god mode was ${!!god} on the way in`);
+      }
+      // A dead body does not accelerate, so the strike cannot have reached the
+      // state - and if it ever does, `why` is empty by contract and there is
+      // nothing for the clauses below to read.
+      if (killed.reached) {
+        problems.push(`the strike reported "${HURT_STATE}" reached with a body killed in the middle of it, so it reported no reason at all and this check has nothing to read`);
+      } else {
+        const said = WOUND_SAYS.exec(killed.why);
+        if (!killed.why.startsWith(KILLED_SAYS)) {
+          problems.push(`a strike whose body was killed reported "${killed.why}", which does not open with "${KILLED_SAYS}" - the death is the cause and the gait is the symptom, and an afternoon on the symptom is what H57 cost (H72)`);
+        } else if (!said) {
+          problems.push(`the reported reason "${killed.why}" names the death without the health in the shape ${WOUND_SAYS} - the number is what tells a reader it was the rounds and not the legs`);
+        } else {
+          if (Number(said[2]) !== CONFIG.shade.health) {
+            problems.push(`the reason says the bar is ${said[2]} and config.js says ${CONFIG.shade.health}; the sentence is quoting a number rather than reading one`);
+          }
+          if (Number(said[1]) !== 0 || !said[3]) {
+            problems.push(`the Shade took a full bar and the reason reads "${killed.why}" - a body combat has killed is at 0 and ragdolled, so this sentence is about a different body`);
+          }
+        }
+      }
+      // And the wording, held against the module it lives in rather than
+      // copied into this one (H62).
+      const source = await text(origin, '/src/tests/animation.js');
+      if (source.error) {
+        problems.push(`${source.error}; this clause reads the sentence strike() opens a dead body's failure with`);
+      } else {
+        const carries = uncommented(source.body);
+        for (const written of WOUND_WRITTEN) {
+          if (written.test(carries)) continue;
+          problems.push(`tests/animation.js no longer carries a sentence of the shape ${written}, so either strike() has stopped naming what happened to the body or it has been reworded and this check wants rewriting with it - and this is the only clause holding the half of that sentence no check here can drive`);
+        }
+      }
+      // And the control, both ways: it reached the state with nobody shooting,
+      // and its report is free of the sentence above.
+      if (!clean.reached) {
+        problems.push(`the control strike of "${HURT_STATE}" did not reach it with nobody shooting (${clean.why}), so the reading above is not a comparison`);
+      }
+      if (WOUND_SAYS.test(clean.why)) {
+        problems.push(`the control strike reported "${clean.why}", which already names a wound, so the sentence is not evidence of one`);
+      }
+      if (cleanHealth < CONFIG.shade.health) {
+        problems.push(`the control strike left the Shade at ${cleanHealth} of ${CONFIG.shade.health} with nobody shooting; something in this run lands rounds of its own and the comparison is not clean`);
+      }
+
+      // The whole reason is two sentences and the runner keeps 400 characters
+      // of a detail line (H42), so the opening is quoted and the rest is
+      // counted: the opening is the clause, and the length is the evidence
+      // that the symptom was kept rather than replaced.
+      const opening = killed.why.split(';')[0];
+      readings.push(`killed on sim step ${killedAt} of a "${HURT_STATE}" strike, combat:death for ${deaths.join(', ') || 'nobody'}`);
+      readings.push(`it opened with "${opening}" and kept ${killed.why.length - opening.length} more characters of the gait sentence behind it`);
+      readings.push(`control reached=${clean.reached}, health ${cleanHealth} of ${CONFIG.shade.health}, god mode was ${!!god}`);
 
       return {
         pass: problems.length === 0,
