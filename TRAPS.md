@@ -154,6 +154,25 @@ base's proof and skipping the gate deliberately rather than compromising it by
 accident. H62 killed its own gate once it was no use, which cost nothing it had
 not already lost.
 
+**H71 and H73 are the fourth and fifth, in one session, and they are the cheap
+version — so here is the control that actually worked.** Both started a VERIFY
+and then edited `src/` four minutes in, both times a comment and nothing else,
+which is exactly the shape that tempts you to let it run: the edit cannot
+plausibly change a verdict, and that is not the point, because a run is a proof
+about **a tree** and after the edit there is no single tree it is a proof about.
+What made these two cost four minutes instead of seventy was not resolve. It was
+reading `git status --short` immediately after the edit — the habit the red-gate
+note asks for, used on a green run — seeing a file that should not have changed,
+and killing the runner at once (`Stop-Process -Id N -Force` on both the
+`npm` wrapper and the `node scripts/suite.mjs` child; the Bash tool's own stop
+does not reach either). **Kill it the moment you notice, and do not finish
+reading the diff first:** every further minute is a minute of proof about
+nothing, and the restart is only expensive in proportion to how long you waited.
+The deeper fix is the order the three jobs of that session eventually settled
+into — probe, subset, **settle the tree**, verify — where "settle" is its own
+step with a `git status --short` and a `node --check` in it, and the VERIFY is
+started by a turn that does nothing else.
+
 **And "write the markdown while a gate is up" is only true of two files.** Four
 markdown files are `fetch`ed as text **at check time**, so a half-written one
 reds a check that has nothing to do with the job:
