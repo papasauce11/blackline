@@ -159,6 +159,9 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const restore = quiesce(h);
+      // H74: twenty frames are driven below before the first grab, which is
+      // well past the turn quiesce's live Warden spends them on (H73).
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const lens = createLens(h);
       const shade = h.shade;
 
@@ -251,6 +254,9 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const restore = quiesce(h);
+      // H74: the cloud is grown over its whole growTime BETWEEN the two
+      // grabs, so a walking Warden would be in the difference it reads.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const lens = createLens(h);
       const GA = CONFIG.gadgets;
 
@@ -318,6 +324,9 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const restore = quiesce(h);
+      // H74: a frame is stepped between each pair of grabs, at a wall found
+      // off a waypoint - which is exactly where a live Warden walks.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const lens = createLens(h);
       const C = CONFIG.gadgets.alarmCamera;
 
@@ -409,6 +418,9 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const restore = quiesce(h);
+      // H74: fifteen frames are driven below and the Warden is reset where
+      // this check wants it, which a live AI is free to walk it off.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const renderer = h.renderer;
       const gl = renderer.getContext();
       const width = renderer.domElement.width;

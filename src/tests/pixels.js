@@ -283,9 +283,11 @@ export function erode(source, width, height) {
  * anything driven for longer: H57 is what the old wording cost,
  * where `strikerepeat.js` inherited this restore, walked the Shade down a lit
  * lane and had her shot dead in the middle of a strike. A check that needs the
- * Warden out of it asks `initMatch` for a match with no AI itself, which is
- * what eight of this helper's twenty callers already do; the other twelve name
- * `initMatch` nowhere and take the match this leaves.
+ * Warden out of it asks `initMatch` for a match with no AI itself, and since
+ * H74 that is **every site here that steps a frame before it reads one** - the
+ * rest grab without stepping, so the picture is exactly the one this returned.
+ * `a-check-that-drives-the-world-after-a-quiesce-owns-the-warden` is the clause
+ * that counts both classes and names anything that has fallen out of them.
  *
  * `quiesce-says-what-it-does-about-the-ai` reads the flag below out of this
  * file as code and holds these two paragraphs against it, so the sentence and

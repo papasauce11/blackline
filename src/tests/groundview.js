@@ -88,6 +88,9 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const restore = quiesce(h);
+      // H74: both bodies are hidden before the grabs and the frames below
+      // come after the lens, so no pixel here moves - the rule is uniform.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const view = h.groundView;
       const lens = createLens(h);
       const t = DEBUG_KEYS.test;

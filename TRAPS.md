@@ -334,6 +334,26 @@ again:
   Chrome launched with `--mute-audio` and `--autoplay-policy=no-user-gesture-required`,
   on a Windows box whose audio endpoint is nobody's business here.
 
+**And H74 is the fourth, and the first to red a check rather than only log a
+line.** 2026-10-15, plant run 1, **336s in** - the same second of a run as
+H39's, which is the most interesting thing about it. What was new is the shape:
+every occurrence before this was the device being *starved* (H54: thousands of
+blinks, a fed ratio and no floor on it, D74), and this one was the context
+**suspending itself under a running page** - `running@0ms -> running@6ms ->
+suspended@268825ms -> running@583057ms`, unfed 612.4s of 850.2s, fed 0.2798 -
+which `the-audio-device-keeps-its-clock-and-journals-the-states-it-enters` calls
+the device going away and reds. The verify before it and the verify after it
+were both clean of it, so it is still the machine and still intermittent; what
+it is not any more is invisible, and **a run that reds on this is not a broken
+base and not a job's fault** - read the journal, say which occurrence it is, and
+run the verify again. Two things worth knowing when you do. **Both runs of a map
+report the same journal, to the millisecond, and that is one fault and not
+two:** `suite.mjs` does one page load per map (D1), so both runs share one
+`AudioContext`, and a suspension anywhere in that page's life reds both - which
+is also why it arrives as `red` rather than as `flaky`. And **the second
+verify's red is not evidence the first verify was wrong**: three hours of
+headless SwiftShader is what the box had already done by then.
+
 **And H39 is the third occurrence, which arrived the moment the record claimed
 a streak.** 2026-10-07, plant run 1, **336s in** - the twelfth verify on
 record, and the third to show it (H27 yard, H29 plant, H39 plant). What makes

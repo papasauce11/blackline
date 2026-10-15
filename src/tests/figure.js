@@ -27,6 +27,7 @@
  */
 
 import * as THREE from 'three';
+import { CONFIG } from '../config.js';
 import { withoutBloom } from '../entities/agentmesh.js';
 import { QUALITY_FALLBACK, pixelRatioNow, qualityPreset } from '../quality.js';
 import { createLens, difference, quiesce, scaledCount } from './pixels.js';
@@ -350,6 +351,9 @@ export function register(debugTools) {
       // its shadow off - the shadow is in the difference too, on the
       // ground and long under the yard's low key.
       const restore = quiesce(h);
+      // H74: five frames are driven below before the silhouette is read,
+      // so this check owns the Warden rather than inheriting quiesce's.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const where = standAndEyes(h, DISTANCES[DISTANCES.length - 1]);
       if (!where) { restore(); return { pass: false, detail: `no stand on this map with a clear lane and ${DISTANCES[DISTANCES.length - 1]}m of sight` }; }
       const { lane, stand, focus, eyes } = where;
@@ -411,6 +415,9 @@ export function register(debugTools) {
       // with the other hidden.
       const far = DISTANCES[DISTANCES.length - 1];
       const restore = quiesce(h);
+      // H74: five frames are driven below, per view, before each
+      // silhouette - so the Warden is this check's own and not quiesce's.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const where = standAndEyes(h, far);
       if (!where) { restore(); return { pass: false, detail: `no stand on this map with a clear lane and ${far}m of sight` }; }
       const { lane, stand, focus, eyes } = where;

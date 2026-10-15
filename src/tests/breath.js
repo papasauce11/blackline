@@ -52,6 +52,7 @@
  * imports main.js (Section 3.1).
  */
 
+import { CONFIG } from '../config.js';
 import { POSE } from '../entities/agentvisual.js';
 import { QUALITY_FALLBACK, pixelRatioNow } from '../quality.js';
 import { createLens, quiesce } from './pixels.js';
@@ -109,6 +110,9 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const restore = quiesce(h);
+      // H74: five frames are driven below before the lens grab, so this
+      // check owns the Warden rather than inheriting quiesce's live one.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const where = standAndEyes(h, DISTANCE);
       if (!where) {
         restore();

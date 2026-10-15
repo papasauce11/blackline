@@ -48,6 +48,7 @@
  * (Section 3.1).
  */
 
+import { CONFIG } from '../config.js';
 import { applyQuality, qualityPreset } from '../quality.js';
 import { createLens, quiesce } from './pixels.js';
 import { standAndEyes, flatShadeSilhouette, silhouetteFloor, yawToward, NARROW } from './figure.js';
@@ -122,6 +123,9 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const restore = quiesce(h);
+      // H74: five frames and sixty eased ones are driven below before the
+      // first lens, so this check owns the Warden rather than inheriting it.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const was = h.renderer.getPixelRatio();
       // The CSS size the renderer is laid out at, which is what a pixel ratio
       // multiplies. Taken from the live buffer rather than from the window, so

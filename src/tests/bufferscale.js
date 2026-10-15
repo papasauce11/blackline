@@ -37,6 +37,7 @@
  * Nothing here imports main.js (Section 3.1).
  */
 
+import { CONFIG } from '../config.js';
 import { applyQuality } from '../quality.js';
 import { createLens, quiesce, REFERENCE_WIDTH, REFERENCE_HEIGHT } from './pixels.js';
 import { standAndEyes, flatShadeSilhouette, silhouetteFloor } from './figure.js';
@@ -70,6 +71,9 @@ export function register(debugTools) {
       const problems = [];
       const readings = [];
       const restore = quiesce(h);
+      // H74: five frames are driven below before the first lens, so this
+      // check owns the Warden rather than inheriting quiesce's live one.
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const was = h.renderer.getPixelRatio();
 
       // The stand does not depend on the buffer, so it is found once: it is the

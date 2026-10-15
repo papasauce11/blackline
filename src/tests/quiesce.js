@@ -59,6 +59,17 @@
  * in a clause here. A number asserted the morning it is first measured is a
  * rule nobody argued.
  *
+ * **H74 asked the other half of H71's count, and found that the question could
+ * not be answered the way it was posed.** Whether a walking Warden changes a
+ * reading is not measurable one run at a time on these checks, because **ten of
+ * the eleven that step a frame before they grab answer differently between two
+ * runs of the same map anyway** - at HEAD too, on a breath that advances on the
+ * render frame's wall clock (H31, H33, H40). So the rule those eleven now follow
+ * rests on what a check *guarantees* and not on today's pixel counts: a site
+ * that steps the world after a quiesce has a Warden in its frame at a position
+ * it never states. `tests/quiescesites.js` holds that as a rule about **sites**
+ * rather than modules, and H79 is the run-to-run drift this turned up.
+ *
  * Nothing here renders a frame. Registered from tests/index.js; nothing
  * imports main.js (Section 3.1).
  */
@@ -68,8 +79,8 @@ import { codeOf, readerProblems } from './sourcetext.js';
 import { quiesce } from './pixels.js';
 
 /** The helper, where it lives, and the id this check reports under. */
-const HELPER = 'quiesce';
-const HELPER_FILE = 'src/tests/pixels.js';
+export const HELPER = 'quiesce';
+export const HELPER_FILE = 'src/tests/pixels.js';
 
 /**
  * The flag, read as code. A `g` flag and `lastIndex` reset at every use, which

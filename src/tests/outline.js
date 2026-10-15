@@ -58,6 +58,9 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const restore = quiesce(h);
+      // H74: twenty frames are driven below before the first grab, which is
+      // well past the turn quiesce's live Warden spends them on (H73).
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });
       const lens = createLens(h);
       const shade = h.shade;
       const preset = qualityPreset();

@@ -95,6 +95,70 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### Fourteen tests were photographing a Warden that was free to walk off, and their numbers wander more than I knew (H74, 2026-10-15)
+
+**Nothing in the game changed**, and this is the end of a thread that has run
+through the last three jobs.
+
+**The background.** A lot of the tests work by pointing a camera at something,
+rendering, and counting pixels. Nearly all of them start from the same helper,
+which puts both figures back on their starting marks and lets the round settle
+for a third of a second. Two jobs ago that helper turned out to leave the
+**Warden fully alive and hunting** while the test measures. Last job measured why
+that had never caused trouble: the Warden spends its first few frames turning on
+the spot before it takes a step — four frames' worth in the plant, seventeen in
+the yard — and most tests take their picture inside that window.
+
+**The question this job asked.** Is that actually true of every one of them? It
+is not something anyone had read. So each place the helper is used was sorted
+into two groups: the ones that **step the round forward** before they take their
+picture, and the ones that take it immediately. There are thirty-one such places;
+fourteen step the round on first, and seventeen do not.
+
+**Then I tried to measure how much it mattered, and found something else.** The
+eleven affected tests were run on both maps with the Warden's brain on and off,
+and most of the numbers came out slightly different — which looked like the
+answer. It is not. Those same eleven tests are **already run twice on each map
+every time**, and when I compared the two runs against each other, **ten of them
+answer differently run to run** on an unchanged game: a body that covers 19,228
+pixels one run covers 19,260 the next, a smoke cloud 794,510 then 861,269. Putting
+the old code back and running it twice gives the same spread, so this is not new
+and not something this job caused.
+
+**The cause is known and is not a bug.** The Shade breathes, and the breath runs
+on real elapsed time rather than on the game's own clock, so a test that
+photographs her catches a slightly different moment of the breath each time. The
+two tests that *don't* drift are the two that were deliberately built not to —
+one eases the pose a fixed number of frames, the other photographs all eight
+phases of the breath and reports the worst. That was the fix for this same thing
+years of jobs ago.
+
+**So the honest answer is that my before-and-after couldn't tell me anything**,
+because the thing I was measuring moves around by more than the effect I was
+looking for. One exception: the **death camera** test, which deliberately places
+the Warden 2.5m from the Shade so it is in shot, and then lets fifteen frames
+pass — and there the Warden really was walking out of its own photograph, by a
+margin a hundred times bigger than the drift.
+
+**What changed anyway, and why.** The fourteen places now switch the Warden's
+brain off for the length of the measurement — one line each — not because of a
+pixel count but because of what a test should be able to promise: if it moves the
+world forward and then takes a picture, it should know where the Warden is in
+that picture. A new test,
+`a-check-that-drives-the-world-after-a-quiesce-owns-the-warden`, counts both
+groups every run and fails if a fifteenth is ever written without that line. The
+seventeen that photograph immediately are left alone on purpose: rendering does
+not move the world, so a Warden standing still appears identically in two shots
+and cancels out of the comparison between them.
+
+**The thing worth knowing is the drift.** The suite checks that a test's
+*verdict* is the same in both runs, and it was, every time — but nothing checks
+that its *numbers* are. A measurement could wander by a fifth and stay green, and
+a pass mark set just under one run's reading will fail on some future Tuesday for
+no reason at all. That is written up as the next job to do here.
+
+**Nothing for you to look at.** The pictures a friend sees are unchanged.
+
 ### The Warden's first move is a turn, not a step (H73, 2026-10-14)
 
 **Nothing in the game changed**, and this one is a small fact about the Warden
@@ -1969,6 +2033,18 @@ now. What is not, and why:
 
 ## Known issues and open questions
 
+- **The suite checks that a test agrees with itself, but not that its numbers
+  do** (H74, 2026-10-15). Every test runs twice on each map and the suite
+  refuses a run where any test *changes its mind*. It does not look at the
+  measurements: ten of the eleven pixel-counting tests H74 looked at report
+  different numbers in the two runs - a body of 19,228 pixels then 19,260, a
+  smoke cloud of 794,510 then 861,269 - because the Shade breathes on real
+  elapsed time and a photograph catches a different moment of it. Old, not a
+  regression, and nothing is near failing. But a pass mark set just under one
+  run's reading will fail one day for no reason, so the next job here is to
+  have the suite report which numbers moved and by how much, and then decide
+  per test which ones should be pinned the way the breath test already pins
+  its own. **Nothing for you to do** - this is a note about the instrument.
 - **The Warden no longer defuses through the floor** (D27, decided
   2026-09-21: no; B5d the same day). The defuse reach is two distances
   and a clear line from the Warden's body to the charge, so the north

@@ -619,32 +619,46 @@ one setting only Josh can click; everything else here proceeds.
   clause holds the margin as a relation between `quiesce`'s settle and that
   frame, or the entry says why it is reported and not asserted.
 
-- [ ] **H74 (S)** Twelve checks take the match `quiesce()` leaves, and none of
-  them says so. H71 counted the callers: **twenty** modules call it thirty
-  times, and twelve of them - `breath.js`, `bufferscale.js`, `figure.js`,
-  `keylight.js`, `legibility.js`, `materials.js`, `outline.js`, `post.js`,
-  `smallwindow.js`, `visual.js`, `yardlight.js`, `yardmaterials.js` - never
-  name `initMatch` at all. The other eight open one of their own, three of them
-  with the AI off. Nothing is wrong today (H73 is why), but "every check that
-  needs the Warden elsewhere says so itself" is now a claim about twelve files
-  that has never been read. Ask it per check and not as a sweep: what each of
-  the twelve draws, whether a Warden walking into its frame could change its
-  reading, and for the ones where it could, the `initMatch({ ai: false })` line
-  the eight already have. **It moves pixel numbers** - the cost H71's entry
-  named and the reason H71 left the flag alone - so a check whose floors move
-  wants re-measuring in the same job rather than widening.
-  *done-when:* each of the twelve is classified in `PROGRESS.md` as "a Warden
-  could not reach this frame, because ..." or "it could, and here is the line
-  added"; every floor that moved is re-measured and named; and the suite is
-  green on both maps with no floor loosened.
-  **H73 sharpened this (2026-10-14).** The question is not whether the Warden
-  is on its spawn - it is, to 1e-6m, and a clause holds that now - but **how
-  many frames each of the twelve drives after the quiesce before it draws**.
-  The Warden's first translation is 4 or 5 frames after the helper returns on
-  the plant and 17 on the yard, so a caller that steps more than three frames
-  before its lens grab has a walking Warden in the shot and does not know it.
-  Read each of the twelve for the frames it drives between `quiesce(h)` and its
-  `createLens`/grab, and that number against those two is the whole answer.
+- [x] **H74 (S)** Twelve checks take the match `quiesce()` leaves, and none of
+  them says so. - done 2026-10-15, under Done. **The question could not be
+  answered the way it was posed, and finding that out is the result.** Ten of
+  the eleven readings involved drift run to run anyway - at HEAD too, on a
+  breath that advances on the render frame's wall clock - so no single-run A/B
+  can attribute anything, and only the death camera's 2,870 pixels sit outside
+  that band. Eleven lines added on the rule's own argument, a thirty-one-site
+  census to hold them, and **H79** is the drift the suite cannot see.
+
+- [ ] **H80 (S)** `quiesce-says-what-it-does-about-the-ai` depends on what ran
+  before it, and H74's verify caught it. One of two yard runs read *"over the 20
+  frames `quiesce()` settles the Warden translated **0.836667m**, against
+  0.000001m ... turned **0.0435rad**, against 0.05rad"* - a Warden already round
+  and walking from frame 1, where H73 measured the yard's first node at 1.13 rad
+  off the spawn nose and the first step on frame 17. One failure in twelve runs
+  of that tree. **The reproduction is in hand and costs 28 seconds**: run the
+  real check eight times over through the real runner in one probe on the yard
+  (`h.debugTools._autoTests`, TRAPS.md's recipe) and it fails on iteration **0**
+  and passes on **1 through 7**. So it is a dependence on what has run before
+  it, and the first invocation in a fresh page is the case that trips - which in
+  the suite means the predecessor's leavings decide it, and H74 changed eleven
+  predecessors' leavings without touching this check's own code (`pixels.js` has
+  no executable change in H74; `quiesce.js`'s is `export` on two constants).
+  **Two mechanisms are already ruled out:** `agent.reset()` sets
+  `this.yaw = spawn.yaw || 0`, so the yaw is not inherited from the 420-frame
+  walk the same check runs just before it, and `ai.reset()` clears `_route` and
+  `_routeIndex`, so the A* path is not either. What is left is the patrol
+  **circuit** - which `initMatch`'s reseed is documented to redraw ("a replayed
+  seed reproduces the same patrol order", Section 16 check 28) - and the stream
+  position at the moment it is drawn. Start by reading whether the circuit is
+  built in `ai.reset()` or lazily on the first patrol tick, and print it either
+  side of the `initMatch` in `whatTheSettleDoes`.
+  **This is H73's clause and the bar is not in question** - the Warden does turn
+  before it steps, measured four passes a map twice over. What is in question is
+  whether the check establishes the state its bar assumes, which is the A1/A3
+  shape again: a clause whose premise is set up by somebody else.
+  *done-when:* the probe above passes on iteration 0 as well as 1-7, on both
+  maps; the thing that was being inherited is named in `PROGRESS.md`; the check
+  establishes it itself rather than relying on a predecessor; and the full suite
+  is green twice on both maps with the clause's bars unchanged.
 
 - [ ] **H75 (S)** `src/tests/animation.js` is at 592 of 600, and the seam is
   not prose. It was 550 - one line outside the crowded cluster - and H72's
@@ -670,6 +684,96 @@ one setting only Josh can click; everything else here proceeds.
   diffed byte-identical against HEAD's detail lines, and the pose-proxy census
   green with `strike` found in its new home.
 
+- [ ] **H76 (S)** Twelve quiesce sites rest on a sentence no check holds.
+  H74's twelve one-frame sites are safe because `lens.grab()` renders and reads
+  the buffer back and **advances nothing** - so the world at every grab is the
+  world `quiesce` returned, and a toggle difference across two grabs cancels
+  anything standing still in both. That is a property of `pixels.js`, it is the
+  whole argument for leaving twelve checks alone, and it lives in prose in
+  `quiescesites.js`'s header and in `PROGRESS.md`. A `grab()` that one day
+  stepped a frame - or a helper that grew a `stepFrames` into it for a reason
+  that looked good - would make twelve classifications wrong in silence, and
+  the census would not notice: it reads the *caller's* source, not the helper's.
+  The clause is small and the shape is H73's: drive nothing, grab twice with a
+  live AI, and assert the Warden has not moved between the two buffers and that
+  the two buffers of an unchanged scene are **byte-identical**. Read the settle
+  and the grab off `pixels.js`'s source the way `quiesce.js` reads its flag, so
+  a helper that changed is driven as it really is.
+  *done-when:* a check asserts that a `lens.grab()` advances neither the Warden
+  nor the clock, derived from `pixels.js` rather than written down; it goes red
+  when a `stepFrames` is put inside `grab()`; `quiescesites.js`'s header points
+  at it instead of arguing it.
+
+- [ ] **H78 (S)** A check that puts the Warden somewhere should assert it is
+  still there. `the-death-camera-frames-the-killer` resets the Warden to a spot
+  2.5m from the Shade **because it wants it in frame**, then steps fifteen
+  frames before the first grab - and H73's measurement says that reset was only
+  ever valid for four of them on the plant. H74 gave the check a match with no
+  AI, so the reset means what it says now; what is still missing is the clause.
+  The check asserts the killer covers 300 scaled pixels and sits near the middle
+  of frame, which is a reading about **a** body near the middle, and it would
+  pass just as happily on a Warden that had walked two metres and been caught by
+  the death camera anyway. Same shape as A3 and A1 (`HANDOFF.md`'s "the lesson
+  that keeps repeating"): the check picks its own input and never checks the
+  input stayed picked. One line - the Warden is within a tolerance of where it
+  was reset to, at the moment of the grab - and the tolerance is 1e-6m because
+  with the AI off it is exact.
+  *done-when:* the check asserts the Warden is where it was reset to at the
+  grab, to 1e-6m; the break that proves it is the AI put back on, which must
+  red it; and the plant and yard pixel counts are re-read in the same job.
+
+
+- [ ] **H79 (M)** A reading that drifts while passing is invisible to this
+  suite, and ten of them do. H74 measured eleven pixel checks across the two
+  runs of each map on one tree and **ten answered differently**: a body of
+  19,228 or 19,260 pixels on the plant and 18,654 or 18,974 on the yard, a
+  silhouette of 347 or 359 at 25m, a smoke cloud of 794,510 or 861,269, an
+  outline of 18,663 or 18,963. HEAD's own files, restored from a snapshot and
+  run twice, give the same band, so this is old and not a regression. **The
+  mechanism is known** - the breath advances on the wall clock of the render
+  frame (H31, H33, H40) - and the two stable readings are the two built to be
+  (`a-small-window-...` eases a pinned sixty frames; the breath check samples
+  all eight phases and reports the worst), which is the shape of the fix as well
+  as the proof of the cause. **What is missing is not the mechanism, it is that
+  nothing says so.** `flaky` compares **verdicts**: a count could drift twenty
+  percent and stay green, and a floor set just under one run's reading is a
+  floor that will go red on a Tuesday. The runner already writes both runs'
+  details with `--details`, so the diff costs nothing - `suitereport.mjs` can
+  report, per map, which checks answered differently and by how much, the way it
+  already reports `spreadMs` and the flaky list. Then the decision the data
+  earns: which of the ten should be pinned the way H31 pinned its own (sample
+  the cycle, report the worst) and which are honestly weather and should say so
+  in their detail line, which is H41's and H73's distinction between a rule, a
+  map fact and a piece of weather.
+  *done-when:* the runner reports, per map, every check whose detail differed
+  between the two runs of that map, with the numbers; the ten H74 found are in
+  that report on a clean tree; the report is not a failure by itself (it is a
+  reading, D48's shape) and the entry says which of the ten are weather and
+  which are checks to pin; and at least one of them is pinned in this job or a
+  named follow-up.
+
+- [ ] **H77 (M)** The rng is a *candidate* channel, and H74 could not show it.
+  A live AI draws from the same seeded stream the sparks, the smoke and the
+  patrol order draw from, so a check that steps frames beside one and then reads
+  anything the rng feeds is reading a stream another system has been pulling on.
+  H74 proposed that as the reason its pixel readings moved and **then withdrew
+  it**: ten of the eleven readings drift run to run on their own (H79), by as
+  much as or more than the A/B deltas, so nothing in that measurement separates
+  an rng channel from the breath. The hypothesis is still worth settling and it
+  is cheap to settle **directly** rather than through pixels: `rngCalls` is
+  already on `debugState`, so "how many numbers did something other than this
+  check draw while it ran" is a counter and not an inference. H27 is the
+  precedent for two streams off one seed. **Count first and decide after** - the
+  lesson H71 wrote, H74 re-learned, and this entry exists to not repeat: a floor
+  on a number first measured this morning is a rule nobody argued, and a
+  before-and-after is worth nothing until the quantity's own spread is known.
+  Needs H79 first, or at least H79's band, or it measures the same fog again.
+  *done-when:* for every check that steps the world with the AI live, the rng
+  draws that happened under it are counted off `debugState.rngCalls` on both
+  maps and written in `PROGRESS.md`; the checks whose readings depend on the
+  stream are separated from the ones that do not, with the AI-on and AI-off
+  counts beside each; and either a clause holds the separation or the entry says
+  why it is reported.
 - [x] **H64 (S)** The flag census in `tests/args.js` is written down by hand. -
   done 2026-10-14, under Done. **Both holes the entry predicted were already
   open.** Five of the nine `.mjs` under `scripts/` were outside the census -
@@ -1150,6 +1254,70 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H74** Eleven sites that owe themselves a quiet Warden, and a band nobody
+  had measured. H71 counted twelve
+  modules that call `quiesce()` and never open a match of their own and asked
+  whether a walking Warden could be in their frames; H73 sharpened it to the
+  frames each one drives against four of headroom on the plant and seventeen on
+  the yard. The unit that answers it is a **site** - the span from one
+  `quiesce(h)` call to whichever comes first of the next one, the next
+  `registerAutoTest(` and the end of the file - because `visual.js` holds five
+  and they differ, while two sites live in exported helpers a registration-only
+  reader would never see. **Thirty-one sites in three classes, all derived:**
+  **14** step the simulation and then read the framebuffer (and **11 of those 14
+  did not say so** - one `initMatch({ ai: false })` line each, with `mode`,
+  `role` and `objective` exactly as `quiesce` passes them), **12** grab without
+  stepping a frame and are left alone because `lens.grab()` advances nothing, so
+  a static Warden cancels out of a toggle difference, and **5** read no frame.
+  **Then the eleven were measured rather than argued about, and the measurement
+  refused the question.** Run through the real runner on both maps with and
+  without the AI, most detail lines moved by a few pixels in a few thousand -
+  and read across the **two runs of each map on one tree**, **ten of the eleven
+  answer differently anyway**: 19,228 or 19,260 body pixels on the plant, 18,654
+  or 18,974 on the yard, a 25m silhouette of 347 or 359, a smoke cloud of
+  794,510 or 861,269. HEAD's own `visual.js` and `outline.js`, restored from a
+  `cp` snapshot and run twice, give the same band, so **it is old and not a
+  regression**, and the mechanism is already written down: the breath advances on
+  the **wall clock of the render frame** (H31, H33, H40). So every A/B delta is
+  inside that band or comparable to it and **nothing in it is attributable** -
+  the first draft of the entry said nine readings moved because of the Warden,
+  on one run of each condition, which is the mistake H43's rule exists to
+  prevent pointed at the instrument instead of the subject. **One exception, and
+  it is the one worth having:** the death camera's killer covers 53,813 /
+  53,827 / 53,851 pixels with the AI live, a band of about thirty, and 50,951 /
+  50,977 with it off - **2,870 pixels, two orders of magnitude outside the
+  band** - because that check resets the Warden 2.5m from the Shade *because it
+  wants it in frame* and then steps fifteen frames, valid for four of them.
+  **So the rule rests on what a check guarantees and not on its pixel counts**,
+  which is where it should have rested: a site that steps the world after a
+  quiesce has a Warden in its frame at a position it never states. The drift is
+  **H79**, and it matters more than this job did: `flaky` compares **verdicts**,
+  so a reading can drift twenty percent and stay green.
+  **Displacement off the spawn, horizontal, four passes a map:** plant 0 / 0 / 0
+  / 0.025 / 0.222 / 0.465 / 0.699 / 1.148 / 2.356m and yard 0 / 0 / 0 / 0 / 0 /
+  0 / 0.083 / 0.560 / 3.000m at 1, 2, 3, 5, 10, 15, 20, 30 and 60 frames; the
+  first moving frame read 4, 4, 4, 4 and 17, 17, 17, 17, tighter than H73's own
+  probes. A 3D hypot read 0.05m at frame 1 on the yard and 0.000m at frame 5,
+  which is the ground snap in `y` and not a body - a displacement about a
+  settling body is horizontal or it is noise. The clause is
+  `a-check-that-drives-the-world-after-a-quiesce-owns-the-warden` in a **new
+  module**, `tests/quiescesites.js`, because the check written inside
+  `quiesce.js` put it at **604 lines** and the subject is the other one anyway -
+  that file holds the helper's sentence, this one holds its callers. **Two
+  self-exclusions a source census needs:** the site pattern is built from
+  `HELPER` rather than written as a literal, because `codeOf` strips strings and
+  leaves a regex literal where it is, so a pattern spelling `quiesce(h)` is a
+  site in its own census - and the first draft's literal `/renderFrame\(/` put
+  that identifier in this module's code and reddened
+  `every-check-that-poses-a-body-...` with *"quiescesites.js renders a frame"*,
+  correctly by its own rule. The names are a list now, which says what is true.
+  **H52's seventy minutes paid in two**, because TRAPS.md's recipe - run the four
+  censuses as a subset before the verify - was run first. Three breaks, each
+  naming its own clause: a line removed names `visual.js:326` and nothing else,
+  the driver reader blinded trips its own two vectors and the empty-class
+  clause, and the lookbehind removed makes `pixels.js:296` a site.
+  — done 2026-10-15, `H74_HASH`.
 
 - **H73** The margin was not a wait, it was a turn. H71 left the Warden sitting
   **0.000m** off its spawn when `quiesce()` returns and explained it as the AI

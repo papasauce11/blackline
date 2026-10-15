@@ -84,6 +84,7 @@ import { register as registerBufferScale } from './bufferscale.js';
 import { register as registerSmallWindow } from './smallwindow.js';
 import { register as registerPixelFloors } from './pixelfloors.js';
 import { register as registerQuiesce } from './quiesce.js';
+import { register as registerQuiesceSites } from './quiescesites.js';
 import { register as registerAudioContext } from './audiocontext.js';
 import { register as registerSolverQuery } from './solverquery.js';
 import { register as registerAutoPick } from './autopick.js';
@@ -204,6 +205,10 @@ export function registerAutoTests(debugTools) {
   // frame a body with: what `quiesce()` says about the AI is what its body
   // passes, and the match it leaves is live in fact (H71).
   registerQuiesce(debugTools);
+  // And next to it the other half of the same subject: not what the helper
+  // says, but which of its thirty-one sites steps the world before it draws,
+  // and therefore owes itself a match with no AI in it (H74).
+  registerQuiesceSites(debugTools);
   // Beside it, and a census of the same shape: one module owns the audio
   // device's constructor, and an offline render gives the live context back
   // (H32).

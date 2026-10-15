@@ -16935,3 +16935,245 @@ question for it: with the mechanism known, what each of the twelve callers needs
 is not "is the Warden on its spawn" — it is **how many frames each of them
 drives after the quiesce before it draws**, which is three or four on the plant
 before a Warden starts walking into the shot.
+
+## H74 — eleven sites that owe themselves a quiet Warden, and a band nobody had measured (2026-10-15, scheduled run)
+
+**The entry asked for a classification and got a measurement that changed its
+shape.** H71 counted twenty modules calling `quiesce()` thirty times with twelve
+of them never naming `initMatch`, and asked whether a walking Warden could be in
+their frames. H73 sharpened it to the right question — *how many frames does each
+one drive between the quiesce and the grab?* — against four frames of headroom on
+the plant and seventeen on the yard. Asked that way the answer is cheap to read
+off the tree. Asked whether it **matters**, the answer is that nine of eleven
+readings move, and for two reasons rather than one.
+
+**A site, not a module, and not a check body either.** The unit this job settled
+on is the **quiesce site**: the span of code from one `quiesce(h)` call to
+whichever comes first of the next one, the next `registerAutoTest(`, and the end
+of the file. Modules are too coarse — `visual.js` holds five sites and they
+differ — and `registerAutoTest(` bodies are too narrow, because two sites are
+inside exported helpers (`look.js` photographs through one, `grabslide.js` drives
+one) and a reader that only looked inside a registration would see neither. The
+`registerAutoTest(` boundary is what stops a span bleeding into the next check
+and borrowing its flag: measured without it, `sitetint.js`'s single site reads as
+owning the Warden on the strength of an `ai: false` two checks below it.
+
+**Thirty-one sites, in three classes, every one derived.**
+
+- **14 step the simulation and then read the framebuffer.** These own the
+  Warden, and **11 of the 14 did not before this job**: `breath.js`,
+  `bufferscale.js`, `figure.js` (twice), `groundview.js`, `outline.js`,
+  `smallwindow.js` and `visual.js` (four times). Each has one
+  `initMatch({ ai: false })` line now, with `mode`, `role` and `objective`
+  exactly as `quiesce` passes them, so the AI is the only thing that changed.
+- **12 read a frame without stepping one** — `keylight.js`, `legibility.js`
+  (twice), `look.js:61`, `materials.js` (twice), `post.js`, `sitetint.js`,
+  `visual.js:57`, `yardlight.js`, `yardmaterials.js` (twice). **Left alone on
+  purpose, and this is the reason the entry wanted written down:** `lens.grab()`
+  calls `h.post.render` and reads the buffer back, and advances nothing. So the
+  world at every grab is the world `quiesce` returned — the Warden on its spawn
+  to 1e-6m, which H73's clause now holds — and a toggle difference taken across
+  two grabs cancels anything standing still in both of them. Twelve again, by
+  coincidence; not H71's twelve.
+- **5 read no frame at all** — `grabslide.js`, `groundview.js:42`,
+  `poseeye.js`, `positioncensus.js`, `quiesce.js:343`.
+
+**How far the Warden actually gets, measured with the right instrument.**
+Horizontal displacement off its spawn after a `quiesce`, four passes a map:
+
+| frames | 1 | 2 | 3 | 5 | 10 | 15 | 20 | 30 | 60 |
+|---|---|---|---|---|---|---|---|---|---|
+| plant | 0 | 0 | 0 | 0.025 | 0.222 | 0.465 | 0.699 | 1.148 | 2.356 |
+| yard | 0 | 0 | 0 | 0 | 0 | 0 | 0.083 | 0.560 | 3.000 |
+
+The frame it first translates on read **4, 4, 4, 4** on the plant and
+**17, 17, 17, 17** on the yard, which agrees with H73 and is tighter than H73's
+own two probes (which read 4 and 5). **A 3D hypot is the wrong instrument here
+and cost ten minutes:** the first pass of this table used one and reported
+0.05m at frame 1 on the yard and 0.000m at frame 5, which is not a body that
+moved and came back — it is the ground snap in `y`. H73's `flat()` excludes it
+for exactly this reason, and a displacement reading about a settling body is a
+horizontal reading or it is noise.
+
+**And then the fourteen were measured rather than argued about - and the
+measurement refused to answer the question.** All eleven newly-flagged sites were
+run through the **real runner** (`h.debugTools._autoTests` inside a probe, 42s
+against a `--subset` run's 2.6 minutes) twice on each map, once with the match
+`quiesce` leaves and once with the AI taken out of it. Most of the detail lines
+moved, by a few pixels in a few thousand, and the first draft of this entry
+reported that as the finding. **It is not one.** Read across the *two runs of
+each map on one tree* - which the verify's `--details` gives for nothing -
+**ten of the eleven answer differently run to run as well**:
+
+| check | map | run 1 | run 2 |
+|---|---|---|---|
+| `the-shade-visibly-dims-with-the-meter` | plant | 19,228 px | 19,260 |
+| | yard | 18,654 | 18,974 |
+| `the-outline-darkens-the-silhouette-edge` | plant | 19,317 | 19,246 |
+| | yard | 18,663 | 18,963 |
+| `the-shade-reads-as-a-hooded-figure-...` | plant | 2,998 at 8m | 3,075 |
+| `...-told-apart-by-silhouette-at-25m` | plant | Shade 347 | 359 |
+| `smoke-obscures-and-the-flash-whites-out` | yard | 794,510 | 861,269 |
+| `the-alarm-fixture-...-changes-state` | plant | residue 1,406 | 1,348 |
+
+**And it is nothing this job did.** HEAD's own `visual.js` and `outline.js` were
+put back from a `cp` snapshot and the same five-check subset run twice on the
+plant: 19,760 against 19,643 body pixels, 19,764 against 19,603 outline pixels,
+915,278 against 877,345 smoke pixels, 959 against 1,083 of residue. The same
+band, before the job. **The mechanism is known and already written down** - the
+breath advances on the **wall clock of the render frame** (H31, H33, H40, and
+`breathcensus.js`'s own header says so in its first paragraph), so the phase a
+grab arrives in is not reproducible, and a body is a few hundred pixels wider or
+narrower depending on where in a 6.98s cycle the check happened to land. The two
+readings that are stable are the two that were built to be:
+`a-small-window-...` eases a pinned sixty frames after a reset (351px in all
+four runs) and `the-hood-holds-its-ratio-at-every-phase-of-the-breath` samples
+all eight phases and reports the worst (1.67x of 2.00x in all four), which is
+exactly what H31 built it for.
+
+**So every A/B delta this job measured is inside that band or comparable to it,
+and the honest answer is that the comparison cannot attribute them.** What it
+*can* say is listed above and queued below; what it cannot say is that nine
+readings moved because of the Warden, and the first draft of this entry said so
+on one run of each condition. **Two runs of one condition would have caught it,
+and that is the lesson**: a before-and-after on a quantity is worth nothing until
+the quantity's own spread is known, which is H43's rule (*"measure something a
+previous job measured, and compare, before you measure the thing nobody has"*)
+pointed at the instrument instead of the subject.
+
+**One exception, and it is the one worth having.** The death camera's killer
+covers **53,813 / 53,827 / 53,851** pixels with the AI live, a run-to-run band
+of about thirty, and **50,951 / 50,977** with it off - a shift of some **2,870
+pixels, two orders of magnitude outside the band**. That check resets the Warden
+to a spot 2.5m from the Shade *because it wants it in frame* and then steps
+fifteen frames, which H73 says was only ever valid for four of them on the
+plant: the live AI was demonstrably walking the subject out of the shot it had
+been placed in. That one is a real effect, measured, and attributable. It is
+also the only one of the eleven where the check places the Warden on purpose.
+
+**No floor is near any of this, before or after.** The movers are tenths of a
+percent to two percent of counts whose floors are a fiftieth of them (400
+against 19,000); the alarm's residue is a **ceiling** at `fixture.count * 0.5` =
+2,640 and sits at 1,348-1,406; the scaling law's spread moved 1.0105 to 1.0110
+against its tolerance. Nothing was weakened and no floor was touched.
+
+**Which leaves the rule resting where it should have rested from the start.** Not
+on today's pixel counts, but on what a check *guarantees*: a site that steps the
+world after a quiesce has a Warden in its frame at a position it never states,
+and four frames on the plant is not a margin anybody chose. The eleven lines say
+so now; the twelve that grab without stepping are left alone because
+`lens.grab()` advances nothing, so the world at every grab is the world
+`quiesce` returned and a static body cancels out of a toggle difference.
+
+**The clause, in its own module.** `src/tests/quiescesites.js` (251 lines), one
+check - `a-check-that-drives-the-world-after-a-quiesce-owns-the-warden`. It reads
+every module the registrar imports plus `pixels.js`, through `codeOf`, splits each
+into sites, and asserts that every site which steps the world and reads a frame
+asks for a match with the AI off. **It went into a new module because
+`quiesce.js` reached 604 lines when the check was written there** - four over the
+ceiling - and the subject is genuinely the other one: that file holds the
+helper's *sentence*, this one holds its *callers*. `HELPER` and `HELPER_FILE` are
+exported from `quiesce.js` so the helper's name is single-sourced.
+
+**Two self-exclusions, both of which a census of source needs and neither of
+which is tidiness.** The site pattern is built from `HELPER` rather than written
+as `/quiesce\(h\)/`, because `codeOf` strips strings and comments and leaves a
+**regex literal** exactly where it is - a pattern that spells `quiesce(h)` is a
+thirty-second site in its own census. The same trap with teeth: the first draft
+wrote `/\bh\.(?:stepFrames|renderFrame)\(/` as a literal, and
+`every-check-that-poses-a-body-...` went red with *"quiescesites.js renders a
+frame and is in neither list"* - **correctly, by its own rule**, because the
+identifier was in this module's code. The fix is to put the names in a list and
+build the pattern from it, which says what is true: the name is data here, not a
+call. **That is H52's seventy minutes, paid in two**, because TRAPS.md's
+two-minute recipe - run the four censuses as a subset before the verify, not the
+new check alone - was run first. The lookbehind is the third exclusion: the
+helper's own `export function quiesce(h)` is not a call to itself.
+
+**Proved three ways, each red naming its own clause.** (1) One of the eleven
+lines removed -> *"1 quiesce site(s) step the simulation and then read the
+framebuffer with no match of their own ... visual.js:326"*, and nothing else.
+(2) The driver reader blinded -> the instrument's own two vectors (*"codeOf read
+'h.stepFrames(5);' as nothing and not a driver"*) plus the empty-class clause.
+(3) The lookbehind removed -> the ignore vector for the definition, plus
+*"src/tests/pixels.js contributes 1 site(s) (pixels.js:296) and should contribute
+none"*. Snapshot-and-restore throughout (H36, H39, H53), `diff -q` clean after
+each, and the break script refuses to run unless its copies are byte-identical to
+the tree. One bug of my own in that loop, worth the line: the restore branch sat
+*after* the byte-identical guard, so the first restore refused because the file
+it was about to restore was the broken one. Caught by reading `git status --short`
+between breaks, which is H39's rule and is why it cost a minute.
+
+**And one thing seen once and not reproduced.** A probe run of the ten-check
+census subset reported `failed: 1` while every result it printed passed; three
+further runs of the same subset on the same tree reported `failed: 0`, and the odd
+run's output had been piped through `head` and was lost. The verify is the
+instrument for this and its `flaky` list is **empty over four runs on two maps**,
+so there is nothing to chase - but a reader who sees a single unreproducible red
+in this neighbourhood should know it has been seen, and that `flaky` compares
+verdicts rather than numbers, which H79 is about.
+
+**Verified three times, and the record is what the three runs actually said
+rather than the best of them.**
+
+- **Verify 1** (03:11-04:27), on the tree before the write-up was corrected:
+  plant **233 passed, 1 failed, 8 not for this map** (1,114,719ms and
+  1,119,647ms), yard **213 / 1 / 28** (777,907ms and 776,574ms), exit 0, **0
+  red, 0 flaky, 0 skipped, 0 unexpectedly green, 0 context losses, 0 console
+  errors, no other runner**. Spreads 4,928ms on the plant (0%) and 1,333ms on
+  the yard (0%). This is the clean proof of the job's executable content: the
+  only difference from the committed tree is comment text in two files, plus
+  `export` on two constants.
+- **Verify 2** (04:40-05:46), after the corrections: `suite: FAIL`, one red -
+  `the-audio-device-keeps-its-clock-and-journals-the-states-it-enters` on the
+  plant - and **one console error**, *"The AudioContext encountered an error
+  from the audio device or the WebAudio renderer"*, at **336s into plant run
+  1**. That is the fourth occurrence on record of a fault H32 closed the code
+  side of (H27 yard, H29 plant, H39 plant - and H39's was also at 336s). The
+  journal: `running@0ms -> running@6ms -> suspended@268825ms ->
+  running@583057ms`, unfed 612.4s of 850.2s, fed 0.2798, worst unfed 295.760s.
+  **This is an escalation and is written down as one**: H54 established the
+  device being *starved*; this is the context **suspending itself** under a
+  running page. Both plant runs reported a byte-identical journal to the
+  millisecond, which is not two failures but one - `suite.mjs` does **one page
+  load per map** (D1), so both runs of a map share one `AudioContext` and its
+  journal, and a suspension anywhere in a map's page life reds both of its
+  runs. That is also why it came back as `red` and not as `flaky`.
+- **Verify 3** (05:48-06:55): the audio fault **did not recur** (0 console
+  errors), which is what says it was the machine - and one **FLAKY**,
+  `quiesce-says-what-it-does-about-the-ai` on the yard, failing one of the two
+  runs with *"over the 20 frames quiesce() settles the Warden translated
+  0.836667m, against 0.000001m ... turned 0.0435rad, against 0.05rad"*. One
+  failure in **twelve** runs of this tree. Exit 1.
+
+**So this job does not claim a clean verify, and the flake is not H74's.** Two
+pieces of evidence, both cheap, both taken rather than argued. **It reproduces
+on the first invocation in a fresh page**: the real check run eight times over
+through the real runner in one probe on the yard failed on iteration **0** and
+passed on **1 through 7**, which makes it a dependence on what has run before
+it rather than anything about a run boundary. And **the code it runs is
+functionally HEAD's**: `pixels.js` has no executable change in this job at all,
+and `quiesce.js`'s only one is `export` in front of two constants, so the
+failing path is byte-identical in behaviour to the tree that passed twelve
+times before today. What H74 did change is what eleven *other* checks leave
+behind, so it may well have changed which runs trip a pre-existing dependence -
+which is a reason to fix the check, not a reason to think the dependence is
+new. **H80** is the job, with the reproduction in it.
+
+Two mechanisms were ruled out while the probe was cheap: `agent.reset()` sets
+`this.yaw = spawn.yaw || 0`, so the yaw is not inherited from the 420-frame
+walk the same check does just before; and `ai.reset()` clears both `_route` and
+`_routeIndex`, so the A* path is not inherited either. What is left is the
+patrol **circuit** - the thing `initMatch`'s reseed is documented to redraw -
+and the rng stream position at the moment it is drawn.
+
+**Left.** Five follow-ups in QUEUE.md. **H76**: the twelve one-frame sites rest
+on `lens.grab()` not advancing the world, which no check holds. **H78**: the
+death camera resets the Warden and never asserts it stayed - the one place
+H74's AI effect was measurable. **H79**: ten of eleven readings in this
+neighbourhood drift run to run and **the suite cannot see it**, because `flaky`
+compares verdicts; the runner already holds both runs' details. **H77**: the
+rng as a *candidate* channel, which wants H79's band first or it measures the
+same fog. **H80**: the flake above, with its reproduction. And on the record
+rather than in the queue: the audio device has now suspended itself once, which
+the next verify should be read against.
