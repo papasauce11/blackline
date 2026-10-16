@@ -1273,7 +1273,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   ten H74 found drifting - while the same check's ragdoll travel is one of the
   ten (3.03 / 3.87 and 2.35 / 2.71). That band is H79's and this job did not
   touch it.
-  — done 2026-10-16.
+  — done 2026-10-16, `7241a06`.
 
 - **H76** The sentence twelve checks rested on, and the break that only trips
   half of it. `lens.grab()` renders, reads the framebuffer back and **advances
