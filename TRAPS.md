@@ -173,6 +173,25 @@ into — probe, subset, **settle the tree**, verify — where "settle" is its ow
 step with a `git status --short` and a `node --check` in it, and the VERIFY is
 started by a turn that does nothing else.
 
+**A split that takes one file out of the 600-line cluster can put another
+one in, and the split file's own size is not the number to check.** H75 moved
+`strike` out of `animation.js` - 593 lines to 309, with a 327-line
+`strikedrive.js` beside it - and the runner's ceiling line still read **12
+modules within 50 of 600**, exactly as it had before. The reason was the job
+itself: holding the proxy criterion's file name needed a constant and a comment
+in `breathcensus.js`, which was at **550**, one line outside the cluster, and
+eleven lines put it **in**. One module out, one module in, and the only number
+the ceiling reports had not moved - so a job whose entire purpose is that number
+would have been recorded as done having achieved nothing. **Read the runner's
+own `ceiling:` line after the edit and before the verify**, never the split
+file's `wc -l`: the first is the claim the queue entry makes and the second is
+the thing it is easy to feel good about. The fix was also the better design -
+the constant went to `posecriterion.js`, which owns the membership question and
+sits at 331 - so this is the usual shape, where the cheap way out of a ceiling
+is to put a thing where it belonged anyway. Watch the threshold: "within 50 of
+600" is **551 and up**, so 550 is outside it by one line and a one-line comment
+is the difference between eleven and twelve.
+
 **Exit 2 is not always a broken base: Chrome can fail to launch and take the
 gate with it.** H80's first gate died about forty seconds in with
 `browserType.launch: Target page, context or browser has been closed`, a

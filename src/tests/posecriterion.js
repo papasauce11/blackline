@@ -31,9 +31,13 @@
  * queue entry that asked for this said `animation.js` was the only proxy
  * today. It is not:
  *
- *   `animation.js`      `frame` (makes the call) and `strike` (through `frame`)
+ *   `strikedrive.js`    `frame` (makes the call) and `strike` (through `frame`)
  *   `look.js`           `photograph` and `photographPose`
  *   `positionreads.js`  `draw`
+ *
+ * The first was `animation.js` until H75 split E3's checks from the driver;
+ * the set followed the code without this module changing, which is the whole
+ * point of reading it off the tree.
  *
  * Five names in three modules, where the record said one in one - which is
  * H55's lesson again, that a number nobody has measured is a number nobody
@@ -64,6 +68,20 @@
  */
 
 import { codeOf, readerProblems } from './sourcetext.js';
+
+/**
+ * The module whose exports the criterion has rested on since H53, and which
+ * has held them since H75 - it was `animation.js` until the driver moved out
+ * of E3's checks. `breathcensus.js` requires it to still contribute a proxy,
+ * because a discovery that has stopped seeing `frame` and `strike` drops three
+ * real members of that census without a word.
+ *
+ * **This is the one hand-written thing left in the criterion**, so a job that
+ * moves those two functions again changes this line in the same diff. H75 is
+ * the worked example: it moved them, two clauses in `strikerepeat.js` went red
+ * on both maps naming the moved mechanism, and this line was the third.
+ */
+export const PROXY_HOME = 'strikedrive.js';
 
 /** The call itself: a module whose code drives the pose. */
 export const POSES_A_BODY = /updateVisual\(/;
@@ -158,12 +176,12 @@ export function exportsReaching(code) {
  */
 const PROXY_CASES = [
   {
-    why: "a helper that makes the call itself, which is `animation.js`'s `frame`",
+    why: "a helper that makes the call itself, which is `strikedrive.js`'s `frame`",
     source: 'export function frame(h) {\n  h.shade.updateVisual(1 / 60);\n}\n',
     proxies: ['frame'],
   },
   {
-    why: "a helper that reaches it through another in the same module, which is `animation.js`'s `strike` and the whole reason a name in a regex was not enough",
+    why: "a helper that reaches it through another in the same module, which is `strikedrive.js`'s `strike` and the whole reason a name in a regex was not enough",
     source: 'function inner(h) {\n  h.shade.updateVisual(1 / 60);\n}\nexport function strike(h, name) {\n  inner(h);\n}\n',
     proxies: ['strike'],
   },
@@ -252,7 +270,7 @@ export async function poseProxies(origin) {
     for (const name of exportsReaching(code)) entries.push({ module: file, name });
   }
   if (!entries.length) {
-    problems.push('no module under src/tests/ exports a function that poses a body, so the discovery has stopped seeing animation.js\'s frame and the criterion is one grep again');
+    problems.push('no module under src/tests/ exports a function that poses a body, so the discovery has stopped seeing strikedrive.js\'s frame and the criterion is one grep again');
   }
   problems.push(...proxyProblems());
   return { names: entries.map((e) => e.name), entries, scanned: files.length, problems };

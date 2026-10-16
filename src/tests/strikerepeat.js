@@ -33,7 +33,7 @@
  * function of the argument. What D66 guarantees is that a `reset()` **keeps
  * the phase and snaps the place**, so the order can be inverted: pin the phase
  * by driving to a known one, reset to the lane, and run a measured count of
- * frames from there. `animation.js`'s `GAIT_STRIKE` is those counts and
+ * frames from there. `strikedrive.js`'s `GAIT_STRIKE` is those counts and
  * `CARRIED` below is empty.
  *
  * **What this check is for, concretely, now that nothing is declared.** It is
@@ -89,7 +89,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { strike, STRIKES } from './animation.js';
+import { strike, STRIKES } from './strikedrive.js';
 import { uncommented } from './sourcetext.js';
 
 /**
@@ -143,8 +143,17 @@ const SAME_PLACE = 1e-9;
 const gap = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
 /**
+ * The module `strike` lives in, which the two source clauses below read. It was
+ * `animation.js` until H75 moved the driver out of E3's checks, and **both
+ * clauses went red on both maps when it did** - correctly, naming the moved
+ * mechanism, which is the whole of what they are for. Named once here so the
+ * next move of this code is one line and not four messages.
+ */
+const DRIVER_FILE = 'strikedrive.js';
+
+/**
  * The three lines in `strike`'s walk and sprint that make a strike a function
- * of its argument, read from `animation.js`'s own source. Two must be there
+ * of its argument, read from `strikedrive.js`'s own source. Two must be there
  * and one must not, and the one that must not is the mirror: an `Math.abs`
  * read stops at whichever half-cycle arrives first, which pins the silhouette
  * and not the parity, and a 3,000-pixel floor cannot tell the two apart.
@@ -191,7 +200,7 @@ const KILL_ON_STEP = 20;
  * The sentence `strike` opens a failure with when the body did not survive it,
  * as a shape and not as a copy.
  *
- * **The wording lives in `animation.js` and this is read against it**, which is
+ * **The wording lives in `strikedrive.js` and this is read against it**, which is
  * H62's rule for a clause whose evidence is a string: the same regex is asked
  * of the reported reason *and* of that module's own source (with the comments
  * out and the strings kept, because a sentence in a template literal is the
@@ -207,7 +216,7 @@ const KILL_ON_STEP = 20;
  * rendered shape and went red with the sentence sitting right there - the same
  * class of mistake as H53's module path, which a stripped read cannot see
  * because it is a string. So `WOUND_SAYS` is the reported reason, digits and
- * all, and `WOUND_WRITTEN` is what `animation.js` actually carries, `${...}`
+ * all, and `WOUND_WRITTEN` is what `strikedrive.js` actually carries, `${...}`
  * and all. Each is asked of the thing it is about and neither is asked of the
  * other.
  *
@@ -289,14 +298,14 @@ export function register(debugTools) {
       // sprint agreed on the second run of a pass and moved 1.167m on the
       // first. So the three lines that make the claim true are read from
       // `strike`'s own source, one of them by its absence.
-      const source = await text(origin, '/src/tests/animation.js');
+      const source = await text(origin, `/src/tests/${DRIVER_FILE}`);
       if (source.error) {
         problems.push(`${source.error}; this clause reads the mechanism that pins ${GAIT_DRIVEN.join(' and ')}`);
       } else {
         for (const clause of PINS_THE_GAIT) {
           const found = clause.pattern.test(source.body);
           if (found !== (clause.is === 'present')) {
-            problems.push(`tests/animation.js: ${clause.what} - and that line is ${found ? 'there and should not be' : 'gone'} (${clause.pattern}). Either a strike is no longer a function of its argument, in which case CARRIED and animation.js's header are both lies until somebody looks, or the mechanism has moved and this clause wants rewriting with it (H57)`);
+            problems.push(`tests/${DRIVER_FILE}: ${clause.what} - and that line is ${found ? 'there and should not be' : 'gone'} (${clause.pattern}). Either a strike is no longer a function of its argument, in which case CARRIED and that file's header are both lies until somebody looks, or the mechanism has moved and this clause wants rewriting with it (H57, H75)`);
           }
         }
       }
@@ -424,14 +433,14 @@ export function register(debugTools) {
       }
       // And the wording, held against the module it lives in rather than
       // copied into this one (H62).
-      const source = await text(origin, '/src/tests/animation.js');
+      const source = await text(origin, `/src/tests/${DRIVER_FILE}`);
       if (source.error) {
         problems.push(`${source.error}; this clause reads the sentence strike() opens a dead body's failure with`);
       } else {
         const carries = uncommented(source.body);
         for (const written of WOUND_WRITTEN) {
           if (written.test(carries)) continue;
-          problems.push(`tests/animation.js no longer carries a sentence of the shape ${written}, so either strike() has stopped naming what happened to the body or it has been reworded and this check wants rewriting with it - and this is the only clause holding the half of that sentence no check here can drive`);
+          problems.push(`tests/${DRIVER_FILE} no longer carries a sentence of the shape ${written}, so either strike() has stopped naming what happened to the body or it has been reworded and this check wants rewriting with it - and this is the only clause holding the half of that sentence no check here can drive`);
         }
       }
       // And the control, both ways: it reached the state with nobody shooting,

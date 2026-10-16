@@ -37,7 +37,7 @@
  * simulation and draws nothing, so a grab driven with it leaves the drawn body
  * exactly where it was; a draw with no step moves the body and not the game.
  * Only a real frame - one step, one draw, both bodies - is what a player sees,
- * and that is `frame()` in `tests/animation.js`, exported for this.
+ * and that is `frame()` in `tests/strikedrive.js`, exported for this (H75).
  *
  * `grabSlide()` is the instrument and `scripts/shot.mjs --slide` is the
  * viewer: one PNG a frame through the first fifteen, written where Josh can
@@ -55,7 +55,7 @@ import { CONFIG } from '../config.js';
 import { positionSmoothing } from '../entities/pose.js';
 import { SHADE_STATE } from '../entities/agent.js';
 import { quiesce } from './pixels.js';
-import { frame as wholeFrame } from './animation.js';
+import { frame as wholeFrame } from './strikedrive.js';
 import { findGroundLedge } from './movement.js';
 import { press } from './feel.js';
 import { photographHere } from './look.js';
@@ -178,7 +178,7 @@ export function grabSlide(h, { frames = SLIDE_FRAMES, photograph = false } = {})
       return empty(`the body had not settled before the run-up (${chaseGap(shade).toFixed(4)}m)`);
     }
 
-    // The run-up and the tap, as tests/animation.js's `climb` does it, except
+    // The run-up and the tap, as tests/strikedrive.js's `climb` does it, except
     // that every one of these is a real frame rather than a step.
     h.input.heldCodes.add('KeyW');
     for (let i = 0; i < RUN_UP; i++) wholeFrame(h);

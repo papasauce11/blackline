@@ -628,30 +628,6 @@ one setting only Josh can click; everything else here proceeds.
   that band. Eleven lines added on the rule's own argument, a thirty-one-site
   census to hold them, and **H79** is the drift the suite cannot see.
 
-- [ ] **H75 (S)** `src/tests/animation.js` is at 592 of 600, and the seam is
-  not prose. It was 550 - one line outside the crowded cluster - and H72's
-  forty-two lines put it in, so the ceiling reads **12 modules within 50 of
-  600**. Unlike H69 this is not an argument that can move to the thing it is
-  about: the file is E3's checks **plus** `strike`, the driver four other
-  modules import (`look.js`, `poseeye.js`, `positioncensus.js`,
-  `strikerepeat.js`), and that is the seam. Take `strike`, `STRIKES`,
-  `GAIT_STRIKE`, `frame`, `frameUntil`, `climb`, `hurtMidStrike` and the lane
-  helpers into `src/tests/strikedrive.js` and leave the registered checks
-  behind, re-exporting from `animation.js` only if a call site needs it -
-  **H56 is the worked example of a move that changed no call site**, and its
-  lesson is the one that matters here: the proof is that every check the moved
-  code drives answers **identically to the character** on a tree reverted to
-  HEAD, which is one `--details` subset run of the four callers plus the E3
-  checks. Watch the four censuses: `strike` is one of the five declared pose
-  **proxies** (H61), read off the tree as *an exported function whose own code
-  reaches `updateVisual`*, so the proxy set moves module with it and
-  `posecriterion.js`'s seven source cases are the clause that will say so.
-  *done-when:* no module outside `config.js` is within 50 of 600 for this
-  reason - `animation.js` and the new file both well under - every caller
-  unchanged or named in `PROGRESS.md`, the eighteen-odd strike-driven checks
-  diffed byte-identical against HEAD's detail lines, and the pose-proxy census
-  green with `strike` found in its new home.
-
 - [ ] **H76 (S)** Twelve quiesce sites rest on a sentence no check holds.
   H74's twelve one-frame sites are safe because `lens.grab()` renders and reads
   the buffer back and **advances nothing** - so the world at every grab is the
@@ -667,10 +643,19 @@ one setting only Josh can click; everything else here proceeds.
   the two buffers of an unchanged scene are **byte-identical**. Read the settle
   and the grab off `pixels.js`'s source the way `quiesce.js` reads its flag, so
   a helper that changed is driven as it really is.
+  **H80 made this worth more than it was.** The twelve are safe because the
+  world at the grab is the world `quiesce()` returned - and H80 measured what
+  that world is: for twenty circuits of twenty-one the Warden is on its spawn,
+  and for the twenty-first it is **0.368m** (plant) or **0.837m** (yard) off it,
+  which the clock picks about one run in twenty-four. So the sentence this job
+  holds is still exactly the right sentence, and the thing it guarantees is
+  weaker than its prose implies: the grab advances nothing, but what it did not
+  advance was not always the spawn. Say both, and `tests/settlecircuit.js` has
+  the census to point at.
   *done-when:* a check asserts that a `lens.grab()` advances neither the Warden
   nor the clock, derived from `pixels.js` rather than written down; it goes red
   when a `stepFrames` is put inside `grab()`; `quiescesites.js`'s header points
-  at it instead of arguing it.
+  at it instead of arguing it, and says which world the grab is of (H80).
 
 - [ ] **H78 (S)** A check that puts the Warden somewhere should assert it is
   still there. `the-death-camera-frames-the-killer` resets the Warden to a spot
@@ -719,6 +704,18 @@ one setting only Josh can click; everything else here proceeds.
   reading, D48's shape) and the entry says which of the ten are weather and
   which are checks to pin; and at least one of them is pinned in this job or a
   named follow-up.
+
+  **H75 found the sharpest case, and it is not a pixel total** (2026-10-15).
+  `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks` reports the
+  leg crossing the vertical **3 times on the plant's first run and 2 on its
+  second**, stride 2.04m then 2.00m - and it does so **reproducibly**, the same
+  way on two different trees, so it is a property of the two runs sharing one
+  page (D1) and not noise. A **count** disagreeing with itself inside a geometry
+  check is a different animal from a silhouette moving under the breath: there
+  is no wall clock in it, the clause wants two crossings or more so it is one
+  crossing from red, and no instrument in this suite can see it because `flaky`
+  compares verdicts. Whatever this job builds should be tried on that check
+  first - it is the cheapest honest test of it, needing no pixels at all.
 
 - [ ] **H77 (M)** The rng is a *candidate* channel, and H74 could not show it.
   A live AI draws from the same seeded stream the sparks, the smoke and the
@@ -1250,6 +1247,62 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H75** Two jobs in one file, and the number the job is actually about.
+  `src/tests/animation.js` was E3's two checks **plus** `strike` - the driver
+  `look.js`, `poseeye.js`, `positioncensus.js` and `strikerepeat.js` all import
+  - and had been at 592 of 600 since H72. The driver is
+  `src/tests/strikedrive.js` now (**327** lines) with `STRIKES`, `GAIT_STRIKE`,
+  `frame`, `frameUntil`, `climb`, `hurtMidStrike`, `SETTLE` and the three
+  paragraphs arguing that a strike is a function of its argument;
+  `animation.js` is **309** and is E3's two checks again. `alongLane` had been
+  imported there and never used. **The seam was not prose** - H69's kind of
+  length is an argument that can move to the thing it is about, and this was two
+  unrelated jobs in one module, for which the cheap test is *does anything
+  import the second half?*
+  **The move cost exactly three hand-written file names and all three announced
+  themselves.** Nothing else knew where `strike` lived, because the import graph
+  is machinery and the proxy criterion is read off the tree. (1) **Two clauses
+  in `strikerepeat.js`** read `strike`'s own source - that the three lines
+  pinning the gait are present and the `Math.abs` mirror read absent, and that
+  the killed-body sentence is still carried - and both went **red on both maps**
+  naming the moved mechanism in their own words: *"or the mechanism has moved
+  and this clause wants rewriting with it"*. H62's string rule working. They
+  read a `DRIVER_FILE` constant now instead of a path in two fetches and two
+  messages. (2) **`breathcensus.js`'s guard**, which required `animation.js` to
+  contribute a proxy, because a discovery that stops seeing `frame` and `strike`
+  drops three real members of that census in silence (H53). It is `PROXY_HOME`,
+  and it lives in `posecriterion.js` with the rest of the criterion. (3) Prose,
+  in `grabslide.js` twice, `look.js` once and `posecriterion.js`'s proxy table
+  and two test vectors.
+  **And the thing the job nearly shipped having not done.** After the split
+  `animation.js` was 309 and the runner still printed **12 modules within 50 of
+  600**, the same number as before: `PROXY_HOME` and its comment took eleven
+  lines in `breathcensus.js`, which sat at **550**, one line outside the
+  cluster, so one module left and another walked in - against a deliverable
+  which *is* that number. Moving the constant to `posecriterion.js` (331) was
+  the better design anyway and the count is **11**, the first fall since H56.
+  **Read the runner's `ceiling:` line after the edit, never the split file's
+  `wc -l`.** In TRAPS.md, with the threshold that makes it bite: within 50 of
+  600 is **551 and up**, so 550 is outside by one line.
+  **The equivalence bar in the entry could not be met as written**, and H74 is
+  why: "byte-identical detail lines" is impossible for checks that answer
+  differently between two runs of one map on any tree, which ten of these do. So
+  the baseline was **both runs of each map** - free from `--details` - and each
+  check held against its own spread. **14 of 24 readings identical character for
+  character**, including all four strike-driven geometry checks, both
+  `strikerepeat.js` clauses and the two source censuses; the other ten already
+  drifted and every one landed inside its band, the worst being the plant's
+  grab-slide photograph at **6px of movement against a 216px spread of its
+  own**. The breath census proves it from the other side: its proxy list reads
+  `strikedrive.frame, strikedrive.strike` off the tree over 100 modules where it
+  read `animation.frame, animation.strike` over 99 - five names, same
+  membership, new address, nothing maintained by hand.
+  **Found, for H79**: `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks`
+  reports 3 leg crossings on the plant's first run and 2 on its second,
+  reproducibly on both trees - a *count* disagreeing with itself in a geometry
+  check, one crossing from its bar, invisible to `flaky`. H79's entry carries it.
+  — done 2026-10-15, `PENDING75`.
 
 - **H80** The thing being inherited was the clock, and the circuit was
   innocent. H74's third verify left `quiesce-says-what-it-does-about-the-ai`

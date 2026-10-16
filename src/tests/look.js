@@ -19,7 +19,7 @@
  * holds it to a frame from every eye with both bodies in it.
  *
  * A look at a pose (F7): `photographPose(h, name)` drives the Shade into
- * a named state the way a player gets there (`strike`, tests/animation.js
+ * a named state the way a player gets there (`strike`, tests/strikedrive.js
  * - a crouch, a slide, a vault part way over, a hang, ...) and
  * photographs it where it is, from the first three-quarter eye in open
  * air with sight of it; `aim` is the Warden with the sights up on the
@@ -33,7 +33,7 @@ import { CONFIG } from '../config.js';
 import { createLens, difference, quiesce, scaledCount } from './pixels.js';
 import { alongLane } from './lanes.js';
 import { standAndEyes } from './figure.js';
-import { strike, STRIKES } from './animation.js';
+import { strike, STRIKES } from './strikedrive.js';
 
 /** The eyes, by name: a direction relative to the lane (along, across) and a distance, or a lane eye the stand already has. */
 const EYES = [

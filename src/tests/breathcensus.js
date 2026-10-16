@@ -92,7 +92,7 @@ import { createLens, quiesce } from './pixels.js';
 import { standAndEyes, flatShadeSilhouette, HOOD_OVER_NECK } from './figure.js';
 import { DRAWN } from './breathdrawn.js';
 import { codeOf } from './sourcetext.js';
-import { poseProxies, classify, criterionProblems } from './posecriterion.js';
+import { poseProxies, classify, criterionProblems, PROXY_HOME } from './posecriterion.js';
 
 const SELF = 'every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it';
 
@@ -290,12 +290,12 @@ export function register(debugTools) {
       // discovery's table, and whether the enumeration saw the tree at all.
       const proxies = await poseProxies(origin);
       problems.push(...proxies.problems);
-      // The proxy the criterion has rested on since H53. If animation.js stops
-      // contributing one, every module that poses through `strike` and calls
-      // `updateVisual` nowhere falls out of this census in silence, which is
-      // exactly what H53 paid for and what reading the set off the tree is for.
-      if (!proxies.entries.some((e) => e.module === 'animation.js')) {
-        problems.push(`the proxy set is [${proxies.names.join(', ') || 'empty'}] and animation.js is not in it; its frame makes the call and its strike reaches it, so a discovery that cannot see them is not reading this tree`);
+      // The proxy the criterion has rested on since H53, in the file that has
+      // held it since H75 (`PROXY_HOME`, next door with the criterion). If it
+      // stops contributing one, every module that poses through `strike` and
+      // calls `updateVisual` nowhere falls out of this census in silence.
+      if (!proxies.entries.some((e) => e.module === PROXY_HOME)) {
+        problems.push(`the proxy set is [${proxies.names.join(', ') || 'empty'}] and ${PROXY_HOME} is not in it; its frame makes the call and its strike reaches it, so a discovery that cannot see them is not reading this tree`);
       }
       const poseWord = classify(proxies.names);
       // The criteria's own instrument before the census is believed (H53).

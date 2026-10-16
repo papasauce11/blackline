@@ -17310,3 +17310,112 @@ ran in **205ms** and answered it completely.
 and H77 now has its answer's shape, so it should be read against this entry
 before it is started. H37 and H49 declined again, twelve runs and nine: both
 edit a scheduled task's standing prompt and nobody was present.
+
+## H75 — two jobs in one file, and the number the job is actually about
+
+**Built.** `src/tests/strikedrive.js` (327 lines): `strike`, `STRIKES`,
+`GAIT_STRIKE`, `frame`, `frameUntil`, `climb`, `hurtMidStrike`, `SETTLE`, and
+the three paragraphs that argue a strike is a function of its argument.
+`src/tests/animation.js` is **593 to 309** and is E3's two checks again.
+Five call sites moved, two censuses learned the new address, and the ceiling's
+cluster is **twelve to eleven**.
+
+**The seam, and why it was not prose.** H69's kind of length is an argument
+that can move to the thing it is about. This file's was two unrelated jobs
+sharing a module: E3's checks, and the driver that `look.js`, `poseeye.js`,
+`positioncensus.js` and `strikerepeat.js` all import. The test for that seam is
+cheap and worth writing down - **does anything import the second half?** - and
+it is what makes this a third kind of split beside H51's and H56's.
+
+**The move cost exactly three hand-written file names, and all three announced
+themselves.** Nothing else in the tree knew where `strike` lived, because the
+import graph is machinery and the proxy criterion is read off the tree. What did
+know were three places where a path or a module name is a string:
+
+1. **`strikerepeat.js`, twice, and this is the one worth the entry.** Two of its
+   clauses do not take the driver's word for anything: one asserts the three
+   lines that pin the gait are present *and* that the `Math.abs` mirror read is
+   absent, the other that the killed-body sentence is still carried, both read
+   from `strike`'s own source (H62's rule for a clause whose evidence is a
+   string). Both went **red on both maps** the moment the code moved, and their
+   own failure text named the cause: *"or the mechanism has moved and this
+   clause wants rewriting with it"*. That is the suite catching a change nobody
+   told it about. The file is a `DRIVER_FILE` constant now, named once instead
+   of in two fetches and two messages.
+2. **`breathcensus.js`'s proxy guard**, which required `animation.js` to
+   contribute a proxy - correctly, since a discovery that stops seeing `frame`
+   and `strike` drops three real members of that census in silence (H53's
+   lesson). It is `PROXY_HOME` now, and it lives in `posecriterion.js`.
+3. **Prose**: `grabslide.js` twice, `look.js` once, `posecriterion.js`'s
+   three-proxy table and two of its test vectors' `why` lines.
+
+**And the thing this job nearly shipped having not done.** After the split
+`animation.js` was 309 lines and the runner still printed **12 modules within
+50 of 600** - the same number as before the job. The cause was the job itself:
+`PROXY_HOME` and its comment took eleven lines in `breathcensus.js`, which sat
+at **550**, *one line* outside the cluster, so one module left it and another
+walked in. The job's entire deliverable is that number. The fix was also the
+better design - the constant belongs with the membership question, in
+`posecriterion.js` at 331 - and the count is **11**, the first time it has
+fallen since H56. **Read the runner's own `ceiling:` line after the edit, never
+the split file's `wc -l`**: the first is the claim the queue entry makes and the
+second is the thing it is easy to feel good about. It is in TRAPS.md, and the
+threshold is worth knowing: "within 50 of 600" is **551 and up**, so 550 is
+outside by one line and a one-line comment is the difference.
+
+**The equivalence proof, and why the entry's bar could not be met as written.**
+The done-when asked for the strike-driven checks "diffed byte-identical against
+HEAD's detail lines". **That is impossible on this suite and H74 is why**: ten
+of eleven readings in this very neighbourhood answer differently between two
+runs of one map, on any tree. A single before-run against a single after-run
+would have produced differences that say nothing about the move - which is
+H74's first lesson, that a before-and-after is worth nothing until the
+quantity's own spread is known, applied to a *reproduction* rather than an A/B.
+So the baseline was taken as **both runs of each map**, which `--details` gives
+for free, and each check compared against its own spread:
+
+- **14 of 24 (map, check) readings identical, character for character** -
+  including all four strike-driven geometry checks, both `strikerepeat.js`
+  clauses, `the-shade-has-a-pose-for-every-state...` on both maps and the two
+  source censuses.
+- **10 already drifted before the move**, and every one landed inside its own
+  band. The worst single change: the plant's grab-slide photograph read 8,494
+  then 8,278 before and 8,500 then 8,281 after - **6px of movement against a
+  216px spread of its own**.
+- **The breath census is the proof from the other side**: its detail line reads
+  the proxies off the tree and now says `look.photograph, look.photographPose,
+  positionreads.draw, strikedrive.frame, strikedrive.strike` over **100**
+  modules where it said `animation.frame, animation.strike, ...` over 99.
+  Five names, same membership, new address, nothing maintained by hand.
+
+**Found, and it goes to H79.** `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks`
+reports the leg crossing the vertical **3 times on the plant's first run and 2
+on its second**, with the stride reading 2.04m then 2.00m - and it does so
+**reproducibly**, the same way in the before tree and the after tree. That is
+not a pixel total moving under the breath: it is a **count** disagreeing with
+itself inside a geometry check, which is a sharper case than any of the eleven
+H74 collected, and `flaky` cannot see it because `flaky` compares verdicts. It
+is nowhere near its bar (the clause wants two crossings or more) and it is not a
+regression - but it is the same shape as the flake H80 fixed this morning, and
+H79's entry now carries it.
+
+**Verified.** The verify that stood as this job's gate was H80's, four runs,
+exit 0. Before the move, a `--details` subset of the twelve strike-driven checks
+and the four censuses, **both runs of both maps**: 12/12 four times over, and
+that is the baseline above. After the move, the same subset: **two red on both
+maps**, which was `strikerepeat.js` doing its job; after pointing those clauses
+at `DRIVER_FILE`, **12/12 four times over** again. Then the censuses alone with
+the `PROXY_HOME` move in: **7/7 both maps**, with the runner printing `11
+modules within 50 of 600`. Full verify, four runs, exit 0: plant **234 passed,
+1 failed, 8 not for this map** (1,111,501ms and 1,120,689ms), yard **214 / 1 /
+28** (790,315ms and 770,165ms), **0 red, 0 flaky, 0 skipped, 0 unexpectedly
+green, 0 context losses, 0 console errors, no other runner**, spreads 9,188ms
+(1%) and 20,150ms (3%) - the yard's is the widest on record for a clean run and
+worth a glance before any timing is compared to it (F16). Counts unchanged at
+234/214; modules **187 to 188**. The one failure a map is the bench-only sweep.
+
+**Left.** No new job. `movement.js` at 599 is now the **only** module within two
+of the ceiling and **H70** is still one line. H79 gained a second case, above.
+H76 is next and H80 made it more interesting: the twelve one-frame sites it is
+about grab their frame at the end of a settle that is 0.37m or 0.84m off the
+spawn one run in twenty-four.

@@ -95,6 +95,35 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The test code that drives the Shade through her moves lives in its own file now (H75, 2026-10-15)
+
+**Nothing in the game changed at all**, and this entry exists only so the record
+is complete.
+
+One test file had grown to hold two unrelated jobs: the checks that say every
+pose is drawn differently from every other, and the machinery that drives the
+Shade into a named state - a walk, a vault, a hang - which four *other* test
+files borrow. It was eight lines under the length this project caps a file at,
+so the machinery moved out to a file of its own.
+
+**The interesting part is that two tests refused it.** Two of them do not take
+the driver's word for anything: they read its source code and check that the
+three lines which make a strike repeatable are still there, and that the
+sentence it uses to report a killed body has not been quietly reworded. When the
+code moved, both went red on both maps and said so - *"the mechanism has moved
+and this clause wants rewriting with it"*. That is the suite catching a change
+nobody told it about, which is what those two tests are for.
+
+**What was checked.** Every one of the twelve tests that use the driver was
+measured before the move and after it. Fourteen of the twenty-four readings came
+back **identical**, and the other ten were already different between two runs of
+the same map before the move was made - so they were compared against their own
+spread rather than against a single number, and every one landed inside it. The
+largest change in any of them was a handful of pixels in a photograph that
+varies by two hundred on its own.
+
+**Nothing for you to do.**
+
 ### A test was failing about once a dozen runs, and the reason was a coin the clock was tossing (H80, 2026-10-15)
 
 **Nothing in the game changed**, and this one closes the thread the last four

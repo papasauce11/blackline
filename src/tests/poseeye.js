@@ -112,7 +112,7 @@
 
 import { chooseEye, POSE_EYE_NAMES } from './look.js';
 import { quiesce } from './pixels.js';
-import { strike, STRIKES } from './animation.js';
+import { strike, STRIKES } from './strikedrive.js';
 import { CONFIG } from '../config.js';
 
 /**

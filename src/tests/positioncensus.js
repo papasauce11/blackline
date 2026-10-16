@@ -93,7 +93,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { positionSmoothing } from '../entities/pose.js';
 import { quiesce } from './pixels.js';
-import { strike, STRIKES } from './animation.js';
+import { strike, STRIKES } from './strikedrive.js';
 import {
   CENSUS, PROOFS, HOWS, READS_A_WORLD_POSITION, ADVANCES_THE_CHASE, THE_LAW,
   chaseGap, checkSlice, codeOf, criteriaProblems, draw, framesToClose, hulledMesh,
