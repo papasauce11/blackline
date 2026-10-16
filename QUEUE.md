@@ -1302,7 +1302,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   reports 3 leg crossings on the plant's first run and 2 on its second,
   reproducibly on both trees - a *count* disagreeing with itself in a geometry
   check, one crossing from its bar, invisible to `flaky`. H79's entry carries it.
-  — done 2026-10-15, `PENDING75`.
+  — done 2026-10-15, `08f5f62`.
 
 - **H80** The thing being inherited was the clock, and the circuit was
   innocent. H74's third verify left `quiesce-says-what-it-does-about-the-ai`
