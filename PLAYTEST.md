@@ -95,6 +95,42 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The tests now say which of their numbers wander, and two of them should not (H79, 2026-10-16)
+
+**Nothing in the game changed.**
+
+Every test runs twice on each map. Until now the suite only compared the
+*verdicts* - pass or fail - so a test could report 19,228 pixels one run and
+19,260 the next and nobody would ever know. That matters because a threshold
+set just under one run's number is a threshold that goes red on a Tuesday for
+no reason.
+
+**The suite now prints, per map, every test whose answer changed between its
+two runs and by how much.** It is a reading and not a failure: nothing goes
+red because a number moved. On a clean tree that is about **34 tests on the
+plant and 35 on the yard**, which is a lot more than anybody expected.
+
+**Most of them are fine, and sorting them is the real result.** Thirteen
+report a clock or a running total on purpose - the second run of a map
+inherits the first run's clock, so of course they differ. Seventeen are
+photographs taken at whatever point of the breathing cycle the run happened to
+reach, which is known and harmless.
+
+**Two are not fine, and both are now written down as jobs.**
+
+- One test counts how many times the Warden's leg crosses the vertical while
+  walking, and wants at least two. It read **three then two** - one away from
+  failing for no reason at all. Worth knowing: an earlier job recorded this
+  happening on the plant; this session it happens on the yard and not the
+  plant, so it is a coin rather than a property of a place.
+- One test has been printing **"tails in -1 segments"** - a negative count of
+  something you cannot have a negative number of - while passing. The
+  arithmetic has no floor on it, and nothing in the suite could see a green
+  test printing nonsense until this report existed.
+
+**Nothing for you to do**, but if you ever see a test's numbers quoted in the
+record, this is the thing that says whether that number is a fact or a mood.
+
 ### The test of the death camera was not checking the thing it was about (H78, 2026-10-16)
 
 **Nothing in the game changed.**

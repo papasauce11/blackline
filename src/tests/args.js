@@ -153,13 +153,18 @@ const FLAGS = [
   { runner: '/scripts/shot.mjs', repeat: ['pose', 'map'], scalar: ['channel', 'out', 'query', 'slide'] },
   { runner: '/scripts/probe.mjs', repeat: [], scalar: ['channel', 'out', 'query', 'map'] },
   { runner: '/scripts/bench.mjs', repeat: ['map', 'quality'], scalar: ['runs', 'channel', 'out', 'stall', 'samples', 'onscreen', 'window-position'] },
-  // The five that read no command line. They are in the census **because**
+  // The six that read no command line. They are in the census **because**
   // they read none: an entry saying zero is a claim the clauses below hold
   // both ways, and absence was not. `args.mjs` is the parser itself and
-  // `headless.mjs` re-exports it; the other three take their work from the
+  // `headless.mjs` re-exports it; the other four take their work from the
   // runner that imports them. The day any of them grows a flag, that flag has
-  // nowhere to hide (H64).
+  // nowhere to hide (H64) - and `detaildrift.mjs` is the proof that this works
+  // rather than a claim about it: H79 added it, ran the four censuses under
+  // `src/tests/` that TRAPS.md names, and the verify went red here anyway,
+  // because a new module under `scripts/` is a row in *this* census and that
+  // list did not say so.
   { runner: '/scripts/args.mjs', repeat: [], scalar: [] },
+  { runner: '/scripts/detaildrift.mjs', repeat: [], scalar: [] },
   { runner: '/scripts/headless.mjs', repeat: [], scalar: [] },
   { runner: '/scripts/suitereport.mjs', repeat: [], scalar: [] },
   { runner: '/scripts/version.mjs', repeat: [], scalar: [] },

@@ -629,47 +629,6 @@ one setting only Josh can click; everything else here proceeds.
   census to hold them, and **H79** is the drift the suite cannot see.
 
 
-- [ ] **H79 (M)** A reading that drifts while passing is invisible to this
-  suite, and ten of them do. H74 measured eleven pixel checks across the two
-  runs of each map on one tree and **ten answered differently**: a body of
-  19,228 or 19,260 pixels on the plant and 18,654 or 18,974 on the yard, a
-  silhouette of 347 or 359 at 25m, a smoke cloud of 794,510 or 861,269, an
-  outline of 18,663 or 18,963. HEAD's own files, restored from a snapshot and
-  run twice, give the same band, so this is old and not a regression. **The
-  mechanism is known** - the breath advances on the wall clock of the render
-  frame (H31, H33, H40) - and the two stable readings are the two built to be
-  (`a-small-window-...` eases a pinned sixty frames; the breath check samples
-  all eight phases and reports the worst), which is the shape of the fix as well
-  as the proof of the cause. **What is missing is not the mechanism, it is that
-  nothing says so.** `flaky` compares **verdicts**: a count could drift twenty
-  percent and stay green, and a floor set just under one run's reading is a
-  floor that will go red on a Tuesday. The runner already writes both runs'
-  details with `--details`, so the diff costs nothing - `suitereport.mjs` can
-  report, per map, which checks answered differently and by how much, the way it
-  already reports `spreadMs` and the flaky list. Then the decision the data
-  earns: which of the ten should be pinned the way H31 pinned its own (sample
-  the cycle, report the worst) and which are honestly weather and should say so
-  in their detail line, which is H41's and H73's distinction between a rule, a
-  map fact and a piece of weather.
-  *done-when:* the runner reports, per map, every check whose detail differed
-  between the two runs of that map, with the numbers; the ten H74 found are in
-  that report on a clean tree; the report is not a failure by itself (it is a
-  reading, D48's shape) and the entry says which of the ten are weather and
-  which are checks to pin; and at least one of them is pinned in this job or a
-  named follow-up.
-
-  **H75 found the sharpest case, and it is not a pixel total** (2026-10-15).
-  `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks` reports the
-  leg crossing the vertical **3 times on the plant's first run and 2 on its
-  second**, stride 2.04m then 2.00m - and it does so **reproducibly**, the same
-  way on two different trees, so it is a property of the two runs sharing one
-  page (D1) and not noise. A **count** disagreeing with itself inside a geometry
-  check is a different animal from a silhouette moving under the breath: there
-  is no wall clock in it, the clause wants two crossings or more so it is one
-  crossing from red, and no instrument in this suite can see it because `flaky`
-  compares verdicts. Whatever this job builds should be tried on that check
-  first - it is the cheapest honest test of it, needing no pixels at all.
-
 - [ ] **H77 (M)** The rng is a *candidate* channel, and H74 could not show it.
   A live AI draws from the same seeded stream the sparks, the smoke and the
   patrol order draw from, so a check that steps frames beside one and then reads
@@ -982,6 +941,44 @@ one setting only Josh can click; everything else here proceeds.
   checks in the first class that assert nothing are either given H78's clause
   or carry the reason they cannot.
 
+- [ ] **H84 (S)** Pin the crossing count, on whichever map the coin is on.
+  `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks` counts how
+  many times the leg crosses the vertical over a 4.4m walk and wants **two or
+  more**, and the count moves between the two runs of a map, so it is **one
+  crossing from red**. H75 recorded it on the plant, "reproducibly, the same
+  way on two different trees"; H79's census has the plant at **2 and 2** and
+  the **yard** at **3 then 2**. So it is a coin and not a map fact, and a pin
+  written against the plant pins the wrong map. There is no wall clock in this
+  check, which is what makes it the cheapest honest case in the whole census -
+  no pixels, no breath. **Find the quantity first** (H71, H74, H77): what
+  decides whether the last crossing lands inside the 4.4m is the phase the
+  gait starts at and where the walk stops, and `_animTime` is the lever H33
+  measured at 24% of a pixel count. H31's shape is the likely fix - drive the
+  walk from a known phase, or sample the cycle and report the worst - but the
+  count is the thing to measure before anything is written down.
+  *done-when:* the crossing count reads the same in both runs of both maps
+  over three verifies, or the check reports the count and asserts something
+  that is not one crossing from its own reading; `scripts/detaildrift.mjs` no
+  longer lists it; and `PROGRESS.md` says which of the two it was and why.
+- [ ] **H85 (S)** A green check has been printing a negative count. H79's
+  drift census put `the-last-leg-to-every-legal-plant-is-planned-and-short` at
+  the top of both maps, and the reason is not drift: the detail prints
+  `tails in ${ai._route.length - Math.max(0, tailStart)} segments` and nothing
+  floors that subtraction, so the plant read **"tails in -1 segments"** in one
+  run and "2" in the other, the yard "1" then **"-2"**. `plantcensus.js:453`
+  guards `tailStart < 0` and **nothing guards `tailStart > route.length`**, so
+  the one case that makes the number meaningless is the one case that is not
+  caught, and the check is green while it says it. The route sampled is the
+  live AI's, drawn from the unseeded clock (H80), which is why which route it
+  is moves run to run. Two things to settle and they are different: what the
+  number should say when the tail is empty or shorter than the index, and
+  whether a route that tails in no planned segments at all is a thing this
+  census should report rather than print.
+  *done-when:* the printed segment count cannot be negative and says what it
+  means when there is no tail; a clause holds that - driven, not asserted
+  about a string; and the entry says whether the sampled route should be
+  seeded (H81's question, in this one place) or stay a reading.
+
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -1235,6 +1232,56 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H79** A reading that drifts while passing, and the three kinds of number
+  it turns out to be. `flaky` compares **verdicts**, so a check could answer
+  19,228 pixels on one run and 19,260 on the next and the suite would say
+  nothing. `scripts/detaildrift.mjs` (167 lines, no node builtin so the page
+  can import it) splits a detail line into prose and numbers, answers
+  **`same` / `numbers` / `wording`**, and carries with a `wording` verdict how
+  much of the two lines is a **common prefix** - because the 400-character cut
+  (H42) makes two lines that said the same thing part company at the very end
+  when a number upstream gains a digit. `judge()` reports it per map beside
+  `spreads`, `summary()` prints one line a map and one a check, and **it is a
+  reading and never a verdict** (D48): the new check reads the runner's own
+  `const ok = ...` line and reds if drift is ever in it.
+  **The first draft was wrong and the data said so.** It ate a leading minus
+  and left a leading plus in the prose, so `glove-lip +0.066` against
+  `glove-lip -0.012` - one reading on either side of zero - came back as *the
+  wording differs*, and the clearest drift in the suite went unmeasured. A
+  sign is part of the number; the pair is written out in the check.
+  **The census is not ten. It is 32 of 236 on the plant and 36 of 216 on the
+  yard**, and H74's ten are all in it - the 25m silhouette at 347 then 359 is
+  H74's own number to the digit. Three classes, and naming them is the
+  deliverable: **thirteen deliberate absolutes** (a clock, a frame index, an
+  elapsed total - two runs share one page and must disagree; `a-lens-grab-...`
+  reads frame 216 then 675 and H76's entry already says so); **seventeen
+  weather** (a pixel reading at whatever phase of the breath and gait the run
+  arrived in - and the two H74 called built-to-be-stable are in this class and
+  only just, `a-small-window-...` holding its reference 351px while two of its
+  five buffers move a pixel, and the breath checks' *worst* holding while
+  their eight per-phase samples rotate); and **two counts that should not
+  wobble**, which are the pins.
+  **Those two are H84 and H85.** The crossing count is **one crossing from
+  red** and H75's record of it is wrong in a way that matters - it had the
+  plant, "reproducibly, on two different trees", and this census has the plant
+  at 2 and 2 and the **yard** at 3 then 2, so it is a coin and a pin written
+  against the plant pins the wrong map. And the widest row on both maps is not
+  drift at all: `the-last-leg-...` prints `tails in -1 segments`, because
+  nothing floors `route.length - Math.max(0, tailStart)` and only the other
+  sign of it is guarded - **a green check printing a negative count, which no
+  instrument in this suite could see before this one**.
+  Three breaks, each red on its own clause, each through a probe at 43ms a run
+  against 2.5 minutes of subset: the sign fix reverted, `drift` computed and
+  left out of the report, and `ok` taught to read it. And two of the check's
+  own expectations were wrong before the module was - the sign pair moves
+  three numbers and not five, and `1280x720` is two numbers.
+  **And the first verify was red on a census the trap list does not name**:
+  a new module under `scripts/` is a row in H64's flag census as well as in
+  the four under `src/tests/`, so `/scripts/detaildrift.mjs` had to be
+  declared as reading no flags - the census working as built, and a whole
+  verify to learn it. `TRAPS.md` names the check now.
+  — done 2026-10-16.
 
 - **H78** A check that puts the Warden somewhere asserts it is still there.
   `the-death-camera-frames-the-killer` resets the Warden to a spot 2.5m from

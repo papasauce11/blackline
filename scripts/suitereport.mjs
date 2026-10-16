@@ -17,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { driftByMap, sayDrift } from './detaildrift.mjs';
 
 /** The repo root: the directory above scripts/, as suite.mjs computes its own. */
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -206,6 +207,13 @@ export function judge(runs, renderer, consoleErrors) {
       longestMs: Math.max(...ms),
     };
   });
+  // Which checks answered differently between the runs of one map (H79).
+  // `flaky` compares verdicts, so a reading can drift twenty percent and stay
+  // green, and a floor set just under one run's reading is a floor that goes
+  // red on a Tuesday. **Reported and never judged**, the same as `spreads`
+  // above and for the same reason: how much a reading may drift is a rule
+  // nobody has argued yet, and this report is what would earn it.
+  const drift = driftByMap(runs, maps);
   const loopRan = runs.some(r => r.loopFrames > 0);
   const ok = red.length === 0 && flaky.length === 0 && !loopRan;
   return {
@@ -229,6 +237,7 @@ export function judge(runs, renderer, consoleErrors) {
       contextLosses: r.contextLosses, rerun: r.rerun, loopFrames: r.loopFrames,
     })),
     spreads,
+    drift,
     red,
     flaky,
     expectedRed,
@@ -270,6 +279,17 @@ export function summary(r) {
     const share = s.longestMs ? Math.round((100 * s.spreadMs) / s.longestMs) : 0;
     lines.push(`    ${s.map}: ${s.runs} runs spread ${s.spreadMs}ms (${share}% of the longest),`
       + ` pipeline wait spread ${s.waitSpreadMs}ms - two runs of a map are comparable only while this is small (F16)`);
+  }
+  // H79, and it is a reading rather than a verdict: one line a map saying how
+  // many checks answered differently, then one line each naming the widest
+  // number that moved. Ten lines of a two-map run, which is the size at which
+  // a reader will actually look - the whole list, every number of it, is in
+  // the report under `drift`.
+  for (const d of r.drift ?? []) {
+    if (d.runs < 2 || !d.count) continue;
+    lines.push(`    ${d.map}: ${d.count} check(s) answered differently between the ${d.runs} runs`
+      + ' - a reading and not a verdict (H79)');
+    for (const entry of d.drifted) lines.push(`      ${sayDrift(entry)}`);
   }
   // One line per MAP, not one line for the whole suite (H25). This used to
   // `break` after the first run, so a two-map suite printed the plant's probe

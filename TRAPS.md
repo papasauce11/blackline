@@ -128,9 +128,33 @@ comments included (H53). H52 ran its new check as a subset, twice, on both
 maps, and paid **seventy minutes** of verify to learn that three comments
 naming `updateVisual` had enrolled it in the breath census. The cheap version
 is two minutes: `npm run suite -- --runs 1 --map plant --subset
-"every-check-that-poses-a-body|every-check-that-draws-a-body|every-check-that-reads-a-world-position|every-check-that-times-a-draw|the-registry-holds-every-check|no-source-file-outside-config-is-over-600-lines|no-source-file-calls-math-random|the-regression-set-resolves-to-real-checks"`,
+"every-check-that-poses-a-body|every-check-that-draws-a-body|every-check-that-reads-a-world-position|every-check-that-times-a-draw|the-registry-holds-every-check|no-source-file-outside-config-is-over-600-lines|no-source-file-calls-math-random|the-regression-set-resolves-to-real-checks|every-runner-reads-one-command-line"`,
 then the same on the yard. This is H46's lesson (*"run the check the moved
 code came out of, not only the new one"*) in the currency a new file pays in.
+
+**And a new module under `scripts/` is a row in a fifth census, which the list
+above did not say and H79 paid a verify for.** `tests/args.js`'s
+`every-runner-reads-one-command-line-and-a-flag-given-twice-is-kept` walks the
+import graph from `package.json`'s commands and requires **every** `.mjs` it
+reaches to have a `FLAGS` entry - including one that reads no command line at
+all, because H64 made an entry saying zero a claim the clauses hold both ways
+and absence was not. So `scripts/detaildrift.mjs`, a pure comparison function
+imported by `suitereport.mjs`, reddened a verify on both maps with *"is
+reachable from package.json and is in no FLAGS entry, so the 0 flag(s) it reads
+are unclassified"*. The fix is the one row. The census id is in the subset
+above now, so the two-minute version covers a new file under either directory.
+
+**A backgrounded `npm run suite … ; echo "EXIT=$?"` reports exit 0 on a red
+run.** The `echo` is the last command of the list, so its status is the list's,
+and the tool's completion notice says **"exit code 0"** for a verify whose own
+report says `"ok": false` - which is the one line a run is read by. H79 lost
+the first reading of a sixty-minute verify to it and only caught it because
+the report was parsed anyway. All three of the runner's non-zero codes vanish
+the same way: 1 red, 2 crash, 3 another runner (H45). **Redirect, then branch
+into the same file**: `npm run suite … > out.txt 2>&1 && echo GATEOK >> out.txt
+|| echo "GATEFAIL=$?" >> out.txt`, and read the last line. A pipe through
+`tail` loses the code the same way and loses the output too, which is the trap
+two entries down.
 
 **The gate reads the tree it is running against, live, so do not edit `src/`
 while it is up.** `scripts/suite.mjs` serves the repo in-process and every page

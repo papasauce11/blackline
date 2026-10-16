@@ -17624,3 +17624,176 @@ subset of one is not a cheap rehearsal of a check that has a guard in it.
 **Left.** **H82** and **H83**, above. The pixel band in the two counts is
 H79's and this job did not touch it.
 
+## H79 — the readings that drift while passing, and the three kinds of number they turn out to be
+
+**Built.** `scripts/detaildrift.mjs` (167 lines, no node builtin in it so the
+page can import it, `args.mjs`'s rule), wired into `judge()` and `summary()` in
+`scripts/suitereport.mjs`, and `src/tests/detaildrift.js` driving it, plus one
+row in `tests/args.js`'s flag census. 189 modules to 190, 235/215 to 236/216. **A reading and never a verdict** - D48's
+shape and `spreadMs`'s, and the last clause of the new check reads the runner's
+own `const ok = ...` line and reds if drift ever appears in it.
+
+**What was invisible.** `flaky` compares **verdicts**. A check that answers
+19,228 pixels on one run and 19,260 on the next is green both times and the
+suite says nothing, so a floor set just under one run's reading is a floor that
+will go red on a Tuesday and nobody could tell which floors those were. H74
+found ten by hand. The runner already writes both runs' details with
+`--details`, so the diff costs nothing.
+
+**The comparison.** A detail line is prose with numbers in it, so the two kinds
+of difference are not the same thing: numbers that moved under prose that held
+is a **reading** that drifted and has a magnitude; prose that moved is a check
+saying something else, usually a different branch, and has none. `skeleton()`
+splits the line, `compareDetails()` answers `same` / `numbers` / `wording`, and
+a `wording` verdict carries **how much of the two lines is a common prefix** -
+because a detail line is cut at 400 characters (H42), so a number early in the
+line that gains a digit pushes the cut and two lines that said the same thing
+part company at the very end. A prefix of 0.99 is that; a prefix of 0.3 is a
+different branch. Both are in the report; the summary prints one line a map
+with the count and one line a check with the widest move.
+
+**The instrument's own first draft was wrong, and the data said so.** It read a
+leading minus as part of a number and left a leading plus in the prose, so
+`glove-lip +0.066` and `glove-lip -0.012` - one reading, twice, on either side
+of zero - came back as *the wording differs*, and the clearest drift in the
+suite went unmeasured. **A sign is part of the number.** That pair is
+`SIGN_CASE` in the check, written out, because the fix is one character and
+the symptom is a silence.
+
+**The census, on H78's own verify (two runs of each map, HEAD, clean tree).**
+Not ten. **32 of 236 checks on the plant and 36 of 216 on the yard.** H74's ten
+are all in it - the 25m silhouette at **347 then 359** is H74's own number to
+the digit - and so are two it had called stable by construction, which is the
+first correction. The whole list is in the report; the shape of it is three
+classes, and **naming them is this job's deliverable rather than the diff**:
+
+**Class 1, a deliberate absolute.** The number is a clock, a frame index, an
+elapsed total or a cumulative count the check reports *on purpose*, and two
+runs sharing one page (D1) must disagree about it. It is not weather and not a
+defect, and the report should not be read as accusing it. Thirteen of them:
+`a-lens-grab-advances-neither-the-clock-nor-the-picture` (frame **216 then
+675**, and H76's entry already says the absolutes are reported and move),
+`the-suite-heartbeat-advances-and-names-the-check-in-flight`,
+`no-nan-after-sustained-stepping` (sim **11.08s then 3,534.68s** - the page's
+sim clock is cumulative, so the second run inherits the first),
+`the-audio-device-keeps-its-clock-and-journals-the-states-it-enters`,
+`frame-budget-under-the-check-29-load`, `the-pipeline-wait-is-the-runs-number`,
+`every-registered-map-builds`, `a-whole-match-leaks-nothing`,
+`ai-patrols-without-getting-stuck`, the three census checks that report the
+breath and gait phase they arrived at, and the bench-only sweep, whose *worst
+viewpoint* is a different viewpoint each run (**"deck-mid@3" then
+"deck-office-door@0"**) - a `wording` verdict that is exactly right.
+
+**Class 2, weather.** A pixel reading taken at whatever phase of the 6.98s
+breath and of the gait the run arrived in (H31, H33, H40). Seventeen of them,
+and the band is 0.05% to 20%. The two H74 called built-to-be-stable are **in
+this class and only just**: `a-small-window-keeps-the-shade-a-hooded-figure-at-
+25m` holds its reference 1280x720 reading at **351px** in both runs and moves
+**397 to 395** and **184 to 183** on two of its five buffers, so the pinned
+sixty frames removes the breath and not everything; and the breath checks'
+*summary* number holds (`worst 0.066m` then `0.065m`) while **the eight
+per-phase samples rotate**, which is the check working as designed and reading
+as drift. The honest fix for this class is a sentence in the detail line, not a
+pin.
+
+**Class 3, a count that should not wobble, and there are two.** These are the
+pins, and both are one step from a red:
+
+- `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks` - the leg
+  crossed the vertical **3 times then 2**, and the clause wants two or more, so
+  it is **one crossing from red**. **And the correction is the finding**: H75
+  recorded this on the *plant*, "reproducibly, the same way on two different
+  trees". On this verify the plant reads **2 and 2** and the **yard** reads 3
+  then 2. It is not a plant property and it is not reproducible - it is a coin,
+  and which map it lands on moves between sessions. A pin written against the
+  plant would have pinned the wrong map.
+- `the-last-leg-to-every-legal-plant-is-planned-and-short` - the widest row in
+  the whole census on both maps, and **it is a defect rather than drift**. The
+  detail prints `tails in ${ai._route.length - Math.max(0, tailStart)}
+  segments`, which has no floor on it, and the plant printed **"tails in -1
+  segments"** in one run and "2" in the other (the yard, "1" then **"-2"**).
+  `plantcensus.js:453` guards `tailStart < 0` and nothing guards `tailStart >
+  route.length`, so **a green check has been printing a negative count of
+  segments** and no instrument in the suite could see it. The route it samples
+  is the live AI's, drawn from the unseeded clock (H80), which is why it moves.
+
+**H84** and **H85** are those two. Neither is pinned here: pinning the crossing
+count means deciding what the stride really is on a map whose answer moved this
+session, and the negative tail is a check's own arithmetic. The entry allows
+"pinned in this job **or a named follow-up**" and these are named.
+
+**The check.** `a-reading-that-drifts-between-two-runs-is-reported-with-its-
+numbers`, in a new `tests/detaildrift.js`: eight comparison cases (identical,
+a count that moved with its share, the sign pair, a number that gained a digit,
+a full move to zero, a different branch, a tail-only difference at the cut, and
+an absent detail), the census over a hand-built pair of runs where **a check
+present in one run only is not drift** (`flaky` owns that question) and a
+single run reports nothing, the per-map split so two maps are never pooled, and
+three clauses that read `suitereport.mjs`'s own source - it imports the module,
+it calls `driftByMap()`, it carries `drift` in the report it returns, it prints
+a line - plus the one that keeps it a reading.
+
+**Three breaks, each red on its own clause, each through a probe** (43ms a run
+of this check against 2.5 minutes of subset, since it renders nothing):
+
+> **1.** the sign fix reverted - *"a sign is part of the number ...": answered
+> wording, want numbers*. **2.** `drift` computed and left out of the returned
+> report - *"computes the drift and does not put it in the report it returns"*.
+> **3.** `&& drift.every(d => d.count === 0)` added to the `ok` line - *"the
+> run's verdict reads the drift ... a threshold on how far a reading may drift
+> is a rule nobody has argued (D48)"*.
+
+**And two of the check's own expectations were wrong before the module was**,
+which is the right direction for a red: the sign pair has **three** numbers
+moving and not five, and `1280x720` is **two** numbers, so a line with "50942
+pixels of a 1280x720 buffer" in it has three and not four. Both were caught by
+the first census subset and both were the test's arithmetic.
+
+**And the first verify was red on a census the trap list does not name.**
+`TRAPS.md` says a new module under `src/tests/` is a new row in **four**
+censuses and gives the two-minute subset that runs them. That is right and it
+is not the whole list: a new module under **`scripts/`** is a row in H64's flag
+census as well, and `every-runner-reads-one-command-line-and-a-flag-given-
+twice-is-kept` went red on both maps with *"/scripts/detaildrift.mjs is
+reachable from package.json and is in no FLAGS entry, so the 0 flag(s) it reads
+are unclassified and a flag added to it would be invisible"*. **That is the
+census working exactly as H64 built it** - an entry saying zero is a claim the
+clauses hold both ways, and absence was not - and the fix is the one row,
+`{ runner: '/scripts/detaildrift.mjs', repeat: [], scalar: [] }`: 9 modules
+reached to **10**, 34 flags unchanged. It cost a whole verify, and the subset
+in `TRAPS.md` now names this check too.
+
+**A second one, and it is about this tool rather than this repo.** The first
+verify was started as `npm run suite … > file 2>&1; echo "EXIT=$?"` in the
+background, and the completion notice read **"exit code 0"** on a run whose
+own report said `"ok": false`. The `echo` is the last command in the list, so
+its status is the list's, and the runner's three exit codes - 1 red, 2 crash,
+3 another runner (H45) - all arrive as 0. **Redirect and then branch**
+(`… && echo GATEOK || echo "GATEFAIL=$?"` into the same file), never `; echo`.
+In `TRAPS.md`.
+
+**Verified.** `npm run suite`, four runs, exit 0: plant **236 passed / 1
+failed / 8 not for this map** (1,116,202ms and 1,114,574ms), yard **216 / 1 /
+28** (765,431ms and 779,772ms), spreads 0% and 2%, 0 red, 0 flaky, 0 skipped,
+0 unexpectedly green, 0 console errors, 0 context losses, no other runner.
+Ceiling **11 modules within 50 of 600** of **190** in all four runs, nearest
+`src/tests/movement.js` at 599. The counts moved 235/215 to **236/216**, which
+is the new check (F14).
+
+**And the report read itself.** This verify's own drift is **34 checks on the
+plant and 35 on the yard**, against 32 and 36 on H78's - so the size of the
+census moves between sessions too, and a number from one run of the suite is
+not the population. **The new check is not in its own list**, on either map:
+its detail is the same line in all four runs, which is what a clause about
+other checks' stability owes. The two Class 3 rows reproduced: the plant
+printed `tails in 2 segments` then **`-1`** and the yard `1` then **`-1`**,
+and the yard's crossing count read **3 then 2** again while the plant held at
+2 - a second session's evidence that the coin is not on the map H75 recorded
+it on.
+
+**Left.** **H84** (pin the crossing count, on whichever map the coin is on),
+**H85** (the negative tail-segment count in `plantcensus.js`), and the Class 2
+sentence - a detail line that says *this reading is weather* where it is one,
+which is H41's and H73's distinction between a rule, a map fact and a piece of
+weather and is now a list of seventeen rather than an argument.
+
