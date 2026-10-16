@@ -88,6 +88,25 @@ const REGISTRAR = /\bregisterAutoTest\(/g;
  * many times it grabs, and why a toggle difference taken across two grabs
  * cancels whatever is standing still in both of them.
  *
+ * **That last sentence is a clause now and not an argument** (H76):
+ * `a-lens-grab-advances-neither-the-clock-nor-the-picture` reads what `grab()`
+ * is allowed to call off `pixels.js`'s own source and takes three in a row,
+ * holding the clock, the Warden and the picture, each with its own control. It
+ * is worth knowing which half catches what, because the obvious break fools
+ * one of them: a `stepFrames` put inside `grab()` advances `clock.sim` and
+ * turns the Warden - 0.170rad over three grabs, three frames at H73's rate -
+ * and leaves all three **buffers byte-identical**, because what moves the drawn
+ * body is `updateVisual` and stepping the simulation is not that.
+ *
+ * **And H80 named the world those twelve pictures are of.** The grab advances
+ * nothing, so the world at it is the world `quiesce()` returned - and that
+ * world is the Warden on its spawn for twenty of the twenty-one circuits the
+ * clock can draw, and **0.368m (plant) or 0.837m (yard) off it** for the
+ * twenty-first, about one run in twenty-four. `tests/settlecircuit.js` has the
+ * census. So the twelve are safe in the sense this file means - the picture is
+ * the one the helper left - and the thing the helper left is not always the
+ * spawn their prose assumes.
+ *
  * **The names are a list and not a regex literal, and that is the point rather
  * than a style.** `codeOf` strips a string and leaves a regex literal where it
  * is, so a pattern spelled `/renderFrame\(/` puts the identifier in this

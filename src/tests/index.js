@@ -86,6 +86,7 @@ import { register as registerPixelFloors } from './pixelfloors.js';
 import { register as registerQuiesce } from './quiesce.js';
 import { register as registerQuiesceSites } from './quiescesites.js';
 import { register as registerSettleCircuit } from './settlecircuit.js';
+import { register as registerGrabWorld } from './grabworld.js';
 import { register as registerAudioContext } from './audiocontext.js';
 import { register as registerSolverQuery } from './solverquery.js';
 import { register as registerAutoPick } from './autopick.js';
@@ -215,6 +216,10 @@ export function registerAutoTests(debugTools) {
   // clock draws it, and one node of twenty-one sends the Warden walking off the
   // spawn twelve one-frame sites grab it on (H80).
   registerSettleCircuit(debugTools);
+  // And the fourth: not the helper's sentence, nor its sites, nor the circuit
+  // its settle got, but the promise twelve of those sites rest on - that a
+  // lens grab() advances neither the clock nor the picture (H76).
+  registerGrabWorld(debugTools);
   // Beside it, and a census of the same shape: one module owns the audio
   // device's constructor, and an offline render gives the live context back
   // (H32).

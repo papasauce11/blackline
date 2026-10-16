@@ -95,6 +95,32 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A promise a dozen tests were leaning on is now checked rather than written down (H76, 2026-10-15)
+
+**Nothing in the game changed**, and this is the last of the four jobs that
+have been going over how the picture-taking tests work.
+
+A dozen tests work by photographing the scene at one instant and counting
+pixels. They are only meaningful if taking the photograph does not itself move
+anything - and that was true, but it was true in a comment rather than in a
+test, so a future change to the photograph machinery could have quietly made a
+dozen measurements be about a different moment than their descriptions claim.
+
+**It is now a test.** It reads what the photograph function is allowed to call
+out of the source, takes three photographs in a row, and requires the clock not
+to have ticked, the Warden not to have moved, and all three pictures to be
+identical - 3,686,400 bytes each, and they are. It also checks the comparison
+can actually see a difference, by moving the camera and requiring the picture to
+change, which it does by about 2.5 million bytes.
+
+**One thing worth knowing came out of it.** Advancing the game by one step does
+*not* change the picture, because the drawn body only updates when it is
+redrawn, and a step is not a redraw. So "taking a photograph moves nothing" is
+really two separate promises, and the obvious way to break it only trips one of
+them. The test now checks the clock as well, which is what catches it.
+
+**Nothing for you to do.**
+
 ### The test code that drives the Shade through her moves lives in its own file now (H75, 2026-10-15)
 
 **Nothing in the game changed at all**, and this entry exists only so the record

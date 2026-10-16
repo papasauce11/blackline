@@ -628,35 +628,6 @@ one setting only Josh can click; everything else here proceeds.
   that band. Eleven lines added on the rule's own argument, a thirty-one-site
   census to hold them, and **H79** is the drift the suite cannot see.
 
-- [ ] **H76 (S)** Twelve quiesce sites rest on a sentence no check holds.
-  H74's twelve one-frame sites are safe because `lens.grab()` renders and reads
-  the buffer back and **advances nothing** - so the world at every grab is the
-  world `quiesce` returned, and a toggle difference across two grabs cancels
-  anything standing still in both. That is a property of `pixels.js`, it is the
-  whole argument for leaving twelve checks alone, and it lives in prose in
-  `quiescesites.js`'s header and in `PROGRESS.md`. A `grab()` that one day
-  stepped a frame - or a helper that grew a `stepFrames` into it for a reason
-  that looked good - would make twelve classifications wrong in silence, and
-  the census would not notice: it reads the *caller's* source, not the helper's.
-  The clause is small and the shape is H73's: drive nothing, grab twice with a
-  live AI, and assert the Warden has not moved between the two buffers and that
-  the two buffers of an unchanged scene are **byte-identical**. Read the settle
-  and the grab off `pixels.js`'s source the way `quiesce.js` reads its flag, so
-  a helper that changed is driven as it really is.
-  **H80 made this worth more than it was.** The twelve are safe because the
-  world at the grab is the world `quiesce()` returned - and H80 measured what
-  that world is: for twenty circuits of twenty-one the Warden is on its spawn,
-  and for the twenty-first it is **0.368m** (plant) or **0.837m** (yard) off it,
-  which the clock picks about one run in twenty-four. So the sentence this job
-  holds is still exactly the right sentence, and the thing it guarantees is
-  weaker than its prose implies: the grab advances nothing, but what it did not
-  advance was not always the spawn. Say both, and `tests/settlecircuit.js` has
-  the census to point at.
-  *done-when:* a check asserts that a `lens.grab()` advances neither the Warden
-  nor the clock, derived from `pixels.js` rather than written down; it goes red
-  when a `stepFrames` is put inside `grab()`; `quiescesites.js`'s header points
-  at it instead of arguing it, and says which world the grab is of (H80).
-
 - [ ] **H78 (S)** A check that puts the Warden somewhere should assert it is
   still there. `the-death-camera-frames-the-killer` resets the Warden to a spot
   2.5m from the Shade **because it wants it in frame**, then steps fifteen
@@ -1247,6 +1218,52 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H76** The sentence twelve checks rested on, and the break that only trips
+  half of it. `lens.grab()` renders, reads the framebuffer back and **advances
+  nothing** - the whole argument for leaving H74's twelve one-frame sites alone,
+  and it lived in `quiescesites.js`'s header where the sites census
+  **structurally cannot see it**, because that census reads the *caller's*
+  source and never the helper's. A `grab()` that grew a `stepFrames` would have
+  made twelve classifications wrong in silence.
+  **The clause** is `a-lens-grab-advances-neither-the-clock-nor-the-picture` in
+  a new `src/tests/grabworld.js` (235 lines). It reads what `grab()` may call
+  off `pixels.js`'s own body - sliced out of the object `createLens` returns,
+  with the forbidden names a **list and not a regex literal**, which is the trap
+  `quiescesites.js`'s header names - then takes **three grabs in a row** in the
+  live match the helper leaves and holds the clock (`frame`, `wall`, `sim`), the
+  Warden (**0.000000000m and 0.000000000rad**) and the picture (**all three
+  identical over 3,686,400 bytes**). The picture's control is a **second eye**:
+  the same lens looked 7m higher differs by **2,440,586 bytes on the plant and
+  2,562,024 on the yard**, which proves the comparison can see a difference and
+  advances nothing to prove it - *the two pictures are the same* passes just as
+  well when the comparison has gone blind.
+  **And the measurement split the sentence in two, which is the result.** The
+  entry asked for a clause that goes red when a `stepFrames` is put inside
+  `grab()`. Measured first: **a frame stepped between two grabs leaves the
+  buffers byte-identical**, 0 of 3,686,400 on both maps, because what moves the
+  drawn body is `updateVisual` and stepping the simulation is not that. So
+  *advances nothing* is **two guarantees with two detectors**, and the break
+  reds the **source** and **clock** clauses - *"clock.sim 1.4166666666666665 to
+  1.4666666666666663, the Warden turned 0.170000000rad"* - and leaves the
+  **picture** clause green. A clause written as *the two pictures are the same*,
+  which is how the sentence it holds is phrased, would have passed the exact
+  mutation it was written for. In TRAPS.md; and 0.170rad over three grabs is
+  three frames at H73's 0.0567 rad a frame, to the digit, so the break
+  re-measures H73 for free.
+  **The header says which world the grab is of now** (H80): the grab advances
+  nothing, so the world at it is the world `quiesce()` returned, and that world
+  is the Warden on its spawn for twenty circuits of twenty-one and **0.368m**
+  (plant) or **0.837m** (yard) off it for the twenty-first, about one run in
+  twenty-four. The twelve are safe in the sense this file means; the thing the
+  helper left is not always the spawn their prose assumes.
+  **Every number the check asserts is identical across both runs of both maps**
+  - 0 bytes, 0.000000000m/rad, the same second-eye figure to the byte - which
+  puts it with `settlecircuit.js`'s and against the ten H74 found drifting. It
+  costs 4.1s on the plant and 3.4s on the yard. The clock's absolute values are
+  reported and move (frame 216 then 675); what is asserted is that three grabs
+  did not move them.
+  — done 2026-10-15, `PENDING76`.
 
 - **H75** Two jobs in one file, and the number the job is actually about.
   `src/tests/animation.js` was E3's two checks **plus** `strike` - the driver

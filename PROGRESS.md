@@ -17419,3 +17419,98 @@ of the ceiling and **H70** is still one line. H79 gained a second case, above.
 H76 is next and H80 made it more interesting: the twelve one-frame sites it is
 about grab their frame at the end of a settle that is 0.37m or 0.84m off the
 spawn one run in twenty-four.
+
+## H76 — the sentence twelve checks rested on, and the break that only trips half of it
+
+**Built.** `src/tests/grabworld.js` (235 lines, one new check,
+`a-lens-grab-advances-neither-the-clock-nor-the-picture`), and
+`quiescesites.js`'s header points at it instead of arguing it. 188 modules to
+189, 234/214 to 235/215.
+
+**What was unheld.** H74 sorted `quiesce()`'s thirty-one sites into three
+classes, and **twelve grab a frame without stepping one**. Those twelve are
+safe for a reason none of them states: `grab()` renders and reads the
+framebuffer back and **advances nothing**, so the world in each of those
+pictures is the world `quiesce()` returned, and a toggle difference across two
+grabs cancels whatever stood still in both. That is a property of `pixels.js`,
+it was the whole argument for leaving twelve checks alone, and it lived in
+`quiescesites.js`'s header - where the sites census **structurally cannot see
+it**, because that census reads the *caller's* source and never the helper's. A
+`grab()` that grew a `stepFrames` would have made twelve classifications wrong
+in silence.
+
+**The clause.** Read off `pixels.js` rather than written down, the way
+`quiesce.js` reads the flag and `settlecircuit.js` the settle: the body of
+`grab()` is sliced out of the object `createLens` returns, and the names it may
+not contain are a **list and not a regex literal** - the trap
+`quiescesites.js`'s own header names, where `codeOf` strips a string and leaves
+a regex literal exactly where it is. Then three grabs in a row with the live
+match the helper leaves, holding three things, each with a control:
+
+- **the clock**: `clock.frame`, `clock.wall` and `clock.sim` unmoved
+- **the Warden**: 0.000000000m and 0.000000000rad
+- **the picture**: all three buffers identical over **3,686,400 bytes** - with
+  the control a **second eye**, the same lens looked 7m higher, differing by
+  **2,440,586 bytes on the plant and 2,562,024 on the yard**. That control
+  matters and is cheap: *the two pictures are the same* passes just as well when
+  the comparison has stopped being able to tell two pictures apart
+  (`HANDOFF.md`'s lesson that keeps repeating), and a second eye proves it can
+  **without advancing anything** to prove it.
+
+**And the measurement split the sentence in two, which is the result.** The
+entry asked for a clause that "goes red when a `stepFrames` is put inside
+`grab()`". Measured first, as this session's other two jobs taught: **a frame
+stepped between two grabs leaves the buffers byte-identical**, 0 of 3,686,400
+on both maps. What moves the drawn body is `updateVisual`, and stepping the
+simulation is not that - the capsule moves, the clock moves, the picture does
+not. So *"advances nothing"* is **two guarantees with two detectors**, and the
+obvious break trips only one of them:
+
+> the break, run: `h.stepFrames(1)` inside `grab()` reds the **source** clause
+> and the **clock** clause - *"clock.sim 1.4166666666666665 to
+> 1.4666666666666663, the Warden turned 0.170000000rad"* - and leaves the
+> **picture** clause green.
+
+A clause written as *the two pictures are the same*, which is how the sentence
+it holds is phrased, would have **passed the exact mutation it was written
+for**. That is in TRAPS.md. The break is also a free re-measurement of H73:
+0.170rad over three grabs is three frames at 0.0567 rad a frame, to the digit.
+
+**And the header says which world the grab is of now** (H80). The grab advances
+nothing, so the world at it is the world `quiesce()` returned - and H80
+measured that world: the Warden on its spawn for twenty of the twenty-one
+circuits the clock can draw, and **0.368m (plant) or 0.837m (yard)** off it for
+the twenty-first, about one run in twenty-four. So the twelve are safe in the
+sense this file means, the picture being the one the helper left, and the thing
+the helper left is not always the spawn their prose assumes.
+`tests/settlecircuit.js` has the census and the header points at it.
+
+**Verified.** H75's verify stood as the gate. Subset of the new check, the four
+censuses and the two quiesce clauses: **7/7 both maps**, 189 modules. The break
+above, on the yard, red with the two clauses it should be and not the third;
+`pixels.js` restored from its `cp` snapshot and `node --check`ed, and
+`git diff --quiet` before anything else ran. Full verify, four runs, exit 0:
+plant **235 passed, 1 failed, 8 not for this map** (1,118,925ms and
+1,108,627ms), yard **215 / 1 / 28** (767,036ms and 762,130ms), **0 red, 0
+flaky, 0 skipped, 0 unexpectedly green, 0 context losses, 0 console errors, no
+other runner**, spreads 10,298ms (1%) and 4,906ms (1%). The one failure a map is
+the bench-only sweep. The check costs **4.1s on the plant and 3.4s on the
+yard**, and **every number it asserts is identical across both runs of both
+maps** - 0 bytes, 0.000000000m/rad, and the same second-eye figure to the byte -
+which puts it with `settlecircuit.js`'s and against the ten H74 found drifting.
+The clock's absolute values are reported and not asserted, and they do move
+(frame 216 then 675 on the plant), which is correct: what is asserted is that
+three grabs did not move them.
+
+**Found.** Nothing new to queue. The three jobs of this run share a shape worth
+naming once: **every one of the three entries proposed a mechanism and the
+measurement refused it** - H80's "a dependence on what ran before" was the
+clock, H75's deliverable was not the split file's length but the ceiling's
+count, and H76's detector was not the picture but the clock. Measure the
+quantity before fixing the thing; all three measurements were under a minute.
+
+**Left.** **H78** is next and is the obvious successor: the death camera resets
+the Warden 2.5m from the Shade *because it wants it in frame* and never asserts
+it stayed, which is the one place H74 could measure the AI at all. Then **H79**,
+which now has H75's count-wobble as its cheapest case, then **H77** (half
+answered by H80) and **H81**.

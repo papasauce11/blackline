@@ -173,6 +173,25 @@ into — probe, subset, **settle the tree**, verify — where "settle" is its ow
 step with a `git status --short` and a `node --check` in it, and the VERIFY is
 started by a turn that does nothing else.
 
+**Stepping the simulation does not change the picture, so a check that
+compares two framebuffers cannot see a `stepFrames`.** What moves the drawn
+body is `updateVisual`, which neither `stepFrames` nor `fixedStep` is: measured
+in H76, a frame stepped between two `lens.grab()`s leaves the two buffers
+**byte-identical over all 3,686,400 bytes**, on both maps. The capsule has
+moved, the clock has moved, and the picture has not. So *"this helper advances
+nothing"* is **two guarantees with two different detectors** - the clock
+(`clock.sim` for a step, `clock.frame` and `clock.wall` for a rendered frame)
+and the drawn pose - and the obvious break for the second one trips only the
+first. H76's queue entry asked for a clause that "goes red when a `stepFrames`
+is put inside `grab()`", and a clause written as *the two pictures are the
+same*, which is how the sentence it was holding is phrased, would have passed
+that exact mutation. **When a clause is about a helper not advancing the world,
+assert the clock as well as whatever the check was looking at** - and when you
+break it to prove it, read *which* clause went red rather than that one did.
+The demonstration is worth keeping because it is also a free re-measurement of
+H73: three grabs with a `stepFrames` inside turned the Warden **0.170rad**,
+which is three frames at 0.0567 rad a frame to the digit.
+
 **A split that takes one file out of the 600-line cluster can put another
 one in, and the split file's own size is not the number to check.** H75 moved
 `strike` out of `animation.js` - 593 lines to 309, with a 327-line
