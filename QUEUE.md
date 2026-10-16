@@ -628,24 +628,6 @@ one setting only Josh can click; everything else here proceeds.
   that band. Eleven lines added on the rule's own argument, a thirty-one-site
   census to hold them, and **H79** is the drift the suite cannot see.
 
-- [ ] **H78 (S)** A check that puts the Warden somewhere should assert it is
-  still there. `the-death-camera-frames-the-killer` resets the Warden to a spot
-  2.5m from the Shade **because it wants it in frame**, then steps fifteen
-  frames before the first grab - and H73's measurement says that reset was only
-  ever valid for four of them on the plant. H74 gave the check a match with no
-  AI, so the reset means what it says now; what is still missing is the clause.
-  The check asserts the killer covers 300 scaled pixels and sits near the middle
-  of frame, which is a reading about **a** body near the middle, and it would
-  pass just as happily on a Warden that had walked two metres and been caught by
-  the death camera anyway. Same shape as A3 and A1 (`HANDOFF.md`'s "the lesson
-  that keeps repeating"): the check picks its own input and never checks the
-  input stayed picked. One line - the Warden is within a tolerance of where it
-  was reset to, at the moment of the grab - and the tolerance is 1e-6m because
-  with the AI off it is exact.
-  *done-when:* the check asserts the Warden is where it was reset to at the
-  grab, to 1e-6m; the break that proves it is the AI put back on, which must
-  red it; and the plant and yard pixel counts are re-read in the same job.
-
 
 - [ ] **H79 (M)** A reading that drifts while passing is invisible to this
   suite, and ten of them do. H74 measured eleven pixel checks across the two
@@ -965,6 +947,41 @@ one setting only Josh can click; everything else here proceeds.
   runs of both maps, the ceiling line on the runner's own summary names a
   different leader again, and `PROGRESS.md` says what each file holds.
 
+- [ ] **H82 (S)** `quiescesites.js`'s header is wrong about the yard, and H78
+  measured it. The header argues the death camera's case with H73's headroom -
+  "steps fifteen frames, which H73 says was only ever valid for four of them on
+  the plant" - which reads as though the yard had seventeen frames in hand.
+  **It has none.** H73's four and seventeen are about a Warden standing on its
+  *spawn* when a match begins, with a route node to turn to and nothing to walk
+  to yet. That check does not reset to a spawn: it teleports a Warden that has
+  already been patrolling for thirty frames onto a spot 2.5m from the site, and
+  such a body translates on frame **one**. H78 measured 0.0926m after five
+  steps and **0.135427m** after six, *the same number to ten significant
+  figures on both maps*, because the travel is a function of the walk ramp and
+  the frame count and not of the place. So the sentence understates its own
+  case and does it in the one direction that matters, and the number it should
+  carry is not H73's. The twelve one-frame sites' sentence is unaffected - they
+  step nothing - but the eleven that step are not four-and-seventeen either.
+  *done-when:* the header says what H73's margin is about and what it is not,
+  with H78's number beside it; the sites census is still green; and a clause or
+  the header itself says which of the eleven stepping sites reset a body
+  (teleport, no headroom) and which drive one from its spawn.
+- [ ] **H83 (S)** Which other checks pick their own input and never check it
+  stayed picked? A1, A3 and now H78 are three instances of one shape, and the
+  answer has been found three times by hand. Every check that calls an actor's
+  `reset()` and then measures something about where that actor is, is a
+  candidate; `codeOf` over `src/tests/` finds the resets, and the question of
+  each is whether anything between the reset and the read asserts the body is
+  still on the spot. H78 is the worked example and the cheap one - the clause
+  is three lines and a 1e-6 tolerance once the match has no AI in it. **Count
+  first**: the census before any clause, because a floor on a number first
+  measured this morning is a rule nobody argued (H71, H74, H77).
+  *done-when:* every `reset(` on an actor under `src/tests/` is classified -
+  the body is read back, the body is not read back, or the reset is the
+  subject - with the count per class on both maps in `PROGRESS.md`; and the
+  checks in the first class that assert nothing are either given H78's clause
+  or carry the reason they cannot.
+
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -1218,6 +1235,45 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H78** A check that puts the Warden somewhere asserts it is still there.
+  `the-death-camera-frames-the-killer` resets the Warden to a spot 2.5m from
+  the Shade **because the camera must have a killer to frame**, and then read
+  the frame without ever asking whether the body it framed was still that spot.
+  The clause is three lines: `mark` is named once and handed to `reset()`, each
+  of the three grabs records `Math.hypot` of the horizontal offset from it, and
+  the worst is held to **`ON_ITS_MARK` = 1e-6m**. Horizontal because the only
+  travel `reset` leaves is the 2cm it sets the capsule above the floor, which
+  is all in y (H74).
+  **The tolerance is an exact zero rather than a band, measured before it was
+  written.** A probe drove the check's own setup on both maps and read the
+  Warden at the reset, after the five steps, after the warm frame, after the
+  death and at each of the three grabs: **0.000000m at every one of them**, on
+  both maps, with the whole 0.019m of travel in y.
+  **The break is the AI put back on, and the result is the job's point**: it
+  reds at **0.135427m** on both maps - and it reds on the **new clause alone**.
+  The pixel floor and the centring clause stayed green, because the death
+  camera follows the killer wherever it goes, so the old check really would
+  have passed on a body somewhere else. That was the entry's claim and it is
+  now a measurement.
+  **And the measurement refused the entry's mechanism, for the fourth job
+  running.** The entry carried H73's headroom - four frames on the plant - and
+  the yard's seventeen implies this check was safe there. It is not: H73's
+  numbers are about a Warden on its *spawn* at the start of a match, and this
+  one is teleported into a patrol thirty frames old, so it translates on frame
+  **one**. 0.0926m after five steps, 0.135427m after six, **the same to ten
+  significant figures on both maps**, because the travel is the walk ramp times
+  the frame count and has nothing of the place in it. **H82** is the header
+  that says otherwise; **H83** is the census of the shape.
+  Counts re-read as the entry asked, both runs of each map: the killer covers
+  **50,942 / 50,977 pixels on the plant** and **90,182 / 90,215 on the yard**,
+  bracketing the 50,951 / 50,977 the `quiescesites.js` header quotes for the
+  plant with the AI off. The new number is **identical in all four runs**,
+  which puts it with `settlecircuit.js`'s and `grabworld.js`'s and against the
+  ten H74 found drifting - while the same check's ragdoll travel is one of the
+  ten (3.03 / 3.87 and 2.35 / 2.71). That band is H79's and this job did not
+  touch it.
+  — done 2026-10-16.
 
 - **H76** The sentence twelve checks rested on, and the break that only trips
   half of it. `lens.grab()` renders, reads the framebuffer back and **advances

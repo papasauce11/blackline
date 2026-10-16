@@ -95,6 +95,38 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The test of the death camera was not checking the thing it was about (H78, 2026-10-16)
+
+**Nothing in the game changed.**
+
+When you are killed, the camera cuts to whoever killed you. The test for that
+puts the Warden on a chosen spot a couple of metres away, kills the Shade, and
+then counts how many pixels of the Warden are on screen and how close to the
+middle of frame it is.
+
+**Both of those are true of any Warden anywhere**, because the camera follows
+the killer. If the Warden had strolled off the spot the test chose for it, the
+camera would have gone along and the test would have counted the same pixels
+in the same place and passed. It was measuring a Warden, not *that* Warden.
+
+**It now also checks the body is still on the spot it was put on**, to a
+millionth of a metre. That is not a generous allowance - with no AI in the
+match the Warden has no reason to move at all, and the measurement says it
+moves exactly nothing. Turning the AI back on moves it 13.5cm and the test goes
+red, while the two older checks in it stay green, which is the proof that the
+old version really would have passed on a body somewhere else.
+
+**One thing worth knowing came out of it.** An earlier job measured how long a
+Warden takes to start walking at the beginning of a round - four frames on the
+plant, seventeen on the yard - and that number had been used to argue this test
+was safe. It is the wrong number for this test: it is about a Warden standing
+on its starting mark, and this test teleports one that is already mid-patrol,
+which starts moving immediately. On both maps. The number was the same on both
+maps to ten digits, which is how you can tell it is about the walk and not
+about the place.
+
+**Nothing for you to do.**
+
 ### A promise a dozen tests were leaning on is now checked rather than written down (H76, 2026-10-15)
 
 **Nothing in the game changed**, and this is the last of the four jobs that

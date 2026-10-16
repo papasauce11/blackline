@@ -35,6 +35,13 @@ import { createLens, difference, meanLuma, meanLumaIn, brightnessDelta, quiesce,
  */
 const SMOKE_COVERS = 5000 / (REFERENCE_WIDTH * REFERENCE_HEIGHT);
 
+/**
+ * How far a body a check reset may be from where it put it, in metres (H78).
+ * Not a band: with no AI in the match the travel is an exact zero on both maps,
+ * so this is the width of the arithmetic, not an allowance for drift.
+ */
+const ON_ITS_MARK = 1e-6;
+
 /** Look at `target` from `distance` away, on a bearing, at eye height. */
 function eyeOn(target, distance, bearing, height = 1.4) {
   return {
@@ -414,7 +421,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'the-death-camera-frames-the-killer',
     spec: 'Section 10.2 / check 23',
-    name: 'The Warden is on screen and near the middle of it, and the body tumbles',
+    name: 'The Warden is on screen, near the middle of it and still on the spot this check put it on, and the body tumbles',
     run: (h) => {
       const problems = [];
       const restore = quiesce(h);
@@ -432,10 +439,10 @@ export function register(debugTools) {
       const site = h.map.sites[0];
       shade.reset({ position: site.position, yaw: 0 });
       h.stepFrames(10);
-      warden.reset({
-        position: { x: site.position.x + 2.5, y: site.position.y, z: site.position.z + 2.5 },
-        yaw: 0,
-      });
+      // Named, not written twice: H78's clause asks about *this* spot, and a
+      // second copy of the coordinate would ask a different question.
+      const mark = { x: site.position.x + 2.5, y: site.position.y, z: site.position.z + 2.5 };
+      warden.reset({ position: mark, yaw: 0 });
       h.stepFrames(5);
 
       // Warm this view before the death camera starts its wall-clock guard
@@ -464,11 +471,14 @@ export function register(debugTools) {
       const offGuard = h.emitter.on('deathcam:guard', (event) => { guarded = event.after; });
 
       // The death camera owns the camera, so render through it as the frame
-      // loop would rather than repointing it.
+      // loop would rather than repointing it. Every grab reads where the Warden
+      // is too: the moment of the grab is the moment the H78 clause is about.
+      let strayed = 0;
       const grab = () => {
         deathCam.step(1 / 60, shade);
         renderer.render(h.scene, h.camera);
         gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
+        strayed = Math.max(strayed, Math.hypot(warden.position.x - mark.x, warden.position.z - mark.z));
         return buffer.slice();
       };
 
@@ -494,6 +504,19 @@ export function register(debugTools) {
         }
       }
 
+      // H78: this check picks its own input - the Warden is put 2.5m off the
+      // site *because the camera must have a killer to frame* - and nothing
+      // asked whether the input stayed picked. Both readings above are about
+      // **a** body near the middle of frame, and a Warden that had wandered
+      // off its mark would be near the middle anyway, because the death camera
+      // follows the killer wherever it goes - A1 and A3's shape, `HANDOFF.md`'s
+      // lesson that keeps repeating. Horizontal, because the only travel
+      // `reset` leaves is the 2cm it sets the capsule above the floor (H74).
+      // The AI put back on reads 0.135427m by the first grab.
+      if (strayed > ON_ITS_MARK) {
+        problems.push(`the Warden was ${strayed.toFixed(6)}m off the spot this check reset it to when the frame was grabbed, so the pixels above are a reading about a body somewhere else`);
+      }
+
       // Section 15's ragdoll-lite: it must visibly move, then visibly stop.
       const early = [shade.mesh.position.clone(), shade.mesh.rotation.x, shade.mesh.rotation.z];
       h.stepFrames(Math.round(0.4 / CONFIG.time.fixedDt));
@@ -516,7 +539,8 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `the killer covers ${killer.count} pixels, centred within `
-            + `${(Math.abs(killer.bounds.cx - width / 2) / width * 100).toFixed(0)}% of frame centre; `
+            + `${(Math.abs(killer.bounds.cx - width / 2) / width * 100).toFixed(0)}% of frame centre and `
+            + `${strayed.toFixed(6)}m off the mark it was reset to at the grab; `
             + `the body tumbled ${moved.toFixed(2)} then froze to ${drift.toFixed(5)} drift; `
             + `the view warmed in ${(warmMs / 1000).toFixed(1)}s before the kill`
           : problems.join('; '),

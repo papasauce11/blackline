@@ -211,6 +211,20 @@ is to put a thing where it belonged anyway. Watch the threshold: "within 50 of
 600" is **551 and up**, so 550 is outside it by one line and a one-line comment
 is the difference between eleven and twelve.
 
+**And a job that adds no code at all can do it, which H78 nearly did.** That
+job was three lines of clause in `visual.js`; the prose around them - a
+constant with a docstring, the argument for the tolerance, why the distance is
+horizontal - took the file from 526 to **558**, and nothing in the job was a
+split, so there was no reason to look. It took three passes of cutting
+comments to land at **550**, which is now where `breathcensus.js` sits too, so
+**two modules are one line from the cluster and either will join it on the next
+sentence anybody adds**. The rule is not about splits: read the `ceiling:` line
+after any edit to a file over about 520, including one that only explains
+itself. And the cut is not free - what came out of H78 was the sentence saying
+the clause is A1 and A3's shape in full, kept only as a clause of another
+sentence, so the file that carries the argument is `PROGRESS.md` and the code
+points at it.
+
 **Exit 2 is not always a broken base: Chrome can fail to launch and take the
 gate with it.** H80's first gate died about forty seconds in with
 `browserType.launch: Target page, context or browser has been closed`, a
@@ -261,6 +275,22 @@ reds a check that has nothing to do with the job:
 -60` buffers the whole run and shows **nothing** until the process exits, so a
 thirty-minute gate is thirty minutes with no idea whether it has reached the
 yard. Redirect to a file, or let the tool capture it, and read the tail of that.
+
+**A subset of one is not a cheap rehearsal of a check that has a wall-clock
+guard in it.** H78 ran `--subset "the-death-camera-frames-the-killer"` twice to
+take a before and an after, and the check reported warming its view in **18.6s
+on the plant and 14.0s on the yard**. In the full suite the same check warms in
+**1.1s and 0.7s**, because an earlier check at site A has already paid for the
+compile. The death camera's guard is **16.5s**, and it sits between those two
+numbers: the F5 comment above that warm frame exists because the first grab
+once fired the guard, force-reinserted the Shade and left the check reading a
+camera at the origin. So a subset run of a guarded check is the *worst* case
+for it and the full run is the easy one, which is the reverse of the usual
+intuition that a subset is a smaller version of the same thing. Two
+consequences: a timing read off a subset is not the timing the gate sees, and a
+check that passes in a subset has cleared a harder bar than the one the queue
+entry is about - so a *green* subset is good news and a red one may be about
+the subset.
 
 **A loaded machine can take the GPU away mid-suite.** One verify came back
 with *eight* pixel checks flaky at once and never reproduced. F1 found it: a

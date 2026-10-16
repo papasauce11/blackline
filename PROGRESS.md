@@ -17514,3 +17514,113 @@ the Warden 2.5m from the Shade *because it wants it in frame* and never asserts
 it stayed, which is the one place H74 could measure the AI at all. Then **H79**,
 which now has H75's count-wobble as its cheapest case, then **H77** (half
 answered by H80) and **H81**.
+## H78 — the check that picked its own input, and the headroom the yard never had
+
+**Built.** Three lines in `the-death-camera-frames-the-killer`
+(`src/tests/visual.js`, 526 to 550), plus `ON_ITS_MARK` and a number in the
+detail line. No new module and no new check: 189 modules and 235/215, as
+before. The ceiling's own line still reads **11 modules within 50 of 600**,
+which took three passes of the prose to hold - at 558 lines this file would
+have been the twelfth and undone what H75 bought.
+
+**What was unheld.** The check resets the Warden to a spot 2.5m from the site
+*because the death camera must have a killer to frame*, then reads a frame and
+asserts two things about it: the killer covers 300 scaled pixels, and it sits
+near the middle. Both are readings about **a** body near the middle of frame.
+Neither is a reading about **that** body on **that** spot, and the death camera
+follows the killer wherever it goes, so a Warden that had wandered off its mark
+would be framed near the middle anyway. The check picked its own input and
+never asked whether the input stayed picked - A1 and A3's shape, and
+`HANDOFF.md`'s lesson that keeps repeating.
+
+**The clause.** `mark` is named once and handed to `reset()`, so there is one
+coordinate and not two; each of the three grabs records `Math.hypot` of the
+horizontal offset from it; the worst is held to `ON_ITS_MARK`, **1e-6m**.
+Horizontal because the only travel `reset` leaves is the 2cm it sets the
+capsule above the floor, and that is all in y (H74) - measured here as
+**0.019000m** of drop on both maps and nothing sideways.
+
+**The tolerance is an exact zero, and it was measured before it was written.**
+A probe drove the check's own setup on both maps and read the Warden at the
+reset, after the five steps, after the warm frame, after the death and at each
+of the three grabs:
+
+| | plant | yard |
+|---|---|---|
+| at the reset | 0.000000m | 0.000000m |
+| after `stepFrames(5)` | 0.000000m | 0.000000m |
+| after the warm `renderFrame` | 0.000000m | 0.000000m |
+| at grabs 1, 2 and 3 | 0.000000m | 0.000000m |
+
+So 1e-6 is the width of the arithmetic and not an allowance for drift, which is
+the distinction H41 and H73 draw between a rule, a map fact and a piece of
+weather. This one is a rule.
+
+**The break is the AI put back on, and what it reds is the result.** `ai: true`
+in this check's `initMatch` reds it on both maps at **0.135427m**, exit 1 - and
+it reds on the **new clause alone**. The killer still cleared its pixel floor
+and still read 0% off centre, in the same run, because the camera went with it.
+The entry said the check "would pass just as happily on a Warden that had
+walked"; that was an argument, and it is now a measurement.
+
+**And the measurement refused the entry's mechanism, which is the fourth job in
+a row to do it.** The entry carries H73's headroom - the reset "was only ever
+valid for four of them on the plant" - and H73's other number is seventeen
+frames on the yard, which reads as though this check were safe there. **It has
+no headroom at all.** H73's four and seventeen are about a Warden standing on
+its *spawn* when a match begins: a patrol with a node to turn to and nothing
+yet to walk to, turning at 0.0567 rad a frame and translating nothing until it
+is round. This check does not reset to a spawn. It teleports a Warden that has
+already been patrolling for thirty frames onto a spot 2.5m from the site, and
+that body **translates on frame one**:
+
+| | plant | yard |
+|---|---|---|
+| after 5 steps | 0.09263658m | 0.09263658m |
+| at the grab (6 steps) | 0.13542695m | 0.13542695m |
+| yaw at the grab | +0.340000 rad | -0.340000 rad |
+
+**The same travel to ten significant figures on both maps**, because it is the
+walk ramp times the frame count and has nothing of the place in it; only the
+yaw differs, and ±0.34 rad is six frames at H73's 0.0567 rad a frame, to the
+digit. The precedents and the entry both reasoned from a spawn, and this is not
+one. **H82** is the header that says otherwise - `quiescesites.js`'s, which
+argues the death camera's case with H73's four frames - and **H83** is the
+census of the shape A1, A3 and H78 are each one instance of.
+
+**Verified.** `npm run suite`, four runs, exit 0: plant **235 passed / 1 failed
+/ 8 not for this map** (1,112,440ms and 1,126,983ms), yard **215 / 1 / 28**
+(766,852ms and 770,630ms), spreads 1%
+and 0%, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green, 0 console errors, no
+other runner. The one failure a map is the bench-only sweep the gate drops by
+design (H11). Ceiling 11 modules within 50 of 600 in all four runs, nearest
+`src/tests/movement.js` at 599. The gate before the job read the same counts.
+
+**The counts re-read, which the entry asked for.** Both runs of each map, which
+is the only honest baseline (H75):
+
+| | run 1 | run 2 | spread |
+|---|---|---|---|
+| plant, killer pixels | 50,942 | 50,977 | 35 |
+| yard, killer pixels | 90,182 | 90,215 | 33 |
+| both maps, off the mark | 0.000000m | 0.000000m | **0** |
+
+`quiescesites.js`'s header quotes 50,951 / 50,977 for the plant with the AI
+off, and the two readings here bracket it. **The new number is identical in all
+four runs**, which puts it with `settlecircuit.js`'s and `grabworld.js`'s
+against the ten H74 found drifting - and the same check carries one of the
+drifting ten in its own detail line, the ragdoll's first-0.4s travel, 3.03 then
+3.87 on the plant and 2.35 then 2.71 on the yard. A check can hold a rule and
+report weather in the same sentence; H79 is the instrument that would say
+which is which.
+
+**Found in passing.** The subset warmed the death camera's view in **18.6s on
+the plant and 14.0s on the yard**; the full suite warmed it in **1.1s and
+0.7s**, because an earlier check at site A had already paid for the compile.
+The 16.5s wall-clock guard sits between those two numbers, which is exactly the
+hazard the F5 comment above the warm frame describes, and it is a reason a
+subset of one is not a cheap rehearsal of a check that has a guard in it.
+
+**Left.** **H82** and **H83**, above. The pixel band in the two counts is
+H79's and this job did not touch it.
+
