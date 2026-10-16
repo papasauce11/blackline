@@ -1278,7 +1278,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   both sides are enumerated. Four breaks, each red on one clause, each through
   a probe at 445ms: a reseed zeroing `drawn`, the ledger crediting an
   AI-driven step to the quiet bucket, a row taken out of the table, and
-  `rng.next()` added to `detection.js`. - done 2026-10-16, COMMIT_HASH
+  `rng.next()` added to `detection.js`. - done 2026-10-16, `cdc3f7a`.
 
 - **H79** A reading that drifts while passing, and the three kinds of number
   it turns out to be. `flaky` compares **verdicts**, so a check could answer
