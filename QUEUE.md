@@ -1263,7 +1263,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   costs 4.1s on the plant and 3.4s on the yard. The clock's absolute values are
   reported and move (frame 216 then 675); what is asserted is that three grabs
   did not move them.
-  — done 2026-10-15, `PENDING76`.
+  — done 2026-10-15, `7571d08`.
 
 - **H75** Two jobs in one file, and the number the job is actually about.
   `src/tests/animation.js` was E3's two checks **plus** `strike` - the driver
