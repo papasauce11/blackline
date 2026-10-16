@@ -1281,7 +1281,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   the four under `src/tests/`, so `/scripts/detaildrift.mjs` had to be
   declared as reading no flags - the census working as built, and a whole
   verify to learn it. `TRAPS.md` names the check now.
-  — done 2026-10-16.
+  — done 2026-10-16, `3b6f17f`.
 
 - **H78** A check that puts the Warden somewhere asserts it is still there.
   `the-death-camera-frames-the-killer` resets the Warden to a spot 2.5m from
