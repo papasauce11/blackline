@@ -17797,3 +17797,149 @@ sentence - a detail line that says *this reading is weather* where it is one,
 which is H41's and H73's distinction between a rule, a map fact and a piece of
 weather and is now a list of seventeen rather than an argument.
 
+
+## H77 — the channel that is real and almost never open, and the nine decisions that are the whole of it
+
+**Built.** A cumulative draw count on both seeded streams (`rng.drawn`,
+`lookRng.drawn`, in `config.js`), a per-step ledger splitting it by whether the
+AI drove that step (`recordStepDraws` in `debugfields.js`, three lines in
+`main.js`'s `fixedStep`), the three counts recorded per check by the runner
+(`_runOne` in `ui/autosuite.js`) and carried into the report and its summary
+(`scripts/suite.mjs`, `scripts/suitereport.mjs`), and `src/tests/rngdraws.js` -
+`the-simulations-stream-is-drawn-from-only-by-a-decision`. 190 modules to 191,
+236/216 to 237/217.
+
+**The hypothesis, and the state it was in.** A live AI draws from the same
+seeded stream the patrol order was shuffled out of, so a check that steps
+frames beside one and then reads anything that stream feeds is reading numbers
+another system has been pulling on. H74 proposed exactly that to explain pixel
+readings that moved between an AI-on and an AI-off run, and then withdrew it,
+because H79 showed ten of those eleven readings drift run to run on their own by
+as much as or more than the A/B deltas. That left the hypothesis alive and
+unfalsifiable from pixels: nothing in the experiment could tell an rng channel
+from the breath. The entry's instruction was **count first and decide after**.
+
+**`debugState.rngCalls` could not answer the question as posed, and that is the
+first finding.** The entry named it as the counter, and it is the wrong one
+twice over: `initMatch` zeroes it, and a check that opens a match of its own
+reseeds in the middle of the very span being measured; and it is written only by
+`recordFrameFields`, once per **render** frame, while a check that steps the
+world renders nothing. So the first piece of the job is a count no reseed
+touches - `rng.drawn`, the page's total, beside `calls`, the match's. One
+sentence in `config.js` says which is which and a clause holds them apart.
+
+**What a match opening costs: the shuffle and nothing else.** `rng.calls` the
+instant `initMatch` returns is exactly `circuit.length - 1` - Fisher-Yates over
+the waypoints - **19 of a 20-node circuit on the plant, 20 of a 21-node circuit
+on the yard**. Identical every time, so it is a cost and not a perturbation, and
+the check derives the number from the circuit rather than writing it down.
+
+**What a live patrol costs: about one number a minute of simulated time.** Over
+3,600 frames at three seeds, one frame at a time: **4, 4 and 2 draws on the
+plant; 5, 3 and 2 on the yard**. Every one a *single* draw, taken at the frame
+the Warden arrives at a patrol node and asks how long to stand there and scan.
+At seed 12345 the first lands on frame **523** of the plant and frame **59** of
+the yard; across the three seeds every first draw was inside 1,450 frames.
+
+**What the same frames cost with the AI off: nothing.** 0 draws over 3,600,
+both maps, both seeds, the look stream 0 beside it. So the AI is the **only**
+thing that spends the simulation's stream during a step - which is what makes
+an A/B on the flag mean anything at all, and is also why the A/B was never
+going to show up in a pixel count.
+
+**So H74's hypothesis is closed rather than confirmed.** The rng *is* a channel:
+turning the AI off changes the stream, and a single extra draw shifts every
+value after it. But the channel is open for about one frame in twelve hundred.
+The eleven sites that step before they grab step one to fifteen frames, so the
+odds a live AI drew a number under one of them are a little over one percent,
+and the twelve sites that step no frame cannot be touched at all. **A one-draw
+phase shift one run in eighty cannot produce a reading that moves every run**,
+and every run is what H79 measured. The breath is the channel; this is a
+trickle, and now it is a counted trickle.
+
+**Which is why the clause is a census and not a floor.** A rate first measured
+this morning is not a rule - H71 wrote that lesson, H74 re-learned it, and the
+H77 entry exists to not repeat it. The useful thing the measurement turned up is
+not the rate: it is that **every draw from this stream outside `config.js` and
+this suite is one of nine call sites, and every one of them is a decision** - a
+circuit shuffled, a pause chosen, a burst sized, two halves of an aim, a round's
+recoil and the two halves of its spread. Nine, in two files: `systems/ai.js` and
+`systems/combat.js`. That is a sentence a new system can falsify by accident,
+and the day something ambient starts drawing here the number under every
+stepping check stops being a trickle while nothing else in the suite notices.
+So the census is the clause.
+
+**Both streams are in it, because a census of one of them is half a census.**
+H27 split the look stream off so a quality preset could not move the simulation,
+and its layering rule - *a value that decides something a player can lose to
+belongs on `rng`* - is only checkable if both sides are enumerated. 23 declared
+draws over three file-and-stream pairs: 6 in `ai.js`, 3 in `combat.js`, 14 in
+`effects.js` on the look stream. Every row carries the decision it is, in a
+`when` column the check requires to be non-empty, because a draw nobody can
+account for is the state this whole stream was in before the job.
+
+**The census the done-when asked for, off the verify: four runs, both maps.**
+Of 237 checks on the plant, **126 and 125 draw anything at all**; of 217 on the
+yard, **120 and 120**. The rest - 111 on the plant, 97 on the yard - spend
+nothing from either stream, so no reading of theirs can be in it. Of the
+drawers, **17 then 15 on the plant and 16 then 16 on the yard** had a draw taken
+under a live AI, and the totals are **21,993 / 21,995** and **21,425 /
+21,439**. Those split cleanly into two classes:
+
+**Class one, five checks, and they are the gunfight.** `the-widest-cone-kills-
+at-range-and-not-once-in-a-while` **19,396** on the plant and **19,513** on the
+yard, *identical across both runs of each map*; `each-difficulty-is-quicker-to-
+see-you-and-quicker-to-kill-you` **2,283** and **1,589**, identical likewise;
+`the-ais-grenades-fly-land-and-hurt` 117/117 and 113/121; `frame-budget-under-
+the-check-29-load` 105/106 and 105/106; `the-warden-fires-in-bursts-of-rounds-
+at-the-torso` 71/71 and 75/75. Together they are 21,992 of the plant's 21,993.
+**Every one of them is a check about the stream** - F18's burst-counting
+difficulty clause is the extreme case, god-moding the Shade so an engagement
+keeps sampling the cone - and a check whose subject is the aim cone is not
+disturbed by the aim cone being drawn.
+
+**Class two, a dozen checks with one to ten draws each, and the membership is
+not stable.** `every-climbable-surface-can-actually-be-climbed` read 2, 4, 6 and
+10 across the four runs; `a-whole-match-leaks-nothing` 1, 3, 1, 3;
+`the-end-screen-says-who-won-and-how-each-way` and `death-camera-watches-the-
+killer` appear in one run of the yard each and in neither of the other three.
+That is the trickle, seen from the other end: a long-running check steps enough
+frames that a patrol-node arrival sometimes falls inside it and sometimes does
+not. **This is why the separation is reported and not held.** A list of the
+checks a live AI drew under is a list that changes between two runs of the same
+tree, so a clause over it would be weather. H86 is the job that turns it into a
+budget, and it now has a population to argue from.
+
+**One number nobody asked for and it is the attribution working.** `withoutAi`
+- values drawn inside a step the AI did **not** drive - is **109** on the plant
+and **96** on the yard, every run. The only drawers are `ai.js` and
+`combat.js`, so those are rounds fired with the AI switched off: free-roam and
+the warden role, where the human's trigger reaches the same gun. An attribution
+that read `match.aiEnabled` rather than *whether `wardenAI.step` ran* would have
+filed all of them under the AI.
+
+**Four breaks, each caught, each on one clause**, through a probe at 445ms
+against 2.5 minutes of subset. A reseed zeroing `drawn` -> *"a match opening
+left rng.drawn 0 past where it was"*. The ledger crediting an AI-driven step to
+the quiet bucket -> *"the patrol drew 1 value(s) and 0 of them were attributed
+to a step the AI drove"*. A row taken out of the table -> *"combat.js rng draws
+unit, unit, unit and this census declares unit, unit"*. And the drift this
+exists for: `rng.next()` added to `detection.js` -> *"detection.js draws from
+rng (next) and is not in this census"*.
+
+**Verified.** Gate `--runs 1` at `1793c29`: plant 236/1/8, yard 216/1/28, exit
+0. The new check green on both maps through `npm run probe` at 445ms and 524ms
+with the numbers the probe had already measured, then a 26-check census subset
+green on both maps before the verify (H52's lesson, and it cost two minutes).
+Verify, four runs, exit 0: plant **237 / 1 / 8** (1,110,501ms, 1,120,367ms),
+yard **217 / 1 / 28** (780,949ms, 801,538ms), spreads 1% and 3%, **0 red, 0
+flaky, 0 skipped, 0 unexpectedly green, 0 console errors, 0 context losses, 0
+loop frames**, no other runner. Drift 33 on the plant and 36 on the yard,
+against 34 and 35 on H79's verify, and **the new check is in neither list**:
+every number in its detail line is pinned to a seed or derived from the circuit.
+The one failure a map is the bench-only sweep the gate drops by design (H11).
+
+**What was left.** The per-check counts are a reading with no clause over them
+(H86). And three rows of the census cannot be told apart from each other - the
+ragdoll's three spins are `unit` with `when` lines a letter apart - so a reorder
+is a change the multiset comparison cannot see (H87).

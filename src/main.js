@@ -37,7 +37,7 @@ import { createCamera } from './view.js';
 import { readShadeIntent, idleShadeIntent, readWardenIntent } from './intents.js';
 import { useShadeGadget, useWardenGadget } from './loadout.js';
 import { gatherHudState } from './hudstate.js';
-import { recordStepFields, recordFrameFields } from './debugfields.js';
+import { recordStepFields, recordStepDraws, recordFrameFields } from './debugfields.js';
 import { createHarness } from './harness.js';
 import { bootGate, bootStage, bootDone, showNotice, yieldToPaint } from './bootscreen.js';
 import { createIntent } from './entities/agent.js';
@@ -264,10 +264,19 @@ async function bootstrap() {
 function fixedStep(dt) {
   clock.sim += dt;
 
+  // H77: what this step takes from the simulation's shared stream, attributed
+  // to the AI or to everything else. Read here and not inside a system
+  // because the question is about the step and not about a drawer.
+  const drawnBefore = rng.drawn;
+
   // Whichever intent actually drove the Warden this step is the one combat
   // reads. Section 12 requires free-roam to be a configuration rather than a
   // second code path, so the human's trigger and the AI's arrive by one route.
   let activeWardenIntent = wardenIdleIntent;
+  // And whether the AI itself stepped, which is narrower than
+  // `match.aiEnabled`: free-roam and the warden role both leave it enabled and
+  // drive the body from somewhere else.
+  let aiDrove = false;
 
   if (freefly.enabled) {
     freefly.step(dt);
@@ -282,7 +291,8 @@ function fixedStep(dt) {
     // A dead Shade takes no input: it is a ragdoll waiting on a countdown, and
     // driving the capsule around would leave the body and the collider apart.
     shade.step(dt, shade.health > 0 ? readShadeIntent(input, shadeIntent) : idleShadeIntent(shadeIntent));
-    activeWardenIntent = match.aiEnabled ? wardenAI.step(dt, { shade }) : wardenIdleIntent;
+    aiDrove = match.aiEnabled;
+    activeWardenIntent = aiDrove ? wardenAI.step(dt, { shade }) : wardenIdleIntent;
     warden.step(dt, activeWardenIntent);
   }
 
@@ -317,6 +327,7 @@ function fixedStep(dt) {
   effects.step(dt);
 
   if (SETTINGS.debug) recordStepFields(debugState, { detection, wardenAI, effects, gadgets, objective });
+  recordStepDraws(debugState, aiDrove, rng.drawn - drawnBefore);
 
   emitter.emit('sim:step', dt);
   if (SETTINGS.debug) debugTools.step();

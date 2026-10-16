@@ -23,6 +23,32 @@ export function recordStepFields(debugState, { detection, wardenAI, effects, gad
   debugState.roundState = `${objective.round.charge} ${Math.ceil(objective.hud.timeRemaining)}s`;
 }
 
+/**
+ * H77: who drew from the simulation's stream, per fixed step.
+ *
+ * The stream is shared, so a check that steps frames beside a live AI and then
+ * reads anything the stream feeds is reading numbers something else has been
+ * pulling on. Which is answerable with a counter rather than inferred from
+ * pixels - and the counter has to be split by whether the AI drove that step,
+ * because the AI is the only drawer a check can turn off.
+ *
+ * Not an overlay field and not behind `SETTINGS.debug` like everything else
+ * here, and both are on purpose: `ui/debug.js` has no row for a count that
+ * only means something as a difference between two instants, and a
+ * bookkeeping that exists only while the gate is up is a bookkeeping whose own
+ * gate is one more thing a reading depends on. It is two integer adds.
+ * Cumulative for the life of the page - a reseed must not move it, or a check
+ * that opens its own match would zero the span it is being measured over.
+ *
+ * @param {object} debugState
+ * @param {boolean} aiDrove whether wardenAI stepped this step
+ * @param {number} drawn values taken from the simulation's stream in it
+ */
+export function recordStepDraws(debugState, aiDrove, drawn) {
+  if (aiDrove) debugState.rngUnderAi = (debugState.rngUnderAi || 0) + drawn;
+  else debugState.rngWithoutAi = (debugState.rngWithoutAi || 0) + drawn;
+}
+
 /** After the render call, with the renderer's own counters. */
 export function recordFrameFields(debugState, { renderer, cpuMs, rng, shade, warden, camera, cameraOwner }) {
   debugState.cpuMs = cpuMs;

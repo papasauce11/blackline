@@ -481,6 +481,12 @@ async function main() {
               // with no flag (H63). Spread only where it exists, so the other
               // two-hundred-odd results do not each gain a null in --details.
               ...(x.ceiling ? { ceiling: x.ceiling } : {}),
+              // H77: what this check took from the simulation's shared stream,
+              // and how much of it was taken under a live AI. The runner's
+              // number and not the check's (`_runOne` writes it after the
+              // spread). Carried only where something was drawn, so the
+              // hundred-odd checks that touch no match stay one line each.
+              ...(x.draws && x.draws.total ? { draws: x.draws } : {}),
             })),
           };
         }, [SUBSET ? SUBSET.source : null, REGRESSION]), `map ${mapId}, run ${i + 1}`);

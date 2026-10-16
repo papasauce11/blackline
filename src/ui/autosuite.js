@@ -443,13 +443,35 @@ export class AutoSuite {
   }
 
   /**
+   * H77: the three cumulative draw counts, read as one reading so the three
+   * deltas below are taken at one instant. `rng.drawn` is every value the
+   * simulation's stream has handed out since the page loaded; the other two
+   * are the halves of it taken inside a fixed step, split by whether the AI
+   * drove that step. What the three do not account for is the draws a match
+   * opening makes - the circuit shuffle - which is `total` minus the two and
+   * is the interesting number for a check that opens several matches.
+   */
+  _draws() {
+    return {
+      total: rng.drawn,
+      underAi: this.state.rngUnderAi || 0,
+      withoutAi: this.state.rngWithoutAi || 0,
+    };
+  }
+
+  /**
    * One check, caught, timed, with the verdict shape enforced. Every check
    * starts from the same presentation state (no menu, HUD shown - F2), so
    * its answer does not depend on who ran before it.
+   *
+   * And counted (H77): what was drawn from the simulation's stream while it
+   * ran, and how much of that was drawn under a live AI. After the spread, so
+   * it is the runner's number and a check cannot report its own.
    */
   async _runOne(test) {
     let result;
     const started = performance.now();
+    const drewBefore = this._draws();
     if (typeof this.harness.resetPresentation === 'function') this.harness.resetPresentation();
     try {
       result = await test.run(this.harness);
@@ -459,7 +481,18 @@ export class AutoSuite {
     } catch (error) {
       result = { pass: false, detail: `threw: ${error && error.message}` };
     }
-    return { id: test.id, spec: test.spec, ...result, ms: performance.now() - started };
+    const drewAfter = this._draws();
+    return {
+      id: test.id,
+      spec: test.spec,
+      ...result,
+      ms: performance.now() - started,
+      draws: {
+        total: drewAfter.total - drewBefore.total,
+        underAi: drewAfter.underAi - drewBefore.underAi,
+        withoutAi: drewAfter.withoutAi - drewBefore.withoutAi,
+      },
+    };
   }
 
   _printResult(result) {

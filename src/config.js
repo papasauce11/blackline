@@ -79,11 +79,13 @@ const rngState = {
   seed: DEFAULT_SEED,
   next: mulberry32(DEFAULT_SEED),
   calls: 0,
+  drawn: 0,
 };
 
 const lookState = {
   next: mulberry32((DEFAULT_SEED ^ LOOK_SALT) >>> 0),
   calls: 0,
+  drawn: 0,
 };
 
 /**
@@ -91,7 +93,7 @@ const lookState = {
  * same surface from one definition, so `lookRng.unit()` cannot drift from
  * `rng.unit()` and a caller moved from one to the other needs no rewriting.
  *
- * @param {{next: () => number, calls: number}} state
+ * @param {{next: () => number, calls: number, drawn: number}} state
  */
 function streamOver(state) {
   const stream = {
@@ -100,9 +102,24 @@ function streamOver(state) {
       return state.calls;
     },
 
+    /**
+     * How many values have been drawn since the page loaded, across reseeds.
+     *
+     * `calls` is the match's count and is what makes it a canary - a reseed
+     * zeroes it, so two matches from one seed can be compared draw for draw.
+     * That is exactly what makes it unable to answer "how many numbers did
+     * something other than this check draw while it ran" (H77): a check that
+     * opens a match of its own reseeds in the middle of the span being
+     * measured, and the count the question needs is the one no reseed touches.
+     */
+    get drawn() {
+      return state.drawn;
+    },
+
     /** Float in [0, 1). */
     next() {
       state.calls++;
+      state.drawn++;
       return state.next();
     },
 
@@ -161,6 +178,9 @@ export const rng = streamOver(rngState);
  * deliberately the only way either is seeded: two reseed functions is one a
  * caller can forget, and a look stream nobody reseeded would hand every match
  * the same sparks (H27).
+ *
+ * `calls` is zeroed here and `drawn` deliberately is not: one is the match's
+ * count and the other is the page's (H77).
  */
 rng.reseed = function reseed(seed) {
   const s = (seed >>> 0) || DEFAULT_SEED;

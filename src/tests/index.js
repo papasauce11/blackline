@@ -17,6 +17,7 @@ import { register as registerEngine } from './engine.js';
 import { register as registerBoot } from './boot.js';
 import { register as registerDeterminism } from './determinism.js';
 import { register as registerSeeds } from './seeds.js';
+import { register as registerRngDraws } from './rngdraws.js';
 import { register as registerMap } from './map.js';
 import { register as registerMaps } from './maps.js';
 import { register as registerYard } from './yard.js';
@@ -113,6 +114,9 @@ export function registerAutoTests(debugTools) {
   registerBoot(debugTools);
   registerDeterminism(debugTools);
   registerSeeds(debugTools);
+  // Who spends the two seeded streams, and when (H77). Beside the other two
+  // seed checks because it is about the same stream they replay.
+  registerRngDraws(debugTools);
   registerMap(debugTools);
   registerMaps(debugTools);
   registerYard(debugTools);

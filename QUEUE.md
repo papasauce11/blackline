@@ -629,28 +629,9 @@ one setting only Josh can click; everything else here proceeds.
   census to hold them, and **H79** is the drift the suite cannot see.
 
 
-- [ ] **H77 (M)** The rng is a *candidate* channel, and H74 could not show it.
-  A live AI draws from the same seeded stream the sparks, the smoke and the
-  patrol order draw from, so a check that steps frames beside one and then reads
-  anything the rng feeds is reading a stream another system has been pulling on.
-  H74 proposed that as the reason its pixel readings moved and **then withdrew
-  it**: ten of the eleven readings drift run to run on their own (H79), by as
-  much as or more than the A/B deltas, so nothing in that measurement separates
-  an rng channel from the breath. The hypothesis is still worth settling and it
-  is cheap to settle **directly** rather than through pixels: `rngCalls` is
-  already on `debugState`, so "how many numbers did something other than this
-  check draw while it ran" is a counter and not an inference. H27 is the
-  precedent for two streams off one seed. **Count first and decide after** - the
-  lesson H71 wrote, H74 re-learned, and this entry exists to not repeat: a floor
-  on a number first measured this morning is a rule nobody argued, and a
-  before-and-after is worth nothing until the quantity's own spread is known.
-  Needs H79 first, or at least H79's band, or it measures the same fog again.
-  *done-when:* for every check that steps the world with the AI live, the rng
-  draws that happened under it are counted off `debugState.rngCalls` on both
-  maps and written in `PROGRESS.md`; the checks whose readings depend on the
-  stream are separated from the ones that do not, with the AI-on and AI-off
-  counts beside each; and either a clause holds the separation or the entry says
-  why it is reported.
+- [x] **H77 (M)** The rng is a *candidate* channel, and it turned out to be
+  real and almost never open. - done 2026-10-16, under Done.
+
 - [x] **H64 (S)** The flag census in `tests/args.js` is written down by hand. -
   done 2026-10-14, under Done. **Both holes the entry predicted were already
   open.** Five of the nine `.mjs` under `scripts/` were outside the census -
@@ -979,6 +960,38 @@ one setting only Josh can click; everything else here proceeds.
   about a string; and the entry says whether the sampled route should be
   seeded (H81's question, in this one place) or stay a reading.
 
+- [ ] **H86 (S)** The per-check draw counts are a reading with no clause over
+  them. H77 put three numbers on every check - what it drew from the
+  simulation's stream, how much of that was under a step the AI drove, and by
+  subtraction what a match opening spent - and the report prints them per run.
+  Nothing holds them. The honest clause is a **budget**: no check may have
+  more than N draws taken under a live AI without declaring that it does, the
+  way `quiescesites.js` makes a site declare its Warden. The number N is the
+  thing this job must measure rather than pick: H77's own verify is the first
+  full-run census, and `determinism.js` is already at 3 on a subset because it
+  plays two seeded slices with the AI live - which is immune to the channel by
+  construction and is exactly the kind of row a budget must be able to accept.
+  **Read H77's PROGRESS entry first**, and the `draws` block under each run in
+  the report. *done-when:* the full-run census of per-check `underAi` counts
+  is in `PROGRESS.md` for both maps, a clause holds a declared budget or a
+  declared list, and a check that steps frames beside a live AI and reads the
+  stream cannot be added without appearing in one of them.
+
+- [ ] **H87 (S)** Three rows of H77's census cannot be told apart. The look
+  stream's fourteen draws in `effects.js` are declared by method and by the
+  decision each one is, and the ragdoll's three spins are `unit` with `when`
+  lines differing by one letter - so a reorder, or a fourth spin, is a change
+  the multiset comparison cannot see. The same is true of the two halves of
+  the AI's aim and the two of the gun's spread. The comparison is a multiset
+  on purpose (line numbers drift on every edit and would make it a census of
+  formatting), so the fix is not line numbers: it is to declare each draw by
+  **what it is assigned to** - the identifier on the left of the `=` - which
+  `codeOf` already hands over and which a reorder does not change but a new
+  draw does. *done-when:* every row of `SPENDERS` names the assignment its
+  draw feeds, the comparison is on those rather than on bare method names, and
+  a fifth `lookRng.unit()` added to `effects.js` reds the census by name
+  rather than by count.
+
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -1232,6 +1245,40 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H77** The rng is a candidate channel, and it turned out to be real and
+  almost never open. H74 proposed a live AI's draws as the reason its pixel
+  readings moved and withdrew it; H79 showed ten of the eleven drift on their
+  own. Settled with a counter instead of pixels, and the counter the entry
+  named could not do it: `debugState.rngCalls` is zeroed by every `initMatch`
+  and written only on a **render** frame, and a check that steps the world
+  renders nothing. So `rng.drawn` and `lookRng.drawn` are the page's totals
+  beside `calls`, the match's, and no reseed touches them; `recordStepDraws`
+  splits each step's draws by whether the AI drove it; `_runOne` records the
+  three per check and the report prints which checks had a live AI spending
+  the stream underneath them. **Three readings, both maps.** A match opening
+  spends exactly `circuit.length - 1` on the shuffle - **19 of 20 nodes on the
+  plant, 20 of 21 on the yard** - and nothing else. A live patrol over 3,600
+  frames spends **4, 4 and 2 (plant) and 5, 3 and 2 (yard)** at three seeds,
+  every one a single draw at the frame the Warden arrives at a node; at seed
+  12345 the first is frame **523** of the plant and **59** of the yard. The
+  same frames with the AI off spend **0**, both maps, both seeds, the look
+  stream 0 beside it. **So the channel is open about one frame in twelve
+  hundred**: the eleven sites that step before they grab step one to fifteen
+  frames, so a little over one percent of runs, and the twelve that step none
+  cannot be touched - which closes H74's hypothesis rather than confirming it,
+  because a one-draw shift one run in eighty cannot move a reading every run.
+  **The clause is a census, because a rate measured this morning is not a
+  rule** (H71, H74): every draw from either stream outside `config.js` and
+  this suite is one of **23 declared sites in three files**, each carrying the
+  decision it is - nine on the simulation's stream (`ai.js` 6, `combat.js` 3:
+  a circuit, a pause, a burst's length and its gap, two halves of an aim, a
+  round's recoil and the two halves of its spread) and fourteen on the look
+  stream (`effects.js`), with H27's layering rule finally checkable because
+  both sides are enumerated. Four breaks, each red on one clause, each through
+  a probe at 445ms: a reseed zeroing `drawn`, the ledger crediting an
+  AI-driven step to the quiet bucket, a row taken out of the table, and
+  `rng.next()` added to `detection.js`. - done 2026-10-16, COMMIT_HASH
 
 - **H79** A reading that drifts while passing, and the three kinds of number
   it turns out to be. `flaky` compares **verdicts**, so a check could answer

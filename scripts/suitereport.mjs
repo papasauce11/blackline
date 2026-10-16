@@ -134,6 +134,36 @@ export function latestBench(dir = path.join(ROOT, 'bench')) {
  */
 const CEILING_CHECK = 'no-source-file-outside-config-is-over-600-lines';
 
+/**
+ * H77: who spent the simulation's shared stream under this run.
+ *
+ * The runner counts it per check (`_runOne`), which is how the question "how
+ * many numbers did something other than this check draw while it ran" became
+ * a counter rather than an inference. Said per run because the two maps shuffle
+ * circuits of different lengths and a check that opens a match spends that
+ * shuffle before it steps anything.
+ *
+ * `underAi` is the number the question was actually about: values drawn inside
+ * a fixed step the AI drove. Everything else a check spends it asked for.
+ * Nothing here is a verdict - `the-simulations-stream-is-drawn-from-only-by-a-
+ * decision` is the clause, and this is the reading beside it.
+ */
+function drawsOf(run) {
+  const drew = run.results.filter(x => x.draws);
+  const underAi = drew.filter(x => x.draws.underAi > 0);
+  const sum = (list, key) => list.reduce((n, x) => n + x.draws[key], 0);
+  if (!drew.length) return null;
+  return {
+    checks: drew.length,
+    total: sum(drew, 'total'),
+    underAi: sum(drew, 'underAi'),
+    withoutAi: sum(drew, 'withoutAi'),
+    underAiChecks: underAi
+      .sort((a, b) => b.draws.underAi - a.draws.underAi)
+      .map(x => ({ id: x.id, underAi: x.draws.underAi, total: x.draws.total })),
+  };
+}
+
 // Judged per map: "flaky" is a check answering differently between two runs
 // on the SAME map, and a check red on one map and green on another is red
 // there, with the map named.
@@ -234,6 +264,9 @@ export function judge(runs, renderer, consoleErrors) {
       // which is the `break` in a summary loop that hid a whole map, one
       // currency over.
       ceiling: (r.results.find(x => x.id === CEILING_CHECK) || {}).ceiling ?? null,
+      // H77, per run for the same reason the ceiling is: the circuit a match
+      // opening shuffles is map data.
+      draws: drawsOf(r),
       contextLosses: r.contextLosses, rerun: r.rerun, loopFrames: r.loopFrames,
     })),
     spreads,
@@ -272,6 +305,19 @@ export function summary(r) {
       lines.push(`    ceiling: ${c.count ? `${c.count} modules within ${c.within} of ${c.guidance}`
         + `, nearest ${c.nearest.path} at ${c.nearest.lines} (${c.nearest.left} left)`
         : `none within ${c.within} of ${c.guidance}`} - of ${c.modules} this run loaded`);
+    }
+    // H77, and a reading rather than a verdict like the drift below it: what
+    // the run spent of the simulation's shared stream, and which checks had a
+    // live AI spending it underneath them. Two lines a run at most, because
+    // the whole list is in the report under each run's `draws`.
+    const d = run.draws;
+    if (d) {
+      lines.push(`    rng: ${d.total} draw(s) over ${d.checks} check(s), ${d.underAi} of them under a live AI`
+        + ` in ${d.underAiChecks.length} check(s) - a reading and not a verdict (H77)`);
+      if (d.underAiChecks.length) {
+        lines.push(`      under a live AI: ${d.underAiChecks.slice(0, 6).map(x => `${x.id} ${x.underAi}`).join(', ')}`
+          + `${d.underAiChecks.length > 6 ? `, and ${d.underAiChecks.length - 6} more` : ''}`);
+      }
     }
   }
   for (const s of r.spreads ?? []) {

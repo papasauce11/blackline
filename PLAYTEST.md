@@ -2193,6 +2193,25 @@ now. What is not, and why:
 
 ## Known issues and open questions
 
+- **The patrolling Warden almost never touches the shared dice** (H77,
+  2026-10-16). One suspect for why the pixel counts wander between runs was
+  that the game's one seeded source of random numbers is shared: the Warden
+  draws from it, so a test that runs the game for a moment and then takes a
+  photograph was thought to be measuring through a Warden that had been
+  spending numbers underneath it. Measured rather than argued, and the answer
+  is **almost never**. Starting a match spends exactly nineteen numbers on the
+  plant and twenty on the yard, shuffling the patrol order, and then a
+  patrolling Warden spends **one number a minute** - at the moment it reaches
+  a patrol point and decides how long to stand there. With the Warden switched
+  off the same minute spends none at all. The tests in question run the game
+  for a fraction of a second, so the odds one of those draws lands inside one
+  of them is about one in a hundred - which cannot explain a number that moves
+  every single run. The breathing in the note below still can. The suite now
+  prints what each run spent and which tests had a live Warden spending it,
+  and **five tests account for almost all of it, every one of them a test
+  about the gunfight** - where the Warden really is drawing, for every burst
+  and every shot, which is the design. **Nothing for you to do** - a note
+  about the instrument.
 - **Twelve of the photographs are taken at the one moment the Warden might
   have walked** (H80, 2026-10-15). Twelve tests take their picture at the end of
   the settling third of a second described above, without advancing the round
