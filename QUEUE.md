@@ -1293,7 +1293,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   ai` leaving the list on both. The twelve one-frame sites did not leave it,
   which is right: their drift is the breath, every run. All 31 caller ids
   re-read with `--details`, 27 green a map, every reading inside its H79 band.
-  - done 2026-10-16, COMMIT_HASH
+  - done 2026-10-16, `eb6335c`.
 
 - **H77** The rng is a candidate channel, and it turned out to be real and
   almost never open. H74 proposed a live AI's draws as the reason its pixel
