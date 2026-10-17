@@ -1268,6 +1268,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   on the way: `breathdrawn.js` was the one table of three that already refused
   an undeclared word, so the sum is the new half there; and the pose census's
   line is **516 characters of a 400-character cut**, which is **H91**.
+  - done 2026-10-17, `640e040`.
 
 - **H59** A strike's success is not a function of its argument either, and the
   thing that was wrong was not the skip. The entry suspected the 0.3 m/s a
