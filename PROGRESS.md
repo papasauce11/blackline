@@ -18146,3 +18146,134 @@ first. And **H90**: `look.js` and `poseeye.js` red a refusal *unconditionally*,
 so a state a map one day genuinely cannot strike would be declared in the table
 and still red in two of the four callers. That is the safe direction of the same
 inconsistency this job closed, and it is still two answers to one question.
+
+## H60 — a total counted over one set, its parts over another, and the five censuses asked the same question
+
+**Built.** `tests/censustally.js` (83 lines, importing nothing) with the two
+halves of the arithmetic a census's own detail line rests on - `countByWord`,
+which holds that every entry carries one of the words this census counts and
+that those words come to the census's own length, and `addsUp`, which holds
+that the parts a line prints add up to the total beside them however they were
+counted. Called once each by `tests/breathcensus.js`, `tests/positioncensus.js`
+(through `positionreads.js`, which already re-exports `codeOf` the same way),
+`tests/breathdrawn.js` and `tests/quiescesites.js`. No new check and no new
+module under the registrar: the clause goes where the sentence is printed.
+237/217, **192 modules**.
+
+**The defect, and nothing was wrong.** `breathcensus.js` has been ending every
+run with *"15 pose a body: 2 held at the worst phase, 4 measured, 6 out of
+reach by proof"* - fifteen against a tally of twelve, green, every run since
+H33. The fifteen is `poses.length`, every module the **tree** was found to
+drive `updateVisual` in; the three words count `POSED`, the twelve the table
+**declares**; and the difference is the three census modules `OWN_FILES`
+excludes by name three lines above, because a census that declares itself is a
+census of one thing. Every one of those facts is right and the sentence still
+invited one subtraction and got it wrong. **This is H50's finding in a
+sibling**: there a verdict was counted in one group of two and could have been
+counted nowhere, here a total was counted over a different set from its parts.
+The line says where the others went now - *"15 pose a body: 12 declared - 2
+held at the worst phase, 4 measured, 6 out of reach by proof - and 3 excluded
+by name"* - and every number in it comes off the array it is about.
+
+**The census of censuses is the deliverable, and the five are four different
+shapes.** Every detail line under `src/tests/` that prints a total beside a
+breakdown, read for the same fault:
+
+- **`breathcensus.js`** - a total over the found set and parts over the
+  declared set. The defect. Fixed, both sums held.
+- **`positioncensus.js`** (14 modules: 4 handle the chase, 2 measured, 8 out of
+  reach) and **`breathdrawn.js`** (13: 2 measured, 11 out of reach) - total and
+  parts over **one** declared table, which is honest, and the parts taken with
+  a `filter` on a free-text field that nothing checked. A fourth word in either
+  table was a class counted nowhere and a total short by it, with nothing red.
+  Now held.
+- **`quiescesites.js`** - 32 sites sorted **four** ways and **three** printed,
+  the fourth (a site that steps the simulation without a match of its own)
+  being the one its own clause holds empty. So its sentence has always added up
+  - measured here, `14 + 0 + 13 + 5 = 32` - because the classes are three
+  booleans with no gap between them. The clause over all four buys nothing
+  today and cannot be wrong tomorrow, which is H61's shape, and what it is for
+  is the three-of-four printing: a class that stopped partitioning would leave
+  sites out of a total no reader could add up.
+- **`poseeye.js`** - a total and a **named part** of it (*"12 states, 10 with a
+  gap over 0.05m"*), which is honest arithmetic and wanted nothing. Its other
+  pair, the eye moves found against the ones `EYE_MOVES` declares, is already
+  held both ways by three clauses (undeclared, stale, closed), so the found set
+  and the declared set are one set by construction.
+- And **`donedef.js`**'s network line is the precedent the other four were read
+  against: `local` is `entries.length - external.length - three.length`, a part
+  derived by subtraction from its own total, which cannot disagree with it.
+  `timedrenders.js` is H50's, already held.
+
+**One census already refused an undeclared word, and finding out which is why
+the breaks were run one at a time.** `breathdrawn.js` carries
+*"visual.js declares reach \"partly\"; it is measured or none"* - so of the
+three tables only it validated the word, and what it was missing was the sum.
+The new clause is therefore partly redundant there and the sum is the new half;
+the other two had neither.
+
+**And the line's own length turned out to be the expensive finding.** Measured
+with a probe rather than guessed: the pose census's detail line is **516
+characters**, and `scripts/suite.mjs` keeps **400** of one with no ellipsis
+(TRAPS.md), so **the last two of its five readings - the Warden's chest and the
+8m hood - have never reached a report**, in any run, including the four that
+`PROGRESS.md` quotes. Naming the difference costs 36 characters more. So the
+**proxy roster moved behind the readings**: H61's five names are the same five
+every run and the readings are what a reader of this check came for, and the
+cut takes the end of a line. The line is **537** characters now and the first
+400 hold the whole sentence and **all five readings**, with the cut landing six
+characters into the roster. Four readings were said in fewer words to pay for
+part of it (`clears dip`, `a breath <0.0001m`), no number changed. **H91** is
+the job that gets the whole line under the cut, because a reordering is not a
+fix and the next sentence anybody adds puts a reading back out of sight.
+
+**Five breaks, each red on the clause it was aimed at, each read for which
+clause rather than for a red** (TRAPS.md), all five through `npm run probe` on
+the five checks at once (72s a run against minutes of subset, H57's instrument):
+
+1. `smallwindow.js` declared `partly` - **both** halves of `countByWord`:
+   *"is declared "partly", which is not one of the 3 this census counts"* and
+   *"the line counts 11 of 12 - 2 held, 3 measured, 6 none"*.
+2. **H60's own defect, restated**: the `excluded by name` term dropped from the
+   `addsUp` call, so the parts are put back to the narrower set - *"the line
+   counts 12 of 15 - 12 declared"*. Red on the sum alone, which is the proof
+   the queue asked for.
+3. `grabslide.js` declared `mostly` - both halves, *"13 of 14"*.
+4. `visual.js` declared `partly` - the existing word clause, then both halves,
+   *"12 of 13"*.
+5. One class dropped from the quiesce-site sum - *"the line counts 19 of 32 -
+   14 step the simulation and own a match, 0 step one without a match of their
+   own, 5 read no frame"*, naming the class that went missing. Red on the sum
+   alone.
+
+Each break was applied and reverted from a snapshot that `prove_h60.py` refuses
+to break against unless every copy is byte-identical to the tree first (H53),
+and the tree was diffed against that snapshot before the verify.
+
+**The ceiling was the other thing to pay.** `breathcensus.js` was **550**, one
+line outside the cluster, and the clause and its comment are seven lines: the
+header's H38 paragraph - which quoted both of that job's readings and the
+reason they differ, and is carried word for word by the `hang.js` row ten lines
+below - came down from nineteen lines to ten, and the file is **549**. Still
+one line outside, which is the state TRAPS.md says two modules are in and this
+job did not improve. `positioncensus.js` has **four** lines of headroom and
+**H69** is the job that splits it, so the tally reaches it through
+`positionreads.js`'s existing re-export line and that file is **596**,
+unchanged to the line. The runner's ceiling reads **11 modules within 50 of
+600** in every run of the gate and the verify, the same eleven as before, and
+`censustally.js` at 83 joins nothing.
+
+**Verified.** Gate `--runs 1` at `bf872c3`: plant **237 / 1 / 8**, yard
+**217 / 1 / 28**, exit 0, 0 red, 0 flaky, 0 skipped, 0 console errors, 0
+context losses, no other runner; the one failure a map is the bench-only sweep
+the gate drops by design (H11). VERIFY `npm run suite`, four runs, exit 0: plant **237 / 1 / 8** (1,178,124ms, 1,121,406ms), yard **217 / 1 / 28** (778,675ms, 772,791ms), spreads **5%** and **1%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, 0 context losses, no other runner. Counts unchanged at 237/217 - four existing checks gained clauses and no check was added - and the ceiling reads **11 modules within 50 of 600** of **192** loaded in all four runs.
+
+**Run with `--details`, because the job's finding is a number** (TRAPS.md), and that file is the proof the reordering worked. The pose census's line now reaches *"... the 8m hood holds 28px over 8 phases, worst 2.00x of 1.5x; by "* before the cut takes it - three characters into the roster, with the sentence and all five readings inside the 400 - where the same line this morning ended at *"a breath under 0.0001"*. So **H34's 2.00x reaches a report for the first time**: 2.00x on the plant and 2.33x on the yard, a margin measured by hand in H34 and cut off every run since. `quiescesites.js` reads `14 + 13 + 5` of 32 on both maps, as it has.
+
+**And H79's drift is the one number that moved: 32 on the plant, unchanged, and 35 on the yard against 34.** This job adds no reading to any detail line, so the count is not something it can have caused directly, and which member of the yard's thirty-five is the new one cannot be read off a count - seventeen of them are weather by H79's own classification. What *is* this job's, in both lists, is how this check is now reported: *"the wording differs in its last 1%, which is where the 400-character cut lands"*. The cut falls inside a roster that is **identical** between two runs, so a digit gained upstream moves the cut and parts the two lines at the very end - which is `scripts/detaildrift.mjs`'s own header describing itself, and one more reason the line wants to be inside the budget rather than reordered within it (**H91**).
+
+**Left.** **H91**: the pose census's detail line is 537 of a 400-character
+budget and three other census lines are between 296 and 393, so the one past
+the cut is the one worth deciding about - what that line is *for*, and whether
+the roster belongs in it at all. And the two one-line-from-the-cluster modules
+are still one line from it.

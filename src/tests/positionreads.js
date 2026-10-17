@@ -259,6 +259,9 @@ export async function text(origin, rel) {
  */
 export { codeOf, uncommented } from './sourcetext.js';
 
+/** And the tally its detail line's total and breakdown are held by (H60). */
+export { countByWord, REACHES } from './censustally.js';
+
 /**
  * The reader instrument's own cases, read by `readerProblems` (H62, on H53's
  * model). A census answers "nothing new" both when its criteria work and when

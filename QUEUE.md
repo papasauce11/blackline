@@ -654,28 +654,20 @@ one setting only Josh can click; everything else here proceeds.
   either, and the thing that was wrong was not the skip. - done 2026-10-16,
   under Done.
 
-- [ ] **H60 (S)** A census whose headline counts one set and whose tally
-  counts another. `breathcensus.js` prints *"15 pose a body: 2 held at the
-  worst phase, 4 measured, 6 out of reach by proof"* - fifteen against a
-  tally of twelve, every run, green. Nothing is wrong: the headline is
-  `poses.length`, every module **found** to drive `updateVisual`, and the
-  three words count `POSED`, the twelve **declared** - the difference being
-  the census modules excluded by name three lines above because they drive
-  the mechanism rather than read a clause off it. The line still invites one
-  subtraction and gets it wrong, which is **H50's finding in a sibling**:
-  there a verdict was counted in one group of two, here a total is counted
-  over a different set from its parts.
-  Make the line say where the others are (*"15 pose a body: 12 declared - 2
-  held, 4 measured, 6 out of reach - and 3 excluded by name"*) and hold the
-  arithmetic the way `timedrenders.js` now does, so a fourth category or a
-  fourth exclusion cannot appear without the sum saying so. **Check the other
-  three censuses for the same shape while there**: `positioncensus.js`,
-  `breathdrawn.js` and `poseeye.js` all print a count and a breakdown, and
-  H50 found one of two to be wrong in the first place it looked.
-  *done-when:* every census whose detail line prints a total and a breakdown
-  either has them over the same set or names the difference, and each holds
-  its own sum, proved the way H50 proved it - put one category back to the
-  narrower set and watch it go red.
+- [x] **H60 (S)** A census whose headline counts one set and whose tally
+  counts another. - done 2026-10-17, under Done. **Five detail lines print a
+  total beside a breakdown and they are four different shapes**:
+  `breathcensus.js`'s counted the set the tree was *found* to pose a body in
+  against the set its table *declares* (the defect - fifteen against twelve,
+  green since H33, the difference being `OWN_FILES`); `positioncensus.js` and
+  `breathdrawn.js` take their parts off one declared table with a `filter` on
+  a word nothing validated; `quiescesites.js` sorts four ways, prints three
+  and holds the fourth empty, so it has always added up by construction;
+  `poseeye.js` prints a named *part* of its total and wanted nothing.
+  `tests/censustally.js` is the two clauses all four now call. **The
+  expensive find is that line's own length** - 516 characters of a
+  400-character budget, so two of its five readings had never reached a
+  report: **H91**.
 
 - [ ] **H65 (S)** The shape's densest block of marks lands after the journal
   is read. H54 gave the device journal a sampler on `AudioSystem.step()`, and
@@ -977,6 +969,30 @@ one setting only Josh can click; everything else here proceeds.
   genuinely refused and reds all four the moment it strikes, and both
   directions are shown in `PROGRESS.md` with the declaration put back.
 
+- [ ] **H91 (S)** The pose census's detail line is a third longer than the
+  budget, and it is not the only one near it. H60 measured rather than guessed:
+  `every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it`
+  prints **537** characters, `scripts/suite.mjs` keeps **400** with no
+  ellipsis, and before H60 the two readings at the end of it - the Warden's
+  chest and the 8m hood - **had never reached a report in any run**, including
+  the four every `PROGRESS.md` number of this check was taken from. H60 bought
+  the readings back by moving H61's five-name proxy roster behind them, which
+  is a reordering and not a fix: the roster is 141 characters, the readings end
+  at 396, and the next sentence anybody adds puts one out of sight again. The
+  other census lines are 296, 312, 334 and **393**, so one of them is four
+  characters from the same hole.
+  The question is what such a line is **for**, and the job is to pick an
+  answer with a reason. Three: print the roster only when its membership
+  *moves* (a criterion is interesting the day it changes and never otherwise);
+  print the count and leave the names to `--details`; or give a report a second
+  field for a census's roster, so a detail line is the measurements and nothing
+  else. **Read H29 first** - it lost three of five readings to this cut and is
+  where the 400 is written down - and H42, which was bitten by it while adding
+  to a line.
+  *done-when:* every census detail line is inside 400 characters on both maps,
+  read off a `--details` file rather than argued, and a check holds those lines
+  to the budget so one that grows past it is red rather than quietly cut.
+
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -1230,6 +1246,28 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H60** A census whose headline counts one set and whose tally counts
+  another. `breathcensus.js` ended every run since H33 with *"15 pose a body: 2
+  held at the worst phase, 4 measured, 6 out of reach by proof"* - and every
+  fact in it was right: the fifteen is every module the **tree** was found to
+  drive `updateVisual` in, the twelve the table **declares**, and the three
+  between them are the census modules `OWN_FILES` excludes by name because a
+  census that declares itself is a census of one thing. The sentence still
+  invited one subtraction and got it wrong, which is **H50's finding in a
+  sibling**. It names the difference now, every number in it comes off the
+  array it is about, and `tests/censustally.js` holds both sums for the four
+  censuses that have one. **The other four were read for the same fault and are
+  three other shapes** - two take their parts off one table with a `filter` on
+  a word nothing validated, one sorts four ways and prints three with the
+  fourth held empty (`14 + 0 + 13 + 5 = 32`, measured), one prints a named part
+  of its total and wanted nothing, and `donedef.js`'s derives its part by
+  subtraction and cannot disagree. Five breaks, each red on the clause it was
+  aimed at, the second of them **H60's own defect restated** - the parts put
+  back to the narrower set, *"the line counts 12 of 15 - 12 declared"*. Found
+  on the way: `breathdrawn.js` was the one table of three that already refused
+  an undeclared word, so the sum is the new half there; and the pose census's
+  line is **516 characters of a 400-character cut**, which is **H91**.
 
 - **H59** A strike's success is not a function of its argument either, and the
   thing that was wrong was not the skip. The entry suspected the 0.3 m/s a

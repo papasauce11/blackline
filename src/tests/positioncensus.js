@@ -97,7 +97,7 @@ import { strike, STRIKES, refusalProblems } from './strikedrive.js';
 import {
   CENSUS, PROOFS, HOWS, READS_A_WORLD_POSITION, ADVANCES_THE_CHASE, THE_LAW,
   chaseGap, checkSlice, codeOf, criteriaProblems, draw, framesToClose, hulledMesh,
-  lineOf, openTheGap, text, uncommented,
+  lineOf, openTheGap, text, uncommented, countByWord, REACHES,
 } from './positionreads.js';
 
 const S = CONFIG.shade;
@@ -579,16 +579,16 @@ export function register(debugTools) {
         restore();
       }
 
-      const held = CENSUS.filter((entry) => entry.reach === 'held').length;
-      const measured = CENSUS.filter((entry) => entry.reach === 'measured').length;
-      const none = CENSUS.filter((entry) => entry.reach === 'none').length;
+      // One set for the total and the three classes both - `OWN_FILE` is out of each - and the tally holds their sum (H60).
+      const tally = countByWord('the position census', CENSUS, REACHES);
+      problems.push(...tally.problems);
       return {
         pass: problems.length === 0,
         // Kept short on purpose: a detail line is cut at 400 characters with
         // no ellipsis, and H42 was bitten by that cut while adding to one.
         detail: problems.length === 0
-          ? `${CENSUS.length} modules read a world position off a drawn body: ${held} handle the chase, `
-            + `${measured} measured, ${none} out of reach by ${Object.keys(PROOFS).length} proofs. ${readings.join('; ')}`
+          ? `${CENSUS.length} modules read a world position off a drawn body: ${tally.counts.held} handle the chase, `
+            + `${tally.counts.measured} measured, ${tally.counts.none} out of reach by ${Object.keys(PROOFS).length} proofs. ${readings.join('; ')}`
           : problems.join('; '),
       };
     },

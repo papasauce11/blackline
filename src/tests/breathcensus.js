@@ -29,20 +29,11 @@
  * is the one the detail-diff instrument was blind to - a passing check's
  * numbers are not in its detail line at all (TRAPS.md), so it had to be
  * measured directly. `|gloveY - lip| <= 0.15m`, where the glove hangs off an
- * arm inside the body group the breath lifts: over eight phases the offset ran
- * **-0.021m to +0.055m, a span of 0.075m - half the tolerance**. It passed on
- * the worst phase, so it wanted nothing done; what it wanted was bounding,
- * which is the state the two figure clauses were in before H31. **H38 built
- * that bound, and corrected this number in the process**: read from a settled
- * pose the offset runs **-0.014m to +0.066m** and the margin is **2.26x**, not
- * the 2.75x recorded here, because the hang pose was still easing when this
- * census read it (the arm's angle arrives by frame 30, the pose's contribution
- * to the glove's height is still moving 0.009m between frames 30 and 120). The
- * breath's own ride agrees either way, and a dense sweep of all 419 frames of a
- * cycle puts it at 0.080m - twice `POSE.breath.lift` to the millimetre. The
- * lesson is the one H34 left in a different currency: **a sweep inherits
- * whatever its first sample inherited**, and here that was a transient rather
- * than a phase.
+ * arm inside the body group the breath lifts: it passed at the worst phase, so
+ * what it wanted was a bound, and **H38 built it and corrected this census's
+ * own number doing it** - the `hang.js` row below carries both readings. The
+ * lesson is H34's in another currency: **a sweep inherits whatever its first
+ * sample inherited**, and here that was a transient rather than a phase.
  *
  * **Three: most of the suite cannot be reached at all, for four structural
  * reasons, and this check proves each one** rather than asserting it in prose:
@@ -93,6 +84,7 @@ import { standAndEyes, flatShadeSilhouette, HOOD_OVER_NECK } from './figure.js';
 import { DRAWN } from './breathdrawn.js';
 import { codeOf } from './sourcetext.js';
 import { poseProxies, classify, criterionProblems, PROXY_HOME } from './posecriterion.js';
+import { countByWord, addsUp, REACHES } from './censustally.js';
 
 const SELF = 'every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it';
 
@@ -386,7 +378,7 @@ export function register(debugTools) {
         if (shade._dip !== 0) problems.push(`reset() left the camera dip at ${shade._dip}; then it clears nothing and the two phases above prove nothing`);
         if (breathBefore <= 0) problems.push('the breath never advanced, so nothing here was measured');
         if (gaitBefore <= 0) problems.push('the gait never advanced, so "reset() did not move it" is 0 === 0 and says nothing; the body has to be walked and not merely drawn');
-        readings.push(`reset keeps breath ${breathBefore.toFixed(2)}s + gait ${gaitBefore.toFixed(2)}, clears the dip`);
+        readings.push(`reset keeps breath ${breathBefore.toFixed(2)}s + gait ${gaitBefore.toFixed(2)}, clears dip`);
 
         // ----------------------------------------------------------------
         // 3. What the breath moves on the Shade, over one whole cycle: the
@@ -444,7 +436,7 @@ export function register(debugTools) {
             if (cam.span > STILL) {
               problems.push(`a whole breath moved the camera ${cam.span.toFixed(5)}m; camerasettings.js and feel.js read the camera and are declared out of reach because it does not`);
             }
-            readings.push(`1m of body moves the camera ${(lifted - before).toFixed(2)}m, a breath under ${STILL}m`);
+            readings.push(`1m of body moves the camera ${(lifted - before).toFixed(2)}m, a breath <${STILL}m`);
           }
         }
 
@@ -466,7 +458,7 @@ export function register(debugTools) {
           if (Math.abs(warden.speed) > 0.2) {
             problems.push(`the Warden was moving at ${warden.speed.toFixed(2)} m/s, so a still chest says nothing - the bob is zero only at a stand`);
           }
-          readings.push(`the Warden's chest inside ${STILL}m at ${warden.speed.toFixed(2)} m/s`);
+          readings.push(`the Warden's chest <${STILL}m at ${warden.speed.toFixed(2)} m/s`);
         }
 
         // ----------------------------------------------------------------
@@ -525,7 +517,7 @@ export function register(debugTools) {
             if (!(worst >= HOOD_OVER_NECK)) {
               problems.push(`the worst of ${HOOD_PHASES} phases reads a ${NEAR}m hood ${worst.toFixed(2)}x its neck, under ${HOOD_OVER_NECK}x`);
             }
-            readings.push(`the ${NEAR}m hood holds at ${low}px over ${HOOD_PHASES} phases, worst ${worst.toFixed(2)}x of ${HOOD_OVER_NECK}x`);
+            readings.push(`the ${NEAR}m hood holds ${low}px over ${HOOD_PHASES} phases, worst ${worst.toFixed(2)}x of ${HOOD_OVER_NECK}x`);
           }
         }
       } finally {
@@ -533,16 +525,23 @@ export function register(debugTools) {
         shade.reset(h.map.shadeSpawns[0]);
       }
 
-      const held = POSED.filter((e) => e.reach === 'held').length;
-      const measured = POSED.filter((e) => e.reach === 'measured').length;
-      const none = POSED.filter((e) => e.reach === 'none').length;
+      // The line's own arithmetic (H60). Its total is the set the tree was
+      // **found** to pose a body in and its three classes are the set this
+      // table **declares** - fifteen against a tally of twelve, for the three
+      // census modules excluded by name above - so the sentence names the
+      // difference and both sums are held: a fourth class or a fourth
+      // exclusion is what a reader of a total and a breakdown cannot see.
+      const tally = countByWord('the pose census', POSED, REACHES);
+      problems.push(...tally.problems, ...addsUp('the pose census', poses.length, { declared: POSED.length, 'excluded by name': OWN_FILES.length }));
+      const { held, measured, none } = tally.counts;
       return {
         pass: problems.length === 0,
+        // The roster goes last because the cut takes the end of a line (TRAPS.md), and the readings are what this check is read for.
         detail: problems.length === 0
-          ? `${poses.length} pose a body: ${held} held at the worst phase, ${measured} measured, ${none} out of reach by proof; `
-            + `${renders.length} render one, classified next door (H39); `
+          ? `${poses.length} pose a body: ${POSED.length} declared - ${held} held at the worst phase, ${measured} measured, ${none} out of reach by proof - and ${OWN_FILES.length} excluded by name; `
+            + `${renders.length} render one, classified next door (H39). ${readings.join('; ')}; `
             + `by updateVisual or ${proxies.names.length} proxies off ${proxies.scanned} modules `
-            + `(${proxies.entries.map((e) => `${e.module.replace('.js', '')}.${e.name}`).join(', ')}). ${readings.join('; ')}`
+            + `(${proxies.entries.map((e) => `${e.module.replace('.js', '')}.${e.name}`).join(', ')})`
           : problems.join('; '),
       };
     },

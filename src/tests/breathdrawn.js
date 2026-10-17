@@ -63,6 +63,7 @@
 
 import { POSE } from '../entities/agentvisual.js';
 import { quiesce } from './pixels.js';
+import { countByWord } from './censustally.js';
 
 const SELF = 'every-check-that-draws-a-body-declares-what-the-breath-and-the-gait-do-to-it';
 
@@ -467,8 +468,13 @@ export function register(debugTools) {
         shade.reset(h.map.shadeSpawns[0]);
       }
 
-      const measured = DRAWN.filter((entry) => entry.reach === 'measured').length;
-      const none = DRAWN.filter((entry) => entry.reach === 'none').length;
+      // Two classes over one set, and the tally holds their sum (H60).
+      // Nothing in this table is `held` - the group's whole point is that H39
+      // measured two and proved ten out of reach - so a third word here would
+      // be a class counted nowhere and a total short by it, with nothing red.
+      const tally = countByWord('the drawn-body census', DRAWN, ['measured', 'none']);
+      problems.push(...tally.problems);
+      const { measured, none } = tally.counts;
       return {
         pass: problems.length === 0,
         detail: problems.length === 0

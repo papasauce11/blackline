@@ -50,6 +50,7 @@
  */
 
 import { codeOf, readerProblems } from './sourcetext.js';
+import { addsUp } from './censustally.js';
 import { HELPER, HELPER_FILE } from './quiesce.js';
 
 /**
@@ -256,6 +257,19 @@ export function register(debugTools) {
       if (!blind.length) {
         problems.push('no site is without a framebuffer read, and several are, so the read reader is matching lines that read nothing');
       }
+      // And the arithmetic the detail line rests on (H60). These four classes
+      // partition every site found, by construction - two booleans and a
+      // third with no gap between them - so the clause buys nothing today and
+      // cannot be wrong tomorrow (H61's shape). What it is for is the line
+      // printing **three** of the four, the fourth being held empty above: a
+      // class that stopped partitioning would leave sites out of a total no
+      // reader could add up, which is the defect H60 found in a sibling.
+      problems.push(...addsUp('the quiesce-site census', sites.length, {
+        'step the simulation and own a match': owned.length,
+        'step one without a match of their own': live.length,
+        'read a frame without stepping one': oneFrame.length,
+        'read no frame': blind.length,
+      }));
       const itself = sites.filter((s) => s.where.startsWith(helper));
       if (itself.length) {
         problems.push(`${HELPER_FILE} contributes ${itself.length} site(s) (${itself.map((s) => s.where).join(', ')}) and should contribute none - the only ${HELPER}( in it is the definition, so the lookbehind that excludes it has stopped working`);

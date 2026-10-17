@@ -95,6 +95,37 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### Five tests print a total and a breakdown, and one of them did not add up (H60, 2026-10-17)
+
+**Nothing in the game changed.**
+
+Some of the tests are *censuses*: instead of checking one thing, they go
+through every other test in the suite, sort them into groups, and report the
+tally. One of them has been ending every run with a sentence like *"15 pose a
+body: 2 held at the worst phase, 4 measured, 6 out of reach"* — fifteen, and
+then a breakdown of twelve.
+
+**Nothing was actually wrong.** The fifteen counted every test the tree was
+found to pose a body in; the twelve counted the ones the table describes, and
+the other three are the census files themselves, excluded three lines further
+up for a good reason. But the line invited you to do one subtraction with it
+and got it wrong, which is the second time this project has met that shape: a
+total counted over one set and its parts over another.
+
+**The line says where the others went now**, and more to the point the
+arithmetic is checked rather than written: the groups have to add up to the set
+they describe, and any group name the census does not count is a failure rather
+than a number quietly missing from a sum. The other four censuses were read for
+the same fault. One prints a total and the three groups over the same set and
+now holds the sum. One prints two groups over its set and holds the sum. One
+sorts its subjects four ways, prints three, and holds the fourth empty by its
+own rule — so its sentence has always added up, and it now says so. One prints
+a total and a named part of it, which is honest arithmetic and needed nothing.
+
+**Nothing for you to do.** This is the suite grading its own reports: the point
+of a census is that somebody later trusts its number without re-counting, so a
+number that cannot be added up is worse than no number.
+
 ### The tests now say which of their numbers wander, and two of them should not (H79, 2026-10-16)
 
 **Nothing in the game changed.**
