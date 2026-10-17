@@ -1256,6 +1256,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   `tests/registry.js`'s own census carried a sentence saying the opposite of
   what the code now does - H71's shape, in the one file whose subject is the
   registration order, corrected in the same diff.
+  - done 2026-10-17, `21ad8b0`.
 
 - **H60** A census whose headline counts one set and whose tally counts
   another. `breathcensus.js` ended every run since H33 with *"15 pose a body: 2
