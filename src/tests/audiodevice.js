@@ -133,9 +133,11 @@
  * is young enough that it may never fire here, and the absence of an event
  * nobody has seen fire is not evidence.
  *
- * Registered from tests/index.js late in the run, beside tests/performance.js:
- * the journal's value is the window it covers, and every check before this one
- * is window. Nothing here imports main.js (Section 3.1).
+ * Registered from tests/index.js **last** in the run, after
+ * tests/performance.js since H65: the journal's value is the window it covers,
+ * every check before this one is window, and this one drives no frames of its
+ * own so it costs the checks after it nothing. The second check below holds
+ * that order. Nothing here imports main.js (Section 3.1).
  */
 
 /**
@@ -162,6 +164,21 @@ const MIN_WINDOW_SECONDS = 30;
  * read anything off.
  */
 const MIN_SHAPE_SAMPLES = 30;
+
+/**
+ * The second check's subject (H65): the three registrations the window above
+ * is made of, in the order it needs them, and the registrar whose body that
+ * order is read out of. Named rather than spelled into the clause, because a
+ * problem has to be able to say which call moved. `MIN_REGISTRATIONS` is the
+ * floor `tests/registry.js` holds its own census to, for the same reason: an
+ * order read off a handful of calls is an order read off nothing.
+ */
+const ORDER_SELF = 'the-device-journal-is-read-after-the-frames-that-feed-it';
+const REGISTRAR = 'export function registerAutoTests';
+const UNLOCKS_IT = 'registerAudio';
+const FEEDS_IT = 'registerPerformance';
+const READS_IT = 'registerAudioDevice';
+const MIN_REGISTRATIONS = 50;
 
 /**
  * At or above this fraction of everything lost in one stretch, the loss is
@@ -473,6 +490,58 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0 ? account : `${problems.join('; ')} [${account}]`,
+      };
+    },
+  });
+
+  // ------------------------------------------------------------------
+  // The registration order the window above rests on (H65). One mark per
+  // frame from `AudioSystem.step()`, and the rAF loop drives none under the
+  // AUTO suite (F4) - so the window covers exactly the checks registered
+  // before the one that reads it, and `tests/performance.js`'s **210** frames,
+  // the densest block of marks in the suite and the only one dense enough to
+  // resolve a stretch to the frame, were registered **after** the read until
+  // H65. **The import order says the opposite and is not the registration
+  // order**, which is the half-hour H54's measurement paid for. Three clauses,
+  // the last being the second half a check that reads a file it chose owes the
+  // suite (HANDOFF.md): the two calls in the order the window needs, the
+  // unlock still before both, and a parse required to have seen a registration
+  // order at all - or "A before B" is two absences agreeing.
+  // ------------------------------------------------------------------
+  debugTools.registerAutoTest({
+    id: ORDER_SELF,
+    spec: 'Section 14 / H54 / H65',
+    name: 'The device journal is read after every registration that drives frames into it, so the suite\'s densest block of marks is inside the window rather than after it',
+    run: async () => {
+      const problems = [];
+      const index = await (await fetch(`${location.origin}/src/tests/index.js`)).text();
+      // The calls and never the imports: the two disagree here by design,
+      // which is the whole subject. Line-anchored, so a commented-out call is
+      // not a call - the same read `tests/registry.js` makes of the same file,
+      // and sliced from the registrar's body so an import cannot match.
+      const body = index.slice(index.indexOf(REGISTRAR));
+      const called = [...body.matchAll(/^\s*(\w+)\(debugTools\);/gm)].map((match) => match[1]);
+      if (called.length < MIN_REGISTRATIONS) {
+        return { pass: false, detail: `the registrar's body reads ${called.length} calls and the suite registers ${MIN_REGISTRATIONS}+, so this order was not read off the tree` };
+      }
+      const at = (name) => called.indexOf(name);
+      for (const name of [UNLOCKS_IT, FEEDS_IT, READS_IT]) {
+        if (at(name) === -1) problems.push(`${name} is called nowhere in the registrar, so the order this journal's window rests on cannot be read`);
+      }
+      if (problems.length === 0) {
+        if (!(at(FEEDS_IT) < at(READS_IT))) {
+          problems.push(`${FEEDS_IT} is called at ${at(FEEDS_IT) + 1} of ${called.length} and ${READS_IT} at ${at(READS_IT) + 1}, so the 210 frames of the heaviest check land after the journal is read and the densest block of marks in the suite is outside the window (H65)`);
+        }
+        if (!(at(UNLOCKS_IT) < at(FEEDS_IT))) {
+          problems.push(`${UNLOCKS_IT} is called at ${at(UNLOCKS_IT) + 1} and ${FEEDS_IT} at ${at(FEEDS_IT) + 1}; the journal opens at the unlock, so frames driven before it are frames no journal ever saw`);
+        }
+      }
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${called.length} registrations, read off the calls and not the imports (which disagree by design): ${UNLOCKS_IT} at ${at(UNLOCKS_IT) + 1} opens the journal, `
+            + `${FEEDS_IT} at ${at(FEEDS_IT) + 1} drives the densest block of marks into it, ${READS_IT} at ${at(READS_IT) + 1} reads it`
+          : problems.join('; '),
       };
     },
   });

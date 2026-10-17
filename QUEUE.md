@@ -669,25 +669,15 @@ one setting only Josh can click; everything else here proceeds.
   400-character budget, so two of its five readings had never reached a
   report: **H91**.
 
-- [ ] **H65 (S)** The shape's densest block of marks lands after the journal
-  is read. H54 gave the device journal a sampler on `AudioSystem.step()`, and
-  the marks reach it only from checks that drive frames, because the rAF loop
-  drives none under the AUTO suite (F4). Fifteen modules drive frames before
-  the read and **one after it**: `tests/index.js` calls `registerAudioDevice`
-  at **84 of 86** and `registerPerformance` at **85**, so the 210 frames of
-  `frame-budget-under-the-check-29-load` - the densest run of marks in the
-  suite, and the only block dense enough to resolve a stretch to the frame -
-  arrive after the device check has read its journal. **The import order says
-  the opposite and is not the registration order**, which is the half-hour
-  H54's measurement paid for: `audiodevice.js` is imported before
-  `performance.js` and registered after it. Swapping the two calls costs
-  nothing else - the device check reads near the end either way, and its own
-  header already says why it is late. Measure the mark count both ways, because
-  the value of the change is the number and not the argument.
-  *done-when:* `registerAudioDevice` runs after `registerPerformance`, the
-  check's detail line shows `samples` and the widest gap moving by what that
-  block drives, both readings are in `PROGRESS.md`, and a check holds the order
-  so it cannot drift back on an import.
+- [x] **H65 (S)** The shape's densest block of marks lands after the journal
+  is read. - done 2026-10-17, under Done. Two lines swapped in
+  `tests/index.js`, and the order is a **clause** now rather than a comment:
+  `the-device-journal-is-read-after-the-frames-that-feed-it` reads the
+  registrar's calls, because the imports say the opposite and are not the
+  registration order. The queue's numbers were H54's and the suite has grown -
+  **93** calls today, the pair at 92 and 93 rather than 84 and 85 of 86 - and
+  `tests/registry.js`'s own comment said *"registerPerformance is deliberately
+  called last"*, H71's shape in a third file, corrected in the same diff.
 - [ ] **H66 (S)** The floor D74 refused, on the pair rather than on the total.
   H54 built the shape, and the **concentration** - the worst unfed stretch over
   everything lost - separates every pair D74 says a total cannot: H35's plant
@@ -1246,6 +1236,26 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H65** The suite's densest block of marks was landing after the journal was
+  read. The device journal is handed one mark per drawn frame and the rAF loop
+  drives none under the AUTO suite (F4), so its window covers exactly the
+  checks registered before the one that reads it - and
+  `tests/performance.js`'s **210 frames**, the densest block in the suite and
+  the only one dense enough to resolve a stretch to the frame, were registered
+  *after* the read. Two lines swapped, and the order is held by a clause now
+  rather than described by a comment, because the **import** order says the
+  opposite and is not the registration order (the half-hour H54 paid). Three
+  clauses - the two calls in the order the window needs, the unlock still
+  before both, and a parse required to have seen a registration order at all -
+  and three breaks, each red on its own clause. **The second break was green
+  the first time and that is the lesson**: it moved the unlock to the line
+  *above* the feeder, which satisfies the clause instead of breaking it, and
+  only the detail line said so. Found on the way: the queue's 84-of-86 was
+  H54's and the registrar makes **93** calls today, and
+  `tests/registry.js`'s own census carried a sentence saying the opposite of
+  what the code now does - H71's shape, in the one file whose subject is the
+  registration order, corrected in the same diff.
 
 - **H60** A census whose headline counts one set and whose tally counts
   another. `breathcensus.js` ended every run since H33 with *"15 pose a body: 2

@@ -61,8 +61,12 @@ export function register(debugTools) {
       // 1. The registrar's own wiring. An import with no call is the silent
       // failure this check was written for; a call with no import would not
       // have loaded at all, and is here because the pair is what makes the
-      // one-to-one meaningful. Order is NOT asserted: registerPerformance is
-      // deliberately called last, after the imports it follows.
+      // one-to-one meaningful. Order is NOT asserted here: which call runs when
+      // is a question with reasons behind it per pair, and the one pair that
+      // has a reason has a clause of its own next door
+      // (`the-device-journal-is-read-after-the-frames-that-feed-it`, H65 -
+      // registerPerformance before registerAudioDevice, where the import order
+      // reads the other way round).
       const imports = [...index.matchAll(/import \{ register as (\w+) \} from '\.\/([a-z0-9]+\.js)';/g)]
         .map((match) => ({ name: match[1], file: match[2] }));
       const body = index.slice(index.indexOf('export function registerAutoTests'));

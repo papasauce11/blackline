@@ -95,6 +95,31 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The sound-card log was being read one test too early (H65, 2026-10-17)
+
+**Nothing in the game changed.**
+
+The suite keeps a log of your sound card's own clock, a mark per drawn frame,
+and it is read near the end of a run so that the log covers as much of the run
+as possible. The heaviest test in the suite draws **210 frames in a row** - the
+densest block of marks anywhere in it, and the only block dense enough to tell
+a stalled sound card from a merely busy machine - and it was running **after**
+the log got read.
+
+**The two were one line apart and in the wrong order.** Worse, the list of
+imports at the top of that file says the opposite of what the file does, which
+is where half an hour went the last time somebody looked. The two lines are
+swapped now, and `the-device-journal-is-read-after-the-frames-that-feed-it`
+holds the order so it cannot drift back the next time an import moves.
+
+**What it bought is in the numbers**, which is why the job existed: the log now gets **401 marks a run on the plant and 396 on the yard**, against 191 and 186 before - **exactly 210 more**, on both maps and in both runs of each, which is the frame count that one test draws. The longest blind spell did *not* shrink, and that is worth knowing too: those 210 frames arrive in one dense burst, and the longest stretch with no mark in it is the quiet *between* bursts, which runs to minutes because nothing draws a frame unless a test asks for one.
+
+**Nothing for you to do.** This matters only for the long-running question of
+whether this machine's sound card is being starved or going away — the error
+that has shown up in a few of the test logs. The wider the window and the
+denser the marks in it, the better the chance that question gets a real answer
+rather than another guess.
+
 ### Five tests print a total and a breakdown, and one of them did not add up (H60, 2026-10-17)
 
 **Nothing in the game changed.**

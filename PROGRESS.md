@@ -18277,3 +18277,148 @@ budget and three other census lines are between 296 and 393, so the one past
 the cut is the one worth deciding about - what that line is *for*, and whether
 the roster belongs in it at all. And the two one-line-from-the-cluster modules
 are still one line from it.
+
+## H65 — the suite's densest block of marks was landing after the journal was read
+
+**Built.** Two lines swapped in `tests/index.js`, so `registerPerformance` runs
+before `registerAudioDevice` rather than after it, and a second check in
+`tests/audiodevice.js` -
+`the-device-journal-is-read-after-the-frames-that-feed-it` - which reads the
+registrar's **calls** and holds the order the window rests on. The stale
+sentence in `tests/registry.js` that said the opposite is corrected. 238/218,
+192 modules.
+
+**The queue's numbers were H54's and the suite has grown since.** The entry
+says the two calls are at 84 of 86 and 85; the registrar makes **93** calls
+today and the pair was at **92 and 93**, which is the same fact about the same
+two neighbours and is worth correcting because the next reader will go looking
+for 86. `the-registry-holds-every-check-its-modules-declare` reads **93
+registrars imported and each called once; 248 checks declared, 247
+registered**, the difference being `a-staged-hang-never-returns`, which is
+registered only under `?hang=1`.
+
+**The mechanism, in the order it actually runs.** The journal is handed one
+mark per frame from `AudioSystem.step()`, and under the AUTO suite the rAF loop
+drives no frames at all (F4) - so every mark comes from a check that drove one,
+and the window covers exactly the checks registered before the one that reads
+it. `tests/performance.js` drives **210** frames: the densest run of marks in
+the suite and the only block dense enough to resolve a stretch to the frame,
+and it was registered *after* the read. **The import order says the opposite
+and is not the registration order**, which is the half-hour H54's measurement
+paid for - `audiodevice.js` is imported at 108 and `performance.js` at 94, and
+the calls run the other way round. The move costs nothing else: the device
+check drives no frames of its own, so it is free to sit after the heaviest
+check in the suite, and that is now the reason written beside it rather than
+the old one (*"last: it is the heaviest check and it leaves the world in a
+known state"*, which was true of `performance.js` and is still true of it one
+place earlier).
+
+**The readings, both ways, and the number turns out to be exact.** `--details`
+on all four runs of H60's verify before the change and all four of this job's
+after it, reading `samples` and `maxGapMs` off the check's own detail line:
+
+| | before | after |
+|---|---|---|
+| plant, run 1 | 191 marks to 876,843ms | **401** marks to 820,050ms |
+| plant, run 2 | 652 marks to 2,049,891ms | **862** marks to 1,972,171ms |
+| yard, run 3 | 186 marks to 542,631ms | **396** marks to 540,214ms |
+| yard, run 4 | 642 marks to 1,357,834ms | **852** marks to 1,355,592ms |
+
+**Every one is +210, to the mark** - the exact frame count
+`frame-budget-under-the-check-29-load` drives, on both maps and in both runs of
+each. The number is therefore derived and not estimated, which is what the
+queue entry asked for when it said the value of the change is the number and
+not the argument. The second run of a map reads higher because the two runs
+share one page and the journal is cumulative (D1, F16), so the per-run
+increment is about 460 marks either way.
+
+**And the widest gap did not move, which is the honest half of it.** 252,562 ->
+254,561ms and 274,426 -> 268,193ms on the plant, 168,715 -> 168,726ms and
+231,155 -> 239,989ms on the yard: two up, two down, by less than two runs of
+one tree disagree anyway. The entry asked for "the widest gap moving by what
+that block drives" and the measured answer is that **it cannot move it**. The
+210 frames arrive as one dense block *inside* a burst of checks, and the widest
+gap in a run is the quiet *between* bursts - where the rAF loop driving no
+frames (F4) leaves two to four minutes at a time, which is H54's own finding
+and why that gap is reported beside the stretch in the first place. What the
+block buys is **resolution inside the window**, not a shorter blind spell.
+
+**The worst stretch the journal finds changed on both maps, at the same size,
+and that is the resolution showing.** Plant 0.084s at 472,789ms -> **0.081s at
+406,299ms**; yard 0.077s at 59,970ms -> **0.072s at 263,906ms**; twelve marks
+each, `many-stretches` both ways, concentration 0.0001-0.0005 throughout, three
+orders of magnitude under the 1.0 a device that stopped and stayed stopped must
+read (H54, D74). Same size, different place: a denser journal resolves a
+stretch it could not see before. That is exactly what **H66** needs, and the
+reason H65 came first. `fed` moved 0.6127 -> 0.6961 on the plant and 0.7400 ->
+0.7391 on the yard, inside the 0.5665-0.7481 band of the fifteen solo readings
+H50 recorded, so it is this machine's load and not this change (D74).
+
+**Three clauses, because a check that reads a file it chose owes the suite the
+second half** (HANDOFF.md, A1 and A3's debt): the two calls are in the order
+the window needs, the unlock is still before both of them - the premise a
+window of minutes rests on - and the parse is required to have seen a
+registration order at all, or *"A before B"* is two absences agreeing. Each one
+broken and read for **which** clause went red, through `npm run probe` at 42s a
+run:
+
+1. The two calls put back in their old order: *"registerPerformance is called
+   at 93 of 93 and registerAudioDevice at 92, so the 210 frames of the heaviest
+   check land after the journal is read"*. The clause this job exists for.
+2. The unlock moved last: *"registerAudio is called at 93 and
+   registerPerformance at 91; the journal opens at the unlock, so frames driven
+   before it are frames no journal ever saw"*.
+3. `MIN_REGISTRATIONS` raised to 500: *"the registrar's body reads 93 calls and
+   the suite registers 500+, so this order was not read off the tree"*.
+
+**And the second break was wrong the first time, which is the instrument
+lesson.** It moved `registerAudio` to the line *above* `registerPerformance` -
+which **satisfies** the clause rather than breaking it, because the clause asks
+only that the unlock come first, and the probe came back green. A green break
+is a break that proved nothing and it reads exactly like a clause that does not
+work; the tell was reading the detail line rather than the verdict, where the
+unlock sat at 91 and the feeder at 92 in the order the clause wants. Aimed at
+the thing it was supposed to break - the unlock **last** - it reds. That is
+TRAPS.md's rule paid for a second time in two jobs.
+
+**The comment H65 made wrong, and it was in a third file.**
+`tests/registry.js`'s own census says *"Order is NOT asserted: registerPerformance
+is deliberately called last, after the imports it follows"* - a sentence that
+stopped being true the moment these two lines swapped, in the file whose
+subject **is** the registration order. It now says that order is not asserted
+there, that it is a question with a reason per pair, and that the one pair with
+a reason has a clause of its own next door. This is H71's shape exactly - a
+comment saying the opposite of what the code does - caught in the same session
+rather than a month later, and the reason it was caught at all is that the
+file's parse was the model for the new check's.
+
+**The ceiling, and the third module within three lines of the cluster.**
+`audiodevice.js` was **479**; the check, its five named constants and the
+argument above it are 69 lines, which landed the file at 558 and **inside** the
+eleven-module cluster. Ten lines of that prose came back out - the argument is
+in the queue entry and in this one - and the file is **548**. So the cluster is
+still eleven, and `src/tests/visual.js` at 550, `breathcensus.js` at 549 (H60)
+and `audiodevice.js` at 548 are now **three** modules within three lines of
+joining it. Read the runner's `ceiling:` line after any edit to a file over
+about 520, which is TRAPS.md's rule and the reason this was looked at at all.
+
+**Verified.** The H60 verify is this job's gate (step 8 of the protocol):
+plant 237/1/8, yard 217/1/28, exit 0, 0 red, 0 flaky, 0 console errors. Subset
+of twelve checks on both maps after the change, with `--details`: **12 passed,
+0 failed** each, ceiling 11 of 600 over 192 modules. VERIFY `npm run suite`, four runs, exit 0: plant **238 / 1 / 8**
+(1,110,138ms, 1,112,789ms), yard **218 / 1 / 28** (782,239ms, 767,154ms),
+spreads **0%** and **2%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green,
+**0 console errors**, 0 context losses, no other runner. Counts **237 to 238**
+and **217 to 218**, the one new check; **192 modules** and the ceiling **11 of
+600** in all four runs. H79's drift reads **33 on the plant against 32, and 35
+on the yard, unchanged** - the new check is in neither list, its three
+positions being the same in every run, and the plant's thirty-third cannot be
+named off a count, seventeen of them being weather by H79's own
+classification.
+
+**Left.** Nothing of this job's own. **H66** is the next in the same thread and
+is the one the marks were being counted for: D74 refused a floor on the fed
+*total*, H54 built the shape, and H66 asks whether the pair - the worst stretch
+and its concentration - can carry one. It is worth reading this entry's
+readings first, because H65 is what widened the window H66 would set a floor
+inside.

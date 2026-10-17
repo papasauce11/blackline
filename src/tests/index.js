@@ -256,10 +256,18 @@ export function registerAutoTests(debugTools) {
   // (H36, H41). After fuzz.js and pipelinewait.js, so its own two drains
   // answer in milliseconds rather than re-measuring the run's tail.
   registerTimedRenders(debugTools);
-  // Late on purpose: the device journal's whole value is the window it covers,
-  // and every check before this one is window. The unlock is up at
-  // registerAudio, so by here it is most of a run (H35).
-  registerAudioDevice(debugTools);
-  // Last: it is the heaviest check and it leaves the world in a known state.
+  // Last but one, and ahead of the device journal since H65: this check drives
+  // **210** frames, a frame is a mark in that journal (H54), and so the
+  // densest block of marks in the suite used to arrive after the journal had
+  // been read. It is also the heaviest check and it leaves the world in a
+  // known state.
   registerPerformance(debugTools);
+  // Last on purpose: the journal's whole value is the window it covers, every
+  // check before this one is window, and the unlock is up at registerAudio so
+  // by here it is most of a run (H35). This reads and drives nothing, which is
+  // what lets it sit after the heaviest check. **The import order says the
+  // opposite and is not the registration order** - audiodevice.js is imported
+  // above performance.js - so the order is a clause rather than a comment:
+  // `the-device-journal-is-read-after-the-frames-that-feed-it` (H65).
+  registerAudioDevice(debugTools);
 }
