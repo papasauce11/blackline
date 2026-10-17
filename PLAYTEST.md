@@ -255,6 +255,34 @@ right sentence.
 **Nothing for you to do.** There is one note in *Known issues* below about the
 photographs this affects.
 
+### A test that could not do its job was saying so in a line nobody reads (H59, 2026-10-16)
+
+**What this was.** Twelve movement states - walk, sprint, crouch, slide, vault,
+grab and so on - are driven for real by four different tests, each of which
+walks the Shade down a lane or up to a ledge and checks what her body did. Once,
+months ago, one run reported that two of the twelve *"did not happen on this
+map"*, and three other runs of the same thing that day struck all twelve. It was
+written down as a mystery to look into.
+
+**What it turned out to be.** Two things, and neither was the one suspected.
+The cause was the **Warden**: the test walks a real Shade several metres down a
+lit lane in a live match, a hunting Warden shoots her, and a dead body does not
+move - so the test reported a walk that never swung a leg rather than a Shade
+that had been killed. That was already found and already fixed, by accident, in
+a different job; all four tests now run with the Warden switched off, and all
+twelve states struck on six runs in a row of each map.
+
+**The second thing is the one worth telling you about.** Of the four tests, two
+treated "I could not do this one" as a **failure** and two printed it as a
+**note in a line that only shows up when the run passes** - which nobody reads.
+So the same event was a loud failure in half the suite and invisible in the
+other half, and that is the only reason the original report sat unexplained for
+a month. All four now fail on it, and if a state ever genuinely cannot be done
+on a map it has to be written down with its reason, which is checked both ways:
+an undeclared refusal fails, and a declaration that is no longer true fails too.
+
+**What only eyes can judge:** nothing new. **Nothing for you to do.**
+
 ### The route the Warden takes is now the same one every run, and finding that out found a worse bug (H81, 2026-10-16)
 
 **What this was.** The note above fixed the *test* and left the twelve

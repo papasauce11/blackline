@@ -18063,3 +18063,86 @@ an absolute value that hides a sign is how this class stayed invisible, and
 `turn()` is not the only reading in this suite that takes one. **H89**: a pinned
 instrument stops sampling - the twelve one-frame sites will now never photograph
 the minority pose, which is a real picture of this game that nothing looks at.
+
+## H59 — the same event was a red in half the suite and a passing line in the other half
+
+**Built.** `CANNOT_STRIKE_HERE`, `NOT_A_STATE` and `refusalProblems()` in
+`tests/strikedrive.js` - one table and one rule for the four callers that drive
+a strike - and the two callers that only *reported* a refused strike now report
+it as a problem: `tests/strikerepeat.js`'s census and
+`tests/positioncensus.js`'s look.js entry. No new module and no new check: the
+clause goes where the measurement already was. 237/217, 191 modules.
+
+**The entry's suspect was wrong and had already been named.** H59 was queued off
+one subset run that said *"2 not on this map: crouch (holding crouch did not
+crouch (state ground)); slide (a crouch at 0.3 m/s did not slide (state
+ground))"* on the plant while three other runs of the same subset struck all
+twelve, and it suspected the 0.3 m/s - a body still carrying speed out of
+`stand()`'s five frames. H57 had already found the real one by accident:
+`strike` walks a real Shade several metres down a lit lane in a **live** match,
+a hunting Warden lands four rounds on it, and a dead body does not accelerate -
+so the strike reports a gait that never swung rather than a Shade that was shot.
+0.3 m/s is not a body that walked too fast into a crouch; it is a body that
+could not move.
+
+**And the exposure is gone from all four callers, by construction.** H57 gave
+`strikerepeat.js` a fresh `ai: false` match before **every** strike; the entry
+guessed that `poseeye.js` and `look.js` were "exposed for less time rather than
+not at all" and that is not so - they, and `positioncensus.js`, have always
+opened `initMatch({ ai: false })`, which `strikedrive.js`'s header has required
+in writing since H57. Measured rather than assumed: the census struck **12 of 12
+on six consecutive runs of each map** through a probe (44-475ms a run), and 12
+of 12 on all four runs of the H81 verify. So the cause is named with numbers and
+there is nothing left to repair.
+
+**Which leaves the thing worth fixing, and it is not the skip.** Of the four
+callers, `look.js` and `poseeye.js` push a refused strike into `problems` -
+red. `strikerepeat.js` pushed it into `readings` as *"N not on this map"* and
+`positioncensus.js` counted it as *"N unreachable"* in a passing line. **The
+same event was a red in half the suite and a passing detail line in the other
+half**, and a passing detail line is invisible without `--details` (TRAPS.md) -
+which is exactly why the original report survived long enough to be queued as a
+mystery rather than caught as a failure. A state that cannot be struck is either
+a fact about the map, in which case it should be declared with its reason, or a
+defect, in which case it should be red. There is no third thing, and "printed in
+a green line" was the third thing.
+
+**So: one table, one rule, both directions.** `CANNOT_STRIKE_HERE` is keyed by
+map id and **both lists are empty**, which is the finding and not a placeholder
+- nothing qualifies. `refusalProblems()` reds a refusal nothing declared *and* a
+declaration nothing refused, so the table cannot outlive its reason. A map with
+no row at all is its own problem, because a map added without one would have
+nowhere to declare and nothing to be held against.
+
+**The instrument, because a clause over two empty lists is worth nothing.** With
+nothing declared, "no state was skipped" and "a skip is no longer visible" look
+identical from the outside - F8's model, and the shape H56 and H57 both went
+red for. So `strikerepeat.js` strikes `NOT_A_STATE`, a name no `case`
+dispatches, and reds if it comes back reached. Held once rather than in both
+callers: the refusal path is one function and a second copy of the proof would
+be a second thing to keep true.
+
+**Three breaks, each on its own clause.** A stale declaration
+(`plant: ['crouch']`) reds **both** censuses with *"is declared as unstrikable
+on plant and was struck"*. A staged refusal inside `strike`'s `crouch` case reds
+both with *"could not be struck on plant ... and is not declared"*. And the
+`default` branch made to report success reds `strikerepeat.js` alone with
+*"strike() reported reaching \"not-a-state\" ... the clause below is about
+nothing"* - `positioncensus.js` staying green there is correct, since that is
+where the instrument is not.
+
+**Verified.** The H81 verify stood as the gate. Three probe breaks at 40-480ms a
+check against two and a half minutes of subset. Verify, four runs, exit 0: plant
+**237 / 1 / 8** (1,123,027ms, 1,123,718ms), yard **217 / 1 / 28** (765,958ms,
+782,662ms), spreads 0% and 2%, **0 red, 0 flaky, 0 skipped, 0 unexpectedly
+green, 0 console errors, 0 context losses, 0 loop frames**, no other runner.
+Drift unchanged at 32 and 34, which is what a clause that fires on nothing
+should do to it. The one failure a map is the bench-only sweep (H11).
+
+**What was left.** `positioncensus.js` went 593 to **596** of 600, which is four
+lines of headroom in the file **H69** already exists to split - the clause was
+trimmed twice to keep it there, and the next job to touch it should split it
+first. And **H90**: `look.js` and `poseeye.js` red a refusal *unconditionally*,
+so a state a map one day genuinely cannot strike would be declared in the table
+and still red in two of the four callers. That is the safe direction of the same
+inconsistency this job closed, and it is still two answers to one question.

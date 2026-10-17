@@ -93,7 +93,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { positionSmoothing } from '../entities/pose.js';
 import { quiesce } from './pixels.js';
-import { strike, STRIKES } from './strikedrive.js';
+import { strike, STRIKES, refusalProblems } from './strikedrive.js';
 import {
   CENSUS, PROOFS, HOWS, READS_A_WORLD_POSITION, ADVANCES_THE_CHASE, THE_LAW,
   chaseGap, checkSlice, codeOf, criteriaProblems, draw, framesToClose, hulledMesh,
@@ -554,12 +554,15 @@ export function register(debugTools) {
         // ----------------------------------------------------------------
         h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
         const gaps = [];
-        let unreached = 0;
+        const refused = [];
         for (const state of STRIKES) {
           const struck = strike(h, state);
-          if (!struck.reached) { unreached++; continue; }
+          if (!struck.reached) { refused.push({ state, why: struck.why }); continue; }
           gaps.push({ state, gap: chaseGap(shade) });
         }
+        // H59: a refusal is this census's problem too, and the rule is the
+        // driver's so four callers cannot answer it four ways.
+        problems.push(...refusalProblems(h, refused, gaps.map((entry) => entry.state)));
         if (gaps.length === 0) {
           problems.push(`none of the ${STRIKES.length} states look.js photographs was reachable on this map, so its entry is unmeasured`);
         } else {
@@ -570,7 +573,7 @@ export function register(debugTools) {
           }
           const open = gaps.filter((entry) => entry.gap > CLOSED).length;
           readings.push(`look.js: ${open}/${gaps.length} open, worst ${worst.state} ${worst.gap.toFixed(2)}m`
-            + `${unreached ? `, ${unreached} unreachable` : ''}`);
+            + `${refused.length ? `, ${refused.length} unreachable` : ''}`);
         }
       } finally {
         restore();

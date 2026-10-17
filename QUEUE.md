@@ -650,56 +650,10 @@ one setting only Josh can click; everything else here proceeds.
   that said so found a defect nobody was looking for. - done 2026-10-16,
   under Done.
 
-- [ ] **H59 (S)** A strike's **success** is not a function of its argument
-  either, and a skipped state is a check measuring eleven things while
-  saying twelve. One subset run of H52's census reported *"2 not on this
-  map: crouch (holding crouch did not crouch (state ground)); slide (a
-  crouch at 0.3 m/s did not slide (state ground))"* on the **plant**, while
-  three other runs of the same subset on the same map struck all twelve. It
-  is pre-existing - `poseeye.js` strikes the same twelve and would skip the
-  same way, silently, and `look.js` would photograph eleven states - and
-  H52's census reports it rather than asserting it, which is how it was
-  seen at all.
-  The suspect is in the message: the crouch was attempted at **0.3 m/s**
-  after a `stand()` that resets and runs five frames with the keys cleared,
-  so the body was still carrying speed from whatever ran before, and
-  `strike('crouch')` holds `ControlLeft` for `SETTLE + 10` frames and then
-  asks `shade.crouching`. **Measure before changing anything**: run the
-  census subset enough times to see it fail, print the speed and the state
-  at the moment the crouch is asked for, and only then decide whether
-  `stand()` should wait for the body to be still (a frame count, no rule in
-  it) or whether the crouch is genuinely refused above a speed (a rule, and
-  then it belongs in the header rather than in a longer wait).
-  *done-when:* the cause is named with numbers in `PROGRESS.md`; either
-  every state strikes on both maps over four runs, or the ones that cannot
-  are declared per map the way `poseeye.js` declares its pairs; and a
-  skipped state is red somewhere rather than reported everywhere.
+- [x] **H59 (S)** A strike's **success** is not a function of its argument
+  either, and the thing that was wrong was not the skip. - done 2026-10-16,
+  under Done.
 
-  **H57 found a cause of exactly this, by accident, and it is not the speed
-  (2026-10-14).** The same class of message - *"a crouch at 0.0 m/s did not
-  slide (state ground)"*, and *"the sprint did not bring a leg furthest
-  forward (speed 0.0)"* - came from the Shade being **shot dead** mid-strike.
-  `strike()` drives the body down a lit lane in a **live** match, and the
-  Warden lands four rounds: `combat:shot/warden`, `impact`, `damage/body`,
-  `damage/headshot`, `combat:death`, twenty-two events inside one sprint,
-  leaving `health` 0 and `ragdolled` true. A dead body does not accelerate, so
-  the strike reports a stationary one and the reason reads as a gait or a
-  speed problem. **That fits this entry's own evidence**: it is intermittent
-  on the frame count, it was one subset run of four, and 0.3 m/s is not a body
-  that walked too fast into a crouch - it is a body that could not move.
-  **So start here, and in this order.** (1) Take **H72** first, or at least its
-  one line: report `shade.health` in `strike`'s failures. Without it this job
-  is measuring the symptom, which is the afternoon H57 paid for. (2) Then see
-  whether anything is left: H57 gave `strikerepeat.js` a fresh match with the
-  AI off before **every** strike, which removes the Warden from that check's
-  twenty-four strikes entirely - so if the skip was only ever the Warden, this
-  entry may already be closed there and still open in `poseeye.js` and
-  `look.js`, which take one match per state and are therefore exposed for
-  less time rather than not at all. (3) Only if a skip survives all that is
-  the speed the suspect, and then `stand()`'s five frames are the thing to
-  measure. Also worth knowing: `quiesce()` claims to stop the AI interfering
-  and passes `ai: true` twice, which is **H71** and is why the exposure was
-  there to begin with.
 - [ ] **H60 (S)** A census whose headline counts one set and whose tally
   counts another. `breathcensus.js` prints *"15 pose a body: 2 held at the
   worst phase, 4 measured, 6 out of reach by proof"* - fifteen against a
@@ -1004,6 +958,25 @@ one setting only Josh can click; everything else here proceeds.
   same floor, the numbers are in `PROGRESS.md`, and pinning that check to the
   dominant pose instead reds it as a census that has stopped varying.
 
+- [ ] **H90 (S)** Two of the four strikers still answer H59's question their
+  own way, in the safe direction. `look.js` and `poseeye.js` push a refused
+  strike into `problems` **unconditionally**, so a state a map one day
+  genuinely cannot strike would be declared in `CANNOT_STRIKE_HERE` and still
+  red in two of the four callers - which is one answer too many to the same
+  question and exactly the shape H59 closed in the other direction. The fix is
+  three lines each: collect the refusals and hand them to `refusalProblems()`
+  with the states that reached, as `strikerepeat.js` and `positioncensus.js`
+  do. It is small, and the reason it is a job rather than a footnote is that
+  it cannot be verified while both lists are empty: the only way to see it work
+  is to declare a state, run the four, and take the declaration back out - so
+  the job is the break as much as the change. **Read H59's PROGRESS entry
+  first**, and note that `look.js` photographs each state once while
+  `poseeye.js` takes a pair, so what counts as "reached" differs between them.
+  *done-when:* all four callers route a refusal through `refusalProblems()`,
+  a state declared in `CANNOT_STRIKE_HERE` reds none of the four while it is
+  genuinely refused and reds all four the moment it strikes, and both
+  directions are shown in `PROGRESS.md` with the declaration put back.
+
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -1257,6 +1230,37 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H59** A strike's success is not a function of its argument either, and the
+  thing that was wrong was not the skip. The entry suspected the 0.3 m/s a
+  `stand()` leaves behind; **the cause was the Warden and H57 had already named
+  it** - `strike` walks a real Shade several metres down a lit lane in a live
+  match, a hunting Warden lands four rounds, and a dead body does not
+  accelerate, so the strike reports a gait that never swung. H57 gave
+  `strikerepeat.js` a fresh `ai: false` match before **every** strike and the
+  other three callers had always opened one, so the exposure is gone from all
+  four by construction - measured, not assumed: **12 of 12 states struck on six
+  consecutive runs of each map** through a probe and on all four runs of the
+  H81 verify. **Which leaves what was actually worth fixing.** Of the four
+  callers, `look.js` and `poseeye.js` made a refused strike a **problem** and
+  `strikerepeat.js` and `positioncensus.js` printed it as a **reading** - *"2
+  not on this map"*, *"N unreachable"* - so **the same event was a red in half
+  the suite and a passing detail line in the other half**, and a passing detail
+  line is invisible without `--details`, which is why the original report was
+  queued as a mystery instead of caught as a failure. A state that cannot be
+  struck is a fact about the map, in which case it is declared with its reason,
+  or a defect, in which case it is red; there is no third thing and a green
+  line was the third thing. `CANNOT_STRIKE_HERE`, `NOT_A_STATE` and
+  `refusalProblems()` in `strikedrive.js` are one table and one rule for all
+  four: a refusal nothing declared reds, **and** a declaration nothing refused
+  reds, so the table cannot outlive its reason, and a map with no row at all is
+  its own problem. **Both lists are empty, which is the finding and not a
+  placeholder.** The instrument, because a clause over two empty lists is worth
+  nothing: `strikerepeat.js` strikes a name no `case` dispatches and reds if it
+  comes back reached. Three breaks - a stale declaration and a staged refusal
+  red **both** censuses, and the refusal path made to report success reds the
+  one that holds the instrument and correctly not the other.
+  - done 2026-10-16, COMMIT_HASH
 
 - **H81** Should `quiesce()` name a seed? Yes, and the measurement that said
   so found a defect nobody was looking for. H80 censused the settle by

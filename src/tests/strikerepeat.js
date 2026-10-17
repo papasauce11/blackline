@@ -89,7 +89,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { strike, STRIKES } from './strikedrive.js';
+import { strike, STRIKES, NOT_A_STATE, refusalProblems } from './strikedrive.js';
 import { uncommented } from './sourcetext.js';
 
 /**
@@ -246,6 +246,7 @@ export function register(debugTools) {
       const problems = [];
       const readings = [];
       const skipped = [];
+      const refused = [];
       const moved = [];
       const agreed = [];
       const struck = [];
@@ -253,11 +254,11 @@ export function register(debugTools) {
       for (const name of STRIKES) {
         fresh(h);
         const first = strike(h, name);
-        if (!first.reached) { skipped.push(`${name} (${first.why})`); continue; }
+        if (!first.reached) { skipped.push(`${name} (${first.why})`); refused.push({ state: name, why: first.why }); continue; }
         const at = { ...h.shade.position };
         fresh(h);
         const second = strike(h, name);
-        if (!second.reached) { skipped.push(`${name} (reached once, then ${second.why})`); continue; }
+        if (!second.reached) { skipped.push(`${name} (reached once, then ${second.why})`); refused.push({ state: name, why: `reached once, then ${second.why}` }); continue; }
         struck.push(name);
         const apart = gap(at, h.shade.position);
         const carried = Object.prototype.hasOwnProperty.call(CARRIED, name);
@@ -320,6 +321,17 @@ export function register(debugTools) {
       // clause that called that "not measured here" would be reporting the
       // verdict as the instrument. Break 2 of this job printed exactly that
       // line beside a walk it had just measured at 1.167m.
+      // H59: a skipped state is red here now rather than printed in a passing
+      // line. The instrument first, because both declaration lists are empty
+      // and a clause over an empty set is worth nothing unless a refusal would
+      // still be seen: a name no `case` dispatches must come back refused.
+      fresh(h);
+      const staged = strike(h, NOT_A_STATE);
+      if (staged.reached) {
+        problems.push(`strike() reported reaching "${NOT_A_STATE}", which no case dispatches, so a refusal is not something this census can see and the clause below is about nothing`);
+      }
+      problems.push(...refusalProblems(h, refused, struck));
+
       const measured = struck.length;
       if (measured < 2) {
         problems.push(`only ${measured} of ${STRIKES.length} states could be struck twice on this map, so neither clause measured anything`);

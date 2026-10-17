@@ -178,6 +178,75 @@ function hurtMidStrike(shade) {
 export const STRIKES = ['walk', 'sprint', 'crouch', 'slide', 'rise', 'fall', 'landing', 'vault', 'mantle', 'grab', 'hang', 'pullup'];
 
 /**
+ * States a map is declared unable to strike (H59), by map id - and both lists
+ * are **empty**, which is the finding rather than a placeholder.
+ *
+ * **What this table is for.** Two of the four callers used to *report* a
+ * refused strike and two reported it as a problem, so the census that found
+ * the bug - `"2 not on this map: crouch ...; slide ..."` on the plant, in one
+ * subset run of four - said it in a passing detail line that nobody reads
+ * without `--details`. A state that cannot be struck is either a fact about
+ * the map, in which case it belongs here with the reason, or a defect, in
+ * which case it belongs in a red. There is no third thing it can be, and
+ * "printed in a green line" was the third thing.
+ *
+ * **Why both lists are empty, measured.** The suspect in the entry was the
+ * speed a `stand()` leaves behind; the cause was the **Warden**. `strike`
+ * walks a real body several metres down a lit lane in a live match, and a
+ * hunting Warden lands four rounds on it - a dead body does not accelerate,
+ * so the strike reports a gait that never swung rather than a Shade that was
+ * shot (H57, and H72 made it say so). H57 gave `strikerepeat.js` a fresh
+ * `ai: false` match before **every** strike; the other three callers had
+ * always opened one. So the exposure is gone from all four by construction,
+ * and the measurement agrees: the census struck **12 of 12 on six consecutive
+ * runs of each map** through a probe, and 12 of 12 on all four runs of the
+ * verify. Nothing is declared here because nothing qualifies.
+ *
+ * A state listed here that *does* strike is a stale declaration and is held
+ * as its own problem, so this table cannot outlive its reason.
+ */
+export const CANNOT_STRIKE_HERE = { plant: [], yard: [] };
+
+/**
+ * A name no `case` dispatches, so `strike` must refuse it. The instrument for
+ * the clause below: a census of "nothing was skipped" is worth nothing unless
+ * a skip could have been seen, and with both declaration lists empty this is
+ * the only thing that proves the refusal path still reports (F8's model).
+ */
+export const NOT_A_STATE = 'not-a-state';
+
+/**
+ * What a caller should report about the states it could not strike (H59),
+ * both ways round: a refusal nothing declared, and a declaration nothing
+ * refused. Shared rather than written twice, because the whole defect was two
+ * callers answering this question differently from the other two.
+ *
+ * @param {object} h the harness, for the map it is on
+ * @param {Array<{state: string, why: string}>} refused what would not strike
+ * @param {string[]} reached the states that did
+ */
+export function refusalProblems(h, refused, reached) {
+  const mapId = h.map ? h.map.id : null;
+  const declared = CANNOT_STRIKE_HERE[mapId];
+  const problems = [];
+  if (!declared) {
+    problems.push(`${mapId} has no row in CANNOT_STRIKE_HERE, so a state this map cannot strike has nowhere to be declared and nothing to be held against (H59)`);
+    return problems;
+  }
+  for (const { state, why } of refused) {
+    if (declared.indexOf(state) === -1) {
+      problems.push(`"${state}" could not be struck on ${mapId} (${why}) and is not declared as a state this map cannot strike; a skip is a fact about the map or a defect, and a passing detail line is neither (H59)`);
+    }
+  }
+  for (const state of declared) {
+    if (reached.indexOf(state) !== -1) {
+      problems.push(`"${state}" is declared as unstrikable on ${mapId} and was struck; a declaration that has outlived its reason hides the next skip (H59)`);
+    }
+  }
+  return problems;
+}
+
+/**
  * Drive the Shade into a named state the way a player does - from the
  * first clear lane, or the ledge the map has for it (tests/movement.js's
  * `findGroundLedge`, the controller's own probe the arbiter) - and leave
