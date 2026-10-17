@@ -59,17 +59,19 @@
  * in a clause here. A number asserted the morning it is first measured is a
  * rule nobody argued.
  *
- * **H80 withdrew the first sentence of that paragraph.** 0.000m is what the
- * Warden is off its spawn for **twenty of the twenty-one circuits** the
- * shuffle can draw, and the twenty-first - the one starting with the node each
- * map's Warden spawn already faces - leaves it **0.837m** off on the yard and
- * **0.368m** on the plant, because a Warden that has nothing to turn walks
- * instead. `deriveSeed()` hands an unseeded match `Date.now()` and the suite
- * names no seed, so the circuit is the clock's and the rate is 3.75% a run on
- * the yard, 4.25% on the plant. That is what reddened this check in H74's
- * verify, and it is why the two settle bars below are now taken at a seed this
- * check names and the live call's own reading is held against the census in
- * `tests/settlecircuit.js` rather than against zero.
+ * **H80 withdrew the first sentence of that paragraph, and H81 put it back.**
+ * 0.000m was what the Warden is off its spawn for **twenty of the twenty-one
+ * circuits** the shuffle can draw, and the twenty-first - the one starting with
+ * the node each map's Warden spawn already faces - left it **0.837m** off on
+ * the yard and **0.368m** on the plant, because a Warden that has nothing to
+ * turn walks instead. `deriveSeed()` hands an unseeded match `Date.now()`, so
+ * the circuit was the clock's and the rate 3.75% a run on the yard, 4.25% on
+ * the plant; that is what reddened this check in H74's verify. **Since H81 the
+ * helper names a seed** (`SETTLE_SEED`), so there is one circuit, one pose and
+ * one reading - and the bar below is an exact zero again rather than a
+ * membership test. H81 also found that the distance was the wrong thing to
+ * group by: the yard has a circuit that is on its spawn to the micrometre and
+ * facing 2.27rad the other way, which H80's census counted with the majority.
  *
  * **H74 asked the other half of H71's count, and found that the question could
  * not be answered the way it was posed.** Whether a walking Warden changes a
@@ -88,8 +90,8 @@
 
 import { CONFIG } from '../config.js';
 import { codeOf, readerProblems } from './sourcetext.js';
-import { quiesce } from './pixels.js';
-import { settleClasses, aCircuitThatOnlyTurns } from './settlecircuit.js';
+import { quiesce, SETTLE_SEED } from './pixels.js';
+import { settleClasses, dominantPose } from './settlecircuit.js';
 
 /** The helper, where it lives, and the id this check reports under. */
 export const HELPER = 'quiesce';
@@ -258,16 +260,16 @@ function whatTheBodyDid(h) {
  * number of frames, taken off its source - then one frame at a time until the
  * body translates, which is reported and not asserted.
  *
- * **H80: the seed is named, and that is the whole of the fix.** The two bars
+ * **H80 named a seed here and H81 moved it into the helper.** The two bars
  * this feeds - the body has not translated, and the yaw has - are true of a
  * settle the Warden spends turning, which is twenty of the twenty-one circuits
- * the shuffle can draw. `deriveSeed()` hands an unseeded match `Date.now()` and
- * the suite names no seed, so this reading used to be taken in whichever
- * circuit the clock happened to pick, and was red in about one run in
- * twenty-four: `tests/settlecircuit.js` has the rate and the two readings. The
- * seed comes from that census, which drives the settle once per circuit and
- * reports which of them only turn - so the premise is established by
- * measurement before it is leaned on, rather than inherited from the clock.
+ * the shuffle can draw; taken in whichever circuit the clock picked, they were
+ * red about one run in twenty-four. H80 fixed that by seeding the *measurement*
+ * and left the thirty callers on the clock. H81 seeded the **helper**, so this
+ * is now driven at `SETTLE_SEED` - the seed the callers really get - and
+ * `tests/settlecircuit.js` is what holds that constant in the pose the most
+ * circuits share. The premise is still measured before it is leaned on; it is
+ * measured about the thing the callers use.
  */
 function whatTheSettleDoes(h, flag, settle, seed) {
   h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: flag === 'true', objective: true, seed });
@@ -391,25 +393,31 @@ export function register(debugTools) {
       // Warden walking instead of turning - so which circuit a reading was
       // taken in is a premise, and this is where it is established.
       const classes = settleClasses(h, settle);
-      const onlyTurns = aCircuitThatOnlyTurns(classes);
-      if (!onlyTurns) {
+      const dominant = dominantPose(classes);
+      if (!dominant) {
         return {
           pass: false,
-          detail: `no circuit of ${classes.scanned} leaves the Warden on its spawn over the ${settle} frames ${HELPER}() settles, so the premise the two bars below rest on - and twelve of its callers with them - holds for no patrol circuit at all (H80)`,
+          detail: `no circuit of ${classes.scanned} settles into any pose at all over the ${settle} frames ${HELPER}() settles, so the premise the two bars below rest on - and twelve of its callers with them - rests on nothing measured (H80, H81)`,
         };
       }
-      const settleSeed = onlyTurns.seeds[0];
+      // H81: the helper's own seed, not one this check chose. The bars below
+      // are about what thirty callers get, and since H81 that is one circuit.
+      const settleSeed = SETTLE_SEED;
 
       const restore = quiesce(h);
       let afterCall;
       let quiesced;
       let shadeDrift;
       let wardenSettled;
+      let wardenFacing;
       let liveCircuit;
       try {
         afterCall = h.match.aiEnabled;
         shadeDrift = flat(h.shade.position, h.map.shadeSpawns[0].position);
         wardenSettled = flat(h.warden.position, h.map.wardenSpawns[0].position);
+        // H81: and which way it is facing, because a distance alone cannot
+        // tell the dominant pose from the yard circuit that shares its zero.
+        wardenFacing = h.warden.yaw;
         liveCircuit = h.wardenAI._circuit[0];
         quiesced = whatTheBodyDid(h);
       } finally {
@@ -452,18 +460,18 @@ export function register(debugTools) {
       // body that has not moved could be a body nobody is driving, and a yaw
       // that moved could belong to a Warden already walking off its spawn.
       //
-      // H80: the live call above is the one match here nothing can seed - the
-      // helper asks `initMatch` for no seed, as every caller does, so the clock
-      // picks its circuit. "On its spawn" is therefore not true of it: it is
-      // true of twenty circuits out of twenty-one, and the bar is that this
-      // reading is one the census accounts for. An unaccounted distance is a
-      // settle whose end position no circuit explains, which is the defect this
-      // used to catch; a known one is the clock having drawn the walking node,
-      // and the detail line says which was drawn.
-      const accounts = classes.nodes.find((n) => Math.abs(n.moved - wardenSettled) <= ON_SPAWN);
-      if (!accounts) {
-        const known = classes.nodes.map((n) => `${n.moved.toFixed(6)}m (node ${n.node})`).join(', ');
-        problems.push(`the Warden is ${wardenSettled.toFixed(6)}m off its spawn when ${HELPER}() returns on the clock's seed, and no circuit of ${classes.scanned} settles there - the ${classes.nodes.length} that were driven end at ${known}, so this settle is reading something the circuit does not decide (H80)`);
+      // H81: the live call is pinned now, so this is an exact bar again. The
+      // helper names `SETTLE_SEED`, that seed draws one circuit, and the
+      // circuit decides the pose - so the Warden is where the dominant class
+      // says it is, to the micrometre, on every run. H80 could only ask
+      // whether the census *accounted* for the distance, because the clock
+      // chose the circuit; what that could not catch is the thing H81 found,
+      // a pose the census grouped with the majority on an equal distance.
+      const offPose = Math.abs(wardenSettled - dominant.moved) > ON_SPAWN
+        || turn(wardenFacing, dominant.yaw) > ON_SPAWN;
+      if (offPose) {
+        const known = classes.poses.map((c) => `${c.moved.toFixed(6)}m/yaw ${c.yaw.toFixed(4)} (${c.seeds}x)`).join(', ');
+        problems.push(`${HELPER}() returns with the Warden ${wardenSettled.toFixed(6)}m off its spawn facing ${wardenFacing.toFixed(4)}, and the pose ${dominant.seeds} of ${classes.scanned} circuits share is ${dominant.moved.toFixed(6)}m/yaw ${dominant.yaw.toFixed(4)} - the ${classes.poses.length} driven are ${known}, so either the helper is no longer passing its seed, or its seed is not the one this run's dominant pose belongs to, or the circuit no longer decides the settle (H81)`);
       }
       if (during.moved > ON_SPAWN) {
         problems.push(`over the ${settle} frames ${HELPER}() settles the Warden translated ${during.moved.toFixed(6)}m, against ${ON_SPAWN}m - a settle that outlasts the turn puts a walking Warden in twelve checks' frames, and the frames it takes are map data (${during.firstMove || `>${FIRST_MOVE_CAP}`} after the settle here)`);
@@ -479,7 +487,7 @@ export function register(debugTools) {
         detail: problems.length === 0
           ? `ai: ${flag} x${passed.length} (call, restore); sentence: ${SAYS[flag].reading}, read as prose off its ${cut.doc.length}-char comment; `
             + `aiEnabled=${afterCall} then ${afterRestore}; Shade ${shadeDrift.toFixed(3)}m off spawn; `
-            + `the clock drew node ${liveCircuit} and left the Warden ${wardenSettled.toFixed(6)}m off spawn, which is the ${accounts && accounts.moved > ON_SPAWN ? 'walking' : 'turning'} class of ${classes.nodes.length} (H80); `
+            + `its named seed ${SETTLE_SEED} drew node ${liveCircuit} and left the Warden ${wardenSettled.toFixed(6)}m off spawn facing ${wardenFacing.toFixed(4)}, which is the pose ${dominant.seeds} of ${classes.scanned} circuits share (H81, of ${classes.poses.length}); `
             + `at seed ${settleSeed}, over its ${settle} settling frames the Warden turned ${during.turned.toFixed(4)}rad, translated ${during.moved.toFixed(6)}m, first moved ${during.firstMove || `>${FIRST_MOVE_CAP}`} frames later (H73); `
             + `over ${WALK_FRAMES} frames nothing held it moved ${did(driven)} with the AI on, ${did(inert)} off`
           : problems.join('; '),

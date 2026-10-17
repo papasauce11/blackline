@@ -98,14 +98,18 @@ const REGISTRAR = /\bregisterAutoTest\(/g;
  * and leaves all three **buffers byte-identical**, because what moves the drawn
  * body is `updateVisual` and stepping the simulation is not that.
  *
- * **And H80 named the world those twelve pictures are of.** The grab advances
- * nothing, so the world at it is the world `quiesce()` returned - and that
- * world is the Warden on its spawn for twenty of the twenty-one circuits the
- * clock can draw, and **0.368m (plant) or 0.837m (yard) off it** for the
- * twenty-first, about one run in twenty-four. `tests/settlecircuit.js` has the
- * census. So the twelve are safe in the sense this file means - the picture is
- * the one the helper left - and the thing the helper left is not always the
- * spawn their prose assumes.
+ * **H80 named the world those twelve pictures are of, and H81 pinned it.** The
+ * grab advances nothing, so the world at it is the world `quiesce()` returned -
+ * and that world used to be whichever circuit the clock drew: the Warden on its
+ * spawn for twenty of the twenty-one, and 0.368m (plant) or 0.837m (yard) off
+ * it for the twenty-first, about one run in twenty-four. H81 measured the same
+ * population in the currency a photograph is actually in, the **pose**, and
+ * found a third class the distance census could not see - a yard circuit on its
+ * spawn to the micrometre and facing 2.27rad the other way, 22 seeds in 400. So
+ * `quiesce()` names a seed, every one of these sites gets one circuit and one
+ * pose, and `tests/settlecircuit.js` holds that seed in the class the most
+ * circuits share. The twelve are safe in the sense this file means, and the
+ * thing the helper leaves is now the same thing every run.
  *
  * **The names are a list and not a regex literal, and that is the point rather
  * than a style.** `codeOf` strips a string and leaves a regex literal where it

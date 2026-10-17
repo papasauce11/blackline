@@ -265,21 +265,57 @@ export function erode(source, width, height) {
 }
 
 /**
+ * The seed both matches below are opened at (H81).
+ *
+ * **Why there is one at all.** Until H81 this helper asked `initMatch` for no
+ * seed, as every caller does, so `deriveSeed()` handed it `Date.now()` and the
+ * patrol circuit was redrawn from the clock on each of its thirty calls. The
+ * circuit is the only thing a settle depends on - H77 measured that nothing
+ * else draws from the simulation's stream during one - and the settle is where
+ * twelve of this helper's sites take their photograph without stepping a frame
+ * of their own. So those twelve pictures were of whichever circuit the clock
+ * drew.
+ *
+ * **What that was worth, measured over 400 seeds a map.** The settle has two
+ * end poses on the plant and **three** on the yard: 383/400 of the plant's
+ * circuits leave the Warden at 0.000000m and yaw 1.2229 and 17/400 at
+ * 0.368476m and yaw 3.4895; 363/400 of the yard's leave it at 0.000000m and
+ * yaw 2.0083, **22/400 at 0.000000m and yaw 4.2749** and 15/400 at 0.836667m
+ * and yaw 3.1850. The middle one is the finding: it is on its spawn to the
+ * micrometre and facing **2.27 radians** the other way, so H80's census - which
+ * grouped by distance, with the turn taken as an absolute value - counted it
+ * with the majority. One yard run in eighteen photographed a Warden turned 130
+ * degrees from the one the other seventeen photographed, and nothing could see
+ * it.
+ *
+ * **The seed is in the dominant class on both maps and is held there.**
+ * `the-settle-is-a-function-of-the-circuit-and-the-helper-names-the-seed`
+ * drives the settle once per seed, groups by **pose** rather than by distance,
+ * and reds if this constant is not in the biggest group - so a map whose
+ * waypoints move cannot leave the helper pinned to an outlier in silence. The
+ * value itself is arbitrary and the clause is what makes it safe; it is the
+ * date the measurement was taken.
+ */
+export const SETTLE_SEED = 20261016;
+
+/**
  * Put both actors back on their spawns in a **live** match - it passes
- * `ai: true` - with no menu, nothing paused, every held key dropped and twenty
- * frames of settling, so a measurement is of the thing being measured and not
- * of a half-finished one. The restore it returns starts another the same way.
+ * `ai: true` - at `SETTLE_SEED`, with no menu, nothing paused, every held key
+ * dropped and twenty frames of settling, so a measurement is of the thing being
+ * measured and not of a half-finished one. The restore it returns starts
+ * another the same way, at the same seed.
  *
  * **The AI is running throughout, and until H71 this sentence said it was
  * not.** The Warden hunts on its own frames while a check measures. That is
- * harmless to a reading taken off one drawn frame - measured, the Warden is
- * **0.000m** off its spawn at the moment this returns - and the reason is a
- * **turn** rather than a delay (H73): the AI is awake on the first frame and a
- * patrol's first act is to face its first route node, so the body rotates
- * 0.0567 rad a frame and translates nothing until it is round. The angle is map
- * data, so the headroom is too: after this returns the Warden first moves on
- * frame 4 or 5 on the plant and frame 17 on the yard, which is all the room a
- * caller has before a walking Warden is in its frame. It is **not** harmless to
+ * harmless to a reading taken off one drawn frame - the Warden is **0.000000m**
+ * off its spawn at the moment this returns, and since H81 that is a pinned fact
+ * rather than a 95% one - and the reason is a **turn** rather than a delay
+ * (H73): the AI is awake on the first frame and a patrol's first act is to face
+ * its first route node, so the body rotates 0.0567 rad a frame and translates
+ * nothing until it is round. The angle is map data, so the headroom is too:
+ * after this returns the Warden first moves on frame 4 or 5 on the plant and
+ * frame 17 on the yard, which is all the room a caller has before a walking
+ * Warden is in its frame. It is **not** harmless to
  * anything driven for longer: H57 is what the old wording cost,
  * where `strikerepeat.js` inherited this restore, walked the Shade down a lit
  * lane and had her shot dead in the middle of a strike. A check that needs the
@@ -294,14 +330,14 @@ export function erode(source, width, height) {
  * the call cannot drift apart again.
  */
 export function quiesce(h) {
-  h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+  h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: SETTLE_SEED });
   h.menu.hide();
   h.setPaused(false);
   h.input.clearAll();
   h.stepFrames(20);
   return () => {
     h.input.clearAll();
-    h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+    h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed: SETTLE_SEED });
     h.menu.hide();
   };
 }

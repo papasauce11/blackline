@@ -1,7 +1,8 @@
 /**
  * BLACKLINE - tests/settlecircuit.js
  *
- * AUTO suite (H80): which patrol circuit the settle got, and who chose it.
+ * AUTO suite (H80, H81): which patrol circuit the settle got, who chose it,
+ * and which **pose** that leaves the Warden in.
  *
  * **The flake H74's verify found, and what it was not.** One of two yard runs
  * read *"over the 20 frames `quiesce()` settles the Warden translated
@@ -36,23 +37,40 @@
  * the four runs of a full verify the check reds about one time in seven -
  * against the one failure in twelve runs H74 counted, which is the same number.
  *
- * **Which makes this a census and not a repair.** There is nothing wrong with
+ * **Which made this a census and not a repair.** There is nothing wrong with
  * an unseeded match drawing a fresh circuit; that is what a new match should
  * do. What was wrong is a clause whose premise - *the Warden turns before it
  * steps, so the settle leaves it on its spawn* - was true of twenty circuits
  * out of twenty-one and was never established by the check that rested on it.
- * `tests/quiesce.js` now names the seed its settle is measured at and takes
- * that premise from here, and this module holds the two things the premise
- * rests on: that a settle reading is a function of the circuit's first node and
- * of nothing else, and that there is a circuit for which the Warden does not
- * leave its spawn at all.
  *
- * **What is left over, and it is bigger than this job.** Twelve of `quiesce()`'s
- * sites grab a frame without stepping one (H74), which is to say at the end of
- * exactly this settle - so in about one run in twenty-four those twelve pixel
- * readings are taken with the Warden 0.37m or 0.84m off the spawn their prose
- * assumes. That is a second channel into the band H74 measured and could not
- * attribute, and it is the one H77 was queued to look for. It is in the queue.
+ * **H81 took the other half, and found that distance was the wrong currency.**
+ * The settle's reading above is a distance and an *absolute* turn, so a Warden
+ * that turned 1.1333 rad left and one that turned 1.1333 rad right are one row
+ * in that table and two different bodies in a photograph. Grouped by **pose** -
+ * the distance and the **end yaw** - over 400 seeds a map, the settle has two
+ * classes on the plant and **three** on the yard:
+ *
+ *   plant  383/400 at 0.000000m, yaw 1.2229 - 17/400 at 0.368476m, yaw 3.4895
+ *   yard   363/400 at 0.000000m, yaw 2.0083 - **22/400 at 0.000000m, yaw
+ *          4.2749** - 15/400 at 0.836667m, yaw 3.1850
+ *
+ * The middle yard row is the finding. It is on its spawn to the micrometre and
+ * facing **2.27 radians** the other way, so the distance census above counted
+ * it with the majority and the check passed. **One yard run in eighteen
+ * photographed a Warden turned 130 degrees from the one the other seventeen
+ * photographed**, and no instrument in this suite could see it - H80's least of
+ * all, which is the point: a census is only as fine as the quantity it groups
+ * by, and the first draft of this one grouped by the quantity the flake had
+ * happened to move.
+ *
+ * **So the helper names a seed** (`SETTLE_SEED` in `pixels.js`, H81), which
+ * pins all thirty of its callers to one circuit and therefore to one pose. The
+ * seed is in the dominant class on both maps, which is the class 91% and 96% of
+ * runs were already getting, so the change to what thirty checks measure is the
+ * removal of the outlier rather than a move. **That constant is what this
+ * module now holds**: it is read back off `pixels.js`, its pose is driven here,
+ * and it must be the biggest group - a map whose waypoints move cannot leave
+ * the helper pinned to an outlier in silence.
  *
  * Nothing here renders a frame, and nothing is held: the AI is the only thing
  * driving. Registered from tests/index.js; nothing imports main.js (Section 3.1).
@@ -60,6 +78,7 @@
 
 import { CONFIG } from '../config.js';
 import { codeOf } from './sourcetext.js';
+import { SETTLE_SEED } from './pixels.js';
 
 /**
  * The helper this censuses the settle of, and the file it lives in. Named here
@@ -107,6 +126,20 @@ const flat = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const turn = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
 
 /**
+ * How finely a pose is compared (H81). Four places of a metre and of a radian,
+ * which is a tenth of a millimetre and about two hundredths of a degree - far
+ * below anything a photograph could resolve and far above the float noise two
+ * runs of one circuit differ by, which is nothing: the same seed settles to the
+ * same bits.
+ *
+ * **The yaw is the whole reason this exists.** Grouping by distance alone put
+ * the yard's node 0 - on its spawn, facing 2.27 rad away - in with the
+ * majority, and that is what H81 found.
+ */
+const POSE_PLACES = 4;
+const poseOf = (warden) => `${warden.position.x.toFixed(POSE_PLACES)},${warden.position.z.toFixed(POSE_PLACES)},${warden.yaw.toFixed(POSE_PLACES)}`;
+
+/**
  * Drive the settle once per seed and group the readings by the node the circuit
  * starts with.
  *
@@ -119,18 +152,34 @@ const turn = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
  * @returns {{scanned: number, nodes: object[], onSpawn: object[],
  *   offSpawn: object[], disagreed: object[], seedsOffSpawn: number}}
  */
+export function settleOnce(h, settle, seed) {
+  h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed });
+  h.menu.hide();
+  h.setPaused(false);
+  h.input.clearAll();
+  const node = h.wardenAI._circuit[0];
+  const from = { x: h.warden.position.x, z: h.warden.position.z, yaw: h.warden.yaw };
+  h.stepFrames(settle);
+  return {
+    node,
+    moved: flat(h.warden.position, from),
+    turned: turn(h.warden.yaw, from.yaw),
+    yaw: h.warden.yaw,
+    pose: poseOf(h.warden),
+  };
+}
+
 export function settleClasses(h, settle) {
   const byNode = new Map();
+  const byPose = new Map();
   for (let seed = 1; seed <= SCAN_SEEDS; seed++) {
-    h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true, seed });
-    h.menu.hide();
-    h.setPaused(false);
-    h.input.clearAll();
-    const node = h.wardenAI._circuit[0];
-    const from = { x: h.warden.position.x, z: h.warden.position.z, yaw: h.warden.yaw };
-    h.stepFrames(settle);
-    const moved = flat(h.warden.position, from);
-    const turned = turn(h.warden.yaw, from.yaw);
+    const read = settleOnce(h, settle, seed);
+    const { node, moved, turned } = read;
+    // H81: and the group that matters to a photograph, which is the body and
+    // not the distance it is from somewhere.
+    const sharing = byPose.get(read.pose);
+    if (sharing) { sharing.seeds++; sharing.nodes.add(node); }
+    else byPose.set(read.pose, { pose: read.pose, moved, yaw: read.yaw, seeds: 1, nodes: new Set([node]), first: seed });
     const seen = byNode.get(node);
     if (!seen) {
       byNode.set(node, { node, moved, turned, seeds: [seed], disagreed: null });
@@ -145,9 +194,13 @@ export function settleClasses(h, settle) {
   }
   const nodes = [...byNode.values()];
   const offSpawn = nodes.filter((n) => n.moved > ON_SPAWN);
+  const poses = [...byPose.values()]
+    .map((p) => ({ ...p, nodes: [...p.nodes].sort((a, b) => a - b) }))
+    .sort((a, b) => b.seeds - a.seeds);
   return {
     scanned: SCAN_SEEDS,
     nodes,
+    poses,
     onSpawn: nodes.filter((n) => n.moved <= ON_SPAWN),
     offSpawn,
     disagreed: nodes.filter((n) => n.disagreed),
@@ -156,14 +209,30 @@ export function settleClasses(h, settle) {
 }
 
 /**
- * The circuit a caller would want to be measuring in: one whose settle leaves
- * the Warden on its spawn, which is the premise twelve of `quiesce()`'s sites
- * and one of `quiesce.js`'s clauses rest on. Null when no scanned circuit has
- * that property, which is a red where it is asked for and not a fallback.
+ * The pose the most circuits settle into (H81) - the one a caller that names a
+ * seed should be pinned to, because it is the picture the overwhelming majority
+ * of unseeded runs were already taking. Null when the scan found none, which is
+ * a red where it is asked for and never a fallback.
  */
-export function aCircuitThatOnlyTurns(classes) {
-  return classes.onSpawn.length ? classes.onSpawn[0] : null;
+export function dominantPose(classes) {
+  return classes.poses.length ? classes.poses[0] : null;
 }
+
+/**
+ * How many times the helper's body must pass the seed (H81): **two**, the call
+ * and the restore, for H57's reason - the restore is the match the next check
+ * inherits, so a helper that pinned the way in and left the way out to the
+ * clock would hand half its callers an unpinned circuit.
+ *
+ * The constant itself is **imported** rather than grepped, so the clause below
+ * measures the pose of the value the helper really uses and not of a copy. What
+ * cannot be imported is whether the body passes it, which is what this is for:
+ * an exported constant nothing passes would satisfy an import and leave thirty
+ * callers on the clock.
+ */
+const SEED_NAME = 'SETTLE_SEED';
+const PASSES_THE_SEED = new RegExp(`\\bseed:\\s*${SEED_NAME}\\b`, 'g');
+const PASSES_IT_TIMES = 2;
 
 /**
  * The frames the helper settles, off its own source. Returns the count, or the
@@ -176,16 +245,18 @@ export async function settleFrames() {
   const at = source.indexOf(`export function ${HELPER}(`);
   if (at === -1) return { error: `${HELPER_FILE} no longer exports a function called ${HELPER}(), and this census is about what its settle does` };
   const close = source.indexOf('\n}', at);
-  const found = SETTLES.exec(codeOf(source.slice(at, close === -1 ? source.length : close + 2)));
+  const body = codeOf(source.slice(at, close === -1 ? source.length : close + 2));
+  const found = SETTLES.exec(body);
   if (!found) return { error: `${HELPER}()'s body no longer steps a fixed number of frames, so there is no settle to census (H73)` };
-  return { frames: Number(found[1]) };
+  PASSES_THE_SEED.lastIndex = 0;
+  return { frames: Number(found[1]), passesSeed: (body.match(PASSES_THE_SEED) || []).length };
 }
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
-    id: 'the-settle-is-a-function-of-the-circuit-and-the-clock-draws-the-circuit',
-    spec: 'Section 17.1 / H73, H80',
-    name: 'The frames quiesce() settles leave the Warden somewhere decided by the node its patrol circuit starts with and by nothing else, there is a circuit for which it does not leave its spawn at all, and there is one for which it does',
+    id: 'the-settle-is-a-function-of-the-circuit-and-the-helper-names-the-seed',
+    spec: 'Section 17.1 / H73, H80, H81',
+    name: 'The frames quiesce() settles leave the Warden in a pose decided by the node its patrol circuit starts with and by nothing else, the circuits fall into more than one pose, and the seed the helper names is in the one the most of them share',
     run: async (h) => {
       const problems = [];
       // The settle, off the helper's own source, so a helper that grew it past
@@ -222,6 +293,39 @@ export function register(debugTools) {
         problems.push(`${classes.scanned} seeds drew ${classes.nodes.length} distinct first node(s), so the seed is not reaching the shuffle and every reading below is one circuit over again`);
       }
 
+      // ------------------------------------------------------------------
+      // 3. H81: the pose, which is the currency a photograph is in. Grouped
+      //    by where the body ended and which way it faces, because the
+      //    reading above takes the turn's absolute value and so cannot tell
+      //    a Warden that turned left from one that turned right - which is
+      //    how the yard's node 0, on its spawn and facing 2.27rad away, sat
+      //    inside the majority for a whole job.
+      // ------------------------------------------------------------------
+      const dominant = dominantPose(classes);
+      if (!dominant) {
+        return { pass: false, detail: `${classes.scanned} seeds produced no settle pose at all, so this scan is driving nothing` };
+      }
+      if (classes.poses.length < 2) {
+        problems.push(`every circuit of ${classes.scanned} settles into the same pose, and both maps have at least two - so either the walk gate has moved, a map's Warden spawn no longer faces a waypoint, or this census has stopped reading the yaw (H81's whole subject)`);
+      }
+      if (dominant.seeds * 2 <= classes.scanned) {
+        problems.push(`the most common settle pose is only ${dominant.seeds} of ${classes.scanned} seeds, so there is no majority for ${HELPER}()'s seed to be pinned to and naming one picks a minority picture`);
+      }
+
+      // ------------------------------------------------------------------
+      // 4. And the seed itself. The constant is imported, so this drives the
+      //    pose of the value the helper really uses; what the import cannot
+      //    say is that the body passes it, which `settleFrames` reads back.
+      // ------------------------------------------------------------------
+      if (read.passesSeed !== PASSES_IT_TIMES) {
+        problems.push(`${HELPER}()'s body passes seed: ${SEED_NAME} ${read.passesSeed} time(s) and this census wants ${PASSES_IT_TIMES} - the call and the restore; the restore is the match the next check inherits (H57), so half of thirty callers would be back on the clock`);
+      }
+      const named = settleOnce(h, settle, SETTLE_SEED);
+      if (named.pose !== dominant.pose) {
+        const where = classes.poses.find((c) => c.pose === named.pose);
+        problems.push(`${HELPER}() names seed ${SETTLE_SEED}, which draws node ${named.node} and settles to ${named.moved.toFixed(6)}m/yaw ${named.yaw.toFixed(4)} - a pose ${where ? `${where.seeds} of ${classes.scanned}` : 'no'} scanned circuits share, against the ${dominant.seeds} that share ${dominant.moved.toFixed(6)}m/yaw ${dominant.yaw.toFixed(4)} - so thirty callers are pinned to a picture the map does not usually take (H81)`);
+      }
+
       // The scan leaves the last seed's match up, so leave the run in the state
       // every check after a pixel check already inherits: a live match on
       // whatever seed the clock is on now.
@@ -229,13 +333,14 @@ export function register(debugTools) {
       h.menu.hide();
 
       const worst = classes.offSpawn.reduce((far, n) => (n.moved > far ? n.moved : far), 0);
-      const nodes = classes.offSpawn.map((n) => `${n.node} (${n.moved.toFixed(6)}m, ${n.turned.toFixed(4)}rad)`).join(', ');
+      const poses = classes.poses.map((c) => `${c.seeds}x ${c.moved.toFixed(6)}m/yaw ${c.yaw.toFixed(4)} (node${c.nodes.length > 1 ? 's' : ''} ${c.nodes.length > 3 ? `${c.nodes[0]}..${c.nodes[c.nodes.length - 1]}` : c.nodes.join(', ')})`).join('; ');
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${classes.scanned} seeds drew ${classes.nodes.length} distinct first nodes and every node settles to one reading; `
-            + `${classes.onSpawn.length} node(s) leave the Warden on its spawn over the ${settle} frames, ${classes.offSpawn.length} do not: ${nodes}; `
-            + `${classes.seedsOffSpawn}/${classes.scanned} seeds draw one of those, worst ${worst.toFixed(6)}m off spawn - the clock picks the seed, so that is the rate at which twelve one-frame sites grab a Warden off its mark (H77)`
+            + `${classes.poses.length} pose(s) over the ${settle} frames: ${poses}; `
+            + `${classes.onSpawn.length} node(s) on spawn and ${classes.offSpawn.length} not, worst ${worst.toFixed(6)}m; `
+            + `${HELPER}() names ${SETTLE_SEED} (x${read.passesSeed}), drawing node ${named.node} into the ${dominant.seeds}/${classes.scanned} pose, so its thirty callers all photograph that one (H81)`
           : problems.join('; '),
       };
     },

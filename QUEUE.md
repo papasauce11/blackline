@@ -646,33 +646,9 @@ one setting only Josh can click; everything else here proceeds.
   patterns deep because a flag read only through its reader never appears as
   `args.<name>`. 27 flags across 5 named files to **34 across 9 derived** ones.
 
-- [ ] **H81 (S)** Should `quiesce()` name a seed? H80 is why the question
-  exists and deliberately did not answer it. The helper asks `initMatch` for no
-  seed, as every caller does, so `deriveSeed()` hands it `Date.now()` and the
-  patrol circuit is redrawn from the clock on every one of its thirty calls.
-  H80's census is what that costs: the settle has exactly two readings a map,
-  and in **15 of 400 seeds on the yard and 17 of 400 on the plant** the circuit
-  starts with node 1 - the node each Warden spawn already faces - and the
-  Warden walks **0.837m** or **0.368m** off its mark instead of turning on the
-  spot. **Twelve sites grab a frame without stepping one** (H74), which is to
-  say exactly there, so one run in twenty-four those twelve pixel readings are
-  taken with a Warden a third of a metre to five-sixths of a metre out of
-  position. A seed in the helper would make all thirty callers reproducible in
-  one line. **It is not a one-line job, which is why it is its own.** It
-  changes what thirty checks measure, so every pixel floor in that
-  neighbourhood wants re-reading against the pinned circuit, and a floor set
-  just under a reading taken in the *other* class would go red the day it
-  landed. It also answers a question H79 is holding: a reading pinned to a
-  circuit is one less channel in the band, and the breath is the other.
-  **Read H80's PROGRESS entry first** - the 400-seed scan it uses runs in
-  205ms and is the instrument this job wants too. The alternative, and it is a
-  real one, is to leave the helper alone and have the twelve sites that grab
-  one frame assert where the Warden is at the grab, which is H76's shape and
-  costs twelve lines rather than a re-measure.
-  *done-when:* either the helper names a seed and every pixel floor in its
-  thirty callers is re-read and re-recorded against it, or the queue carries
-  the reason it should not and the twelve one-frame sites say where the Warden
-  was instead; the census in `tests/settlecircuit.js` still green either way.
+- [x] **H81 (S)** Should `quiesce()` name a seed? Yes, and the measurement
+  that said so found a defect nobody was looking for. - done 2026-10-16,
+  under Done.
 
 - [ ] **H59 (S)** A strike's **success** is not a function of its argument
   either, and a skipped state is a check measuring eleven things while
@@ -992,6 +968,42 @@ one setting only Josh can click; everything else here proceeds.
   a fifth `lookRng.unit()` added to `effects.js` reds the census by name
   rather than by count.
 
+- [ ] **H88 (S)** An absolute value that hides a sign is how H81's class stayed
+  invisible for a job, and `turn()` is not the only reading in this suite that
+  takes one. `Math.abs` over a signed quantity is right when the clause is
+  *how far*, and wrong the moment the reading is **grouped** or **compared
+  across cases**, because two opposite answers become one. H81 is the worked
+  example and it cost a whole job: `tests/settlecircuit.js` grouped the settle
+  by `Math.abs(...)` of a yaw difference and so put a Warden facing 2.27rad
+  away in with the majority. The census this job wants is of every reading in
+  `src/tests/` that takes an absolute value of a signed quantity, split by
+  whether the clause that consumes it is a magnitude (fine, and most are) or a
+  grouping or a comparison across cases (not fine, and that is the list). H79's
+  own first draft is the other instance on record - it ate a leading minus and
+  read one quantity either side of zero as two different sentences - so there
+  are at least two and nobody has looked for a third.
+  *done-when:* the census is in `PROGRESS.md` for both maps, a clause holds
+  that every grouping or cross-case comparison in it is on a signed quantity,
+  and a `Math.abs` put back into one of them reds that clause by name.
+
+- [ ] **H89 (S)** A pinned instrument stops sampling, and H81 pinned one. Since
+  H81 the thirty `quiesce()` callers all open the same circuit, so the twelve
+  sites that photograph the settle without stepping a frame will now **never**
+  take the minority picture - 17/400 of the plant's circuits and 37/400 of the
+  yard's, including the yard class that is on its spawn facing 130 degrees away.
+  That picture is a real state of this game and nothing looks at it any more;
+  before H81 it was looked at 4% and 9% of the time by accident, which is worse
+  as an instrument and better than never. The cheap shape is a check rather than
+  a flag: drive the two or three sites with the widest pixel margin at an
+  **outlier** seed taken from `settlecircuit.js`'s pose census, and assert the
+  reading is still inside the floor it is held to - which says the floors are
+  about the Shade and the scene rather than about where the Warden happened to
+  stand. The seed must come from the census and never be written down, for the
+  reason H80 and H81 both give. *done-when:* at least one check reads a pixel
+  floor's own measurement at a non-dominant pose on each map and holds it to the
+  same floor, the numbers are in `PROGRESS.md`, and pinning that check to the
+  dominant pose instead reds it as a census that has stopped varying.
+
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -1245,6 +1257,43 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H81** Should `quiesce()` name a seed? Yes, and the measurement that said
+  so found a defect nobody was looking for. H80 censused the settle by
+  **distance** and found two classes a map; H81 censused it by **pose** - where
+  the body ended *and which way it faces* - because H80's turn is an absolute
+  value, so a Warden that turned 1.1333rad left and one that turned 1.1333rad
+  right are one row in that table and two different bodies in a photograph.
+  Over 400 seeds a map the plant has two poses (383 at 0.000000m/yaw 1.2229, 17
+  at 0.368476m/yaw 3.4895) and **the yard has three**: 363 at 0.000000m/yaw
+  2.0083, 15 at 0.836667m/yaw 3.1850, and **22 at 0.000000m/yaw 4.2749** - on
+  its spawn to the micrometre and facing **130 degrees the other way**, which
+  H80's census counted with the majority. **One yard run in eighteen
+  photographed a Warden a third of a turn from the one the other seventeen
+  photographed and nothing in this suite could see it.** A census is only as
+  fine as the quantity it groups by, and H80's grouped by the quantity its
+  flake had happened to move. **H77 made the decision cheap**: the settle
+  depends on the seed only through the seeded stream, and H77 had just
+  enumerated every draw from it - over twenty frames with no engagement the
+  only one that fires is the circuit shuffle, so the circuit is the whole of
+  what a seed pins. `SETTLE_SEED = 20261016` in `pixels.js`, passed by the call
+  **and the restore** (H57's reason, held as a clause), landing in the dominant
+  class on both maps; `settlecircuit.js` drives 48 seeds, groups by pose and
+  reds if the constant is not in the biggest group, so a map whose waypoints
+  move cannot leave thirty callers on an outlier in silence. **A removal, not a
+  move**: the dominant class is the picture 96% (plant) and 91% (yard) of
+  unseeded runs already took, so no floor needed re-setting and none was
+  touched. Two breaks, and the first is the finding: `SETTLE_SEED = 4` - the
+  yard's invisible class - reds the pose clause while **the first draft of
+  `quiesce.js`'s bar stayed green**, because it compared the distance and the
+  distance is zero in both; that is the old defect reproduced inside the fix,
+  caught by its own break, and `quiesce.js`'s bar is a pose now. Verify four
+  runs exit 0, nothing red or flaky, and **H79's drift fell 33 to 32 on the
+  plant and 36 to 34 on the yard**, with `quiesce-says-what-it-does-about-the-
+  ai` leaving the list on both. The twelve one-frame sites did not leave it,
+  which is right: their drift is the breath, every run. All 31 caller ids
+  re-read with `--details`, 27 green a map, every reading inside its H79 band.
+  - done 2026-10-16, COMMIT_HASH
 
 - **H77** The rng is a candidate channel, and it turned out to be real and
   almost never open. H74 proposed a live AI's draws as the reason its pixel

@@ -246,7 +246,7 @@ rule.
 picks one it has shown only turns, and takes its reading in that one — so the
 thing it assumes is something it has established rather than something the clock
 handed it. A new test keeps that census honest:
-`the-settle-is-a-function-of-the-circuit-and-the-clock-draws-the-circuit`
+`the-settle-is-a-function-of-the-circuit-and-the-helper-names-the-seed`
 drives the settle once per route, requires every route to settle the same way
 every time it is drawn, and requires both kinds of route to still exist.
 Breaking the Warden's turn-before-step on purpose reds both of them with the
@@ -254,6 +254,35 @@ right sentence.
 
 **Nothing for you to do.** There is one note in *Known issues* below about the
 photographs this affects.
+
+### The route the Warden takes is now the same one every run, and finding that out found a worse bug (H81, 2026-10-16)
+
+**What this was.** The note above fixed the *test* and left the twelve
+photographs alone: the Warden's patrol route was still drawn from the clock
+every time the tests set the world up, so those twelve pictures were of
+whichever route it happened to get. This job pinned it, and the measurement
+that justified pinning it turned up something the note above got wrong.
+
+**The bug.** The note above says the settling leaves the Warden on its mark for
+twenty routes out of twenty-one. That was measured as a **distance** - how far
+the Warden ended from where it started - and a distance cannot tell you which
+way a body is facing. Measured again as a **pose**, over four hundred routes a
+map, the yard has a third case nobody had seen: a route that leaves the Warden
+on its mark to a thousandth of a millimetre and **facing 130 degrees the other
+way**. It is 22 of 400, so about **one yard run in eighteen** took those twelve
+photographs of a Warden turned a third of a circle from the one the other
+seventeen photographed, and every test passed, because the only thing being
+looked at was the distance - which was zero in both.
+
+**What was done.** The setup now names a fixed route, chosen to be the one the
+overwhelming majority of runs were already getting - 96% on the plant, 91% on
+the yard - so this is the removal of the odd run out rather than a change to
+what the tests measure. A test holds that choice honest: if a map's waypoints
+ever move and the named route stops being the common one, it goes red and says
+so. Every one of the thirty-one tests involved was re-read afterwards and not
+one number needed changing.
+
+**What only eyes can judge:** nothing new. **Nothing for you to do.**
 
 ### Fourteen tests were photographing a Warden that was free to walk off, and their numbers wander more than I knew (H74, 2026-10-15)
 
@@ -2212,17 +2241,18 @@ now. What is not, and why:
   about the gunfight** - where the Warden really is drawing, for every burst
   and every shot, which is the design. **Nothing for you to do** - a note
   about the instrument.
-- **Twelve of the photographs are taken at the one moment the Warden might
-  have walked** (H80, 2026-10-15). Twelve tests take their picture at the end of
-  the settling third of a second described above, without advancing the round
-  first, so the Warden in those twelve photographs is wherever that settle left
-  it. In about **one run in twenty-four** the clock's shuffle picks the route
-  that sends it walking, and those photographs are then taken with the Warden
-  0.37m (plant) or 0.84m (yard) off the mark their descriptions assume. No test
-  is anywhere near failing on it, and nothing in the game is wrong - but it is a
-  second reason those pixel counts wander between runs, on top of the breathing
-  in the note below, and it is the one a job in the queue was already looking
-  for. **Nothing for you to do** - a note about the instrument.
+- **Twelve of the photographs used to be taken at the one moment the Warden
+  might have walked** (H80, 2026-10-15; **closed by H81, 2026-10-16**). Twelve
+  tests take their picture at the end of the settling third of a second
+  described above, without advancing the round first, so the Warden in those
+  twelve photographs was wherever that settle left it - and the route was the
+  clock's, so about one run in twenty-four it had walked 0.37m (plant) or 0.84m
+  (yard) off the mark their descriptions assume. H81 found that the real rate
+  was worse than that, because a route that leaves the Warden on its mark
+  **facing the other way** had been counted as harmless, and then pinned the
+  route so all twelve take the same picture every run. No test was ever near
+  failing on it and nothing in the game was wrong. **Nothing for you to do** -
+  a note about the instrument, kept because the next one below is still open.
 - **The suite checks that a test agrees with itself, but not that its numbers
   do** (H74, 2026-10-15). Every test runs twice on each map and the suite
   refuses a run where any test *changes its mind*. It does not look at the

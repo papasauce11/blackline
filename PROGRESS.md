@@ -17943,3 +17943,123 @@ The one failure a map is the bench-only sweep the gate drops by design (H11).
 (H86). And three rows of the census cannot be told apart from each other - the
 ragdoll's three spins are `unit` with `when` lines a letter apart - so a reorder
 is a change the multiset comparison cannot see (H87).
+
+## H81 — the class a census could not see, because it grouped by the wrong quantity
+
+**Built.** `SETTLE_SEED` in `tests/pixels.js`, passed by `quiesce()` on the way
+in and in the restore it hands back; `tests/settlecircuit.js` groups the settle
+by **pose** rather than by distance, exports `dominantPose`, holds the helper's
+constant in the biggest class and reads back that the body really passes it, and
+is renamed
+`the-settle-is-a-function-of-the-circuit-and-the-helper-names-the-seed`;
+`tests/quiesce.js` takes its settle seed from the helper instead of choosing one
+and holds the live call to an exact pose; `aCircuitThatOnlyTurns` is gone, being
+a distance test the pose census supersedes. `quiescesites.js`'s header and
+`PLAYTEST.md` follow. No count moved: 237/217, 191 modules.
+
+**The question, as H80 left it.** `quiesce()` asked `initMatch` for no seed, as
+every caller does, so `deriveSeed()` handed it `Date.now()` and the patrol
+circuit was redrawn from the clock on each of its thirty calls. Twelve of its
+sites photograph the world it returns **without stepping a frame of their own**
+(H74), so those twelve pictures were of whichever circuit the clock drew. H80
+measured that population by **distance** and found two readings a map: on its
+spawn for twenty circuits of twenty-one, and 0.368m (plant) or 0.837m (yard) off
+it for the twenty-first. H81 was queued to decide whether to pin it, and warned
+that pinning changes what thirty checks measure.
+
+**H77 is what made the decision cheap.** The settle depends on the seed only
+through things the seeded stream feeds, and H77 had just enumerated those: nine
+call sites, every one a decision, and over a span of twenty frames with no
+engagement the only one that fires is the circuit shuffle. So *the circuit is
+the whole of what a seed would pin* - not a hypothesis, a census - and the
+question reduces to what the circuit is worth to a photograph.
+
+**And the answer is that distance was the wrong currency.** H80's reading is a
+distance and an **absolute** turn, so a Warden that turned 1.1333 rad left and
+one that turned 1.1333 rad right are one row in that table and two different
+bodies in a picture. Grouped by **pose** - where the body ended and which way it
+faces - over 400 seeds a map:
+
+| | plant | yard |
+|---|---|---|
+| dominant | 383/400 at 0.000000m, yaw 1.2229 | 363/400 at 0.000000m, yaw 2.0083 |
+| second | 17/400 at 0.368476m, yaw 3.4895 | **22/400 at 0.000000m, yaw 4.2749** |
+| third | — | 15/400 at 0.836667m, yaw 3.1850 |
+
+**The yard's middle row is the finding.** It is on its spawn to the micrometre
+and facing **2.27 radians - 130 degrees - the other way**, so H80's census
+counted it with the majority and every clause resting on that census passed.
+**One yard run in eighteen photographed a Warden turned 130 degrees from the one
+the other seventeen photographed, and no instrument in this suite could see it.**
+H80's least of all, which is the lesson: *a census is only as fine as the
+quantity it groups by*, and H80's grouped by the quantity its flake had happened
+to move. The flake was a distance, so the census was a distance, so the class
+that shares a distance was invisible.
+
+**Pinned, and the pin is held rather than asserted.** `quiesce()` names
+`SETTLE_SEED = 20261016`, which draws node 9 on the plant and node 11 on the
+yard - both in the dominant class. The clause does not take that on trust: the
+check drives the settle once per seed over 48, groups by pose, and reds if the
+helper's constant is not in the biggest group, so a map whose waypoints move
+cannot leave thirty callers pinned to an outlier in silence. The 48-seed scan
+reproduces the 400-seed proportions - plant 46/2, yard 43/3/2 - and costs the
+same 25ms it did. A second clause reads the helper's body back and requires the
+seed **twice**, the call and the restore, for H57's reason: the restore is the
+match the next check inherits, so a helper pinned on the way in and left to the
+clock on the way out hands half its callers an unpinned circuit.
+
+**Why this is a removal and not a move.** The dominant class is the picture
+**96% (plant) and 91% (yard)** of unseeded runs were already taking. Pinning to
+it does not change what those runs measured; it deletes the 4% and 9% that
+measured something else. That is the whole argument for choosing the dominant
+class rather than any valid seed, and it is why no floor needed re-setting.
+
+**Two breaks, and the first is the finding in one line.** `SETTLE_SEED = 4` -
+the yard's node 0, on its spawn and facing the other way - reds the new pose
+clause with *"a pose 3 of 48 scanned circuits share, against the 43 that share
+0.000000m/yaw 2.0083"*, and **the first draft of `quiesce.js`'s bar stayed
+green**, because it compared the distance and the distance is 0.000000m in both.
+That is the old defect reproduced inside the fix, caught by its own break, and
+it is why `quiesce.js`'s bar is now a pose too. `SETTLE_SEED` dropped from the
+restore reds the source clause: *"passes seed: SETTLE_SEED 1 time(s) and this
+census wants 2"*.
+
+**Verified.** The H77 verify stood as the gate. Subset of the quiesce family and
+the pixel censuses before the verify, **17/17 both maps**. Verify, four runs,
+exit 0: plant **237 / 1 / 8** (1,123,021ms, 1,133,339ms), yard **217 / 1 / 28**
+(774,517ms, 779,431ms), spreads 1% and 1%, **0 red, 0 flaky, 0 skipped, 0
+unexpectedly green, 0 console errors, 0 context losses, 0 loop frames**, no
+other runner. **No floor moved and none was touched.**
+
+**The evidence that the pin did something, and it is H79's instrument that
+shows it.** Drift fell from **33 to 32 on the plant and 36 to 34 on the yard**,
+and the check that left the list on **both** maps is
+`quiesce-says-what-it-does-about-the-ai` - which used to report the node the
+clock drew and now reports the node its seed draws. (The yard also lost
+`the-last-leg-to-every-legal-plant-is-planned-and-short`, which is H85's coin
+and nothing to do with this.) **The twelve one-frame pixel sites did not leave
+the list**, and that is the right outcome rather than a disappointment: their
+drift is the breath, every run, and the circuit was a second channel open 4% and
+9% of the time. H77 said the rng was a trickle; this says the circuit was a
+trickle too, and both are now closed.
+
+**The readings, re-read against the seed.** All 31 caller ids run with
+`--details`, one run a map, **27 green on each** (four are for the other map):
+`the-warden-and-the-shade-are-told-apart-by-silhouette-at-25m` 351px reference
+and −8 delta on the plant, 347 and −10 on the yard; `a-small-window-...` 1344 x
+756 with a 405px hood on the plant, 389 on the yard;
+`the-shade-reads-as-a-hooded-figure-at-8m-and-25m` 3,063 and 355 against 2,000
+and 150 (plant), 3,002 and 346 (yard); `the-death-camera-frames-the-killer`
+51,015 and 90,184 with the mark held at 0.000000m (H78); `the-outline-...`
+19,736 and 18,870; `the-shade-visibly-dims-with-the-meter` 19,733 and 18,882;
+`smoke-obscures-...` 917,608 and 895,300; `a-look-at-both-figures-...` 27,820
+and 27,554; `the-alarm-fixture-...` 5,280 and 4,818;
+`the-warden-ground-overlay-is-off-by-default` 25,304 and 15,328. Every one of
+them is inside the band H79 measured for it, which is the only standard a
+reading that moves on the breath can be held to.
+
+**What was left.** Two, and the first is the general shape of this job. **H88**:
+an absolute value that hides a sign is how this class stayed invisible, and
+`turn()` is not the only reading in this suite that takes one. **H89**: a pinned
+instrument stops sampling - the twelve one-frame sites will now never photograph
+the minority pose, which is a real picture of this game that nothing looks at.
