@@ -1260,7 +1260,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   comes back reached. Three breaks - a stale declaration and a staged refusal
   red **both** censuses, and the refusal path made to report success reds the
   one that holds the instrument and correctly not the other.
-  - done 2026-10-16, COMMIT_HASH
+  - done 2026-10-16, `37e2270`.
 
 - **H81** Should `quiesce()` name a seed? Yes, and the measurement that said
   so found a defect nobody was looking for. H80 censused the settle by
