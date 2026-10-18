@@ -43,8 +43,10 @@
  * answer is a string literal - and it is why `readerProblems` takes the reader
  * it is instrumenting rather than assuming the strong one.
  *
- * Imported by `audiocontext.js`, `breathcensus.js`, `timedrenders.js` and
- * `positioncensus.js`. A helper rather than a check, so it is not registered
+ * Imported across `src/tests/` - nineteen modules by H68, which collapsed the
+ * last three copies of the weak reader into this one and holds the rule that
+ * no other module may spell either (`tests/readernames.js`). A helper rather
+ * than a check, so it is not registered
  * in `tests/index.js` and is in no census's membership - `pixels.js`,
  * `assertions.js` and `positionreads.js` are the same shape. Nothing here
  * imports main.js (Section 3.1).

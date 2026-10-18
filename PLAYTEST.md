@@ -95,6 +95,47 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### One of the test suite's two readers was going by the other one's name, in four places (H68, 2026-10-18)
+
+**Nothing in the game changed.**
+
+A lot of the tests prove things by reading the project's own source code - "this
+module really does make this call", "the bench really does ask for nine
+samples". There are **two ways** to read source for that, and the difference
+matters:
+
+- **as code**: comments *and* quoted text taken out, for "does this module make
+  this call", because a call inside a string is not a call;
+- **with the comments out only**: quoted text left in, for the clauses whose
+  evidence *is* quoted text - a web address, a command-line flag, the exact
+  wording of an error.
+
+A reader cannot tell you which of the two it is, so the project's rule is that
+the **name** says it: the strong one is called `code`, the weak one
+`uncommented`. Four places were breaking that rule - the weak reader, called
+`code`. Three of them were not even using the shared reader: they had their own
+private copy of it, pasted in, which is why the sweep that was meant to end the
+copies (two jobs ago) had not seen them.
+
+**Nothing was reading the wrong thing** - every one of those clauses wanted the
+weak reader and got it. What was wrong is what the code says to the next person
+to touch it: a clause reading `code(...)` looks like a clause about code, so
+anybody adding one beside it would write it in the wrong register, and the
+reviewer would agree with them.
+
+**Fixed, and held.** The private copies are gone, the four names say which
+reader they are, and a new test,
+`only-sourcetext-owns-the-two-source-readers-and-no-name-claims-the-wrong-one`,
+fails if a module grows a copy of either reader or binds one to a name claiming
+the other. It also fails if its own patterns go blind, because it counts how
+many it finds and holds a floor.
+
+**What is left for you: nothing.** This is housekeeping inside the test suite.
+One side note that might amuse: the strong reader cannot read its own
+definition - it strips quoted text, and its own definition is a pattern *about*
+quoted text, so it erases itself. The new test had to ask the weak reader
+instead.
+
 ### Three quarters of every test run was invisible to the tests (H67, 2026-10-17)
 
 **Nothing in the game changed.**

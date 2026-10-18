@@ -154,6 +154,7 @@ const READERS = [
   { module: 'donedef.js', sites: 3, what: 'three sites: the network ban reads every entry (the one reading the 250 cap genuinely broke), and the 600-line ceiling and the two source bans read the modules that ran' },
   { module: 'pixelfloors.js', sites: 1, what: 'the modules under src/tests/ that ran, for H30 census of pixel floors against the drawing buffer' },
   { module: 'posecriterion.js', sites: 1, what: 'the modules under src/tests/ that ran, for H61 discovery of the proxies that pose a body' },
+  { module: 'readernames.js', sites: 1, what: 'the modules under src/tests/ that ran, for H68 census of a reader copied into a module or bound to a name claiming the other one' },
   { module: 'requestbuffer.js', sites: 2, what: 'this check: once to find the modules it then greps, and once afterwards to count what the buffer holds - the instrument is the thing it protects, so it declares itself, and its own second site is the first thing this census caught' },
   { module: 'rngdraws.js', sites: 1, what: 'the modules that ran, for H77 census of every draw site on the two seeded streams' },
 ];

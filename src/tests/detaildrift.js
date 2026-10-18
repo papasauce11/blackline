@@ -30,6 +30,10 @@
  */
 
 import { skeleton, compareDetails, driftOnMap, driftByMap, sayDrift } from '../../scripts/detaildrift.mjs';
+// The weak reader, imported rather than copied (H68): comments out, because
+// an explanation is not an ask, and strings kept because this module's own
+// subject is the wording of a detail line.
+import { uncommented } from './sourcetext.js';
 
 /** The runner whose wiring the last two clauses read. */
 const REPORTER = '/scripts/suitereport.mjs';
@@ -100,11 +104,6 @@ async function text(origin, rel) {
   const response = await fetch(`${origin}${rel}`);
   if (!response.ok) return { error: `${rel}: ${response.status}` };
   return { body: await response.text() };
-}
-
-/** A file's text with its comment lines out: an explanation is not an ask. */
-function code(body) {
-  return body.replace(/^[\t ]*(\/\/|\/\*|\*).*$/gm, '');
 }
 
 /** Each case asked of `compareDetails`, with what it answered. */
@@ -192,7 +191,7 @@ export function register(debugTools) {
       if (reporter.error) {
         problems.push(`${reporter.error} - this clause reads the runner's source`);
       } else {
-        const source = code(reporter.body);
+        const source = uncommented(reporter.body);
         if (!/from '\.\/detaildrift\.mjs'/.test(source)) {
           problems.push(`${REPORTER} does not import ./detaildrift.mjs, so nothing in a run uses this instrument`);
         }

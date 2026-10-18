@@ -60,6 +60,7 @@ import { findGroundLedge } from './movement.js';
 import { press } from './feel.js';
 import { photographHere } from './look.js';
 import { chaseGap } from './positionreads.js';
+import { uncommented } from './sourcetext.js';
 
 const S = CONFIG.shade;
 
@@ -307,9 +308,9 @@ export function register(debugTools) {
       if (!response.ok) {
         problems.push(`scripts/shot.mjs: ${response.status}; it is the one viewer PLAYTEST.md sends a human to`);
       } else {
-        const code = (await response.text()).replace(/^[\t ]*(\/\/|\/\*|\*).*$/gm, '');
+        const said = uncommented(await response.text());
         for (const asked of [/grabSlide\(/, /SLIDE_FRAMES/, /slide/]) {
-          if (!asked.test(code)) {
+          if (!asked.test(said)) {
             problems.push(`scripts/shot.mjs does not mention ${asked} in code, so the frames PLAYTEST.md quotes cannot be produced`);
           }
         }

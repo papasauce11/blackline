@@ -64,6 +64,18 @@
  * (Section 3.1).
  */
 
+/**
+ * The weak reader, imported rather than copied (H68). Comments out, strings
+ * kept, decided line-locally and never by parsing - for H41's reason and for
+ * H43's: an explanation is not an ask, and a clause that greps for something
+ * a file must *do* would otherwise find the paragraph explaining that it
+ * does. This module's own subject is a runner whose header describes its
+ * refusal at length, so every clause below reads the stripped text. It was
+ * one of the three copies of that line left under `src/tests/` after H58
+ * collapsed four, and it carried the name `code` - the strong reader's.
+ */
+import { uncommented } from './sourcetext.js';
+
 const SELF = 'the-suite-refuses-to-run-beside-another-suite-and-the-flag-is-the-only-way-past-it';
 
 /** The runner that must refuse, and the one that has refused since H11. */
@@ -154,18 +166,6 @@ async function text(origin, rel) {
   return { body: await response.text() };
 }
 
-/**
- * A file's text with its comment lines out, decided line-locally and never by
- * parsing - timedrenders.js's stripper, for its reason and for H43's: an
- * explanation is not an ask, and a clause that greps for something a file
- * must *do* will otherwise find the paragraph explaining that it does it.
- * This module's own subject is a runner whose header describes its refusal at
- * length, so every clause below reads the stripped text.
- */
-function code(body) {
-  return body.replace(/^[\t ]*(\/\/|\/\*|\*).*$/gm, '');
-}
-
 /** The body of the first `{ ... }` block opened by `open`, by brace depth. */
 function blockAfter(source, open) {
   const at = source.search(open);
@@ -192,7 +192,7 @@ export function register(debugTools) {
 
       const runner = await text(origin, RUNNER);
       if (runner.error) return { pass: false, detail: `${runner.error}; it is the runner this check is about` };
-      const source = code(runner.body);
+      const source = uncommented(runner.body);
 
       // ------------------------------------------------------------------
       // 1. It still looks, and it refuses rather than annotating. A warning
@@ -262,11 +262,11 @@ export function register(debugTools) {
       const bench = await text(origin, BENCH);
       if (bench.error) problems.push(`${bench.error}; it is the refusal this one is modelled on`);
       else {
-        const benchCode = code(bench.body);
-        if (!benchCode.includes(`${FINDER}(`)) {
+        const benchSaid = uncommented(bench.body);
+        if (!benchSaid.includes(`${FINDER}(`)) {
           problems.push(`${BENCH} no longer calls ${FINDER}(); it has refused to run beside a suite since H11 and the suite's refusal is modelled on it`);
         }
-        if (!/process\.exit\(/.test(benchCode.slice(benchCode.indexOf(`${FINDER}(`)))) {
+        if (!/process\.exit\(/.test(benchSaid.slice(benchSaid.indexOf(`${FINDER}(`)))) {
           problems.push(`${BENCH} finds another runner and no longer exits for it`);
         }
       }
@@ -280,7 +280,7 @@ export function register(debugTools) {
       const watchdog = await text(origin, '/scripts/watchdog.mjs');
       if (watchdog.error) problems.push(`${watchdog.error}; it is where the finder lives`);
       else {
-        const dog = code(watchdog.body);
+        const dog = uncommented(watchdog.body);
         if (!new RegExp(`export function ${FINDER}\\(`).test(dog)) {
           problems.push(`scripts/watchdog.mjs does not export ${FINDER}(); both runners import it from there`);
         }
@@ -392,7 +392,7 @@ export function register(debugTools) {
       // ------------------------------------------------------------------
       const runner = await text(origin, RUNNER);
       if (runner.error) problems.push(`${runner.error}; it is what carries the field`);
-      else if (!new RegExp(`${CEILING_FIELD}\\b`).test(code(runner.body))) {
+      else if (!new RegExp(`${CEILING_FIELD}\\b`).test(uncommented(runner.body))) {
         problems.push(`${RUNNER} does not carry ${CEILING_FIELD} out of a check's result, so the numbers never reach the summary`);
       }
 
@@ -407,17 +407,17 @@ export function register(debugTools) {
       const report = await text(origin, REPORT);
       if (report.error) problems.push(`${report.error}; it is where the summary is built`);
       else {
-        const reportCode = code(report.body);
-        if (!reportCode.includes(CEILING_CHECK)) {
+        const reportSaid = uncommented(report.body);
+        if (!reportSaid.includes(CEILING_CHECK)) {
           problems.push(`${REPORT} does not name "${CEILING_CHECK}", so it cannot find the result the numbers are on`);
         }
-        const perRun = blockAfter(reportCode, /for \(const \[i, run\] of r\.runs\.entries\(\)\)/);
+        const perRun = blockAfter(reportSaid, /for \(const \[i, run\] of r\.runs\.entries\(\)\)/);
         if (!perRun) {
           problems.push(`${REPORT} has no per-run loop in its summary, and the ceiling line belongs in one`);
         } else if (!PRINTS_THE_CLUSTER.test(perRun)) {
           problems.push(`${REPORT}'s per-run loop does not match ${PRINTS_THE_CLUSTER}, so nothing here holds that the cluster is read off the run and printed from it - either the line has left the loop, in which case one map's answer stands in for both, or it is still there and dead`);
         }
-        const body = blockAfter(reportCode, /export function summary/);
+        const body = blockAfter(reportSaid, /export function summary/);
         if (!body) problems.push(`${REPORT} exports no summary() this clause can read`);
         else {
           for (const literal of NOT_IN_THE_SUMMARY) {

@@ -382,12 +382,14 @@ export function register(debugTools) {
       //    never by parsing, exactly as clause 5 of the check above decides
       //    it: bench.mjs's header explains the parameter at length, and an
       //    explanation is not an ask.
-      // The weaker of the two readers `tests/sourcetext.js` owns: comments
-      // out, strings kept, because every clause here is looking for a URL
-      // parameter or an expression quoted as text. This was the **fifth**
-      // copy of it - H53 collapsed four and did not find this one, which is
-      // the argument for the shared module rather than against it.
-      const code = uncommented;
+      // Every clause from here down reads with `uncommented`, the weaker of
+      // the two readers `tests/sourcetext.js` owns: comments out, strings
+      // kept, because each is looking for a URL parameter or an expression
+      // quoted as text. It is called by its own name at each site and bound
+      // to no local one, which is H68: this was the **fifth** copy of the
+      // stripper, H58 collapsed the copies and carried the name `code`
+      // across as an alias of the weak one - and `code` is what the strong
+      // reader is called everywhere else in this suite.
       // H42 put the count behind a `--samples` flag so the refusal below can be
       // driven from the command line, so the URL is a template now and the
       // literal nine is in the default beside it. Both halves are asserted,
@@ -406,17 +408,17 @@ export function register(debugTools) {
       const bench = await text(location.origin, '/scripts/bench.mjs');
       if (bench.error) problems.push(`${bench.error}; it is the one runner that may ask for a median`);
       else {
-        const benchCode = code(bench.body);
-        if (!benchCode.includes(asking)) {
+        const benchSaid = uncommented(bench.body);
+        if (!benchSaid.includes(asking)) {
           problems.push(`scripts/bench.mjs does not put ${asking} in the page URL, so the bench times one draw a viewpoint and calls it a median`);
         }
-        if (!benchCode.includes(defaulting)) {
+        if (!benchSaid.includes(defaulting)) {
           problems.push(`scripts/bench.mjs's sample count does not default to \`${defaulting}\`; then the ${VIEWPOINT_SAMPLES} two benches agreed at is a number typed into a runner rather than the one this page reads`);
         }
       }
       const gate = await text(location.origin, '/scripts/suite.mjs');
       if (gate.error) problems.push(`${gate.error}; it is the runner that must NOT ask for a median`);
-      else if (new RegExp(`${VIEWPOINT_SAMPLES_PARAM}=`).test(code(gate.body))) {
+      else if (new RegExp(`${VIEWPOINT_SAMPLES_PARAM}=`).test(uncommented(gate.body))) {
         problems.push(`scripts/suite.mjs asks for ${VIEWPOINT_SAMPLES_PARAM} in code; headless a sample costs 610-761ms of queued pipeline and the gate drops this verdict anyway (H36)`);
       }
 
@@ -449,13 +451,13 @@ export function register(debugTools) {
             }
           }
         }
-        const benchCode = code(bench.body);
+        const benchSaid = uncommented(bench.body);
         // The floor it judges against is this page's, not a second copy of a
         // five, and the verdict is in the file rather than only in a comment.
-        if (!benchCode.includes('MIN_SAMPLES_FOR_A_MEDIAN')) {
+        if (!benchSaid.includes('MIN_SAMPLES_FOR_A_MEDIAN')) {
           problems.push(`scripts/bench.mjs does not read MIN_SAMPLES_FOR_A_MEDIAN, so the ${MIN_VIEWPOINT_SAMPLES} it judges a median by is its own number`);
         }
-        if (!benchCode.includes('UNDERSAMPLED')) {
+        if (!benchSaid.includes('UNDERSAMPLED')) {
           problems.push('scripts/bench.mjs no longer ends non-zero on an undersampled sweep; the fourth honesty clause is gone and a one-draw reading is filed as a median (H42)');
         }
       }

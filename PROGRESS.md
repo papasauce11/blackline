@@ -18813,3 +18813,113 @@ source-reading censuses re-fetch whole trees independently - six of them walk
 the same 193 modules and the browser serves them from cache, which is why 991
 requests cost nothing measurable, but it is six times the work and one shared
 reader would do it once.
+
+## H68 — the alias was the smaller half: three live copies of the reader, two of them under the other one's name
+
+**The job as written.** `benchlist.js` held `const code = uncommented;` with four
+correct lines above it explaining that this census wants comments out and
+**strings kept**, because every clause in it looks for a URL parameter or an
+expression quoted as text. The argument is right and the name contradicts it:
+`code(bench.body)` at three use sites reads as the comment-**and**-string
+stripped reader, which is the one thing `tests/sourcetext.js` says a reader
+cannot tell you about itself. H58 is how it survived - the line had been the
+**fifth copy** of the stripper, and collapsing the copies into the shared module
+turned a function into an alias and carried its old name across, so the one job
+that would have caught the name was the job that hid it.
+
+**Dropped rather than renamed**, which the entry offered and is the smaller
+change: `uncommented` is called by name at all three sites, the two
+`benchCode` locals became `benchSaid` - `said` is what this suite calls a weak
+read in `args.js`, `positioncensus.js`, `solverquery.js` and `timedrenders.js` -
+and the four lines of argument stayed, now saying that the reader is named at
+each site and bound to no local one.
+
+**And then the entry's "check the other censuses the same way" paid for
+itself.** H62 had read every *call site of the two shared readers* under
+`src/tests/` and found the alias the only name out of step. That grep could not
+see a module with its **own copy** of a reader, and there were three, two jobs
+after the collapse that was meant to end them:
+
+- `runnerguard.js:165` `function code(body)` — the weak reader, whole, under the
+  strong one's name, with the right argument in its own doc comment.
+- `detaildrift.js:106` `function code(body)` — the same function again.
+- `grabslide.js:310` `const code = (await response.text()).replace(...)` — the
+  same line written inline, into a `const` called `code`.
+
+All three are byte-identical to `uncommented`, so importing it changed no
+reading. The names: `grabslide.js`'s `code` became `said`, `runnerguard.js`'s
+`benchCode` and `reportCode` became `benchSaid` and `reportSaid`, and the two
+locals that claim nothing (`source`, `dog`) were left alone, because this is
+about a name that makes a promise and not about naming. `sourcetext.js`'s
+header had listed four importers and there are **nineteen**.
+
+**The check, `tests/readernames.js`** (`only-sourcetext-owns-the-two-source-readers-and-no-name-claims-the-wrong-one`),
+holds both halves off the tree, on H61's model, over every module under
+`src/tests/` the page loaded:
+
+1. **Only `sourcetext.js` spells either reader.** Each reader's own line is
+   compared as quoted text, so a fourth copy reds whatever it is called.
+2. **No name claims the reader it did not get.** A name claims one when it
+   carries its vocabulary - `code` for the strong reader, `said`/`says`/
+   `prose`/`wording` for the weak one - and a name claiming neither is not
+   this check's business.
+3. **Both clauses are instrumented.** Six cases through `readerProblems`: both
+   directions of the defect, a right pairing, a name that claims nothing, a
+   line of prose quoting the defect, and `positionreads.js`'s re-export, which
+   names both readers and binds neither. Plus a floor of **10** claimed
+   bindings, where the tree reads **21 of 30 in 15 modules**, so a pattern gone
+   blind cannot pass as a clean tree - and the owner is read for both spellings,
+   because a needle gone stale would make clause 1 vacuous.
+
+**Two things the writing of it found.** **The strong reader cannot read the
+strong reader's own line**: `codeOf`'s first span is a pattern over
+single-quoted text, so it contains a quoted span and strips itself to something
+else - which is why clause 1 asks `uncommented`, where a regex literal survives
+whole. And a check that quotes its subject is a check that reports itself, which
+is `quiescesites.js`'s trap read from the other end: the spellings are assembled
+from fragments at load and appear nowhere in the file entire, and the two reader
+names in its tables are object keys rather than strings.
+
+**Left, and all three found by doing this one.** Four reported problems say
+*"in code"* where the clause read the weak reader - the same lie as the alias,
+in a message rather than a name - which is **H95**. This is now the **seventh**
+census to walk the same tree of modules independently, which H67's entry named
+as worth a later look: **H96**. And the *line-local* comment test has three
+copies of its own, in `benchlist.js`, `donedef.js` and `pixelfloors.js`, all
+three `\s*` where `codeOnly` guards on `[\t ]*`: **H97**. The clause built here
+does not cover any of the three, and says so.
+
+**Verified.** The H67 verify stands as this job's gate (step 8 of the protocol)
+and was run again anyway at the head of this one: exit 0, plant **239 / 1 / 8**
+(1,124,091ms), yard **219 / 1 / 28** (798,603ms), 0 red, 0 flaky, 0 skipped, 0
+unexpectedly green, **0 console errors**, no other runner. A ten-check subset of
+everything this job touches then passed on both maps - **10 passed, 0 failed**
+each, 194 modules loaded. **VERIFY** `npm run suite`, four runs, **exit 0**:
+plant **240 / 1 / 8** (1,118,025ms, 1,112,357ms), yard **220 / 1 / 28** (769,615ms, 775,966ms), spreads **1%** and **1%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling **12 of 600** over **194 modules** in all four runs. Counts **240 / 220** against H67's 239 / 219, the one new
+check; **194 modules** against 193. Drift (H79) **34 on the plant and 37 on the
+yard**, both exactly H67's, because the new check's detail line is the same
+sentence in all four runs: *"30 reader bindings in 106 modules under src/tests/,
+21 under a name claiming one of the two readers (floor 10) and every one
+agreeing, across 15 modules; both readers spelled in tests/sourcetext.js and
+nowhere else"*. It costs **344-386ms** a run.
+
+**And it was broken twice, through the runner, to see it red.** The alias put
+back in `benchlist.js` and the gate read through it: *"benchlist.js:399 binds
+the reader that reads the wording to `code`, a name that says code"*, red on
+both maps. Then `detaildrift.js`'s own copy of the weak reader put back under
+the name it had: *"detaildrift.js spells the weak reader itself rather than
+importing it from tests/sourcetext.js"*, red on both maps - **and the name
+clause stayed silent**, correctly, because a `function` declaration is invisible
+to it. That is the pair the two clauses exist as: one catches the name, and the
+other catches the copy the name was hiding in. Both reverted from a `cp`
+snapshot and the eight files compared byte for byte afterwards.
+
+The document clauses were asked **after** the verify rather than inside it,
+because the records are written after the run and H68's wall-clock finding is
+the reason not to spend another hour: a five-check subset on both maps, 5 passed
+0 failed each, with this entry and `PLAYTEST.md`'s, `QUEUE.md`'s and `TRAPS.md`'s
+new text in place - *"2535 lines, the 4 sections, 54 checks named and every one
+registered"* and *"TRAPS.md holds 110 traps in 1161 lines, HANDOFF.md is 400 of
+400 and points at it"*. The new trap is the one this job paid for: the strong
+reader cannot read its own line, and a check that quotes its subject reports
+itself.

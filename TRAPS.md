@@ -1142,3 +1142,20 @@ build the object and attach, and keep the reason at the line. And the wider
 lesson, which this project keeps meeting from the other side: **a field nothing
 reads is a field that can die quietly** — if a value is a canary, something has
 to assert it, or it is decoration.
+
+**The strong source reader cannot read its own line, and a check that quotes
+its subject reports itself.** `sourcetext.js`'s `codeOnly` empties quoted spans,
+and its own first statement is a pattern *over* single-quoted text - so reading
+`sourcetext.js` as code mangles the very line you went there to find. H68 hit it
+building the clause that holds *only this module may spell either reader*: the
+weak reader's line survives a code read and the strong reader's does not, so the
+clause asks `uncommented`, where a regex literal comes back whole. That leaves
+every module's **strings** standing, which is the second half of the trap - a
+check that writes its subject out as a string literal and then greps the tree
+for it finds **itself** first, and reds on a clean tree. The way out is the one
+`grabworld.js` already used for a different reason: hold the pattern as **data**
+and assemble it at load (`['/^[	 ]*(', ...].join('')`), so the whole spelling
+appears nowhere in the file that is looking for it. The general rule, which
+`quiescesites.js` states from the other end: **`codeOf` strips a string and
+leaves a regex literal where it found it**, so which of the two you write your
+needle as decides whether your own file is in your own census.

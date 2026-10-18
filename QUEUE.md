@@ -709,29 +709,6 @@ one setting only Josh can click; everything else here proceeds.
   on. Four breaks; the first reproduces the defect, the count pinned at exactly
   250 after fetching 193 modules.
 
-- [ ] **H68 (S)** `benchlist.js` calls the weak reader `code`. One line -
-  `const code = uncommented;` - with four correct lines above it explaining
-  that this check wants comments out and **strings kept**, because every clause
-  in it looks for a URL parameter or an expression quoted as text. The argument
-  is right; the name contradicts it, so `code(bench.body)` reads as the
-  comment-**and**-string-stripped reader at every use site, which is the one
-  thing `sourcetext.js` says a reader cannot tell you about itself. **H58 found
-  this as the fifth copy of the stripper** and collapsed it into the shared
-  module, which is why the line is an alias and not a function - so the copy is
-  gone and the name it was given survived the one job that would have caught
-  it.
-  Rename the alias to say which reader it is, or drop the alias and call
-  `uncommented` at the three use sites - the second is smaller and leaves no
-  name to get wrong again. Then check the other censuses the same way: H62
-  read every `codeOf`/`uncommented`/`codeOnly` site in `src/tests/` and found
-  this the only one whose **name** disagrees with its reader, but that was a
-  grep and not a clause.
-  *done-when:* no local name in `src/tests/` binds one reader under the other's
-  name, every clause in `benchlist.js` answers as it did (it is a URL-parameter
-  census and its readings are quoted in `PROGRESS.md`), and a check holds the
-  rule rather than a run of `grep` - the shape is H61's: read the thing off the
-  tree so the next copy cannot be written silently.
-
 - [ ] **H69 (S)** `positioncensus.js` is at 593 of 600 and its argument has a
   home. H62 took it 547 to 593 and the ceiling cluster back to **twelve**;
   almost none of the growth is code, because the clauses that moved are two
@@ -1122,6 +1099,78 @@ one setting only Josh can click; everything else here proceeds.
   check still counts every control on both pages and neither needs scrolling
   in a 720p window.
 
+- [ ] **H95 (S)** Four reported problems say *"in code"* where the clause read
+  the weak reader. H68 fixed the names and left the wordings: `benchlist.js`
+  twice (*"scripts/bench.mjs:N names "id" in code"*, *"scripts/suite.mjs asks
+  for samples in code"*), `grabslide.js` once (*"scripts/shot.mjs does not
+  mention X in code"*) and `timedrenders.js` once (*"scripts/suite.mjs asks for
+  timedVerdict in code"*). Every one of those reads `uncommented`, so the
+  evidence is a URL parameter or a quoted id - text with the comments out, and
+  not code. It is the alias's lie moved from a name to a sentence, and the
+  sentence is the half a human reads: a reader told "in code" who then greps
+  the file as code will not find what the check found.
+  Say what was read. The phrase this suite has for it is *with its comments
+  out* (`sourcetext.js`'s header, H53's entry), and `requestbuffer.js:210` is
+  the fifth site to check - it says *"in code"* and genuinely reads `codeOf`,
+  so it is the control rather than a defect.
+  **The hard half is holding it**, and it may not be holdable: the wording of a
+  problem is prose, and `positioncensus.js` already holds two entries against
+  the wording of a reported problem, which is the only precedent. The cheap
+  version is a clause in `readernames.js` that reads each module's problem
+  strings beside the reader its clause used - the two are usually in the same
+  `else if`, which is a parse and so not allowed (`donedef.js`'s rule).
+  *done-when:* the four wordings name the reader they read, the fifth is left
+  alone with a line saying why, and either a clause holds the rule or
+  `readernames.js`'s header says in one paragraph why a message cannot be held
+  the way a name can.
+
+- [ ] **H96 (S)** Seven censuses walk the same tree of modules independently.
+  H67's entry named this as worth a later look and H68 made it seven: each one
+  calls `getEntriesByType('resource')` for the modules that ran and then
+  `fetch`es every one of them for its text. The browser serves them from its
+  cache, which is why 991 requests cost nothing measurable, but it is seven
+  times the work and seven copies of the same four lines - the shape H53 and
+  H58 collapsed twice already, one level up.
+  A shared reader in `tests/sourcetext.js` (or beside it) that fetches each
+  module under `src/` **once** and hands back a map of path to text, with the
+  two readings memoised, and the seven censuses asking it instead:
+  `audiocontext.js`, `donedef.js` (three sites), `pixelfloors.js`,
+  `posecriterion.js`, `readernames.js`, `requestbuffer.js`, `rngdraws.js`.
+  **Two things it must not break.** `requestbuffer.js`'s own census counts call
+  sites of the buffer read per module and declares them, so collapsing seven
+  reads into one moves six rows of its table and the counts in them - that is
+  the point, and the table has to move with it. And `requestbuffer.js`'s clause
+  3 measures the live entry count *after* the census has fetched every module,
+  as the proof that the raise took effect; a cache that fetches once would make
+  that measurement smaller and it has 41x of headroom, so it survives, but the
+  number in its detail line moves.
+  *done-when:* one module owns the fetch, the seven ask it, `requestbuffer.js`'s
+  declared sites match the new shape, and a check holds that no census under
+  `src/tests/` fetches a module's text for itself - read off the tree, the way
+  H68 holds the readers.
+
+- [ ] **H97 (S)** And the *line-local* comment test has three copies of its
+  own. `codeOnly(line)` is the one place that decides whether a line is a
+  comment - that is its first statement, and `tests/sourcetext.js` argues the
+  decision at length - and three censuses that need a **line number** rather
+  than a whole stripped file wrote the test again instead:
+  `benchlist.js:233`, `donedef.js:311` and `pixelfloors.js:153`, all three
+  `/^\s*(\/\/|\/\*|\*)/.test(line)`. H68 found them while collapsing the two
+  whole-file readers and left them, because they are not either reader and its
+  clause is about the readers.
+  **They are not even the same test.** `codeOnly` guards on `[\t ]*` and these
+  three on `\s*`; per line the difference is nothing, which is exactly why
+  three copies of a four-character divergence can sit in a suite whose whole
+  subject is that two readers are not interchangeable.
+  `codeOnly(line) === ''` already answers it, and an `isCommentLine(line)`
+  beside it would say so at the call site - the question each of the three is
+  asking in words.
+  *done-when:* one module decides whether a line is a comment, the three ask
+  it, every clause answers as it did (`benchlist.js`'s id census,
+  `donedef.js`'s prose-or-code split and `pixelfloors.js`'s floor census all
+  quote readings in `PROGRESS.md`), and `readernames.js` grows a clause that
+  holds the line-local test the way it holds the whole-file ones.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -1303,6 +1352,42 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H68** The alias was the smaller half: three live copies of the reader, two of
+  them under the other one's name. `benchlist.js` held `const code =
+  uncommented;` - the weak reader under the strong one's name, with four correct
+  lines above it explaining that this census wants the strings kept. Dropped
+  rather than renamed: `uncommented` is called by name at all three sites and
+  the two `benchCode` locals are `benchSaid`. **Then the entry's "check the
+  other censuses the same way" paid for itself.** H62's grep had read every
+  *call site of the two shared readers* and could not see a module with its
+  **own copy**, and there were three, two jobs after the collapse that was meant
+  to end them: `runnerguard.js` and `detaildrift.js` each declared `function
+  code(body)`, and `grabslide.js` wrote the replace inline into `const code`.
+  All three byte-identical to `uncommented`, so importing it changed no reading;
+  `grabslide.js`'s `code` is `said` and `runnerguard.js`'s two `*Code` locals
+  are `*Said`. `sourcetext.js` had listed four importers and has **nineteen**.
+  Built: `tests/readernames.js`,
+  `only-sourcetext-owns-the-two-source-readers-and-no-name-claims-the-wrong-one`,
+  over every module under `src/tests/` the page loaded - **only `sourcetext.js`
+  may spell either reader**, and **no name may claim the reader it did not
+  get**, where a name claims one by carrying its vocabulary (`code`, or
+  `said`/`says`/`prose`/`wording`) and a name claiming neither is not its
+  business. Six cases through `readerProblems`, a floor of 10 claimed bindings
+  against the tree's 21 of 30 in 15 modules, and the owner read for both
+  spellings so a stale needle cannot make the copy clause vacuous. **The strong
+  reader cannot read its own line** - its first span is a pattern over
+  single-quoted text, so it strips itself - which is why the copy clause asks
+  the weak reader, and why the spellings are assembled from fragments and appear
+  nowhere in the file entire. Broken twice through the runner: the alias back
+  reds the name clause, `detaildrift.js`'s copy back reds the copy clause while
+  the name clause stays silent, which is the pair they exist as. Verified plant **240 / 1 / 8** (1,118,025ms, 1,112,357ms), yard **220 / 1 / 28** (769,615ms, 775,966ms), spreads **1%** and **1%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling **12 of 600** over **194 modules** in all four runs.
+  Reading: `30 reader bindings in 106 modules under src/tests/, 21 under a name
+  claiming one of the two readers (floor 10) and every one agreeing, across 15
+  modules`, identical in all four runs, 344-386ms. Found **H95** (four problems
+  that say *"in code"* where the clause read the weak reader), **H96** (seven
+  censuses walking the same tree of modules independently, H67's note) and
+  **H97** (three copies of the line-local comment test). — done 2026-10-18, commit `@@HASH@@`
 
 - **H67** The buffer was not full, it was four times over, and three quarters of
   every run was invisible. `no-network-beyond-the-three-cdn` had begun printing
