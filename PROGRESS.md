@@ -19104,3 +19104,206 @@ checks answer with **one distinct detail line** over the two runs of each map,
 compared string to string, which is what the entry asked for. Drift (H79) **34
 on the plant and 35 on the yard**. The ceiling line names a different leader:
 `audiodevice.js` at **597 (3 left)**, cluster **ten**, which is **H93**.
+
+## Audit — 2026-10-18
+
+**Landed.** Window 2026-10-10 → 10-18; oldest commit `b008641` (H47,
+2026-10-10, the job commit, which the 10-11 audit also counted). **70
+commits** in the window, **55 since the last audit** (`ddbc935`, 10-11
+10:52) — this audit is seven days after the last one, on schedule. The Done
+section of QUEUE.md grew from 100 entries at `b008641` to **132**: **32 jobs
+in the window** after H47 — H50 to H81 without a gap — and **26 since the
+last audit** (H54, H56, H57, H59 to H81; 26 `Record <job>` commits). Runs
+landed on seven of the eight days (8 / 11 / 0 / 7 / 12 / 8 / 10 / 8 / 6
+commits, 10-10 → 10-18): **nothing landed on Sunday 10-12** — the 10-11
+17:00 run finished at 21:09 (H61) and the next commit is 10-13 03:41 (H62),
+so the 10-12 02:00 and 17:00 firings both left no trace, which is the
+local-task cost PLAN.md names (the app closed, or the machine asleep).
+Queued during the window, by id, against the queue at `b008641`: **45** —
+H54 to H98 — 28 of them already done and 17 open (H82 to H98). Three
+decisions were added: D75 (H52, a look), D76 (H57, a look), **D77** (H69,
+Blocking). At HEAD: **76 `[ ]` open** (63 at `b008641`; 77 once this audit queues
+H99), 32 of them in Block H; **0 `[~]` WIP**; 4 blocked by name (H26 on D61, H48 on D72, H17 and H18 on
+D55). **No WIP commit and no stop note in the window** — the first full
+window without either since H36. Three non-job commits: `4ae4e0c` (H57
+measured and not started, 10-13), `b60f8d6` (H59's starting evidence,
+10-14), `981afd7` (TRAPS.md: the fourth and fifth time `src/` was edited
+under a running verify, 10-16). No job is WIP at HEAD, as at every audit
+since B5c.
+
+**Blocked on Josh.** **Two entries under the Blocking heading have an empty
+`decided:`**: **D56** (should the Warden be playable competitively?), added
+2026-09-28 by H5 (`841c66c`) — **20 days**; its text says nothing is blocked
+on it. **D77** (should a module that has been split once carry a tighter
+ceiling than 600?), added **2026-10-18 05:37** by H69 (`c667be8`) — **0
+days**, new this morning. Recommendation in its text is option 3, a second
+summary line ("N modules are back above the length they were split to")
+and never a red; H70 and H93 are the next two instances either way, and H93
+is next in line unattended. Forty-odd Provisional entries carry no
+`decided:` by design. The looks HANDOFF names, none holding a job up except
+H48: **D72** (H44, 10-09, `npm run shot -- --slide`, 0.46m at frame 7,
+H48 waits), **D75** (H52, 10-10, `--pose vault --pose mantle --pose
+pullup`), and **D76** (H57, 10-14, new): a walk and a sprint are now
+photographed at a pinned point of the stride and the yard's walk changed
+sides.
+
+**Suite health.** HEAD `5958484`, `npm run suite -- --runs 1`, both maps,
+`quality=medium` pinned on a 1280x720 buffer: plant **240 passed, 1
+failed, 8 not for this map** (1,138,031ms, 453,839 of it the pipeline
+tail); yard **220 passed, 1 failed, 28 not for this map** (772,107ms,
+331,037 tail); red [], flaky [], expectedRed [], unexpectedGreen [],
+skipped [], skipsWithheld [], benchDropsWithheld [], consoleErrors 0,
+contextLosses 0, otherRunners [], besideOtherRunners false, exit 0, ceiling
+**10 of 600 over 195 modules**, nearest `tests/audiodevice.js` 597 (3
+left). Matches HANDOFF.md (240/1/8, 220/1/28) and the empty
+Deliberately-red list: **pass**. Against the last audit that is +12 checks
+on the plant and +12 on the yard. The one failure per map is the bench-only
+92-viewpoint sweep the gate drops by design (H11); the report's own
+`lastBench` is **2026-10-09** (`76c6e50`, H41) on the GTX 1060, OK, 12
+readings, and **84 commits** have landed since it — nine days and the whole
+of H54 to H81 unbenched; H37's line, still carried by hand. The runner's
+drift census (H79) reads 0 on both maps because a `--runs 1` gate has one
+run per map and drift is a two-run quantity; the build's own verifies read
+34 / 35. Diff `b008641..HEAD -- src/tests scripts/suite-skips.json`: 47
+files, **+6,746 / −791**; **sixteen new files** under `src/tests/`, twelve
+of them registered in `tests/index.js` (rngdraws, climbpress,
+strikerepeat, quiesce, quiescesites, settlecircuit, grabworld,
+solverquery, requestbuffer, args, readernames, detaildrift) and four that
+are machinery other modules register or import (censustally,
+posecriterion, sourcetext, strikedrive). Check ids: **237 at
+`b008641`, 253 at HEAD, 16 added, none removed** (`id: '...'` across
+`src/tests`, set difference). Every one of the 791 removed lines read; the
+ones that were assertions or thresholds:
+- **Moved, not removed — two checks** (H70): `tests/movement.js` lost
+  `a-climb-is-a-press-of-space-never-a-side-effect` and
+  `tap-space-grabs-the-ledge-hold-space-climbs-it` with their 22
+  `problems.push` lines (599 → 331); `tests/climbpress.js` (314, new)
+  registers both ids with the same 22 lines, and the two ledge drivers went
+  with them — seven modules changed one import word each. Verified line for
+  line against the removed text.
+- **Moved, not removed — the strike drivers** (H75): `tests/animation.js`
+  lost `frameUntil`, `strike()` and the gait/jump/land/pull-up clauses;
+  `tests/strikedrive.js` (396, new) holds them with the same numbers —
+  `shade.speed > 0.2`, `velocity.y < -2`, `_landRecovery > 0` within 240
+  frames, the pull-up read at `>= 0.5` of the move. `animation.js` carries
+  25 `problems.push` before and after.
+- **Same sentinel, better line** (H62, H69): `tests/positioncensus.js`
+  `- if (owned < 0)` → `+ if (owned === 0)`, because `indexOf` on the raw
+  source became `lineOf()` on the comment-stripped reader, which returns 0
+  for not found; the two problems under it survive, now quoting line
+  numbers. Not loosened.
+- **The device clock's ratio, unfloored before and after** (H50, H54,
+  H66; **D74**): `tests/audiodevice.js` `- const fed = ...; const measured
+  = wallSeconds >= MIN_WINDOW_SECONDS;` moved into `readDeviceClock()`, and
+  the detail `- "no verdict on it (H50)"` → `+ "no floor (D74)"`. There was
+  no floor on `fed` at `b008641` and there is none at HEAD; what is **new
+  and asserted** is `stopped` (a clock that has not advanced at all over a
+  ≥30s window is red), the stretch arithmetic (a stretch inside its own
+  sampled window, a blind spot no wider than the span, marks arriving at
+  all), `MIN_SHAPE_SAMPLES = 30`, `MIN_REGISTRATIONS = 50`, and the
+  registration order (unlock < frames < journal read, H65). The
+  `state !== 'running'` clause is unchanged at line 434. Tighter.
+- **A census criterion widened on purpose, and argued** (H61):
+  `tests/breathcensus.js` `- "...no longer calls updateVisual; drop it from
+  POSED"` → `+ "...calls neither updateVisual nor any of the N proxies"`:
+  who poses a body is now `updateVisual` **or** a function the tree exports
+  that calls it, discovered by `tests/posecriterion.js` (331, new) and run
+  over probes that must answer the known set. The membership test got
+  wider so that the census stops being right by luck; no numeric clause
+  moved, and the 1e-9 agreement in the same file is unchanged.
+- **A check's input pinned** (H81): `tests/pixels.js` `h.initMatch({...})`
+  → `+ {..., seed: SETTLE_SEED}` with `SETTLE_SEED = 20261016`, so the
+  twelve one-frame sites settle on the majority circuit rather than the
+  clock's. Neither looser nor tighter on any pixel floor, but a pinned
+  instrument stops sampling — **H89** is queued for exactly that.
+- **Tighter**: `tests/visual.js` the death-cam clause gained
+  `ON_ITS_MARK = 1e-6` and reds if the Warden strayed from the spot it was
+  reset to (H78); `tests/donedef.js` `- pass: over.length === 0 && !!table`
+  → `+ && problems.length === 0` with the missing table pushed as a
+  problem (H55); `tests/timedrenders.js` `!source` → `!read` and a new
+  clause that a verdict word outside the five is red; `tests/index.js`
+  `registerAudioDevice` moved from after `performance` to last, held by a
+  clause on the registrar's order (H65); `tests/registry.js` declares every
+  export a check module hands out that its own checks never use (H70).
+- **No check deleted, no threshold loosened, nothing added to the skip
+  list** (`scripts/suite-skips.json` is `[]` before and after).
+
+**Drift.** 195 modules under `src/`. Over 600 lines: `src/config.js`
+**1,994** (1,974 at the last audit; exempt). The cluster is **ten** within
+fifty of the ceiling, down from twelve: `tests/audiodevice.js` **597 (3
+left)**, `systems/combat.js` 593, `tests/donedef.js` 587, `maps/plant.js`
+585, `tests/ai.js` 576, `tests/objective.js` 575, `main.js` 568,
+`quality.js` 566, `tests/difficulty.js` 554, `entities/agent.js` 551; H69
+took `positioncensus.js` 596 → 548 and H70 `movement.js` 599 → 331, and
+`physics.js` left the list at H56. **H93** is the split `audiodevice.js`
+needs and is next in line unattended. TODO/FIXME: **0**. `Math.random`: 1
+real use, `systems/audio.js:102`, the noise buffer. `setTimeout`: 0 in
+`src/` outside tests; 1 in `tests/performance.js:102`, the GPU-fence yield,
+allowed by name at `tests/donedef.js:97`. Both as documented and held by
+F13's census.
+
+**The live site** (H2, H3). `npm run suite -- --runs 1 --regression --url
+https://papasauce11.github.io/blackline/`: plant **29 passed, 0 failed**
+(92,008ms), yard **29 passed, 0 failed** (60,101ms), red [], flaky [], 0
+console errors, no other runner, exit 0 — the deploy agrees with this
+checkout's rules on both maps. Pages `builds/latest`: status `built`,
+commit `5958484` = HEAD, created 2026-10-18T12:12:26Z, done 17s later,
+error null. Live `version.json` reads `8545cfa` (the H70 job commit)
+against HEAD `5958484` (its Record commit): **one behind**, which is D52's
+normal, and the committed `version.json` at HEAD is `8545cfa` too, so the
+live copy is exactly what is committed and no record commit skipped `npm
+run stamp`.
+
+**Fresh seeds.** `--subset "fuzz|soak" --query "seed=20261018"`: 2 checks
+per map (`shade-invariants-under-fuzz`,
+`traversal-fuzz-ten-thousand-steps-never-sticks`; the soak sweep is
+bench-only), **4 passed, 0 failed**, 65,047ms plant / 38,930ms yard, 0
+console errors, exit 0. Widened, as the last three audits did, to
+`fuzz|soak|stall|stuck|leaks-nothing|random-real-input|never-climbs|difficulty|seed`
+with the same seed: plant **13 passed, 0 failed**, yard **12 passed, 1
+failed**, 0 console errors, exit 1. **The red**:
+`each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` on the
+**yard**, detail: *"at 8m hard kills in 0.49s, not sooner than medium's
+0.49s - detect/kill, hits/shots; lit, still, 8 seeds each, from site C
+(meter 63/80 at 8/16m) - 8m: easy 7.35s/0.64s 27/38, medium 4.97s/0.49s
+32/32, hard 3.60s/0.49s 32/32 | 16m: easy 13.63s/3.39s 35/158, medium
+9.27s/1.74s 34/83, hard 6.73s/0.85s 39/48"*. Both presets land every round
+at 8m and tie at the gun's rate-of-fire floor; `tests/difficulty.js:335`
+compares the kill time strictly (`harder.kill < easier.kill`), and the
+detect column (3.60s against 4.97s) already orders the two. **F17 (09-27)
+measured this exact tie** under the per-round draw (0.39s/0.39s, 32/32
+each), rejected that draw for producing it, and wrote the 8m separation
+down as K6's — at 8m the body subtends ±2.43 degrees, wider than medium's
+2.5-degree cone and hard's 1.2, so once both land every round no aim model
+separates them. This is the per-burst draw reaching the same tie under a
+seed. One run, so not established as deterministic for the seed; the same
+check under the same seed passed on the plant, and the 10-11 audit's seed
+passed 24/24. Not fixed. **Queued as H99** (S, Block H) with the seed in
+its done-when.
+
+**Broken base.** No. No `BROKEN BASE` heading in HANDOFF.md; the last two
+build commits (`8545cfa` H70, `5958484` its record) are neither WIP nor
+stop notes; 0 `[~]`; no WIP or stop commit anywhere in the window.
+
+**Environment.** **No other runner on the machine**: `otherRunners []` in
+every one of this audit's runs; the throttle pinned 9 processes to 4 of 8
+cores with a 45s cooldown. As the last audit noted, the first `npm run
+suite` stamps `version.json` to HEAD (`5958484`) against the committed
+one-behind stamp (`8545cfa`); this audit put it back with `git checkout --
+version.json` before committing. The task's own prompt gives the gate a
+ten-minute timeout; the gate took **32 minutes** wall clock here (HANDOFF
+measured 27), so the audit ran it detached and waited on the file — the
+same factor-of-thirty error H49 names in the build prompt, and the audit's
+prompt has it too (H37 is the job that edits that file).
+
+**Recommendation.** One line in `DECISIONS.md` under **D77** — the first
+Blocking entry the routine has raised since D56, and its recommendation
+(option 3, a summary line and no red) costs nothing; H93 lands either way
+tonight, and the answer decides whether the split it makes is held. While
+there: **H37** and **H49** have now been declined by nineteen and sixteen
+unattended runs, and this audit measured the H49 argument again (a gate is
+27 to 32 minutes against a prompt that says one); one sitting takes both.
+The bench is nine days and 84 commits old — `npm run bench` headed is about
+twenty minutes and refreshes the one line every audit carries by hand. And
+the 10-12 gap: if the app was closed that Sunday, two build runs and nothing
+else were lost, which is the cost PLAN.md accepts.

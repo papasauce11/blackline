@@ -1145,6 +1145,37 @@ one setting only Josh can click; everything else here proceeds.
   the entry says in one line why a per-run verdict is still D73's and not this
   job's.
 
+- [ ] **H99 (S)** A fresh seed ties medium and hard at 8m on the yard, and the
+  tie is red. The 2026-10-18 audit's widened fresh-seed run (`--subset
+  "fuzz|soak|stall|stuck|leaks-nothing|random-real-input|never-climbs|difficulty|seed"
+  --query "seed=20261018"`) turned
+  `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` red on the
+  **yard**: *"at 8m hard kills in 0.49s, not sooner than medium's 0.49s"* -
+  medium 4.97s/0.49s **32/32**, hard 3.60s/0.49s **32/32**; every other row
+  ordered (8m easy 7.35s/0.64s 27/38; 16m easy 13.63s/3.39s, medium
+  9.27s/1.74s, hard 6.73s/0.85s). The plant passed under the same seed, the
+  `fuzz|soak` pair the audit is asked for passed 4/4, and the 10-11 audit's
+  seed passed this subset 24/24. One run, so not established as
+  deterministic for the seed. **F17 named this exact shape and left it**: at
+  8m the body subtends ±2.43 degrees, wider than medium's 2.5-degree cone
+  and hard's 1.2, so once both land every round they saturate at the gun's
+  rate-of-fire floor and no aim model separates them - F17 measured the
+  per-round draw producing 0.39s/0.39s and rejected it for that reason, and
+  wrote the separation at 8m down as **K6's** (difficulty at range). What is
+  new is that the per-burst draw, under this seed, reaches the same tie:
+  `tests/difficulty.js:335` asserts `harder.kill < easier.kill` strictly,
+  and the detect column (3.60s against 4.97s) already orders the two. Not
+  fixed by the audit.
+  *done-when:* the same command with `seed=20261018` is green on both maps
+  without a kill time being compared less strictly than today, by one of:
+  the kill clause at a range where both presets read a full-hits tie at the
+  rate-of-fire floor is a reading and the detect clause is the verdict there
+  (argued in the check's header, with F17's geometry, and the floor itself
+  named from config rather than observed); or K6 gives the two presets a
+  separation at 8m that is not the aim cone. Either way the entry says which
+  seeds (20261018 and F17's 1637054825) it was run under, and
+  `the-widest-cone-kills-at-range-and-not-once-in-a-while` is unchanged.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
