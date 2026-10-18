@@ -1408,7 +1408,8 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   **10 of 600** over 195 modules in all four runs; the check costs 272-283ms and
   its line is character-for-character identical in all four. Found in passing:
   H79's drift reads **34 / 37** against the audit's 34 / 35, and one of the two
-  new yard rows is **H84**'s crossing count drifting again. — done 2026-10-18
+  new yard rows is **H84**'s crossing count drifting again. — done 2026-10-18,
+  commit `6730522`
 
 - **H70** Two checks about one key, and the seam made checkable.
   `src/tests/movement.js` was **599 of 600** and the leader of the cluster the
