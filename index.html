@@ -90,6 +90,37 @@
 <div id="bl-boot-error"><h1>Blackline failed to start</h1><pre id="bl-boot-error-body"></pre></div>
 
 <script>
+  /*
+   * H67: the Resource Timing buffer, raised before a single module is asked
+   * for. Its default size is 250 entries and this page is well past it: the
+   * module graph alone is 193 requests, and five modules under src/tests/
+   * read that buffer at seven call sites to find out which modules ACTUALLY
+   * RAN rather than guessing the import graph - the 600-line ceiling, the
+   * network ban, the two source bans, the pixel-floor census, the pose-proxy
+   * discovery and the rng-draw census. Each source-reading census then
+   * re-fetches the tree it is about, so a full run makes thousands. An entry
+   * past the cap is dropped in silence, which is what this had been doing.
+   *
+   * It is set here rather than in a module because a module cannot be early
+   * enough: the graph that loads src/main.js is itself most of the requests
+   * this protects. The overflow event is recorded rather than handled,
+   * because the one thing a reader of those censuses needs is to know that
+   * nothing was dropped.
+   *
+   * Every line of this comment carries its leading star on purpose: the check
+   * that holds the two lines below reads this file with its comments stripped
+   * line-locally, and a prose line without the star would be read as the ask
+   * itself (H43's bite, H41's rule).
+   */
+  (function () {
+    if (!window.performance || !performance.setResourceTimingBufferSize) return;
+    window.__blRequestBufferFull = false;
+    performance.addEventListener
+      ? performance.addEventListener('resourcetimingbufferfull', function () { window.__blRequestBufferFull = true; })
+      : (performance.onresourcetimingbufferfull = function () { window.__blRequestBufferFull = true; });
+    performance.setResourceTimingBufferSize(65536);
+  })();
+
   // A module that fails to parse or fails to resolve its import map entry does
   // so silently apart from a console line. Surface it on screen instead.
   (function () {

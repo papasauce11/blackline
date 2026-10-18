@@ -95,6 +95,42 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### Three quarters of every test run was invisible to the tests (H67, 2026-10-17)
+
+**Nothing in the game changed.**
+
+Browsers keep a list of every file a page asked for, and this project leans on
+it hard: six tests read that list to find out **which code actually ran**,
+rather than trusting the list of imports at the top of each file. One of them
+checks that the game never talks to any server but the one Three.js comes
+from - which is the test that would catch a stray tracker or a leaked API call.
+
+**The list has a default size of 250 entries and nobody had raised it.** The
+test that reads it had started reporting *"250 requests"*, which looked like a
+count and was actually the ceiling. Measured properly, one test run of one map
+asks for **991 files** - so **741 of them, three quarters, were falling off the
+end of the list unseen**, and had been for some time. The historical figure
+written down in the project notes was 47.
+
+**Nothing had actually broken**, and the reason is worth knowing: the game's own
+code loads first and sits at the *front* of the list, so the five tests that
+only want "which modules ran" were reading intact data by luck of ordering. The
+one that was really affected is the network check, because its whole job is to
+see **every** request, and it could not see the last 741.
+
+**Fixed, and fixed so it cannot come back quietly.** The page now asks for a
+list of 16,384 entries before it loads a single file, and it listens for the
+browser's "the list is full" event. A new test,
+`the-resource-timing-buffer-has-room-for-every-request-the-page-makes`, fails if
+that event ever fires, if the page stops asking for a bigger list, or if a sixth
+test starts reading the list without being declared. So the next time this line
+is crossed it is a failed run and not another silence.
+
+**What is left for you: nothing.** This is about the tests being able to see
+what they are testing. One side effect you might notice in a test report: the
+network check now prints about a thousand requests where it used to print 250,
+and that number will wobble run to run, because it is a running total.
+
 ### The sound-card pass mark turns out to be writable, and the obvious version of it does not work (H66, 2026-10-17)
 
 **Nothing in the game changed.**

@@ -693,31 +693,21 @@ one setting only Josh can click; everything else here proceeds.
   the yard's). **H92** writes the floor, **H93** is the ceiling this cost,
   **H94** the coverage.
 
-- [ ] **H67 (S)** Three censuses read a buffer that is full. `no-network-
-  beyond-the-three-cdn`, `no-source-file-outside-config-is-over-600-lines` and
-  H61's proxy discovery all read `performance.getEntriesByType('resource')`,
-  which is the right instrument - *the modules that actually ran, never a guess
-  at the import graph* - and the network check's own detail line now reads
-  **"250 requests"**. 250 is the Resource Timing buffer's **default size**, and
-  nothing in `src/` calls `setResourceTimingBufferSize()` or listens for
-  `resourcetimingbufferfull`. So the page is at the cap and an entry past it is
-  dropped in silence. Today the three readings are intact because modules load
-  at boot and sit at the **front** of the buffer - 181 of 181 under `src/`, 95
-  of 95 under `src/tests/` - which is luck rather than design, and the check
-  actually exposed is the **network** one: a request made after the buffer
-  filled is invisible to the one census whose whole job is to see every request.
-  The historical reading was **47** (`PROGRESS.md`), so this crossed the cap
-  some time in the last forty jobs and no line said so.
-  Raise it at boot to something with room - the page's own number times a
-  margin, argued in multiples the way this project argues a threshold - and
-  **hold it**: a check that reads the buffer's size and the page's request count
-  and goes red while the second is within reach of the first, so the next
-  crossing is a red rather than a silence.
-  *done-when:* `setResourceTimingBufferSize()` is called once at boot with the
-  size argued from a measured request count, a check holds the count clear of
-  the buffer by a stated multiple and names all three censuses that depend on
-  it, and the number is in `PROGRESS.md`; proved by setting the buffer to the
-  page's own count and watching it go red.
+- [x] **H67 (S)** Three censuses read a buffer that is full. - done
+  2026-10-17, under Done. **It was not full, it was four times over.** Measured
+  with the buffer temporarily at 65,536: one run of one map makes **991
+  requests** against the 250 default, so **741 of every 991 - three quarters -
+  had been dropped in silence**. The readings that want *which modules ran*
+  survived by position (193 modules inside the first 197 entries); the one
+  genuinely exposed is the network ban, whose job is to see every request. And
+  the entry's census count was wrong: **seven call sites in five modules**, not
+  three, the four it missed being the four that joined after it was written.
+  `index.html` raises the buffer to **16,384** before a module is asked for -
+  a module cannot be early enough, the graph being most of the requests - and
+  records `resourcetimingbufferfull`, which
+  `the-resource-timing-buffer-has-room-for-every-request-the-page-makes` reds
+  on. Four breaks; the first reproduces the defect, the count pinned at exactly
+  250 after fetching 193 modules.
 
 - [ ] **H68 (S)** `benchlist.js` calls the weak reader `code`. One line -
   `const code = uncommented;` - with four correct lines above it explaining
@@ -1021,10 +1011,11 @@ one setting only Josh can click; everything else here proceeds.
   `RESOLVED`, `CLOCK_CASES`, `COVERAGE_CASES`) - three pure functions and two
   case tables that import nothing and register nothing, which is
   `censustally.js`'s shape exactly (H60). **H66 did not split, on purpose**: a
-  new module under `src/tests/` is a 251st request against a Resource Timing
-  buffer of 250, whose last entry is dropped in silence. So **do H67 first**,
-  or measure the request count and say why it is safe. If H92 lands before
-  this, it arrives with more lines to place and the seam is the same one.
+  new module under `src/tests/` was a 251st request against a Resource Timing
+  buffer of 250, whose last entry is dropped in silence. **H67 closed that and
+  this is unblocked** - the buffer is 16,384 and a check reds if a page ever
+  fills it. If H92 lands before this, it arrives with more lines to place and
+  the seam is the same one.
   *done-when:* no module the page loads is over 600 lines, the runner's
   `ceiling:` line is read after the move and its cluster count is in
   `PROGRESS.md`, the three exported readers answer identically (their case
@@ -1312,6 +1303,39 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H67** The buffer was not full, it was four times over, and three quarters of
+  every run was invisible. `no-network-beyond-the-three-cdn` had begun printing
+  *"250 requests"*, which is the Resource Timing buffer's **default size** and
+  not a count - nothing raised it and nothing listened for
+  `resourcetimingbufferfull`. Measured with the buffer temporarily at 65,536:
+  one run of one map makes **991 requests**, so **741 of them had been dropped
+  in silence**, against a historical reading of 47. Nothing had broken because
+  the module graph is requested first and sits at the front of the buffer - 193
+  modules inside the first 197 entries - which is luck of a specific kind; what
+  was genuinely exposed is the one census whose job is to see every request.
+  **The queue entry's own census was stale too**: seven call sites in five
+  modules, not three, every one reading the buffer for the modules that
+  *actually ran* rather than guessing the import graph (F13's rule). Built:
+  `index.html`'s inline script raises the buffer to **16,384** and records the
+  overflow, and it has to be `index.html` because the graph that loads
+  `src/main.js` is itself 193 of the requests being protected - a module cannot
+  be early enough. 16,384 is the measured 991 times sixteen, and about 6.8x a
+  two-run page with this check's own 193 fetches in it; it costs nothing in
+  play, a buffer size being a cap and not an allocation. `tests/requestbuffer.js`
+  (300) holds four clauses - the ask read as code, the flag that turns the next
+  crossing into a red, the live count above the default (which the check's own
+  census guarantees by fetching every module that ran, so the clause is a
+  measurement), and the readers census both ways with each module's call-site
+  count. Two readers instrumented, because membership is `codeOf` and the
+  resource type is a string only `uncommented` can see (H62). Two defects of its
+  own: the comment above the raise was written in a form `codeOnly` does **not**
+  strip, so clause 1 would have passed on the explanation (H43's bite, caught by
+  reading the stripper), and the census declared this module with one call site
+  where it has two. Four breaks, each red on its own clause; the first
+  reproduces the defect with the count pinned at exactly 250 after 193 fetches,
+  and the second is the one this entry named by hand. It **unblocks H93**.
+  - done 2026-10-17, `HASH_H67`.
 
 - **H66** The floor is writable, the pair is the wrong shape for it, and the
   coverage objection was one-sided. D74 refused a floor on the `fed` total

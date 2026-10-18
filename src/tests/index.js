@@ -93,6 +93,7 @@ import { register as registerSolverQuery } from './solverquery.js';
 import { register as registerAutoPick } from './autopick.js';
 import { register as registerPerformance } from './performance.js';
 import { register as registerDoneDef } from './donedef.js';
+import { register as registerRequestBuffer } from './requestbuffer.js';
 import { register as registerSoak } from './soak.js';
 import { register as registerFuzz } from './fuzz.js';
 import { register as registerPipelineWait } from './pipelinewait.js';
@@ -234,6 +235,11 @@ export function registerAutoTests(debugTools) {
   // halves write the one scratch set physicsscratch.js owns (H56).
   registerSolverQuery(debugTools);
   registerDoneDef(debugTools);
+  // Beside donedef.js because it is the same kind of census and about the
+  // instrument donedef.js uses: the Resource Timing buffer three of those
+  // clauses read (H67). It fetches every module that ran, which is what
+  // makes its own 'the buffer is past its default' clause a measurement.
+  registerRequestBuffer(debugTools);
   registerSoak(debugTools);
   registerFuzz(debugTools);
   // After fuzz.js on purpose: by then the run's pipeline tail has been paid

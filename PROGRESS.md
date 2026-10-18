@@ -18649,3 +18649,167 @@ span is a lower bound whatever the coverage. The thread's own history is the
 lesson: D74 said no on shape, H54 said no on coverage, and H66 says the shape
 was separable all along and the coverage objection pointed the safe way - three
 jobs, and the first two were arguing against the wrong quantity.
+
+## H67 — the buffer was not full, it was four times over, and three quarters of every run was invisible
+
+**The number is the finding.** H67 was queued because
+`no-network-beyond-the-three-cdn` had begun printing *"250 requests"*, 250 is
+the Resource Timing buffer's default size, nothing in this project raised it and
+nothing listened for `resourcetimingbufferfull` - so the entry read the page as
+*at* the cap. Measured with the buffer temporarily at 65,536 and one run of one
+map: **991 requests**. The page was not at the cap, it was **four times past
+it**, and **741 of every 991 requests - three quarters - had been dropped in
+silence**, for some unknown number of jobs. The historical reading in
+`PROGRESS.md` was 47.
+
+**Why nothing had broken, and it is luck of a specific kind.** The module graph
+is requested first and sits at the **front** of the buffer, so every reading
+that wants *which modules actually ran* was intact by position: 193 modules
+inside the first 197 entries, nowhere near the 250th. What was genuinely
+exposed is the one census whose whole job is to see every request there is -
+the network ban could not see a request made after the cap, and a run makes 741
+of those.
+
+**And the queue entry had the census count wrong, which the new check is the
+correction to.** It names three readers. There are **seven call sites in five
+modules**, every one of them reading the buffer for the same thing (the modules
+that actually ran, never a guess at the import graph - F13's rule): the network
+ban, the 600-line ceiling and the two source bans in `donedef.js` at three
+sites, the AudioContext owner ban in `audiocontext.js`, H30's pixel-floor
+census in `pixelfloors.js`, H61's proxy discovery in `posecriterion.js` and
+H77's draw-site census in `rngdraws.js`. The four the entry missed are the four
+that joined after it was written, which is a census written by hand going stale
+exactly as H64's and H77's did.
+
+**Built.** `index.html`'s inline script raises the buffer to **65,536** and
+records `resourcetimingbufferfull` into a flag, and
+`tests/requestbuffer.js` (300 lines) holds all of it.
+
+**It has to be `index.html` and not a module**, which is the one structural
+decision here: the graph that loads `src/main.js` is itself 193 of the requests
+being protected, so a module cannot be early enough - by the time any of our
+code evaluates, the entries are already in, and under the default the last of
+them are already gone. The page already had an inline script for the boot-error
+panel, for a reason of the same shape (a module that fails to parse cannot
+report that it failed to parse), so this sits beside it.
+
+**The size is 65,536, and the first choice of it was wrong - the verify caught
+that.** 991 is one run of one map; the two runs of a map **share one page** (D1,
+F16), so the honest number is a page's second run: **2,799 requests**, with
+**3,383** entries in the buffer by the time this check reads it. The size first
+chosen was 16,384, which is 4.8x that - and this check's own margin clause holds
+**4x**, so the tripwire was **21% from firing on a healthy tree**. A threshold
+that near is exactly what D74 refuses, because a false red costs a whole run,
+and it was only visible because the first verify printed the number. At 65,536
+the size is **19x** the busiest page measured and the margin clause reds past
+**16,384** entries, 4.8x today's. It costs nothing in play: the game makes 197
+requests, and a buffer size is a cap rather than an allocation, so what the big
+number buys under the suite is the memory for entries that were being thrown
+away.
+
+**Four clauses, and the third is the behavioural half** (HANDOFF.md, A1 and A3's
+debt):
+
+1. `index.html` asks for a size, once, as a literal above the default, and
+   registers the recorder - read as **code**, comments stripped, because an
+   explanation is not an ask (H41's rule, H43's bite).
+2. **The flag is false: the buffer never filled on this page.** This is the
+   clause the queue asked for, and the whole of the difference between a red and
+   another silence.
+3. The live count is **above the 250 default**, which it cannot be if the raise
+   did not take effect - and the check guarantees the conditions for its own
+   clause rather than hoping for them, because clause 4 fetches every module
+   that ran, 193 requests on top of the boot graph. Plus this check's own fetch
+   of `index.html` must be *in* the buffer, which is the same question asked of
+   one entry rather than of a total: a full buffer drops new entries.
+4. The readers census, both ways, with what each module reads the buffer for and
+   **how many call sites it has**, so a reader that grows a second one is a
+   number that moved rather than nothing.
+
+**Two readers, and the division is load-bearing** (H62). Membership is a
+question about what a module *does*, so it is decided on `codeOf` - an
+identifier in a comment is not a call, which is H53's subject and cost three
+jobs an hour each. The entry **type** is a string argument and `codeOf` takes
+strings out, so the clause that the call is about *resources* is decided on
+`uncommented`, the only reader that can see it. Both are instrumented with
+`readerProblems` before either census is believed, and so is clause 1's reading
+of `index.html`, which is the same shape in a different file.
+
+**Two defects of its own, and the first was caught by reading the stripper
+rather than by a red.** The comment above the raise was written with indented
+prose lines, and `codeOnly` drops a line beginning with `//`, `/*` or `*` -
+nothing else. So the explanation would have survived `codeOf`, and clause 1's
+*"the recorder is registered"* test would have passed on the comment that
+describes it. Every line of that comment carries its leading star now, and the
+comment says why. The second was caught by the census, on itself: it declared
+`requestbuffer.js` with **one** call site and the file has **two** - once to
+find the modules it greps and once afterwards to count what the buffer holds.
+First thing the new clause found was its own row.
+
+**Four breaks, each red on the clause it was aimed at, through `npm run probe`
+at about 1.4s a run** (this check fetches 193 modules, so it is dearer than the
+40-120ms probes of the last few jobs).
+
+1. **The raise deleted** - the defect itself, reproduced: *"/index.html does not
+   call performance.setResourceTimingBufferSize with a literal, so the buffer is
+   at its 250-entry default"*, **plus** *"the Resource Timing buffer filled on
+   this page"*, **plus** *"250 entries in the buffer after fetching 193 modules,
+   which cannot be more than 250: the raise did not take effect"*. Three clauses
+   and the third is a measurement - the count pinned at exactly 250 is the
+   defect H67 exists to close, read off the live page.
+2. **The buffer set to 260**, the break the queue entry names by hand (*"setting
+   the buffer to the page's own count and watching it go red"*): the overflow
+   fires, this check's own fetch of `index.html` is **not in the buffer**, and
+   the margin clause reds at *"the buffer is 260 and this page has already spent
+   260 entries"*.
+3. **A declared reader dropped**: *"pixelfloors.js reads the Resource Timing
+   buffer at 1 site(s) and this census does not declare it"*.
+4. **The recorder removed** and the flag left in place: *"/index.html does not
+   register resourcetimingbufferfull in code, so a buffer that fills again fills
+   in silence"* - and the flag clause stayed green, correctly, which is why the
+   two are separate clauses rather than one.
+
+**What moved elsewhere.** `no-network-beyond-the-three-cdn` reads **991-ish
+requests** now instead of 250, which is a reading that was wrong and is now
+right, and H79's drift will see it move run to run because it is a running
+total (H79's first class, a deliberate absolute). The module count is **193**,
+one more than H66's 192. The ceiling cluster is **twelve** and unmoved: the new
+module is 300 lines.
+
+**And it unblocks H93**, which H66 declined to do for exactly this reason - a
+new module under `src/tests/` was a 251st request against a full buffer, and
+making a known silence one entry worse to buy four lines was the wrong trade.
+It is not a 251st request any more.
+
+**Verified.** The H66 verify is this job's gate (step 8 of the protocol):
+plant 238/1/8, yard 218/1/28, exit 0, 0 red, 0 flaky, 0 console errors. The
+new-module subset of twelve checks on both maps: **12 passed, 0 failed** each,
+193 modules, ceiling twelve. A first `npm run suite` at the 16,384 size: exit 0,
+plant **239 / 1 / 8** (1,128,408ms, 1,116,977ms), yard **219 / 1 / 28**
+(785,224ms, 825,411ms), spreads **1.0%** and **4.9%**, 0 red, 0 flaky, 0
+skipped, 0 unexpectedly green, **0 console errors**, no other runner - the run
+that produced the 2,799 and the 3,383 and sent the constant back to be
+re-argued. Then the constant was re-argued and **VERIFY**
+`npm run suite` ran again on the whole tree, documents included: **four runs,
+exit 0**, plant **239 / 1 / 8** (1,105,114ms, 1,113,741ms), yard **219 / 1 /
+28** (770,855ms, 767,103ms), spreads **0.8%** and **0.5%**, 0 red, 0 flaky, 0
+skipped, 0 unexpectedly green, **0 console errors**, 0 context losses, no other
+runner, ceiling **12 of 600** over **193 modules** in all four. The new check
+reads **41.4x of headroom on a page's first run and 19.4x on its second**, and
+the two document clauses were inside the run rather than after it: PLAYTEST.md
+at 2,494 lines with 53 checks named, TRAPS.md at 109 traps, HANDOFF.md 400 of
+400. Drift (H79) **34 on the plant and 37 on the yard**; the yard's gained one
+more than the 16,384 run, which is weather in a list where seventeen of the
+entries are weather by H79's own classification. Counts **239 / 219** against H66's 238 / 218, the one
+new check; **193 modules** against 192. Drift (H79) at the 16,384 size read 34
+on the plant and 36 on the yard against H66's 32 and 34, and the two that joined
+are this job's own doing and right: `no-network-beyond-the-three-cdn` prints a
+running total that was pinned at 250 and now moves (H79's first class, a
+deliberate absolute), and the new check prints the live entry count beside it.
+
+**Left.** Nothing of its own. **H93** is now unblocked and is the next thing on
+the `audiodevice.js` thread. One thing worth a later look rather than a job: the
+source-reading censuses re-fetch whole trees independently - six of them walk
+the same 193 modules and the browser serves them from cache, which is why 991
+requests cost nothing measurable, but it is six times the work and one shared
+reader would do it once.
