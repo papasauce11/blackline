@@ -1362,7 +1362,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   journal spans both runs of a page, which is **H98**. The second verify, same
   tree, clean: plant **240 / 1 / 8** (1,111,738ms, 1,121,404ms), yard **220 / 1 / 28** (805,798ms, 774,996ms), spreads **1%** and **4%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling **10 of 600** over **195 modules** in all four runs; all five checks one distinct detail line over
   two runs of each map; the ceiling line names a different leader,
-  `audiodevice.js` at 597 (**H93**). — done 2026-10-18, commit `@@HASH@@`
+  `audiodevice.js` at 597 (**H93**). — done 2026-10-18, commit `8545cfa`
 
 - **H69** The argument moved to the thing it is about, and the one rule a prose
   job can hold. H62 took `positioncensus.js` from 547 lines to **593 of 600**
