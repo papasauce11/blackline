@@ -5,59 +5,15 @@
  * reads it on the way (H43). The table is `tests/positionreads.js`; the
  * argument, the measurements and the twelve-state table are PROGRESS.md's H43.
  *
- * H40 found the slowest ease in the project while measuring a different one.
- * `updateVisual` lerps `_smoothPosition` toward the capsule at
- * `positionSmoothing(wallDt)` - 0.1423 of the gap in a frame at 60Hz, so
- * **45 frames** to 99.9% against the pose blend's twelve - and a state change
- * that lifts the capsule a metre leaves the drawn body **9mm** out at frame
- * thirty. Two jobs in a row measured the pose and concluded about this one, so
- * the question H43 asks is H33's in a second currency: **which checks read a
- * world position off a drawn body before that body has got there?**
- *
- * **The suite cannot advance the chase by accident, and that is most of the
- * answer.** `updateVisual` is called from exactly two places outside
- * `src/tests/` - `main.js`'s render frame, and `reset()` with a `wallDt` of 0,
- * which the law answers 1 to and so snaps. The harness's `stepFrames()` runs
- * `fixedStep` and nothing else. So a check that drives a state change with
- * `stepFrames` and then reads a world position off a mesh is not reading a
- * body 9mm out; it is reading a body that **has not moved at all**, and the
- * gap is the whole displacement. Six of the twelve entries are out of reach
- * for that reason rather than for being late, and a seventh - `animation.js` -
- * is past the band because `reset()` left it no gap to close.
- *
- * **One read is inside the band, it is deliberate, and the gap is deeper than
- * nine millimetres.** `look.js`'s `photographPose` says so in its own header -
- * "nothing is stepped between the strike and the frame, so a vault is
- * photographed part way over" - and anchors its eye on `actor.mesh.position`.
- * Measured over all twelve states `strike` reaches, **all twelve read with the
- * gap open**, worst `landing` at **0.794m**; the deep ones are the states
- * where the capsule is still travelling and only `hang` (0.014m) and `crouch`
- * (0.004m) are settled. It passes on an argument this check holds against
- * `look.js`'s source rather than stating: the eye and the focus are both
- * offsets from the **same** read, so the body-to-eye geometry carries no lag
- * and the pixel floors are about a body the right size in the right part of
- * the frame. What the lag can still reach is the *surroundings* - which of six
- * candidate eyes is in open air, and what occludes the body from it - and
- * that residual is **H46**.
- *
- * **Both bodies chase and only one of them read the law.** `enforcer.js`
- * carried its own `1 - Math.pow(0.0001, wallDt)` and `agentvisual.js` a third
- * of the same expression for the camera's pull-out, which is the shape
- * `pose.js`'s own header warns about for `headBobLift`. The law lives in
- * `pose.js` now, both bodies import it, and clause 3 holds that neither
- * carries a copy.
- *
- * **The hole this census used to report is closed (H47).** `deathcam.js`'s
- * `free-look moved the body` clause read `shade.mesh.position` across a
- * free-look that advances no frame, so it caught a direct write to the mesh and
- * would not have seen free-look move the **capsule** a mile. It now reads the
- * capsule as well - the quantity the camera is actually holding - and the mesh
- * read stays as the direct-write guard it was named for. Its entry moved from
- * proof `frozen` to proof `ragdoll` in the same diff, which is the stronger
- * reason and was always the true one: `combat:death` hands the mesh over before
- * the read, so the chase cannot write it even in a check that does advance a
- * frame. `presentation.js` is the only module under `frozen` now, and the
- * clause below still holds it.
+ * **The argument is not here.** H62 took this file 547 to 593 and almost none
+ * of the growth was code: the clauses that moved were two reader swaps and a
+ * line count, and the rest was the paragraph saying why. So H69 put each
+ * paragraph beside the thing it is about, where a reader of that thing will
+ * meet it - the chase law and what it measures, and the fact that `stepFrames`
+ * advances nothing, beside their patterns in `positionreads.js`; `look.js`'s
+ * twelve measured states and H47's closed hole in those two modules' own
+ * `note` fields in the table. Nothing was dropped, and the one paragraph a
+ * check cannot delegate is below.
  *
  * **What this check holds, and what it does not.** It holds the set, both
  * ways; that every entry still names a live expression; that the four
@@ -73,16 +29,12 @@
  * answer - the entry names an expression, so the day a clause moves this goes
  * red and somebody reads the note again.
  *
- * **Two readers, and the question each is for** (H62). H53 left this census
- * on the weaker of `tests/sourcetext.js`'s two whole, for a reason that
- * covered two of its clauses and not the membership grep: a module that names
- * `mesh.position` in a problem message makes no such call. Membership and
- * every expression pattern read `codeOf` now, an entry whose evidence is prose
- * declares it with a `says` field, and the four questions whose answer is a
- * **string literal** read `uncommented` and say so at the line. The split,
- * what was measured before it was written, and the instrument that holds both
- * readers to what they are for are in `positionreads.js`; the one clause whose
- * arithmetic had to change is the ragdoll ordering, below.
+ * **Two readers, and the question each is for** (H62). Membership and every
+ * expression pattern read `codeOf`; an entry whose evidence is prose declares
+ * it with a `says` field; the four questions whose answer is a **string
+ * literal** read `uncommented` and say so at the line. The argument, what was
+ * measured before it was written and the instrument that holds both readers to
+ * what they are for are in `positionreads.js`.
  *
  * Registered from tests/index.js beside tests/breathcensus.js and
  * tests/breathdrawn.js, which are this shape about the two phases.
@@ -183,7 +135,7 @@ export function register(debugTools) {
       // Both criteria against both readers before the census is believed
       // (H62, on H53's model): a census answers "nothing new" when its greps
       // work and when they have stopped seeing anything.
-      problems.push(...criteriaProblems());
+      problems.push(...await criteriaProblems(origin));
 
       const sources = new Map();
       const worldReaders = [];

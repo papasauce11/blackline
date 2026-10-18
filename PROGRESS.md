@@ -18923,3 +18923,87 @@ registered"* and *"TRAPS.md holds 110 traps in 1161 lines, HANDOFF.md is 400 of
 400 and points at it"*. The new trap is the one this job paid for: the strong
 reader cannot read its own line, and a check that quotes its subject reports
 itself.
+
+## H69 — the argument moved to the thing it is about, and the one rule a prose job can hold
+
+**The length was never code.** H62 took `positioncensus.js` from 547 lines to
+**593 of a 600 allowance**, and what moved in its clauses was two reader swaps
+and a line count; the rest was the paragraph saying why. The sibling that exists
+for exactly this - `positionreads.js`, cut out when the check reached 672 - held
+the table, the instrument, `lineOf` and the reader split, while the check's own
+header carried a hundred lines of argument about H40, H43, H46, H47 and H62.
+
+**Five paragraphs out, each to the thing it is about.** Two were about
+mechanisms and went beside the patterns that are those mechanisms, where a
+reader meets them: *the slowest ease in the project, found while measuring a
+different one* (H40's 0.1423 a frame, 45 frames to 99.9%, 9mm at frame thirty)
+and *both bodies chase and only one of them read the law* now sit above
+`THE_LAW`, and *the suite cannot advance the chase by accident* - the measured
+fact six of the twelve entries rest on - sits above `ADVANCES_THE_CHASE`, whose
+one-line summary of it was all that had been there. Two were about a single
+module each and belonged in that module's `note` in the table, which already
+carried them: `look.js`'s twelve measured states and H47's closed hole in
+`deathcam.js`. The one sentence the notes did not have is `look.js`'s own header
+quoted - *"nothing is stepped between the strike and the frame, so a vault is
+photographed part way over"* - and it is in the `look.js` note now. The fifth,
+H62's reader split, was a summary of a page that `positionreads.js` already
+carries whole, and is three lines pointing at it.
+
+**What stayed is the paragraph a check cannot delegate**: what it holds and what
+it does not. `positioncensus.js` is **548** lines, out of the ceiling cluster
+by 52, and the runner's own `ceiling:` line reads **11 modules within 50 of
+600** where it read twelve - the cluster count re-read rather than assumed, as
+the entry asked. `positionreads.js` is **458**, and the detail line is
+**byte-identical** to the one the H68 verify recorded, compared string to string
+rather than eyeballed.
+
+**Nothing was deleted.** Measured rather than asserted: of the 43 sentences in
+the old header, 32 survive somewhere in the pair with a verbatim run intact, and
+the other **11 were checked one at a time** - they are the look.js and
+deathcam.js arguments, which the table's two notes carry in their own words
+(*"all twelve states read with the gap open, worst `landing` at 0.794m"*,
+*"H47 closed the hole this entry used to report"*, *"Re-classified `frozen` to
+`ragdoll` in the same diff"*), plus H40's opening sentence, which is the moved
+paragraph's own first line reworded.
+
+**And the clause, which is the part worth arguing about.** A prose move has no
+behaviour to hold, and the protocol wants a check that reds if the job is
+reverted. Two candidates were measured and dropped before the third was built:
+a **no-duplicate-sentence** clause between a check and its sibling table, which
+turned out to catch nothing - the two modules share **zero** sentences of six
+words or more, before the move and after, because the duplication was paraphrase
+rather than copy; and a **tighter line ceiling** on a module that has been split
+once, which is a threshold nobody has argued and the kind of rule D48 and D69
+both refused.
+
+What is left is the rule H69 is an instance of, in the one place it is
+mechanical: **every pattern `positionreads.js` exports carries the job that
+measured it, in the comment above it.** Three names as data, so a renamed
+pattern reds rather than leaving the clause looking for nothing; a job id and
+not a word count, because how long an argument should be is nobody's rule and
+*where it lives* is; read raw rather than through either reader, since this is
+the one clause in this census whose evidence **is** the comment. It is folded
+into `criteriaProblems()`, the instrument the check already calls, so the check
+gained one `await` and no lines. Broken to see it red: `THE_LAW`'s one-line
+comment put back, and both maps red at *"THE_LAW carries no job id in the
+comment above it, so the measurement behind the pattern is in some other file's
+header"* - which is what a revert of this job looks like.
+
+**Verified.** The H68 verify is this job's gate (step 8 of the protocol). A
+five-check subset of everything this touches passed on both maps twice over -
+once for the prose move and once after the clause - **5 passed, 0 failed** each,
+and the ceiling line read **11 modules** both times. **VERIFY** `npm run suite`,
+four runs, **exit 0**: plant **240 / 1 / 8** (1,121,223ms, 1,117,301ms), yard **220 / 1 / 28** (792,342ms, 778,301ms), spreads **0%** and **2%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling **11 of 600** over 194 modules in all four runs. Counts **240 / 220**, unchanged from
+H68, because the clause went into an instrument the check already calls rather
+than into a check of its own. Drift (H79) **34 on the plant and 36 on the
+yard**, the yard one fewer than H68's 37 and nothing to do with this job - it is
+in the half of that list H79 classifies as weather. The census costs
+**1,230-2,043ms**, and across the eight runs of both verifies its detail line is
+**one distinct string**.
+
+One thing a reader of this file should know, which cost nothing here and will
+cost somebody an hour: **the verify was started before the clause was written**
+and had to be killed and run again, because a prose job looks finished at the
+point where only the prose is done. The protocol's own line - *every job ends
+with at least one new or extended AUTO check* - is a thing to settle **before**
+the hour-long run, not after it.

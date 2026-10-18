@@ -17,7 +17,11 @@
  *
  * `positioncensus.js` is what reads it, and holds every entry below against
  * the live tree - both ways, so a module that starts reading a world position
- * is red until it is classified. `grabslide.js` takes `chaseGap` and nothing
+ * is red until it is classified. **Since H69 the argument is here too**: a
+ * paragraph about a mechanism sits beside that mechanism's pattern, and a
+ * paragraph about one module sits in that module's `note`, which is where a
+ * reader of the entry will look. What stayed in the check is the sentence
+ * saying what it holds and what it does not. `grabslide.js` takes `chaseGap` and nothing
  * else. The argument for each entry is in that module's header and in
  * PROGRESS.md's H43.
  */
@@ -31,19 +35,50 @@ import { codeOf, readerProblems, uncommented } from './sourcetext.js';
  * off a drawn body - a `getWorldPosition` off a part or the camera, a
  * `mesh.position`, a `cameraRig.position`. A grep for the three is the whole
  * of it, which is what makes the list checkable rather than a matter of
- * opinion (breathcensus.js's rule).
+ * opinion (breathcensus.js's rule) - H43 took the census this names the
+ * criterion of, and measured every entry in it.
  */
 export const READS_A_WORLD_POSITION = /getWorldPosition|mesh\.position|cameraRig\.position/;
 
 /**
  * And the criterion for advancing the chase, which is the other half of every
  * entry below: `updateVisual` directly, or `renderFrame`, which is `main.js`'s
- * own frame and calls it for both bodies. The harness's `stepFrames` is not in
- * here, and that is the measured fact six of these entries rest on.
+ * own frame and calls it for both bodies.
+ *
+ * **The suite cannot advance the chase by accident, and that is most of the
+ * census** - H43's argument, beside the pattern it is about since H69.
+ * `updateVisual` is called from exactly two places outside `src/tests/` -
+ * `main.js`'s render frame, and `reset()` with a `wallDt` of 0, which the law
+ * answers 1 to and so snaps. The harness's `stepFrames()` runs `fixedStep` and
+ * nothing else. So a check that drives a state change with `stepFrames` and
+ * then reads a world position off a mesh is not reading a body 9mm out; it is
+ * reading a body that **has not moved at all**, and the gap is the whole
+ * displacement. Six of the twelve entries are out of reach for that reason
+ * rather than for being late, and a seventh - `animation.js` - is past the
+ * band because `reset()` left it no gap to close.
  */
 export const ADVANCES_THE_CHASE = /updateVisual|renderFrame/;
 
-/** The expression a body may not carry its own copy of: the chase law itself. */
+/**
+ * The expression a body may not carry its own copy of: the chase law itself.
+ *
+ * **The slowest ease in the project, found while measuring a different one**
+ * (H40) - beside the law it is about since H69. `updateVisual` lerps
+ * `_smoothPosition` toward the capsule at `positionSmoothing(wallDt)` - 0.1423
+ * of the gap in a frame at 60Hz, so **45 frames** to 99.9% against the pose
+ * blend's twelve - and a state change that lifts the capsule a metre leaves
+ * the drawn body **9mm** out at frame thirty. Two jobs in a row measured the
+ * pose and concluded about this one, which is why H43 asked H33's question in
+ * a second currency: *which checks read a world position off a drawn body
+ * before that body has got there?*
+ *
+ * **Both bodies chase and only one of them read the law.** `enforcer.js`
+ * carried its own `1 - Math.pow(0.0001, wallDt)` and `agentvisual.js` a third
+ * of the same expression for the camera's pull-out, which is the shape
+ * `pose.js`'s own header warns about for `headBobLift`. The law lives in
+ * `pose.js` now, both bodies import it, and `positioncensus.js`'s clause 3
+ * holds that neither carries a copy.
+ */
 export const THE_LAW = /Math\.pow\(0\.0001/;
 
 /**
@@ -90,7 +125,7 @@ export const CENSUS = [
     reach: 'measured',
     frames: '0-30, and all twelve states read with the gap open',
     reads: /chooseEye\(world, actor\.mesh\.position, actor\.yaw\)/,
-    note: 'anchors the eye and the focus on `actor.mesh.position` at the frame the strike arrived, deliberately and in its own header. Measured: all twelve states read with the gap open, worst `landing` at 0.794m, the moving states deeper than the climbs and only `hang` (0.014m) and `crouch` (0.004m) settled. Both the eye and the focus come from the same read, so the lag moves camera and subject together and the pixel floors are about a body the right size in the right part of the frame; what it can still reach is which of six eyes is in open air and what occludes the body from it. The table is in PROGRESS.md. **H46 measured that residual and it is not zero**: the lag changes the chosen eye on three state-map pairs, every one a climb - the plant\'s `vault` (0.43m, front-left where the capsule says front-right) and the yard\'s `mantle` (0.40m, right against front-right) and `pullup` (0.49m, left against front-left). Nine of twelve states agree on both maps. It is a census (`the-position-chase-moves-one-pose-photograph-eye-and-this-is-which`) and not a fix: choosing off the drawn body is correct for a photograph of the drawn body, so what the flip costs is the angle and H52 is the fix if one is wanted',
+    note: 'anchors the eye and the focus on `actor.mesh.position` at the frame the strike arrived, deliberately and in its own header - *"nothing is stepped between the strike and the frame, so a vault is photographed part way over"* - which is an argument the census holds against `look.js`\'s source rather than restating. Measured: all twelve states read with the gap open, worst `landing` at 0.794m, the moving states deeper than the climbs and only `hang` (0.014m) and `crouch` (0.004m) settled. Both the eye and the focus come from the same read, so the lag moves camera and subject together and the pixel floors are about a body the right size in the right part of the frame; what it can still reach is which of six eyes is in open air and what occludes the body from it. The table is in PROGRESS.md. **H46 measured that residual and it is not zero**: the lag changes the chosen eye on three state-map pairs, every one a climb - the plant\'s `vault` (0.43m, front-left where the capsule says front-right) and the yard\'s `mantle` (0.40m, right against front-right) and `pullup` (0.49m, left against front-left). Nine of twelve states agree on both maps. It is a census (`the-position-chase-moves-one-pose-photograph-eye-and-this-is-which`) and not a fix: choosing off the drawn body is correct for a photograph of the drawn body, so what the flip costs is the angle and H52 is the fix if one is wanted',
   },
   {
     module: 'poseeye.js',
@@ -292,22 +327,73 @@ export const PROSE_IGNORES = ['      // than a profile: the grab lifted the caps
 const SEEN_AS_A_WORLD_READ = (line) => (READS_A_WORLD_POSITION.test(line) ? 'a world read' : '');
 const SEEN_AS_THE_WORDING = (line) => (CENSUS.find((entry) => entry.module === 'grabslide.js').says.test(line) ? 'the wording' : '');
 
+/** This module's own path, for the clause that holds its arguments in place. */
+const TABLE_FILE = '/src/tests/positionreads.js';
+
 /**
- * Both criteria against both readers, before the census below is believed.
+ * The patterns this module exports, each of which is a mechanism somebody
+ * measured - and **the measurement has to be above the pattern** (H69).
  *
- * Three questions and not two: the strong reader must see a real world read
- * and drop one named in a string or in a comment; the weak reader must see a
- * reported problem's wording and still drop a comment that quotes it; and the
- * **same** wording, read as code, must come back as nothing - which is what
- * makes the split load-bearing rather than a pair of names. H53 measured that
- * third one by hand and this is it as a clause.
+ * This is the rule H69 is an instance of, held where it is mechanical rather
+ * than left to care. H62 took `positioncensus.js` from 547 lines to 593 of a
+ * 600 allowance and almost none of the growth was code: the clauses that moved
+ * were two reader swaps and a line count, and the rest was the paragraph
+ * saying why - written into the *check's* header, a hundred lines above the
+ * patterns it was about. Five jobs before it had already paid for the same
+ * lesson from the other side (H51 a split, H53, H58, H61 and H62 shared
+ * extractions), and nothing held it, so H69 moved the argument here and this
+ * clause keeps it here: a job id above each pattern, because a pattern whose
+ * measurement is in another file's header is a pattern the next reader cannot
+ * re-derive and the next job will re-measure.
+ *
+ * **A job id and not a word count**, which is the only honest form this can
+ * take: how long an argument should be is nobody's rule, and *where* it lives
+ * is. The three names are data, so a renamed pattern reds here rather than
+ * leaving the clause looking for something that no longer exists - the shape
+ * every `reads` field in the table above has.
  */
-export function criteriaProblems() {
-  return [
+const ARGUED_PATTERNS = ['READS_A_WORLD_POSITION', 'ADVANCES_THE_CHASE', 'THE_LAW'];
+
+/** The mark of an argument: the job that made the measurement, by its id. */
+const NAMES_A_JOB = /\bH\d+\b/;
+
+/**
+ * Both criteria against both readers, and the arguments still beside their
+ * patterns, before the census below is believed.
+ *
+ * Three reader questions and not two: the strong reader must see a real world
+ * read and drop one named in a string or in a comment; the weak reader must
+ * see a reported problem's wording and still drop a comment that quotes it;
+ * and the **same** wording, read as code, must come back as nothing - which is
+ * what makes the split load-bearing rather than a pair of names. H53 measured
+ * that third one by hand and this is it as a clause.
+ *
+ * Then the fourth question, which is about this module rather than about a
+ * reader: every pattern it exports carries the job that measured it, read off
+ * its own source. Raw and not through either reader, because the subject **is**
+ * the comment - the one clause in this census for which prose is the evidence
+ * and not the thing to strip (H69).
+ */
+export async function criteriaProblems(origin) {
+  const problems = [
     ...readerProblems(SEEN_AS_A_WORLD_READ, [[CODE_SEES, 'a world read']], CODE_IGNORES, codeOf),
     ...readerProblems(SEEN_AS_THE_WORDING, [[PROSE_SEES, 'the wording']], PROSE_IGNORES, uncommented),
     ...readerProblems(SEEN_AS_THE_WORDING, [], [PROSE_SEES], codeOf),
   ];
+  const own = await text(origin, TABLE_FILE);
+  if (own.error) return [...problems, `${own.error}; it is the table whose own arguments this clause reads`];
+  for (const name of ARGUED_PATTERNS) {
+    const at = own.body.indexOf(`export const ${name} = /`);
+    if (at === -1) {
+      problems.push(`${name} is not an exported pattern of tests/positionreads.js any more, so the clause holding its argument beside it is about nothing (H69)`);
+      continue;
+    }
+    const opens = own.body.lastIndexOf('/**', at);
+    if (opens === -1 || !NAMES_A_JOB.test(own.body.slice(opens, at))) {
+      problems.push(`${name} carries no job id in the comment above it, so the measurement behind the pattern is in some other file's header - which is how positioncensus.js reached 593 of 600 before H69 moved it here (H69)`);
+    }
+  }
+  return problems;
 }
 
 /**

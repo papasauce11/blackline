@@ -95,6 +95,37 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A test file was two thirds explanation, and the explanation moved to what it explains (H69, 2026-10-18)
+
+**Nothing in the game changed, and no test changed what it measures.**
+
+One of the suite's bigger tests - the one that proves every check reading a
+position off the *drawn* body knows how far behind the real body it is - had
+grown to 593 lines of a 600 limit, and almost none of that was test code. It was
+the argument: a hundred lines at the top of the file explaining measurements
+taken by five earlier jobs, sitting a long way from the things they were about.
+
+Those paragraphs now live beside what they explain. The two about mechanisms sit
+directly above the patterns that *are* those mechanisms, so anybody who finds
+the pattern finds the measurement with it. The two about one module each sit in
+that module's row of the table, where a reader of the row will look. The file is
+**548** lines instead of 593, and the suite's own report now says **eleven**
+files are within fifty lines of the limit where it said twelve.
+
+**The test's reading is identical**, compared character for character against
+the run before the change rather than looked at - which is the only thing that
+makes a move like this safe to do.
+
+**One new rule is held, and two were deliberately not.** The rule: every pattern
+in the table file must name the job that measured it, in the comment above it -
+so an argument cannot drift away from its subject again without a failed run. I
+also measured and dropped two ideas: a "no sentence appears in both files" check
+(it catches nothing - the duplication was paraphrase, not copying) and a tighter
+line limit for files that have been split once (a number nobody has argued, and
+this project's rule is to report those rather than fail on them).
+
+**What is left for you: nothing.**
+
 ### One of the test suite's two readers was going by the other one's name, in four places (H68, 2026-10-18)
 
 **Nothing in the game changed.**

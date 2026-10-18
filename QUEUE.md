@@ -709,26 +709,6 @@ one setting only Josh can click; everything else here proceeds.
   on. Four breaks; the first reproduces the defect, the count pinned at exactly
   250 after fetching 193 modules.
 
-- [ ] **H69 (S)** `positioncensus.js` is at 593 of 600 and its argument has a
-  home. H62 took it 547 to 593 and the ceiling cluster back to **twelve**;
-  almost none of the growth is code, because the clauses that moved are two
-  reader swaps and a line count, and the rest is the paragraph saying why. The
-  sibling exists for exactly this - `positionreads.js` was cut out when the
-  check reached 672 of a 600 allowance - and it now holds the reader split,
-  what H62 measured before writing it, the instrument and `lineOf`, while the
-  check's own header still carries a hundred lines of argument about H40, H43,
-  H44, H46 and H47.
-  Move the argument to the thing it is about, which is the cheapest way out of
-  that cluster five times over now (H51 a split, H53, H58 and H61 shared
-  extractions). The header paragraphs that belong to an **entry** belong in
-  that entry's `note`, which the table already is; the ones that belong to a
-  **mechanism** belong beside the mechanism's instrument. What must stay in the
-  check is the sentence saying what it holds and what it does not.
-  *done-when:* `positioncensus.js` is out of the 600-line cluster (under 550),
-  no argument was deleted rather than moved, every reading in the detail line is
-  unchanged, and the cluster count in `HANDOFF.md` is re-read rather than
-  assumed.
-
 - [ ] **H70 (S)** `src/tests/movement.js` is at 599 of 600 and becomes the
   leader of the ceiling cluster the moment H56 lands - **one line**, in the
   file holding the solver's own behaviour checks, which is the worst place to
@@ -1352,6 +1332,43 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H69** The argument moved to the thing it is about, and the one rule a prose
+  job can hold. H62 took `positioncensus.js` from 547 lines to **593 of 600**
+  and almost none of the growth was code: two reader swaps and a line count, and
+  the rest the paragraph saying why, written into the check's header a hundred
+  lines above the patterns it was about. Five paragraphs out. The two about
+  **mechanisms** went beside the patterns that are those mechanisms - H40's
+  measurement of the chase law and *both bodies chase and only one read the law*
+  above `THE_LAW`, and *the suite cannot advance the chase by accident* above
+  `ADVANCES_THE_CHASE`, which had carried a one-line summary of it. The two
+  about **one module each** belonged in that module's `note`, which already
+  carried them in its own words: `look.js`'s twelve measured states and H47's
+  closed hole in `deathcam.js`; the one sentence the notes lacked was `look.js`'s
+  own header quoted, and it is in that note now. The fifth was a summary of
+  H62's reader split, a page `positionreads.js` already holds whole, and is
+  three lines pointing at it. What stayed is the paragraph a check cannot
+  delegate: what it holds and what it does not. **548** lines, out of the cluster
+  by 52, and the runner's `ceiling:` line reads **11 modules within 50 of 600**
+  where it read twelve - re-read, as the entry asked, not assumed.
+  **Nothing was deleted, measured rather than asserted**: of 43 sentences in the
+  old header 32 survive with a verbatim run intact and the other 11 were checked
+  one at a time against the notes. The detail line is **one distinct string**
+  across the eight runs of this verify and H68's.
+  And the clause: a prose move has no behaviour to hold, so two candidates were
+  measured and dropped - a **no-duplicate-sentence** rule between a check and
+  its table (it catches nothing: the pair shares **zero** sentences of six words
+  or more, before the move and after, because the duplication was paraphrase)
+  and a **tighter line ceiling** for a split module (a threshold nobody has
+  argued, which is **D77** now). What is held instead is the rule H69 is an
+  instance of, where it is mechanical: **every pattern `positionreads.js`
+  exports carries the job that measured it in the comment above it** - three
+  names as data, a job id and not a word count, read raw because the evidence
+  *is* the comment. Folded into `criteriaProblems()`, so the check gained one
+  `await` and no lines. Broken to see it red: `THE_LAW`'s one-line comment back,
+  both maps red at *"THE_LAW carries no job id in the comment above it"*.
+  Verified plant **240 / 1 / 8** (1,121,223ms, 1,117,301ms), yard **220 / 1 / 28** (792,342ms, 778,301ms), spreads **0%** and **2%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling **11 of 600** over 194 modules in all four runs; counts unchanged at 240 / 220. — done 2026-10-18,
+  commit `@@HASH@@`
 
 - **H68** The alias was the smaller half: three live copies of the reader, two of
   them under the other one's name. `benchlist.js` held `const code =

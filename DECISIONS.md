@@ -2381,6 +2381,39 @@ number changed to make the sentence true:
 
 ## Blocking — waiting on Josh
 
+### D77 — Should a module that has been split once carry a tighter ceiling than 600?
+600 is the only line, so every module creeps to 599. `movement.js` has sat at
+599 for three jobs (**H70** is the job), `audiodevice.js` is at 597 (**H93**),
+and five jobs exist only because a file reached the line — H51 a split, H53,
+H58, H61 and H62 shared extractions. H69 has just moved 45 lines of argument out
+of `positioncensus.js` and it is **548**; nothing stops it returning to 593 the
+next time a clause grows a paragraph, and nothing would say so until it is at
+599 again.
+
+The options, in the order they cost:
+
+1. **Leave it.** 600 is the spec's line (Section 3.1) and since H63 the
+   runner's `ceiling:` summary prints the cluster every run, so a creeping file
+   is visible to a reader without the gate stopping for it. This is D48's and
+   D69's shape: report the drift, never red on it.
+2. **A tighter ceiling for a module that has been split or extracted from
+   once** — 550, say — declared per module beside the job that set it. The gate
+   reds when a split's gain has been spent. It costs a number nobody has
+   measured, and a routine stopped for prose is a routine that cannot build.
+3. **A second line in the summary, not a red**: *"N modules are back above the
+   length they were split to"*. The creep gets a name and no verdict, which is
+   the half of 2 that costs nothing.
+4. **Hold the cluster's size** rather than any file's: twelve may not become
+   thirteen. Cheap to read, and wrong in the one case that matters — a
+   legitimate new module landing at 560.
+
+**Recommendation: 3.** It is what H69 actually wanted, which is to notice before
+599 rather than at it; 2 only if you want a run stopped for it. This changes
+what the gate stops for, so it is yours; nothing is blocked on it, and H70 and
+H93 are the next two instances either way.
+
+decided:
+
 ### D56 — Should the Warden be playable competitively?
 H5 put a role row on the main menu and found there are only two things the
 game can do with it: the Shade in a competitive round, and the Warden in free
