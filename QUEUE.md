@@ -1387,7 +1387,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   modules`, identical in all four runs, 344-386ms. Found **H95** (four problems
   that say *"in code"* where the clause read the weak reader), **H96** (seven
   censuses walking the same tree of modules independently, H67's note) and
-  **H97** (three copies of the line-local comment test). — done 2026-10-18, commit `@@HASH@@`
+  **H97** (three copies of the line-local comment test). — done 2026-10-18, commit `c3a6003`
 
 - **H67** The buffer was not full, it was four times over, and three quarters of
   every run was invisible. `no-network-beyond-the-three-cdn` had begun printing
