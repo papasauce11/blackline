@@ -1348,7 +1348,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   two stale numbers, and the first draft of the new reading told a probe with a
   millisecond window that its blind spot was fine. **H93** is the ceiling this
   cost - 548 to 636 to 597, and the cluster is twelve.
-  - done 2026-10-17, `HASH_H66`.
+  - done 2026-10-17, `63bb8a6`.
 
 - **H65** The suite's densest block of marks was landing after the journal was
   read. The device journal is handed one mark per drawn frame and the rAF loop
