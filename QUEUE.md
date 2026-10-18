@@ -1335,7 +1335,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   where it has two. Four breaks, each red on its own clause; the first
   reproduces the defect with the count pinned at exactly 250 after 193 fetches,
   and the second is the one this entry named by hand. It **unblocks H93**.
-  - done 2026-10-17, `HASH_H67`.
+  - done 2026-10-17, `fe63333`.
 
 - **H66** The floor is writable, the pair is the wrong shape for it, and the
   coverage objection was one-sided. D74 refused a floor on the `fed` total
