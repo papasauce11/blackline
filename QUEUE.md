@@ -1368,7 +1368,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   `await` and no lines. Broken to see it red: `THE_LAW`'s one-line comment back,
   both maps red at *"THE_LAW carries no job id in the comment above it"*.
   Verified plant **240 / 1 / 8** (1,121,223ms, 1,117,301ms), yard **220 / 1 / 28** (792,342ms, 778,301ms), spreads **0%** and **2%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling **11 of 600** over 194 modules in all four runs; counts unchanged at 240 / 220. — done 2026-10-18,
-  commit `@@HASH@@`
+  commit `c667be8`
 
 - **H68** The alias was the smaller half: three live copies of the reader, two of
   them under the other one's name. `benchlist.js` held `const code =
