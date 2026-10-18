@@ -678,27 +678,21 @@ one setting only Josh can click; everything else here proceeds.
   **93** calls today, the pair at 92 and 93 rather than 84 and 85 of 86 - and
   `tests/registry.js`'s own comment said *"registerPerformance is deliberately
   called last"*, H71's shape in a third file, corrected in the same diff.
-- [ ] **H66 (S)** The floor D74 refused, on the pair rather than on the total.
-  H54 built the shape, and the **concentration** - the worst unfed stretch over
-  everything lost - separates every pair D74 says a total cannot: H35's plant
-  run at `fed` 0.5665 reads 0.0022 where a device that died at the same ratio
-  reads 1.00, and the halfway stop reads 1.00 where a healthy device on a
-  machine twice as loaded at the same 0.283 reads 0.0015. All four are rows in
-  `CLOCK_CASES`. So the floor is writable in principle - red when `fed` is low
-  **and** the loss is concentrated - and H54 did not write it, for a reason
-  that is no longer shape but **coverage**: the concentration a run reports is
-  a concentration over the marks that run happened to take, and H54's own four
-  readings took 191 and 652 marks of two runs of the same map, with a widest
-  unwatched gap of 167 to 275 seconds. A threshold on a number whose coverage
-  moves 3.4x run to run is D71's mistake one layer over. Readings first, then:
-  eight full-run concentrations, H65's wider reach if it has landed, and only
-  then the constant. **It may end the way H50 did**, and that is a result.
-  *done-when:* at least eight full-run readings of the concentration with
-  their mark counts and widest gaps are in `PROGRESS.md`, and D74's page either
-  carries the pair-floor with its constant argued in multiples or records what
-  the coverage would have to be worth; if a floor is written, `CLOCK_CASES`'
-  halfway row goes red and the entry in `timedrenders.js` moves the stretch's
-  verdict off `reported`.
+- [x] **H66 (S)** The floor D74 refused, on the pair rather than on the
+  total. - done 2026-10-17, under Done. **The floor is writable and this entry
+  specified the wrong shape of it.** Put to D74's own eight shaped rows before
+  being written, `fed` low **and** the loss concentrated leaves **row two
+  green** - a device that died with the same total a healthy machine reads,
+  which is the one case D74 says only a shape can catch. An absolute floor on
+  the stretch answers all eight, 27x clear of the worst stretch ever observed
+  (2.211s) and 6-14x under every fault, against the total's 1.16x. **And the
+  coverage objection runs one way only**: a proven unfed span is a *lower
+  bound*, so a verdict on its size can be missed and never invented - coverage
+  limits sensitivity, not safety, which H54 and this entry both had backwards.
+  `readCoverage()` reports the blind spot (1.00 of the plant's loss, 1.16 of
+  the yard's). **H92** writes the floor, **H93** is the ceiling this cost,
+  **H94** the coverage.
+
 - [ ] **H67 (S)** Three censuses read a buffer that is full. `no-network-
   beyond-the-three-cdn`, `no-source-file-outside-config-is-over-600-lines` and
   H61's proxy discovery all read `performance.getEntriesByType('resource')`,
@@ -983,6 +977,88 @@ one setting only Josh can click; everything else here proceeds.
   read off a `--details` file rather than argued, and a check holds those lines
   to the budget so one that grows past it is red rather than quietly cut.
 
+- [ ] **H92 (S)** Write the floor, on the stretch rather than on the pair.
+  H66 measured every candidate against the eight shaped rows of
+  `CLOCK_CASES` and the answer is not the one D74 or H54 expected: **red when
+  the device is known to have gone unfed across one continuous span longer
+  than about a minute**, with no `fed` term in it at all. The pair this entry
+  used to name (`fed` low AND concentrated) leaves a dead device green
+  whenever its total matches a healthy machine's, which is D74's row two and
+  the whole of its argument. The margins are the ones this project argues a
+  threshold with: the worst single stretch ever observed is **2.211s** over
+  fourteen full-run readings, so a 60s line is **27x** above the worst healthy
+  reading, and every synthetic fault is 353-814s, so the same line is **6-14x**
+  under all of them - against `fed`'s 0.45, which is 1.16x under the lowest
+  healthy reading and why D74 said no. **A red cannot be a sampling
+  artefact**, which is the clause this rests on: `unfedWorst.ms` is bounded by
+  two marks reading the same monotonic `currentTime`, so it is a *proven*
+  unfed span and a lower bound - a wider blind spot makes it smaller, never
+  larger (H66). What it costs is a **fifth word in `timedrenders.js`'s verdict
+  vocabulary**: H41's ban on a `size` verdict is argued about a timed *draw*
+  (*"a submission time is cheap however expensive the frame is"*) and that
+  census states it about any duration, so a floor on a wall-clock interval
+  that brackets no draw reds it as written. One entry, one word, one clause -
+  and the word has to carry its own criterion, the way `PROOFS` does.
+  **Read H66's entry first**, which has the eight rows and both candidates.
+  *done-when:* a constant in `tests/audiodevice.js` with its multiples argued
+  from the readings on record, the verdict red on D74's rows two, three, five
+  and six and green on the other four, **`CLOCK_CASES`' halfway row red** and
+  D74's page carrying the override; `timedrenders.js`'s audiodevice entry
+  moves the stretch's verdict off `reported` and its new word is held to a
+  criterion rather than declared; and the floor broken both ways - a fault one
+  second under the line stays green, a healthy run's own numbers with the
+  stretch raised past it goes red.
+- [ ] **H93 (S)** `src/tests/audiodevice.js` is at 597 of 600 and the cluster
+  is twelve. H66 put 94 lines of reader, constants, cases and clause into it
+  and bought 29 back out of a header that was carrying D74's and H35's
+  arguments twice; the file was 548 before, 636 mid-job, and is **597** - three
+  lines of headroom in the file H65's entry had already named as one of three
+  within three of joining the cluster. The seam is the subject and not the
+  prose, which is **H75's shape**: the module is two things, *the device asked
+  about itself* (the two checks, `UNASKED`, the registration-order constants)
+  and *what the journal's numbers mean* (`readDeviceClock`, `readUnfedShape`,
+  `readCoverage`, `MIN_WINDOW_SECONDS`, `MIN_SHAPE_SAMPLES`, `CONCENTRATED`,
+  `RESOLVED`, `CLOCK_CASES`, `COVERAGE_CASES`) - three pure functions and two
+  case tables that import nothing and register nothing, which is
+  `censustally.js`'s shape exactly (H60). **H66 did not split, on purpose**: a
+  new module under `src/tests/` is a 251st request against a Resource Timing
+  buffer of 250, whose last entry is dropped in silence. So **do H67 first**,
+  or measure the request count and say why it is safe. If H92 lands before
+  this, it arrives with more lines to place and the seam is the same one.
+  *done-when:* no module the page loads is over 600 lines, the runner's
+  `ceiling:` line is read after the move and its cluster count is in
+  `PROGRESS.md`, the three exported readers answer identically (their case
+  tables run every suite and are the proof), nothing imports the new module
+  but `audiodevice.js`, and the request count is in `PROGRESS.md` beside the
+  buffer size.
+- [ ] **H94 (S)** The journal is marked on frames and the gap is between
+  bursts. H66 measured the blind spot: the widest interval between two marks
+  is **1.00 of everything the plant loses and 1.16 of everything the yard
+  loses**, so the whole of a run's loss would fit inside the one interval
+  nobody watched, and the concentration the check reports is a concentration
+  over the two thirds of the page that had marks in it. H65 added 210 marks a
+  run and could not move that gap, and this is why the two are independent - a
+  mark is handed to the journal by `AudioSystem.step()`, which runs on frames,
+  and the gap is the quiet **between** bursts of frames, where the AUTO suite
+  drives none at all (F4). **But a mark needs no frame**: `sample()` reads
+  `context.currentTime` and advances nothing, which is H76's finding about
+  `grab()` in another currency, so the suite can hand the journal a mark
+  between checks for the price of a call. The seam is the runner that already
+  brackets every check, `ui/autosuite.js`'s `runAutoTests` loop, which beats
+  the heartbeat per check (F10) and is the one place that knows a check has
+  ended; no `setTimeout` and no rAF frame is involved, so neither ban is
+  touched (F13, F4), and the stretch arithmetic H54 wrote is unchanged -
+  a mark between checks is a mark like any other.
+  **Sized honestly: this is worth less than H66 thought when it started.**
+  H92's floor does not need it, because a proven span is a lower bound
+  whatever the coverage. What it buys is the *concentration* becoming a
+  reading over a whole run, which is what would let the shape carry a verdict
+  of its own and what would make the stretch's `atMs` mean something.
+  *done-when:* the journal is handed a mark at the end of every check as well
+  as on every drawn frame, `maxGapMs` on a full run of both maps is **under 5%
+  of the loss** (`readCoverage()`'s `RESOLVED`, which H66 wrote for this), both
+  numbers are in `PROGRESS.md` with the mark counts, and the shape is still
+  `many-stretches` with its concentration now a reading over the run.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -1236,6 +1312,43 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H66** The floor is writable, the pair is the wrong shape for it, and the
+  coverage objection was one-sided. D74 refused a floor on the `fed` total
+  because a total has no shape; H54 built the shape and left the floor on
+  **coverage**; this job was briefed to take eight readings and then write the
+  pair-floor. **It put that floor to D74's own eight shaped rows first and it
+  gets one wrong** - a device that died with `fed` 0.5666, the same total a
+  healthy machine reads, which is the one case D74 says only a shape can
+  catch. `fed` is above any line D74's arithmetic would draw there, so the
+  conjunction never fires: the pair is `fed`'s 1.16x floor with a second
+  condition that can only make it fire less often. **An absolute floor on the
+  stretch answers all eight**, 27x clear of the worst stretch ever observed
+  (2.211s, H54) and 6-14x under every fault - the multiples D74 could not get
+  from a total - and it is **H92**, specified down to its constant and its one
+  cost, a fifth word in `timedrenders.js`'s vocabulary, because H41's ban on a
+  `size` verdict is argued about a timed *draw* and that census states it about
+  any duration. **And the coverage objection runs one way only**, which nobody
+  had said: `unfedWorst.ms` is bounded by two marks reading the same monotonic
+  clock, so it is a *proven* unfed span and a **lower bound** - a wider blind
+  spot makes it smaller, never larger, so a verdict on its size can be missed
+  and can never be invented. That is the opposite of D71's case, and it means
+  coverage limits a floor's sensitivity and not its safety, which H54 and this
+  job's own brief both had backwards. What was built is the reading:
+  `readCoverage()`, holding the widest interval between two marks against the
+  loss - **1.00 of the plant's loss and 1.16 of the yard's**, 251.1s lost
+  against a 252.141s gap on the plant, the same number twice - with `RESOLVED`
+  (`CONCENTRATED / 10`) the line that would make the concentration a reading
+  over a run, cleared by twenty times. Seven coverage cases, two `CLOCK_CASES`
+  rows built from the gate's own numbers (one of which says the useful half:
+  **a fault entirely inside the blind spot is still caught**, bracketed by the
+  marks either side, so coverage costs *where* and never *whether*), one new
+  arithmetic clause, and four breaks each red on its own clause. Found on the
+  way: `timedrenders.js` called the reach one *"a job could widen"* and carried
+  two stale numbers, and the first draft of the new reading told a probe with a
+  millisecond window that its blind spot was fine. **H93** is the ceiling this
+  cost - 548 to 636 to 597, and the cluster is twelve.
+  - done 2026-10-17, `HASH_H66`.
 
 - **H65** The suite's densest block of marks was landing after the journal was
   read. The device journal is handed one mark per drawn frame and the rAF loop

@@ -5,139 +5,108 @@
  *
  * **What H35 was for.** *"The AudioContext encountered an error from the audio
  * device or the WebAudio renderer."* has appeared in three of the thirty-six
- * suite runs on record (H27 yard, H29 plant, H39 plant). H27 called it
- * environmental, H28 called it closed after one clean verify, H29 brought it
- * back, H32 closed the **code** side of it, and H35 was asked to collect three
- * cold gates' console-error counts and then either close it or name what to
- * look at next. Six cold gates now read 0 and the error sits at 3 of 36 runs
- * with nothing about position in a session predicting it, so the warming
- * hypothesis the record was built on is not what is left - and an intermittent
- * fault is not closed by an absence however long. What is left is the
- * **device**, which H32 left reading 48000Hz and otherwise unexamined, and
- * this check is the instrument for that answer rather than the answer.
+ * suite runs on record (H27 yard, H29 plant, H39 plant). H32 closed the
+ * **code** side of it and H35 ruled out the warming hypothesis the record was
+ * built on - an intermittent fault is not closed by an absence however long -
+ * so what is left is the **device**, which H32 left reading 48000Hz and
+ * otherwise unexamined. This check is the instrument for that answer rather
+ * than the answer, and H35's `PROGRESS.md` entry is the rest of the history.
  *
  * **Why the device has to keep its own journal.** The error arrives
  * asynchronously from Chrome's audio service, with no stack, attributed to the
- * page URL. `scripts/suite.mjs` stamps it with the map, the run and the
- * seconds into the run - the most the Node end can know - and nothing had ever
- * asked the context whether it was still running when it arrived. A check
- * cannot ask: every occurrence came minutes into a run that was otherwise
- * fine, so a question put at one moment answers about that moment.
+ * page URL, and every occurrence came minutes into a run that was otherwise
+ * fine - so a question put at one moment answers about that moment.
  * `systems/audiodevice.js` therefore keeps a record from the unlock, and this
  * check reads it near the end of the run, where it covers the most ground.
  *
  * **And the reading is the finding.** The device's clock is advanced by the
- * thread that renders to the output device, so the wall clock it has not
- * gained since the unlock is time the device was not being fed. Measured here,
- * on a full plant run: the clock gained **461.6s of 814.7s** - the output
- * device went unrendered for **353.1s, 43% of the page**, with the context
- * reading `running` the whole way and no error event at all. A 16.5-second
- * subset of the same tree read 0.8s lost, so the loss is not a startup offset:
- * it accumulates with the run. This machine does not feed its audio device
- * while the suite is rasterising on four pinned cores, and that is a far better
- * candidate for an intermittent device error than anything in H32's list.
- * H35's `PROGRESS.md` entry argues it; `TRAPS.md` carries the sentence.
+ * thread that renders to the output device, so wall clock it has not gained
+ * since the unlock is time the device was not being fed. On a full plant run
+ * the clock gained **461.6s of 814.7s** - unrendered for **353.1s, 43% of the
+ * page**, the context reading `running` the whole way and no error event at
+ * all - where a 16.5s subset read 0.8s lost, so the loss accumulates with the
+ * run rather than being a startup offset. This machine does not feed its audio
+ * device while the suite rasterises on four pinned cores. H35's `PROGRESS.md`
+ * entry argues it; `TRAPS.md` carries the sentence.
  *
  * **No floor rests on the ratio, and H50 measured before saying so** (D74).
- * H41's lesson applies one layer over - a wall clock on this machine cannot
- * price a draw (D71) and it cannot price the audio device either - but the
- * queue asked for readings rather than for that argument, and eleven full-run
- * readings now exist, each a solo suite run of one map: `fed` 0.5665, 0.6220,
- * 0.6411, 0.6503 and 0.6856 on the plant, 0.6844, 0.6844, 0.6941, 0.7119,
- * 0.7132 and 0.7481 on the yard. The arithmetic a floor would be argued from
- * is real - a device that stopped at a run's halfway point reads about half
- * its healthy value, 0.28 to 0.36, and 0.45 would separate that from every
- * reading taken - and it is still refused, because **the ratio is a total and
- * a total has no shape**. 0.57 is this machine with a device that stops
- * feeding and resumes some hundreds of times; 0.28 is a device that stopped
- * once and stayed stopped; 0.28 is also a *healthy* device on a machine twice
- * as loaded as this one. The total cannot tell the first from the second
- * without the shape it does not keep, and cannot tell the second from the
- * third at all - and the solo spread already on record is 32% wide with no
- * cause attributed, so 0.45 is 1.26x under the lowest healthy reading rather
- * than a margin. A false red here costs a whole run (the gate routes it to
- * `## BROKEN BASE`), which is the price of guessing. D74 is the page.
+ * Twenty-five full-run readings sit between `fed` 0.5225 and 0.7481, and the
+ * arithmetic a floor would be argued from is real: a device stopped at a run's
+ * halfway point reads 0.28-0.36, and 0.45 would separate that from every
+ * reading taken. It is refused because **the ratio is a total and a total has
+ * no shape** - 0.28 is a device that stopped once and stayed stopped, and 0.28
+ * is also a *healthy* device on a machine twice as loaded, which the total
+ * cannot tell apart at all. The spread on record is 32% wide with no cause
+ * attributed, so 0.45 is 1.16x under the lowest healthy reading rather than a
+ * margin, and a false red costs a whole run (the gate routes it to
+ * `## BROKEN BASE`). D74 is the page and has every reading.
  *
  * **What a total does support is a sign, and that is asserted** (H50): over a
- * window of minutes the device's clock has advanced at all. A device that was
- * never fed reads exactly zero and goes red naming the window; a device
- * starved for 43% of the page gains 461.6s and says nothing, which is the
- * difference between a verdict about the build and a verdict about the
- * morning. It is the weakest clause this number carries and deliberately so:
- * `readDeviceClock()` is it, `CLOCK_CASES` puts it to all eleven readings, to
- * the halfway stop and to a dead device, and the halfway case is asserted
- * **green** - which is where a later job that wants a floor meets D74.
+ * window of minutes the clock has advanced at all. A device never fed reads
+ * exactly zero and goes red naming the window; one starved for 43% of the page
+ * gains 461.6s and says nothing. `readDeviceClock()` is it, `CLOCK_CASES` puts
+ * it to every recorded reading, to the halfway stop and to a dead device, and
+ * **the halfway stop is asserted green** - which is where a job that wants a
+ * floor meets D74, and where H66 met it.
  *
  * **H54 built the shape the total has none of, and `readUnfedShape()` is the
- * reader of it.** The journal now keeps the longest wall interval across which
- * `currentTime` is **known** not to have moved, where it started, and how many
- * marks fell inside it. Held against the loss, that one number does the thing
- * D74 said no total could: the **concentration** - the worst stretch over
- * everything lost - is about 1.0 for a device that stopped once and stayed
- * stopped and three orders of magnitude under that for a machine losing the
- * same seconds a frame at a time. So the two cases D74 could not separate are
- * separated, and the third - a healthy device on a machine twice as loaded -
- * lands with the second rather than with the first, which is the right side.
- * The classification is **reported** and not asserted, for the reason
- * `readDeviceClock()`'s size is: see the honest limit below, and `D74`'s own
- * page for what H54 measured and what it decided about the floor.
+ * reader of it.** The journal keeps the longest wall interval across which
+ * `currentTime` is **known** not to have moved, where it started and how many
+ * marks fell inside it; the **concentration** - that stretch over everything
+ * lost - is about 1.0 for a device that stopped once and stayed stopped and
+ * three orders of magnitude under it for a machine losing the same seconds a
+ * frame at a time. So the two cases D74 could not separate are separated, and
+ * the third, a healthy device on a machine twice as loaded, lands with the
+ * second rather than the first. It is **reported** and not asserted, for the
+ * reason below and on D74's own page.
  *
- * **The honest limit, and it is what the number has to be read through.** The
- * marks come from `AudioSystem.step()`, which runs on frames, and **the rAF
- * loop drives no frames while the AUTO suite runs** (F4) - so every mark comes
- * from a check that drove one, and they arrive in bursts with minutes of
- * unwatched page between them. `systems/audiodevice.js` therefore charges the
- * device only intervals bounded at both ends by marks that read the *same*
- * clock, and reports `samples`, `sampledToMs` and `maxGapMs` beside the
- * stretch so the blind spot is on the record with it. What follows is that this
- * instrument sees the shape of the loss **inside a burst of frames** and not
- * across a whole run, and the concentration it measures is a concentration over
- * what it watched. That is a reach a job could widen; it is not a reading that
- * misleads, because the three numbers that bound it go out beside it.
+ * **The honest limit, and H66 priced it in both directions.** The marks come
+ * from `AudioSystem.step()`, which runs on frames, and **the rAF loop drives
+ * no frames while the AUTO suite runs** (F4), so they arrive in bursts with
+ * minutes of unwatched page between them. `readCoverage()` holds that blind
+ * spot against the loss and it is worth **1.00 of the plant's loss and 1.16 of
+ * the yard's**, so the concentration above is a concentration over the two
+ * thirds of the page that had marks in it. **But the limit is one-sided**: a
+ * stretch is bounded by two marks reading the same monotonic clock, so it is a
+ * *proven* unfed span and a **lower bound** - a wider blind spot makes it
+ * smaller, never larger, and a verdict on its size can be missed and never
+ * invented, which is the opposite of D71's case. And a gap whose marks read
+ * the same clock at both ends is charged to one stretch **in full**, so a
+ * fault entirely inside the blind spot is still caught, bracketed by the marks
+ * either side - `CLOCK_CASES`' H66 row is that, from one run's own numbers. So
+ * coverage costs *where* a fault was and never *whether*: **H92** writes the
+ * floor, on the stretch and not on the pair, and **H94** shrinks the gap.
  *
- * What is asserted is therefore five things about the device, four of them true
- * whether or not it is being starved - there is exactly one of it, it is still
- * running, it is still the device the graph was built for, it entered no state
- * nobody asked for, and its clock has moved - plus, since H54, that the
- * stretch's **arithmetic** is sound: a stretch inside the window it was sampled
- * over, never charging the device a millisecond nobody looked at, and marks
- * arriving at all over a window of minutes. Nothing else in this suite holds
- * any of them.
+ * What is asserted is therefore five things about the device - there is exactly
+ * one of it, it is still running, it is still the device the graph was built
+ * for, it entered no state nobody asked for, and its clock has moved at all -
+ * plus the **arithmetic** of the two numbers the shape is read through: a
+ * stretch inside the window its own marks measured, never a millisecond nobody
+ * looked at charged to the device, marks arriving at all over a window of
+ * minutes, and (H66) a blind spot no wider than the span it is a gap in.
+ * Nothing else in this suite holds any of them.
  *
- * **Those four can go red for an environmental reason, and they are asserted
- * anyway** (D73). D67 decided the other way about the console message - a
- * device error is counted, printed and does not fail the gate, because it would
- * have failed correct runs of a correct game - and the line between them is
- * what the player gets. A message in Chrome's log is Chrome's; a context that
- * has **suspended itself** is a game with no sound in it, whoever's fault that
- * is, and a suite that stayed green through it would be lying about the build.
- * It has not happened in thirty-six runs. If it ever does, that red is the most
- * valuable thing this project could learn about this question, because it is
- * the occurrence H35 could not attribute, caught in the act.
+ * **The first four can go red for an environmental reason and are asserted
+ * anyway** - D73 is that line, and it is where D67 drew the other one about the
+ * console message. A context that has **suspended itself** is a game with no
+ * sound in it whoever's fault it is; a clock that never moved is the same game
+ * read from the one side a `running` context does not cover, and what it would
+ * take to red that falsely is a machine starved for *all* of a window of
+ * minutes, where the worst run on record still feeds 52%. **The arithmetic
+ * group is about the instrument rather than the hardware**, which is why it
+ * needs none of D73's argument: a stretch that ends past the last mark, a
+ * negative one, a journal handed no marks at all, or a gap wider than the
+ * sampling it falls inside, is a sampler that has stopped working - the one way
+ * these numbers could quietly become readings about nothing.
  *
- * **The fifth clause is on the same line and well inside it.** A clock that
- * never moved is a device that never played a sample, which is the same game
- * with no sound in it that a suspended context is, read from the one side a
- * `running` context does not cover. What it would take to red it falsely is a
- * machine whose audio thread was starved for *all* of a window of minutes,
- * where this machine - the worst on record - still feeds 57% of the longest
- * run it has. The override is the same shape as D73's: one `problems.push`.
- *
- * **And the sixth group is about the instrument rather than the hardware**,
- * which is why it is asserted without D73's argument: a stretch that ends past
- * the last mark, or a negative one, or a journal handed no marks at all across
- * a window of minutes, is a sampler that has stopped working - the one way this
- * number could quietly become a reading about nothing.
- *
- * An empty `errors` list is reported, not read as health: `error` on a context
- * is young enough that it may never fire here, and the absence of an event
- * nobody has seen fire is not evidence.
+ * An empty `errors` list is reported, not read as health: the absence of an
+ * event nobody has seen fire is not evidence.
  *
  * Registered from tests/index.js **last** in the run, after
- * tests/performance.js since H65: the journal's value is the window it covers,
- * every check before this one is window, and this one drives no frames of its
- * own so it costs the checks after it nothing. The second check below holds
- * that order. Nothing here imports main.js (Section 3.1).
+ * tests/performance.js since H65: every check before this one is window, and
+ * this one drives no frames of its own so it costs the checks after it
+ * nothing. The second check below holds that order. Nothing here imports
+ * main.js (Section 3.1).
  */
 
 /**
@@ -146,22 +115,19 @@
  * thirds of the way up the registration order, so in a suite run this window
  * is minutes - but a subset that reaches this check without reaching that one
  * unlocks the device here, and a window of milliseconds is a reading about the
- * first buffer. A check should know the difference between a measurement and
- * the lack of one - and since H50 one verdict rests on that difference, so the
- * constant is load-bearing rather than cosmetic: under this window a clock that
- * has not moved is a clock that has not been asked, and nothing is said.
+ * first buffer. Since H50 one verdict rests on that difference, so the
+ * constant is load-bearing rather than cosmetic: under this window a clock
+ * that has not moved is a clock that has not been asked, and nothing is said.
  */
 const MIN_WINDOW_SECONDS = 30;
 
 /**
- * Below this many marks there is no shape to read (H54). The journal is handed
- * one mark per frame and a frame in the AUTO suite comes from a check that
- * drove one, so a subset that reaches this check without reaching the frame
- * drivers has a handful - and the longest stretch across a handful of marks is
- * an artefact of how rarely anyone looked rather than a fact about the device.
- * Thirty is the warm-up count `tests/performance.js` discards, borrowed for the
- * same reason: it is the smallest number of frames this project is willing to
- * read anything off.
+ * Below this many marks there is no shape to read (H54). A subset that reaches
+ * this check without reaching the frame drivers has a handful, and the longest
+ * stretch across a handful of marks is an artefact of how rarely anyone looked
+ * rather than a fact about the device. Thirty is the warm-up count
+ * `tests/performance.js` discards, borrowed for the same reason: the smallest
+ * number of frames this project is willing to read anything off.
  */
 const MIN_SHAPE_SAMPLES = 30;
 
@@ -169,9 +135,9 @@ const MIN_SHAPE_SAMPLES = 30;
  * The second check's subject (H65): the three registrations the window above
  * is made of, in the order it needs them, and the registrar whose body that
  * order is read out of. Named rather than spelled into the clause, because a
- * problem has to be able to say which call moved. `MIN_REGISTRATIONS` is the
- * floor `tests/registry.js` holds its own census to, for the same reason: an
- * order read off a handful of calls is an order read off nothing.
+ * problem has to say which call moved. `MIN_REGISTRATIONS` is the floor
+ * `tests/registry.js` holds its own census to: an order read off a handful of
+ * calls is an order read off nothing.
  */
 const ORDER_SELF = 'the-device-journal-is-read-after-the-frames-that-feed-it';
 const REGISTRAR = 'export function registerAutoTests';
@@ -191,6 +157,16 @@ const MIN_REGISTRATIONS = 50;
  * detail line and nothing else, because no verdict rests on it (D74).
  */
 const CONCENTRATED = 0.5;
+
+/**
+ * How much of everything lost the widest **unwatched** gap may be worth before
+ * the concentration above stops being a concentration over the run (H66).
+ * `CONCENTRATED` with a factor of ten under it, because a gap the device went
+ * unfed across is charged to one stretch in full: a blind spot worth the line
+ * itself could supply the line on its own. Measured here it is **1.00 and
+ * 1.16** of the loss - twenty times this line (H94 is what would move it).
+ */
+const RESOLVED = CONCENTRATED / 10;
 
 /** Transitions printed before the list is summarised, against the 400-character cut on a detail line. */
 const STATES_SHOWN = 6;
@@ -250,10 +226,9 @@ export function readDeviceClock(clockGained, wallSeconds) {
  * that is the reach the module header sets out - the marks come in bursts, so
  * this is a concentration over what was watched.
  *
- * Above 1.0 is not an error and is not clamped: a device that lost a tenth of a
- * second in total and stood still for most of a frame is honestly one stretch,
- * and the number says how much more than the total that stretch was. It is the
- * clearest sign that `shape` alone is not a verdict - the pair is.
+ * Above 1.0 is not an error and is not clamped: a device that lost a tenth of
+ * a second in total and stood still for most of a frame is honestly one
+ * stretch, and the number says how much more than the total that stretch was.
  *
  * @param {number} lostSeconds seconds of the window the device was not fed for
  * @param {number} worstMs the longest known-unfed stretch, in milliseconds
@@ -274,25 +249,47 @@ export function readUnfedShape(lostSeconds, worstMs, samples) {
 }
 
 /**
+ * What the journal's blind spot is worth against the loss, and so whether the
+ * concentration beside it is a concentration over the **run** (H66).
+ *
+ * Pure and exported for `CLOCK_CASES`' reason, and the number the floor D74
+ * refused would have to clear before it could be written. `blind` is the
+ * widest interval between two marks over everything lost: at 1.00 the whole of
+ * a run's loss fits inside the one interval nobody looked at, so the
+ * distribution of that loss is not a thing this instrument measured - it is a
+ * thing it assumed by having no mark in there. Nothing is asserted off
+ * `resolves` either, and on this machine it is never true.
+ *
+ * @param {number} lostSeconds seconds of the window the device was not fed for
+ * @param {number} maxGapMs the widest interval between two marks, in ms
+ * @returns {{ measured: boolean, gapSeconds: number, blind: number|null, resolves: boolean }}
+ */
+export function readCoverage(lostSeconds, maxGapMs) {
+  const gapSeconds = maxGapMs / 1000;
+  if (!(lostSeconds > 0)) return { measured: false, gapSeconds, blind: null, resolves: false };
+  const blind = gapSeconds / lostSeconds;
+  return { measured: true, gapSeconds, blind, resolves: blind <= RESOLVED };
+}
+
+/**
  * The clauses above, put to every reading on record and to the breaks they
  * exist to tell apart. `gained` and `wall` are seconds, `stopped` is what
  * `readDeviceClock()` must answer, and `why` is printed when it answers the
  * other way.
  *
- * The eleven healthy rows are H35's, H46's and H47's verifies, each a solo
+ * The eleven healthy rows are H35's, H46's and H47's verifies, each a full
  * suite run of one map (`PROGRESS.md`); `gained` is the recorded `fed` times
- * the recorded window, so the fourth decimal of the quotient is rounding and
- * nothing here reads it. They are the floor's evidence and the sign's at once:
- * every one must stay green, and **so must the halfway stop**, because the
- * total cannot tell it from a loaded machine. A job that writes a floor turns
- * that row red and has D74 to answer.
+ * the recorded window, so the fourth decimal of the quotient is rounding.
+ * Every one must stay green, and **so must the halfway stop**, because the
+ * total cannot tell it from a loaded machine.
  *
  * A row that also carries `worstMs`, `samples` and `shape` is one of **the
- * stretch's own cases** (H54), and `readUnfedShape()` is asked about it as
- * well: the eleven recorded readings predate the journal keeping any shape and
- * so carry none, while the rows below them are the pairs D74 says a total
- * cannot separate, with the shape separating them. `whyShape` is printed when
- * the word comes out wrong.
+ * stretch's own cases** (H54, H66), and `readUnfedShape()` is asked about it
+ * too: the eleven recorded readings predate the journal keeping any shape and
+ * carry none, the next rows are the pairs D74 says a total cannot separate
+ * with the shape separating them, and the last two are H66's - the pair the
+ * *shape* cannot separate either. `whyShape` is printed when the word comes
+ * out wrong.
  */
 const CLOCK_CASES = [
   { gained: 461.6, wall: 814.7, stopped: false, why: 'the plant run H35 measured: fed 0.5665, the lowest full-run reading on record, 353.1s of the page unfed' },
@@ -353,13 +350,47 @@ const CLOCK_CASES = [
     gained: 461.6, wall: 814.7, stopped: false, worstMs: 760, samples: MIN_SHAPE_SAMPLES - 1, shape: 'unmeasured',
     why: 'the plant run as a subset would have sampled it', whyShape: `${MIN_SHAPE_SAMPLES - 1} marks is under the ${MIN_SHAPE_SAMPLES} this takes: the longest stretch across a handful of marks is an artefact of how rarely anyone looked`,
   },
+
+  // H66's pair, and neither half is imagined: both numbers come off one run of
+  // the gate that landed this job. A gap whose marks read the same clock at
+  // both ends is charged to one stretch in full, so a fault that happened
+  // entirely inside the blind spot is still read as one - coverage costs where
+  // and never whether. The second row is the control.
+  {
+    gained: 576.1, wall: 827.2, stopped: false, worstMs: 252141, samples: 401, shape: 'one-stretch',
+    why: "the 2026-10-17 gate's plant run, fed 0.6964, with a fault inside its own blind spot",
+    whyShape: 'that run\'s own widest unwatched gap of 252.141s put where its stretch goes, against its own 251.1s of loss: concentration 1.00 and `one-stretch`, because the two marks bracketing a gap charge all of it - so an outage nobody watched is still caught, and what the blind spot costs is where it fell (H66)',
+  },
+  {
+    gained: 576.1, wall: 827.2, stopped: false, worstMs: 25214, samples: 401, shape: 'many-stretches',
+    why: 'the same run with a blind spot a tenth of the size',
+    whyShape: 'the same loss with the gap divided by ten reads 0.100 and comes back "many-stretches", so it is the span and not the loss that decides the word above - which is why a floor belongs on the span (H92) and not on the pair',
+  },
+];
+
+/**
+ * The coverage's own cases (H66): everything lost, the widest gap between two
+ * marks, and whether `readCoverage()` calls what sits beside it a
+ * concentration over the run. The first two are the readings this clause was
+ * written from - both runs of the gate that landed it - and the rest are the
+ * line from either side, including the gap a journal marked between checks
+ * rather than on a frame would read (**H92**).
+ */
+const COVERAGE_CASES = [
+  { lost: 251.1, maxGapMs: 252141, resolves: false, why: "the gate's plant run: the blind spot is worth 1.00 of the loss, so all of it fits in the interval nobody watched" },
+  { lost: 145.3, maxGapMs: 168308, resolves: false, why: "the gate's yard run: 1.16 of the loss, and the shorter run is the worse of the two" },
+  { lost: 100, maxGapMs: 5000, resolves: true, why: `the line exactly: a gap worth ${RESOLVED} of the loss is the most that leaves the concentration a reading about the run` },
+  { lost: 100, maxGapMs: 5100, resolves: false, why: 'a tenth of a second past the line, which must answer the other way or the line is not one' },
+  { lost: 100, maxGapMs: 50000, resolves: false, why: 'a blind spot worth half the loss: it could supply CONCENTRATED on its own, so the concentration is not a reading over the run' },
+  { lost: 100, maxGapMs: 500, resolves: true, why: 'the five-second gap a mark taken between checks would leave, which is what would make the concentration a reading over the run (H94)' },
+  { lost: 0, maxGapMs: 252141, resolves: false, why: 'nothing lost at all, so there is no loss for a blind spot to be blind to and no coverage to read' },
 ];
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'the-audio-device-keeps-its-clock-and-journals-the-states-it-enters',
-    spec: 'Section 14 / Section 15 / H35 / H50 / H54',
-    name: 'There is one realtime audio context, it is running, it is still the device the graph was built for, it entered no state nobody asked for, its clock has moved at all over a window of minutes, and how much of that window it was fed for - and the longest stretch it is known to have gone unfed across - is on the record without a floor',
+    spec: 'Section 14 / Section 15 / H35 / H50 / H54 / H66',
+    name: 'There is one realtime audio context, it is running, it is still the device the graph was built for, it entered no state nobody asked for, its clock has moved at all over a window of minutes, and how much of that window it was fed for - the longest stretch it is known to have gone unfed across, and what the widest interval nobody watched is worth against it - is on the record without a floor',
     run: (h) => {
       const problems = [];
       const audio = h.audio;
@@ -466,6 +497,23 @@ export function register(debugTools) {
         }
       }
 
+      // 6. The coverage, which is why the pair above still carries no floor
+      //    (H66). Reported, like the shape it qualifies, with the one piece of
+      //    arithmetic there is: the widest interval between two marks cannot
+      //    be wider than the span those marks cover, both of its ends being
+      //    marks. A gap that beat the span is a sampler whose two numbers are
+      //    about two different windows.
+      const covered = readCoverage(measured ? lost : 0, report.maxGapMs);
+      if (report.maxGapMs > report.sampledToMs + 1) {
+        problems.push(`the widest gap between two marks is ${report.maxGapMs}ms and the marks cover only ${report.sampledToMs}ms, so the journal's blind spot is wider than the window it sampled and the two cannot both be about this run`);
+      }
+      for (const probe of COVERAGE_CASES) {
+        const answer = readCoverage(probe.lost, probe.maxGapMs);
+        if (answer.resolves !== probe.resolves) {
+          problems.push(`readCoverage(${probe.lost}, ${probe.maxGapMs}) answered resolves=${answer.resolves}, want ${probe.resolves}: ${probe.why}`);
+        }
+      }
+
       const latency = report.baseLatency === null && report.outputLatency === null
         ? 'no latency offered'
         : `latency ${report.baseLatency === null ? '-' : report.baseLatency.toFixed(4)}/${report.outputLatency === null ? '-' : report.outputLatency.toFixed(4)}`;
@@ -479,10 +527,12 @@ export function register(debugTools) {
         ? `worst unfed ${shaped.worstSeconds.toFixed(3)}s at ${stretch.atMs}ms, ${stretch.samples} marks${stretch.open ? ', open' : ''}`
           + `, conc ${shaped.concentration === null ? 'n/a' : shaped.concentration.toFixed(4)} "${shaped.shape}"`
           + `; ${report.samples} marks to ${report.sampledToMs}ms, gap<=${report.maxGapMs}ms`
+          + `${covered.blind === null ? ', nothing lost for it to be blind to' : ` = ${covered.blind.toFixed(2)}x the loss`}`
+          + `${covered.blind === null ? '' : `, ${covered.resolves ? 'which resolves it' : 'no floor on the pair either (H66)'}`}`
         : 'no stretch reported';
       const account = `${report.opened} device${report.opened === 1 ? '' : 's'} at ${report.sampleRate}Hz, ${latency}; ${states}`
         + `; unfed ${lost.toFixed(1)}s of ${wallSeconds.toFixed(1)}s, fed ${fed === null ? 'n/a' : fed.toFixed(4)}`
-        + `${measured ? '' : `, window under ${MIN_WINDOW_SECONDS}s`}, no floor on it (D74)`
+        + `${measured ? '' : `, window under ${MIN_WINDOW_SECONDS}s`}, no floor (D74)`
         + `; ${worst}`
         + `; the clock moved, asserted as a sign over ${CLOCK_CASES.length} cases`
         + `; ${report.errors.length} error events, a count and not health`;
@@ -495,18 +545,17 @@ export function register(debugTools) {
   });
 
   // ------------------------------------------------------------------
-  // The registration order the window above rests on (H65). One mark per
-  // frame from `AudioSystem.step()`, and the rAF loop drives none under the
-  // AUTO suite (F4) - so the window covers exactly the checks registered
-  // before the one that reads it, and `tests/performance.js`'s **210** frames,
-  // the densest block of marks in the suite and the only one dense enough to
-  // resolve a stretch to the frame, were registered **after** the read until
-  // H65. **The import order says the opposite and is not the registration
-  // order**, which is the half-hour H54's measurement paid for. Three clauses,
-  // the last being the second half a check that reads a file it chose owes the
-  // suite (HANDOFF.md): the two calls in the order the window needs, the
-  // unlock still before both, and a parse required to have seen a registration
-  // order at all - or "A before B" is two absences agreeing.
+  // The registration order the window above rests on (H65). The window covers
+  // exactly the checks registered before the one that reads it, and
+  // `tests/performance.js`'s **210** frames - the densest block of marks in
+  // the suite and the only one dense enough to resolve a stretch to the frame
+  // - were registered **after** the read until H65. **The import order says
+  // the opposite and is not the registration order**, which is the half-hour
+  // H54's measurement paid for. Three clauses, the last being the second half
+  // a check that reads a file it chose owes the suite (HANDOFF.md): the two
+  // calls in the order the window needs, the unlock still before both, and a
+  // parse required to have seen a registration order at all - or "A before B"
+  // is two absences agreeing.
   // ------------------------------------------------------------------
   debugTools.registerAutoTest({
     id: ORDER_SELF,

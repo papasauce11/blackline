@@ -340,6 +340,72 @@ lowest healthy reading where this page said 1.26x. More data made that floor
 worse rather than better, which is what a 32%-wide spread with no cause
 attributed to it should be expected to do.
 
+**What H66 measured, and the floor this page can now be overridden with
+(2026-10-17).** H66 was sent to take eight full-run readings of the
+concentration and then write the pair-floor this page names, or record what the
+coverage would have to be worth. It did the second, and found two things this
+page and H54 both had wrong.
+
+**The pair-floor named above does not work, and the test was this page's own
+table.** Put to all eight rows of `CLOCK_CASES` that carry a shape, `fed` below
+0.45 **and** the concentration at or above 0.5 answers seven correctly and
+**leaves row two green**:
+
+| row | `fed` | conc | the pair reds | a 60s stretch floor reds | should red |
+|---|---|---|---|---|---|
+| this machine, healthy | 0.5666 | 0.00215 | no | no | no |
+| **the same total, device died** | **0.5666** | **1.00000** | **no** | **yes** | **yes** |
+| the halfway stop | 0.2833 | 1.00000 | yes | yes | yes |
+| healthy on a machine twice as loaded | 0.2833 | 0.00154 | no | no | no |
+| the one-buffer device | 0.0000 | 0.99914 | yes | yes | yes |
+| a dead device | 0.0000 | 1.00000 | yes | yes | yes |
+| healthy, 0.1s lost in total | 0.9999 | 7.00000 | no | no | no |
+| the worst stretch ever observed | 0.5666 | 0.00626 | no | no | no |
+
+Row two is the whole of this page's argument - a device that died with the same
+total a healthy machine reads - and `fed` 0.5666 is above any line the
+arithmetic here would draw, so the **conjunction never fires**. The pair is this
+page's 1.16x floor with a second condition attached that can only make it fire
+*less* often. It adds no margin; it subtracts sensitivity.
+
+**And the coverage objection runs one way only.** `unfedWorst.ms` is bounded at
+both ends by marks that read the same `currentTime`, and `currentTime` is
+monotonic, so it is a **proven** unfed span and therefore a **lower bound** on
+the true longest one. A wider blind spot can only make that number *smaller*. So
+a verdict resting on its size can be **missed** and can never be **invented** -
+the opposite of D71's case, where a clock reading the wrong quantity made a
+verdict wrong in the dangerous direction. **Coverage was never a threat to a
+floor's safety; it is a limit on its sensitivity**, and H54's section above and
+H66's own brief both read it the other way round.
+
+**So the floor is writable, on the stretch and not on the pair.** Red when the
+device is *known* to have gone unfed across one continuous span longer than
+about a minute, with no `fed` term in it at all. It answers all eight rows, and
+its margins are the kind this project argues a threshold with where this page's
+were not: the worst single stretch ever observed is **2.211s** over fourteen
+full-run readings, so a 60s line is **27x** above the worst healthy reading and
+**6x to 14x** under every fault, against the 1.16x that made this page say no.
+
+**What the coverage is worth, for the record.** `readCoverage()` holds the
+widest interval between two marks against everything lost: **1.00 of the
+plant's loss and 1.16 of the yard's** - on the plant, 251.1s lost against a
+252.141s gap, the same number twice - so the concentration the check prints is
+a concentration over the two thirds of the page that had marks in it.
+`RESOLVED` is `CONCENTRATED / 10`, 0.05, the line at which it would become a
+reading over a whole run, and the blind spot is twenty times it. The instrument
+is better than that sounds: a gap whose marks read the same clock at both ends
+is charged to one stretch **in full**, so **a fault entirely inside the blind
+spot is still caught**, bracketed by the marks either side. Coverage costs
+*where* a fault was, never *whether*.
+
+**Override by** writing that stretch floor (**H92**, which carries the constant
+and all eight rows). It costs a fifth word in `timedrenders.js`'s verdict
+vocabulary, because H41's ban on a `size` verdict is argued about a timed
+*draw* and that census states it about any duration. The ratio's own refusal
+above is **unchanged and still right**: no floor on `fed`, ever, because a total
+has no shape - what H66 found is that the shape never needed the total beside
+it.
+
 ### D73 — A device error is reported and a suspended device is red, which is a line D67 drew somewhere else
 
 **Raised by:** H35, 2026-10-10. Taken rather than asked, because it changes

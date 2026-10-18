@@ -95,6 +95,60 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The sound-card pass mark turns out to be writable, and the obvious version of it does not work (H66, 2026-10-17)
+
+**Nothing in the game changed.**
+
+This is the fourth job on one thread, and the first one with good news in it.
+The suite measures how much of a test run your sound card was actually being
+fed for - on this PC, 52% to 75%, which sounds alarming and is not - and the
+obvious next step was always to turn that into a pass mark, so a run with a
+genuinely dead sound card would fail. Two jobs refused to write it. This one
+was sent to write it, and found that the version everyone had in mind is the
+wrong one.
+
+**The test that settled it.** The suite already carries eight worked examples
+of what a sound card reading looks like: this PC healthy, this PC twice as
+busy, a card that died halfway, a card fed for a single buffer, a dead one, and
+so on. The proposed pass mark - *fail when the card was fed for less than 45%
+of the run **and** the time it lost came in one lump* - was put to all eight
+before anything was written. It gets seven right and **misses a card that
+died**, because that case happens to read the same 57% a healthy run reads, and
+57% is above the 45% line, so the rule never fires. That is exactly the case
+the whole thread exists to catch.
+
+**What does work is simpler.** *Fail when the card is known to have gone
+quiet for more than about a minute without a break.* No percentage in it at
+all. That answers all eight examples correctly, and the margins are
+comfortable rather than borderline: the longest single quiet stretch ever
+recorded on this PC is **2.2 seconds**, so a one-minute line sits **27 times**
+above the worst thing this machine has ever done, and every faulty example is
+six to fourteen times past it.
+
+**And the thing that had been treated as the obstacle points the other way.**
+The suite only gets to look at the card when a test draws a frame, so there are
+multi-minute stretches of a run it never watches - and the blind spot is as
+long as the whole loss, which looked like a reason not to trust the number. It
+is the opposite. The quiet stretch the suite reports is one it has **proved**,
+so a bigger blind spot can only make that number *smaller*, never bigger. A
+pass mark on it could miss a fault; it cannot invent one. And a fault that
+happens entirely inside a blind spot is still caught, because the marks either
+side of the gap pin it. What the blind spot costs is knowing **when** the card
+went quiet, never **whether** it did.
+
+**So this job measured, wrote the readings down, and queued the pass mark**
+rather than writing a rule of the wrong shape in the last hour of a session.
+Every run now prints what its blind spot is worth, and
+`the-audio-device-keeps-its-clock-and-journals-the-states-it-enters` carries
+the two worked examples built out of this morning's own numbers. Four
+deliberate breaks proved each new line does its job.
+
+**What is left for you: the same one thing.** Play with the sound on for a few
+minutes and say if it ever cuts out, crackles, or goes quiet and comes back -
+and if it does, roughly how long for. A blink is this PC being busy; a second
+or more of silence is something new. Your PC will not be running a test suite
+while you play, so it should be better off than any number above.
+
 ### The sound-card log was being read one test too early (H65, 2026-10-17)
 
 **Nothing in the game changed.**

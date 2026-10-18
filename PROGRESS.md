@@ -18422,3 +18422,230 @@ is the one the marks were being counted for: D74 refused a floor on the fed
 and its concentration - can carry one. It is worth reading this entry's
 readings first, because H65 is what widened the window H66 would set a floor
 inside.
+
+## H66 — the floor is writable, the pair is the wrong shape for it, and the coverage objection was one-sided
+
+**Three findings, and the first is that this job's own brief specified a floor
+that does not work.** D74 refused a floor on the device's `fed` total because a
+total has no shape. H54 built the shape and left the floor unwritten on
+**coverage**. H66 was queued to take eight full-run readings of the
+concentration and then write the floor - *"red when `fed` is low **and** the
+loss is concentrated"* - or record what the coverage would have to be worth.
+The readings are below. The floor named in the brief was put to D74's own eight
+shaped rows **before** it was written, and it gets one of them wrong:
+
+| row | `fed` | conc | the pair reds | a 60s stretch floor reds | should red |
+|---|---|---|---|---|---|
+| H35's plant run, healthy | 0.5666 | 0.00215 | no | no | no |
+| **the same total, device died** | **0.5666** | **1.00000** | **no** | **yes** | **yes** |
+| the halfway stop | 0.2833 | 1.00000 | yes | yes | yes |
+| fed 0.283 from a loaded machine | 0.2833 | 0.00154 | no | no | no |
+| the one-buffer device | 0.0000 | 0.99914 | yes | yes | yes |
+| a dead device | 0.0000 | 1.00000 | yes | yes | yes |
+| healthy, 0.1s lost in total | 0.9999 | 7.00000 | no | no | no |
+| H54's worst stretch ever seen | 0.5666 | 0.00626 | no | no | no |
+
+**Row two is the whole of D74's argument and the pair leaves it green.** A
+device that died with the same total a healthy machine reads is the case D74
+says a total cannot catch and a shape can - and `fed` 0.5666 is above any floor
+D74's arithmetic would draw, so the **conjunction never fires**. What the pair
+actually is, measured: `fed`'s floor with a second condition attached that can
+only ever make it fire *less* often. It adds nothing to the 1.16x D74 refused;
+it subtracts sensitivity from it. One `node -e` against the table said so in a
+second, and that is worth more than the paragraph that would have argued it.
+
+**The second finding is that the coverage objection runs one way only, and
+nobody had said which.** `unfedWorst.ms` is the longest interval the journal is
+**known** to have watched `currentTime` stand still across - bounded at both
+ends by marks that read the same value, and `currentTime` is monotonic, so it
+is a *proven* unfed span and therefore a **lower bound** on the true longest
+one. A wider blind spot can only make that number **smaller**. So a verdict
+resting on its size can be **missed** and can never be **invented**, which is
+the exact opposite of D71's case, where a clock reading the wrong quantity made
+a verdict wrong in the dangerous direction. **Coverage was never a threat to a
+floor's safety; it is a limit on its sensitivity.** H54's page and this job's
+own brief both read it the other way round, which is why it took a third job to
+get a yes out of the question.
+
+**Third: the shape that does work, with the margin D74 could not get from the
+total.** An absolute floor on the stretch - red when the device is *known* to
+have gone unfed across one continuous span longer than about a minute, with no
+`fed` term in it at all - answers all eight rows. Its margins are the kind this
+project argues a threshold with, where the total's were not:
+
+- the worst single stretch ever observed is **2.211s** (H54's second plant run;
+  the ten readings this job added came within 2.177s of it and did not beat
+  it), so a 60s line is **27x** above the worst healthy reading;
+- every synthetic fault is **353s to 814s**, so the same line is **6x to 14x**
+  below all of them;
+- the worst concentration ever read on this machine is **0.0030**, so the 0.5
+  line is **167x** away;
+- against `fed`'s 0.45, which is **1.16x** under the lowest healthy reading on
+  record and the reason D74 said no.
+
+**It is specified and not written, and the reason is scope rather than doubt.**
+It is a different shape from the one this job was briefed to write, and it
+costs a fifth word in `timedrenders.js`'s verdict vocabulary: H41's ban on a
+`size` verdict is argued about a timed **draw** (*"a submission time is cheap
+however expensive the frame is"*) and that census states it about any duration,
+so a floor on a wall-clock interval that brackets no draw reds that census as
+written. One entry, one word and one clause, and it is **H92** with its
+constant and all eight rows already measured here. A rule about what the gate
+stops for, written in the last hour of a session in a shape nobody had checked,
+is how a morning gets filed as a broken base.
+
+**The readings, which were the deliverable.** Each a full suite run with
+`--details`; H65's four are at the same reach, H65 being what widened it:
+
+| run | `fed` | lost | worst stretch | conc | marks | widest gap | gap / loss |
+|---|---|---|---|---|---|---|---|
+| gate, plant 1 | 0.6964 | 251.1s | 0.093s | 0.0004 | 401 | 252,141ms | **1.004** |
+| gate, yard 1 | 0.7313 | 145.3s | 0.091s | 0.0006 | 396 | 168,308ms | **1.158** |
+| verify 1, plant 1 | 0.6943 | 258.4s | 0.076s | 0.0003 | 401 | 259,007ms | **1.002** |
+| verify 1, plant 2 | 0.6446 | 717.0s | 2.177s | 0.0030 | 862 | 278,780ms | 0.389 |
+| verify 1, yard 1 | 0.7188 | 153.0s | 0.150s | 0.0010 | 396 | 169,311ms | **1.106** |
+| verify 1, yard 2 | 0.6886 | 426.6s | 0.150s | 0.0004 | 852 | 230,962ms | 0.541 |
+| verify 2, plant 1 | 0.7146 | 234.4s | 0.084s | 0.0004 | 401 | 252,233ms | **1.076** |
+| verify 2, plant 2 | 0.6678 | 656.7s | 0.086s | 0.0001 | 862 | 273,596ms | 0.417 |
+| verify 2, yard 1 | 0.7214 | 151.4s | 0.112s | 0.0007 | 396 | 169,002ms | **1.116** |
+| verify 2, yard 2 | 0.7003 | 409.9s | 0.112s | 0.0003 | 852 | 231,120ms | 0.564 |
+| H65, plant 1 | 0.6961 | ~250.2s | 0.081s | ~0.0003 | 401 | 254,561ms | ~1.017 |
+| H65, yard 1 | 0.7391 | ~140.8s | 0.072s | ~0.0005 | 396 | 168,726ms | ~1.198 |
+| H65, plant 2 | - | - | - | - | 862 | 268,193ms | - |
+| H65, yard 2 | - | - | - | - | 852 | 239,989ms | - |
+
+**Ten read off a detail line, and H65's two are derived and say so**: its entry
+recorded `fed` and the worst stretch but not the loss, so the lost seconds
+there are `fed` against `sampledToMs` and the last two columns are arithmetic
+on that. H65's other two runs carry marks and the gap only. Twelve readings
+against the eight the entry asked for, because the argument was rewritten
+between the two verifies and the second one came free with the rebuild.
+
+**And the pairs found something no single run could.** The blind spot is worst
+on a page's **first** run - 1.00, 1.00, 1.08, 1.11, 1.12, 1.16 across six of
+them - and much better on its second - **0.39, 0.42, 0.54, 0.56** - because the
+two runs of a map share one page and the journal is cumulative (D1, F16), so
+the loss keeps accumulating while the single widest gap does not. The first run
+of a page is therefore the worst case for coverage and the only honest one to
+quote, which is F16's rule about run pairs arriving in a second currency. The
+worst concentration in all ten is **0.0030**, so the 0.5 line is 167x away, and
+the worst single stretch is **2.177s**, which did not beat H54's 2.211s.
+
+**What `readCoverage()` is.** It holds the widest interval between two marks
+against everything lost - on the plant's first run, 251.1s lost against a
+252.141s gap, the same number twice. `RESOLVED` is `CONCENTRATED / 10`, 0.05,
+the line at which the concentration would be a reading over a *run* rather than
+over the bursts: a blind spot worth `CONCENTRATED` of the loss could supply
+`CONCENTRATED` on its own. Measured, it is **twenty times** that line on a
+first run. Seven cases hold the reading, and one of them is the target - a
+five-second gap against a hundred seconds of loss **resolves**, which is what a
+mark taken between checks would leave (**H94**).
+
+**And the instrument is better than that number sounds, which the `CLOCK_CASES`
+row is there to say.** A gap whose marks read the same clock at both ends is
+charged to one stretch **in full** - one stale mark at the far end of a
+four-minute gap charges all four minutes - so **a fault that happens entirely
+inside the blind spot is still caught**, bracketed by the marks either side.
+The row is the gate's own plant run with its own widest gap put where the
+stretch goes: `readUnfedShape(251.1, 252141, 401)` answers 1.0041 and
+`one-stretch`. Its control is the same run with the gap divided by ten, 0.1004
+and `many-stretches`, so it is on the record that the span and not the loss
+decides the word. **What coverage costs is *where* a fault was, never
+*whether*** - and that sentence is the whole of the second finding, held as two
+rows rather than argued.
+
+**Four breaks, each red on its own clause, through `npm run probe` at 82-124ms
+a run.**
+
+1. The plant row claiming its blind spot resolves: *"readCoverage(251.1,
+   252141) answered resolves=false, want true"*. The coverage clause alone.
+2. The `CLOCK_CASES` row expecting `many-stretches`:
+   *"readUnfedShape(251.1000, 252141, 401) answered "one-stretch", want
+   "many-stretches""*, with the whole argument printed after it, which is what
+   `whyShape` is for.
+3. The journal reporting `maxGapMs: sampledToMs + 1000`: *"the widest gap
+   between two marks is 1000ms and the marks cover only 0ms, so the journal's
+   blind spot is wider than the window it sampled and the two cannot both be
+   about this run"* - the one new arithmetic clause, broken in
+   `systems/audiodevice.js` rather than in the check, its subject being the
+   sampler and not the table.
+4. `RESOLVED` raised to `CONCENTRATED * 4`: **four** rows red at once, the two
+   measured runs and both sides of the line, which is the constant shown to be
+   load-bearing rather than decorative.
+
+`the-device-journal-is-read-after-the-frames-that-feed-it` stayed green in all
+four, which is right - none of this touches the registration order.
+
+**Two defects of its own, and the second cost a verify.** The first draft read
+the coverage off `lost` whatever the window was, so a probe with a window of
+milliseconds printed *"gap<=0ms = 0.00x the loss, which resolves it"* - a page
+that had measured nothing announcing that its blind spot was fine. It is handed
+`measured ? lost : 0` now and the line reads *"nothing lost for it to be blind
+to"*; every other reading in the file is guarded by `MIN_WINDOW_SECONDS`, and
+the new one was written beside them rather than through them. The second is the
+one worth the entry: **the first draft of this job's whole argument was the
+coverage objection pointed the wrong way**, written up and recorded before the
+eight rows were put to a calculator. A full verify had already been spent on
+that tree. What caught it was doing the arithmetic the entry was claiming -
+which is this project's own rule (*"a check that reads the constant the
+derivation read can only ever agree with it"*) applied to prose, and the
+cheapest instrument in the session beat the most expensive one.
+
+**`timedrenders.js` was stale in two numbers and one claim.** Its audiodevice
+entry said eleven readings between 0.5665 and 0.7481 (twenty-five, from 0.5225)
+and twenty-seven `CLOCK_CASES` (twenty-nine), and - the claim that mattered -
+called the stretch's reach one *"a job could widen"*. The verdict field does
+not move, because no floor was written; the note carries the price now, says
+which way the limit runs, and names the fifth word H92 will need. H65's lesson
+about a comment a diff made false, paid forward in the file whose subject is
+which verdicts rest on a clock.
+
+**The ceiling, and this job pays the cost H65 predicted.** `audiodevice.js` was
+**548**; the constant, the reader, its seven cases, two `CLOCK_CASES` rows and
+the new clause are 94 lines, which put the file at **636, thirty-six over the
+guidance**. Twenty-nine lines of header prose came back out - all of it argument
+D74's page and H35's entry already carry - and the file is **597**. So the
+cluster is **twelve** where it has been eleven since H75: H65's entry named this
+file as one of three within three lines of joining it, and it has joined. Three
+lines of headroom is not a place to leave a file and **H93** is the split. It
+was not done here for a reason worth writing down: a new module under
+`src/tests/` is a 251st request against a Resource Timing buffer whose size is
+250, whose last entry is therefore dropped in silence, and which is **H67**,
+unblocked and next in the queue. A job about honest measurement should not buy
+four lines by making a known silence one entry worse.
+
+**Verified.** GATE `--runs 1` at `d1c8b88`: plant **238 / 1 / 8**
+(1,111,804ms), yard **218 / 1 / 28** (770,761ms), exit 0, 0 red, 0 flaky, 0
+skipped, 0 unexpectedly green, 0 console errors, 0 context losses, no other
+runner, ceiling 11 of 600 over 192 modules. Census subset of thirteen checks on
+both maps after the change, **13 passed, 0 failed** each. A full
+`npm run suite` on the reporting tree before the prose was corrected: exit 0,
+plant 238/1/8 (1,142,130ms, 1,121,905ms), yard 218/1/28 (773,211ms,
+783,454ms), spreads 1.8% and 1.3%, 0 red, 0 flaky, 0 console errors - the six
+readings above came off it and the one that followed.
+
+Then the prose was corrected and **VERIFY** `npm run suite` ran again on the
+whole tree, documents included: **four runs, exit 0**, plant **238 / 1 / 8**
+(1,111,999ms, 1,113,887ms), yard **218 / 1 / 28** (771,847ms, 789,187ms),
+spreads **0.2%** and **2.2%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green,
+**0 console errors**, 0 context losses, no other runner, ceiling **12 of 600**
+over **192 modules** in all four. Counts **238 / 218**, unchanged - H66 extends
+an existing check and registers none. Drift (H79) **32 on the plant and 34 on
+the yard**, against 32 and 35 at the gate, the yard's one fewer being weather by
+H79's own classification and no floor of this job's having moved. The two
+document clauses were inside this run rather than after it, which is the thing a
+record-after-verify usually misses: `playtest-md-exists-is-linked-and-names-real-checks`
+reads **2,458 lines, the 4 sections, 52 checks named and every one registered**,
+and `traps-md-holds-the-traps-and-handoff-points-at-it` reads **109 traps in
+1,144 lines, HANDOFF.md 400 of 400**.
+
+**Left.** **H92**, the floor, specified down to its constant and already
+measured against all eight rows - the one job on this thread that changes what
+the gate stops for. **H93**, this file at 597 of 600. **H94** is worth less than
+this job expected when it started: a mark taken between checks would shrink the
+blind spot from four minutes to about five seconds and make the *concentration*
+a reading over a whole run, but H92's floor does not need it, because a proven
+span is a lower bound whatever the coverage. The thread's own history is the
+lesson: D74 said no on shape, H54 said no on coverage, and H66 says the shape
+was separable all along and the coverage objection pointed the safe way - three
+jobs, and the first two were arguing against the wrong quantity.

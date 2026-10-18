@@ -756,6 +756,39 @@ script that assumes one fails silently on the other. Detect per file: read with
 `newline=""`, note whether `\r\n` is in it, work in LF, write back the way it
 was. A byte-exact match against `\n` content fails silently on a CRLF file.
 
+**Put the arithmetic your write-up claims to a calculator before you write it,
+and put it to the table the project already keeps.** H66 was sent to decide
+whether a floor could rest on the audio device's `fed` ratio paired with the
+concentration of its loss. It measured the readings, reasoned carefully about
+the mechanism, wrote the refusal into `PROGRESS.md`, `QUEUE.md` and
+`DECISIONS.md`, and **spent a full four-run verify on that tree** - and the
+argument was wrong in both directions. One `node -e` loop over the eight shaped
+rows of `CLOCK_CASES`, which have been sitting in the file since H54, settled
+it in a second: the floor the brief named leaves a dead device green, and the
+coverage objection the refusal rested on points the *safe* way rather than the
+dangerous one, because a proven unfed span is a lower bound. Both are facts a
+twelve-line script can establish. The rule the project already has for checks -
+*"a check that reads the constant the derivation read can only ever agree with
+it"* - applies to prose with the same force: **a paragraph that reasons about a
+threshold is a derivation, and a derivation nobody ran is a guess.** Where a
+table of cases exists, run the candidate against every row and paste the result
+into the entry. The cheapest instrument in that session beat the most expensive
+one by about seventy minutes.
+
+**And the heredoc rule has a quiet failure one layer in: an escape does not
+survive the trip.** The paragraphs below say to write a patch script to a file
+rather than piping it in, for backticks and for `unexpected EOF`. H66 found a
+third way it bites. A replacement string carrying `\'` - a python
+double-quoted literal meaning *backslash, apostrophe*, which is how an
+apostrophe is escaped inside a single-quoted JS string - arrived at python
+through `python - <<'PY'` as a bare apostrophe. The script's anchor assertions
+all passed, the file was written, and `src/tests/timedrenders.js` **stopped
+parsing**: `Unexpected identifier 's'`, from an entry string closed early by
+`plant's`. Cost was a `git checkout --` and a redo. Two rules out of it: write
+the script to the scratchpad and run `python -I <path>`, always, and when a
+replacement must carry an apostrophe into a single-quoted JS string, **assert
+it** (`assert "'" not in replacement`) or write the prose without one.
+
 **Bash heredocs fail on JS content** in this shell — `unexpected EOF` — and
 sometimes even inside `python - <<'PY'`. Use the Write tool for new files, and
 write a patch script to the scratchpad with the Write tool and run `python
