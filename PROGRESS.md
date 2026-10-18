@@ -19007,3 +19007,100 @@ and had to be killed and run again, because a prose job looks finished at the
 point where only the prose is done. The protocol's own line - *every job ends
 with at least one new or extended AUTO check* - is a thing to settle **before**
 the hour-long run, not after it.
+
+## H70 — two checks about one key, and the seam made checkable
+
+**The cut.** `src/tests/movement.js` was **599 of 600** and the leader of the
+ceiling cluster the moment H56 landed. It is the mechanical half of Section
+16's checks 1, 5 and 7 - sprint into a wall, slide into a vent, an eight-metre
+fall - which is what its header says it is for. The two checks that took it to
+599 are about **one key**: `a-climb-is-a-press-of-space-never-a-side-effect`
+(D17) and `tap-space-grabs-the-ledge-hold-space-climbs-it` (D21), which arrived
+later and are a different subject. Unlike H56 and unlike H69, none of the length
+was prose - a seventeen-line header and the rest check body - so the only honest
+cut was along the subject.
+
+`src/tests/climbpress.js` is **314** lines: the two checks, and the two drivers
+that came with them. `movement.js` is **331**, and both are comfortable.
+
+**The drivers came across, and that is the whole argument of the split.**
+`driveAtLedge` and `findGroundLedge` are what every climb check in the suite
+reaches a ledge with - `bindings.js`, `hang.js`, `scuff.js` and `tutorial.js`
+take both, `feel.js`, `grabslide.js` and `strikedrive.js` take the finder - and
+**none of `movement.js`'s three remaining checks calls either of them**. They
+were in that file because the climb checks were. Seven import lines changed, one
+word each, plus one sentence of `strikedrive.js`'s prose naming the file the
+ledge rule lives in; nothing else knew where they lived, because `riseIsClear`
+and the rest come off `climbprobe.js`. `movement.js`'s import of `riseIsClear`
+went with the finder that used it - the only import either file no longer needs,
+checked rather than assumed (H75's `alongLane`).
+
+**Not a line of what the checks drive changed.** Both drive the real controller
+through `input.heldCodes` and `input.pressedCodes`, which is the lesson
+`HANDOFF.md` says keeps repeating, and `driveAtLedge` is where that is done -
+the reason H8's rebind check can drive the same ledge on `J`.
+
+**And the clause, which is where this job spent its thinking.** A split has no
+behaviour to hold, and D77 - raised an hour earlier by H69 - is exactly the
+question of whether the gate may red on a file's length, so inventing a ceiling
+here would have pre-empted Josh's own decision. Two other candidates were
+measured and dropped: *one place presses the climb key* is false (fifteen
+modules press Space, most of them legitimately), and a clause naming
+`climbpress.js` as a home is D77 again in a different coat.
+
+What is held instead is **the seam itself**, as a declared census in
+`registry.js` - the check whose subject already is the suite counting itself:
+**a module that registers checks may not export something none of its own
+checks use, unless the census declares it with why.** That is the shape H51,
+H53, H58, H60, H61, H62, H70 and H75 all cut along, every one of them found by a
+file hitting its ceiling rather than by anybody noticing the shape. Measured
+before it was written: on this tree exactly **two** modules are that shape and
+both are right - `figure.js`'s `flatShadeSilhouette` (breath.js, breathcensus.js
+and bufferscale.js use it; figure.js is where the figure was measured) and
+`look.js`'s `POSE_EYE_NAMES` (poseeye.js alone, beside the `chooseEye` whose
+candidates they name). Both are rows, not exemptions: the census is not a ban,
+it is the difference between a decision and a surprise. It holds the other
+direction too, so a row that stops being that shape is reported rather than
+ageing.
+
+**It reds on exactly this job's revert**, which is what the protocol asks for
+and what neither of the dropped candidates could do: `findGroundLedge` put back
+into `movement.js` as an export its own checks do not call, and both maps red at
+*"movement.js exports findGroundLedge and none of its own checks use it, so it
+is machinery another module reaches for and this census does not declare it"*.
+
+**One trap paid for itself twice in one night.** The first draft of the census
+read the raw text and enrolled `runnerguard.js`, which carries the regex literal
+`/export function summary/` because it reads the runner's reporter - H68's trap
+from the other end: the strong reader leaves a literal where it found it. The
+fix is the one the shape itself suggests - the patterns are anchored to the line
+start, which is where an export is and a literal in an argument list is not -
+and the clause reads code rather than raw text.
+
+**Verified, on the second run of the verify, and the first one is worth its own
+paragraph.** The H69 verify is this job's gate. Before the verify: the census
+subset `TRAPS.md` names for a new module - the four that decide membership by
+fetching every test module's source, plus the registry, the ceiling, the two
+spec bans, the regression set and the runner's command line - **15 passed, 0
+failed** on the plant and 14 with one not for the yard, which is `climbpress.js`
+in none of the four censuses and the registry holding it the moment it existed.
+
+**The first verify went red, and not on anything this job touched**:
+`the-audio-device-keeps-its-clock-and-journals-the-states-it-enters` [plant],
+*"238263ms after the unlock: the device context suspended itself after the
+unlock resumed it, which is the device going away under a running page"*, with
+the console error beside it - *"[plant run 1, 309s in] The AudioContext
+encountered an error from the audio device or the WebAudio renderer"*. The
+device went away for **317 seconds** under a running page and came back; D73
+decided that is red and it was red. Two things to keep from it. **The same
+sentence, to the millisecond, in both plant runs** - the page is loaded once a
+map and the journal spans both runs of it, so a transient event reds the second
+run too and `flaky` cannot tell it from a device that is genuinely gone, which
+is **H98**. And the second verify, on the same tree, is **clean**: plant **240 / 1 / 8** (1,111,738ms, 1,121,404ms), yard **220 / 1 / 28** (805,798ms, 774,996ms), spreads **1%** and **4%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling **10 of 600** over **195 modules** in all four runs.
+
+Counts **240 / 220**, unchanged, because the two checks moved rather than
+multiplied and the new clause went into a check that already existed. All five
+checks answer with **one distinct detail line** over the two runs of each map,
+compared string to string, which is what the entry asked for. Drift (H79) **34
+on the plant and 35 on the yard**. The ceiling line names a different leader:
+`audiodevice.js` at **597 (3 left)**, cluster **ten**, which is **H93**.

@@ -709,37 +709,6 @@ one setting only Josh can click; everything else here proceeds.
   on. Four breaks; the first reproduces the defect, the count pinned at exactly
   250 after fetching 193 modules.
 
-- [ ] **H70 (S)** `src/tests/movement.js` is at 599 of 600 and becomes the
-  leader of the ceiling cluster the moment H56 lands - **one line**, in the
-  file holding the solver's own behaviour checks, which is the worst place to
-  find that out. H56 is the worked example of what zero headroom costs when
-  the file is code; this is the same job one file over, and it is **not** the
-  prose kind: the header is seventeen lines and the length is all check body.
-  **The seam is already in the file, and it is the subject.** Five checks:
-  `sprint-into-a-wall-never-clips-or-jitters` (85 lines),
-  `slide-into-a-vent-lowers-the-capsule` (123) and
-  `an-eight-metre-fall-lands-loud-and-clean` (92) are the mechanical halves of
-  Section 16's checks 1, 5 and 7, which is what the header says the file is
-  for. The other two - `a-climb-is-a-press-of-space-never-a-side-effect` (48)
-  and `tap-space-grabs-the-ledge-hold-space-climbs-it` (219) - are about one
-  key, arrived later, and are **267 of the 599**. Out into
-  `src/tests/climbpress.js` leaves ~333 and ~285, both comfortable, and
-  neither file has to explain the other.
-  **Rules the move inherits.** The two checks that move drive the real
-  controller through `input.heldCodes` / `input.pressedCodes` - the lesson
-  `HANDOFF.md` says keeps repeating - so not a line of what they drive may
-  change; `halfOf()` and the `S` / `N` aliases are shared by both halves and
-  go wherever the move needs them, as `climbprobe.js` and `sourcetext.js` are
-  shared today. A **registered** new module is a new row in four censuses
-  (`TRAPS.md`), so run the census subset that trap names before the verify,
-  and the new module needs its import and its one `register...(debugTools)`
-  call in `tests/index.js`, which `the-registry-holds-every-check-its-modules-declare`
-  will hold the moment it exists.
-  *done-when:* `movement.js` is out of the cluster (under 550), all five
-  checks are registered and green with **identical detail lines** over two
-  runs of both maps, the ceiling line on the runner's own summary names a
-  different leader again, and `PROGRESS.md` says what each file holds.
-
 - [ ] **H82 (S)** `quiescesites.js`'s header is wrong about the yard, and H78
   measured it. The header argues the death camera's case with H73's headroom -
   "steps fifteen frames, which H73 says was only ever valid for four of them on
@@ -1151,6 +1120,31 @@ one setting only Josh can click; everything else here proceeds.
   quote readings in `PROGRESS.md`), and `readernames.js` grows a clause that
   holds the line-local test the way it holds the whole-file ones.
 
+- [ ] **H98 (S)** A device event in a page's first run reds its second run too,
+  and nothing says which run it was in. H70's first verify went red on
+  `the-audio-device-keeps-its-clock-and-journals-the-states-it-enters` [plant]
+  with *"238263ms after the unlock: the device context suspended itself after
+  the unlock resumed it"* - **the same sentence, to the millisecond, in both
+  plant runs**, because the page is loaded once a map and the journal spans
+  both runs of it (F16's rule for anything cumulative; H67 measured the same
+  thing in the request count). The console error beside it is attributed
+  properly - *"[plant run 1, 309s in]"* - so the runner knows which run it
+  happened in and the journal does not say.
+  What that costs: a **transient** device event and a device that is genuinely
+  gone read identically, `flaky` cannot see the difference (both runs answer
+  the same, which is what flaky means by stable), and the reader of a red run
+  cannot tell whether the second run cleared. D73 decided a suspended device is
+  red and that is not in question here; what is missing is **which run**.
+  The journal already carries wall-clock marks, and `suitereport.mjs` already
+  stamps a console error with its run - so the fix is to say it: the state
+  transitions in the detail line name the run each landed in, and the last
+  clause says whether anything happened in **this** run as against earlier in
+  the page's life.
+  *done-when:* the journal's detail names the run of the page each transition
+  landed in, a clause holds that it does (the shape H65's own check has), and
+  the entry says in one line why a per-run verdict is still D73's and not this
+  job's.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -1332,6 +1326,43 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H70** Two checks about one key, and the seam made checkable.
+  `src/tests/movement.js` was **599 of 600** and the leader of the cluster the
+  moment H56 landed. It is the mechanical half of Section 16's checks 1, 5 and
+  7; the two checks that took it there are about the climb **key** - D17's
+  *a climb is a press of Space* and D21's *a tap grabs, a hold climbs* - and
+  arrived later. None of the length was prose, so the cut was along the
+  subject: `src/tests/climbpress.js` is **314** lines and `movement.js` is
+  **331**. **The two drivers came across, and that is the argument of the
+  split**: `driveAtLedge` and `findGroundLedge` are what every climb check in
+  the suite reaches a ledge with - `bindings.js`, `hang.js`, `scuff.js` and
+  `tutorial.js` take both, `feel.js`, `grabslide.js` and `strikedrive.js` the
+  finder - and **none of `movement.js`'s three remaining checks calls either**.
+  Seven import lines changed, one word each, plus one sentence of
+  `strikedrive.js`'s prose; `movement.js`'s `riseIsClear` import went with the
+  finder that used it, checked rather than assumed (H75's `alongLane`). Not a
+  line of what the checks drive changed - both go through `input.heldCodes` and
+  `input.pressedCodes`, and `driveAtLedge` is where that is done.
+  **The clause is the seam itself**, in `registry.js`, the check whose subject
+  already is the suite counting itself: *a module that registers checks may not
+  export something none of its own checks use, unless the census declares it
+  with why.* Measured before it was written - exactly **two** modules on this
+  tree are that shape and both are right, `figure.js`'s `flatShadeSilhouette`
+  and `look.js`'s `POSE_EYE_NAMES`, both rows rather than exemptions - and it
+  holds the other direction, so a row that stops being that shape is reported.
+  It reds on this job's own revert: `findGroundLedge` put back as an export
+  `movement.js`'s checks do not call, red on both maps. **Two tempting rules
+  were measured and refused**: *one place presses the climb key* is false
+  (fifteen modules press Space), and a tighter ceiling for a split module is
+  **D77**, which H69 raised an hour earlier and is Josh's.
+  **The first verify went red on the audio device** - it suspended itself for
+  317 seconds under a running plant page (D73's red, nothing to do with this
+  job), the same sentence to the millisecond in both plant runs because the
+  journal spans both runs of a page, which is **H98**. The second verify, same
+  tree, clean: plant **240 / 1 / 8** (1,111,738ms, 1,121,404ms), yard **220 / 1 / 28** (805,798ms, 774,996ms), spreads **1%** and **4%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling **10 of 600** over **195 modules** in all four runs; all five checks one distinct detail line over
+  two runs of each map; the ceiling line names a different leader,
+  `audiodevice.js` at 597 (**H93**). — done 2026-10-18, commit `@@HASH@@`
 
 - **H69** The argument moved to the thing it is about, and the one rule a prose
   job can hold. H62 took `positioncensus.js` from 547 lines to **593 of 600**

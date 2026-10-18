@@ -31,6 +31,48 @@
  * registrations it counts. Nothing here imports main.js (Section 3.1).
  */
 
+import { codeOf } from './sourcetext.js';
+
+/**
+ * Machinery a check module hands out that none of its own checks use, with who
+ * reaches for it and why it is where it is (H70).
+ *
+ * `movement.js` was 599 lines of a 600 allowance, and the two checks that took
+ * it there were about the climb key rather than about a motion - **and the two
+ * ledge drivers seven other modules reach a ledge with were in the same file,
+ * called by none of the three checks that stayed.** That is a seam, and this
+ * is the census of it: a module that registers checks and exports something
+ * its own checks never touch is declared here, with why.
+ *
+ * **Not a ban.** The shape is often right, because a module is usually where
+ * the mechanism was measured and the readers came later - both rows below are
+ * that. What it is not allowed to be is *unlooked at*: this is the seam H51,
+ * H53, H58, H60, H61, H62, H70 and H75 all cut along, every one of them found
+ * by a file reaching its ceiling rather than by anybody noticing the shape,
+ * and a declared row is the difference between a decision and a surprise.
+ *
+ * Read **as code**, and anchored to the line start. `runnerguard.js` carries
+ * the regex literal `/export function summary/` - it reads the runner's
+ * reporter, which has one - and the strong reader leaves a literal where it
+ * found it (H68's trap from the other end), so an unanchored pattern over the
+ * raw text enrols a module for a grep it performs on somebody else.
+ */
+const SHARED_FROM_A_CHECK = [
+  {
+    file: 'figure.js',
+    name: 'flatShadeSilhouette',
+    why: 'the flat-shaded silhouette reader, used by breath.js, breathcensus.js and bufferscale.js; figure.js is where the figure itself was measured and the three readers came after',
+  },
+  {
+    file: 'look.js',
+    name: 'POSE_EYE_NAMES',
+    why: 'the six candidate eye names, used by poseeye.js alone, and beside the chooseEye whose candidates they name',
+  },
+];
+
+/** An export, at the line start, which is where an export is and a literal is not. */
+const EXPORTED = /^export (?:async )?function (\w+)|^export const (\w+) =/gm;
+
 /**
  * Checks that are registered only when the URL asks for them, with why. Each
  * must still be declared in its module's text - an entry for something that
@@ -90,8 +132,27 @@ export function register(debugTools) {
       // anything else is named and red, because a census that skips what it
       // cannot read is the shape of hole being closed here.
       const declared = [];
+      const shared = new Set(SHARED_FROM_A_CHECK.map((row) => `${row.file} ${row.name}`));
+      const handedOut = new Set();
       for (const entry of imports) {
         const text = await (await fetch(`${origin}/src/tests/${entry.file}`)).text();
+        // 2a. And the seam: machinery this module hands out that its own
+        //     checks never touch (H70). As code, so a reader's own regex
+        //     literal is not an export, and `\b` on the name so a longer
+        //     word that starts with it is not a use.
+        const code = codeOf(text);
+        if (/registerAutoTest\(/.test(code)) {
+          EXPORTED.lastIndex = 0;
+          for (const match of code.matchAll(EXPORTED)) {
+            const name = match[1] || match[2];
+            if (name === 'register') continue;
+            if ([...code.matchAll(new RegExp(`\\b${name}\\b`, 'g'))].length > 1) continue;
+            handedOut.add(`${entry.file} ${name}`);
+            if (!shared.has(`${entry.file} ${name}`)) {
+              problems.push(`${entry.file} exports ${name} and none of its own checks use it, so it is machinery another module reaches for and this census does not declare it (H70's seam)`);
+            }
+          }
+        }
         const constants = new Map();
         for (const match of text.matchAll(/^const (\w+) = '([^']+)';/gm)) constants.set(match[1], match[2]);
         for (const match of text.matchAll(/registerAutoTest\(\{\s*\r?\n\s*id: ('([^']+)'|\w+),/g)) {
@@ -122,12 +183,21 @@ export function register(debugTools) {
         // business: under `?hang=1` it is, and that run is the point of it.
         if (!declaredIds.has(entry.id)) problems.push(`"${entry.id}" is listed as conditional (${entry.why}) and is declared nowhere; drop it from the list`);
       }
+      // And the other direction, which is what keeps the census from
+      // becoming a list of things that used to be true.
+      for (const row of SHARED_FROM_A_CHECK) {
+        if (!handedOut.has(`${row.file} ${row.name}`)) {
+          problems.push(`${row.file} no longer hands out ${row.name} unused by its own checks; drop the row (${row.why})`);
+        }
+      }
 
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${imports.length} registrars imported and each called once; ${declared.length} checks declared, ${live.size} registered, `
-            + `the difference being ${CONDITIONAL.map((entry) => `${entry.id} (${entry.why})`).join('; ')}`
+            + `the difference being ${CONDITIONAL.map((entry) => `${entry.id} (${entry.why})`).join('; ')}; `
+            + `${handedOut.size} exports are machinery another module reaches for and all ${SHARED_FROM_A_CHECK.length} are declared `
+            + `(${SHARED_FROM_A_CHECK.map((row) => `${row.file}'s ${row.name}`).join(', ')})`
           : problems.join('; '),
       };
     },

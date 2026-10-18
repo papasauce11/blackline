@@ -67,7 +67,7 @@
 
 import { CONFIG } from '../config.js';
 import { SHADE_STATE } from '../entities/agent.js';
-import { findGroundLedge } from './movement.js';
+import { findGroundLedge } from './climbpress.js';
 import { clearLane } from './lanes.js';
 import { press } from './feel.js';
 
@@ -248,7 +248,7 @@ export function refusalProblems(h, refused, reached) {
 
 /**
  * Drive the Shade into a named state the way a player does - from the
- * first clear lane, or the ledge the map has for it (tests/movement.js's
+ * first clear lane, or the ledge the map has for it (tests/climbpress.js's
  * `findGroundLedge`, the controller's own probe the arbiter) - and leave
  * it there with the keys cleared: mid-stride for a walk and a sprint, part
  * way through the move for a vault, a mantle, a grab and a pull-up, on

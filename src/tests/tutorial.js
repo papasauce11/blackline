@@ -21,7 +21,7 @@ import { CONFIG, SETTINGS } from '../config.js';
 import { SHADE_STATE } from '../entities/agent.js';
 import { TUTORIAL } from '../matchstate.js';
 import { tutorialFits } from '../systems/tutorial.js';
-import { driveAtLedge, findGroundLedge } from './movement.js';
+import { driveAtLedge, findGroundLedge } from './climbpress.js';
 import { spotOffTheRing } from './plantspots.js';
 import { CHARGE } from '../systems/objective.js';
 

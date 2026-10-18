@@ -20,7 +20,7 @@
 import { CONFIG } from '../config.js';
 import { SHADE_STATE } from '../entities/agent.js';
 import { classifyReach } from '../physics.js';
-import { findGroundLedge } from './movement.js';
+import { findGroundLedge } from './climbpress.js';
 import { findTallFace } from './scuff.js';
 
 const S = CONFIG.shade;

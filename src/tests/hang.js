@@ -62,7 +62,7 @@ import { POSE, HANG_ARM_ANGLE } from '../entities/agentvisual.js';
 import { POSE_BLEND, positionSmoothing } from '../entities/pose.js';
 import { SHADE_STATE } from '../entities/agent.js';
 import { landingSpot } from '../mapclimb.js';
-import { driveAtLedge, findGroundLedge } from './movement.js';
+import { driveAtLedge, findGroundLedge } from './climbpress.js';
 import { press } from './feel.js';
 
 const S = CONFIG.shade;

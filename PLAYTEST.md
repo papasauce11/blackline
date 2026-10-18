@@ -95,6 +95,42 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The tests for the climb key moved into their own file, and the suite now notices that shape by itself (H70, 2026-10-18)
+
+**Nothing in the game changed, and no test changed what it drives.**
+
+One test file had reached 599 lines of a 600 limit. It is the file that proves
+the mechanical half of the movement checks you walk through by hand - sprint
+into a wall and stop clean, slide into a vent, survive an eight-metre fall - and
+the two tests that had pushed it to the line were about something else entirely:
+**the climb key**. One proves a climb only ever happens when Space is pressed
+and never as a side effect of walking into a wall; the other proves a *tap*
+grabs the lip and hangs while a *hold* carries on over.
+
+Those two are `src/tests/climbpress.js` now, and the two helpers that walk the
+Shade up to a ledge and press the key for her went with them - because seven
+other test files borrow those helpers and **none of the three tests left behind
+used them at all**. That is the real reason for the cut: the file was holding
+machinery for other people's tests.
+
+**The suite now notices this shape on its own.** The check that counts the suite
+(it makes sure every test file's tests are actually registered) gained a clause:
+a file that holds tests may not hand out a helper none of **its own** tests use
+without saying so in a declared list. There are exactly two of those today and
+both are fine, listed with the reason. It is not a ban - it is the difference
+between a decision and a surprise, because every one of the eight splits this
+project has done was found by a file hitting its line limit rather than by
+anyone noticing the shape first.
+
+**Two tempting rules were measured and refused.** A tighter line limit for files
+that have been split once is a number nobody has argued - that is **D77**, and
+it is yours to decide. And "only one place presses the climb key" turns out to
+be false: fifteen test files press Space, most of them for good reasons.
+
+**What is left for you: nothing.** The suite's own report now says ten files are
+within fifty lines of the limit, and names a different leader -
+`audiodevice.js` at 597, which is the next job on that thread.
+
 ### A test file was two thirds explanation, and the explanation moved to what it explains (H69, 2026-10-18)
 
 **Nothing in the game changed, and no test changed what it measures.**

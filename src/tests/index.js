@@ -26,6 +26,7 @@ import { register as registerYardLight } from './yardlight.js';
 import { register as registerNavigation } from './navigation.js';
 import { register as registerShade } from './shade.js';
 import { register as registerMovement } from './movement.js';
+import { register as registerClimbPress } from './climbpress.js';
 import { register as registerScuff } from './scuff.js';
 import { register as registerFeel } from './feel.js';
 import { register as registerHang } from './hang.js';
@@ -127,6 +128,9 @@ export function registerAutoTests(debugTools) {
   registerNavigation(debugTools);
   registerShade(debugTools);
   registerMovement(debugTools);
+  // Beside it, the two checks about the climb key and the drivers every
+  // other climb check reaches a ledge with (H70).
+  registerClimbPress(debugTools);
   registerScuff(debugTools);
   registerFeel(debugTools);
   registerHang(debugTools);

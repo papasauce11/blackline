@@ -56,7 +56,7 @@ import { positionSmoothing } from '../entities/pose.js';
 import { SHADE_STATE } from '../entities/agent.js';
 import { quiesce } from './pixels.js';
 import { frame as wholeFrame } from './strikedrive.js';
-import { findGroundLedge } from './movement.js';
+import { findGroundLedge } from './climbpress.js';
 import { press } from './feel.js';
 import { photographHere } from './look.js';
 import { chaseGap } from './positionreads.js';

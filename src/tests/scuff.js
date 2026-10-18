@@ -16,7 +16,7 @@
 import { CONFIG } from '../config.js';
 import { SHADE_STATE } from '../entities/agent.js';
 import { AI_STATE } from '../systems/ai.js';
-import { driveAtLedge, findGroundLedge } from './movement.js';
+import { driveAtLedge, findGroundLedge } from './climbpress.js';
 
 const S = CONFIG.shade;
 

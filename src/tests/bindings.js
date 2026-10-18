@@ -21,7 +21,7 @@
 
 import { CONFIG, DEFAULT_BINDINGS } from '../config.js';
 import { bindingConflicts } from '../input.js';
-import { driveAtLedge, findGroundLedge } from './movement.js';
+import { driveAtLedge, findGroundLedge } from './climbpress.js';
 
 /** A real key press at the window, the way a player's arrives. */
 function press(code) {
