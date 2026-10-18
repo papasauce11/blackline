@@ -19307,3 +19307,119 @@ The bench is nine days and 84 commits old — `npm run bench` headed is about
 twenty minutes and refreshes the one line every audit carries by hand. And
 the 10-12 gap: if the app was closed that Sunday, two build runs and nothing
 else were lost, which is the cost PLAN.md accepts.
+
+## H82 — the margin was about somebody else's Warden, and the stepping class is two classes
+
+**Built.** `src/tests/quiescesites.js` 288 → 416 lines: the header's argument
+about the death camera replaced, a fourth reader, a declared roster, two
+clauses and the detail line. No new module, so no census gained a row.
+
+**What was wrong.** The header argued the one site this file could not leave
+alone — `the-death-camera-frames-the-killer`, which resets the Warden 2.5m from
+the site *because the death camera must have a killer to frame* — like this:
+it "steps fifteen frames, which H73 says was only ever valid for four of them
+on the plant". Read beside H73, which measured four frames on the plant and
+**seventeen** on the yard, that sentence says the yard had thirteen frames
+spare. **It had none.** H73's two numbers are about a Warden standing on its
+*spawn* when a match begins: a patrol with a route node to turn to and nothing
+yet to walk to, turning at 0.0567 rad a frame and translating nothing until it
+is round. This check teleports a Warden that has been patrolling for thirty
+frames onto a mark, and H78 measured that body translating on frame **one** —
+0.09263658m after five steps, **0.13542695m** at the grab, the same to ten
+significant figures on both maps, because the travel is the walk ramp times the
+frame count with nothing of the place in it (only the yaw differs, ±0.340000
+rad, six frames at H73's rate to the digit). **So the header understated its own
+case, and did it in the one direction that would let a reader relax.**
+
+**Nor was fifteen the count that has to survive.** Ten of those frames are
+driven before the Warden is moved at all; what the mark holds through is the
+five `stepFrames` after it **plus the one fixed step inside the warm
+`renderFrame`** — six, which is the column H78's 0.13542695m sits in.
+`h.renderFrame()` runs a whole frame, accumulator included, which is why six
+and not five: `stepFrames` steps without drawing and `renderFrame` does both,
+and only the second of those appears in the gap between the mark and the grab.
+
+**The clause, and why the class is worth declaring.** All fourteen stepping
+sites already own a match with `ai: false` — that is H74's clause and it is
+green — so the split is not a verdict about safety, it is **which margin a site
+may argue from**. A site that teleports the Warden has nothing but its flag; a
+site that leaves the Warden where its own match opened has H73's turn as well.
+`TELEPORTED_ACTOR` + `TELEPORTS_THE_WARDEN` is the fourth reader and `TELEPORTS`
+the roster, declared per module with a count rather than per line because a
+`where` is a line number and every edit to a file moves one. Two problems hold
+it both ways — a teleport no row declares, and a row with no teleport left under
+it — and `addsUp` holds the split against the stepping total, the way H60 asks.
+The reader is built through a template and not written as a regex literal: a
+literal would put `warden.reset(` in **this** module's own code, where `codeOf`
+leaves regex literals standing, and H83 is a census of exactly that call.
+
+**The census, measured.** 32 quiesce sites over 97 modules: **14 step the
+simulation and read a frame** (H74's eleven were the eleven that *gained* a
+flag; the class has been fourteen since, and is 32 sites now against H74's 31),
+13 read a frame without stepping one, 5 read no frame. The fourteen split
+**4 / 10**: `visual.js` (the death camera's killer, 2.5m from the site),
+`figure.js` (the one 25m stand both figures are photographed on), `breathcensus.js`
+(the Shade's spawn, for the proof that the Warden does not breathe) and
+`look.js` (a lit lane, for the `aim` pose) teleport it; the other ten leave it
+where their match opened. The detail line is **386 characters**, inside the
+runner's 400-character cut with the two new counts in front of everything that
+is not a reading (H60's rule, H91's job).
+
+**It is about the Warden and not about a body, and the reader says so.** Ten of
+the fourteen reset the *Shade* — that is what a figure, a silhouette and a
+breath are photographed by, and a Shade on a mark says nothing about where the
+Warden is — and `breathdrawn.js` has a third kind in the same span,
+`renderer.info.reset()`, a draw-call counter that is no actor at all. A reader
+spelled `.reset(` would have enrolled all three. Both are `SITE_IGNORES` lines.
+
+**Three breaks, each red on its own line**, one-check subsets on the plant:
+
+| break | the red |
+|---|---|
+| `look.js`'s row deleted | *"look.js has 1 stepping quiesce site(s) that reset the Warden onto a spot of their own and TELEPORTS declares none"* |
+| a row added for `outline.js`, which steps and does not teleport | *"TELEPORTS declares that outline.js teleports the Warden onto … and no stepping site in it does"* |
+| `TELEPORTED_ACTOR` pointed at the Shade | the reader's own instrument: both `sees` lines read *"as nothing and not a teleport"* **and** `shade.reset(...)` read *"as a teleport"* |
+
+The third is the one worth having: it reds on `readerProblems` from both ends at
+once, so the reader is load-bearing rather than a pair of names (H62's rule).
+The module was restored from its own `cp` snapshot after each and the md5
+compared — `338d95c9d0a6502ef793efd109e405f0` before the first break and after
+the last.
+
+**Settled before the hour-long run** (H69's lesson): the full census was
+replicated off disk against `codeOf` in 40ms, which gave the four classes, the
+roster verdict and the detail line's length before a browser was started; then
+the two-minute census subset of eleven ids, **11 passed / 0 failed on each
+map** (plant 124,757ms, yard 76,270ms), which is the list TRAPS.md keeps for a
+module that lands in four censuses — this one gained no row, and the subset
+proved it.
+
+**Verified.** `npm run suite`, four runs, exit 0: plant **240 passed / 1 failed
+/ 8 not for this map** (1,122,563ms and 1,134,275ms), yard **220 / 1 / 28**
+(774,471ms and 786,410ms), spreads **1%** and **2%**, 0 red, 0 flaky, 0
+skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling
+**10 of 600** over **195 modules** in all four runs, nearest
+`audiodevice.js` at 597 (H93). The gate before the job read the same counts
+(240 / 1 / 8 and 220 / 1 / 28, 1,139,824ms and 790,817ms). The check itself
+costs **272-283ms** and its detail line is **character for character the same
+in all four runs** — which is what a census of source should be, and puts it
+with `settlecircuit.js` and `grabworld.js` rather than with the thirty-odd
+readings H79 found drifting.
+
+**Found in passing, and it is H84's.** H79's drift census reads **34 on the
+plant and 37 on the yard** against the 34 / 35 the audit recorded this morning,
+and the two new yard rows are
+`the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks` — the crossing
+count **H84** exists to pin, drifting on the yard again, which is the third
+sighting of that coin and the second on the yard — and
+`the-shade-has-a-pose-for-every-state-and-a-stride-for-every-step`, 2.63 → 2.69
+(2.2%), a photograph at whatever phase the run reached, which is H79's weather
+class. Both are readings and neither is a verdict (D48).
+
+**Left.** **H83** is the general form of this job and is the next entry in the
+file: every `reset(` on an actor under `src/tests/` classified by whether
+anything between the reset and the read asserts the body is still on the spot.
+This job did two thirds of its instrument for it — the span reader and the
+`codeOf` off-disk replica — and found the one thing H83 should know before it
+starts: **a reset of the Shade and a reset of a draw-call counter read the same
+as a reset of the Warden** unless the reader is told which actor it is about.

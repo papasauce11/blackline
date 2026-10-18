@@ -34,10 +34,40 @@
  * covers 53,813 / 53,827 / 53,851 pixels with the AI live, in a run-to-run band
  * of about thirty, and 50,951 / 50,977 with it off - a shift of some 2,870
  * pixels, two orders of magnitude outside the band. That check **resets the
- * Warden to a spot 2.5m from the Shade because it wants it in frame** and then
- * steps fifteen frames, which H73 says was only ever valid for four of them on
- * the plant. There the live AI was demonstrably walking the subject out of the
- * shot it had been placed in. H78 is the clause it still wants.
+ * Warden to a spot 2.5m from the Shade because it wants it in frame**, and
+ * there the live AI was demonstrably walking the subject out of the shot it had
+ * been placed in. H78 is the clause it wanted and now carries: the mark is
+ * named once, each of the three grabs records the horizontal offset from it,
+ * and the worst is held to 1e-6m.
+ *
+ * **And H78 corrected the margin this header used to argue that case with**
+ * (H82). The sentence here said the check "steps fifteen frames, which H73 says
+ * was only ever valid for four of them on the plant", which reads as though the
+ * plant had four frames in hand and the yard seventeen. **Neither number is
+ * about this check.** H73's four and seventeen are about a Warden standing on
+ * its **spawn** when a match begins - a patrol with a route node to turn to and
+ * nothing yet to walk to, turning at 0.0567 rad a frame and translating nothing
+ * until it is round. A body **teleported** onto a mark finished turning
+ * somewhere else and translates on frame **one**: H78 measured
+ * **0.09263658m after five steps and 0.13542695m at the grab**, the same to ten
+ * significant figures on both maps, because the travel is the walk ramp times
+ * the frame count and has nothing of the place in it - only the yaw differs,
+ * +-0.340000 rad, six frames at H73's rate to the digit. So the header
+ * understated its own case, and did it in the one direction that matters.
+ * **Nor is fifteen the count that has to survive**: ten of those frames are
+ * driven before the Warden is moved at all, and what the mark must hold through
+ * is the five `stepFrames` after it plus the one fixed step inside the warm
+ * `renderFrame` - six, which is the column H78's table reads 0.13542695m in.
+ *
+ * **Which splits the stepping class in two, and the split is a clause below.**
+ * A site that teleports the Warden has no headroom whatever, and nothing but
+ * its own `ai: false` between the mark and the picture; a site that leaves the
+ * Warden where its own match opened has H73's four frames (plant) or seventeen
+ * (yard) as well, because that body is on a spawn. Both counts are in the
+ * detail line and `TELEPORTS` declares which modules do it, so the next
+ * stepping site cannot quietly inherit a margin that is not about it - the
+ * same declaration `registry.js` asks for (H70) and the shape H83 will take
+ * to every `reset(` in the suite.
  *
  * **So the rule does not rest on the pixel counts, and should not.** It is a
  * rule about what a check guarantees: one that steps the world after a quiesce
@@ -128,12 +158,52 @@ const DRIVES_THE_WORLD = new RegExp(`\\bh\\.(?:${WORLD_DRIVERS.join('|')})\\(`);
 const READS_THE_FRAMEBUFFER = new RegExp(`\\b(?:${FRAMEBUFFER_READS.join('|')})\\(`);
 const OWNS_THE_WARDEN = /\bai:\s*false\b/;
 
+/**
+ * The fourth reader, and the one H82 is for: does this site put the Warden
+ * somewhere of its own choosing before it reads a frame?
+ *
+ * **It is about the Warden and not about a body.** Ten of the fourteen stepping
+ * sites reset the *Shade* - that is what a figure, a silhouette and a breath
+ * are photographed by - and a Shade on a mark says nothing about where the
+ * Warden is. `breathdrawn.js` has a third kind in the same span,
+ * `renderer.info.reset()`, which is a draw-call counter and no body at all, so
+ * a reader spelled `\.reset\(` would enrol two classes it is not about and one
+ * thing that is not an actor. Both are `SITE_IGNORES` lines below.
+ *
+ * Built through a template rather than written as a regex literal, for the
+ * reason `SITE` is: `codeOf` strips a string and leaves a regex literal where
+ * it stands, so a literal here would put `warden.reset(` in **this** module's
+ * code and a census of resets - which is what H83 is - would read this file as
+ * one of its own. The identifier belongs in a string.
+ */
+const TELEPORTED_ACTOR = 'warden';
+const TELEPORTS_THE_WARDEN = new RegExp(`\\b${TELEPORTED_ACTOR}\\.reset\\(`);
+
+/**
+ * The modules with a stepping site that teleports the Warden, and what each one
+ * puts it on. Four of the fourteen, and the declaration is the point: a
+ * teleported body has none of H73's headroom, so a site in this list is held up
+ * by its `ai: false` alone and a site that joins it silently is a site arguing
+ * from a margin that is about somebody else's Warden (H78, H82).
+ *
+ * Declared per module with a count rather than per line, because a `where` is a
+ * line number and every edit to a file moves one - the count is what a reader
+ * can check against the tree a year from now.
+ */
+const TELEPORTS = [
+  { file: 'visual.js', sites: 1, onto: 'a mark 2.5m from the site, so the death camera has a killer to frame (H78 holds it there to 1e-6m)' },
+  { file: 'figure.js', sites: 1, onto: 'the one 25m stand both figures are photographed on, face-on and side-on' },
+  { file: 'breathcensus.js', sites: 1, onto: "the Shade's spawn, for the proof that the Warden does not breathe" },
+  { file: 'look.js', sites: 1, onto: 'a lit lane, for the aim pose with the sights held through sixty frames' },
+];
+
 /** What a line is, to the three readers above, or nothing. */
 const SEEN_AS = (text) => {
   if (ONE_SITE.test(text)) return 'a site';
   if (DRIVES_THE_WORLD.test(text)) return 'a driver';
   if (READS_THE_FRAMEBUFFER.test(text)) return 'a read';
   if (OWNS_THE_WARDEN.test(text)) return 'the flag';
+  if (TELEPORTS_THE_WARDEN.test(text)) return 'a teleport';
   return '';
 };
 
@@ -144,6 +214,10 @@ const SITE_SEES = [
   ['      const lens = createLens(h, { pixelRatio: READ_AT() });', 'a read'],
   ['        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer);', 'a read'],
   ["      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: true });", 'the flag'],
+  ['      warden.reset({ position: mark, yaw: 0 });', 'a teleport'],
+  // The harness's own field reads the same, which is how nine other modules
+  // spell it (`h.warden.reset(h.map.wardenSpawns[0])` in ai.js).
+  ['      h.warden.reset(h.map.wardenSpawns[0]);', 'a teleport'],
 ];
 const SITE_IGNORES = [
   // The definition is not a call to itself, which is the whole of the lookbehind.
@@ -155,6 +229,13 @@ const SITE_IGNORES = [
   '      for (let i = 0; i < 60; i++) h.shade.easeOneFrame(1 / 60);',
   // And the flag the other way round is not this flag.
   "      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });",
+  // A body on a mark, and not the body this class is about: ten of the
+  // fourteen stepping sites stand the Shade somewhere to photograph it.
+  '      shade.reset({ position: site.position, yaw: 0 });',
+  '      h.shade.reset({ position: where.stand, yaw: where.lane.yaw });',
+  // And a reset that is not an actor at all - the draw-call counter, in the
+  // same span as two of the resets above (breathdrawn.js).
+  '      renderer.info.reset();',
 ];
 
 /**
@@ -186,6 +267,7 @@ function sitesIn(file, source) {
       reads: READS_THE_FRAMEBUFFER.test(span),
       drives: DRIVES_THE_WORLD.test(span),
       owns: OWNS_THE_WARDEN.test(span),
+      teleports: TELEPORTS_THE_WARDEN.test(span),
     };
   });
 }
@@ -194,7 +276,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'a-check-that-drives-the-world-after-a-quiesce-owns-the-warden',
     spec: 'Section 17.1 / H74',
-    name: 'Every quiesce site that steps the simulation before it reads the framebuffer asks initMatch for a match of its own with the AI off, and the sites that read a frame without stepping one are counted as the other class',
+    name: 'Every quiesce site that steps the simulation before it reads the framebuffer asks initMatch for a match of its own with the AI off, the sites that read a frame without stepping one are counted as the other class, and every stepping site that teleports the Warden onto a mark of its own is declared as one',
     run: async () => {
       const problems = [];
       const origin = location.origin;
@@ -229,6 +311,9 @@ export function register(debugTools) {
       const live = sites.filter((s) => s.reads && s.drives && !s.owns);
       const oneFrame = sites.filter((s) => s.reads && !s.drives);
       const blind = sites.filter((s) => !s.reads);
+      const stepping = sites.filter((s) => s.reads && s.drives);
+      const teleported = stepping.filter((s) => s.teleports);
+      const fromTheOpening = stepping.filter((s) => !s.teleports);
 
       // ------------------------------------------------------------------
       // 3. The clause. A site that steps the simulation and then reads a
@@ -238,7 +323,16 @@ export function register(debugTools) {
       //    complaints would be cut to two (H29).
       // ------------------------------------------------------------------
       if (live.length) {
-        problems.push(`${live.length} quiesce site(s) step the simulation and then read the framebuffer with no match of their own, so the Warden in that frame has walked a distance the check does not state (H73: the body first moves on frame 4 of the plant, 17 of the yard): ${live.map((s) => s.where).join(', ')}`);
+        // H82: the margin cited depends on which class the site is in, and
+        // citing the wrong one is the defect this job was raised for. A body
+        // on its spawn has H73's turn to spend; a body put on a mark has
+        // nothing, and the number for it is H78's.
+        const spawned = live.filter((s) => !s.teleports);
+        const moved = live.filter((s) => s.teleports);
+        const parts = [];
+        if (spawned.length) parts.push(`${spawned.length} leave the Warden where their match opened, where H73 gives it 4 frames of turning on the plant and 17 on the yard and no more (${spawned.map((s) => s.where).join(', ')})`);
+        if (moved.length) parts.push(`${moved.length} teleport it onto a mark first, where H73's headroom does not apply at all and a body translates on frame one - 0.13542695m by the sixth step, both maps, H78 (${moved.map((s) => s.where).join(', ')})`);
+        problems.push(`${live.length} quiesce site(s) step the simulation and then read the framebuffer with no match of their own, so the Warden in that frame has walked a distance the check does not state: ${parts.join('; ')}`);
       }
 
       // ------------------------------------------------------------------
@@ -264,6 +358,38 @@ export function register(debugTools) {
       // printing **three** of the four, the fourth being held empty above: a
       // class that stopped partitioning would leave sites out of a total no
       // reader could add up, which is the defect H60 found in a sibling.
+      // ------------------------------------------------------------------
+      // 5. H82's half: which stepping sites put the Warden where they want
+      //    it. The class is not a verdict - all fourteen own a match, which
+      //    is section 3's clause - it is which margin each may argue from,
+      //    and `TELEPORTS` is the declaration. A teleport that nothing
+      //    declares is the sentence H78 had to correct, about to be written
+      //    again; a declaration with no teleport left under it is a roster
+      //    nobody maintained, which is the half a census always owes.
+      // ------------------------------------------------------------------
+      const declaredTeleports = new Map(TELEPORTS.map((t) => [t.file, t]));
+      const teleportsIn = new Map();
+      for (const s of teleported) {
+        const file = s.where.split(':')[0];
+        teleportsIn.set(file, (teleportsIn.get(file) || 0) + 1);
+      }
+      for (const [file, found] of teleportsIn) {
+        const declared = declaredTeleports.get(file);
+        if (!declared) {
+          problems.push(`${file} has ${found} stepping quiesce site(s) that reset the Warden onto a spot of their own and TELEPORTS declares none, so a site is relying on H73's four frames (plant) and seventeen (yard), which are about a Warden on its spawn - a teleported body translates on frame one (H78, H82)`);
+        } else if (declared.sites !== found) {
+          problems.push(`${file} teleports the Warden at ${found} stepping site(s) and TELEPORTS declares ${declared.sites}, onto ${declared.onto}`);
+        }
+      }
+      for (const t of TELEPORTS) {
+        if (!teleportsIn.has(t.file)) {
+          problems.push(`TELEPORTS declares that ${t.file} teleports the Warden onto ${t.onto} and no stepping site in it does, so either the site has gone or the reader has stopped seeing a ${TELEPORTED_ACTOR} reset`);
+        }
+      }
+      problems.push(...addsUp('the stepping-site split', stepping.length, {
+        'teleport the Warden onto a spot of their own': teleported.length,
+        'leave it where their own match opened': fromTheOpening.length,
+      }));
       problems.push(...addsUp('the quiesce-site census', sites.length, {
         'step the simulation and own a match': owned.length,
         'step one without a match of their own': live.length,
@@ -278,9 +404,11 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${sites.length} quiesce sites over ${scanned.length} modules: ${owned.length} step the simulation and read a frame, and every one asks initMatch for a match with the AI off; `
-            + `${oneFrame.length} read a frame without stepping one, where the Warden is still where ${HELPER}() left it (H73); ${blind.length} read no frame; `
-            + `the definition in ${HELPER_FILE} is not a site`
+          // H60's rule about a line this long: the readings first, because the
+          // runner keeps 400 characters of it and the two new counts are what
+          // this check is read for. H91 is the cut itself.
+          ? `${sites.length} quiesce sites over ${scanned.length} modules: ${stepping.length} step the simulation and read a frame, all owning a match with the AI off - ${teleported.length} teleport the Warden onto their own mark, where a body translates on frame 1 (0.1354m by six, H78), ${fromTheOpening.length} leave it where their match opened, with H73's 4 (plant) / 17 (yard) frames of headroom on top; `
+            + `${oneFrame.length} read a frame without stepping one (Warden unmoved, H73); ${blind.length} read no frame`
           : problems.join('; '),
       };
     },

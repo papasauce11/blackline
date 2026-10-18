@@ -709,25 +709,13 @@ one setting only Josh can click; everything else here proceeds.
   on. Four breaks; the first reproduces the defect, the count pinned at exactly
   250 after fetching 193 modules.
 
-- [ ] **H82 (S)** `quiescesites.js`'s header is wrong about the yard, and H78
-  measured it. The header argues the death camera's case with H73's headroom -
-  "steps fifteen frames, which H73 says was only ever valid for four of them on
-  the plant" - which reads as though the yard had seventeen frames in hand.
-  **It has none.** H73's four and seventeen are about a Warden standing on its
-  *spawn* when a match begins, with a route node to turn to and nothing to walk
-  to yet. That check does not reset to a spawn: it teleports a Warden that has
-  already been patrolling for thirty frames onto a spot 2.5m from the site, and
-  such a body translates on frame **one**. H78 measured 0.0926m after five
-  steps and **0.135427m** after six, *the same number to ten significant
-  figures on both maps*, because the travel is a function of the walk ramp and
-  the frame count and not of the place. So the sentence understates its own
-  case and does it in the one direction that matters, and the number it should
-  carry is not H73's. The twelve one-frame sites' sentence is unaffected - they
-  step nothing - but the eleven that step are not four-and-seventeen either.
-  *done-when:* the header says what H73's margin is about and what it is not,
-  with H78's number beside it; the sites census is still green; and a clause or
-  the header itself says which of the eleven stepping sites reset a body
-  (teleport, no headroom) and which drive one from its spawn.
+- [x] **H82 (S)** `quiescesites.js`'s header is wrong about the yard, and H78
+  measured it. — done 2026-10-18, under Done. The header's sentence, the margin
+  it cited and the count it cited were all three wrong, and the stepping class
+  turns out to be **two** classes: 4 of the 14 teleport the Warden onto a mark
+  of their own, where H73's four-and-seventeen frames of headroom do not apply
+  at all, and 10 leave it where their own match opened. `TELEPORTS` declares the
+  four, and a fifteenth site cannot inherit a margin that is not about it.
 - [ ] **H83 (S)** Which other checks pick their own input and never check it
   stayed picked? A1, A3 and now H78 are three instances of one shape, and the
   answer has been found three times by hand. Every check that calls an actor's
@@ -750,7 +738,9 @@ one setting only Josh can click; everything else here proceeds.
   more**, and the count moves between the two runs of a map, so it is **one
   crossing from red**. H75 recorded it on the plant, "reproducibly, the same
   way on two different trees"; H79's census has the plant at **2 and 2** and
-  the **yard** at **3 then 2**. So it is a coin and not a map fact, and a pin
+  the **yard** at **3 then 2**; **H82's verify is the third sighting and the
+  second on the yard** - 34 / 37 against the audit's 34 / 35 the same morning,
+  the plant steady. So it is a coin and not a map fact, and a pin
   written against the plant pins the wrong map. There is no wall clock in this
   check, which is what makes it the cheapest honest case in the whole census -
   no pixels, no breath. **Find the quantity first** (H71, H74, H77): what
@@ -1176,6 +1166,26 @@ one setting only Josh can click; everything else here proceeds.
   seeds (20261018 and F17's 1637054825) it was run under, and
   `the-widest-cone-kills-at-range-and-not-once-in-a-while` is unchanged.
 
+- [ ] **H100 (S)** The per-site comments name frame counts that span the
+  reset. H82 corrected the census's header and found the same shape one level
+  down: `visual.js`'s death-camera site carries *"H74: fifteen frames are
+  driven below and the Warden is reset where this check wants it"*, and fifteen
+  is the count of frames driven in the whole span - **ten of them before the
+  Warden is moved at all**. The number that says anything about the mark is the
+  six after it (five `stepFrames` plus the one fixed step inside the warm
+  `renderFrame`), which is the column H78 measured 0.13542695m in. Each of the
+  fourteen stepping sites got a one-line comment from H74 and several name a
+  count the same way, so the question is how many of those counts are about the
+  gap between the body being placed and the picture being taken and how many
+  are about the whole span. **Count first** (H71, H74, H77): the census before
+  any clause, and the cheap instrument is H82's own - the span reader run off
+  disk against `codeOf`, which answers in 40ms.
+  *done-when:* every stepping site's comment names the frames driven **after**
+  the body it reads was last placed, or says that nothing places one; the count
+  per site is in `PROGRESS.md`; and a clause or the census's header says that
+  the two counts are different questions, so the next comment cannot quote the
+  wrong one.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -1357,6 +1367,48 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H82** The margin was about somebody else's Warden, and the stepping class
+  is two classes. `quiescesites.js`'s header argued the death camera's case with
+  H73's headroom - *"steps fifteen frames, which H73 says was only ever valid
+  for four of them on the plant"* - which beside H73's seventeen frames on the
+  yard reads as though the yard had thirteen to spare. **It had none, and none
+  of the three numbers in that sentence was the right one.** H73's four and
+  seventeen are about a Warden on its **spawn** when a match begins, turning at
+  0.0567 rad a frame with nothing yet to walk to; this check teleports a Warden
+  thirty frames into a patrol onto a mark, and H78 measured that body
+  translating on frame **one** - 0.09263658m after five steps, **0.13542695m**
+  at the grab, the same to ten significant figures on both maps, because the
+  travel is the walk ramp times the frame count with nothing of the place in
+  it. **Nor is fifteen the count that has to survive**: ten of those frames are
+  driven before the Warden is moved, and the gap the mark holds through is the
+  five `stepFrames` plus the one fixed step inside the warm `renderFrame` -
+  six, H78's own column, because `renderFrame` runs a whole frame and
+  `stepFrames` only steps. **The clause is the split, and it is a declaration
+  and not a verdict**: all 14 stepping sites already own a match with
+  `ai: false` (H74's clause, green), so what the class decides is *which margin
+  a site may argue from*, and `TELEPORTS` declares the four that teleport -
+  `visual.js` (the death camera's killer), `figure.js` (the 25m stand both
+  figures are photographed on), `breathcensus.js` (the Shade's spawn, for the
+  proof that the Warden does not breathe) and `look.js` (a lit lane, for the
+  `aim` pose) - against the ten that do not, held both ways and summed with
+  `addsUp`. **The reader is about the Warden and not about a body**: ten of the
+  fourteen reset the *Shade*, and `breathdrawn.js` resets `renderer.info` in the
+  same span, so a reader spelled `.reset(` would have enrolled two classes it is
+  not about and one thing that is not an actor - both are `SITE_IGNORES` lines,
+  and pointing the reader at the Shade reds the instrument from both ends.
+  Built through a template rather than as a regex literal, because `codeOf`
+  leaves a regex literal standing and H83 is a census of that very call. Census:
+  **32 sites over 97 modules, 14 / 13 / 5, the fourteen splitting 4 / 10**, in a
+  detail line of 386 characters inside the 400 cut. Three breaks, each red on
+  its own line, the module restored from its own snapshot and md5-compared after
+  each. Verify: plant **240 / 1 / 8** (1,122,563ms, 1,134,275ms), yard **220 / 1
+  / 28** (774,471ms, 786,410ms), spreads **1%** and **2%**, 0 red, 0 flaky, 0
+  skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling
+  **10 of 600** over 195 modules in all four runs; the check costs 272-283ms and
+  its line is character-for-character identical in all four. Found in passing:
+  H79's drift reads **34 / 37** against the audit's 34 / 35, and one of the two
+  new yard rows is **H84**'s crossing count drifting again. — done 2026-10-18
 
 - **H70** Two checks about one key, and the seam made checkable.
   `src/tests/movement.js` was **599 of 600** and the leader of the cluster the

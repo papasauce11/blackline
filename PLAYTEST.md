@@ -95,6 +95,36 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A note in the test code was arguing from a number that was about something else (H82, 2026-10-18)
+
+**Nothing in the game changed.**
+
+Fourteen of the suite's tests step the game forward a few frames and then
+photograph it. Each of them has to account for where the Warden is while that
+picture is taken, and the note at the top of the file that keeps score of them
+argued the death camera's case with a measurement about a *different*
+situation: how long a Warden stands still at the very start of a round before
+it begins to walk — four frames on the plant, seventeen on the yard.
+
+**That number does not apply to any test that puts the Warden somewhere
+itself.** A Warden on its starting mark has a corner to turn before it has
+anywhere to go, and that turn is the four and the seventeen. A Warden picked up
+mid-patrol and set down on a chosen spot has already turned, so it starts
+walking on the very first frame — 13.5cm by the sixth, the same on both maps.
+The old note read as though the yard had seventeen frames of slack. It had
+none, and the note was wrong in the one direction that would have let somebody
+relax about it.
+
+**The note now says which number is about what, and the suite sorts the
+fourteen into the two kinds itself**: four of them put the Warden on a spot of
+their own (the death camera's killer, both figures at 25m, the Warden's chest
+in the breath census, the Warden aiming down the sights) and ten leave it where
+their own round opened. All four are declared by name, so the next test that
+moves a Warden has to say so rather than quietly borrow a margin that was
+never about it.
+
+**Nothing for you to do.**
+
 ### The tests for the climb key moved into their own file, and the suite now notices that shape by itself (H70, 2026-10-18)
 
 **Nothing in the game changed, and no test changed what it drives.**
