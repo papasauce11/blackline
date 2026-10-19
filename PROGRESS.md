@@ -19710,3 +19710,46 @@ there is nothing to seed and it stays a reading.
 point(s) and walks no tail, so the check sampled nothing"*; restored from a
 snapshot and compared byte for byte. Verified in this session's first batch
 verify.
+
+## H86 — A budget on the draws taken under a live AI, and the five that declare past it
+
+H77 counted what every check draws from the simulation's shared stream and
+how much of it under a live AI, and left the reading without a clause; the
+entry asked for a budget measured rather than picked.
+
+**The census**, one full run of each map at `2bda1ee`, off the report's `draws`
+block (the run that doubled as this session's gate: plant 241 passed / 1 / 8,
+yard 221 / 1 / 28, 0 red, 0 flaky):
+
+| | plant | yard |
+|---|---|---|
+| `the-widest-cone-kills-at-range-and-not-once-in-a-while` | 19,396 | 19,513 |
+| `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` | 2,283 | 1,589 |
+| `the-ais-grenades-fly-land-and-hurt` | 117 | 117 |
+| `frame-budget-under-the-check-29-load` | 105 | 105 |
+| `the-warden-fires-in-bursts-of-rounds-at-the-torso` | 71 | 75 |
+| the next highest (`every-climbable-surface-can-actually-be-climbed`) | 4 | **9** |
+| every other check that drew under the AI | 1-3 (11 checks) | 1-6 (10 checks) |
+
+So the population is the two classes H77 found, still: five checks whose
+subject *is* the stream, identical run to run, and a trickle of one-number
+patrol pauses landing inside long checks, whose membership moves (the yard's
+`an-eight-metre-fall-lands-loud-and-clean` drew 1 here and nothing on record
+before). H77's four runs had the trickle's worst at 10 (`every-climbable-
+surface` on the plant). The gap is 10 to 71.
+
+**Built.** `drawsUnderAiBudget: 25` in `config.js`'s debug block, with that
+arithmetic beside it: 2.5x over the worst trickle seen in six runs, 2.8x under
+the lightest declared check. `_runOne` applies it after the draws are counted -
+the runner's number, written after the check's own result is spread, so a check
+cannot report itself under it - and a check past it without a non-empty
+`drawsUnderAi` string goes red with the count in front of its own detail. The
+five gunfight checks carry their reason at the registration. A check that steps
+frames beside a live AI and reads the stream is now either inside the budget or
+in the declared list, and cannot be added as neither.
+
+**Proved.** The bursts check declared: green, 64.8s. Its declaration removed:
+red, *"drew 71 values under a live AI, over the 25 a check may without
+declaring drawsUnderAi (H86); 18 rounds in 3.5s as bursts of [6 3 5]..."*;
+restored from a snapshot and compared byte for byte. Verified in this session's
+batch verify.

@@ -293,6 +293,7 @@ function burstWindow(h, name, seed, range, LANE) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you',
+    drawsUnderAi: 'an engagement per preset against a god-moded Shade, so the aim cone is sampled for as long as it takes',
     spec: 'Section 11 (difficulty)',
     name: 'Time-to-detect and time-to-kill both fall from one preset to the next, at 8m and at 16m',
     run: (h) => {
@@ -361,6 +362,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'the-warden-fires-in-bursts-of-rounds-at-the-torso',
+    drawsUnderAi: 'bursts are the subject: each one draws its size, its pause and two halves of its aim',
     spec: 'Section 11 (ENGAGE), Section 17.1 (god mode)',
     name: 'A burst is 3-7 rounds at the gun\'s rate, aimed at the torso, and god mode stops every one',
     run: (h) => {
@@ -477,6 +479,7 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'the-widest-cone-kills-at-range-and-not-once-in-a-while',
+    drawsUnderAi: 'the cone is the subject: every round it fires draws its yaw and pitch, thousands of them',
     spec: 'Section 11 (difficulty), F17, F18',
     name: 'On the widest preset at the longer range: twelve pinned engagements all kill inside the limit, the two the old cone could not among them, and a burst puts a round on the body often enough that the kill is a rate',
     run: (h) => {

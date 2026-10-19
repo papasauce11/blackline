@@ -110,6 +110,7 @@ function gpuTimer(renderer) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'frame-budget-under-the-check-29-load',
+    drawsUnderAi: 'the check-29 load is gunfire by definition, and every round draws from the stream',
     spec: 'Section 2 / check 29',
     name: 'Smoke, flashbang, sustained gunfire and a ragdoll at once, frame timed',
     run: async (h) => {

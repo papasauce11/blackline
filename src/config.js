@@ -1673,6 +1673,16 @@ export const CONFIG = {
     assertionInterval: 6,
     /** Floor plane tolerance: player Y is never below floorY minus this. */
     floorTolerance: 0.5,
+    /**
+     * Values a check may draw from the simulation's stream under a live AI
+     * without declaring `drawsUnderAi` (H86). Measured, not picked: a full run
+     * of each map on 2026-10-19 drew 1 to 9 under the AI in every check but
+     * five - the gunfight, 71 to 19,513 - and H77's four runs put the worst of
+     * the rest at 10. 25 is 2.5x over the trickle and 2.8x under the lightest
+     * of the five. A check over it says why at its registration, or the runner
+     * reds it.
+     */
+    drawsUnderAiBudget: 25,
     /** Frames the AUTO suite advances per stepFrames() unit of work. */
     autoTestMaxFrames: 2400,
     /**

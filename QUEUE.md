@@ -698,23 +698,11 @@ one setting only Josh can click; everything else here proceeds.
   done 2026-10-18, under Done. The detail line read `ai._route` after the
   match was re-initialised, so it was another route's length; the sampled
   route never moved. Not seeded - nothing to seed.
-- [ ] **H86 (S)** The per-check draw counts are a reading with no clause over
-  them. H77 put three numbers on every check - what it drew from the
-  simulation's stream, how much of that was under a step the AI drove, and by
-  subtraction what a match opening spent - and the report prints them per run.
-  Nothing holds them. The honest clause is a **budget**: no check may have
-  more than N draws taken under a live AI without declaring that it does, the
-  way `quiescesites.js` makes a site declare its Warden. The number N is the
-  thing this job must measure rather than pick: H77's own verify is the first
-  full-run census, and `determinism.js` is already at 3 on a subset because it
-  plays two seeded slices with the AI live - which is immune to the channel by
-  construction and is exactly the kind of row a budget must be able to accept.
-  **Read H77's PROGRESS entry first**, and the `draws` block under each run in
-  the report. *done-when:* the full-run census of per-check `underAi` counts
-  is in `PROGRESS.md` for both maps, a clause holds a declared budget or a
-  declared list, and a check that steps frames beside a live AI and reads the
-  stream cannot be added without appearing in one of them.
-
+- [x] **H86 (S)** A budget on the draws taken under a live AI, and the five
+  that declare past it — done 2026-10-18, under Done. Budget 25
+  (`debug.drawsUnderAiBudget`), measured off a full run of each map; the five
+  gunfight checks declare `drawsUnderAi` with a reason; past the budget
+  undeclared, the runner reds the check by name.
 - [ ] **H87 (S)** Three rows of H77's census cannot be told apart. The look
   stream's fourteen draws in `effects.js` are declared by method and by the
   decision each one is, and the ragdoll's three spins are `unit` with `when`
@@ -1301,6 +1289,18 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H86** A budget on the draws taken under a live AI. `_runOne` in `ui/autosuite.js`
+  reds a check that draws more than `CONFIG.debug.drawsUnderAiBudget` values
+  from the simulation's stream under a live AI unless its registration says
+  why (`drawsUnderAi: '<reason>'`) - the runner's count, so a check cannot
+  clear itself. The census it was measured from, one full run of each map on
+  2026-10-19: every check but five drew **1 to 9**, the gunfight **71 to
+  19,513**; with H77's four runs the trickle's worst is **10**, so **25** is
+  2.5x over it and 2.8x under the lightest declared check. The five declare:
+  the widest cone, the difficulty ladder, the bursts, the AI's grenades, the
+  check-29 load. Undeclaring the bursts check reds it as *"drew 71 values
+  under a live AI, over the 25 a check may without declaring drawsUnderAi
+  (H86)"* — 2026-10-19, Josh's session.
 - **H85** The negative count was a read of somebody else's route.
   `the-last-leg-to-every-legal-plant-is-planned-and-short` writes its detail
   line after `h.initMatch()` re-initialises the match, and the live AI plans a

@@ -20,6 +20,7 @@ const GA = CONFIG.gadgets;
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'the-ais-grenades-fly-land-and-hurt',
+    drawsUnderAi: 'a live Warden fights through the throw, and its gun draws as it fires',
     spec: 'Section 9.2, Section 11 / check 17',
     name: 'A static target draws a real frag that damages, and the counts are honoured',
     run: (h) => {

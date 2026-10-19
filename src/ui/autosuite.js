@@ -43,6 +43,9 @@ export class AutoSuite {
    *   `gl.getError()`, so the runner drains the renderer's pipeline tail
    *   before it and charges the wait to the run rather than to the check
    *   (F11, D48; `drainPipeline` says why)
+   * @param {string} [test.drawsUnderAi] why this check draws more than
+   *   `debug.drawsUnderAiBudget` values under a live AI; past the budget
+   *   without it, the runner reds the check (H86)
    * @param {(harness: object) => Promise<{pass: boolean, detail: string}>} test.run
    *   `_runOne` spreads whatever this resolves to, so a check may carry extra
    *   fields out beside the verdict and the runner may read them: the source
@@ -482,17 +485,17 @@ export class AutoSuite {
       result = { pass: false, detail: `threw: ${error && error.message}` };
     }
     const drewAfter = this._draws();
-    return {
-      id: test.id,
-      spec: test.spec,
-      ...result,
-      ms: performance.now() - started,
-      draws: {
-        total: drewAfter.total - drewBefore.total,
-        underAi: drewAfter.underAi - drewBefore.underAi,
-        withoutAi: drewAfter.withoutAi - drewBefore.withoutAi,
-      },
+    const draws = {
+      total: drewAfter.total - drewBefore.total,
+      underAi: drewAfter.underAi - drewBefore.underAi,
+      withoutAi: drewAfter.withoutAi - drewBefore.withoutAi,
     };
+    // H86: past the budget a check says why, on the runner's count and not its own.
+    const budget = CONFIG.debug.drawsUnderAiBudget;
+    if (draws.underAi > budget && !(typeof test.drawsUnderAi === 'string' && test.drawsUnderAi.trim())) {
+      result = { ...result, pass: false, detail: `drew ${draws.underAi} values under a live AI, over the ${budget} a check may without declaring drawsUnderAi (H86); ${result.detail}` };
+    }
+    return { id: test.id, spec: test.spec, ...result, ms: performance.now() - started, draws };
   }
 
   _printResult(result) {
