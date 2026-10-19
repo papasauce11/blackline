@@ -787,9 +787,7 @@ one setting only Josh can click; everything else here proceeds.
   one replay ships in `tests/replays/`.
 - [x] **H14 (S)** A crash guard, and the page a crash puts up — done 2026-10-18, under Done. `src/crashguard.js`, `FrameLoop.run`, the crash page in `ui/menupause.js`, `a-throw-inside-a-step-stops-the-match-and-the-crash-page-says-so`.
 - [x] **H15 (S)** The pause menu restarts, changes map and quits, asking first mid-round — done 2026-10-18, under Done. `ui/menupause.js` (`_ask`, `_renderConfirm`), `panels.js` (`midRound`, `onRestartRound`, `onRestartMatch`), `the-pause-menu-restarts-changes-map-and-quits-and-asks-first-mid-round`.
-- [ ] **H16 (S)** `npm run notes`: release notes from `PROGRESS.md` since
-  the last tag into `RELEASES.md`; Josh tags when he merges. *done-when:*
-  the script runs and the file reads.
+- [x] **H16 (S)** `npm run notes`: release notes from PROGRESS.md, between the tags — done 2026-10-18, under Done. `scripts/notes.mjs`, `RELEASES.md`, a `FLAGS` row in `tests/args.js`.
 - [ ] **H17 (S)** The plant's card shows a slab, because the plant is a
   sealed shell and every exterior eye gives one (H5, D55). If Josh asks for
   its inside: hide the roof for the thumbnail render only. There is no
@@ -1180,6 +1178,19 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H16** `npm run notes`. `scripts/notes.mjs` (new) rebuilds `RELEASES.md` whole from
+  git: a release is the span between two tags and its notes are the
+  `PROGRESS.md` entries that span added - the `## ` headings at the later tag
+  that were not at the earlier - each with its first sentence (a phase entry's
+  `**Status:**` line and `###` headings are skipped for the first paragraph
+  that says something). The top section is everything since the last tag,
+  which is what the next merge ships; both ends are read from commits, never
+  the working tree. First run: **177 unreleased entries since `phase-04`**
+  (2026-07-27) and the four tagged releases, 215 lines. It reads no flags and
+  has a `FLAGS` row saying so. Subset both maps: the runner census, the runner
+  guard, the bench list, the registry and the regression set, 5/5 each; the
+  census reads 11 modules from 6 commands. Break: the row taken out, red
+  naming `/scripts/notes.mjs` - 2026-10-19, Josh's session.
 - **H15** The pause menu: *Restart round* (the same round number and score, on the
   seed the match was opened with), *Restart match* (round 1, nil-nil), *Change
   map* and *Main menu*, each behind a confirm while a round is live and

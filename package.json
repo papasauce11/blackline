@@ -7,7 +7,8 @@
     "bench": "node scripts/bench.mjs",
     "stamp": "node scripts/version.mjs",
     "shot": "node scripts/shot.mjs",
-    "probe": "node scripts/probe.mjs"
+    "probe": "node scripts/probe.mjs",
+    "notes": "node scripts/notes.mjs"
   },
   "author": "",
   "license": "UNLICENSED",

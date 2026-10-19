@@ -153,6 +153,9 @@ const FLAGS = [
   { runner: '/scripts/shot.mjs', repeat: ['pose', 'map'], scalar: ['channel', 'out', 'query', 'slide'] },
   { runner: '/scripts/probe.mjs', repeat: [], scalar: ['channel', 'out', 'query', 'map'] },
   { runner: '/scripts/bench.mjs', repeat: ['map', 'quality'], scalar: ['runs', 'channel', 'out', 'stall', 'samples', 'onscreen', 'window-position'] },
+  // H16: a runner of its own that reads git and PROGRESS.md and no command
+  // line - a zero here is a claim, as it is for the six below.
+  { runner: '/scripts/notes.mjs', repeat: [], scalar: [] },
   // The six that read no command line. They are in the census **because**
   // they read none: an entry saying zero is a claim the clauses below hold
   // both ways, and absence was not. `args.mjs` is the parser itself and

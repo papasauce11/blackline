@@ -20237,3 +20237,38 @@ control they draw.
 **Proved.** Subset on both maps, one run each - the new check, H12's and H14's (the pause page is theirs too), menu reachability, the menu's two map checks, the two briefing checks and the nine source censuses - 17/17 on the plant (136.4s) and 17/17 on the yard (87.0s); round 2 was refused once at 0.50s and then restarted to zero, change map put the ring on the yard's card from the plant and the plant's from the yard; ceiling unchanged at 11 within 50 of 600, of 205 loaded.
 
 Break: `_ask` made to go straight through whatever the round; the check went red on the plant on all four routes by name - restart round, restart match, change map and quit each "mid-round ... without asking" - and the file was put back from a copy.
+
+## H16 — `npm run notes`: release notes from PROGRESS.md, between the tags
+
+**Built.** `scripts/notes.mjs` (new) and `"notes"` in `package.json`.
+`RELEASES.md` is its output and is committed: **177 unreleased entries since
+`phase-04`** (`d24f4d0`, 2026-07-27) and a section for each of the four tags
+before it, 215 lines. Josh tags when he merges, and the next run's top section
+starts from that tag.
+
+**A release note is a `PROGRESS.md` entry the span added.** For each pair of
+consecutive tags (and the last tag against HEAD) the script reads
+`PROGRESS.md` at both ends with `git show <ref>:PROGRESS.md` and lists the
+`## ` headings the later end has and the earlier did not, in the file's own
+order, each with its first sentence. A phase entry opens with
+`**Status:** complete.` and a `### What was built` heading, which say nothing a
+reader of release notes wants, so the first paragraph after them is used. A
+sentence over 300 characters is cut at a word.
+
+**Built from commits, rebuilt whole.** Neither end is the working tree, so an
+entry is a release note once it is committed and not before, and the file
+holds nothing the history does not: it says not to edit it by hand. The file
+committed with this job is therefore one commit behind the moment it was
+written - this job's own entry is not in it - which is what rerunning it is for.
+
+**A runner is a row in the flag census.** `tests/args.js` requires a `FLAGS`
+entry for every module `package.json`'s commands reach (H64, H79), and this one
+reads no command line, so its row says zero. The census now reads 11 modules
+from 6 commands.
+
+**Proved.** Subset on both maps, one run each - the runner census, the runner
+guard, the bench list (both read `package.json`), the registry and the
+regression set - 5/5 on the plant and 5/5 on the yard. **Break:** the `FLAGS`
+row taken out; the census went red on the plant with "/scripts/notes.mjs is
+reachable from package.json and is in no FLAGS entry", and the file was put
+back from a copy.
