@@ -1278,7 +1278,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   `tests/signedreadings.js` holds the two sites that group or compare across
   cases (the pose key and that turn) by name, off the tree with strings kept,
   and putting the `Math.abs` back reds it *"the turn two seeds that drew one
-  node are compared on (H88)"* — 2026-10-19, Josh's session.
+  node are compared on (H88)"* — `f882469`, 2026-10-19, Josh's session.
 - **H87** Every declared draw names what it feeds. Each of the 23 rows of `SPENDERS`
   in `tests/rngdraws.js` carries `feeds` - the identifier on the left of the
   `=` (or the key of an object literal, or the argument of an in-place
@@ -1289,7 +1289,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   the bare shuffle) run through `codeOf` every suite. Green on both maps, 23
   of 23 matched; `spinW: lookRng.unit() * 6` added to `effects.js` reds as
   *"lookRng draws unit->spinW that this census does not declare"* —
-  2026-10-19, Josh's session.
+  `cb69ff9`, 2026-10-19, Josh's session.
 - **H86** A budget on the draws taken under a live AI. `_runOne` in `ui/autosuite.js`
   reds a check that draws more than `CONFIG.debug.drawsUnderAiBudget` values
   from the simulation's stream under a live AI unless its registration says
@@ -1301,7 +1301,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   the widest cone, the difficulty ladder, the bursts, the AI's grenades, the
   check-29 load. Undeclaring the bursts check reds it as *"drew 71 values
   under a live AI, over the 25 a check may without declaring drawsUnderAi
-  (H86)"* — 2026-10-19, Josh's session.
+  (H86)"* — `3065839`, 2026-10-19, Josh's session.
 - **H85** The negative count was a read of somebody else's route.
   `the-last-leg-to-every-legal-plant-is-planned-and-short` writes its detail
   line after `h.initMatch()` re-initialises the match, and the live AI plans a
@@ -1312,7 +1312,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   1 point(s) and walks no tail, so the check sampled nothing", proved by
   `slice(-1)`). Read twice a map: plant **3 segments of 6 points** both runs,
   yard **3 of 9** both runs - so the sampled route is not seeded and does not
-  need to be: it never moved — 2026-10-18, Josh's session.
+  need to be: it never moved — `2bda1ee`, 2026-10-18, Josh's session.
 - **H49** The build task's prompt knows exit 3. Its GATE step now names all three
   non-zero codes and routes them: **1** red is the only `## BROKEN BASE`;
   **2** a crash is read first, and a message about the browser
@@ -1323,7 +1323,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   <pid> -Force` (the sandbox refuses `taskkill`), re-gate, and never pass
   `--allow-other-runners` to a gate. The prompt is outside this repo
   (`~/.claude/scheduled-tasks/blackline-build/SKILL.md`); the before-copy is
-  in the session's scratchpad. Nothing under `src/` changed — 2026-10-18,
+  in the session's scratchpad. Nothing under `src/` changed — `4aa4afd`, 2026-10-18,
   Josh's session.
 - **H37** The weekly audit says how old the bench is. `benchAge()` in
   `scripts/suitereport.mjs` returns the newest `bench/<date>.json`'s date, UTC
@@ -1334,7 +1334,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   name is UTC, H36), and recommends `npm run bench` when it is over 7 days or
   30 commits old or a benchOnly check is missing - never red, never a job
   (D69). Dry run against this repo: **2026-10-09** (16:06 UTC), **`76c6e50`**,
-  a GTX 1060, 12 readings, **91 commits since**, nothing missing — 2026-10-18,
+  a GTX 1060, 12 readings, **91 commits since**, nothing missing — `55cede2`, 2026-10-18,
   Josh's session.
 - **H84** The coin was the gait's entry phase, and a floor became a claim about
   the ground. `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks`

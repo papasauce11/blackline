@@ -19837,5 +19837,31 @@ sign once it could. **Broken**: `Math.abs` put back into the turn reds the new
 check with *"src/tests/settlecircuit.js: `const turn =` takes an absolute value,
 and it is the turn two seeds that drew one node are compared on (H88): a left
 and a right of one size are two settles"*; restored and compared. Ceiling
-unchanged, 11 modules within 50 of 600, the new module 140 lines. Verified in
+unchanged, 11 modules within 50 of 600, the new module 129 lines. Verified in
 this session's batch verify.
+
+## Batch 1 of Josh's twenty — H37, H49, H85 to H88, verified together (2026-10-19)
+
+Josh, 2026-10-18 23:12: *"build the next 20 phases"*, and mid-turn: *"if you hit a
+blocker, continue onto next task and then ask me about the blocker after
+running"*. A session he was present for, so the build task was **paused** for
+its length (it shares this tree, and its 02:00 run would have built the same
+jobs), and the two jobs that edit a routine's own prompt (H37, H49) were taken
+rather than declined.
+
+**How this session verifies, and why it is not the protocol's per-job
+verify.** A two-run verify of both maps is over an hour on this machine now
+(plant 1,127,685ms and 1,119,085ms, yard 783,997ms and 830,666ms, this
+batch). Twenty of them is a day of SwiftShader. So each job was proved by its
+own subset on both maps and a break-and-restore, committed on its own, and the
+full two-run verify was taken once over the batch before anything was pushed.
+A red in it is attributable to a commit by bisecting the batch; there was
+none. The gate was a full `--runs 1` at `2bda1ee` that doubled as H86's draw
+census: plant 241 / 1 / 8, yard 221 / 1 / 28, exit 0.
+
+**Verified**, four runs at `f882469`, exit 0: plant **242 / 1 / 8** both
+runs, yard **222 / 1 / 28** both runs, spreads **1%** and **6%**, 0 red, 0
+flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, no other
+runner; one check more per map than the gate, which is H88's. Ceiling 11
+modules within 50 of 600, nearest `audiodevice.js` at 597 (H93). The one
+failure a map is the bench-only sweep the gate drops by design (H11).
