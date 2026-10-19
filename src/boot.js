@@ -26,6 +26,7 @@ import { createCameraOwnership } from './cameraowner.js';
 import { createPost } from './post.js';
 import { installQuality } from './quality.js';
 import { saveSettings } from './settingsstore.js';
+import { loadBindings } from './bindingstore.js';
 import { wireMatchEvents } from './wiring.js';
 import { Shade } from './entities/agent.js';
 import { Warden } from './entities/enforcer.js';
@@ -229,6 +230,8 @@ export async function bootWorld({
   });
 
   input = new Input(canvas);
+  // H19: the keymap a player left last time, row by row.
+  debugState.bindingStore = loadBindings(input);
   // Built after input, which it reads, and parked on a Shade spawn at eye
   // height so re-enabling it from the console starts somewhere sensible.
   const freefly = new Freefly(input, {

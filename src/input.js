@@ -90,6 +90,12 @@ export class Input {
     this._rebuildLookup();
   }
 
+  /** Replace an action's whole list of codes: one row of a stored keymap (H19). */
+  setBinding(action, codes) {
+    this.bindings[action] = codes.slice();
+    this._rebuildLookup();
+  }
+
   /** Codes currently bound to an action. */
   getBinding(action) {
     return this.bindings[action] ? this.bindings[action].slice() : [];

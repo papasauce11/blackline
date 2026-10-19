@@ -20272,3 +20272,43 @@ regression set - 5/5 on the plant and 5/5 on the yard. **Break:** the `FLAGS`
 row taken out; the census went red on the plant with "/scripts/notes.mjs is
 reachable from package.json and is in no FLAGS entry", and the file was put
 back from a copy.
+
+## H19 — A rebind survives a reload
+
+**Built.** `src/bindingstore.js` (new): `loadBindings(input, storage)`
+and `saveBindings(input, storage)`, `BINDINGS_KEY` `blackline.bindings.v1`,
+`BINDINGS_VERSION` 1. Read once in boot.js right after `new Input` (the report
+lands on `debugState.bindingStore`); written by the controls page's rebind and
+reset handlers in `panels.js`. `Input.setBinding(action, codes)` (new) replaces
+one row's whole list and rebuilds the lookup.
+
+**The rule for a record this build does not fully recognise** is H7's in the
+shape a map needs: an action this build has, with a non-empty list of string
+codes, is applied; anything else is dropped and named, and the rest still
+applies. A keymap from an older build with one renamed action loses one row,
+not the layout. A missing, blocked or unparseable store leaves the defaults.
+
+**What the job did not say and the TRAPS entry did.** H7's rule is that a check
+which makes a player's decision puts it back *and* saves. The two H8 checks
+rebind jump to J and melee onto Space **through the page**, so once a rebind is
+saved they were writing the player's store and putting only the live map back
+(`resetBindings()`). The suite never reads it back - each map has its own
+context and the two runs do not reload - but an F4 run in the pane would have
+left the next reload with jump on J. Both now take a `keepBindings(input)`
+snapshot of the live map **and** the stored record, and restore both exactly in
+their `finally`.
+
+**The check** rebinds jump to KeyJ, saves to an in-memory store, throws the
+live map away, loads it back, and drives a climb on KeyJ at a vault-height
+ledge through the input layer; then loads a record carrying a dead action
+(`teleport`) and a crouch stored as a number, and requires the jump applied,
+both dropped by name and the crouch left at its default.
+
+**Proved.** Subset on both maps, one run each - the new check, both H8 rebind
+checks, every settings check, menu reachability and the nine source censuses -
+18/18 on the plant (165.3s) and 18/18 on the yard (120.5s): KeyJ climbed to
+feet 0.89 on both maps, and the H8 checks read J climbing a 2.30m ledge on the
+plant and a 1.60m one on the yard with their new restore. **Break:** the
+loader's `setBinding` call commented out; red on the plant with "after a load
+the jump is Space, want KeyJ", the climb on KeyJ at `stack-hall-low` and the
+dead-action record's jump, and the file was put back from a copy.

@@ -805,15 +805,7 @@ one setting only Josh can click; everything else here proceeds.
   reachability, which is strictly stronger, and the id stays. *done-when:*
   the check drives a named card rather than a cycle and the menu has one way
   to pick a map. **blocked: D55.**
-- [ ] **H19 (S)** A rebind survives a reload. H7's store keeps settings and
-  a keymap is not one: it wants its own versioned record beside them, and a
-  rule for a stored map naming an action or a code this build no longer has
-  (ignore that entry, keep the rest — the settings store's "only a key the
-  defaults have, at the type they have" in the shape a map needs). H8's
-  controls page and `resetBinding` are the UI it needs; nothing there
-  changes. *done-when:* a check writes a rebind, throws the live map away
-  the way `resetSettings` does, loads, and drives a climb on the restored
-  key; and a record naming a dead action applies the rest of itself.
+- [x] **H19 (S)** A rebind survives a reload — done 2026-10-18, under Done. `src/bindingstore.js`, `Input.setBinding`, `a-rebind-survives-a-reload-and-a-dead-action-drops-alone`.
 - [ ] **H20 (S)** The controls page at seventeen actions is thirty-five
   keyboard rows and one flat list (H8). Group it — move, fight, gadgets,
   system — with the groups as headings the ring skips, or put the reset
@@ -1178,6 +1170,18 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H19** A rebind survives a reload. `src/bindingstore.js` (new) keeps the Input's
+  map in its own versioned record (`blackline.bindings.v1`) beside the
+  settings one, written when a row is rebound or reset and read once when the
+  Input is built. A stored map naming an action this build lacks, or codes
+  that are not a list of names, loses that row and keeps the rest, the
+  settings store's rule in the shape a map needs; `Input.setBinding` (new) is
+  a row's whole list. **The H8 checks rebind through the page, so they now put
+  the live map and the stored record back exactly as they found them** -
+  before this, an F4 run in the pane would have left a player's next reload
+  with jump on J. Subset both maps, 18/18 each; break: the loader made to read
+  and not apply, red on the load, the climb and the dead-action clause -
+  2026-10-19, Josh's session.
 - **H16** `npm run notes`. `scripts/notes.mjs` (new) rebuilds `RELEASES.md` whole from
   git: a release is the span between two tags and its notes are the
   `PROGRESS.md` entries that span added - the `## ` headings at the later tag

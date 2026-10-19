@@ -108,6 +108,7 @@ import { register as registerBenchList } from './benchlist.js';
 import { register as registerReaderNames } from './readernames.js';
 import { register as registerSignedReadings } from './signedreadings.js';
 import { register as registerOutlierPose } from './outlierpose.js';
+import { register as registerBindingStore } from './bindingstore.js';
 import { register as registerBugReport } from './bugreport.js';
 import { register as registerCrashGuard } from './crashguard.js';
 import { register as registerPauseMenu } from './pausemenu.js';
@@ -273,6 +274,8 @@ export function registerAutoTests(debugTools) {
   registerSignedReadings(debugTools);
   // H89: the pixel floors at a settle pose the pinned seed never photographs.
   registerOutlierPose(debugTools);
+  // H19: a rebind survives a reload.
+  registerBindingStore(debugTools);
   // H12: Copy report on the pause menu, read back.
   registerBugReport(debugTools);
   // H14: a throw inside a step, met by the guard.

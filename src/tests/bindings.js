@@ -22,6 +22,28 @@
 import { CONFIG, DEFAULT_BINDINGS } from '../config.js';
 import { bindingConflicts } from '../input.js';
 import { driveAtLedge, findGroundLedge } from './climbpress.js';
+import { BINDINGS_KEY } from '../bindingstore.js';
+
+/**
+ * The keymap as a check found it, and the way back to it (H19). A rebind
+ * made on the page is saved now, so a check that makes one has written the
+ * player's store: it puts their live map back *and* the stored record exactly
+ * as it was, which is what TRAPS.md asks of a setting.
+ */
+function keepBindings(input) {
+  const live = {};
+  for (const action of Object.keys(input.bindings)) live[action] = input.bindings[action].slice();
+  let stored = null;
+  try { stored = localStorage.getItem(BINDINGS_KEY); } catch { stored = null; }
+  return () => {
+    input.resetBindings();
+    for (const action of Object.keys(live)) input.setBinding(action, live[action]);
+    try {
+      if (stored === null) localStorage.removeItem(BINDINGS_KEY);
+      else localStorage.setItem(BINDINGS_KEY, stored);
+    } catch { /* a blocked store kept nothing to put back */ }
+  };
+}
 
 /** A real key press at the window, the way a player's arrives. */
 function press(code) {
@@ -55,6 +77,7 @@ export function register(debugTools) {
       const problems = [];
       const menu = h.menu;
       const input = h.input;
+      const restore = keepBindings(input);
       let detail = '';
       try {
         h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
@@ -111,7 +134,7 @@ export function register(debugTools) {
         // Bindings are game state, not presentation, so the runner will not
         // put them back (F2, TRAPS.md): a check that left jump on J would
         // hand it to every check after it.
-        input.resetBindings();
+        restore();
         menu.binding = null;
         menu.hide();
       }
@@ -132,6 +155,7 @@ export function register(debugTools) {
       const problems = [];
       const menu = h.menu;
       const input = h.input;
+      const restore = keepBindings(input);
       const clashText = (action) => {
         const el = menu.root.querySelector(`#bl-clash-${action}`);
         return el ? el.textContent.trim() : '(no row)';
@@ -184,7 +208,7 @@ export function register(debugTools) {
           if (!menu.root.querySelector(`#bl-bindreset-${action}`)) problems.push(`no reset for "${action}"`);
         }
       } finally {
-        input.resetBindings();
+        restore();
         menu.binding = null;
         menu.hide();
       }

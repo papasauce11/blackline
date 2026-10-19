@@ -19,6 +19,7 @@ import { COMPETITIVE, FREEROAM, TUTORIAL } from './matchstate.js';
 import { ROUND } from './systems/roundstate.js';
 import { loadVersion, versionLabel } from './version.js';
 import { saveSettings, clearSettings } from './settingsstore.js';
+import { saveBindings } from './bindingstore.js';
 import { createHud } from './ui/hud.js';
 import { createMenu } from './ui/menu.js';
 import { createScoreboard } from './ui/scoreboard.js';
@@ -107,13 +108,19 @@ export function createPanels({
     onRebind: (action, code) => {
       if (!input()) return;
       input().rebind(action, code);
+      // H19: a rebind is a decision, and a decision is kept.
+      saveBindings(input());
       // Binding a key must not also fire it. The keydown that bound it is
       // being delivered to the Input as well, and which listener runs first
       // is not ours to decide, so the Input is gated until the key comes
       // back up rather than merely cleared here.
       input().swallowPress();
     },
-    onResetBinding: (action) => input() && input().resetBinding(action),
+    onResetBinding: (action) => {
+      if (!input()) return;
+      input().resetBinding(action);
+      saveBindings(input());
+    },
     mapId: () => map().id,
     onMap: (id) => goToMap(id),
     onFirstGesture: () => audio().unlock(),
