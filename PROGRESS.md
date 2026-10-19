@@ -20126,3 +20126,39 @@ against the 0.05 it asks, and longer than any single check on its run - so it
 is `[~]` with the four readings and what the next reading has to be, and its
 commit stands because the marks are right and the check that reads them is
 green.
+
+## H12 — A bug report, on the pause menu
+
+**Built.** `src/bugreport.js` (new, 126 lines): `createBugReport(live)`
+with `record(simTime, heldCodes)` once per fixed step, `tapConsole()` and
+`text()`. Three numbers in `CONFIG.debug.report`: 30 simulation seconds of
+input, 20 console lines, 200 characters a line. `src/ui/menupause.js` (new,
+80 lines) is the pause page, moved out of `menupages.js` (413 -> 378) with the
+*Copy report* button and the box it fills; the menu installs both mixins.
+boot.js builds the report before the renderer, so the boot's own lines are
+in it, and reads the map and the assertion count through the harness; main.js
+keeps it, feeds it at the top of every step and hands it to the harness
+(572 lines).
+
+**The journal is edges off the held set**, timed in simulation seconds. The
+harness steps without clearing press edges and the composition root clears
+them after every step, so the held set is the one thing both paths agree on.
+
+**The console tap is off under automation, and the reason is the gate's own
+console list.** A wrapper around `console.error` is the top frame of every
+line it passes on, so Playwright's `location()` - which the gate prints beside
+every console error since H32 - would name `bugreport.js` for all of them. So
+boot.js taps only when `navigator.webdriver` is false, and the check installs
+the tap for its own length and takes it off again (`tapConsole()` returns the
+undo). A player's DevTools shows the same wrapper as the source of a line;
+adding `bugreport.js` to DevTools' ignore list puts the caller back, and the
+module says so.
+
+**The text is read off the page, not the clipboard.** A headless browser
+refuses the clipboard and a page on plain http has none, so the box is the
+product and the clipboard is a convenience - and the check reads exactly what
+a player copying by hand would.
+
+**Proved.** Subset on both maps, one run each - the new check, the menu's reachability check and the nine source censuses - 11/11 on the plant (118.8s) and 11/11 on the yard (75.1s); the report reads 855 characters on the plant and 848 on the yard, 13 lines; ceiling unchanged, 11 modules within 50 of 600, of 202 loaded.
+
+Break: the step's journal call in main.js commented out; the check went red on the plant naming both input clauses ("+KeyW" and "-KeyW" not carried) and nothing else, and the file was put back from a copy.

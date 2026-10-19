@@ -61,6 +61,12 @@ export const MENU_CSS = `
 #bl-menu .row .value { opacity: 1; color: ${hex(P.hazardOrange)}; cursor: pointer; }
 #bl-menu input[type=range] { width: 150px; accent-color: ${hex(P.shadeTeal)}; }
 #bl-menu .back { margin-top: 20px; opacity: 0.6; }
+/* H12: the report box, plain text a player can select and copy by hand. */
+#bl-menu textarea {
+  width: 100%; box-sizing: border-box; margin-top: 8px; padding: 8px;
+  font: 11px/1.4 ui-monospace, Consolas, monospace; letter-spacing: 0; text-transform: none;
+  background: #05070a; color: inherit; border: 1px solid rgba(47,214,195,0.35); resize: vertical;
+}
 #bl-menu .footer { margin-top: 22px; font-size: 10px; letter-spacing: 0.18em; opacity: 0.4; }
 
 /* H5: a card per registered map, its picture rendered at boot from the map's

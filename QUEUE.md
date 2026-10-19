@@ -779,11 +779,7 @@ one setting only Josh can click; everything else here proceeds.
   step is to say where: the journal keeps the `atMs` its widest gap opened at,
   the runner's beat names the check in flight then, and the device check
   prints both - then the seam is the one that reading names.
-- [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
-  settings, the last thirty seconds of input, the last twenty log lines, to
-  the clipboard as text. The version is `VERSION` / `versionLabel()` in
-  `src/version.js` (H3) — quote the commit, not just the label.
-  *done-when:* a check reads the produced text.
+- [x] **H12 (S)** A bug report, on the pause menu — done 2026-10-18, under Done. `src/bugreport.js`, `src/ui/menupause.js`, `copy-report-on-the-pause-menu-says-the-build-the-match-and-the-last-thirty-seconds`.
 - [ ] **H13 (M)** Replays. Record the per-step input codes with map and
   seed; `?replay=` or a dropped file replays deterministically; files under
   `tests/replays/` are run by the suite as checks that assert their recorded
@@ -1188,6 +1184,25 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H12** A bug report, on the pause menu. *Copy report* builds one block of text -
+  the build with its commit, the URL, the map, the seed, the match, the
+  assertion failures, the browser, the live settings, every key edge in the
+  last 30 simulation seconds and the last 20 console lines cut at 200
+  characters - shows it in a box on the page and tries the clipboard.
+  `src/bugreport.js` (new) journals edges off `input.heldCodes` each step and
+  taps the console; boot.js builds it first so the boot's own lines are in it,
+  which kept main.js to four lines (572). The pause page moved to
+  `src/ui/menupause.js` (new) with it. Under automation the tap is left off,
+  because a wrapper is the top frame of every line it passes on and the gate's
+  console list would name `bugreport.js` for all of them; the check installs
+  it for its own length. Subset on both maps, one run each - the new check,
+  the menu's reachability check and the nine source censuses - 11/11 on the
+  plant (118.8s) and 11/11 on the yard (75.1s); the report reads 855
+  characters on the plant and 848 on the yard, 13 lines; ceiling unchanged, 11
+  modules within 50 of 600, of 202 loaded. Break: the step's journal call in
+  main.js commented out; the check went red on the plant naming both input
+  clauses ("+KeyW" and "-KeyW" not carried) and nothing else, and the file was
+  put back from a copy. - 2026-10-19, Josh's session.
 - **H92** A floor on the stretch. `UNFED_FLOOR_SECONDS = 60` and `readUnfedFloor()` in
   `tests/deviceclock.js` (H93 put the readers there first): one proven-unfed
   span longer than a minute is red, with no `fed` term. **27x** over the worst

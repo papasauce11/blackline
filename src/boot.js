@@ -12,7 +12,8 @@
  * import from anything, as main.js may. Nothing imports it but main.js.
  */
 
-import { CONFIG } from './config.js';
+import { CONFIG, SETTINGS, rng } from './config.js';
+import { createBugReport } from './bugreport.js';
 import { Freefly } from './freefly.js';
 import { Input } from './input.js';
 import { bakeMap, listMaps, BAKE_SLICES } from './maps/index.js';
@@ -67,6 +68,15 @@ export async function bootWorld({
 }) {
   const canvas = document.getElementById('bl-canvas');
   if (!canvas) throw new Error('bootstrap: #bl-canvas not found');
+
+  // H12: what *Copy report* on the pause menu copies. Built and tapped first,
+  // so the boot's own lines are in it; it reads the rest through the harness.
+  // Not tapped under automation, whose console list names each line's caller.
+  const bugReport = createBugReport({
+    match, map: () => harness.map, seed: () => rng.seed, settings: SETTINGS,
+    assertions: () => (harness.debugTools ? harness.debugTools.assertionFailures : 0),
+  });
+  if (!navigator.webdriver) bugReport.tapConsole();
 
   // H4: no WebGL2, no renderer, and nothing below this line can be built. The
   // refusal goes back up rather than throwing: main.js has a sentence for it,
@@ -200,7 +210,7 @@ export async function bootWorld({
   const { hud, scoreboard, menu, briefing, tutorialPanel } = createPanels({
     initMatch, setPaused, objective: () => objective, audio: () => audio, match,
     map: () => map, input: () => input, maps: listMaps(), goToMap, thumbnails,
-    emitter, tutorial,
+    emitter, tutorial, report: () => bugReport.text(),
   });
 
   wireMatchEvents({
@@ -247,6 +257,6 @@ export async function bootWorld({
   return {
     renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel,
+    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport,
   };
 }

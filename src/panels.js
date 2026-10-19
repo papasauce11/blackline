@@ -43,7 +43,7 @@ import { tutorialSeen, tutorialFits } from './systems/tutorial.js';
  * @returns {{ hud: object, scoreboard: object, menu: object, briefing: object }}
  */
 export function createPanels({
-  initMatch, setPaused, objective, audio, match, map, input, maps, goToMap, thumbnails, emitter, tutorial,
+  initMatch, setPaused, objective, audio, match, map, input, maps, goToMap, thumbnails, emitter, tutorial, report,
 }) {
   const hud = createHud();
   const briefing = createBriefing();
@@ -130,6 +130,8 @@ export function createPanels({
       brief();
     },
     onResume: () => setPaused(false),
+    // H12: the text *Copy report* copies, built when it is asked for.
+    report: () => (report ? report() : ''),
     onQuit: () => {
       setPaused(false);
       objective().resetMatch();

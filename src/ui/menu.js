@@ -2,8 +2,9 @@
  * BLACKLINE — ui/menu.js
  *
  * The main menu (Section 13). Flat, high contrast, faction accents. Every page
- * but this one is `menupages.js` and the stylesheet is `menucss.js`; both are
- * installed here, so `h.menu` is one object with every page on it.
+ * but this one is `menupages.js`, or `menupause.js` for a match's own, and the
+ * stylesheet is `menucss.js`; all three are installed here, so `h.menu` is one
+ * object with every page on it.
  *
  * Layering (Section 3.1): ui may import from config. The menu never starts a
  * match itself — it calls back into the composition root, so `initMatch` stays
@@ -28,6 +29,7 @@
 import { SETTINGS } from '../config.js';
 import { MENU_CSS } from './menucss.js';
 import { MENU_PAGES } from './menupages.js';
+import { MENU_PAUSE } from './menupause.js';
 
 /** The two roles a player can pick, and what Play does with each. */
 export const ROLES = [
@@ -386,7 +388,7 @@ export class Menu {
   }
 }
 
-Object.assign(Menu.prototype, MENU_PAGES);
+Object.assign(Menu.prototype, MENU_PAGES, MENU_PAUSE);
 
 export function createMenu(handlers) {
   return new Menu(handlers);

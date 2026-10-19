@@ -74,6 +74,7 @@ import { createWardenIntent } from './entities/enforcer.js';
 /** @type {import('./thumbnails.js').createThumbnails} */ let thumbnails = null;
 /** @type {import('./ui/scoreboard.js').Scoreboard} */ let scoreboard = null;
 /** @type {import('./ui/briefing.js').Briefing} */ let briefing = null;
+/** @type {ReturnType<import('./bugreport.js').createBugReport>} */ let bugReport = null;
 const shadeIntent = createIntent();
 const wardenIntent = createWardenIntent();
 /**
@@ -244,7 +245,7 @@ async function bootstrap() {
   ({
     renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel,
+    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport,
   } = built);
 
   setTimeScale(1);
@@ -263,6 +264,8 @@ async function bootstrap() {
  */
 function fixedStep(dt) {
   clock.sim += dt;
+  // H12: the report's input journal, off the held set every path agrees on.
+  if (bugReport) bugReport.record(clock.sim, input.heldCodes);
 
   // H77: what this step takes from the simulation's shared stream, attributed
   // to the AI or to everything else. Read here and not inside a system
@@ -466,6 +469,7 @@ const harness = createHarness({
   hud: () => hud,
   groundView: () => groundView,
   menu: () => menu,
+  bugReport: () => bugReport,
   thumbnails: () => thumbnails,
   tutorial: () => tutorial,
   tutorialPanel: () => tutorialPanel,

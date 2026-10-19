@@ -1690,6 +1690,12 @@ export const CONFIG = {
      * `scripts/suite.mjs` cuts at this number and `runnerguard.js` holds it.
      */
     detailBudget: 400,
+    /**
+     * The bug report (H12): how far back the input journal reaches, in
+     * simulation seconds, how many console lines it keeps, and how much of
+     * each - a report is pasted into a message, so a stack trace is cut.
+     */
+    report: { inputSeconds: 30, logLines: 20, lineChars: 200 },
     drawsUnderAiBudget: 25,
     /** Frames the AUTO suite advances per stepFrames() unit of work. */
     autoTestMaxFrames: 2400,

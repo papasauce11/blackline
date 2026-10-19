@@ -1,8 +1,8 @@
 /**
  * BLACKLINE — ui/menupages.js
  *
- * Every menu page that is not the main one: pause, settings, how to play and
- * credits (H5). Installed on `Menu.prototype` at the bottom of `menu.js`, the
+ * Every menu page that is not the main one or a match's own: settings,
+ * controls, how to play and credits (H5); pause is `menupause.js` (H12). Installed on `Menu.prototype` at the bottom of `menu.js`, the
  * prototype-mixin idiom F3 split the big classes with - `this` is the same
  * object, every private field keeps its name, and a check reaching
  * `menu._renderSettings` still finds it.
@@ -27,41 +27,6 @@ const HOW_TO_ROLES = [
 ];
 
 export const MENU_PAGES = {
-  /**
-   * The pause overlay. Deliberately the same surface as the main menu rather
-   * than a second one: the settings page has to be reachable from both, and a
-   * duplicated overlay is how the two drift apart.
-   *
-   * Settings returns here, not to the main menu, so adjusting sensitivity
-   * mid-match does not abandon the match.
-   */
-  _renderPause() {
-    this.root.innerHTML = `
-      <div class="card">
-        <h1 style="font-size:20px">Paused</h1>
-        <div class="tag">the round is stopped</div>
-        <button data-action="resume">Resume</button>
-        <button data-action="settings">Settings</button>
-        <button data-action="quit">Main menu</button>
-      </div>`;
-    const resume = this.root.querySelector('[data-action=resume]');
-    resume.onclick = () => {
-      this.hide();
-      if (this.handlers.onResume) this.handlers.onResume();
-    };
-    const settings = this.root.querySelector('[data-action=settings]');
-    settings.onclick = () => {
-      this._settingsReturn = 'pause';
-      this.show('settings');
-    };
-    const quit = this.root.querySelector('[data-action=quit]');
-    quit.onclick = () => {
-      this.show('main');
-      if (this.handlers.onQuit) this.handlers.onQuit();
-    };
-    this._rows([resume, settings, quit]);
-  },
-
   _renderSettings() {
     const lengths = Object.keys(CONFIG.match.lengths);
     // H10: what the row says. `auto` names what it settled on, and a page

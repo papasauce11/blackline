@@ -108,6 +108,7 @@ import { register as registerBenchList } from './benchlist.js';
 import { register as registerReaderNames } from './readernames.js';
 import { register as registerSignedReadings } from './signedreadings.js';
 import { register as registerOutlierPose } from './outlierpose.js';
+import { register as registerBugReport } from './bugreport.js';
 import { register as registerRunnerGuard } from './runnerguard.js';
 import { register as registerDetailDrift } from './detaildrift.js';
 import { register as registerTimedRenders } from './timedrenders.js';
@@ -270,6 +271,8 @@ export function registerAutoTests(debugTools) {
   registerSignedReadings(debugTools);
   // H89: the pixel floors at a settle pose the pinned seed never photographs.
   registerOutlierPose(debugTools);
+  // H12: Copy report on the pause menu, read back.
+  registerBugReport(debugTools);
   registerRunnerGuard(debugTools);
   // H79: and which readings moved between the two runs of a map without
   // moving a verdict, which `flaky` cannot see.
