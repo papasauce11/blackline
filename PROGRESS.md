@@ -19989,3 +19989,31 @@ proof), 3 excluded`, `13 render one (H39)`, `5 proxies off 110 modules in
 lines sit within ten of the budget, `timedrenders.js` and `quiescesites.js`, and
 the next sentence added to either is red rather than cut. Verified in this
 session's second batch verify.
+
+## H93 — What the journal's numbers mean, in a module of its own
+
+`audiodevice.js` was at 597 of 600 with H92 queued to add a floor to it.
+H66 had not split, because a new module was then a 251st request against a
+Resource Timing buffer of 250; H67 closed that, and the entry named the seam:
+the device asked about itself, and what its numbers mean.
+
+**Moved, verbatim**, by cutting three blocks out of the file at their own
+doc-comment openings and exporting each `const` where it was declared: the
+window and sample floors (`MIN_WINDOW_SECONDS`, `MIN_SHAPE_SAMPLES`), the
+concentration line and its coverage line (`CONCENTRATED`, `RESOLVED`), and
+`readDeviceClock` through the end of `COVERAGE_CASES`. Every argument for every
+number moved with the number. What stayed is the two checks, `UNASKED`,
+`STATES_SHOWN` and the registration-order constants, and the module header
+that carries D74's and H35's reasoning. One import line joins them.
+
+**Done-when, read off the tree.** No module the page loads is over 600; the
+ceiling line after the move reads **10 modules within 50 of 600, nearest
+src/systems/combat.js at 593 (7 left) - of 199 this run loaded**, against 11
+and `audiodevice.js` at 597 before. The three exported readers answer
+identically: their case tables run inside the device check every suite and it
+is green on both maps (subset window under 30s, so the live reading is
+unmeasured there and the tables are the proof). Nothing imports the new module
+but `audiodevice.js` (grep). The request buffer, off
+`the-resource-timing-buffer-has-room-for-every-request-the-page-makes`:
+**buffer 65,536**, **1,614 entries** in that run, 40.6x left, 199 modules
+under `src/`. Verified in this session's second batch verify.

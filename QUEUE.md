@@ -757,30 +757,11 @@ one setting only Josh can click; everything else here proceeds.
   criterion rather than declared; and the floor broken both ways - a fault one
   second under the line stays green, a healthy run's own numbers with the
   stretch raised past it goes red.
-- [ ] **H93 (S)** `src/tests/audiodevice.js` is at 597 of 600 and the cluster
-  is twelve. H66 put 94 lines of reader, constants, cases and clause into it
-  and bought 29 back out of a header that was carrying D74's and H35's
-  arguments twice; the file was 548 before, 636 mid-job, and is **597** - three
-  lines of headroom in the file H65's entry had already named as one of three
-  within three of joining the cluster. The seam is the subject and not the
-  prose, which is **H75's shape**: the module is two things, *the device asked
-  about itself* (the two checks, `UNASKED`, the registration-order constants)
-  and *what the journal's numbers mean* (`readDeviceClock`, `readUnfedShape`,
-  `readCoverage`, `MIN_WINDOW_SECONDS`, `MIN_SHAPE_SAMPLES`, `CONCENTRATED`,
-  `RESOLVED`, `CLOCK_CASES`, `COVERAGE_CASES`) - three pure functions and two
-  case tables that import nothing and register nothing, which is
-  `censustally.js`'s shape exactly (H60). **H66 did not split, on purpose**: a
-  new module under `src/tests/` was a 251st request against a Resource Timing
-  buffer of 250, whose last entry is dropped in silence. **H67 closed that and
-  this is unblocked** - the buffer is 16,384 and a check reds if a page ever
-  fills it. If H92 lands before this, it arrives with more lines to place and
-  the seam is the same one.
-  *done-when:* no module the page loads is over 600 lines, the runner's
-  `ceiling:` line is read after the move and its cluster count is in
-  `PROGRESS.md`, the three exported readers answer identically (their case
-  tables run every suite and are the proof), nothing imports the new module
-  but `audiodevice.js`, and the request count is in `PROGRESS.md` beside the
-  buffer size.
+- [x] **H93 (S)** What the journal's numbers mean, in a module of its own —
+  done 2026-10-18, under Done. `tests/deviceclock.js` holds the three readers,
+  four constants and two case tables verbatim; `audiodevice.js` 597 -> 346;
+  ceiling cluster 11 -> 10. Taken before H92 so the floor lands in the new
+  module.
 - [ ] **H94 (S)** The journal is marked on frames and the gap is between
   bursts. H66 measured the blind spot: the widest interval between two marks
   is **1.00 of everything the plant loses and 1.16 of everything the yard
@@ -1218,6 +1199,17 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H93** What the audio journal's numbers mean, in a module of its own.
+  `readDeviceClock`, `readUnfedShape`, `readCoverage`, `MIN_WINDOW_SECONDS`,
+  `MIN_SHAPE_SAMPLES`, `CONCENTRATED`, `RESOLVED`, `CLOCK_CASES` and
+  `COVERAGE_CASES` moved **verbatim** into `tests/deviceclock.js` (271 lines,
+  importing nothing, registering nothing); `audiodevice.js` is **346**, from
+  597, and is the only module that imports it. The runner's ceiling line after
+  the move: **10 modules within 50 of 600**, from 11, nearest
+  `systems/combat.js` at 593. The request count: **1,614** entries against a
+  buffer of **65,536** (H67), 199 modules. Taken ahead of H92 on purpose:
+  H92's floor is a reader and a constant, and it lands beside the others
+  rather than past 600 — 2026-10-19, Josh's session.
 - **H91** A census line is read whole, or it is red. The answer taken is the third the
   entry offered: **a census's roster is a second field**, so a detail line is
   the measurements and nothing else. `scripts/suite.mjs` carries each result's
