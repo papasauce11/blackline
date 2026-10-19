@@ -803,17 +803,7 @@ one setting only Josh can click; everything else here proceeds.
   to pick a map. **blocked: D55.**
 - [x] **H19 (S)** A rebind survives a reload — done 2026-10-18, under Done. `src/bindingstore.js`, `Input.setBinding`, `a-rebind-survives-a-reload-and-a-dead-action-drops-alone`.
 - [x] **H20 (S)** The controls page in four groups, and it fits 720p — done 2026-10-18, under Done. `BINDING_GROUPS` in `config.js`, `_renderControls`, `CONFIG.menu.fitHeight`, two clauses in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
-- [ ] **H21 (S)** A stored number outside its bounds. H7's store validates a
-  loaded record by **type** and not by range, so a hand-edited
-  `{"fovShade": 500}` or a `mouseSensitivity` of 9 is accepted and the camera
-  is broken with no way back but *reset to defaults*. H9 added three more
-  numbers with published ends (`fovMin`/`fovMax`, the two sensitivity bounds),
-  which is what makes this worth doing now rather than when it bites. The
-  bounds belong beside the defaults so the store can find them from the key,
-  not in a second table: a value outside them is **clamped and the rest of the
-  record kept**, the way a dead action is dropped in H19. *done-when:* a check
-  writes an out-of-range record for every bounded setting, loads it, and finds
-  each one at its nearest end with every other setting intact.
+- [x] **H21 (S)** A stored number outside its bounds is clamped, and the rest kept — done 2026-10-18, under Done. `CONFIG.settings.bounds`, `volumeMin`/`volumeMax`, `loadSettings` clamping, `bounded-settings-load-clamped-and-keep-the-rest`.
 - [ ] **H22 (S)** The settings page is fourteen rows and two buttons (H10 made
   the fourteenth), and H20
   was written for the controls page's thirty-five. The same grouping serves
@@ -1160,6 +1150,18 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H21** A stored number outside its bounds. `CONFIG.settings.bounds` (new, beside
+  the defaults) names each bounded setting's two ends by the constants that
+  are them - the two sensitivities, both fields of view and the volume (whose
+  0 and 1 are `volumeMin`/`volumeMax`, new) - so no number is written twice,
+  and `loadSettings` clamps a stored value to the nearer end and applies it,
+  reports it in `clamped`, and ignores one that is not finite like a wrong
+  type. A hand-edited `fovShade: 500` is now a wide camera, not a broken one.
+  The check stores every bounded setting over and under its ends beside the
+  other 11 the store keeps, two of them moved off their defaults, and finds
+  each bounded one at its nearer end and all 11 kept. Subset `setting` both
+  maps 9/9; break: the clamp removed, red on all five by name - 2026-10-19,
+  Josh's session.
 - **H20** The controls page in four groups - move, fight, gadgets, system - two
   abreast under headings the ring passes over, at **642px** in a 720p window
   where the flat list was over 900. `BINDING_GROUPS` (new, beside

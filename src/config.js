@@ -1767,6 +1767,24 @@ export const CONFIG = {
      */
     fovMin: 60,
     fovMax: 100,
+    /** The volume slider's ends, which the settings page draws as 0 and 1. */
+    volumeMin: 0,
+    volumeMax: 1,
+    /**
+     * Which settings have ends, by the names of the two constants above that
+     * are them (H21). Beside the defaults so the store finds a setting's
+     * range from its key, and by name so no number is written twice. A stored
+     * value outside its range is clamped to the nearer end and the rest of
+     * the record kept - a hand-edited `fovShade: 500` is a wide camera, not a
+     * reset - and `bounded-settings-load-clamped-and-keep-the-rest` holds it.
+     */
+    bounds: {
+      mouseSensitivity: ['mouseSensitivityMin', 'mouseSensitivityMax'],
+      mouseSensitivityY: ['mouseSensitivityMin', 'mouseSensitivityMax'],
+      fovShade: ['fovMin', 'fovMax'],
+      fovWarden: ['fovMin', 'fovMax'],
+      masterVolume: ['volumeMin', 'volumeMax'],
+    },
 
     /**
      * Seed values for SETTINGS, nested deliberately.

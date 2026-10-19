@@ -106,13 +106,17 @@ export function readStore(storage = defaultStorage()) {
  * for the report and for the check.
  *
  * @param {Storage} [storage]
- * @returns {{applied: string[], ignored: string[], why: string}}
+ * A number with ends (`CONFIG.settings.bounds`, H21) is clamped to the nearer
+ * one and still applied; one that is not finite is ignored like a wrong type.
+ *
+ * @returns {{applied: string[], ignored: string[], clamped: string[], why: string}}
  */
 export function loadSettings(storage = defaultStorage()) {
   const { values, why } = readStore(storage);
   const applied = [];
   const ignored = [];
-  if (!values) return { applied, ignored, why };
+  const clamped = [];
+  if (!values) return { applied, ignored, clamped, why };
   for (const key of persistedKeys()) {
     if (!Object.prototype.hasOwnProperty.call(values, key)) continue;
     const want = CONFIG.settings.defaults[key];
@@ -126,13 +130,22 @@ export function loadSettings(storage = defaultStorage()) {
       ignored.push(`${key} (${typeof got}, want ${want === null ? 'string or null' : typeof want})`);
       continue;
     }
-    SETTINGS[key] = got;
+    const ends = CONFIG.settings.bounds[key];
+    let value = got;
+    if (ends && typeof got === 'number') {
+      if (!Number.isFinite(got)) { ignored.push(`${key} (${got}, not a finite number)`); continue; }
+      const lo = CONFIG.settings[ends[0]];
+      const hi = CONFIG.settings[ends[1]];
+      value = Math.min(hi, Math.max(lo, got));
+      if (value !== got) clamped.push(`${key} ${got} -> ${value}`);
+    }
+    SETTINGS[key] = value;
     applied.push(key);
   }
   for (const key of Object.keys(values)) {
     if (persistedKeys().indexOf(key) === -1) ignored.push(`${key} (not a setting this build has)`);
   }
-  return { applied, ignored, why };
+  return { applied, ignored, clamped, why };
 }
 
 /**

@@ -409,4 +409,67 @@ export function register(debugTools) {
       };
     },
   });
+
+  // H21: a stored number outside its ends is clamped and the rest kept.
+  debugTools.registerAutoTest({
+    id: 'bounded-settings-load-clamped-and-keep-the-rest',
+    spec: 'H7 / H21',
+    name: 'A stored record with every bounded setting out of range loads each at its nearer end, and every other setting it carries still applies',
+    run: () => {
+      const problems = [];
+      const before = { ...SETTINGS };
+      const bounds = CONFIG.settings.bounds;
+      const keys = Object.keys(bounds);
+      const readings = [];
+      let kept = 0;
+      try {
+        // The table first: every bounded key is a setting, and its ends are numbers in order.
+        for (const key of keys) {
+          const [loName, hiName] = bounds[key];
+          const lo = CONFIG.settings[loName];
+          const hi = CONFIG.settings[hiName];
+          if (!(key in CONFIG.settings.defaults)) problems.push(`${key} has ends and is not a setting`);
+          if (!(typeof lo === 'number' && typeof hi === 'number' && lo < hi)) problems.push(`${key}'s ends ${loName}=${lo} and ${hiName}=${hi} are not two numbers in order`);
+          const d = CONFIG.settings.defaults[key];
+          if (!(d >= lo && d <= hi)) problems.push(`${key}'s default ${d} is outside its own ends`);
+        }
+        // Over the top, then under the bottom: each lands on the nearer end.
+        for (const [side, pick] of [['over', (lo, hi) => hi * 5 + 1], ['under', (lo) => lo - 10]]) {
+          resetSettings();
+          const store = scratchStore();
+          // Every other setting the store keeps, at its default, and two of
+          // them moved off it so a reset could not pass for keeping them.
+          const values = {};
+          for (const key of persistedKeys()) if (!(key in bounds)) values[key] = CONFIG.settings.defaults[key];
+          values.difficulty = 'hard';
+          values.invertY = true;
+          for (const key of keys) {
+            const [loName, hiName] = bounds[key];
+            values[key] = pick(CONFIG.settings[loName], CONFIG.settings[hiName]);
+          }
+          store.setItem(STORE_KEY, JSON.stringify({ v: STORE_VERSION, values }));
+          const loaded = loadSettings(store);
+          for (const key of keys) {
+            const [loName, hiName] = bounds[key];
+            const want = side === 'over' ? CONFIG.settings[hiName] : CONFIG.settings[loName];
+            if (SETTINGS[key] !== want) problems.push(`${key} stored ${side} its range loaded as ${SETTINGS[key]}, want ${want}`);
+          }
+          const dropped = Object.keys(values).filter((key) => !(key in bounds) && SETTINGS[key] !== values[key]);
+          if (dropped.length) problems.push(`clamping ${side} dropped the rest of the record: ${dropped.map((key) => `${key} ${SETTINGS[key]}, stored ${values[key]}`).join(', ')}`);
+          kept = Object.keys(values).length - keys.length;
+          if (loaded.clamped.length !== keys.length) problems.push(`${side}: the store reports ${loaded.clamped.length} clamped of ${keys.length}`);
+          readings.push(`${side}: ${loaded.clamped.length} clamped`);
+        }
+      } finally {
+        resetSettings();
+        Object.assign(SETTINGS, before);
+      }
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `${keys.length} bounded settings (${keys.join(', ')}), each stored over and under its ends: ${readings.join(', ')}, each at its nearer end, and the other ${kept} settings in the record kept both times`
+          : problems.join('; '),
+      };
+    },
+  });
 }

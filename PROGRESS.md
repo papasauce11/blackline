@@ -20415,3 +20415,32 @@ rebind checks, the ceiling, the registry and two censuses - 8/8 on the plant
 and 8/8 on the yard, "fits 720px (controls 642px)". **Break:** the groups put
 back in one column; red on the plant with "the controls page is 911px tall and
 needs scrolling in a 720px window", and the stylesheet was put back from a copy.
+
+## H21 — A stored number outside its bounds is clamped, and the rest kept
+
+**Built.** `CONFIG.settings.bounds` maps each bounded setting to the
+**names** of its two ends - `mouseSensitivity` and `mouseSensitivityY` to
+`mouseSensitivityMin`/`Max`, `fovShade` and `fovWarden` to `fovMin`/`Max`,
+`masterVolume` to `volumeMin`/`volumeMax` (new, 0 and 1, the ends the settings
+slider already draws) - so the store finds a key's range from the key and no
+number is written twice. `loadSettings` clamps a stored number to the nearer
+end and still applies it, lists `key got -> value` in a new `clamped` field of
+its report, and ignores a number that is not finite as it ignores a wrong type.
+Clamping and not resetting is the job's own call and H19's shape: one bad value
+costs that value, not the record.
+
+**The check holds the table and the behaviour.** The table first: every bounded
+key is a setting, its ends are two numbers in order, and its default sits
+between them. Then, over and under: a record holding every bounded setting
+past its ends (five times the top plus one, ten under the bottom) and **every
+other setting the store keeps** - eleven, at their defaults, with difficulty
+and invertY moved off theirs so a reset could not pass for keeping them -
+loads each bounded one at its nearer end, keeps all eleven, and reports five
+clamped.
+
+**Proved.** `--subset "setting"` first, as TRAPS asks of anything a setting
+touches, with reachability, the ceiling and the registry: 9/9 on the plant and
+9/9 on the yard. **Break:** the clamp replaced by the stored value; red on the
+plant naming all five, from "mouseSensitivity stored over its range loaded as
+1.04, want 0.008" to "the store reports 0 clamped of 5", and the file was put
+back from a copy.
