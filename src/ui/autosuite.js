@@ -179,6 +179,20 @@ export class AutoSuite {
    * @param {object} fields merged over the published beat
    * @returns {object} the beat
    */
+  /**
+   * A mark for the audio device's journal (H94). `sample()` reads the device's
+   * own clock and advances nothing - H76's finding about `grab()`, in another
+   * currency - so the journal needs no frame for one, and the AUTO suite drives
+   * none between checks (F4). Without this the widest gap between two marks
+   * was worth the whole of a run's loss (H66).
+   */
+  _markDevice() {
+    const audio = this.harness.audio;
+    if (!audio || !audio.device) return;
+    audio.device.sample();
+    this.state.deviceMarks = (this.state.deviceMarks || 0) + 1;
+  }
+
   beat(fields) {
     const b = this.state.suiteProgress || (this.state.suiteProgress = { seq: 0 });
     b.seq++;
@@ -260,6 +274,7 @@ export class AutoSuite {
           // reads it every five, and a poll is an IPC round trip already.
           if (waited - announced >= 250) {
             announced = waited;
+            this._markDevice();
             this.beat({ inFlight, phase: 'pipeline-wait', waitMs: Math.round(waited) });
           }
           await this.yieldTask();
@@ -417,6 +432,7 @@ export class AutoSuite {
       }
       results.push(result);
       this._printResult(result);
+      this._markDevice();
       this.beat({ total, done: results.length, inFlight: null, last: test.id, phase: 'ran' });
     }
 

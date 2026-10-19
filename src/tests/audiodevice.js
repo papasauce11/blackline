@@ -253,6 +253,10 @@ export function register(debugTools) {
         if (measured && !(report.samples > 0)) {
           problems.push(`${wallSeconds.toFixed(1)}s since the unlock and the journal has been handed ${report.samples} marks, so AudioSystem.step() is not sampling and the shape is a reading about nothing`);
         }
+        // H94: and the runner marks it between checks, where no frame is drawn.
+        if (measured && !(h.debugState.deviceMarks > 0)) {
+          problems.push(`${wallSeconds.toFixed(1)}s since the unlock and the runner has handed the journal no mark between checks, so the gaps between bursts of frames are unwatched again (H94)`);
+        }
       }
 
       // 6. The coverage, which is why the pair above still carries no floor
@@ -284,7 +288,7 @@ export function register(debugTools) {
       const worst = stretch
         ? `worst unfed ${shaped.worstSeconds.toFixed(3)}s at ${stretch.atMs}ms, ${stretch.samples} marks${stretch.open ? ', open' : ''}`
           + `, conc ${shaped.concentration === null ? 'n/a' : shaped.concentration.toFixed(4)} "${shaped.shape}"`
-          + `; ${report.samples} marks to ${report.sampledToMs}ms, gap<=${report.maxGapMs}ms`
+          + `; ${report.samples} marks (${h.debugState.deviceMarks || 0} between checks) to ${report.sampledToMs}ms, gap<=${report.maxGapMs}ms`
           + `${covered.blind === null ? ', nothing lost for it to be blind to' : ` = ${covered.blind.toFixed(2)}x the loss`}`
           + `${covered.blind === null ? '' : `, ${covered.resolves ? 'which resolves it' : 'no floor on the pair either (H66)'}`}`
         : 'no stretch reported';
@@ -292,7 +296,7 @@ export function register(debugTools) {
         + `; unfed ${lost.toFixed(1)}s of ${wallSeconds.toFixed(1)}s, fed ${fed === null ? 'n/a' : fed.toFixed(4)}`
         + `${measured ? '' : `, window under ${MIN_WINDOW_SECONDS}s`}, no floor on fed (D74), ${UNFED_FLOOR_SECONDS}s on one stretch (H92)`
         + `; ${worst}`
-        + `; the clock moved, asserted as a sign over ${CLOCK_CASES.length} cases`
+        + `; the clock's sign over ${CLOCK_CASES.length} cases`
         + `; ${report.errors.length} error events, a count and not health`;
 
       return {
