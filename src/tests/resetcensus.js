@@ -279,6 +279,7 @@ function classOf(pair) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'every-check-that-resets-an-actor-and-reads-it-back-says-what-holds-it-there',
+    census: true,
     spec: 'Section 17.1 / H83',
     name: 'Every reset of an actor under src/tests is classified by what keeps the body where the check put it, and the pairs where something other than the check drives the world are declared with what each holds instead of a mark',
     run: async () => {

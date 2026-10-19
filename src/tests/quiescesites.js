@@ -275,6 +275,7 @@ function sitesIn(file, source) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'a-check-that-drives-the-world-after-a-quiesce-owns-the-warden',
+    census: true,
     spec: 'Section 17.1 / H74',
     name: 'Every quiesce site that steps the simulation before it reads the framebuffer asks initMatch for a match of its own with the AI off, the sites that read a frame without stepping one are counted as the other class, and every stepping site that teleports the Warden onto a mark of its own is declared as one',
     run: async () => {

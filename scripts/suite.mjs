@@ -471,6 +471,9 @@ async function main() {
             loopFrames: h.loop.frames - loopFramesBefore,
             results: res.results.map(x => ({
               id: x.id, pass: !!x.pass, detail: String(x.detail ?? '').slice(0, 400),
+              // H91: how long the line was before the cut above (CONFIG.debug.
+              // detailBudget, held equal by runnerguard.js), so a cut is visible.
+              detailLength: String(x.detail ?? '').length,
               // What --details quotes, and the evidence the stall budget
               // rests on: the slowest single check is the longest gap
               // between two beats (F10).
@@ -481,6 +484,9 @@ async function main() {
               // with no flag (H63). Spread only where it exists, so the other
               // two-hundred-odd results do not each gain a null in --details.
               ...(x.ceiling ? { ceiling: x.ceiling } : {}),
+              // H91: a census's names, kept out of its detail line so the
+              // readings are what the cut leaves.
+              ...(Array.isArray(x.roster) ? { roster: x.roster } : {}),
               // H77: what this check took from the simulation's shared stream,
               // and how much of it was taken under a live AI. The runner's
               // number and not the check's (`_runOne` writes it after the

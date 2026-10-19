@@ -74,6 +74,7 @@
  * one of the three copies of that line left under `src/tests/` after H58
  * collapsed four, and it carried the name `code` - the strong reader's.
  */
+import { CONFIG } from '../config.js';
 import { uncommented } from './sourcetext.js';
 
 const SELF = 'the-suite-refuses-to-run-beside-another-suite-and-the-flag-is-the-only-way-past-it';
@@ -301,10 +302,15 @@ export function register(debugTools) {
         problems.push(`TRAPS.md does not name ${FLAG}; its orphan entry is where a reader of this refusal is sent, and it should say what the way past is`);
       }
 
+      // H91: the cut a census is held to is this runner's cut - one number.
+      const cut = /detail: String\(x\.detail \?\? ''\)\.slice\(0, (\d+)\)/.exec(source);
+      if (!cut) problems.push(`${RUNNER} no longer cuts a detail line where this clause reads it, so CONFIG.debug.detailBudget is about a cut nobody makes`);
+      else if (Number(cut[1]) !== CONFIG.debug.detailBudget) problems.push(`${RUNNER} cuts a detail line at ${cut[1]} and CONFIG.debug.detailBudget is ${CONFIG.debug.detailBudget}, so a census held to one is read through the other (H91)`);
+
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${readings.join('; ')}; package.json carries no flag, ${BENCH} still refuses, ${FINDER}() still looks for suite.mjs, TRAPS.md names the flag`
+          ? `${readings.join('; ')}; package.json carries no flag, ${BENCH} still refuses, ${FINDER}() still looks for suite.mjs, TRAPS.md names the flag, the cut is the census budget`
           : problems.join('; '),
       };
     },

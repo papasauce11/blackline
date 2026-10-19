@@ -46,6 +46,8 @@ export class AutoSuite {
    * @param {string} [test.drawsUnderAi] why this check draws more than
    *   `debug.drawsUnderAiBudget` values under a live AI; past the budget
    *   without it, the runner reds the check (H86)
+   * @param {boolean} [test.census] a census, read for its detail line: one
+   *   that passes past `debug.detailBudget` characters is red (H91)
    * @param {(harness: object) => Promise<{pass: boolean, detail: string}>} test.run
    *   `_runOne` spreads whatever this resolves to, so a check may carry extra
    *   fields out beside the verdict and the runner may read them: the source
@@ -494,6 +496,11 @@ export class AutoSuite {
     const budget = CONFIG.debug.drawsUnderAiBudget;
     if (draws.underAi > budget && !(typeof test.drawsUnderAi === 'string' && test.drawsUnderAi.trim())) {
       result = { ...result, pass: false, detail: `drew ${draws.underAi} values under a live AI, over the ${budget} a check may without declaring drawsUnderAi (H86); ${result.detail}` };
+    }
+    // H91: a census that passes with a line the runner would cut is read short.
+    const keeps = CONFIG.debug.detailBudget;
+    if (test.census && result.pass && String(result.detail).length > keeps) {
+      result = { ...result, pass: false, detail: `a census line of ${String(result.detail).length} characters, past the ${keeps} the runner keeps (H91); ${result.detail}` };
     }
     return { id: test.id, spec: test.spec, ...result, ms: performance.now() - started, draws };
   }

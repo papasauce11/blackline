@@ -257,6 +257,7 @@ function overOneBreath(actor, read) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: SELF,
+    census: true,
     spec: 'Section 4 / H31, H33',
     name: 'Every module that poses a body declares what the breath and the gait do to its thinnest clause, and the four reasons a clause is out of reach are each proved rather than asserted',
     run: async (h) => {
@@ -536,13 +537,13 @@ export function register(debugTools) {
       const { held, measured, none } = tally.counts;
       return {
         pass: problems.length === 0,
-        // The roster goes last because the cut takes the end of a line (TRAPS.md), and the readings are what this check is read for.
+        // H91: the proxies are a roster and go beside the line, not in it.
         detail: problems.length === 0
-          ? `${poses.length} pose a body: ${POSED.length} declared - ${held} held at the worst phase, ${measured} measured, ${none} out of reach by proof - and ${OWN_FILES.length} excluded by name; `
-            + `${renders.length} render one, classified next door (H39). ${readings.join('; ')}; `
-            + `by updateVisual or ${proxies.names.length} proxies off ${proxies.scanned} modules `
-            + `(${proxies.entries.map((e) => `${e.module.replace('.js', '')}.${e.name}`).join(', ')})`
+          ? `${poses.length} pose a body: ${POSED.length} declared (${held} held at the worst phase, ${measured} measured, ${none} by proof), ${OWN_FILES.length} excluded; `
+            + `${renders.length} render one (H39). ${readings.join('; ')}; `
+            + `${proxies.names.length} proxies off ${proxies.scanned} modules in --details`
           : problems.join('; '),
+        roster: proxies.entries.map((e) => `${e.module.replace('.js', '')}.${e.name}`),
       };
     },
   });

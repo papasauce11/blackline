@@ -328,6 +328,7 @@ const FEEDS_PROOF = [
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'the-simulations-stream-is-drawn-from-only-by-a-decision',
+    census: true,
     spec: 'Section 11 / Section 16 check 28 / H77',
     name: "Every draw from the simulation's stream and the look stream outside config and this suite is one of a declared set of decisions, a live patrol spends the simulation's stream only on arriving somewhere, and the same frames with the AI off spend nothing",
     run: async (h) => {

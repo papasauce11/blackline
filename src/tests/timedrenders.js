@@ -262,6 +262,7 @@ async function text(origin, rel) {
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: SELF,
+    census: true,
     spec: 'Section 17.1 (the AUTO suite), H36, H41',
     // This check synchronises on purpose, so it declares it (D48, F11): the
     // runner drains the run's own backlog before the clock starts, and what is

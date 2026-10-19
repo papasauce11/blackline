@@ -1682,6 +1682,14 @@ export const CONFIG = {
      * of the five. A check over it says why at its registration, or the runner
      * reds it.
      */
+    /**
+     * Characters of a check's detail line the headless runner keeps; past it
+     * the line is cut with no ellipsis (TRAPS.md). A check registered
+     * `census: true` that passes with a longer line is red (H91), because a
+     * census is read for its readings and the cut takes the end of a line.
+     * `scripts/suite.mjs` cuts at this number and `runnerguard.js` holds it.
+     */
+    detailBudget: 400,
     drawsUnderAiBudget: 25,
     /** Frames the AUTO suite advances per stepFrames() unit of work. */
     autoTestMaxFrames: 2400,

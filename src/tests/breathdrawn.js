@@ -225,6 +225,7 @@ const CROSSING = 2 * Math.PI;
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: SELF,
+    census: true,
     spec: 'Section 4 / H33, H39',
     name: 'Every module that reads a body off a frame it rendered declares what the breath does to its thinnest clause, and the four reasons such a clause is out of reach are each proved rather than asserted',
     // No `glSync`: everything here renders the live scene the suite has already

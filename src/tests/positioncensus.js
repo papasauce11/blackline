@@ -113,6 +113,7 @@ const LOOK_GAP_CEILING = 1.2;
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: SELF,
+    census: true,
     spec: 'Section 4 / H40, H43',
     name: 'Every module that reads a world position off a drawn body declares how many frames of the position chase separate that read from the state change before it, and the six reasons a read is out of reach are each proved rather than asserted',
     run: async (h) => {

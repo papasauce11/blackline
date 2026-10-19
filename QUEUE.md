@@ -721,30 +721,11 @@ one setting only Josh can click; everything else here proceeds.
   2026-10-18, under Done. `look.js` and `poseeye.js` route refusals through
   `refusalProblems()`; `poseeye.js`'s `EYE_MOVES` no longer calls an unread
   declaration stale. Proved three ways with the declaration put back.
-- [ ] **H91 (S)** The pose census's detail line is a third longer than the
-  budget, and it is not the only one near it. H60 measured rather than guessed:
-  `every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it`
-  prints **537** characters, `scripts/suite.mjs` keeps **400** with no
-  ellipsis, and before H60 the two readings at the end of it - the Warden's
-  chest and the 8m hood - **had never reached a report in any run**, including
-  the four every `PROGRESS.md` number of this check was taken from. H60 bought
-  the readings back by moving H61's five-name proxy roster behind them, which
-  is a reordering and not a fix: the roster is 141 characters, the readings end
-  at 396, and the next sentence anybody adds puts one out of sight again. The
-  other census lines are 296, 312, 334 and **393**, so one of them is four
-  characters from the same hole.
-  The question is what such a line is **for**, and the job is to pick an
-  answer with a reason. Three: print the roster only when its membership
-  *moves* (a criterion is interesting the day it changes and never otherwise);
-  print the count and leave the names to `--details`; or give a report a second
-  field for a census's roster, so a detail line is the measurements and nothing
-  else. **Read H29 first** - it lost three of five readings to this cut and is
-  where the 400 is written down - and H42, which was bitten by it while adding
-  to a line.
-  *done-when:* every census detail line is inside 400 characters on both maps,
-  read off a `--details` file rather than argued, and a check holds those lines
-  to the budget so one that grows past it is red rather than quietly cut.
-
+- [x] **H91 (S)** A census line is read whole, or it is red — done 2026-10-18,
+  under Done. Option 3: a census's names go in a `roster` field; seven checks
+  registered `census: true` are red past `debug.detailBudget` (400, the
+  runner's cut, held equal by `runnerguard.js`); `--details` carries
+  `detailLength`.
 - [ ] **H92 (S)** Write the floor, on the stretch rather than on the pair.
   H66 measured every candidate against the eight shaped rows of
   `CLOCK_CASES` and the answer is not the one D74 or H54 expected: **red when
@@ -1237,6 +1218,17 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H91** A census line is read whole, or it is red. The answer taken is the third the
+  entry offered: **a census's roster is a second field**, so a detail line is
+  the measurements and nothing else. `scripts/suite.mjs` carries each result's
+  full `detailLength` and any `roster` into `--details`; the seven census
+  checks register `census: true`, and the runner reds one that passes with a
+  line past `CONFIG.debug.detailBudget` (400, the runner's own cut, which
+  `runnerguard.js` now holds equal to it). The pose census was **461**
+  characters even with its roster gone - its readings had grown since H60 -
+  and the new clause caught it on its first run; its fixed wording is tighter
+  and it reads **385** on both maps, every reading inside. The others: 312,
+  334, 340, 348-351, 387, 393-394 — 2026-10-19, Josh's session.
 - **H89** The pixel floors hold at a pose the pinned seed never photographs.
   `tests/outlierpose.js` takes the biggest non-dominant class from
   `settlecircuit.js`'s pose census every run (never a written seed), wraps

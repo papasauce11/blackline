@@ -19940,3 +19940,52 @@ settles to the dominant pose, so this check photographs what every other site
 photographs (a census that has stopped varying)"*; restored and compared. The
 source censuses green with the new module on both maps; ceiling 11. Verified in
 this session's second batch verify.
+
+## H91 — A census line is read whole, or it is red
+
+H60 bought the pose census's two last readings back by moving H61's proxy
+roster behind them, and said itself that was a reordering and not a fix. The
+entry asked what a census line is *for* and offered three answers.
+
+**The answer, and the reason.** Print the roster only when it moves, print a
+count and leave the names to `--details`, or give a census's names a field of
+their own. The first needs a history the runner does not keep; the second
+still had nowhere to put the names, because `--details` cuts the same 400
+characters the report does (`suite.mjs` slices once, where it collects a
+result). So **the third**: a check may return `roster`, the runner carries it
+into `--details` uncut, and the detail line is left for what the check is read
+for. The pose census's five proxies (`look.photograph`, `look.photographPose`,
+`positionreads.draw`, `strikedrive.frame`, `strikedrive.strike`) moved there.
+
+**And the budget, held.** `CONFIG.debug.detailBudget = 400`, with a comment
+saying it is the runner's cut. `_runOne` reds a check registered `census: true`
+that **passes** with a longer line: *"a census line of N characters, past the
+400 the runner keeps (H91)"*. The seven censuses - poses, draws, world
+positions, timed draws, quiesce sites, resets, the stream - carry the flag.
+`runnerguard.js`, which already reads `suite.mjs`, reads the slice too and reds
+if the two numbers part (*"/scripts/suite.mjs cuts a detail line at 401 and
+CONFIG.debug.detailBudget is 400"*, proved by moving the slice and restoring
+it). `--details` now carries `detailLength` on every result, so a cut is visible
+in the one file a job reads its numbers from (TRAPS.md had it as invisible).
+
+**Measured** off `--details`, both maps:
+
+| census | plant | yard |
+|---|---|---|
+| poses a body (`breathcensus.js`) | **461 -> 385** | **461 -> 385** |
+| draws a body (`breathdrawn.js`) | 312 | 312 |
+| world positions (`positioncensus.js`) | 334 | 334 |
+| resets an actor (`resetcensus.js`) | 340 | 340 |
+| the stream (`rngdraws.js`) | 351 | 348 |
+| quiesce sites (`quiescesites.js`) | 387 | 387 |
+| timed draws (`timedrenders.js`) | 394 | 393 |
+
+The pose census at 461 is the clause's first catch: its line had grown by the
+readings H61-H84 added, so moving the roster alone left it 61 characters past
+the cut - the Warden's chest and the 8m hood would have been gone again. The
+fixed wording came down (`declared (2 held at the worst phase, 4 measured, 6 by
+proof), 3 excluded`, `13 render one (H39)`, `5 proxies off 110 modules in
+--details`) and nothing reads it but people; every reading is now inside. Two
+lines sit within ten of the budget, `timedrenders.js` and `quiescesites.js`, and
+the next sentence added to either is red rather than cut. Verified in this
+session's second batch verify.
