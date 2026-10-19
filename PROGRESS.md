@@ -19676,3 +19676,37 @@ again. `TRAPS.md`'s orphan entry is named for the Chrome tree, and
 **Verified.** The prompt was read back: four rows, each code once, the model
 line intact. No AUTO check can hold a file outside the repo, so this job
 carries none; the done-when is the prompt's text.
+
+## H85 — The negative count was a read of somebody else's route
+
+H79's drift census put this check at the top of both maps for a number that
+went negative. The queue entry blamed an unguarded `tailStart > length` and the
+unseeded clock (H80); both readings were of the right symptom and the wrong
+cause.
+
+**Found.** The tail index came from the route the check drove - `_pathTo` from
+spawn 0 to the sample, deterministic - but the detail line is a template
+evaluated at `return`, after `h.initMatch()` and `h.warden.reset()` have run,
+and the AI that reset plans its own patrol route from the unseeded clock. So
+`ai._route.length` in the detail was that second route, and the subtraction
+mixed two routes. No guard on `tailStart` would have fixed it: the index was
+always in range for the route it came from.
+
+**Built.** `aiRoute` is a copy taken straight after `_pathTo`; the tail is
+counted by the loop that measures its segments, so the count cannot be
+negative by construction; a route whose every point is a waypoint keeps its
+"no planned tail" problem, now with the point count; and a route with a
+non-waypoint point that walks no segment - the AI already standing there - is
+red rather than a tail of zero. The detail says "tails in N segments of M
+points".
+
+**Measured**, the check twice a map with `--details`: plant `vent-low-south-
+lip-from`, **3 segments of 6 points, longest 5.7m**, both runs; yard
+`pallets-a`, **3 of 9, longest 5.0m**, both runs. The entry's seeding question
+(H81's, here) answers itself: the sampled route was identical in every run, so
+there is nothing to seed and it stays a reading.
+
+**Proved.** `aiRoute = ai._route.slice(-1)` reds the check with *"is 1
+point(s) and walks no tail, so the check sampled nothing"*; restored from a
+snapshot and compared byte for byte. Verified in this session's first batch
+verify.

@@ -290,9 +290,10 @@ one setting only Josh can click; everything else here proceeds.
   **H36** and **H37** are what the work revealed.
 - [x] **H36 (S)** The sweep's "worst viewpoint" is one frame, and it does not
   reproduce. — done 2026-10-08, under Done.
-- [x] **H37 (S)** The weekly audit says how old the bench is — done 2026-10-18, under Done. Taken by a session Josh was watching (2026-10-18). `benchAge()` in
-  `scripts/suitereport.mjs`; the dry run names `bench/2026-10-09.json`,
-  `76c6e50`, 91 commits since, nothing missing.
+- [x] **H37 (S)** The weekly audit says how old the bench is — done
+  2026-10-18, under Done. Taken by a session Josh was watching (2026-10-18).
+  `benchAge()` in `scripts/suitereport.mjs`; the dry run names
+  `bench/2026-10-09.json`, `76c6e50`, 91 commits since, nothing missing.
 - [x] **H33 (S)** Which other checks read a posed body at whatever phase the
   run arrived in? — done 2026-10-07, under Done. **There are two phases, not
   one**: `_animTime`, the gait, has the same property and is the bigger lever
@@ -412,7 +413,9 @@ one setting only Josh can click; everything else here proceeds.
   re-measured with their new numbers in `PROGRESS.md`; `PLAYTEST.md`'s H44
   section says what changed and `npm run shot -- --slide` shows it; and the
   60Hz jitter the smoothing exists for is shown still smoothed outside a move.
-- [x] **H49 (S)** The build task's prompt knows exit 3 — done 2026-10-18, under Done. Taken by a session Josh was watching (2026-10-18), as the entry asked.
+- [x] **H49 (S)** The build task's prompt knows exit 3 — done 2026-10-18,
+  under Done. Taken by a session Josh was watching (2026-10-18), as the entry
+  asked.
 - [x] **H50 (S)** A floor on the device's fed ratio, if one can be set
   honestly - and the `sign` count H35 found short. - done 2026-10-10, under
   Done. **No floor, and the readings are why rather than the argument**
@@ -691,25 +694,10 @@ one setting only Josh can click; everything else here proceeds.
   crossing of the vertical, which pins the phase, and the floor of two became a
   claim about the ground covered.
 
-- [ ] **H85 (S)** A green check has been printing a negative count. H79's
-  drift census put `the-last-leg-to-every-legal-plant-is-planned-and-short` at
-  the top of both maps, and the reason is not drift: the detail prints
-  `tails in ${ai._route.length - Math.max(0, tailStart)} segments` and nothing
-  floors that subtraction, so the plant read **"tails in -1 segments"** in one
-  run and "2" in the other, the yard "1" then **"-2"**. `plantcensus.js:453`
-  guards `tailStart < 0` and **nothing guards `tailStart > route.length`**, so
-  the one case that makes the number meaningless is the one case that is not
-  caught, and the check is green while it says it. The route sampled is the
-  live AI's, drawn from the unseeded clock (H80), which is why which route it
-  is moves run to run. Two things to settle and they are different: what the
-  number should say when the tail is empty or shorter than the index, and
-  whether a route that tails in no planned segments at all is a thing this
-  census should report rather than print.
-  *done-when:* the printed segment count cannot be negative and says what it
-  means when there is no tail; a clause holds that - driven, not asserted
-  about a string; and the entry says whether the sampled route should be
-  seeded (H81's question, in this one place) or stay a reading.
-
+- [x] **H85 (S)** The negative count was a read of somebody else's route —
+  done 2026-10-18, under Done. The detail line read `ai._route` after the
+  match was re-initialised, so it was another route's length; the sampled
+  route never moved. Not seeded - nothing to seed.
 - [ ] **H86 (S)** The per-check draw counts are a reading with no clause over
   them. H77 put three numbers on every check - what it drew from the
   simulation's stream, how much of that was under a step the AI drove, and by
@@ -1313,6 +1301,17 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H85** The negative count was a read of somebody else's route.
+  `the-last-leg-to-every-legal-plant-is-planned-and-short` writes its detail
+  line after `h.initMatch()` re-initialises the match, and the live AI plans a
+  fresh route at that reset, so `ai._route.length - tailStart` subtracted the
+  sampled route's tail index from **another route's length** - "-1" and "-2".
+  Now the route is copied the moment `_pathTo` builds it, the tail is counted
+  by the loop that walks it, and a clause reds a route that walks no tail ("is
+  1 point(s) and walks no tail, so the check sampled nothing", proved by
+  `slice(-1)`). Read twice a map: plant **3 segments of 6 points** both runs,
+  yard **3 of 9** both runs - so the sampled route is not seeded and does not
+  need to be: it never moved — 2026-10-18, Josh's session.
 - **H49** The build task's prompt knows exit 3. Its GATE step now names all three
   non-zero codes and routes them: **1** red is the only `## BROKEN BASE`;
   **2** a crash is read first, and a message about the browser

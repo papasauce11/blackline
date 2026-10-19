@@ -440,17 +440,34 @@ export function register(debugTools) {
       // Node-to-node links are the graph's, asserted walkable elsewhere; the
       // bound is for what comes after the last node, which is the first route
       // point that is not a waypoint.
-      const tailStart = ai._route.findIndex((p) => !h.map.waypoints.some((n) => n && Math.abs(n.position.x - p.x) < 1e-6 && Math.abs(n.position.z - p.z) < 1e-6));
+      //
+      // Copied now (H85): the detail line below is written after the match is
+      // re-initialised, and the live AI plans a fresh route at that reset, so
+      // reading `ai._route` there subtracted this route's tail index from
+      // another route's length - "tails in -1 segments", green.
+      const aiRoute = ai._route.slice();
+      const tailStart = aiRoute.findIndex((p) => !h.map.waypoints.some((n) => n && Math.abs(n.position.x - p.x) < 1e-6 && Math.abs(n.position.z - p.z) < 1e-6));
       let aiTailWorst = 0;
-      for (let s = Math.max(1, tailStart); s < ai._route.length; s++) {
-        const a = ai._route[s - 1];
-        const b = ai._route[s];
-        aiTailWorst = Math.max(aiTailWorst, Math.hypot(b.x - a.x, b.z - a.z));
+      let aiTailSegments = 0;
+      if (tailStart >= 0) {
+        for (let s = Math.max(1, tailStart); s < aiRoute.length; s++) {
+          const a = aiRoute[s - 1];
+          const b = aiRoute[s];
+          aiTailWorst = Math.max(aiTailWorst, Math.hypot(b.x - a.x, b.z - a.z));
+          aiTailSegments++;
+        }
       }
       if (aiTailWorst > bound + 1e-6) {
         problems.push(`the AI's own route to ${sample.what} has a ${aiTailWorst.toFixed(1)}m segment after its last waypoint`);
       }
-      if (tailStart < 0) problems.push(`the AI's route to ${sample.what} has no planned tail at all`);
+      if (tailStart < 0) {
+        problems.push(`the AI's route to ${sample.what} has no planned tail at all (${aiRoute.length} points, every one a waypoint)`);
+      } else if (aiTailSegments < 1) {
+        // A route with a point that is not a waypoint has a segment into it,
+        // unless the route is that point alone - the AI is already there,
+        // which is the case the count must not dress up as a tail.
+        problems.push(`the AI's route to ${sample.what} is ${aiRoute.length} point(s) and walks no tail, so the check sampled nothing`);
+      }
 
       h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
       h.menu.hide();
@@ -463,7 +480,7 @@ export function register(debugTools) {
             + `longest segment ${worst.toFixed(1)}m against a ${bound}m bound (the straight leg was up to `
             + `${straightBefore.toFixed(1)}m), longest route ${longestRoute} points, every sample clear for a `
             + `standing Warden, every end inside the defuse reach; the AI's own route to ${sample.what} `
-            + `tails in ${(ai._route.length - Math.max(0, tailStart))} segments, longest ${aiTailWorst.toFixed(1)}m`
+            + `tails in ${aiTailSegments} segments of ${aiRoute.length} points, longest ${aiTailWorst.toFixed(1)}m`
           : problems.join('; '),
       };
     },
