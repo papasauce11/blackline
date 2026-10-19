@@ -712,24 +712,11 @@ one setting only Josh can click; everything else here proceeds.
   `src/tests/`; one compared across cases on an absolute value
   (`settlecircuit.js`'s turn), now signed; `tests/signedreadings.js` holds the
   two grouping sites by name.
-- [ ] **H89 (S)** A pinned instrument stops sampling, and H81 pinned one. Since
-  H81 the thirty `quiesce()` callers all open the same circuit, so the twelve
-  sites that photograph the settle without stepping a frame will now **never**
-  take the minority picture - 17/400 of the plant's circuits and 37/400 of the
-  yard's, including the yard class that is on its spawn facing 130 degrees away.
-  That picture is a real state of this game and nothing looks at it any more;
-  before H81 it was looked at 4% and 9% of the time by accident, which is worse
-  as an instrument and better than never. The cheap shape is a check rather than
-  a flag: drive the two or three sites with the widest pixel margin at an
-  **outlier** seed taken from `settlecircuit.js`'s pose census, and assert the
-  reading is still inside the floor it is held to - which says the floors are
-  about the Shade and the scene rather than about where the Warden happened to
-  stand. The seed must come from the census and never be written down, for the
-  reason H80 and H81 both give. *done-when:* at least one check reads a pixel
-  floor's own measurement at a non-dominant pose on each map and holds it to the
-  same floor, the numbers are in `PROGRESS.md`, and pinning that check to the
-  dominant pose instead reds it as a census that has stopped varying.
-
+- [x] **H89 (S)** The pixel floors held at a pose the pinned seed never
+  photographs — done 2026-10-18, under Done. `tests/outlierpose.js`: an
+  outlier seed from the pose census each run, three settle-photographing sites
+  re-run at it, each holding its own floor; pinned to the dominant pose it
+  reds.
 - [x] **H90 (S)** Four strike callers, one answer to a refused strike — done
   2026-10-18, under Done. `look.js` and `poseeye.js` route refusals through
   `refusalProblems()`; `poseeye.js`'s `EYE_MOVES` no longer calls an unread
@@ -1250,6 +1237,19 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H89** The pixel floors hold at a pose the pinned seed never photographs.
+  `tests/outlierpose.js` takes the biggest non-dominant class from
+  `settlecircuit.js`'s pose census every run (never a written seed), wraps
+  `h.initMatch` so a site's `quiesce()` opens at that seed instead of
+  `SETTLE_SEED`, and re-runs the post's bloom (both maps), the key light's
+  wall (plant) and the dark between the yard's pools, each held to its own
+  verdict. Plant: **seed 36**, 2/48 circuits, the Warden 0.368m off its spawn
+  at yaw 3.49 against the dominant 46 at 1.22. Yard: **seed 4**, 3/48, on its
+  spawn facing yaw **4.27** against 2.01 - H81's 130-degree class. Every site
+  held, and with the **same readings** it gives at the dominant pose (bloom
+  22.5 -> 77.6 and 34.6 -> 111.9; pools 21.5/18.3/14.7). Pinned to the
+  dominant pose the check reds as *"a census that has stopped varying"* —
+  2026-10-19, Josh's session.
 - **H90** Four strike callers, one answer to a refused strike. `look.js` and
   `poseeye.js` pushed a refused strike into `problems` unconditionally; both
   now collect refusals and hand them to `refusalProblems()` with the states

@@ -19902,3 +19902,41 @@ snapshotted and restored byte for byte):
 
 The declaration was put back to empty; both lists are empty on both maps.
 Verified in this session's second batch verify.
+
+## H89 — The pixel floors held at a pose the pinned seed never photographs
+
+Since H81 every `quiesce()` caller opens one circuit, which made the
+twelve sites that photograph the settle a better instrument and a blind one:
+the minority poses (17/400 and 37/400 circuits) stopped being looked at at all.
+The entry asked for the cheap shape - a check, not a flag - over the sites with
+the widest margins, at an outlier taken from the census and never written down.
+
+**Built.** `tests/outlierpose.js`. It reads the settle's frame count off the
+helper (`settleFrames()`), runs `settleClasses()` over its 48 seeds, takes the
+largest class that is not `dominantPose()` and its first seed, and for each site
+in its list that runs on this map: wraps `h.initMatch` so a match opened at
+`SETTLE_SEED` opens at the outlier instead, resets the presentation, runs the
+site's own `run(h)`, unwraps, and holds the site to its verdict. The wrap counts
+what it moved, and **that count earned its place on the first run**: the yard's
+`the-yard-is-floodlit-from-masts-at-night` was in the list and quiesces nothing,
+so it could not be moved, and the check said so (*"opened no match at
+20261016, so it was not moved to the outlier and proves nothing here"*) instead
+of reporting a pass. It came out of the list.
+
+**Measured**, the check on each map with `--details`:
+
+| | outlier | dominant | sites held |
+|---|---|---|---|
+| plant | seed 36, 2/48: 0.368m, yaw 3.49 | 46/48: on spawn, yaw 1.22 | post's bloom ring 22.5 -> 77.6; key light's wall |
+| yard | seed 4, 3/48: on spawn, yaw **4.27** | 43/48: on spawn, yaw 2.01 | post's bloom ring 34.6 -> 111.9; pools 21.5 / 18.3 / 14.7 |
+
+Every number is the one the same site reads at the dominant pose in batch 1's
+verify, to the decimal. So these floors are about the Shade and the scene, which
+is the claim the entry wanted made, and the minority poses - the yard's is the
+Warden facing 130 degrees away - are looked at every run again.
+
+**Proved.** `const outlier = dominant` reds the check with *"the outlier seed 1
+settles to the dominant pose, so this check photographs what every other site
+photographs (a census that has stopped varying)"*; restored and compared. The
+source censuses green with the new module on both maps; ceiling 11. Verified in
+this session's second batch verify.
