@@ -406,6 +406,13 @@ above is **unchanged and still right**: no floor on `fed`, ever, because a total
 has no shape - what H66 found is that the shape never needed the total beside
 it.
 
+**Overridden, 2026-10-19, by H92** (Josh's session): the stretch carries a
+floor, `UNFED_FLOOR_SECONDS = 60` in `tests/deviceclock.js` - 27x over the
+worst healthy stretch on record and 4-14x under every synthetic fault, red on
+this page's rows two, three, five and six and green on the other four, and the
+halfway stop red. `timedrenders.js` has a fifth word for it, `span`, held to a
+reason in `SPANS`. The refusal on `fed` stands.
+
 ### D73 — A device error is reported and a suspended device is red, which is a line D67 drew somewhere else
 
 **Raised by:** H35, 2026-10-10. Taken rather than asked, because it changes

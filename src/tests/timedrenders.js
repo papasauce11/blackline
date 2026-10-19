@@ -153,8 +153,18 @@ const CLOCK_IGNORES = ' * rather than guessing: a module that calls performance.
  *             reads a submission still reads a positive one, and a fence that
  *             answers NaN is broken on any renderer
  *   none      no verdict touches it, for the reason in `proof`
+ *   span      the verdict rests on how long a span is, where the span is a
+ *             wall-clock interval that brackets **no draw** and is a lower
+ *             bound by construction - so a red can be missed and never
+ *             invented, the opposite of `size`. Allowed only with a `span`
+ *             that names one of `SPANS`, the way `none` names a proof (H92)
  */
-const VERDICTS = ['size', 'reported', 'sign', 'none'];
+const VERDICTS = ['size', 'reported', 'sign', 'none', 'span'];
+
+/** Why a `span` verdict is honest, as data: an entry names one of these. */
+const SPANS = {
+  bracketed: 'two marks of one monotonic clock bound it, so a wider blind spot makes it shorter and never longer',
+};
 
 /**
  * Every clause in `src/tests/` that **takes** a clock reading round a render
@@ -171,7 +181,10 @@ const CLOCKED = [
   {
     module: 'audiodevice.js',
     check: 'the-audio-device-keeps-its-clock-and-journals-the-states-it-enters',
-    verdict: 'sign',
+    // H92: was `sign`; the clock's sign is still asserted, and the stretch now
+    // carries a floor, which is the stronger of the two verdicts on it.
+    verdict: 'span',
+    span: 'bracketed',
     note: 'takes the wall-clock end of the audio device\'s own clock - `performance.now()` against the `currentTime` the journal in `systems/audiodevice.js` has watched since the unlock - and asserts that the clock moved at all over a window of at least 30s, which is a device that played something. Nothing rests on how far it moved, and H50 measured before settling that: twenty-five full-run readings between fed 0.5225 and 0.7481, where a device stopped at a run\'s halfway point reads 0.28-0.36 and so does a healthy device on a machine twice as loaded, so the total has no shape to put a floor on (D74). The ratio is printed and the sign is run over twenty-nine recorded and synthetic readings in `CLOCK_CASES`. **H54 put a second duration beside it, H66 priced it, and its verdict is still `reported`**: the longest wall interval the journal is known to have watched `currentTime` stand still across, taken on the marks `AudioSystem.step()` hands it rather than on any clock of its own. Nothing rests on its size either - `readUnfedShape()` turns it into one of three words and the word reaches the detail line - because the marks arrive in bursts (the rAF loop drives no frames under the suite, F4), so a concentration over what was watched is not a concentration over a run, and `samples`, `sampledToMs` and `maxGapMs` go out beside it to say so. **H66 priced that reach and found the limit one-sided**: `readCoverage()` holds the widest interval between two marks against the loss, and it is worth 1.00 of the loss on the plant and 1.16 of it on the yard, so the concentration is a concentration over the two thirds of a page that had marks in it - but the stretch itself is bounded by two marks reading the same monotonic clock, so it is a proven unfed span and a LOWER bound, and a wider blind spot makes it smaller rather than larger. A verdict on its size can therefore be missed and can never be invented, which is the opposite of the case this census exists for - so the stretch can carry a floor where a submission time cannot, and **H92** is the job that writes one. When it does, the word for it is not `size` as this census defines it: that word is argued about a timed draw, and a wall-clock interval that brackets no draw is a fifth thing this vocabulary has no name for yet. What IS asserted of either duration is arithmetic and not size: a stretch inside the window its own marks measured, a blind spot no wider than the span it is a gap in, and marks arriving at all. The four clauses that decide the rest of that check - one context, the sample rate held, the state running, no state nobody asked for - touch no duration at all',
   },
   {
@@ -344,6 +357,9 @@ export function register(debugTools) {
         if (!live.has(entry.check)) {
           problems.push(`"${entry.check}" is in this census and no module registers it; the entry names nothing`);
         }
+        if (entry.verdict === 'span' && !SPANS[entry.span]) {
+          problems.push(`"${entry.check}" rests a verdict on a span "${entry.span}", which is not one of the ${Object.keys(SPANS).length} reasons this check holds a span honest by`);
+        }
         if (entry.verdict === 'none' && !PROOFS[entry.proof]) {
           problems.push(`"${entry.check}" is out of reach by proof "${entry.proof}", which is not one of the ${Object.keys(PROOFS).length} this check holds`);
         }
@@ -504,13 +520,14 @@ export function register(debugTools) {
       const reported = census.filter((e) => e.verdict === 'reported').length;
       const sign = census.filter((e) => e.verdict === 'sign').length;
       const none = census.filter((e) => e.verdict === 'none').length;
+      const span = census.filter((e) => e.verdict === 'span').length;
       for (const entry of census) {
         if (!VERDICTS.includes(entry.verdict)) {
           problems.push(`"${entry.check}" is declared "${entry.verdict}", which is not one of the ${VERDICTS.length} verdicts this census counts (${VERDICTS.join(', ')})`);
         }
       }
-      if (sized + reported + sign + none !== census.length) {
-        problems.push(`the summary counts ${sized + reported + sign + none} of ${census.length} declared clauses; a verdict counted in one group only under-reports this census and nothing else would have said so (H50)`);
+      if (sized + reported + sign + none + span !== census.length) {
+        problems.push(`the summary counts ${sized + reported + sign + none + span} of ${census.length} declared clauses; a verdict counted in one group only under-reports this census and nothing else would have said so (H50)`);
       }
       // A size verdict is the one kind that may not be in the read group: a
       // clause that reads a duration it did not measure cannot be the one the
@@ -524,8 +541,8 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${census.length} clauses read a duration (${CLOCKED.length} take it, ${READS.length} read it): ${sized} assert a size and are bench-only, `
-            + `${reported} report one, ${sign} assert only that a number exists, ${none} out of reach by ${Object.keys(PROOFS).length} proofs; `
-            + `bench.mjs asks for ${TIMED_VERDICT_PARAM} and suite.mjs does not. ${readings.join('; ')}`
+            + `${reported} report one, ${sign} assert a sign, ${span} floor a bracketed span, ${none} out of reach by ${Object.keys(PROOFS).length} proofs; `
+            + `only bench.mjs asks for ${TIMED_VERDICT_PARAM}. ${readings.join('; ')}`
           : problems.join('; '),
       };
     },

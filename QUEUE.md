@@ -726,37 +726,11 @@ one setting only Josh can click; everything else here proceeds.
   registered `census: true` are red past `debug.detailBudget` (400, the
   runner's cut, held equal by `runnerguard.js`); `--details` carries
   `detailLength`.
-- [ ] **H92 (S)** Write the floor, on the stretch rather than on the pair.
-  H66 measured every candidate against the eight shaped rows of
-  `CLOCK_CASES` and the answer is not the one D74 or H54 expected: **red when
-  the device is known to have gone unfed across one continuous span longer
-  than about a minute**, with no `fed` term in it at all. The pair this entry
-  used to name (`fed` low AND concentrated) leaves a dead device green
-  whenever its total matches a healthy machine's, which is D74's row two and
-  the whole of its argument. The margins are the ones this project argues a
-  threshold with: the worst single stretch ever observed is **2.211s** over
-  fourteen full-run readings, so a 60s line is **27x** above the worst healthy
-  reading, and every synthetic fault is 353-814s, so the same line is **6-14x**
-  under all of them - against `fed`'s 0.45, which is 1.16x under the lowest
-  healthy reading and why D74 said no. **A red cannot be a sampling
-  artefact**, which is the clause this rests on: `unfedWorst.ms` is bounded by
-  two marks reading the same monotonic `currentTime`, so it is a *proven*
-  unfed span and a lower bound - a wider blind spot makes it smaller, never
-  larger (H66). What it costs is a **fifth word in `timedrenders.js`'s verdict
-  vocabulary**: H41's ban on a `size` verdict is argued about a timed *draw*
-  (*"a submission time is cheap however expensive the frame is"*) and that
-  census states it about any duration, so a floor on a wall-clock interval
-  that brackets no draw reds it as written. One entry, one word, one clause -
-  and the word has to carry its own criterion, the way `PROOFS` does.
-  **Read H66's entry first**, which has the eight rows and both candidates.
-  *done-when:* a constant in `tests/audiodevice.js` with its multiples argued
-  from the readings on record, the verdict red on D74's rows two, three, five
-  and six and green on the other four, **`CLOCK_CASES`' halfway row red** and
-  D74's page carrying the override; `timedrenders.js`'s audiodevice entry
-  moves the stretch's verdict off `reported` and its new word is held to a
-  criterion rather than declared; and the floor broken both ways - a fault one
-  second under the line stays green, a healthy run's own numbers with the
-  stretch raised past it goes red.
+- [x] **H92 (S)** A floor on the stretch, and a fifth word for it — done
+  2026-10-18, under Done. `UNFED_FLOOR_SECONDS = 60` in
+  `tests/deviceclock.js`; red on D74's rows two, three, five and six and the
+  halfway stop; `timedrenders.js` gains `span`, held to a reason in `SPANS`;
+  D74 carries the override.
 - [x] **H93 (S)** What the journal's numbers mean, in a module of its own —
   done 2026-10-18, under Done. `tests/deviceclock.js` holds the three readers,
   four constants and two case tables verbatim; `audiodevice.js` 597 -> 346;
@@ -1199,6 +1173,17 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H92** A floor on the stretch. `UNFED_FLOOR_SECONDS = 60` and `readUnfedFloor()` in
+  `tests/deviceclock.js` (H93 put the readers there first): one proven-unfed
+  span longer than a minute is red, with no `fed` term. **27x** over the worst
+  healthy stretch on record (2.211s) and **4-14x** under every synthetic fault
+  (252-815s). Every shaped row of `CLOCK_CASES` says `over`: red on D74's rows
+  two, three, five and six and the halfway stop, green on the other four, and
+  two new rows break it both ways - 59s stays green, H35's healthy plant
+  numbers with the stretch raised to 61s go red. `timedrenders.js` gains a
+  fifth verdict, `span`, which must name a reason in `SPANS` (`bracketed`);
+  the device check carries it. Moving the floor to 900s reds all five fault
+  rows by name. D74 carries the override — 2026-10-19, Josh's session.
 - **H93** What the audio journal's numbers mean, in a module of its own.
   `readDeviceClock`, `readUnfedShape`, `readCoverage`, `MIN_WINDOW_SECONDS`,
   `MIN_SHAPE_SAMPLES`, `CONCENTRATED`, `RESOLVED`, `CLOCK_CASES` and

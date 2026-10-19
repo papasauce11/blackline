@@ -20017,3 +20017,51 @@ but `audiodevice.js` (grep). The request buffer, off
 `the-resource-timing-buffer-has-room-for-every-request-the-page-makes`:
 **buffer 65,536**, **1,614 entries** in that run, 40.6x left, 199 modules
 under `src/`. Verified in this session's second batch verify.
+
+## H92 — A floor on the stretch, and a fifth word for it
+
+H66 measured every candidate floor against the shaped rows of
+`CLOCK_CASES` and the answer was a floor on one continuous unfed span, not on
+the `fed` pair D74 had refused; the entry asked for it written, with its
+multiples argued from the readings, a fifth word in the timed-render vocabulary,
+and the floor broken both ways.
+
+**Built.** In `tests/deviceclock.js`, beside the readers it belongs with:
+`UNFED_FLOOR_SECONDS = 60`, with its argument - the worst single stretch any
+healthy full run has shown is 2.211s over fourteen readings, so the line is 27x
+above it; the synthetic faults in the table run 252s to 815s, so it is 4x to 14x
+under all of them; and a red cannot be invented, because a stretch is bounded by
+two marks reading one monotonic `currentTime` and is therefore a lower bound.
+`readUnfedFloor(worstMs)` is the pure reader. The device check reds a live
+stretch over the floor (*"the device went unfed for one stretch of Ns ... a span
+two marks of one clock prove, so a lower bound (H92)"*) and asks the reader about
+every shaped row, each of which now carries `over`.
+
+**The rows.** D74's eight: two (353.1s, a device that died), three (583.9s, the
+halfway stop), five (814.0s, the one-buffer device) and six (814.7s, dead) are
+**over**; one (0.76s), four (0.9s), seven (0.7s) and eight (0) are not. H66's
+pair: the gate's plant run with a fault inside its own blind spot (252.1s) is
+over, the same with the gap divided by ten (25.2s) is not. The subset row (0.76s
+on 29 marks) is not. Two rows added so the floor is broken in both directions
+every suite: 59s unfed in one stretch is green, and H35's healthy plant run with
+nothing changed but its worst stretch raised to 61s is red. 31 cases.
+
+**The word.** `timedrenders.js`'s vocabulary was four words, and H41's ban on a
+`size` verdict is argued about a timed draw. A wall-clock interval that brackets
+no draw and is a lower bound by construction is a fifth thing: `span`, allowed
+only with a `span:` that names one of `SPANS` (`bracketed: two marks of one
+monotonic clock bound it, so a wider blind spot makes it shorter and never
+longer`), the way `none` names one of `PROOFS`. The device check's entry moved
+from `sign` to `span`; the summary counts five words and still adds up. The
+census line grew to 419 and H91's clause redded it on the first run; its fixed
+wording came down and it reads 384 and 382.
+
+**D74** carries an *Overridden, 2026-10-19, by H92* paragraph. Its refusal on
+`fed` stands.
+
+**Proved.** `UNFED_FLOOR_SECONDS = 900` reds the device check with
+*"readUnfedFloor(353100) answered over=false, want true: the same total from a
+device that died; readUnfedFloor(583900) ..."* - all five fault rows by name;
+restored and compared, then green again on the plant at 366 characters. The two
+directions of the line itself are rows, so they are proved every suite.
+Verified in this session's second batch verify.

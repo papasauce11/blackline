@@ -109,7 +109,7 @@
  * main.js (Section 3.1).
  */
 
-import { MIN_WINDOW_SECONDS, readDeviceClock, readUnfedShape, readCoverage, CLOCK_CASES, COVERAGE_CASES } from './deviceclock.js';
+import { MIN_WINDOW_SECONDS, readDeviceClock, readUnfedShape, readCoverage, readUnfedFloor, UNFED_FLOOR_SECONDS, CLOCK_CASES, COVERAGE_CASES } from './deviceclock.js';
 
 /**
  * The second check's subject (H65): the three registrations the window above
@@ -212,6 +212,10 @@ export function register(debugTools) {
         if (shaped.shape !== probe.shape) {
           problems.push(`readUnfedShape(${answer.lost.toFixed(4)}, ${probe.worstMs}, ${probe.samples}) answered "${shaped.shape}", want "${probe.shape}": ${probe.whyShape}`);
         }
+        // H92: the floor answers every shaped row the way the row says.
+        if (readUnfedFloor(probe.worstMs).over !== probe.over) {
+          problems.push(`readUnfedFloor(${probe.worstMs}) answered over=${!probe.over}, want ${probe.over}: ${probe.why}`);
+        }
       }
 
       // 5. The stretch itself: reported, with its arithmetic asserted (H54).
@@ -233,6 +237,11 @@ export function register(debugTools) {
         // slack, because every stamp in the journal is rounded to it.
         if (stretch.atMs + stretch.ms > report.sampledToMs + 1) {
           problems.push(`the worst unfed stretch ends at ${stretch.atMs + stretch.ms}ms and the sampling only reached ${report.sampledToMs}ms, so the journal is charging the device time nobody looked at`);
+        }
+        // H92: one proven-unfed span over the floor is a device that went away.
+        const floor = readUnfedFloor(stretch.ms);
+        if (floor.over) {
+          problems.push(`the device went unfed for one stretch of ${floor.seconds.toFixed(1)}s at ${stretch.atMs}ms, over the ${UNFED_FLOOR_SECONDS}s floor - a span two marks of one clock prove, so a lower bound (H92)`);
         }
         if (stretch.ms > 0 && !(stretch.samples > 0)) {
           problems.push(`the worst unfed stretch is ${stretch.ms}ms long with no mark inside it, which is a gap between marks rather than a stretch the device is known to have gone unfed across`);
@@ -281,7 +290,7 @@ export function register(debugTools) {
         : 'no stretch reported';
       const account = `${report.opened} device${report.opened === 1 ? '' : 's'} at ${report.sampleRate}Hz, ${latency}; ${states}`
         + `; unfed ${lost.toFixed(1)}s of ${wallSeconds.toFixed(1)}s, fed ${fed === null ? 'n/a' : fed.toFixed(4)}`
-        + `${measured ? '' : `, window under ${MIN_WINDOW_SECONDS}s`}, no floor (D74)`
+        + `${measured ? '' : `, window under ${MIN_WINDOW_SECONDS}s`}, no floor on fed (D74), ${UNFED_FLOOR_SECONDS}s on one stretch (H92)`
         + `; ${worst}`
         + `; the clock moved, asserted as a sign over ${CLOCK_CASES.length} cases`
         + `; ${report.errors.length} error events, a count and not health`;

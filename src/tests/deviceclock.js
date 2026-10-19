@@ -156,6 +156,33 @@ export function readCoverage(lostSeconds, maxGapMs) {
 }
 
 /**
+ * The floor on the stretch (H92), and the only floor the journal carries: one
+ * continuous span the device is **known** to have gone unfed across, longer
+ * than this, is red. No `fed` term - D74's refusal of a floor on the total is
+ * unchanged and still right.
+ *
+ * The margins, off the readings on record: the worst single stretch any
+ * healthy full run has shown is **2.211s** (fourteen readings, H66), so this
+ * line is **27x** above it; every synthetic fault in `CLOCK_CASES` is
+ * **252-815s**, so it is **4-14x** under all of them. And a red cannot be a
+ * sampling artefact, which is what lets a floor sit here at all: a stretch is
+ * bounded by two marks reading one monotonic `currentTime`, so it is a proven
+ * span and a lower bound - a wider blind spot makes it shorter, never longer.
+ */
+export const UNFED_FLOOR_SECONDS = 60;
+
+/**
+ * Whether one stretch is over the floor. Pure, for `CLOCK_CASES`' reason.
+ *
+ * @param {number} worstMs the longest known-unfed stretch, in milliseconds
+ * @returns {{ seconds: number, over: boolean }}
+ */
+export function readUnfedFloor(worstMs) {
+  const seconds = worstMs / 1000;
+  return { seconds, over: seconds > UNFED_FLOOR_SECONDS };
+}
+
+/**
  * The clauses above, put to every reading on record and to the breaks they
  * exist to tell apart. `gained` and `wall` are seconds, `stopped` is what
  * `readDeviceClock()` must answer, and `why` is printed when it answers the
@@ -199,39 +226,39 @@ export const CLOCK_CASES = [
   // total cannot tell apart, with the same `fed` and opposite shapes; the next
   // two are the pair it says a total cannot tell apart *at all*.
   {
-    gained: 461.6, wall: 814.7, stopped: false, worstMs: 760, samples: 1200, shape: 'many-stretches',
+    gained: 461.6, wall: 814.7, stopped: false, worstMs: 760, samples: 1200, shape: 'many-stretches', over: false,
     why: 'H35\'s plant run again, now with a shape on it', whyShape: 'the 353.1s of loss arriving one slow frame at a time: 0.76s of it in the worst stretch is a concentration of 0.002, which is this machine on an ordinary morning',
   },
   {
-    gained: 461.6, wall: 814.7, stopped: false, worstMs: 353100, samples: 1200, shape: 'one-stretch',
+    gained: 461.6, wall: 814.7, stopped: false, worstMs: 353100, samples: 1200, shape: 'one-stretch', over: true,
     why: 'the same total from a device that died', whyShape: 'the same 353.1s lost in ONE stretch - concentration 1.00 against the row above it at 0.002, identical in `fed` and opposite here, which is the whole of what D74 said a total could not do',
   },
   {
-    gained: 230.8, wall: 814.7, stopped: false, worstMs: 583900, samples: 1200, shape: 'one-stretch',
+    gained: 230.8, wall: 814.7, stopped: false, worstMs: 583900, samples: 1200, shape: 'one-stretch', over: true,
     why: 'the halfway stop, which stays green', whyShape: 'the halfway stop with its shape: 583.9s lost and all of it one stretch, said in a word where the ratio alone could only say 0.283',
   },
   {
-    gained: 230.8, wall: 814.7, stopped: false, worstMs: 900, samples: 1200, shape: 'many-stretches',
+    gained: 230.8, wall: 814.7, stopped: false, worstMs: 900, samples: 1200, shape: 'many-stretches', over: false,
     why: 'fed 0.283 from a loaded machine rather than a fault', whyShape: 'the third case, which D74 says the total cannot tell from the second AT ALL: the same 0.283 with 0.9s in the worst stretch is a machine twice as loaded as this one, and it lands with the first row rather than with the halfway stop',
   },
   {
-    gained: 0.0027, wall: 814.7, stopped: false, worstMs: 814000, samples: 1200, shape: 'one-stretch',
+    gained: 0.0027, wall: 814.7, stopped: false, worstMs: 814000, samples: 1200, shape: 'one-stretch', over: true,
     why: 'the one-buffer device, whose sign is green', whyShape: 'the device a sign cannot catch, caught here: 814.0s of 814.7s lost in one stretch is 0.999, and this row is why the pair is worth more than either half',
   },
   {
-    gained: 0, wall: 814.7, stopped: true, worstMs: 814700, samples: 1200, shape: 'one-stretch',
+    gained: 0, wall: 814.7, stopped: true, worstMs: 814700, samples: 1200, shape: 'one-stretch', over: true,
     why: 'a dead device, red on the sign', whyShape: 'a device never fed at all, where the sign is already red and the shape agrees with it',
   },
   {
-    gained: 814.6, wall: 814.7, stopped: false, worstMs: 700, samples: 1200, shape: 'one-stretch',
+    gained: 814.6, wall: 814.7, stopped: false, worstMs: 700, samples: 1200, shape: 'one-stretch', over: false,
     why: 'a healthy device on a machine that is not this one', whyShape: 'a tenth of a second lost in total and most of a frame of it in one stretch, so the concentration is above 1 and the word is still right - a shape is a shape of whatever was lost, which is why no verdict rests on it alone',
   },
   {
-    gained: 814.7, wall: 814.7, stopped: false, worstMs: 0, samples: 1200, shape: 'unmeasured',
+    gained: 814.7, wall: 814.7, stopped: false, worstMs: 0, samples: 1200, shape: 'unmeasured', over: false,
     why: 'a device fed across every mark of a quarter-hour run', whyShape: 'nothing lost at all, so there is no loss for a shape to be the shape of',
   },
   {
-    gained: 461.6, wall: 814.7, stopped: false, worstMs: 760, samples: MIN_SHAPE_SAMPLES - 1, shape: 'unmeasured',
+    gained: 461.6, wall: 814.7, stopped: false, worstMs: 760, samples: MIN_SHAPE_SAMPLES - 1, shape: 'unmeasured', over: false,
     why: 'the plant run as a subset would have sampled it', whyShape: `${MIN_SHAPE_SAMPLES - 1} marks is under the ${MIN_SHAPE_SAMPLES} this takes: the longest stretch across a handful of marks is an artefact of how rarely anyone looked`,
   },
 
@@ -241,14 +268,26 @@ export const CLOCK_CASES = [
   // entirely inside the blind spot is still read as one - coverage costs where
   // and never whether. The second row is the control.
   {
-    gained: 576.1, wall: 827.2, stopped: false, worstMs: 252141, samples: 401, shape: 'one-stretch',
+    gained: 576.1, wall: 827.2, stopped: false, worstMs: 252141, samples: 401, shape: 'one-stretch', over: true,
     why: "the 2026-10-17 gate's plant run, fed 0.6964, with a fault inside its own blind spot",
     whyShape: 'that run\'s own widest unwatched gap of 252.141s put where its stretch goes, against its own 251.1s of loss: concentration 1.00 and `one-stretch`, because the two marks bracketing a gap charge all of it - so an outage nobody watched is still caught, and what the blind spot costs is where it fell (H66)',
   },
   {
-    gained: 576.1, wall: 827.2, stopped: false, worstMs: 25214, samples: 401, shape: 'many-stretches',
+    gained: 576.1, wall: 827.2, stopped: false, worstMs: 25214, samples: 401, shape: 'many-stretches', over: false,
     why: 'the same run with a blind spot a tenth of the size',
     whyShape: 'the same loss with the gap divided by ten reads 0.100 and comes back "many-stretches", so it is the span and not the loss that decides the word above - which is why a floor belongs on the span (H92) and not on the pair',
+  },
+  // H92: the floor, both sides of its line. The first is a fault the floor is
+  // not for - 59s unfed in one stretch stays green, and the shape still calls
+  // it what it is; the second is H35's healthy plant run with its worst
+  // stretch raised to 61s, which is the only thing that changes and is red.
+  {
+    gained: 461.6, wall: 814.7, stopped: false, worstMs: 59000, samples: 1200, shape: 'many-stretches', over: false,
+    why: 'a stretch one second under the floor', whyShape: '59s of 353.1s in one stretch is 0.167 of the loss, which is many stretches and under the line',
+  },
+  {
+    gained: 461.6, wall: 814.7, stopped: false, worstMs: 61000, samples: 1200, shape: 'many-stretches', over: true,
+    why: 'H35\'s plant run with its worst stretch one second past the floor', whyShape: '61s of 353.1s is 0.173, still many stretches - the floor reds it on the span alone, which is the point',
   },
 ];
 
