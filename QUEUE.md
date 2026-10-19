@@ -703,21 +703,10 @@ one setting only Josh can click; everything else here proceeds.
   (`debug.drawsUnderAiBudget`), measured off a full run of each map; the five
   gunfight checks declare `drawsUnderAi` with a reason; past the budget
   undeclared, the runner reds the check by name.
-- [ ] **H87 (S)** Three rows of H77's census cannot be told apart. The look
-  stream's fourteen draws in `effects.js` are declared by method and by the
-  decision each one is, and the ragdoll's three spins are `unit` with `when`
-  lines differing by one letter - so a reorder, or a fourth spin, is a change
-  the multiset comparison cannot see. The same is true of the two halves of
-  the AI's aim and the two of the gun's spread. The comparison is a multiset
-  on purpose (line numbers drift on every edit and would make it a census of
-  formatting), so the fix is not line numbers: it is to declare each draw by
-  **what it is assigned to** - the identifier on the left of the `=` - which
-  `codeOf` already hands over and which a reorder does not change but a new
-  draw does. *done-when:* every row of `SPENDERS` names the assignment its
-  draw feeds, the comparison is on those rather than on bare method names, and
-  a fifth `lookRng.unit()` added to `effects.js` reds the census by name
-  rather than by count.
-
+- [x] **H87 (S)** Every declared draw names what it feeds — done 2026-10-18,
+  under Done. `SPENDERS` rows carry `feeds`; the census compares
+  `method->target` pairs; a new `lookRng.unit()` reds as `unit->spinW` by
+  name.
 - [ ] **H88 (S)** An absolute value that hides a sign is how H81's class stayed
   invisible for a job, and `turn()` is not the only reading in this suite that
   takes one. `Math.abs` over a signed quantity is right when the clause is
@@ -1289,6 +1278,17 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H87** Every declared draw names what it feeds. Each of the 23 rows of `SPENDERS`
+  in `tests/rngdraws.js` carries `feeds` - the identifier on the left of the
+  `=` (or the key of an object literal, or the argument of an in-place
+  `shuffle`), without `this.` - and the census compares `method->target` pairs
+  as a multiset, reporting what is extra and what is missing **by name**.
+  `feedOf()` reads it off the line, with a seven-line proof on real lines of
+  this tree (an assignment, a `+=`, a `const`, a key, a `===` on the right,
+  the bare shuffle) run through `codeOf` every suite. Green on both maps, 23
+  of 23 matched; `spinW: lookRng.unit() * 6` added to `effects.js` reds as
+  *"lookRng draws unit->spinW that this census does not declare"* —
+  2026-10-19, Josh's session.
 - **H86** A budget on the draws taken under a live AI. `_runOne` in `ui/autosuite.js`
   reds a check that draws more than `CONFIG.debug.drawsUnderAiBudget` values
   from the simulation's stream under a live AI unless its registration says

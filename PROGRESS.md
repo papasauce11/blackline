@@ -19753,3 +19753,33 @@ red, *"drew 71 values under a live AI, over the 25 a check may without
 declaring drawsUnderAi (H86); 18 rounds in 3.5s as bursts of [6 3 5]..."*;
 restored from a snapshot and compared byte for byte. Verified in this session's
 batch verify.
+
+## H87 — Every declared draw names what it feeds
+
+The draw census compared a multiset of bare method names per file, so the
+ragdoll's three `unit` spins were three identical rows: a reorder, or a fourth
+spin, was a change it could not see. Line numbers would have fixed that and made
+it a census of formatting.
+
+**Built.** A `feeds` column on every row, and `feedsIn()` reading each match's
+target off its own line: the first assignment or object key the line opens with
+(`ASSIGNS`), else the call's first argument (`ARGUMENT`), with `this.` dropped.
+The 23 rows feed `_circuit`, `_pauseTimer`, `_burstPause`, `_burstRemaining`,
+`_aimYaw`, `_aimPitch` (ai.js), `recoilYaw`, `yawOffset`, `pitchOffset`
+(combat.js), and fourteen look-stream targets in effects.js - `slot.vx`,
+`slot.vy` and `slot.vz` twice each, once for a spark and once for a smoke drift,
+which is two decisions with one name and is still a count the census holds. The
+comparison is now `difference()`, extra and missing each way by name, so a
+problem says which draw rather than which tally. A row without `feeds` is red
+on its own. The stand-alone `drawsIn()` had no caller left and is gone.
+
+**The reader's own proof** (`FEEDS_PROOF`), seven real lines through `codeOf`,
+the way the census reads them - the line whose right side holds `===` is the
+one a naive "last `=` on the line" rule gets wrong.
+
+**Verified.** The check on both maps: 23 declared draws over 3 file-and-stream
+pairs, 87 of 196 modules read, green. **Broken**: `spinW: lookRng.unit() * 6`
+added after `spinZ` in `effects.js` reds the census with *"src/systems/
+effects.js lookRng draws unit->spinW that this census does not declare"* - by
+name, where it used to say only that the count of `unit` had changed. Restored
+from a snapshot and compared. Verified in this session's batch verify.

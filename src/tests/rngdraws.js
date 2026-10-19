@@ -92,35 +92,42 @@ const STREAMS = [
  * the one a reader of the file would miss. No line numbers: those drift on
  * every edit and would make this a census of formatting.
  *
+ * **And by what each draw feeds** (H87): the identifier on the left of the
+ * `=` (or the `:` of an object literal, or the argument of an in-place
+ * `shuffle`), without a leading `this.`. Compared as method-and-target pairs,
+ * because three ragdoll spins of `unit` were three identical rows - a reorder
+ * or a fourth spin was a change a method tally could not see - and the
+ * target is what a reorder keeps and a new draw does not.
+ *
  * **The `when` column is the load-bearing one.** A method name says what kind
  * of number came out; what this census is about is that there is a decision
  * behind it. A row whose `when` could not be written is a draw nobody can
  * account for, which is the state the whole stream was in before this job.
  */
 const SPENDERS = [
-  { file: 'src/systems/ai.js', stream: 'rng', method: 'shuffle', when: 'a match opens: the patrol circuit, shuffled once in reset()' },
-  { file: 'src/systems/ai.js', stream: 'rng', method: 'range', when: 'a patrol node is reached: how long the Warden stands there and scans' },
-  { file: 'src/systems/ai.js', stream: 'rng', method: 'range', when: "a burst's last round leaves: how long before the next burst" },
-  { file: 'src/systems/ai.js', stream: 'rng', method: 'int', when: 'a burst opens: how many rounds it is' },
-  { file: 'src/systems/ai.js', stream: 'rng', method: 'unit', when: 'a burst is aimed: the yaw inside the difficulty cone' },
-  { file: 'src/systems/ai.js', stream: 'rng', method: 'unit', when: 'a burst is aimed: the pitch inside the same cone' },
-  { file: 'src/systems/combat.js', stream: 'rng', method: 'unit', when: "a round is fired: the horizontal half of the weapon's recoil kick" },
-  { file: 'src/systems/combat.js', stream: 'rng', method: 'unit', when: "a round is fired: the yaw offset inside the gun's spread cone" },
-  { file: 'src/systems/combat.js', stream: 'rng', method: 'unit', when: 'a round is fired: the pitch offset inside the same cone' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'range', when: 'a footprint is placed: its yaw, where the Warden has none' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: "a spark leaves: its sideways velocity" },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'range', when: 'a spark leaves: its upward velocity' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a spark leaves: its other sideways velocity' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'next', when: "a smoke puff is placed: its radius inside the cloud's" },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'next', when: 'a smoke puff is placed: its angle around the cloud' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a smoke puff is placed: its angle up the cloud' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a smoke puff drifts: one axis of the drift' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'range', when: 'a smoke puff drifts: the vertical axis of it' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a smoke puff drifts: the third axis of it' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'range', when: 'a smoke puff is drawn: how big the sprite is' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about x' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about y' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about z' },
+  { file: 'src/systems/ai.js', stream: 'rng', method: 'shuffle', when: 'a match opens: the patrol circuit, shuffled once in reset()', feeds: '_circuit' },
+  { file: 'src/systems/ai.js', stream: 'rng', method: 'range', when: 'a patrol node is reached: how long the Warden stands there and scans', feeds: '_pauseTimer' },
+  { file: 'src/systems/ai.js', stream: 'rng', method: 'range', when: "a burst's last round leaves: how long before the next burst", feeds: '_burstPause' },
+  { file: 'src/systems/ai.js', stream: 'rng', method: 'int', when: 'a burst opens: how many rounds it is', feeds: '_burstRemaining' },
+  { file: 'src/systems/ai.js', stream: 'rng', method: 'unit', when: 'a burst is aimed: the yaw inside the difficulty cone', feeds: '_aimYaw' },
+  { file: 'src/systems/ai.js', stream: 'rng', method: 'unit', when: 'a burst is aimed: the pitch inside the same cone', feeds: '_aimPitch' },
+  { file: 'src/systems/combat.js', stream: 'rng', method: 'unit', when: "a round is fired: the horizontal half of the weapon's recoil kick", feeds: 'recoilYaw' },
+  { file: 'src/systems/combat.js', stream: 'rng', method: 'unit', when: "a round is fired: the yaw offset inside the gun's spread cone", feeds: 'yawOffset' },
+  { file: 'src/systems/combat.js', stream: 'rng', method: 'unit', when: 'a round is fired: the pitch offset inside the same cone', feeds: 'pitchOffset' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'range', when: 'a footprint is placed: its yaw, where the Warden has none', feeds: 'slot.yaw' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: "a spark leaves: its sideways velocity", feeds: 'slot.vx' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'range', when: 'a spark leaves: its upward velocity', feeds: 'slot.vy' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a spark leaves: its other sideways velocity', feeds: 'slot.vz' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'next', when: "a smoke puff is placed: its radius inside the cloud's", feeds: 'radius' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'next', when: 'a smoke puff is placed: its angle around the cloud', feeds: 'theta' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a smoke puff is placed: its angle up the cloud', feeds: 'phi' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a smoke puff drifts: one axis of the drift', feeds: 'slot.vx' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'range', when: 'a smoke puff drifts: the vertical axis of it', feeds: 'slot.vy' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a smoke puff drifts: the third axis of it', feeds: 'slot.vz' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'range', when: 'a smoke puff is drawn: how big the sprite is', feeds: 'slot.size' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about x', feeds: 'spinX' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about y', feeds: 'spinY' },
+  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about z', feeds: 'spinZ' },
 ];
 
 /** The two files this census does not read, and why, as data. */
@@ -265,14 +272,58 @@ function loadedModules(origin) {
   return [...modules];
 }
 
-/** The methods one stream is drawn by in one module's code, in source order. */
-function drawsIn(code, pattern) {
+/**
+ * What one draw feeds (H87), read off the line it is on: the target of the
+ * first assignment or object key the line opens with, else - a bare call like
+ * `rng.shuffle(this._circuit)` - the call's first argument. `this.` is
+ * dropped so the table reads as the decisions do.
+ */
+const ASSIGNS = /^\s*(?:(?:const|let|var)\s+)?([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*(?:[-+*\/%]?=(?!=)|:(?!:))/;
+const ARGUMENT = /^\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)/;
+function feedOf(code, index, end) {
+  const line = code.slice(code.lastIndexOf('\n', index - 1) + 1, index);
+  const target = ASSIGNS.exec(line) || ARGUMENT.exec(code.slice(end));
+  return target ? target[1].replace(/^this\./, '') : '?';
+}
+
+/** The draws one stream makes in one module, as `method feeds` pairs. */
+function feedsIn(code, pattern) {
   pattern.lastIndex = 0;
-  return [...code.matchAll(pattern)].map((m) => m[0].slice(m[0].indexOf('.') + 1, -1));
+  return [...code.matchAll(pattern)].map((m) => {
+    const method = m[0].slice(m[0].indexOf('.') + 1, -1);
+    return `${method}->${feedOf(code, m.index, m.index + m[0].length)}`;
+  });
 }
 
 /** A multiset of method names, as a sorted string, for comparing two. */
 const tally = (methods) => [...methods].sort().join(', ') || 'nothing';
+
+/** What is in one multiset and not the other, by name, each way. */
+function difference(found, declared) {
+  const left = [...declared];
+  const extra = [];
+  for (const item of found) {
+    const at = left.indexOf(item);
+    if (at === -1) extra.push(item);
+    else left.splice(at, 1);
+  }
+  return { extra, missing: left };
+}
+
+/**
+ * The target reader's proof, on real lines of this tree run through `codeOf`
+ * the way the census reads them: an assignment, a compound one, a `const`, an
+ * object key, a line whose right side holds a `===`, and the bare shuffle.
+ */
+const FEEDS_PROOF = [
+  ['    rng.shuffle(this._circuit);', 'shuffle->_circuit'],
+  ['      this._pauseTimer = rng.range(A.patrolPauseMin, A.patrolPauseMax);', 'range->_pauseTimer'],
+  ['    this.recoilYaw += G.recoilHorizontal * DEG * rng.unit();', 'unit->recoilYaw'],
+  ['    const yawOffset = rng.unit() * cone;', 'unit->yawOffset'],
+  ["    slot.yaw = source === 'warden' ? 0 : lookRng.range(-0.4, 0.4);", 'range->slot.yaw'],
+  ['      const radius = GA.smoke.radius * Math.cbrt(lookRng.next());', 'next->radius'],
+  ['      spinX: lookRng.unit() * 6,', 'unit->spinX'],
+];
 
 export function register(debugTools) {
   debugTools.registerAutoTest({
@@ -355,7 +406,8 @@ export function register(debugTools) {
       for (const row of SPENDERS) {
         const key = `${row.file} ${row.stream}`;
         if (!declared.has(key)) declared.set(key, []);
-        declared.get(key).push(row.method);
+        declared.get(key).push(`${row.method}->${row.feeds}`);
+        if (!row.feeds) problems.push(`${row.file} draws ${row.stream}.${row.method}() (${row.when}) and this table does not say what it feeds; a row without a target is three identical rows to a reorder (H87)`);
         if (!row.when) problems.push(`${row.file} draws ${row.stream}.${row.method}() and this table does not say what decision it is; a draw nobody can account for is the state this stream was in before H77`);
       }
       const skip = (path) => NOT_READ.some((n) => path === n.path || path.startsWith(n.path));
@@ -366,9 +418,14 @@ export function register(debugTools) {
         read.push(path);
         const code = codeOf(await (await fetch(`${origin}/${path}`)).text());
         for (const { stream, pattern } of STREAMS) {
-          const methods = drawsIn(code, pattern);
+          const methods = feedsIn(code, pattern);
           if (methods.length) found.set(`${path} ${stream}`, methods);
         }
+      }
+      for (const [line, want] of FEEDS_PROOF) {
+        const stream = STREAMS.find(({ pattern }) => { pattern.lastIndex = 0; return pattern.test(line); });
+        const got = stream ? feedsIn(codeOf(line), stream.pattern).join(', ') : 'no draw';
+        if (got !== want) problems.push(`the target reader reads \`${line.trim()}\` as ${got}, want ${want}, so every row it compares is about a different line`);
       }
       for (const [key, methods] of found) {
         if (!declared.has(key)) {
@@ -382,8 +439,10 @@ export function register(debugTools) {
           continue;
         }
         const mine = found.get(key) || [];
-        if (tally(mine) !== tally(methods)) {
-          problems.push(`${key} draws ${tally(mine)} and this census declares ${tally(methods)}; every draw is a decision and the table is where the decision is written down`);
+        const { extra, missing } = difference(mine, methods);
+        if (extra.length || missing.length) {
+          problems.push(`${key} draws ${extra.length ? extra.join(', ') : 'nothing more'} that this census does not declare`
+            + `${missing.length ? `, and declares ${missing.join(', ')} that it does not draw` : ''}; every draw is a decision and the table is where the decision is written down`);
         }
       }
 
