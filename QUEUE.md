@@ -1381,7 +1381,12 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   quantity, not only in the formula); the count started three quarters of a
   stride past a crossing went **red on the new clause alone**, *"the leg crossed
   the vertical 3 times and that ground holds 2"*, with the stride clause green
-  beside it; and `ANCHOR_FRAMES = 0` red on the guard. — done 2026-10-18
+  beside it; and `ANCHOR_FRAMES = 0` red on the guard. Verify: plant **241 / 1 /
+  8** (1,120,361ms, 1,115,937ms), yard **221 / 1 / 28** (812,994ms, 774,281ms),
+  spreads **0%** and **5%**, 0 red, 0 flaky, 0 skipped, **0 console errors**,
+  ceiling 11 of 600 over 196 modules; **drift 34 / 34**, both gait rows out of
+  it and the yard level with the plant for the first time since H79. — done
+  2026-10-18, commit `9549b8d`
 
 - **H83** The census of a shape that had been found three times by hand, and
   the class that was better than a clause. A1 stayed green with
