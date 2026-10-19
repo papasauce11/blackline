@@ -10,9 +10,13 @@
  */
 
 export class FrameLoop {
-  /** @param {(wallDelta: number) => void} renderFrame unscaled seconds since the last frame */
-  constructor(renderFrame) {
+  /**
+   * @param {(wallDelta: number) => void} renderFrame unscaled seconds since the last frame
+   * @param {(error: *) => void} [onThrow] where a frame's throw goes (H14); absent, it is rethrown
+   */
+  constructor(renderFrame, onThrow) {
     this._renderFrame = renderFrame;
+    this._onThrow = onThrow || null;
     this._handle = 0;
     this._last = 0;
     this.running = false;
@@ -39,6 +43,20 @@ export class FrameLoop {
     const wallDelta = this._last === 0 ? 0 : (now - this._last) / 1000;
     this._last = now;
     this.frames++;
-    this._renderFrame(wallDelta);
+    this.run(wallDelta);
+  }
+
+  /**
+   * One frame's work, guarded (H14). Without this a throw killed the callback
+   * after it had already asked for the next one, so the same throw went to
+   * the console every frame over a canvas that never moved again.
+   */
+  run(wallDelta) {
+    if (!this._onThrow) return this._renderFrame(wallDelta);
+    try {
+      this._renderFrame(wallDelta);
+    } catch (error) {
+      this._onThrow(error);
+    }
   }
 }

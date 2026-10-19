@@ -130,12 +130,15 @@
       body.textContent = String(message);
       panel.style.display = 'block';
     }
+    // H14: once the game is up, src/crashguard.js owns a crash, not this panel.
     window.addEventListener('error', function (e) {
+      if (window.__blCrashGuarded) return;
       if (e.message === 'ResizeObserver loop limit exceeded') return;
       show((e.message || 'error') + '\n' + (e.filename || '') + ':' + (e.lineno || 0) +
            (e.error && e.error.stack ? '\n\n' + e.error.stack : ''));
     });
     window.addEventListener('unhandledrejection', function (e) {
+      if (window.__blCrashGuarded) return;
       show('Unhandled promise rejection:\n' + (e.reason && e.reason.stack ? e.reason.stack : e.reason));
     });
   })();

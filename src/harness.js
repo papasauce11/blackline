@@ -83,6 +83,17 @@ export function createHarness(live, root) {
     },
   };
 
+  /**
+   * One frame through the loop's own guard (H14): what a throw inside a step
+   * meets in a session, without the rAF. Counted as `renderFrame` is (F4).
+   */
+  harness.guardedFrame = (wallDelta) => {
+    const delta = Number.isFinite(wallDelta) ? wallDelta : 1 / CONFIG.performance.targetFps;
+    debugState.harnessFrames = (debugState.harnessFrames || 0) + 1;
+    exposed.loop.run(delta);
+    return delta;
+  };
+
   // Getters, so tests always see live objects.
   for (const key of Object.keys(live)) {
     Object.defineProperty(harness, key, { get: live[key], enumerable: true });

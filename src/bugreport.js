@@ -54,6 +54,7 @@ function said(value) {
  * @param {() => object} live.map the built map
  * @param {() => number} live.seed the seed the match was opened with
  * @param {() => number} live.assertions runtime assertion failures so far (H14)
+ * @param {() => object} [live.crashGuard] the crash guard (H14), whose crashes it lists
  * @param {object} live.settings the live `SETTINGS`
  */
 export function createBugReport(live) {
@@ -114,6 +115,9 @@ export function createBugReport(live) {
       out.push(`seed: ${live.seed()}`);
       out.push(`match: ${match.mode || '?'}/${match.role || '?'}, round ${match.roundNumber ?? '?'}`);
       out.push(`assertion failures: ${live.assertions()}`);
+      const guard = live.crashGuard ? live.crashGuard() : null;
+      out.push(`crashes: ${guard ? guard.count : 0}`);
+      if (guard) out.push(...guard.lines().map((line) => `  ${line}`));
       if (typeof navigator !== 'undefined') out.push(`browser: ${navigator.userAgent}`);
       out.push(`settings: ${JSON.stringify(live.settings)}`);
       out.push(`input, last ${R.inputSeconds}s (sim seconds, + down, - up):`);

@@ -785,10 +785,7 @@ one setting only Josh can click; everything else here proceeds.
   `tests/replays/` are run by the suite as checks that assert their recorded
   outcome. *done-when:* a recorded match replays to the same end state, and
   one replay ships in `tests/replays/`.
-- [ ] **H14 (S)** A crash guard. `window.onerror` and unhandled rejections
-  pause the sim and show a panel with the seed and *Copy report*; runtime
-  assertion failures are counted into the report. *done-when:* a check
-  throws from inside a step and reads the panel.
+- [x] **H14 (S)** A crash guard, and the page a crash puts up — done 2026-10-18, under Done. `src/crashguard.js`, `FrameLoop.run`, the crash page in `ui/menupause.js`, `a-throw-inside-a-step-stops-the-match-and-the-crash-page-says-so`.
 - [ ] **H15 (S)** The pause menu: restart round, restart match, change map,
   quit to menu, with a confirm mid-round. *done-when:* a check drives each.
 - [ ] **H16 (S)** `npm run notes`: release notes from `PROGRESS.md` since
@@ -1184,6 +1181,27 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H14** A crash guard. A throw inside a frame used to kill the rAF callback after it
+  had already asked for the next one, so the same throw went to the console
+  every frame over a canvas that never moved again. Now `FrameLoop.run`
+  catches a frame's throw, and the window's `error` and `unhandledrejection`
+  land in the same place (`src/crashguard.js`, new): the loop stops, the match
+  pauses, and the menu's crash page names the error, where it came from and
+  the seed, with *Copy report*, *Try to continue* (back to the pause page) and
+  *Reload*. Every crash is counted into the report beside the assertion
+  failures. index.html's boot panel stands aside once the guard is installed.
+  Subset on both maps, one run each - the new check, H12's report, menu
+  reachability, the two boot-notice checks and the request buffer (both read
+  index.html), the heartbeat and the nine source censuses - 16/16 on the plant
+  (118.0s) and 16/16 on the yard (75.5s), no console errors; the report is 866
+  and 859 characters with its crashes line, and the crash page named the error
+  and seed 1394094942 on the plant, 1394221674 on the yard; ceiling unchanged
+  at 11 within 50 of 600, of 204 loaded, main.js 574. Break: `FrameLoop.run`
+  made to rethrow instead of handing the throw on; the check went red on the
+  plant on its first clause, "the throw escaped the loop's guard", and on
+  every clause that follows from a crash nobody caught - no count, no pause,
+  no crash page - and `loop.js` was put back from a copy. - 2026-10-19, Josh's
+  session.
 - **H12** A bug report, on the pause menu. *Copy report* builds one block of text -
   the build with its commit, the URL, the map, the seed, the match, the
   assertion failures, the browser, the live settings, every key edge in the

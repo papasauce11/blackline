@@ -75,6 +75,7 @@ import { createWardenIntent } from './entities/enforcer.js';
 /** @type {import('./ui/scoreboard.js').Scoreboard} */ let scoreboard = null;
 /** @type {import('./ui/briefing.js').Briefing} */ let briefing = null;
 /** @type {ReturnType<import('./bugreport.js').createBugReport>} */ let bugReport = null;
+/** @type {ReturnType<import('./crashguard.js').createCrashGuard>} */ let crashGuard = null;
 const shadeIntent = createIntent();
 const wardenIntent = createWardenIntent();
 /**
@@ -103,7 +104,7 @@ let paused = false;
 let accumulator = 0;
 /** The rAF scheduler. Started once at boot, never by `initMatch`: the suite
  *  stops it while it runs (F4), and every check calls `initMatch`. */
-const loop = new FrameLoop(renderFrame);
+const loop = new FrameLoop(renderFrame, (error) => { if (!crashGuard) throw error; crashGuard.caught(error, 'frame'); });
 
 /** @type {object|null} current match state */
 let match = null;
@@ -226,7 +227,7 @@ async function bootstrap() {
   // Everything built is boot.js (C3); what runs it stays here. `match` is a
   // getter because the menu is built before the first match exists.
   const built = await bootWorld({
-    emitter, debugState, harness, initMatch, setPaused, setTimeScale, match: () => match,
+    emitter, debugState, harness, initMatch, setPaused, setTimeScale, match: () => match, loop,
     // D1: the map is the URL's for this page load; the menu's map row
     // reloads with another, keeping the seed and the debug gate.
     mapId: bootMapId(location.search),
@@ -245,7 +246,7 @@ async function bootstrap() {
   ({
     renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport,
+    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport, crashGuard,
   } = built);
 
   setTimeScale(1);
@@ -470,6 +471,7 @@ const harness = createHarness({
   groundView: () => groundView,
   menu: () => menu,
   bugReport: () => bugReport,
+  crashGuard: () => crashGuard,
   thumbnails: () => thumbnails,
   tutorial: () => tutorial,
   tutorialPanel: () => tutorialPanel,

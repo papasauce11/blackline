@@ -61,6 +61,11 @@ export const MENU_CSS = `
 #bl-menu .row .value { opacity: 1; color: ${hex(P.hazardOrange)}; cursor: pointer; }
 #bl-menu input[type=range] { width: 150px; accent-color: ${hex(P.shadeTeal)}; }
 #bl-menu .back { margin-top: 20px; opacity: 0.6; }
+/* H14: the crash page's lines are what the code said, so they are not shouted. */
+#bl-menu .row .crashline {
+  opacity: 1; max-width: 72%; text-align: right; text-transform: none;
+  letter-spacing: 0.03em; overflow-wrap: anywhere; color: ${hex(P.hazardOrange)};
+}
 /* H12: the report box, plain text a player can select and copy by hand. */
 #bl-menu textarea {
   width: 100%; box-sizing: border-box; margin-top: 8px; padding: 8px;

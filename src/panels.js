@@ -44,6 +44,7 @@ import { tutorialSeen, tutorialFits } from './systems/tutorial.js';
  */
 export function createPanels({
   initMatch, setPaused, objective, audio, match, map, input, maps, goToMap, thumbnails, emitter, tutorial, report,
+  crashGuard,
 }) {
   const hud = createHud();
   const briefing = createBriefing();
@@ -132,6 +133,10 @@ export function createPanels({
     onResume: () => setPaused(false),
     // H12: the text *Copy report* copies, built when it is asked for.
     report: () => (report ? report() : ''),
+    // H14: the crash page - what broke, and the two ways on from it.
+    crash: () => (crashGuard ? crashGuard.current : null),
+    onContinue: () => crashGuard && crashGuard.resume(),
+    onReload: () => location.reload(),
     onQuit: () => {
       setPaused(false);
       objective().resetMatch();

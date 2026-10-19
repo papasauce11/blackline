@@ -109,6 +109,7 @@ import { register as registerReaderNames } from './readernames.js';
 import { register as registerSignedReadings } from './signedreadings.js';
 import { register as registerOutlierPose } from './outlierpose.js';
 import { register as registerBugReport } from './bugreport.js';
+import { register as registerCrashGuard } from './crashguard.js';
 import { register as registerRunnerGuard } from './runnerguard.js';
 import { register as registerDetailDrift } from './detaildrift.js';
 import { register as registerTimedRenders } from './timedrenders.js';
@@ -273,6 +274,8 @@ export function registerAutoTests(debugTools) {
   registerOutlierPose(debugTools);
   // H12: Copy report on the pause menu, read back.
   registerBugReport(debugTools);
+  // H14: a throw inside a step, met by the guard.
+  registerCrashGuard(debugTools);
   registerRunnerGuard(debugTools);
   // H79: and which readings moved between the two runs of a map without
   // moving a verdict, which `flaky` cannot see.

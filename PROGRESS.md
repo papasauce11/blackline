@@ -20162,3 +20162,44 @@ a player copying by hand would.
 **Proved.** Subset on both maps, one run each - the new check, the menu's reachability check and the nine source censuses - 11/11 on the plant (118.8s) and 11/11 on the yard (75.1s); the report reads 855 characters on the plant and 848 on the yard, 13 lines; ceiling unchanged, 11 modules within 50 of 600, of 202 loaded.
 
 Break: the step's journal call in main.js commented out; the check went red on the plant naming both input clauses ("+KeyW" and "-KeyW" not carried) and nothing else, and the file was put back from a copy.
+
+## H14 — A crash guard, and the page a crash puts up
+
+**Built.** `src/crashguard.js` (new): `createCrashGuard({ seed, halt,
+resume })` with `caught(error, where)`, `resume()`, `lines()` and
+`install(window)`. Three routes, one record: `FrameLoop.run` (new, in
+`loop.js`) is the frame's work inside a `try`, and a throw goes to
+`caught(error, 'frame')`; `install()` listens for the window's `error` and
+`unhandledrejection` and sets `window.__blCrashGuarded`, which `index.html`'s
+boot listener now reads so its "failed to start" panel stands aside once there
+is a game to stop. The first crash halts - `loop.stop()`, `setPaused(true)`,
+`menu.show('crash')` - and every later one is counted and named in the report
+without a second halt. boot.js builds the guard once the menu exists and
+installs it last, so a throw during the boot is still the boot panel's; main.js
+gained two lines (the loop's catch and the singleton).
+
+**The crash page** (`_renderCrash`, in `ui/menupause.js`): what broke, where
+(`frame`, `window`, `promise`), and the seed, set as text and never as markup
+because an error message is whatever the throwing code said; then *Copy
+report*, *Try to continue* (restarts the loop and goes to the pause page, from
+which Resume and Main menu are the player's) and *Reload the page*. The report
+gains `crashes: N` and a line per crash, the first five kept.
+
+**Logged as a warning, not an error.** A frame's throw is caught here and would
+otherwise never reach the console, so the guard logs it - with `console.warn`,
+which keeps the stack in DevTools without turning the gate's console-error
+count into a count of this check's own probes.
+
+**The check throws for real and drives the window's two routes with real
+events.** The Shade's own `step` is replaced by one that throws, and
+`h.guardedFrame()` (new on the harness) runs one frame through `FrameLoop.run`
+- the rAF callback's path without the rAF, counted as `renderFrame` is so F4
+still holds. The window and a lost promise are an `ErrorEvent` and a
+`PromiseRejectionEvent` dispatched at the window rather than real uncaught
+ones, because a real one is also a `pageerror` on the gate's list. *Try to
+continue* starts the loop, and the check stops it again inside the same task,
+so no frame runs under it.
+
+**Proved.** Subset on both maps, one run each - the new check, H12's report, menu reachability, the two boot-notice checks and the request buffer (both read index.html), the heartbeat and the nine source censuses - 16/16 on the plant (118.0s) and 16/16 on the yard (75.5s), no console errors; the report is 866 and 859 characters with its crashes line, and the crash page named the error and seed 1394094942 on the plant, 1394221674 on the yard; ceiling unchanged at 11 within 50 of 600, of 204 loaded, main.js 574.
+
+Break: `FrameLoop.run` made to rethrow instead of handing the throw on; the check went red on the plant on its first clause, "the throw escaped the loop's guard", and on every clause that follows from a crash nobody caught - no count, no pause, no crash page - and `loop.js` was put back from a copy.

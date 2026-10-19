@@ -14,6 +14,7 @@
 
 import { CONFIG, SETTINGS, rng } from './config.js';
 import { createBugReport } from './bugreport.js';
+import { createCrashGuard } from './crashguard.js';
 import { Freefly } from './freefly.js';
 import { Input } from './input.js';
 import { bakeMap, listMaps, BAKE_SLICES } from './maps/index.js';
@@ -64,7 +65,7 @@ import { wireTestCommands } from './testcommands.js';
  *   (H4), in which case nothing was built and nothing was added to a scene.
  */
 export async function bootWorld({
-  emitter, debugState, harness, initMatch, setPaused, setTimeScale, match, mapId, goToMap, onSlice,
+  emitter, debugState, harness, initMatch, setPaused, setTimeScale, match, mapId, goToMap, onSlice, loop,
 }) {
   const canvas = document.getElementById('bl-canvas');
   if (!canvas) throw new Error('bootstrap: #bl-canvas not found');
@@ -75,6 +76,7 @@ export async function bootWorld({
   const bugReport = createBugReport({
     match, map: () => harness.map, seed: () => rng.seed, settings: SETTINGS,
     assertions: () => (harness.debugTools ? harness.debugTools.assertionFailures : 0),
+    crashGuard: () => crashGuard,
   });
   if (!navigator.webdriver) bugReport.tapConsole();
 
@@ -206,11 +208,20 @@ export async function bootWorld({
   // Shade, so it is built after the actors and before the panels that draw it.
   const tutorial = createTutorial({ emitter, shade: () => shade, map: () => map });
 
+  // H14: a throw in a frame, at the window or in a promise stops the match
+  // where it was and the menu's crash page says so. Continue goes back to the
+  // pause page, from which Resume and Main menu are the player's to pick.
+  const crashGuard = createCrashGuard({
+    seed: () => rng.seed,
+    halt: () => { loop.stop(); setPaused(true); menu.show('crash'); },
+    resume: () => { loop.start(); menu.show('pause'); },
+  });
+
   let input = null;
   const { hud, scoreboard, menu, briefing, tutorialPanel } = createPanels({
     initMatch, setPaused, objective: () => objective, audio: () => audio, match,
     map: () => map, input: () => input, maps: listMaps(), goToMap, thumbnails,
-    emitter, tutorial, report: () => bugReport.text(),
+    emitter, tutorial, report: () => bugReport.text(), crashGuard,
   });
 
   wireMatchEvents({
@@ -253,10 +264,12 @@ export async function bootWorld({
   registerAssertions(debugTools, harness);
   registerAutoTests(debugTools);
   wireTestCommands({ harness });
+  // Last: until here a throw is the boot's, and index.html's panel says so.
+  crashGuard.install(window);
 
   return {
     renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport,
+    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport, crashGuard,
   };
 }
