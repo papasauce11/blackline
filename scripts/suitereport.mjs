@@ -16,6 +16,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { driftByMap, sayDrift } from './detaildrift.mjs';
 
@@ -114,10 +115,42 @@ export function latestBench(dir = path.join(ROOT, 'bench')) {
       gpu: run.gpu && run.gpu.renderer ? run.gpu.renderer : null,
       ok: !!run.ok,
       readings: scenes.reduce((n, s) => n + (Array.isArray(s.checks) ? s.checks.length : 0), 0),
+      ids: [...new Set(scenes.flatMap(s => (Array.isArray(s.checks) ? s.checks : []).map(c => c && c.id).filter(Boolean)))],
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * How old the real-GPU reading is, for the weekly audit (H37). D69 put the
+ * question there rather than in the gate: a red that only a headed Chrome on a
+ * real GPU can clear would stop a routine that has neither. So this answers
+ * and never judges - the newest file, its commit, how far HEAD has moved since,
+ * and which `benchOnly` checks it holds no reading for (a check moved to the
+ * bench after the last bench was taken is a check nobody has run).
+ *
+ * The file is named from `run.at`, which is UTC (H36), so an evening bench
+ * files under the next day; `at` is returned beside it for the local time.
+ */
+export function benchAge(dir = path.join(ROOT, 'bench')) {
+  const latest = latestBench(dir);
+  const owed = [...benchOnlyById().keys()];
+  if (!latest) return { latest: null, commitsSince: null, missing: owed };
+  let commitsSince = null;
+  if (latest.commit) {
+    try {
+      commitsSince = Number(execFileSync('git', ['rev-list', '--count', `${latest.commit}..HEAD`],
+        { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim());
+    } catch {
+      // A commit this clone does not have: the bench was taken on another branch.
+    }
+  }
+  return {
+    latest: { date: latest.date, at: latest.at, commit: latest.commit, gpu: latest.gpu, ok: latest.ok, readings: latest.readings },
+    commitsSince,
+    missing: owed.filter(id => !latest.ids.includes(id)),
+  };
 }
 
 /**

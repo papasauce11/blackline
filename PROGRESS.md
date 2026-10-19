@@ -19628,3 +19628,29 @@ vertical 2 times, 2.00m apart (stride 2), the body rolled 0.050 rad"*.
 absolutes and the seventeen weather readings are untouched and are supposed to
 be; the two counts that should not wobble were H84 and **H85**, which is the
 next job in the file and is a defect rather than a reading.
+
+## H37 — The weekly audit says how old the bench is
+
+D69 took the staleness out of the gate and asked for it in the weekly audit,
+which already reports what it cannot fix. The audit prompt lives outside the
+repo, so seventeen unattended runs left it; Josh was present for this one.
+
+**Built.** `benchAge()` beside `latestBench()` in `scripts/suitereport.mjs`.
+It does not parse the file again: `latestBench()` gained an `ids` field, the
+set of check ids across the last run's scenes, and `benchAge()` subtracts it
+from `benchOnlyById()`. Commits since come from `git rev-list --count
+<commit>..HEAD`, and a bench commit this clone does not have reads as null
+rather than throwing. The audit prompt runs it with one `node --input-type=module`
+line and is told the two things H36 found: the file is named in UTC, so an
+evening bench files under the next day, and the newest file now carries twelve
+readings from the rewritten check.
+
+**Dry run** against this repo: `bench/2026-10-09.json`, taken 2026-10-09T16:06
+UTC on an NVIDIA GTX 1060 at `76c6e50`, ok, 12 readings, **91 commits** behind
+HEAD, and `missing` empty - the one benchOnly check
+(`the-frame-budget-holds-everywhere-not-just-at-site-a`) has readings. So the
+first audit to run it will recommend a bench on the commit count alone.
+
+**Verified.** `node --check`, the dry run above, and the batch verify that closes
+this session's first batch. No AUTO check: the function is the node side's and no page check can call
+it; the audit's report is its reader.

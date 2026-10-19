@@ -290,31 +290,9 @@ one setting only Josh can click; everything else here proceeds.
   **H36** and **H37** are what the work revealed.
 - [x] **H36 (S)** The sweep's "worst viewpoint" is one frame, and it does not
   reproduce. — done 2026-10-08, under Done.
-- [ ] **H37 (S)** The weekly audit says how old the bench is. D69 took "print
-  the staleness, never red on it" and named the alternative it refused: a gate
-  that goes red when the newest `bench/<date>.json` is older than N days or
-  names another commit would make the gate's verdict depend on hardware the
-  gate may not have, and a routine that cannot clear it would stop building.
-  A **calendar-shaped question belongs in the weekly audit**, which already
-  reports drift it cannot fix (files over 600 lines, TODO counts, the skip
-  list unchanged). Add the bench: the newest file's date and commit, how many
-  commits have landed since, whether every `benchOnly` id has a reading in it,
-  and one line of recommendation when it is stale. `scripts/suitereport.mjs`'s
-  `latestBench()` is the reader; `benchOnlyById()` is the set it must cover.
-  **Two things H36 found that this job needs.** `bench/<date>.json` is named
-  from `run.at`, which is **UTC**, so a bench taken at 21:26 EDT files under the
-  next day — a staleness report in local days will be off by one for any
-  evening bench. And the newest file is now `bench/2026-10-08.json` with
-  **twelve readings from the shipped check** (H36 rewrote what it measures), so
-  a dry run names that rather than 2026-10-07.
-  **This is the one job in Block H that edits a file outside this repo** — the
-  audit task's own prompt, at
-  `~/.claude/scheduled-tasks/blackline-audit/SKILL.md`. A scheduled session
-  that is not comfortable changing another standing task's instructions
-  unattended should leave it for Josh and say so in its summary, which is what
-  the 2026-10-07 run did.
-  *done-when:* the audit prompt asks for it, and a dry run against this repo
-  names the newest bench file's date and commit.
+- [x] **H37 (S)** The weekly audit says how old the bench is — done 2026-10-18, under Done. Taken by a session Josh was watching (2026-10-18). `benchAge()` in
+  `scripts/suitereport.mjs`; the dry run names `bench/2026-10-09.json`,
+  `76c6e50`, 91 commits since, nothing missing.
 - [x] **H33 (S)** Which other checks read a posed body at whatever phase the
   run arrived in? — done 2026-10-07, under Done. **There are two phases, not
   one**: `_animTime`, the gait, has the same property and is the bigger lever
@@ -1352,6 +1330,17 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H37** The weekly audit says how old the bench is. `benchAge()` in
+  `scripts/suitereport.mjs` returns the newest `bench/<date>.json`'s date, UTC
+  time, commit, GPU and reading count, `commitsSince` (a `git rev-list
+  --count` from its commit to HEAD), and the `benchOnly` checks it holds no
+  reading for; `latestBench()` now also returns the ids it read. The audit
+  prompt runs it and reports the file's date with a local time beside it (the
+  name is UTC, H36), and recommends `npm run bench` when it is over 7 days or
+  30 commits old or a benchOnly check is missing - never red, never a job
+  (D69). Dry run against this repo: **2026-10-09** (16:06 UTC), **`76c6e50`**,
+  a GTX 1060, 12 readings, **91 commits since**, nothing missing — 2026-10-18,
+  Josh's session.
 - **H84** The coin was the gait's entry phase, and a floor became a claim about
   the ground. `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks`
   wanted **two or more** crossings of the vertical over a 90-frame walk and
