@@ -1897,6 +1897,11 @@ export const CONFIG = {
   // it was chosen: see `thumbnails.js` and the H5 entry in PROGRESS.md.
   // -------------------------------------------------------------------------
   menu: {
+    /**
+     * The window a page must fit without scrolling (H20): 720p, the smallest
+     * a desktop player is likely to run in and the suite's own viewport.
+     */
+    fitHeight: 720,
     thumbnail: {
       /** 16:9, big enough to read a container stack and small enough to be a card. */
       width: 480,
@@ -1947,6 +1952,22 @@ export const DEFAULT_BINDINGS = {
   gadget4: ['Digit4'],
   pause: ['Escape'],
 };
+
+/**
+ * The controls page's headings (H20), in the order the page draws them. The
+ * groups are the bindings' own order cut four ways, so the ring walks the
+ * rows exactly as it did before there were headings: grouping is look only.
+ * Every action is in exactly one group, and
+ * `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard` holds
+ * that, so an action added to the map without a heading here is a red check
+ * rather than a row the page silently drops.
+ */
+export const BINDING_GROUPS = [
+  ['move', ['forward', 'back', 'left', 'right', 'jump', 'crouch', 'sprint']],
+  ['fight', ['fire', 'ads', 'reload', 'interact', 'melee']],
+  ['gadgets', ['gadget1', 'gadget2', 'gadget3', 'gadget4']],
+  ['system', ['pause']],
+];
 
 /**
  * Keys the browser default is suppressed for while the canvas has focus.

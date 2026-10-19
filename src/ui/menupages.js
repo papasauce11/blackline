@@ -16,7 +16,7 @@
  * imports main.js.
  */
 
-import { CONFIG, DEFAULT_BINDINGS, SETTINGS } from '../config.js';
+import { BINDING_GROUPS, CONFIG, DEFAULT_BINDINGS, SETTINGS } from '../config.js';
 import { activeQuality, postEnabled, QUALITY_CHOICES } from '../quality.js';
 import { controlRows, keyLabel, objectiveLine } from './briefing.js';
 
@@ -245,7 +245,7 @@ export const MENU_PAGES = {
     const bindings = (this.handlers.bindings && this.handlers.bindings()) || DEFAULT_BINDINGS;
     const clashes = (this.handlers.conflicts && this.handlers.conflicts()) || new Map();
     const actions = Object.keys(DEFAULT_BINDINGS);
-    const rows = actions.map((action) => {
+    const row = (action) => {
       const codes = bindings[action] || [];
       const also = [];
       for (const code of codes) {
@@ -261,13 +261,20 @@ export const MENU_PAGES = {
         <span class="value${waiting ? ' waiting' : ''}" id="bl-bind-${action}">${waiting ? 'press a key' : keys}</span>
         <span class="value small" id="bl-bindreset-${action}">reset</span>
       </div>`;
-    }).join('');
+    };
+    // H20: the groups as headings. A heading is not a control, so it is never
+    // handed to `_rows()` and the ring passes over it; the rows are declared
+    // below in the map's own order, which is the groups' order too.
+    const rows = BINDING_GROUPS.map(([group, members]) => `<div class="bindgroup">
+        <div class="grouphead">${group}</div>
+        ${members.filter((action) => actions.indexOf(action) !== -1).map(row).join('')}
+      </div>`).join('');
 
     this.root.innerHTML = `
-      <div class="card">
+      <div class="card wide">
         <h1 style="font-size:20px">Controls</h1>
         <div class="tag">${this.binding ? 'press a key, or esc to cancel' : 'pick a row, then press the key'}</div>
-        ${rows}
+        <div class="bindgroups">${rows}</div>
         <button class="back" data-action="back">Back</button>
       </div>`;
 

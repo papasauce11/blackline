@@ -802,13 +802,7 @@ one setting only Josh can click; everything else here proceeds.
   the check drives a named card rather than a cycle and the menu has one way
   to pick a map. **blocked: D55.**
 - [x] **H19 (S)** A rebind survives a reload — done 2026-10-18, under Done. `src/bindingstore.js`, `Input.setBinding`, `a-rebind-survives-a-reload-and-a-dead-action-drops-alone`.
-- [ ] **H20 (S)** The controls page at seventeen actions is thirty-five
-  keyboard rows and one flat list (H8). Group it — move, fight, gadgets,
-  system — with the groups as headings the ring skips, or put the reset
-  cells behind the row's own sideways keys and halve the list. Look only;
-  nothing about what a player can do changes. *done-when:* the reachability
-  check still counts every control, and the page fits a 720p window without
-  scrolling.
+- [x] **H20 (S)** The controls page in four groups, and it fits 720p — done 2026-10-18, under Done. `BINDING_GROUPS` in `config.js`, `_renderControls`, `CONFIG.menu.fitHeight`, two clauses in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
 - [ ] **H21 (S)** A stored number outside its bounds. H7's store validates a
   loaded record by **type** and not by range, so a hand-edited
   `{"fovShade": 500}` or a `mouseSensitivity` of 9 is accepted and the camera
@@ -1166,6 +1160,16 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H20** The controls page in four groups - move, fight, gadgets, system - two
+  abreast under headings the ring passes over, at **642px** in a 720p window
+  where the flat list was over 900. `BINDING_GROUPS` (new, beside
+  `DEFAULT_BINDINGS`) is the bindings' own order cut four ways, so the ring
+  walks the rows exactly as before: look only. `interact` is under fight,
+  because plant and defuse are the round's verbs. The reachability check gains
+  two clauses: every action under exactly one heading in the map's order, and
+  a page in `FITS` no taller than `CONFIG.menu.fitHeight`. H22 is the settings
+  page's turn and is still open. Subset both maps 8/8; break: one column, red
+  at 911px - 2026-10-19, Josh's session.
 - **H13** Replays. Every round is journaled from its `initMatch` as it is played - the
   codes held (`+`/`-`), the press edges a step saw (`p`, exactly the set,
   because a key tapped inside one frame is pressed and never held) and where

@@ -113,6 +113,18 @@ export const MENU_CSS = `
   min-width: 0; margin-left: 18px; font-size: 10px; opacity: 0.4;
   color: ${hex(P.shadeTeal)};
 }
+/* H20: the groups two abreast, each under a heading the ring passes over,
+   so seventeen actions fit a 720p window with no scrolling. */
+#bl-menu .card.wide { max-width: 900px; width: 900px; }
+#bl-menu .bindgroups {
+  display: grid; grid-template-columns: 1fr 1fr; column-gap: 44px; align-items: start;
+}
+#bl-menu .bindgroup { margin-bottom: 14px; }
+#bl-menu .grouphead {
+  font-size: 10px; letter-spacing: 0.3em; opacity: 0.45; padding-bottom: 2px;
+  border-bottom: 1px solid rgba(47,214,195,0.35);
+}
+#bl-menu .bindrow { padding: 6px 0; }
 
 /* The how-to-play and credits pages: running text, so the menu's uppercase
    tracking is turned off for the body of them. */

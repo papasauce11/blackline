@@ -22,7 +22,7 @@
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
-import { CONFIG, SETTINGS } from '../config.js';
+import { BINDING_GROUPS, CONFIG, DEFAULT_BINDINGS, SETTINGS } from '../config.js';
 import {
   listMaps, mapEntry, requestedMapId, bootMapId, bakeMap, buildMap,
   DEFAULT_MAP_ID, DRAWN_SLICES, BAKE_SLICES,
@@ -43,6 +43,9 @@ const LIT_FLOOR = 24;
  * of the two because it is a night map and half its card is wet ground.
  */
 const LIT_MINIMUM = 0.045;
+
+/** The pages that are lists and must fit a 720p window without scrolling (H20). */
+const FITS = ['controls'];
 
 /** Every element on a menu page that does something when it is clicked. */
 function controlsOn(root) {
@@ -324,6 +327,7 @@ export function register(debugTools) {
       const wasHandlers = menu.handlers;
       const wasRole = SETTINGS.role;
       const wasMap = SETTINGS.lastMap;
+      const fitted = [];
       let played = 0;
       let freeRoamed = 0;
       try {
@@ -356,7 +360,23 @@ export function register(debugTools) {
           if (!menu.rows[menu.focus].el.classList.contains('focused')) {
             problems.push(`the ${page} page draws no ring on the focused row`);
           }
+          // H20: a page that is a list fits the window it is played in.
+          if (FITS.indexOf(page) !== -1) {
+            const tall = menu.root.querySelector('.card').getBoundingClientRect().height;
+            fitted.push(`${page} ${Math.round(tall)}px`);
+            if (tall > CONFIG.menu.fitHeight) problems.push(`the ${page} page is ${Math.round(tall)}px tall and needs scrolling in a ${CONFIG.menu.fitHeight}px window`);
+          }
         }
+
+        // H20: every action under exactly one heading, in the map's order.
+        const grouped = BINDING_GROUPS.flatMap(([, members]) => members);
+        if (grouped.join() !== Object.keys(DEFAULT_BINDINGS).join()) {
+          problems.push(`the controls headings group ${grouped.join(',')}, not the map's ${Object.keys(DEFAULT_BINDINGS).join(',')}`);
+        }
+        menu.show('controls');
+        const heads = menu.root.querySelectorAll('.grouphead').length;
+        if (heads !== BINDING_GROUPS.length) problems.push(`the controls page drew ${heads} headings of ${BINDING_GROUPS.length}`);
+        if (menu.rows.some((row) => row.el.classList.contains('grouphead'))) problems.push('the ring stops on a heading');
 
         // The role row answers the sideways keys, and Play does what it says.
         menu.handlers = {
@@ -405,7 +425,8 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? 'main, settings, how to play, credits and pause each declare every control they draw; the ring walks and wraps both ways and is drawn; '
+          ? 'main, settings, controls, how to play, credits and pause each declare every control they draw; the ring walks and wraps both ways and is drawn; '
+            + `the controls page groups every action under ${BINDING_GROUPS.length} headings and fits ${CONFIG.menu.fitHeight}px (${fitted.join(', ')}); `
             + 'the role row answers the sideways keys and Enter on Play starts what it says'
           : problems.join('; '),
       };

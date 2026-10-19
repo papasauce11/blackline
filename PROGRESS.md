@@ -20383,3 +20383,35 @@ commented out; red on the plant with the Shade ending at
 (-1.78, 0.93, 25.38) against the recorded (-10.10, 0.93, 24.13) and "journaled
 37 events against its 127, first apart at 5", and the file was put back from a
 copy.
+
+## H20 — The controls page in four groups, and it fits 720p
+
+**Built.** `BINDING_GROUPS` in `config.js` (new, beside the map it groups):
+move (forward, back, left, right, jump, crouch, sprint), fight (fire, ads,
+reload, interact, melee), gadgets (1-4), system (pause). It is the order of
+`DEFAULT_BINDINGS` cut four ways, so the rows are declared to the ring in the
+same order as before and nothing about the keyboard changes. `_renderControls`
+draws each group under a `.grouphead`, which is never handed to `_rows()` and
+so is passed over; `menucss.js` puts the groups two abreast on a 900px card and
+tightens a binding row from 9px of padding to 6. `interact` went under fight
+because plant and defuse are the round's own verbs - a look, and the group
+table is the one line to move it.
+
+**Measured, not estimated.** The card is **642px** tall at 1280x720 on both
+maps, in the suite and in the pane, with no scroll; the flat list it replaces
+measures **911px** with the same rows in one column (the break below), which is
+the scroll H8 left.
+
+**Held** by two clauses in the reachability check (the done-when's own "the
+reachability check still counts every control" is the clause already there):
+every action is under exactly one heading, in the map's order, so an action
+added to `DEFAULT_BINDINGS` without a heading is red rather than a row the page
+silently drops; and every page in `FITS` (`['controls']`) is no taller than
+`CONFIG.menu.fitHeight` (720), with its height in the detail. H22 adds
+`settings` to that list.
+
+**Proved.** Subset on both maps, one run each - reachability, the three
+rebind checks, the ceiling, the registry and two censuses - 8/8 on the plant
+and 8/8 on the yard, "fits 720px (controls 642px)". **Break:** the groups put
+back in one column; red on the plant with "the controls page is 911px tall and
+needs scrolling in a 720px window", and the stylesheet was put back from a copy.
