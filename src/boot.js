@@ -15,6 +15,8 @@
 import { CONFIG, SETTINGS, rng } from './config.js';
 import { createBugReport } from './bugreport.js';
 import { createCrashGuard } from './crashguard.js';
+import { createReplays, installReplayRoutes } from './replay.js';
+import { VERSION } from './version.js';
 import { Freefly } from './freefly.js';
 import { Input } from './input.js';
 import { bakeMap, listMaps, BAKE_SLICES } from './maps/index.js';
@@ -219,10 +221,12 @@ export async function bootWorld({
   });
 
   let input = null;
+  let replayRoutes = null;
   const { hud, scoreboard, menu, briefing, tutorialPanel } = createPanels({
     initMatch, setPaused, objective: () => objective, audio: () => audio, match,
     map: () => map, input: () => input, maps: listMaps(), goToMap, thumbnails,
     emitter, tutorial, report: () => bugReport.text(), crashGuard,
+    saveReplay: () => (replayRoutes ? replayRoutes.download() : null),
   });
 
   wireMatchEvents({
@@ -232,6 +236,14 @@ export async function bootWorld({
   input = new Input(canvas);
   // H19: the keymap a player left last time, row by row.
   debugState.bindingStore = loadBindings(input);
+  // H13: every round journaled from its `initMatch`, a step at a time. A step
+  // starts in main.js's `fixedStep` (`before`) and ends at `sim:step`.
+  const replays = createReplays({
+    match, map: () => map, shade: () => shade, warden: () => warden, objective: () => objective,
+    input: () => input, initMatch, build: () => VERSION.commit || VERSION.source,
+  });
+  emitter.on('match:init', () => replays.begin());
+  emitter.on('sim:step', () => replays.after());
   // Built after input, which it reads, and parked on a Shade spawn at eye
   // height so re-enabling it from the console starts somewhere sensible.
   const freefly = new Freefly(input, {
@@ -269,10 +281,11 @@ export async function bootWorld({
   wireTestCommands({ harness });
   // Last: until here a throw is the boot's, and index.html's panel says so.
   crashGuard.install(window);
+  replayRoutes = installReplayRoutes({ replays, map: () => map, menu, setPaused, goToMap, emitter });
 
   return {
     renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport, crashGuard,
+    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport, crashGuard, replays,
   };
 }

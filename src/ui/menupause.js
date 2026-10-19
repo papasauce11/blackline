@@ -34,6 +34,7 @@ export const MENU_PAUSE = {
         <button data-action="settings">Settings</button>
         <button data-action="change-map">Change map</button>
         <button data-action="report">Copy report</button>
+        <button data-action="save-replay">Save replay</button>
         <button data-action="quit">Main menu</button>
         ${this._reportBox()}
       </div>`;
@@ -49,6 +50,16 @@ export const MENU_PAUSE = {
     };
     const report = this.root.querySelector('[data-action=report]');
     report.onclick = () => this._copyReport();
+    // H13: the round so far, as a file; the name is what the browser saves it as.
+    const saveReplay = this.root.querySelector('[data-action=save-replay]');
+    saveReplay.onclick = () => {
+      const name = this.handlers.onSaveReplay ? this.handlers.onSaveReplay() : null;
+      const status = this.root.querySelector('[data-role=report-status]');
+      if (status && name) {
+        status.hidden = false;
+        status.textContent = `saved ${name} - drop it on the page to watch it`;
+      }
+    };
     // H15: each of these ends the round in progress, so each asks first.
     const restartRound = this.root.querySelector('[data-action=restart-round]');
     restartRound.onclick = () => this._ask('Restart the round?', () => {
@@ -77,7 +88,7 @@ export const MENU_PAUSE = {
       this.show('main');
       if (this.handlers.onQuit) this.handlers.onQuit();
     });
-    this._rows([resume, restartRound, restartMatch, settings, changeMap, report, quit]);
+    this._rows([resume, restartRound, restartMatch, settings, changeMap, report, saveReplay, quit]);
   },
 
   /**

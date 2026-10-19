@@ -112,6 +112,7 @@ import { register as registerBindingStore } from './bindingstore.js';
 import { register as registerBugReport } from './bugreport.js';
 import { register as registerCrashGuard } from './crashguard.js';
 import { register as registerPauseMenu } from './pausemenu.js';
+import { register as registerReplays } from './replays.js';
 import { register as registerRunnerGuard } from './runnerguard.js';
 import { register as registerDetailDrift } from './detaildrift.js';
 import { register as registerTimedRenders } from './timedrenders.js';
@@ -282,6 +283,8 @@ export function registerAutoTests(debugTools) {
   registerCrashGuard(debugTools);
   // H15: every pause-menu route, and the confirm in front of them.
   registerPauseMenu(debugTools);
+  // H13: every shipped replay, played back to its recorded end.
+  registerReplays(debugTools);
   registerRunnerGuard(debugTools);
   // H79: and which readings moved between the two runs of a map without
   // moving a verdict, which `flaky` cannot see.

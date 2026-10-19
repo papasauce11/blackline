@@ -46,7 +46,7 @@ import { tutorialSeen, tutorialFits } from './systems/tutorial.js';
  */
 export function createPanels({
   initMatch, setPaused, objective, audio, match, map, input, maps, goToMap, thumbnails, emitter, tutorial, report,
-  crashGuard,
+  crashGuard, saveReplay,
 }) {
   const hud = createHud();
   const briefing = createBriefing();
@@ -168,6 +168,8 @@ export function createPanels({
     crash: () => (crashGuard ? crashGuard.current : null),
     onContinue: () => crashGuard && crashGuard.resume(),
     onReload: () => location.reload(),
+    // H13: this round so far, as a file the browser saves.
+    onSaveReplay: () => (saveReplay ? saveReplay() : null),
     onQuit: () => {
       setPaused(false);
       objective().resetMatch();

@@ -76,6 +76,7 @@ import { createWardenIntent } from './entities/enforcer.js';
 /** @type {import('./ui/briefing.js').Briefing} */ let briefing = null;
 /** @type {ReturnType<import('./bugreport.js').createBugReport>} */ let bugReport = null;
 /** @type {ReturnType<import('./crashguard.js').createCrashGuard>} */ let crashGuard = null;
+/** @type {ReturnType<import('./replay.js').createReplays>} */ let replays = null;
 const shadeIntent = createIntent();
 const wardenIntent = createWardenIntent();
 /**
@@ -246,7 +247,7 @@ async function bootstrap() {
   ({
     renderer, post, scene, camera, input, debugTools, freefly, map, shade, warden, detection, wardenAI,
     combat, audio, gadgets, objective, effects, deathCam, feedback, hud, groundView, menu, scoreboard,
-    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport, crashGuard,
+    briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport, crashGuard, replays,
   } = built);
 
   setTimeScale(1);
@@ -265,6 +266,8 @@ async function bootstrap() {
  */
 function fixedStep(dt) {
   clock.sim += dt;
+  // H13: a playback's input goes in first, and the round's journal reads it.
+  if (replays) replays.before(input);
   // H12: the report's input journal, off the held set every path agrees on.
   if (bugReport) bugReport.record(clock.sim, input.heldCodes);
 
@@ -472,6 +475,7 @@ const harness = createHarness({
   menu: () => menu,
   bugReport: () => bugReport,
   crashGuard: () => crashGuard,
+  replays: () => replays,
   thumbnails: () => thumbnails,
   tutorial: () => tutorial,
   tutorialPanel: () => tutorialPanel,

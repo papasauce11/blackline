@@ -20312,3 +20312,73 @@ plant and a 1.60m one on the yard with their new restore. **Break:** the
 loader's `setBinding` call commented out; red on the plant with "after a load
 the jump is Space, want KeyJ", the climb on KeyJ at `stack-hall-low` and the
 dead-action record's jump, and the file was put back from a copy.
+
+## H13 — Replays: every round journaled, played back to the same end
+
+**Built.** `src/replay.js` (new, ~300 lines): `createReplays(live)` with
+`begin()` on `match:init`, `before(input)` at the top of every fixed step (one
+line in main.js, which is 578), `after()` on `sim:step`, `save()` and
+`play(replay, { onEnd })`; `endState`, `endDiff` and `refuse` as pure helpers;
+and `installReplayRoutes(...)`, the DOM half - `?replay=`, a dropped file and
+*Save replay* (a new button on the pause page). `tests/replays/` (new, at the
+repo root as the job named it) holds `plant.json` and `yard.json` (960 steps,
+127 events, 5.9KB each), `index.json` (the list - a page cannot list a
+directory) and `record.js`, the probe program both were recorded from.
+
+**What a journal is, and why each kind.** The controllers read two sets on the
+input layer and the human actor's `yaw` and `pitch`, so those are the input.
+`+` and `-` are a code going down and up; `p` is the press edges a step saw,
+exactly, because a tap inside one frame is pressed and never held, and because
+the H8 swallow can hold a code without its press; `look` is the orientation the
+actor was given between two steps - recorded as where it was rather than as a
+delta, because a delta passes through the live sensitivity and `invertY`. And
+only a change between the end of one step and the start of the next is a look:
+a turn the simulation makes inside a step is its own, and replaying it would
+hide the divergence a replay exists to show. Playback **pins** the actor to the
+last orientation at every step, not only on a look, so a live mouse during a
+replay moves nothing.
+
+**Codes, with the keymap.** A journal names codes, as the bug report does, and
+carries the bindings in force; playback puts them on for its length and back
+after, through H19's `setBinding`. That is why this job went after H19.
+
+**One round a file.** `initMatch` is where every route into a round passes, so
+a journal is a round, opened with the score it started on and restored on play.
+
+**The check proves three things, because a matching end can prove nothing.**
+The end - both bodies to six decimals with the yaw, the Shade's health, the
+Warden's state, the round, the score and the match's rng count. **The journal
+is the file**: the playback journals as it goes, and its events must equal the
+file's, which is what says the feed and the journal are each other's inverse.
+**And the end is about the input**: the same file with its first key press
+taken out must end somewhere else. It runs both on both maps, after other
+checks in the same page, which is the determinism question asked the hard way;
+no draw under the live AI happened in either 960-step round (the 57 draws a
+check are three match openings), so it declares none.
+
+**Timers.** The first draft deferred the `?replay=` start with a `setTimeout`
+and let a download's URL go on one; the source census caught both
+(`no-source-file-calls-math-random-or-sets...`). The start is now the first
+`frame:begin`, which is after the composition root's own `initMatch`, and the
+URL is let go on the next save.
+
+**What the live route does not promise.** A playback through the live loop is
+the same steps, but the death camera's guard runs on the wall clock (Section
+8.3), so a round in which the Shade dies can end differently live than
+headless. The shipped replays and the check are the step-driven path.
+
+**Re-recording** when a change moves an end on purpose:
+`npm run probe -- --map <id> tests/replays/record.js > out.json`, then write it
+compact (the job's own scratch converter put one event a line). Say so in the
+job that does it: a replay re-recorded whenever it goes red asserts nothing.
+
+**Proved.** Subset on both maps, one run each - the new check, the reset
+census, the network and request-buffer checks, the seed replay, the whole-match
+leak check, the pause-menu, crash and report checks, reachability and the nine
+source censuses - 18/19 on the first pass, red only on the timer census; fixed,
+and the check, the timer census, the ceiling, the registry, reachability and
+the pause menu 6/6 on both maps. **Break:** the playback's pin of `yaw`
+commented out; red on the plant with the Shade ending at
+(-1.78, 0.93, 25.38) against the recorded (-10.10, 0.93, 24.13) and "journaled
+37 events against its 127, first apart at 5", and the file was put back from a
+copy.

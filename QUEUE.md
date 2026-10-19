@@ -780,11 +780,7 @@ one setting only Josh can click; everything else here proceeds.
   the runner's beat names the check in flight then, and the device check
   prints both - then the seam is the one that reading names.
 - [x] **H12 (S)** A bug report, on the pause menu — done 2026-10-18, under Done. `src/bugreport.js`, `src/ui/menupause.js`, `copy-report-on-the-pause-menu-says-the-build-the-match-and-the-last-thirty-seconds`.
-- [ ] **H13 (M)** Replays. Record the per-step input codes with map and
-  seed; `?replay=` or a dropped file replays deterministically; files under
-  `tests/replays/` are run by the suite as checks that assert their recorded
-  outcome. *done-when:* a recorded match replays to the same end state, and
-  one replay ships in `tests/replays/`.
+- [x] **H13 (M)** Replays: every round journaled, played back to the same end — done 2026-10-18, under Done. `src/replay.js`, `tests/replays/` (`plant.json`, `yard.json`, `index.json`, `record.js`), `every-shipped-replay-replays-to-its-recorded-end`.
 - [x] **H14 (S)** A crash guard, and the page a crash puts up — done 2026-10-18, under Done. `src/crashguard.js`, `FrameLoop.run`, the crash page in `ui/menupause.js`, `a-throw-inside-a-step-stops-the-match-and-the-crash-page-says-so`.
 - [x] **H15 (S)** The pause menu restarts, changes map and quits, asking first mid-round — done 2026-10-18, under Done. `ui/menupause.js` (`_ask`, `_renderConfirm`), `panels.js` (`midRound`, `onRestartRound`, `onRestartMatch`), `the-pause-menu-restarts-changes-map-and-quits-and-asks-first-mid-round`.
 - [x] **H16 (S)** `npm run notes`: release notes from PROGRESS.md, between the tags — done 2026-10-18, under Done. `scripts/notes.mjs`, `RELEASES.md`, a `FLAGS` row in `tests/args.js`.
@@ -1170,6 +1166,21 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H13** Replays. Every round is journaled from its `initMatch` as it is played - the
+  codes held (`+`/`-`), the press edges a step saw (`p`, exactly the set,
+  because a key tapped inside one frame is pressed and never held) and where
+  the human looked between two steps (`look`, as the orientation and not a
+  mouse delta, so a replay does not depend on sensitivity or `invertY`) -
+  beside the map, the seed, the match, the score and the keymap. Playback
+  overwrites the input sets and pins the actor every step, so a live keyboard
+  moves nothing. Routes in: `?replay=<path>` on the page's origin, a file
+  dropped on the window (another map is carried across the page load in the
+  session store), and *Save replay* on the pause page. Two replays ship, 960
+  steps against the live AI on each map; the check plays each back to its
+  recorded end, requires the playback to journal the file's own events, and
+  requires the round to end elsewhere with the first key press taken out.
+  Break: the look not pinned, red 8.3m off with 37 events against 127 -
+  2026-10-19, Josh's session.
 - **H19** A rebind survives a reload. `src/bindingstore.js` (new) keeps the Input's
   map in its own versioned record (`blackline.bindings.v1`) beside the
   settings one, written when a row is rebound or reset and read once when the
