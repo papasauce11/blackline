@@ -19865,3 +19865,40 @@ flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, no other
 runner; one check more per map than the gate, which is H88's. Ceiling 11
 modules within 50 of 600, nearest `audiodevice.js` at 597 (H93). The one
 failure a map is the bench-only sweep the gate drops by design (H11).
+
+## H90 — Four strike callers, one answer to a refused strike
+
+H59 put one rule over a refused strike - a skip is a fact about the map or
+a defect, declared or red - and two of its four callers answered it their own
+way, in the safe direction: a state the map genuinely cannot strike would be
+declared and still red in `look.js` and `poseeye.js`. The entry said it cannot
+be verified while both declaration lists are empty, so the job is the break as
+much as the change.
+
+**Built.** `look.js` collects `{ state, why }` for every strike state its
+`photographPose()` did not reach and the names it did, and calls
+`refusalProblems(h, refused, reached)` after the loop; `aim`, which is the
+Warden's sights and not a strike, keeps its unconditional problem.
+`poseeye.js` does the same, its reached list being the states it struck.
+
+**Found by the proof.** With `vault` declared on the plant and genuinely
+refused, three of the four callers went green and `poseeye.js` stayed red - not
+for the refusal but for `EYE_MOVES`, which declares that `vault`'s photograph
+eye moves on the plant and called that declaration stale (*"vault declared in
+EYE_MOVES and no longer moving"*) because vault was not measured. A refused
+state is unmeasured, which is a different thing from closed. `closed` now counts
+only declared states that were reached; the refusal is `refusalProblems()`'s to
+judge.
+
+**Proved**, the four callers on the plant (`h90_prove.py`, `strikedrive.js`
+snapshotted and restored byte for byte):
+
+| configuration | red |
+|---|---|
+| baseline, nothing declared | 0 of 4 |
+| `vault` declared, and it strikes | **4 of 4**: *"is declared as unstrikable on plant and was struck"* |
+| `vault` declared, and `strike()` refuses it | **0 of 4** (after the `EYE_MOVES` fix; 1 before it) |
+| `vault` refused and not declared | **4 of 4**: *"could not be struck on plant ... and is not declared"* |
+
+The declaration was put back to empty; both lists are empty on both maps.
+Verified in this session's second batch verify.

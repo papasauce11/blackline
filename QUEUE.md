@@ -730,25 +730,10 @@ one setting only Josh can click; everything else here proceeds.
   same floor, the numbers are in `PROGRESS.md`, and pinning that check to the
   dominant pose instead reds it as a census that has stopped varying.
 
-- [ ] **H90 (S)** Two of the four strikers still answer H59's question their
-  own way, in the safe direction. `look.js` and `poseeye.js` push a refused
-  strike into `problems` **unconditionally**, so a state a map one day
-  genuinely cannot strike would be declared in `CANNOT_STRIKE_HERE` and still
-  red in two of the four callers - which is one answer too many to the same
-  question and exactly the shape H59 closed in the other direction. The fix is
-  three lines each: collect the refusals and hand them to `refusalProblems()`
-  with the states that reached, as `strikerepeat.js` and `positioncensus.js`
-  do. It is small, and the reason it is a job rather than a footnote is that
-  it cannot be verified while both lists are empty: the only way to see it work
-  is to declare a state, run the four, and take the declaration back out - so
-  the job is the break as much as the change. **Read H59's PROGRESS entry
-  first**, and note that `look.js` photographs each state once while
-  `poseeye.js` takes a pair, so what counts as "reached" differs between them.
-  *done-when:* all four callers route a refusal through `refusalProblems()`,
-  a state declared in `CANNOT_STRIKE_HERE` reds none of the four while it is
-  genuinely refused and reds all four the moment it strikes, and both
-  directions are shown in `PROGRESS.md` with the declaration put back.
-
+- [x] **H90 (S)** Four strike callers, one answer to a refused strike — done
+  2026-10-18, under Done. `look.js` and `poseeye.js` route refusals through
+  `refusalProblems()`; `poseeye.js`'s `EYE_MOVES` no longer calls an unread
+  declaration stale. Proved three ways with the declaration put back.
 - [ ] **H91 (S)** The pose census's detail line is a third longer than the
   budget, and it is not the only one near it. H60 measured rather than guessed:
   `every-check-that-poses-a-body-declares-what-the-breath-and-the-gait-do-to-it`
@@ -1265,6 +1250,17 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H90** Four strike callers, one answer to a refused strike. `look.js` and
+  `poseeye.js` pushed a refused strike into `problems` unconditionally; both
+  now collect refusals and hand them to `refusalProblems()` with the states
+  they reached, as `strikerepeat.js` and `positioncensus.js` do (`look.js`'s
+  `aim` is not a strike and keeps its own problem). The proof found a second
+  instance: `poseeye.js`'s `EYE_MOVES` called a declared eye move stale
+  whenever its state was not measured, so a genuinely refused `vault` still
+  redded it; a state nobody reached is now unread, not stale. With `vault`
+  declared in `CANNOT_STRIKE_HERE`: struck, **all four red**; refused,
+  **none**; refused and undeclared, **all four red**; declaration taken back
+  out, all four green — 2026-10-19, Josh's session.
 - **H88** The census of absolute values. **213** `Math.abs` calls in `src/tests/`,
   comments out: **181** sit in a bound, a `max`, a sum or a print; **13** are
   helpers whose consumers are the same (`near`, `footOf`, a findIndex, three

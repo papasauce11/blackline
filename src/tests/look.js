@@ -33,7 +33,7 @@ import { CONFIG } from '../config.js';
 import { createLens, difference, quiesce, scaledCount } from './pixels.js';
 import { alongLane } from './lanes.js';
 import { standAndEyes } from './figure.js';
-import { strike, STRIKES } from './strikedrive.js';
+import { strike, STRIKES, refusalProblems } from './strikedrive.js';
 
 /** The eyes, by name: a direction relative to the lane (along, across) and a distance, or a lane eye the stand already has. */
 const EYES = [
@@ -344,9 +344,16 @@ export function register(debugTools) {
     run: (h) => {
       const problems = [];
       const readings = [];
+      // H90: a strike this map cannot make is the driver's rule to judge
+      // (H59), so four callers give one answer; `aim` is not a strike.
+      const refused = [];
+      const reached = [];
       for (const name of POSES) {
         const look = photographPose(h, name);
+        const struck = STRIKES.indexOf(name) !== -1;
+        if (!look.reached && struck) { refused.push({ state: name, why: look.why }); continue; }
         if (!look.reached) { problems.push(`${name}: ${look.why}`); continue; }
+        if (struck) reached.push(name);
         if (!look.eye) { problems.push(`${name}: no eye in open air with sight of the body (${look.state})`); continue; }
         if (!look.dataUrl || !look.dataUrl.startsWith('data:image/png;base64,') || look.dataUrl.length < 1000) problems.push(`${name}: the frame is not a PNG`);
         // One body at 4.5m covers thousands of pixels - of the reference
@@ -356,6 +363,7 @@ export function register(debugTools) {
         if (look.covered < floor) problems.push(`${name}: the body covers ${look.covered} pixels of a ${look.buffer.width}x${look.buffer.height} buffer from the ${look.eye} eye, want ${floor}`);
         readings.push(`${name} ${look.state} ${look.covered}px ${look.eye}`);
       }
+      problems.push(...refusalProblems(h, refused, reached));
       return {
         pass: problems.length === 0,
         detail: problems.length === 0 ? readings.join('; ') : `${problems.join('; ')} [${readings.join('; ')}]`,

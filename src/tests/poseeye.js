@@ -112,7 +112,7 @@
 
 import { chooseEye, POSE_EYE_NAMES } from './look.js';
 import { quiesce } from './pixels.js';
-import { strike, STRIKES } from './strikedrive.js';
+import { strike, STRIKES, refusalProblems } from './strikedrive.js';
 import { CONFIG } from '../config.js';
 
 /**
@@ -189,14 +189,18 @@ export function register(debugTools) {
       let withAGap = 0;
       let worst = { state: null, gap: 0 };
 
+      // H90: refusals are the driver's rule (H59), judged after the loop.
+      const refused = [];
+      const reached = [];
       try {
         for (const state of STRIKES) {
           h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
           const struck = strike(h, state);
           if (!struck.reached) {
-            problems.push(`${state}: the strike did not reach it (${struck.why})`);
+            refused.push({ state, why: struck.why });
             continue;
           }
+          reached.push(state);
           const shade = h.shade;
           const world = h.map.collision;
           // Both **feet** off the same frame: the body as drawn, and where the
@@ -243,6 +247,7 @@ export function register(debugTools) {
         h.input.clearAll();
         restore();
       }
+      problems.push(...refusalProblems(h, refused, reached));
 
       // The census, both ways - and reported as **one** line however many
       // states are in it, because a detail is cut at 400 characters with no
@@ -259,7 +264,9 @@ export function register(debugTools) {
           stale.push(`${state} declared ${brief(declared.drawn)}/${brief(declared.capsule)}, read ${brief(found.drawn)}/${brief(found.capsule)}`);
         }
       }
-      const closed = Object.keys(declaredHere).filter((state) => !moved[state]);
+      // H90: a refused state was never measured, so its eye-move declaration is
+      // unread rather than stale - the refusal is refusalProblems()' to judge.
+      const closed = Object.keys(declaredHere).filter((state) => !moved[state] && reached.indexOf(state) !== -1);
       if (undeclared.length) {
         problems.push(`on ${h.map.id}, ${undeclared.length} state(s) photographed from an eye the lag chose and not declared in EYE_MOVES: ${undeclared.join(', ')} (drawn/capsule, F=front B=back L=left R=right)`);
       }
