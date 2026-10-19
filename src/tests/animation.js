@@ -48,6 +48,13 @@ const SWINGS = 0.3;
 const STILL = 0.05;
 /** How far the ground covered between crossings may be from the stride: the ease lags every crossing alike, so this is the speed ramp and the last frame's rounding. */
 const STRIDE_TOLERANCE = 0.15;
+/**
+ * How long `gait()` may walk before the leg crosses the vertical and the count
+ * starts (H84). One stride is enough at every entry phase measured - the worst
+ * of twenty readings was 2.7m of sprint, about 25 frames - and this is ten
+ * times that, so it is a bound on a defect and never a wait.
+ */
+const ANCHOR_FRAMES = 240;
 
 /** The rotations of the six groups: what `easePose` writes, read back as a flat record. */
 function readPose(actor) {
@@ -79,6 +86,24 @@ function apart(a, b) {
  * furthest reach from the vertical, how many times it crossed it, the
  * ground covered, and the ground covered between one crossing and the
  * next - the stride the feet plant at, whatever the clock did.
+ *
+ * **Counted from the first crossing of the vertical, and that is H84.** The
+ * swing is driven by `_animTime`, which advances with the ground covered and
+ * which `reset()` deliberately leaves alone (H33) - so the phase this walk
+ * starts in is whatever the rest of the run left on it, and 4.4m of walking at
+ * a 2.0m stride spans 2.19 strides: two crossings at some entry phases and
+ * three at others. Both callers were in H79's drift census for exactly that,
+ * and the floor of two was **one crossing away** from the reading.
+ *
+ * Measured, ten entry phases a map by `npm run probe` in 141ms: unanchored the
+ * Warden's walk reads 2 crossings at eight phases and 3 at two of them, and
+ * the Shade's walk and sprint do the same. Walking on until the leg crosses
+ * the vertical **once** puts the phase at a zero of the swing whatever it was,
+ * and from there the crossings land at exact multiples of the stride - 2.000m
+ * and 4.000m for the Warden, 2.100 / 4.200 for the Shade's walk, 2.600 / 5.200
+ * for the sprint - at **every** phase on **both** maps. The anchor costs up to
+ * one stride of lane and nothing else; it is not a wait, because a crossing is
+ * a fact about the body and not about the clock.
  */
 function gait(h, actor, lane, held, frames) {
   actor.reset({ position: { x: lane.x, y: lane.y, z: lane.z }, yaw: lane.yaw });
@@ -86,36 +111,65 @@ function gait(h, actor, lane, held, frames) {
   for (let i = 0; i < 10; i++) frame(h);
   h.input.clearAll();
   for (const code of held) h.input.heldCodes.add(code);
-  const from = { x: actor.position.x, z: actor.position.z };
+  const leg = () => actor.mesh.userData.parts.legL.rotation.x;
+  let last = leg();
+
+  // The anchor: the first crossing of the vertical with the keys held. The
+  // budget is generous and bounded - a body that never crosses is a defect
+  // `strideProblems` reports, not a reason to hang the suite (F10).
+  let from = null;
+  for (let i = 0; i < ANCHOR_FRAMES && from === null; i++) {
+    frame(h);
+    const now = leg();
+    if (Math.sign(now) !== Math.sign(last) && now !== 0 && last !== 0) from = { x: actor.position.x, z: actor.position.z };
+    last = now;
+  }
+  if (from === null) {
+    h.input.clearAll();
+    return { reach: 0, crossings: 0, distance: 0, stride: null, anchored: false };
+  }
+
   const along = () => Math.hypot(actor.position.x - from.x, actor.position.z - from.z);
   let reach = 0;
-  let last = 0;
   const crossedAt = [];
   for (let i = 0; i < frames; i++) {
     frame(h);
-    const leg = actor.mesh.userData.parts.legL.rotation.x;
-    reach = Math.max(reach, Math.abs(leg));
-    if (i > 0 && Math.sign(leg) !== Math.sign(last) && leg !== 0 && last !== 0) crossedAt.push(along());
-    last = leg;
+    const now = leg();
+    reach = Math.max(reach, Math.abs(now));
+    if (Math.sign(now) !== Math.sign(last) && now !== 0 && last !== 0) crossedAt.push(along());
+    last = now;
   }
   h.input.clearAll();
   const crossings = crossedAt.length;
   const stride = crossings >= 2 ? (crossedAt[crossings - 1] - crossedAt[0]) / (crossings - 1) : null;
-  return { reach, crossings, distance: along(), stride };
+  return { reach, crossings, distance: along(), stride, anchored: true };
 }
 
 const fmt = (n) => (n === null ? '-' : n.toFixed(2));
 
 /**
- * The feet plant once a stride: at least two crossings of the vertical in
- * the run, and the ground covered between one and the next within
- * `STRIDE_TOLERANCE` of the band's footstep stride. A swing on the clock
- * gives a walk 2.5m and a sprint 3.4m here, and this says so.
+ * The feet plant once a stride: the ground covered between one crossing of
+ * the vertical and the next within `STRIDE_TOLERANCE` of the band's footstep
+ * stride, and **as many crossings as the ground covered has strides in it**. A
+ * swing on the clock gives a walk 2.5m and a sprint 3.4m here, and this says so.
+ *
+ * The count is a claim and no longer a floor (H84). Because `gait()` starts
+ * counting at a crossing, a run of `d` metres at a stride of `s` crosses the
+ * vertical `floor(d / s)` times exactly, and the two sides of that are
+ * independent: the count comes off the drawn leg's rotation and the
+ * expectation off the capsule's travel and `config.js`. The callers are sized
+ * so `d / s` is 2.25 to 2.5 - between two and three strides and near neither,
+ * because an expectation taken at a whole number of strides is a coin again.
  */
 function strideProblems(doing, run, stride) {
+  if (!run.anchored) return [`${doing}, the leg never crossed the vertical in ${ANCHOR_FRAMES} frames, so there is no gait to measure`];
   if (run.crossings < 2) return [`${doing} ${run.distance.toFixed(1)}m the leg crossed the vertical ${run.crossings} time(s), want one a stride (${stride}m)`];
   if (Math.abs(run.stride - stride) > stride * STRIDE_TOLERANCE) {
     return [`${doing}, the leg crosses the vertical every ${run.stride.toFixed(2)}m, want the ${stride}m stride within ${STRIDE_TOLERANCE * 100}% - the swing is not by the ground covered`];
+  }
+  const want = Math.floor(run.distance / stride);
+  if (run.crossings !== want) {
+    return [`${doing} ${run.distance.toFixed(2)}m at a ${stride}m stride, the leg crossed the vertical ${run.crossings} times and that ground holds ${want} - counted from the first crossing, so the two cannot disagree unless the swing is on something other than the ground covered (H84)`];
   }
   return [];
 }
@@ -166,7 +220,11 @@ export function register(debugTools) {
       // at a sprint, and crosses the vertical once per stride of the band's
       // footstep - the plant is by the ground covered, not the clock.
       const walk = gait(h, shade, lane, ['KeyW'], 90);
-      const sprint = gait(h, shade, lane, ['KeyW', 'ShiftLeft'], 75);
+      // 60 and not 75 since H84: the count starts at the first crossing, which
+      // costs up to a stride of lane, and 60 frames of sprint from there is
+      // 6.5m - 2.5 strides, and 9.2m from the stand at the worst entry phase
+      // measured, inside the 10m this lane is chosen for.
+      const sprint = gait(h, shade, lane, ['KeyW', 'ShiftLeft'], 60);
       readings.push(`walking ${walk.distance.toFixed(1)}m the leg reached ${walk.reach.toFixed(2)} rad and crossed the vertical ${walk.crossings} times, ${fmt(walk.stride)}m apart (stride ${S.footstepStride}); `
         + `sprinting ${sprint.distance.toFixed(1)}m, ${sprint.reach.toFixed(2)} rad, ${sprint.crossings} crossings ${fmt(sprint.stride)}m apart (stride ${S.sprintFootstepStride})`);
       if (walk.reach < SWINGS) problems.push(`walking, the leg reaches only ${walk.reach.toFixed(2)} rad`);

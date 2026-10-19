@@ -95,6 +95,37 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A test that was one step from failing on a coin flip now counts from a known place (H84, 2026-10-18)
+
+**Nothing in the game changed. Two tests changed how they measure the walk.**
+
+Both figures' legs swing by the ground they cover, not by the clock — that is
+the thing worth having, and two tests check it by walking down a lane and
+counting how often the left leg passes the vertical. They wanted **two or
+more**, and they were reading **two or three** depending on the run, because
+90 frames of walking covers 2.19 strides and where it starts inside a stride
+was left over from whatever the rest of the suite had done first.
+
+**So the count was one away from failing**, and nobody had found out which way
+it would fall on a given morning. The Shade's sprint was the same thing from
+the other side: three crossings nine times out of ten and two once.
+
+**The fix is to start counting at a crossing.** Walk until the leg passes the
+vertical once — which pins where in the stride the measurement begins, whatever
+came before — and count from there. Measured at ten different starting phases
+on both maps: every reading is now **two crossings, at exactly 2.00m and 4.00m**
+for the Warden and the same to the centimetre for the Shade. And the test now
+asserts something stronger than "two or more": the number of crossings must
+equal the number of strides in the ground covered, which is the claim the
+test's name makes and which only holds if the swing really is by the ground.
+
+**One thing worth knowing**, because it nearly fooled the check on the check:
+driving the leg off the clock instead of the ground **passed**, because the
+Warden happens to walk at almost exactly the speed at which those two are the
+same number. The break that works moves the quantity, not the formula.
+
+**Nothing for you to do.**
+
 ### Every test that puts a body somewhere now says what keeps it there (H83, 2026-10-18)
 
 **Two tests changed what they check. Nothing in the game changed.**

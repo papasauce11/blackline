@@ -19540,3 +19540,91 @@ and its numbers agree to the digit with the off-disk replica that was written
 before any browser ran it. H79's drift reads **34 on the plant and 36 on the
 yard** against H82's 34 / 37 three hours earlier and the audit's 34 / 35 this
 morning, so the yard's count is itself weather in the 35-37 band.
+
+## H84 — the coin was the gait's entry phase, and a floor became a claim about the ground
+
+**Built.** `src/tests/animation.js` 309 → 367 lines: `gait()` counts from the
+first crossing of the vertical, `strideProblems()` holds the count against the
+ground covered, `ANCHOR_FRAMES` is the bound, and the Shade's sprint is 60
+frames rather than 75. Two checks changed what they drive and nothing else did.
+
+**The quantity, found before anything was written** (H71, H74, H77 — and the
+job's own entry asked for it). `the-warden-walks-heavy-and-raises-the-rifle-to-
+where-it-looks` walks 90 frames and counts how often the left leg crosses the
+vertical, wanting **two or more**; H79's drift census had the plant at 2 and 2
+and the yard at 3 then 2, so the reading is **one crossing from its own floor**
+and which side of it depends on the run. The lever is `_animTime`: the swing is
+`this._animTime += speed * wallDt * (Math.PI / stride)` — a half cycle per
+stride of **ground covered** — and `reset()` deliberately leaves it alone
+(H33), so a walk begins at whatever phase the rest of the run left on it.
+**4.375m of walking at a 2.0m stride is 2.19 strides**, which holds two
+crossings or three depending on where in the stride it starts.
+
+**Measured, in 141ms, ten entry phases a map, both maps** (`npm run probe`,
+walking a varying number of frames first to put a known phase on the clock):
+
+| | unanchored, as it was | anchored on the first crossing |
+|---|---|---|
+| Warden walk, 90f | **2 crossings at eight phases, 3 at two of them** | **2 at all ten**, at 2.000m and 4.000m |
+| Shade walk, 90f | 2 at eight, 3 at two | 2 at all ten, at 2.100 and 4.200 |
+| Shade sprint, 75f | 3 at nine, **2 at one** | 2 at all ten, at 2.600 and 5.200 |
+
+So the coin is the entry phase, it is on **both** maps and in **both** callers
+of the helper, and the sprint is the one that was a single crossing from the
+floor on the other side. **Walking on until the leg crosses the vertical once
+pins the phase at a zero of the swing whatever it was** — and from there the
+crossings land at exact multiples of the stride, every phase, both maps. The
+anchor costs up to one stride of lane and nothing else, and it is not a wait: a
+crossing is a fact about the body, not about the clock (H72's distinction).
+
+**The floor is a claim now, and the two sides of it are independent.** Because
+the count starts at a crossing, a run of `d` metres at a stride of `s` holds
+exactly `floor(d / s)` crossings: the count comes off the drawn leg's rotation
+and the expectation off the capsule's travel and `config.js`, so they can only
+agree if the swing really is by the ground covered — which is what the check's
+name says and what `STRIDE_TOLERANCE` only half held. The three callers are
+sized so `d / s` is **2.25** (Warden), **2.5** (Shade walk) and **2.5**
+(sprint): between two and three strides and near neither, because an
+expectation taken at a whole number of strides is a coin again. The sprint's
+budget came down to 60 frames for the lane: the anchor plus 6.5m of counting is
+**9.2m from the stand at the worst phase measured**, inside the 10m
+`clearLane(h, 10)` is chosen for, where 75 frames would have asked for 10.8m.
+
+**Three breaks, and the first two are the record.**
+
+| break | what happened |
+|---|---|
+| the gait advanced by the clock at 3.0 instead of by the ground | **green, and that is a finding**: the Warden walks at almost exactly 3.0 m/s, so at that constant the clock and the ground are the same thing. A break has to differ in the quantity, not only in the formula |
+| the count started three quarters of a stride past the crossing, which is where an unanchored count lands at some phases | **red on the new clause alone** — *"walking 4.50m at a 2m stride, the leg crossed the vertical 3 times and that ground holds 2"* — with the stride clause green beside it at 2.00m apart, which is the coin's third crossing caught |
+| `ANCHOR_FRAMES = 0` | red naming the guard: *"the leg never crossed the vertical in 0 frames, so there is no gait to measure"* |
+
+The module was restored from its own `cp` snapshot after each and md5-compared;
+`enforcer.js` went back to HEAD unmodified.
+
+**Verified.** `npm run suite`, four runs, exit 0: plant **241 passed / 1 failed
+/ 8 not for this map** (1,120,361ms and 1,115,937ms), yard **221 / 1 / 28**
+(812,994ms and 774,281ms), spreads **0%** and **5%**, 0 red, 0 flaky, 0
+skipped, 0 unexpectedly green, **0 console errors**, no other runner, ceiling
+**11 of 600** over **196 modules** in all four runs. The yard's 5% (38,713ms) is
+the widest spread on record since F11; nothing else moved with it and no check
+changed its answer, but F16's line is the one to read before comparing a yard
+timing with this run's.
+
+**The done-when, both halves.** The branch taken is the second one — *the check
+reports the count and asserts something that is not one crossing from its own
+reading* — because the first (the same count over three verifies) is three
+hours of runner for weaker evidence than ten entry phases a map through the
+real loop. And **`scripts/detaildrift.mjs` no longer lists either check**: the
+drift census reads **34 on the plant and 34 on the yard**, against 34 / 36 in
+H83's verify three hours earlier and 34 / 37 in H82's, with
+`the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks` and
+`the-shade-has-a-pose-for-every-state-and-a-stride-for-every-step` gone from
+both maps. It is the first time since H79 built that census that the yard has
+not been above the plant. The Warden's line is character for character the same
+in all four runs: *"walking 4.5m the leg reached 0.38 rad and crossed the
+vertical 2 times, 2.00m apart (stride 2), the body rolled 0.050 rad"*.
+
+**Left.** Nothing of H84's own. Of H79's three classes the thirteen deliberate
+absolutes and the seventeen weather readings are untouched and are supposed to
+be; the two counts that should not wobble were H84 and **H85**, which is the
+next job in the file and is a defect rather than a reading.

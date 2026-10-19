@@ -724,27 +724,12 @@ one setting only Josh can click; everything else here proceeds.
   with the AI off, and **8 are exposed** - two of which were real and now hold
   their mark to 1e-6m, the other six declared with what they hold instead.
 
-- [ ] **H84 (S)** Pin the crossing count, on whichever map the coin is on.
-  `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks` counts how
-  many times the leg crosses the vertical over a 4.4m walk and wants **two or
-  more**, and the count moves between the two runs of a map, so it is **one
-  crossing from red**. H75 recorded it on the plant, "reproducibly, the same
-  way on two different trees"; H79's census has the plant at **2 and 2** and
-  the **yard** at **3 then 2**; **H82's verify is the third sighting and the
-  second on the yard** - 34 / 37 against the audit's 34 / 35 the same morning,
-  the plant steady. So it is a coin and not a map fact, and a pin
-  written against the plant pins the wrong map. There is no wall clock in this
-  check, which is what makes it the cheapest honest case in the whole census -
-  no pixels, no breath. **Find the quantity first** (H71, H74, H77): what
-  decides whether the last crossing lands inside the 4.4m is the phase the
-  gait starts at and where the walk stops, and `_animTime` is the lever H33
-  measured at 24% of a pixel count. H31's shape is the likely fix - drive the
-  walk from a known phase, or sample the cycle and report the worst - but the
-  count is the thing to measure before anything is written down.
-  *done-when:* the crossing count reads the same in both runs of both maps
-  over three verifies, or the check reports the count and asserts something
-  that is not one crossing from its own reading; `scripts/detaildrift.mjs` no
-  longer lists it; and `PROGRESS.md` says which of the two it was and why.
+- [x] **H84 (S)** Pin the crossing count, on whichever map the coin is on. —
+  done 2026-10-18, under Done. **The coin was the gait's entry phase**, on both
+  maps and in both callers of `gait()`; the count is now taken from the first
+  crossing of the vertical, which pins the phase, and the floor of two became a
+  claim about the ground covered.
+
 - [ ] **H85 (S)** A green check has been printing a negative count. H79's
   drift census put `the-last-leg-to-every-legal-plant-is-planned-and-short` at
   the top of both maps, and the reason is not drift: the detail prints
@@ -1366,6 +1351,37 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H84** The coin was the gait's entry phase, and a floor became a claim about
+  the ground. `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks`
+  wanted **two or more** crossings of the vertical over a 90-frame walk and
+  H79's census had the plant at 2 and 2 and the yard at 3 then 2 - one crossing
+  from its own floor, and which side depended on the run. **The lever is
+  `_animTime`**: the swing is a half cycle per stride of *ground covered* and
+  `reset()` leaves it alone (H33), so a walk starts at whatever phase the rest
+  of the run left, and 4.375m at a 2.0m stride is **2.19 strides** - two
+  crossings or three. **Measured first, 141ms, ten entry phases a map on both
+  maps**: unanchored the Warden's walk reads 2 at eight phases and 3 at two, the
+  Shade's walk the same, and the **sprint 3 at nine and 2 at one** - a single
+  crossing from the floor on the other side, which no record had. Anchored on
+  the first crossing every one of those readings is **2**, at exact multiples of
+  the stride (2.000 / 4.000 for the Warden, 2.100 / 4.200 for the Shade,
+  2.600 / 5.200 for the sprint), at every phase on both maps. The anchor costs
+  up to one stride of lane and is not a wait - a crossing is a fact about the
+  body. **And the floor is a claim now**: a run of `d` metres at a stride of `s`
+  holds exactly `floor(d / s)` crossings when the count starts at one, the count
+  coming off the drawn leg and the expectation off the capsule's travel and
+  `config.js`, so the two agree only if the swing is by the ground. The three
+  callers are sized at `d / s` of **2.25**, **2.5** and **2.5**, near no whole
+  number, because an expectation taken at a whole number of strides is a coin
+  again; the sprint came down to 60 frames so the anchor plus the count is 9.2m
+  of the 10m lane. Three breaks: the gait driven **by the clock at 3.0 stayed
+  green**, because the Warden walks at almost exactly 3.0 m/s and there the
+  clock and the ground are the same number (a break must differ in the
+  quantity, not only in the formula); the count started three quarters of a
+  stride past a crossing went **red on the new clause alone**, *"the leg crossed
+  the vertical 3 times and that ground holds 2"*, with the stride clause green
+  beside it; and `ANCHOR_FRAMES = 0` red on the guard. — done 2026-10-18
 
 - **H83** The census of a shape that had been found three times by hand, and
   the class that was better than a clause. A1 stayed green with
