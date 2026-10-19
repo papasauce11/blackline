@@ -122,8 +122,13 @@ const ON_SPAWN = 1e-6;
 
 /** Horizontal distance, because a settling body's travel is all in y (H74). */
 const flat = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
-/** A yaw difference, wrapped, so a turn through pi reads as a turn. */
-const turn = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+/**
+ * A yaw difference, wrapped, so a turn through pi reads as a turn - and
+ * **signed** (H88): two seeds that drew one node are held to the same settle by
+ * comparing this, and an absolute value made a left and a right of one size
+ * agree, which is H81's class in the one place H81 did not reach.
+ */
+const turn = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
 /**
  * How finely a pose is compared (H81). Four places of a metre and of a radian,

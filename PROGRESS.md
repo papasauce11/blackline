@@ -19783,3 +19783,59 @@ added after `spinZ` in `effects.js` reds the census with *"src/systems/
 effects.js lookRng draws unit->spinW that this census does not declare"* - by
 name, where it used to say only that the count of `unit` had changed. Restored
 from a snapshot and compared. Verified in this session's batch verify.
+
+## H88 — The census of absolute values, and the one comparison across cases that hid a sign
+
+H81 lost a job to a census that grouped by an absolute yaw difference, and
+H79's first draft ate a minus the same way. The entry asked for every reading in
+`src/tests/` that takes an absolute value of a signed quantity, split by whether
+the clause that consumes it is a magnitude or a grouping or a comparison across
+cases.
+
+**The census** (`abscensus.py` in the session's scratchpad, every `Math.abs(` on
+a non-comment line, classified by what follows and precedes the call; the
+census is of source and so the same on both maps):
+
+| class | count | what it is |
+|---|---|---|
+| a bound, a `max`/`min`, a sum, a print | 181 | how far: `Math.abs(x - y) < tol`, `Math.max(worst, Math.abs(d))` |
+| a helper whose callers are bounds | 13 | `near(a, b)`, `footOf`, two findIndex tolerances, and three wrapped `turn(a, b)` in `quiesce.js`, `grabworld.js` and `settlecircuit.js` |
+| read one by one | 19 | below |
+
+Of the nineteen: `animation.js`'s `apart()` is an angular distance; the three in
+`camerasettings.js` at 381 and the two in `feedback.js` are offsets held to
+bounds a line later; `hang.js`, `positioncensus.js`, `presentation.js`,
+`scuff.js` and `soak.js` are gaps, per-pixel deltas and sample peaks, all
+magnitudes. Two **compare two magnitudes inside one case, by design**:
+`outline.js` holds the hull's change at the silhouette edge against its change
+in the core, and its comment argues the direction moves with the meter
+(Section 4.2) so the claim is ownership, not direction; `camerasettings.js:209`
+holds yaw against pitch on the default sliders, and the signed clauses three
+lines either side pin each axis's direction. The three `turn` helpers: in
+`quiesce.js` and `grabworld.js` every consumer is a bound (`> TURNED`,
+`> UNMOVED`). **In `settlecircuit.js` one was not**: `settleClasses()` held two
+seeds that drew the same first node to one settle with `Math.abs(seen.turned -
+turned) > ON_SPAWN`, and `turned` was absolute - so a Warden that turned 1.13
+rad left and one that turned 1.13 rad right would agree. That is a comparison
+across cases on an absolute value, and the census's list of them is that one
+line.
+
+**Built.** `settlecircuit.js`'s `turn` is the wrapped signed difference; its
+only consumers are that comparison and the problem line that prints it, where
+the sign is now part of the reading. `tests/signedreadings.js` holds the sites
+that group or compare across cases - the pose key H81 introduced, and this turn
+- each found once by its opening line, read with `uncommented` (a pose key is a
+template literal, and `codeOf` would erase an absolute value written inside one),
+red if an absolute value is in its statement. A three-row proof shows the reader
+sees the two broken forms and not the signed one. It is a list, not a parser: a
+new grouping elsewhere is a row, and this table is how the next one is found.
+
+**Verified.** The new check, both settle checks and the source censuses (TRAPS'
+two-minute subset) on both maps: 14 passed each, 0 red; the settle census reads
+every node settling to one reading on both maps, so no seed pair disagreed in
+sign once it could. **Broken**: `Math.abs` put back into the turn reds the new
+check with *"src/tests/settlecircuit.js: `const turn =` takes an absolute value,
+and it is the turn two seeds that drew one node are compared on (H88): a left
+and a right of one size are two settles"*; restored and compared. Ceiling
+unchanged, 11 modules within 50 of 600, the new module 140 lines. Verified in
+this session's batch verify.

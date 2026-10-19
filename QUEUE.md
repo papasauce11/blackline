@@ -707,24 +707,11 @@ one setting only Josh can click; everything else here proceeds.
   under Done. `SPENDERS` rows carry `feeds`; the census compares
   `method->target` pairs; a new `lookRng.unit()` reds as `unit->spinW` by
   name.
-- [ ] **H88 (S)** An absolute value that hides a sign is how H81's class stayed
-  invisible for a job, and `turn()` is not the only reading in this suite that
-  takes one. `Math.abs` over a signed quantity is right when the clause is
-  *how far*, and wrong the moment the reading is **grouped** or **compared
-  across cases**, because two opposite answers become one. H81 is the worked
-  example and it cost a whole job: `tests/settlecircuit.js` grouped the settle
-  by `Math.abs(...)` of a yaw difference and so put a Warden facing 2.27rad
-  away in with the majority. The census this job wants is of every reading in
-  `src/tests/` that takes an absolute value of a signed quantity, split by
-  whether the clause that consumes it is a magnitude (fine, and most are) or a
-  grouping or a comparison across cases (not fine, and that is the list). H79's
-  own first draft is the other instance on record - it ate a leading minus and
-  read one quantity either side of zero as two different sentences - so there
-  are at least two and nobody has looked for a third.
-  *done-when:* the census is in `PROGRESS.md` for both maps, a clause holds
-  that every grouping or cross-case comparison in it is on a signed quantity,
-  and a `Math.abs` put back into one of them reds that clause by name.
-
+- [x] **H88 (S)** The census of absolute values, and the one comparison across
+  cases that hid a sign — done 2026-10-18, under Done. 213 `Math.abs` in
+  `src/tests/`; one compared across cases on an absolute value
+  (`settlecircuit.js`'s turn), now signed; `tests/signedreadings.js` holds the
+  two grouping sites by name.
 - [ ] **H89 (S)** A pinned instrument stops sampling, and H81 pinned one. Since
   H81 the thirty `quiesce()` callers all open the same circuit, so the twelve
   sites that photograph the settle without stepping a frame will now **never**
@@ -1278,6 +1265,20 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H88** The census of absolute values. **213** `Math.abs` calls in `src/tests/`,
+  comments out: **181** sit in a bound, a `max`, a sum or a print; **13** are
+  helpers whose consumers are the same (`near`, `footOf`, a findIndex, three
+  copies of a wrapped `turn`); **19** were read one by one. Two compare two
+  magnitudes inside one case on purpose and say why (`outline.js`'s edge
+  against core, `camerasettings.js`'s yaw against pitch with the signs held
+  beside it). **One** compared across cases on an absolute value:
+  `settlecircuit.js` held two seeds that drew one first node to one settle by
+  their **absolute** turns, so a left and a right of one size agreed - H81's
+  class in the place H81 did not reach. That turn is signed now.
+  `tests/signedreadings.js` holds the two sites that group or compare across
+  cases (the pose key and that turn) by name, off the tree with strings kept,
+  and putting the `Math.abs` back reds it *"the turn two seeds that drew one
+  node are compared on (H88)"* — 2026-10-19, Josh's session.
 - **H87** Every declared draw names what it feeds. Each of the 23 rows of `SPENDERS`
   in `tests/rngdraws.js` carries `feeds` - the identifier on the left of the
   `=` (or the key of an object literal, or the argument of an in-place

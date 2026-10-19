@@ -106,6 +106,7 @@ import { register as registerSkipList } from './skiplist.js';
 import { register as registerArgs } from './args.js';
 import { register as registerBenchList } from './benchlist.js';
 import { register as registerReaderNames } from './readernames.js';
+import { register as registerSignedReadings } from './signedreadings.js';
 import { register as registerRunnerGuard } from './runnerguard.js';
 import { register as registerDetailDrift } from './detaildrift.js';
 import { register as registerTimedRenders } from './timedrenders.js';
@@ -263,6 +264,9 @@ export function registerAutoTests(debugTools) {
   // And the readers both of those censuses grep with: one module owns them,
   // and a local name may not claim the one it did not get (H68).
   registerReaderNames(debugTools);
+  // H88: and the sites that group a reading or compare it across cases keep
+  // its sign, which is the class H81 found by a whole job.
+  registerSignedReadings(debugTools);
   registerRunnerGuard(debugTools);
   // H79: and which readings moved between the two runs of a map without
   // moving a verdict, which `flaky` cannot see.
