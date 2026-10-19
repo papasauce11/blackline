@@ -736,7 +736,7 @@ one setting only Josh can click; everything else here proceeds.
   four constants and two case tables verbatim; `audiodevice.js` 597 -> 346;
   ceiling cluster 11 -> 10. Taken before H92 so the floor lands in the new
   module.
-- [ ] **H94 (S)** The journal is marked on frames and the gap is between
+- [~] **H94 (S)** The journal is marked on frames and the gap is between
   bursts. H66 measured the blind spot: the widest interval between two marks
   is **1.00 of everything the plant loses and 1.16 of everything the yard
   loses**, so the whole of a run's loss would fit inside the one interval
@@ -764,6 +764,21 @@ one setting only Josh can click; everything else here proceeds.
   of the loss** (`readCoverage()`'s `RESOLVED`, which H66 wrote for this), both
   numbers are in `PROGRESS.md` with the mark counts, and the shape is still
   `many-stretches` with its concentration now a reading over the run.
+  **Partial, 2026-10-19, `fd3264a`:** the marks are in and the bar is not met.
+  The runner marks the journal at the end of every check and four times a
+  second in a pipeline wait - **484, 1,245, 455 and 1,157 marks between
+  checks** on the four runs of batch 2's verify - and the widest gap came down
+  from 1.00 and 1.16 of the loss to **0.42 and 0.16 on the plant (121.6s and
+  131.4s against 287.1s and 836.8s unfed) and 0.44 and 0.23 on the yard (76.0s
+  and 102.2s against 173.2s and 453.3s)**, against the 0.05 `RESOLVED` asks.
+  The shape is still `many-stretches`. **What is left is a finding, not a
+  tuning**: the widest gap is longer than any check's own clock on its run
+  (the longest is 76.3s on the plant and 53.3s on the yard), so the blind spot
+  is not one long check and a mark inside checks would not close it. Something
+  between two marks takes longer than the check either side of it. The next
+  step is to say where: the journal keeps the `atMs` its widest gap opened at,
+  the runner's beat names the check in flight then, and the device check
+  prints both - then the seam is the one that reading names.
 - [ ] **H12 (S)** A bug report. Pause → *Copy report*: map, seed, version,
   settings, the last thirty seconds of input, the last twenty log lines, to
   the clipboard as text. The version is `VERSION` / `versionLabel()` in
@@ -1183,7 +1198,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   numbers with the stretch raised to 61s go red. `timedrenders.js` gains a
   fifth verdict, `span`, which must name a reason in `SPANS` (`bracketed`);
   the device check carries it. Moving the floor to 900s reds all five fault
-  rows by name. D74 carries the override — 2026-10-19, Josh's session.
+  rows by name. D74 carries the override — `dec11e4`, 2026-10-19, Josh's session.
 - **H93** What the audio journal's numbers mean, in a module of its own.
   `readDeviceClock`, `readUnfedShape`, `readCoverage`, `MIN_WINDOW_SECONDS`,
   `MIN_SHAPE_SAMPLES`, `CONCENTRATED`, `RESOLVED`, `CLOCK_CASES` and
@@ -1194,7 +1209,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   `systems/combat.js` at 593. The request count: **1,614** entries against a
   buffer of **65,536** (H67), 199 modules. Taken ahead of H92 on purpose:
   H92's floor is a reader and a constant, and it lands beside the others
-  rather than past 600 — 2026-10-19, Josh's session.
+  rather than past 600 — `0ef4eae`, 2026-10-19, Josh's session.
 - **H91** A census line is read whole, or it is red. The answer taken is the third the
   entry offered: **a census's roster is a second field**, so a detail line is
   the measurements and nothing else. `scripts/suite.mjs` carries each result's
@@ -1205,7 +1220,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   characters even with its roster gone - its readings had grown since H60 -
   and the new clause caught it on its first run; its fixed wording is tighter
   and it reads **385** on both maps, every reading inside. The others: 312,
-  334, 340, 348-351, 387, 393-394 — 2026-10-19, Josh's session.
+  334, 340, 348-351, 387, 393-394 — `5c502e2`, 2026-10-19, Josh's session.
 - **H89** The pixel floors hold at a pose the pinned seed never photographs.
   `tests/outlierpose.js` takes the biggest non-dominant class from
   `settlecircuit.js`'s pose census every run (never a written seed), wraps
@@ -1218,7 +1233,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   held, and with the **same readings** it gives at the dominant pose (bloom
   22.5 -> 77.6 and 34.6 -> 111.9; pools 21.5/18.3/14.7). Pinned to the
   dominant pose the check reds as *"a census that has stopped varying"* —
-  2026-10-19, Josh's session.
+  `f42ee4a`, 2026-10-19, Josh's session.
 - **H90** Four strike callers, one answer to a refused strike. `look.js` and
   `poseeye.js` pushed a refused strike into `problems` unconditionally; both
   now collect refusals and hand them to `refusalProblems()` with the states
@@ -1229,7 +1244,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   redded it; a state nobody reached is now unread, not stale. With `vault`
   declared in `CANNOT_STRIKE_HERE`: struck, **all four red**; refused,
   **none**; refused and undeclared, **all four red**; declaration taken back
-  out, all four green — 2026-10-19, Josh's session.
+  out, all four green — `54256ba`, 2026-10-19, Josh's session.
 - **H88** The census of absolute values. **213** `Math.abs` calls in `src/tests/`,
   comments out: **181** sit in a bound, a `max`, a sum or a print; **13** are
   helpers whose consumers are the same (`near`, `footOf`, a findIndex, three

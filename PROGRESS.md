@@ -20065,3 +20065,64 @@ device that died; readUnfedFloor(583900) ..."* - all five fault rows by name;
 restored and compared, then green again on the plant at 366 characters. The two
 directions of the line itself are rows, so they are proved every suite.
 Verified in this session's second batch verify.
+
+## H94 — The journal is marked between checks, and the gap it was for is still there (partial)
+
+The runner now hands the audio device's journal a mark at the end of every
+check (`ui/autosuite.js`'s `_markDevice()`, after the result is printed) and
+four times a second while it waits on the renderer's pipeline. `sample()`
+reads `context.currentTime` and advances nothing, so neither the F4 nor the F13
+ban is touched; the device check requires the runner's marks on any measured
+window and prints how many there were (`N marks (M between checks)`).
+
+**Measured on batch 2's verify, four runs at `fd3264a`:**
+
+| run | unfed | widest gap | gap / loss | marks | between checks |
+|---|---|---|---|---|---|
+| plant 1 | 287.1s of 856.9s | 121.6s | **0.42** | 885 | 484 |
+| plant 2 | 836.8s of 2,048.5s | 131.4s | **0.16** | 2,107 | 1,245 |
+| yard 1 | 173.2s of 563.2s | 76.0s | **0.44** | 851 | 455 |
+| yard 2 | 453.3s of 1,398.5s | 102.2s | **0.23** | 2,009 | 1,157 |
+
+A second run's figures are cumulative - the two runs of a map share one page
+(TRAPS.md), and the journal is the page's, opened at the first unlock. H66 had
+the gap at 1.00 and 1.16 of the loss, so the marks cut it by a factor
+of two to seven, and the shape is still `many-stretches` with concentrations
+of 0.0009 to 0.0026. **The done-when asks for under 0.05 and every run is over
+it**, so this is recorded `[~]` and not done.
+
+**Why the remainder is not more marks.** The widest gap on every run is longer
+than the longest check on that run: 76.3s on the plant
+(`every-route-reads-lit-from-its-foot`) and 53.3s on the yard (the menu
+thumbnails). A mark lands after every check, so a gap of 121s cannot be inside
+one check - something between two marks costs more than the check on either
+side of it, and the job's model (the gap is the quiet between bursts of
+frames, and a mark per check closes it) is wrong about where the time is.
+The next step is a reading, not a guess: the journal keeps the `atMs` its
+widest gap opened at, the runner's heartbeat says which check was in flight
+then, and the device check prints both. Whatever that names is the seam.
+
+## Batch 2 of Josh's twenty — H89 to H94, verified together (2026-10-19)
+
+The same protocol as batch 1: each job proved by its own subset on both maps
+and a break-and-restore, committed on its own, and one full two-run verify
+over the batch before anything was pushed. H93 went before H92 on purpose -
+`audiodevice.js` was at 597 of 600 and H92 adds to it - and both are in this
+batch, so the order is visible in the log.
+
+**Verified**, four runs at `fd3264a`, exit 0: plant **243 / 1 / 8** both
+runs (1,151,242ms and 1,149,154ms), yard **223 / 1 / 28** both runs
+(797,489ms and 790,460ms), spreads **0%** and **1%**, 0 red, 0 flaky, 0
+skipped, 0 unexpectedly green, **0 console errors**, no other runner. One
+check more per map than batch 1, which is H89's outlier pose (H93's module
+registers none of its own; H90, H91 and H92 changed checks rather than adding
+them). Ceiling **11 modules within 50 of 600**, nearest now
+`src/systems/combat.js` at 593: H93 took `audiodevice.js` out of the lead.
+The one failure a map is the bench-only sweep the gate drops by design (H11).
+
+**H94 is the one job of the six not done.** Its marks are in and its bar is
+not met - the widest gap between two marks is 0.16 to 0.44 of the loss
+against the 0.05 it asks, and longer than any single check on its run - so it
+is `[~]` with the four readings and what the next reading has to be, and its
+commit stands because the marks are right and the check that reads them is
+green.
