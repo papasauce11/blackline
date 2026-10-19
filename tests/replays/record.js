@@ -3,8 +3,8 @@
 // The program the shipped replays were recorded from (H13). A probe file,
 // not a module: `npm run probe -- --map <id> tests/replays/record.js` runs it
 // in the page with `h` in scope and prints the replay it returns, which is
-// the file - `tests/replays/<id>.json` - once the probe's JSON is written
-// compact (PROGRESS.md, H13, has the one-liner).
+// the file - `tests/replays/<id>.json` - once `compact.mjs` beside it has
+// written the probe's JSON one event a line.
 //
 // Sixteen seconds of a competitive round against the live AI, played through
 // the input layer the way a keyboard plays it: keys go down and up between

@@ -20368,8 +20368,9 @@ the same steps, but the death camera's guard runs on the wall clock (Section
 headless. The shipped replays and the check are the step-driven path.
 
 **Re-recording** when a change moves an end on purpose:
-`npm run probe -- --map <id> tests/replays/record.js > out.json`, then write it
-compact (the job's own scratch converter put one event a line). Say so in the
+`npm run probe -- --map <id> tests/replays/record.js > out.json`, then
+`node tests/replays/compact.mjs out.json tests/replays/<id>.json`, which writes
+it one event a line so a re-recording diffs as the events that changed. Say so in the
 job that does it: a replay re-recorded whenever it goes red asserts nothing.
 
 **Proved.** Subset on both maps, one run each - the new check, the reset

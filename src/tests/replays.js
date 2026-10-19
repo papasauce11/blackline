@@ -18,8 +18,8 @@
  * with nobody at the keys.
  *
  * Re-recording, when a change to the game moves a recorded end on purpose, is
- * `npm run probe -- --map <id> tests/replays/record.js`, whose output is the
- * file. Registered from tests/index.js. Nothing here imports main.js.
+ * `npm run probe -- --map <id> tests/replays/record.js`, whose output
+ * `tests/replays/compact.mjs` writes as the file. Registered from tests/index.js. Nothing here imports main.js.
  */
 
 import { CONFIG } from '../config.js';
