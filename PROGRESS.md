@@ -20203,3 +20203,37 @@ so no frame runs under it.
 **Proved.** Subset on both maps, one run each - the new check, H12's report, menu reachability, the two boot-notice checks and the request buffer (both read index.html), the heartbeat and the nine source censuses - 16/16 on the plant (118.0s) and 16/16 on the yard (75.5s), no console errors; the report is 866 and 859 characters with its crashes line, and the crash page named the error and seed 1394094942 on the plant, 1394221674 on the yard; ceiling unchanged at 11 within 50 of 600, of 204 loaded, main.js 574.
 
 Break: `FrameLoop.run` made to rethrow instead of handing the throw on; the check went red on the plant on its first clause, "the throw escaped the loop's guard", and on every clause that follows from a crash nobody caught - no count, no pause, no crash page - and `loop.js` was put back from a copy.
+
+## H15 — The pause menu restarts, changes map and quits, asking first mid-round
+
+**Built.** The pause page (`ui/menupause.js`) gains *Restart round*,
+*Restart match* and *Change map* beside Resume, Settings, Copy report and Main
+menu, and every one of the four that ends a round goes through `_ask(question,
+yes)`: a confirm page (`_renderConfirm`) while `handlers.midRound()` says a
+round is live, and `yes()` at once when it is not. `panels.js` supplies the
+question and the two restarts: `midRound` is "the match has an objective and
+its round is `ROUND.ACTIVE`", and `again(round)` is one `initMatch` with this
+match's own mode, role, AI, objective, length, difficulty and **seed** - so a
+restarted round is the round it was, not a new draw - followed by the briefing
+(C2), because every route into a round puts it up.
+
+**Change map does not pick a map.** D55 left the main menu with the cards as
+the way to pick one, and H18 is queued to make them the only way, so a second
+picker on the pause page would be the thing H18 removes. It ends the match like
+Main menu does and lands the ring on the first card that is not the map already
+loaded - Enter from there is the switch.
+
+**The confirm's first row is No**, so the Enter that opened it, or a stray one,
+loses nothing; Esc from it is the pause key and resumes, as it does from the
+pause page.
+
+**The check drives every button for real**: round 2 at 1-0 restarted (refused
+once with No, then taken) is round 2 at 1-0 with its clock at zero; restart
+match is round 1 at nil-nil with the briefing up; change map is the main page
+with the ring on another map's card and the score cleared; quit is the main
+page unpaused; free roam restarts without asking; and both pages declare every
+control they draw.
+
+**Proved.** Subset on both maps, one run each - the new check, H12's and H14's (the pause page is theirs too), menu reachability, the menu's two map checks, the two briefing checks and the nine source censuses - 17/17 on the plant (136.4s) and 17/17 on the yard (87.0s); round 2 was refused once at 0.50s and then restarted to zero, change map put the ring on the yard's card from the plant and the plant's from the yard; ceiling unchanged at 11 within 50 of 600, of 205 loaded.
+
+Break: `_ask` made to go straight through whatever the round; the check went red on the plant on all four routes by name - restart round, restart match, change map and quit each "mid-round ... without asking" - and the file was put back from a copy.

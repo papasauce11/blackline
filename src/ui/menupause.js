@@ -1,9 +1,10 @@
 /**
  * BLACKLINE - ui/menupause.js
  *
- * The pages a match opens rather than the main menu: the pause overlay, what
- * it copies when a friend wants to tell you what they saw (H12), and the page a
- * crash puts up (H14).
+ * The pages a match opens rather than the main menu: the pause overlay and
+ * its restarts (H15), the confirm in front of anything a live round would lose,
+ * what it copies when a friend wants to tell you what they saw (H12), and the
+ * page a crash puts up (H14).
  * Installed on `Menu.prototype` at the bottom of `menu.js` beside
  * `menupages.js`, the same prototype mixin: `this` is the menu, and every
  * page ends by declaring its rows through `this._rows()`, which is what
@@ -28,7 +29,10 @@ export const MENU_PAUSE = {
         <h1 style="font-size:20px">Paused</h1>
         <div class="tag">the round is stopped</div>
         <button data-action="resume">Resume</button>
+        <button data-action="restart-round">Restart round</button>
+        <button data-action="restart-match">Restart match</button>
         <button data-action="settings">Settings</button>
+        <button data-action="change-map">Change map</button>
         <button data-action="report">Copy report</button>
         <button data-action="quit">Main menu</button>
         ${this._reportBox()}
@@ -45,12 +49,71 @@ export const MENU_PAUSE = {
     };
     const report = this.root.querySelector('[data-action=report]');
     report.onclick = () => this._copyReport();
-    const quit = this.root.querySelector('[data-action=quit]');
-    quit.onclick = () => {
+    // H15: each of these ends the round in progress, so each asks first.
+    const restartRound = this.root.querySelector('[data-action=restart-round]');
+    restartRound.onclick = () => this._ask('Restart the round?', () => {
+      this.hide();
+      if (this.handlers.onRestartRound) this.handlers.onRestartRound();
+    });
+    const restartMatch = this.root.querySelector('[data-action=restart-match]');
+    restartMatch.onclick = () => this._ask('Restart the match?', () => {
+      this.hide();
+      if (this.handlers.onRestartMatch) this.handlers.onRestartMatch();
+    });
+    // The cards on the main page are the way to pick a map (D55), so this
+    // leaves the match and puts the ring on the card for another one.
+    const changeMap = this.root.querySelector('[data-action=change-map]');
+    changeMap.onclick = () => this._ask('Leave for another map?', () => {
       this.show('main');
       if (this.handlers.onQuit) this.handlers.onQuit();
+      const at = this.rows.findIndex((row) => row.el.classList.contains('mapcard') && row.el.getAttribute('aria-current') !== 'true');
+      if (at !== -1) {
+        this.focus = at;
+        this._paint();
+      }
+    });
+    const quit = this.root.querySelector('[data-action=quit]');
+    quit.onclick = () => this._ask('Quit to the main menu?', () => {
+      this.show('main');
+      if (this.handlers.onQuit) this.handlers.onQuit();
+    });
+    this._rows([resume, restartRound, restartMatch, settings, changeMap, report, quit]);
+  },
+
+  /**
+   * H15: ask before `yes`, but only when a round is live - free roam and a
+   * round already decided have nothing to lose, and a confirm in front of
+   * nothing is a click the player learns to make without reading.
+   */
+  _ask(question, yes) {
+    if (!(this.handlers.midRound && this.handlers.midRound())) return yes();
+    this._confirm = { question, yes, back: this.page };
+    this.show('confirm');
+    return undefined;
+  },
+
+  /** The confirm. *No* is the first row, so a stray Enter loses nothing. */
+  _renderConfirm() {
+    const ask = this._confirm || { question: 'Nothing to confirm', yes: () => this.show('pause'), back: 'pause' };
+    this.root.innerHTML = `
+      <div class="card">
+        <h1 style="font-size:20px" id="bl-confirm-question"></h1>
+        <div class="tag">the round in progress is lost</div>
+        <button data-action="no">No, go back</button>
+        <button data-action="yes">Yes</button>
+      </div>`;
+    this.root.querySelector('#bl-confirm-question').textContent = ask.question;
+    const no = this.root.querySelector('[data-action=no]');
+    no.onclick = () => {
+      this._confirm = null;
+      this.show(ask.back);
     };
-    this._rows([resume, settings, report, quit]);
+    const yes = this.root.querySelector('[data-action=yes]');
+    yes.onclick = () => {
+      this._confirm = null;
+      ask.yes();
+    };
+    this._rows([no, yes]);
   },
 
   /**

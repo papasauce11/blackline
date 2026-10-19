@@ -135,6 +135,7 @@ export class Menu {
     if (this.page === 'controls') return this._renderControls();
     if (this.page === 'pause') return this._renderPause();
     if (this.page === 'crash') return this._renderCrash();
+    if (this.page === 'confirm') return this._renderConfirm();
     if (this.page === 'howto') return this._renderHowTo();
     if (this.page === 'credits') return this._renderCredits();
     this._renderMain();

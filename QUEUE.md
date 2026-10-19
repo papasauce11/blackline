@@ -786,8 +786,7 @@ one setting only Josh can click; everything else here proceeds.
   outcome. *done-when:* a recorded match replays to the same end state, and
   one replay ships in `tests/replays/`.
 - [x] **H14 (S)** A crash guard, and the page a crash puts up — done 2026-10-18, under Done. `src/crashguard.js`, `FrameLoop.run`, the crash page in `ui/menupause.js`, `a-throw-inside-a-step-stops-the-match-and-the-crash-page-says-so`.
-- [ ] **H15 (S)** The pause menu: restart round, restart match, change map,
-  quit to menu, with a confirm mid-round. *done-when:* a check drives each.
+- [x] **H15 (S)** The pause menu restarts, changes map and quits, asking first mid-round — done 2026-10-18, under Done. `ui/menupause.js` (`_ask`, `_renderConfirm`), `panels.js` (`midRound`, `onRestartRound`, `onRestartMatch`), `the-pause-menu-restarts-changes-map-and-quits-and-asks-first-mid-round`.
 - [ ] **H16 (S)** `npm run notes`: release notes from `PROGRESS.md` since
   the last tag into `RELEASES.md`; Josh tags when he merges. *done-when:*
   the script runs and the file reads.
@@ -1181,6 +1180,25 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H15** The pause menu: *Restart round* (the same round number and score, on the
+  seed the match was opened with), *Restart match* (round 1, nil-nil), *Change
+  map* and *Main menu*, each behind a confirm while a round is live and
+  straight through when there is nothing to lose (free roam, a round already
+  decided). *No* is the confirm's first row, so a stray Enter loses nothing.
+  *Change map* is not a second map picker: the cards are the way to pick a map
+  (D55, and H18 wants one way), so it ends the match and puts the ring on the
+  card for another map. Both restarts put the briefing up, as every route into
+  a round does. Subset on both maps, one run each - the new check, H12's and
+  H14's (the pause page is theirs too), menu reachability, the menu's two map
+  checks, the two briefing checks and the nine source censuses - 17/17 on the
+  plant (136.4s) and 17/17 on the yard (87.0s); round 2 was refused once at
+  0.50s and then restarted to zero, change map put the ring on the yard's card
+  from the plant and the plant's from the yard; ceiling unchanged at 11 within
+  50 of 600, of 205 loaded. Break: `_ask` made to go straight through whatever
+  the round; the check went red on the plant on all four routes by name -
+  restart round, restart match, change map and quit each "mid-round ...
+  without asking" - and the file was put back from a copy. - 2026-10-19,
+  Josh's session.
 - **H14** A crash guard. A throw inside a frame used to kill the rAF callback after it
   had already asked for the next one, so the same throw went to the console
   every frame over a canvas that never moved again. Now `FrameLoop.run`

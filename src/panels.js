@@ -16,6 +16,7 @@
 import { rng, SETTINGS } from './config.js';
 import { bindingConflicts } from './input.js';
 import { COMPETITIVE, FREEROAM, TUTORIAL } from './matchstate.js';
+import { ROUND } from './systems/roundstate.js';
 import { loadVersion, versionLabel } from './version.js';
 import { saveSettings, clearSettings } from './settingsstore.js';
 import { createHud } from './ui/hud.js';
@@ -58,6 +59,16 @@ export function createPanels({
     briefing.show({
       match: match(), round: objective().round.number, sites: map().sites, bindings: input().bindings,
       mapName: map().name,
+    });
+  };
+
+  // H15: this match again, from the round given, on the seed it was opened
+  // with - the same `initMatch` every route uses, told what it is restarting.
+  const again = (round) => {
+    const m = match();
+    initMatch({
+      mode: m.mode, role: m.role, ai: m.aiEnabled, objective: m.objectiveEnabled,
+      matchLength: m.matchLength, difficulty: m.difficulty, seed: m.seed, round,
     });
   };
 
@@ -131,6 +142,19 @@ export function createPanels({
       brief();
     },
     onResume: () => setPaused(false),
+    // H15: the pause menu's restarts, and the one question they ask first.
+    midRound: () => !!(match() && match().objectiveEnabled && objective().round.state === ROUND.ACTIVE),
+    onRestartRound: () => {
+      setPaused(false);
+      again(objective().round.number);
+      brief();
+    },
+    onRestartMatch: () => {
+      setPaused(false);
+      objective().resetMatch();
+      again(1);
+      brief();
+    },
     // H12: the text *Copy report* copies, built when it is asked for.
     report: () => (report ? report() : ''),
     // H14: the crash page - what broke, and the two ways on from it.
