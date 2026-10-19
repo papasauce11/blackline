@@ -19654,3 +19654,25 @@ first audit to run it will recommend a bench on the commit count alone.
 **Verified.** `node --check`, the dry run above, and the batch verify that closes
 this session's first batch. No AUTO check: the function is the node side's and no page check can call
 it; the audit's report is its reader.
+
+## H49 — The build task's prompt knows exit 3
+
+The build task's prompt is outside this repo, so twenty unattended runs
+declined it, as the queue asked them to: a session with nobody present should
+not change a standing prompt, its own included. This one had Josh present.
+
+**Built.** Step 2's single sentence - "non-zero: write BROKEN BASE; exit 2 is a
+crash" - is now a four-line table of the runner's codes. 0 builds. 1 is the
+only code that writes `## BROKEN BASE`. 2 reads stderr first: H80's exit 2 was
+Chrome exiting before the first page, which is a machine fault, so a
+browser-launch message earns one re-gate before any verdict, and a page or
+harness crash is recorded at once. 3 is H45's refusal: the base is fine and the
+machine is busy, so the run reads the pid, checks with `Get-CimInstance` that it
+is `node scripts/suite.mjs` or its `npm` wrapper (never `npx serve`, never
+Josh's own Chrome), ends it with `Stop-Process -Id <pid> -Force`, and gates
+again. `TRAPS.md`'s orphan entry is named for the Chrome tree, and
+`--allow-other-runners` is ruled out for a gate.
+
+**Verified.** The prompt was read back: four rows, each code once, the model
+line intact. No AUTO check can hold a file outside the repo, so this job
+carries none; the done-when is the prompt's text.

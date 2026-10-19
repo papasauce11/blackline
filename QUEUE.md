@@ -412,24 +412,7 @@ one setting only Josh can click; everything else here proceeds.
   re-measured with their new numbers in `PROGRESS.md`; `PLAYTEST.md`'s H44
   section says what changed and `npm run shot -- --slide` shows it; and the
   60Hz jitter the smoothing exists for is shown still smoothed outside a move.
-- [ ] **H49 (S)** The *build* task's prompt does not know about exit 3.
-  H45 gave `npm run suite` a third exit code: **1 is red, 2 is a crash, 3 is
-  "another runner is alive and this run declined to measure"**. The scheduled
-  task's own prompt, at `~/.claude/scheduled-tasks/blackline-build/SKILL.md`,
-  says only that a non-zero gate means write the red text under `## BROKEN
-  BASE` and that "exit code 2 means the runner itself crashed". A refusal
-  filed as a broken base is a wrong verdict in the record: the base is fine,
-  the machine is busy, and the right move is to read the pid out of the
-  stderr line, clear it, and start the gate again rather than to commit a
-  BROKEN BASE and stop. Add the third branch, and the two ways to clear a pid
-  that `TRAPS.md` now carries.
-  **This is the second job in Block H that edits a file outside this repo**,
-  and the same rule applies as to **H37**: a scheduled session with nobody
-  present should not change another standing prompt, including its own. A
-  session Josh is watching can take both in one sitting — they are two lines
-  in two files, and H37's dry run is the harder half.
-  *done-when:* the build task's prompt routes exit 3 to "clear the pid and
-  re-gate" rather than to BROKEN BASE, and says which code means what.
+- [x] **H49 (S)** The build task's prompt knows exit 3 — done 2026-10-18, under Done. Taken by a session Josh was watching (2026-10-18), as the entry asked.
 - [x] **H50 (S)** A floor on the device's fed ratio, if one can be set
   honestly - and the `sign` count H35 found short. - done 2026-10-10, under
   Done. **No floor, and the readings are why rather than the argument**
@@ -1330,6 +1313,18 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H49** The build task's prompt knows exit 3. Its GATE step now names all three
+  non-zero codes and routes them: **1** red is the only `## BROKEN BASE`;
+  **2** a crash is read first, and a message about the browser
+  (`browserType.launch`) is re-gated once before anything is written, because
+  H80 showed it is Chrome failing to come up rather than the base; **3**
+  another runner is never written as a broken base - find the pid, confirm it
+  is a `suite.mjs` tree with `Get-CimInstance`, end it with `Stop-Process -Id
+  <pid> -Force` (the sandbox refuses `taskkill`), re-gate, and never pass
+  `--allow-other-runners` to a gate. The prompt is outside this repo
+  (`~/.claude/scheduled-tasks/blackline-build/SKILL.md`); the before-copy is
+  in the session's scratchpad. Nothing under `src/` changed — 2026-10-18,
+  Josh's session.
 - **H37** The weekly audit says how old the bench is. `benchAge()` in
   `scripts/suitereport.mjs` returns the newest `bench/<date>.json`'s date, UTC
   time, commit, GPU and reading count, `commitsSince` (a `git rev-list
