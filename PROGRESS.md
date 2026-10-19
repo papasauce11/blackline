@@ -20444,3 +20444,30 @@ touches, with reachability, the ceiling and the registry: 9/9 on the plant and
 plant naming all five, from "mouseSensitivity stored over its range loaded as
 1.04, want 0.008" to "the store reports 0 clamped of 5", and the file was put
 back from a copy.
+
+## Batch 3 of Josh's twenty — H12 to H16, H19 to H21, verified together (2026-10-19)
+
+The game-facing half of Josh's twenty, on batch 1's protocol: each job proved
+by its own subset on both maps and a break-and-restore, committed on its own,
+and one full two-run verify over the batch before anything was pushed. Taken
+in the order H12, H14, H15, H16, H19, H13, H20, H21 rather than queue order,
+for two reasons the log shows: H13's playback puts a replay's keymap on through
+H19's `setBinding`, and H12, H14, H15 and H13 each add to the same pause page,
+whose patches were written in that order. H12 also moved the pause page into
+`ui/menupause.js` so the four could share it without growing `menupages.js`,
+and built the report, the crash guard and the replays in `boot.js` so
+`main.js` took ten lines across three jobs (568 to 578) rather than the thirty
+it would have.
+
+**Verified**, four runs at `19e76b6`, exit 0: plant **249 / 1 / 8** both
+runs (1,153,725ms and 1,147,470ms), yard **229 / 1 / 28** both runs
+(823,998ms and 827,478ms), spreads **1%** and **0%**, 0 red, 0 flaky, 0
+skipped, 0 unexpectedly green, **0 console errors**, no other runner. **Six
+checks more per map** than batch 2: H12, H13, H14, H15, H19 and H21 each
+register one; H16 and H20 added clauses, not checks. Ceiling **11 modules
+within 50 of 600**, of 209, unchanged. **Both shipped replays reached their
+recorded end on both runs of both maps** with the whole suite run in the page
+before them, which is the determinism question asked as hard as this machine
+can ask it. The one failure a map is the bench-only sweep (H11).
+
+**The build task is re-enabled** with this record; the session is over.

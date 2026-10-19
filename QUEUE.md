@@ -1160,7 +1160,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   The check stores every bounded setting over and under its ends beside the
   other 11 the store keeps, two of them moved off their defaults, and finds
   each bounded one at its nearer end and all 11 kept. Subset `setting` both
-  maps 9/9; break: the clamp removed, red on all five by name - 2026-10-19,
+  maps 9/9; break: the clamp removed, red on all five by name — `19e76b6`, 2026-10-19,
   Josh's session.
 - **H20** The controls page in four groups - move, fight, gadgets, system - two
   abreast under headings the ring passes over, at **642px** in a 720p window
@@ -1171,7 +1171,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   two clauses: every action under exactly one heading in the map's order, and
   a page in `FITS` no taller than `CONFIG.menu.fitHeight`. H22 is the settings
   page's turn and is still open. Subset both maps 8/8; break: one column, red
-  at 911px - 2026-10-19, Josh's session.
+  at 911px — `4f3a49d`, 2026-10-19, Josh's session.
 - **H13** Replays. Every round is journaled from its `initMatch` as it is played - the
   codes held (`+`/`-`), the press edges a step saw (`p`, exactly the set,
   because a key tapped inside one frame is pressed and never held) and where
@@ -1185,8 +1185,8 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   steps against the live AI on each map; the check plays each back to its
   recorded end, requires the playback to journal the file's own events, and
   requires the round to end elsewhere with the first key press taken out.
-  Break: the look not pinned, red 8.3m off with 37 events against 127 -
-  2026-10-19, Josh's session.
+  Break: the look not pinned, red 8.3m off with 37 events against 127 —
+  `caf3e59`, 2026-10-19, Josh's session.
 - **H19** A rebind survives a reload. `src/bindingstore.js` (new) keeps the Input's
   map in its own versioned record (`blackline.bindings.v1`) beside the
   settings one, written when a row is rebound or reset and read once when the
@@ -1197,8 +1197,8 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   the live map and the stored record back exactly as they found them** -
   before this, an F4 run in the pane would have left a player's next reload
   with jump on J. Subset both maps, 18/18 each; break: the loader made to read
-  and not apply, red on the load, the climb and the dead-action clause -
-  2026-10-19, Josh's session.
+  and not apply, red on the load, the climb and the dead-action clause —
+  `7b4c249`, 2026-10-19, Josh's session.
 - **H16** `npm run notes`. `scripts/notes.mjs` (new) rebuilds `RELEASES.md` whole from
   git: a release is the span between two tags and its notes are the
   `PROGRESS.md` entries that span added - the `## ` headings at the later tag
@@ -1211,7 +1211,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   has a `FLAGS` row saying so. Subset both maps: the runner census, the runner
   guard, the bench list, the registry and the regression set, 5/5 each; the
   census reads 11 modules from 6 commands. Break: the row taken out, red
-  naming `/scripts/notes.mjs` - 2026-10-19, Josh's session.
+  naming `/scripts/notes.mjs` — `de37092`, 2026-10-19, Josh's session.
 - **H15** The pause menu: *Restart round* (the same round number and score, on the
   seed the match was opened with), *Restart match* (round 1, nil-nil), *Change
   map* and *Main menu*, each behind a confirm while a round is live and
@@ -1229,7 +1229,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   50 of 600, of 205 loaded. Break: `_ask` made to go straight through whatever
   the round; the check went red on the plant on all four routes by name -
   restart round, restart match, change map and quit each "mid-round ...
-  without asking" - and the file was put back from a copy. - 2026-10-19,
+  without asking" - and the file was put back from a copy. — `805b8fc`, 2026-10-19,
   Josh's session.
 - **H14** A crash guard. A throw inside a frame used to kill the rAF callback after it
   had already asked for the next one, so the same throw went to the console
@@ -1250,7 +1250,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   made to rethrow instead of handing the throw on; the check went red on the
   plant on its first clause, "the throw escaped the loop's guard", and on
   every clause that follows from a crash nobody caught - no count, no pause,
-  no crash page - and `loop.js` was put back from a copy. - 2026-10-19, Josh's
+  no crash page - and `loop.js` was put back from a copy. — `e9947fb`, 2026-10-19, Josh's
   session.
 - **H12** A bug report, on the pause menu. *Copy report* builds one block of text -
   the build with its commit, the URL, the map, the seed, the match, the
@@ -1270,7 +1270,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   modules within 50 of 600, of 202 loaded. Break: the step's journal call in
   main.js commented out; the check went red on the plant naming both input
   clauses ("+KeyW" and "-KeyW" not carried) and nothing else, and the file was
-  put back from a copy. - 2026-10-19, Josh's session.
+  put back from a copy. — `927b09e`, 2026-10-19, Josh's session.
 - **H92** A floor on the stretch. `UNFED_FLOOR_SECONDS = 60` and `readUnfedFloor()` in
   `tests/deviceclock.js` (H93 put the readers there first): one proven-unfed
   span longer than a minute is red, with no `fed` term. **27x** over the worst
