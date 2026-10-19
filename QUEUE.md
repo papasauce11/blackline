@@ -1409,7 +1409,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   yard **221 / 1 / 28** (796,893ms, 783,449ms), spreads **0%** and **2%**, 0
   red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, ceiling
   **11 of 600** over 196 modules in all four runs; the check's line is identical
-  in all four. — done 2026-10-18
+  in all four. — done 2026-10-18, commit `c046ffc`
 
 - **H82** The margin was about somebody else's Warden, and the stepping class
   is two classes. `quiescesites.js`'s header argued the death camera's case with
