@@ -18,6 +18,7 @@
  */
 
 import { CONFIG } from '../config.js';
+import { markProblems } from './resetcensus.js';
 import { createLens, difference, meanLuma, meanLumaIn, brightnessDelta, quiesce, scaledCount,
   REFERENCE_WIDTH, REFERENCE_HEIGHT, SITE_SAMPLE_OFFSET } from './pixels.js';
 
@@ -173,8 +174,13 @@ export function register(debugTools) {
       const shade = h.shade;
 
       const site = h.map.sites[0];
-      shade.reset({ position: site.position, yaw: 0 });
+      // H83: the eye is three metres from whatever the body is, so a Shade that
+      // had left would be framed the same and read a different dim - H78's
+      // shape, in the same module and held the same way. The mark is named once.
+      const mark = { x: site.position.x, y: site.position.y, z: site.position.z };
+      shade.reset({ position: mark, yaw: 0 });
       h.stepFrames(20);
+      problems.push(...markProblems(shade, mark, 'the Shade'));
       const focus = { x: shade.position.x, y: shade.feetY + 1.0, z: shade.position.z };
       lens.look(eyeOn(focus, 3, Math.PI * 0.75, 0.4), focus);
 

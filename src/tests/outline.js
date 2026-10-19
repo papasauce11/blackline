@@ -33,6 +33,7 @@
 import { CONFIG } from '../config.js';
 import { qualityPreset } from '../quality.js';
 import { createLens, difference, brightnessDelta, erode, quiesce, scaledCount } from './pixels.js';
+import { markProblems } from './resetcensus.js';
 
 /** Look at `target` from `distance` away, on a bearing, at eye height. */
 function eyeOn(target, distance, bearing, height = 1.4) {
@@ -65,9 +66,15 @@ export function register(debugTools) {
       const shade = h.shade;
       const preset = qualityPreset();
 
+      // H83: the site is chosen because it is lit and the eye below is taken
+      // from the body, so a Shade that had left would be framed just as well
+      // and read a different edge - H78's shape, held the same way. The mark is
+      // named once and handed to the reset.
       const site = h.map.sites[0];
-      shade.reset({ position: site.position, yaw: 0 });
+      const mark = { x: site.position.x, y: site.position.y, z: site.position.z };
+      shade.reset({ position: mark, yaw: 0 });
       h.stepFrames(20);
+      problems.push(...markProblems(shade, mark, 'the Shade'));
       h.detection.smoothed = CONFIG.detection.meterMax;
       h.detection._applyFeedback(shade);
       const focus = { x: shade.position.x, y: shade.feetY + 1.0, z: shade.position.z };

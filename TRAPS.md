@@ -316,6 +316,18 @@ check that passes in a subset has cleared a harder bar than the one the queue
 entry is about - so a *green* subset is good news and a red one may be about
 the subset.
 
+**And the same thing happens to a source census, with no guard in sight.** H83
+ran a one-check subset of `resetcensus.js`'s census and read **16.5s**, wrote
+that number into its entry as the check's cost, and found in the verify that
+the check takes **278-322ms** - a factor of **59**. Nothing in the check
+changed: a census that fetches every module under `src/tests/` is the only
+thing loading the tree in a subset of one, and in a full run ninety-six checks
+have already pulled the same files and every fetch is served from the browser's
+cache. So **the only honest reading of a source census's cost is a full run**,
+the way the only honest reading of a drifting number is both runs of a map
+(H75). The same arithmetic is why H96 is worth doing and why it will not show
+up as a saving in the gate.
+
 **A loaded machine can take the GPU away mid-suite.** One verify came back
 with *eight* pixel checks flaky at once and never reproduced. F1 found it: a
 **lost WebGL context**. Chrome kills a starved SwiftShader GPU process and

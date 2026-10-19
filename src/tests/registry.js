@@ -64,6 +64,11 @@ const SHARED_FROM_A_CHECK = [
     why: 'the flat-shaded silhouette reader, used by breath.js, breathcensus.js and bufferscale.js; figure.js is where the figure itself was measured and the three readers came after',
   },
   {
+    file: 'resetcensus.js',
+    name: 'markProblems',
+    why: 'the one reader of how far an actor is off the spot a check put it on, used by outline.js and visual.js; resetcensus.js is the census that found which checks need it, and a second copy of that measurement is the thing H83 exists to prevent',
+  },
+  {
     file: 'look.js',
     name: 'POSE_EYE_NAMES',
     why: 'the six candidate eye names, used by poseeye.js alone, and beside the chooseEye whose candidates they name',

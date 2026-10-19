@@ -95,6 +95,37 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### Every test that puts a body somewhere now says what keeps it there (H83, 2026-10-18)
+
+**Two tests changed what they check. Nothing in the game changed.**
+
+A test that wants to photograph something puts a body on a chosen spot first.
+The problem found three times now — once in the plant rules, once in the defuse
+rules, and last week in the death camera — is that the test then measures the
+body **wherever it ended up**: the camera follows it, so the picture looks right
+whether the body stayed on the spot or wandered off, and the test passes either
+way. Each time, somebody found it by hand.
+
+**So this is the count.** There are 186 of these placements in the suite, in 115
+test-and-body pairs across 42 files, and most of them cannot have the problem:
+87 never look at the body again, 6 draw no frame between putting it down and
+looking, 9 are driving that body on purpose, and 2 are a Warden in a round with
+no AI in it, which cannot move. **Three of them turn out to do something better
+than checking** — they put the position back on the body every single step, so
+it cannot drift, and nothing in the record had said so.
+
+**That leaves eight, and two of them were real.** The outline test and the
+dim-with-the-meter test both stand the Shade at a lit site because they need the
+light, and both take their camera from the body — the exact shape of last week's
+death-camera bug. They now check she is still on the spot, to a millionth of a
+metre, which the measurement says is exactly what she is: zero drift at every
+step count on both maps. The other six are fine for reasons that are now written
+down beside them: four compare two live positions to each other, so a body that
+moved moves both halves, and two are measuring a body that is *meant* to move —
+one is being hit by a grenade and one is being killed.
+
+**Nothing for you to do.**
+
 ### A note in the test code was arguing from a number that was about something else (H82, 2026-10-18)
 
 **Nothing in the game changed.**

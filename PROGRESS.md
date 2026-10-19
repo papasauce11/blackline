@@ -19423,3 +19423,120 @@ This job did two thirds of its instrument for it — the span reader and the
 `codeOf` off-disk replica — and found the one thing H83 should know before it
 starts: **a reset of the Shade and a reset of a draw-call counter read the same
 as a reset of the Warden** unless the reader is told which actor it is about.
+
+## H83 — the census of a shape that had been found three times by hand, and the class that was better than a clause
+
+**Built.** `src/tests/resetcensus.js` (367 lines, new) with
+`every-check-that-resets-an-actor-and-reads-it-back-says-what-holds-it-there`;
+three lines each in `tests/outline.js` and `tests/visual.js`; a row in
+`registry.js`'s `SHARED_FROM_A_CHECK` and two in `tests/index.js`. 196 modules
+load now against 195.
+
+**The shape, and why it needed a census.** A1 asked whether a climbable top had
+ground beside it within `warden.stepHeight` and stayed green with the step
+temporarily at 2.00m; A3 *selected* its perches with `canDefuseAt` and then
+asserted `canDefuseAt` had refused them; H78 found the death camera counting the
+killer's pixels and how near the middle of frame they sat, **both true of a body
+anywhere**, because the camera follows the killer. Three instances, three
+separate afternoons, no list — and `HANDOFF.md`'s standing lesson (*any check
+that picks its own inputs owes the suite that second half*) with no way to tell
+whether it was being paid.
+
+**Count first** (H71, H74, H77), and the count is the deliverable: **186 actor
+resets in 115 (check, actor) pairs over 42 modules**, in six classes, five of
+them derived from the span and the sixth declared:
+
+| class | pairs | what holds the body |
+|---|---|---|
+| never read back | 87 | the reset places a body for a HUD line, a round's state, a noise; nothing afterwards reads its position or its mesh |
+| nothing can move it | 6 | read back with no frame driven after the reset — H76's clause, a grab advances neither the clock nor the picture |
+| driven by the check | 9 | the check drives that body itself, so a mark would be the wrong claim |
+| **pinned every step** | **3** | **`position.copy(held)` inside the loop — stronger than any assertion, and nothing in the record had said so** |
+| a Warden with the AI off | 2 | H71 measured 0.000m and 0.000rad over 420 frames; nothing in this engine drives a Warden but its AI |
+| exposed | 8 | read back, frames driven, and not by this check — `EXPOSED` declares all eight |
+
+**The third row is the find.** `difficulty.js`, `gadgets.js` and
+`performance.js` each stand the Warden in a lane and then copy its position back
+onto it every step while a live AI shoots, so the body cannot drift at all —
+a stronger answer than the clause H78 had to write, arrived at independently by
+three checks, and written down nowhere. A census that only knew "asserts" and
+"does not assert" would have called all three defects.
+
+**Why the last column is declared and not derived, measured rather than
+assumed.** Whether a check asserts *its mark* is a question about what the
+check means. `ai.js` and `objective.js` both carry a `Math.hypot` over a
+position two lines after a reset and **neither is about a mark**: it is the
+distance between the Warden's `lastKnown` and where the Shade *is now*, read
+live on both sides, which is self-correcting — a Shade that moved moves both
+halves of it. A regex counting those as marks held would have reported this
+census green with the one real instance wide open. So the roster carries the
+reason in words, matched against the derived class both ways, and the two rows
+that claim a mark are checkable: the span must call `markProblems`, the only
+reader of that offset in the suite, declared in `registry.js` (H70's seam, and
+the third row in that table).
+
+**The two that were real.** `the-outline-darkens-the-silhouette-edge` and
+`the-shade-visibly-dims-with-the-meter` both stand the Shade at a lit site
+*because* it is lit and then take the eye three metres from the body — H78's
+shape, one of them in H78's own module. Both now name the mark once, hand it to
+the reset and push `markProblems`. **The tolerance was measured before it was
+written** (`npm run probe`, 18ms, both maps): a Shade reset onto a site floor
+and stepped with no AI and no input is **0.000000000m** off its mark at the
+reset and after 1, 4, 5, 10 and 20 steps and a warm frame, on the plant and the
+yard alike, and a Warden reset 2.5m from the site reads the same — the only
+travel a reset leaves is the **0.019m** it settles in y, which is why the
+measurement is horizontal. So `ON_ITS_MARK` is 1e-6m: the width of the
+arithmetic, which is H78's distinction measured a second time rather than
+quoted.
+
+**The other six carry their reason**: four are live comparisons (`ai.js`'s
+alarm camera, `objective.js`'s defend-breaks-off, both sides of it) and two are
+a body that is the subject — `gadgets.js` throws a frag at the Shade and
+`performance.js` smokes, shoots and ragdolls her, and in `visual.js`'s death
+camera the Shade is killed and tumbles while the *Warden* half of that same
+check is H78's clause holding 1e-6m.
+
+**Four breaks, each red on its own line** (one-check subsets on the plant):
+
+| break | the red |
+|---|---|
+| `outline.js`'s row dropped from `EXPOSED` | *"resets the shade, drives frames it does not drive that body through, and then reads the body back - and EXPOSED declares nothing for it, so it is A1, A3 and H78's shape with nothing said about it"* |
+| a row pointed at a check that is not exposed | both halves at once: the newly undeclared pair **and** *"EXPOSED declares ai-state-machine-follows-section-11 … and the census does not put it in the exposed class"* |
+| **this job's own clause reverted** — `markProblems` taken out of `outline.js` | *"declares that it holds the shade on its mark and does not call markProblems(), which is the only reader of that offset in this suite"* |
+| the `pinned every step` class removed | the three gunfight checks arrive in the exposed class undeclared, which is the proof that the new class is load-bearing rather than decorative |
+
+**Its own instrument caught its own test vector**, which is the argument for
+writing a census this way: the first draft's "a longer word beginning with an
+actor's name is not that actor" case was `structure(shade.mesh, 'Shade')` —
+which **is** a read of a body — and `readerProblems` said so on the first
+subset, before a browser had run the census twice. The vector is
+`h.map.shadeSpawns[0]` now.
+
+**And the cost the subset reported was about the subset** — the third instance
+of a trap TRAPS.md already carries. A one-check subset of this census took
+**16.5s** and the entry above was written saying so; in the verify it takes
+**278-322ms**, beside `quiescesites.js`'s 272-283ms, because by then 96 other
+checks have loaded the same modules and the browser serves every fetch from its
+cache. A subset of one pays the cold tree by itself, so **the only honest
+reading of a source census's cost is a full run**, and the 59x between those two
+numbers is the sharpest version of that lesson on record. (It also makes the
+note added to H96 about this being the expensive census wrong, and it is
+corrected there.)
+
+**The one cost that is real.** `tests/visual.js` went 550 to 556, which puts
+the 600-line cluster at **eleven**: the clause is three lines and the file was
+one line outside. That is D77's subject exactly — H78 cut prose three times to
+keep this same file out of this same cluster — and this run took the lines
+rather than the trimming.
+
+**Verified.** `npm run suite`, four runs, exit 0: plant **241 passed / 1 failed
+/ 8 not for this map** (1,129,450ms and 1,124,223ms), yard **221 / 1 / 28**
+(796,893ms and 783,449ms), spreads **0%** and **2%**, 0 red, 0 flaky, 0 skipped,
+0 unexpectedly green, **0 console errors**, no other runner. One more check a map
+than H82's verify, which is this job's. Ceiling **11 of 600** over **196
+modules** in all four runs, `audiodevice.js` still the leader at 597 (H93). The
+new check's detail line is **character for character the same in all four runs**
+and its numbers agree to the digit with the off-disk replica that was written
+before any browser ran it. H79's drift reads **34 on the plant and 36 on the
+yard** against H82's 34 / 37 three hours earlier and the audit's 34 / 35 this
+morning, so the yard's count is itself weather in the 35-37 band.

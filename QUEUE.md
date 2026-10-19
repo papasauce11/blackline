@@ -716,21 +716,13 @@ one setting only Josh can click; everything else here proceeds.
   of their own, where H73's four-and-seventeen frames of headroom do not apply
   at all, and 10 leave it where their own match opened. `TELEPORTS` declares the
   four, and a fifteenth site cannot inherit a margin that is not about it.
-- [ ] **H83 (S)** Which other checks pick their own input and never check it
-  stayed picked? A1, A3 and now H78 are three instances of one shape, and the
-  answer has been found three times by hand. Every check that calls an actor's
-  `reset()` and then measures something about where that actor is, is a
-  candidate; `codeOf` over `src/tests/` finds the resets, and the question of
-  each is whether anything between the reset and the read asserts the body is
-  still on the spot. H78 is the worked example and the cheap one - the clause
-  is three lines and a 1e-6 tolerance once the match has no AI in it. **Count
-  first**: the census before any clause, because a floor on a number first
-  measured this morning is a rule nobody argued (H71, H74, H77).
-  *done-when:* every `reset(` on an actor under `src/tests/` is classified -
-  the body is read back, the body is not read back, or the reset is the
-  subject - with the count per class on both maps in `PROGRESS.md`; and the
-  checks in the first class that assert nothing are either given H78's clause
-  or carry the reason they cannot.
+- [x] **H83 (S)** Which other checks pick their own input and never check it
+  stayed picked? — done 2026-10-18, under Done. **186 resets in 115 (check,
+  actor) pairs over 42 modules**, six classes, and the count is the deliverable:
+  87 never read the body back, 6 drive no frame after it, 9 drive that body
+  themselves, **3 pin it every step and nothing had said so**, 2 are a Warden
+  with the AI off, and **8 are exposed** - two of which were real and now hold
+  their mark to 1e-6m, the other six declared with what they hold instead.
 
 - [ ] **H84 (S)** Pin the crossing count, on whichever map the coin is on.
   `the-warden-walks-heavy-and-raises-the-rifle-to-where-it-looks` counts how
@@ -1063,7 +1055,14 @@ one setting only Josh can click; everything else here proceeds.
   `readernames.js`'s header says in one paragraph why a message cannot be held
   the way a name can.
 
-- [ ] **H96 (S)** Seven censuses walk the same tree of modules independently.
+- [ ] **H96 (S)** Seven censuses walk the same tree of modules independently -
+  **eight since H83**, whose `resetcensus.js` reads every module through *both*
+  readers (`codeOf` for what the code does, `uncommented` for the ids) and so
+  pays twice. **What it is not is slow in a run**: 278-322ms in H83's verify
+  beside `quiescesites.js`'s 272-283ms, against **16.5s** in a subset of one,
+  where it is the only check loading the tree. The browser's cache is what makes
+  the duplication free, which is this job's whole premise and now has a number
+  on it.
   H67's entry named this as worth a later look and H68 made it seven: each one
   calls `getEntriesByType('resource')` for the modules that ran and then
   `fetch`es every one of them for its text. The browser serves them from its
@@ -1367,6 +1366,50 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H83** The census of a shape that had been found three times by hand, and
+  the class that was better than a clause. A1 stayed green with
+  `warden.stepHeight` temporarily at 2.00m, A3 selected its perches with
+  `canDefuseAt` and then asserted `canDefuseAt` had refused them, and H78 found
+  the death camera counting a killer that was free to walk out of the shot it
+  had been placed in - **three instances of one shape, three afternoons, and no
+  list**. `src/tests/resetcensus.js` (367) is the list: **186 actor resets in
+  115 (check, actor) pairs over 42 modules**, in five derived classes and one
+  declared one - 87 never read the body back, 6 drive no frame after the reset
+  (H76), 9 drive that body themselves, **3 pin it every step with
+  `position.copy(held)`**, 2 are a Warden in a match with `ai: false` (H71's
+  0.000m over 420 frames), and **8 are exposed**. **The pinned class is the
+  find**: `difficulty.js`, `gadgets.js` and `performance.js` each hold the
+  Warden in its lane every step while a live AI shoots, which is stronger than
+  the clause H78 had to write, arrived at independently three times and written
+  down nowhere - a census that knew only *asserts* and *does not assert* would
+  have called all three defects. **The last column is declared because it is a
+  question about what a check means**: `ai.js` and `objective.js` both carry a
+  `Math.hypot` over a position two lines after a reset and neither is about a
+  mark - it is `lastKnown` against where the Shade *is now*, read live on both
+  sides and self-correcting - so a regex that counted those would report green
+  with the one real instance open. The two real ones are
+  `the-outline-darkens-the-silhouette-edge` and
+  `the-shade-visibly-dims-with-the-meter`, which stand the Shade at a lit site
+  *because* it is lit and then take the eye from the body; both name the mark
+  once, hand it to the reset and push `markProblems`, the suite's one reader of
+  that offset, declared in `registry.js` (H70's seam, third row). **The
+  tolerance was measured before it was written** - `npm run probe`, 18ms, both
+  maps: **0.000000000m** off the mark at the reset and after 1, 4, 5, 10 and 20
+  steps and a warm frame, the only travel being the 0.019m a reset settles in y,
+  so 1e-6m is the width of the arithmetic. Four breaks, each red on its own
+  line, the third being this job's own clause reverted. Its instrument caught
+  its own test vector on the first subset (`structure(shade.mesh)` *is* a read).
+  Costs: `tests/visual.js` went 550 to 556, which puts the 600-line cluster at
+  **eleven** - D77's subject, and this run took the lines rather than the
+  trimming. The 16.5s the subset reported for the check itself was **about the
+  subset**: in the verify it is 278-322ms, beside `quiescesites.js`'s 272-283ms,
+  because by then every other check has loaded the same modules and the fetches
+  come from cache. Verify: plant **241 / 1 / 8** (1,129,450ms, 1,124,223ms),
+  yard **221 / 1 / 28** (796,893ms, 783,449ms), spreads **0%** and **2%**, 0
+  red, 0 flaky, 0 skipped, 0 unexpectedly green, **0 console errors**, ceiling
+  **11 of 600** over 196 modules in all four runs; the check's line is identical
+  in all four. — done 2026-10-18
 
 - **H82** The margin was about somebody else's Warden, and the stepping class
   is two classes. `quiescesites.js`'s header argued the death camera's case with
