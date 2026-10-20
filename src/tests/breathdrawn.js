@@ -61,6 +61,7 @@
  * imports main.js (Section 3.1).
  */
 
+import { moduleText } from './moduletexts.js';
 import { POSE } from '../entities/agentvisual.js';
 import { quiesce } from './pixels.js';
 import { countByWord } from './censustally.js';
@@ -272,7 +273,7 @@ export function register(debugTools) {
       // ------------------------------------------------------------------
       for (const entry of DRAWN) {
         if (entry.reach !== 'none' || entry.proof !== 'nobody') continue;
-        const text = await (await fetch(`${origin}/src/tests/${entry.module}`)).text();
+        const text = (await moduleText(origin, `src/tests/${entry.module}`)).body;
         for (const [pattern, meaning] of NOBODY_BANS) {
           if (pattern.test(text)) problems.push(`${entry.module} is declared out of reach because it reads no body, and it ${meaning} (${pattern.source})`);
         }
@@ -283,7 +284,7 @@ export function register(debugTools) {
       // readings, not about one frame this check could render.
       for (const entry of DRAWN) {
         if (entry.reach !== 'none' || entry.proof !== 'hidden') continue;
-        const text = await (await fetch(`${origin}/src/tests/${entry.module}`)).text();
+        const text = (await moduleText(origin, `src/tests/${entry.module}`)).body;
         if (!/shade\.mesh\.visible = false/.test(text) || !/warden\.mesh\.visible = false/.test(text)) {
           problems.push(`${entry.module} is declared out of reach because it hides both bodies, and its text no longer hides them both`);
         }
@@ -292,7 +293,7 @@ export function register(debugTools) {
       // Proof `onebit`: the read is reduced to whether anything is lit.
       for (const entry of DRAWN) {
         if (entry.reach !== 'none' || entry.proof !== 'onebit') continue;
-        const text = await (await fetch(`${origin}/src/tests/${entry.module}`)).text();
+        const text = (await moduleText(origin, `src/tests/${entry.module}`)).body;
         if (!/some\(\(v\) => v > 0\)/.test(text)) {
           problems.push(`${entry.module} is declared out of reach because its framebuffer read is one bit, and that reduction is gone from its text`);
         }

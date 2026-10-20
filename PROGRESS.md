@@ -20617,3 +20617,77 @@ one that existed - so the census is unchanged, and the ceiling is **11 modules
 within 50 of 600**, of 209: `readernames.js` 291 to 421 and `sourcetext.js`
 170 to 197, both well outside it. The one failure a map is the bench-only
 sweep (H11).
+
+## H96 — The tree of modules that ran, fetched once
+
+**Built.** `tests/moduletexts.js` (157 lines, new): `ranModules(origin)` reads
+the Resource Timing buffer for the modules under `src/` that actually ran,
+`ranModulesUnder` cuts that to a subtree, and `moduleText(origin, path)`
+fetches one module at most once a page and hands back its body beside `code`
+and `said` — each computed on the first ask, so a census that wants only the
+strong reading never pays for the weak one and `resetcensus.js`, which wants
+both (H83), pays once for each rather than twice. Memoised **per page and not
+per run**, because a page serves two runs (D1, F16) and a module's text does
+not change between them.
+
+**Fifteen modules converted, not seven.** The queue named the seven that read
+the buffer; the grep for who fetches a module's text found **five more**
+taking their list from `src/tests/index.js` instead — `registry.js`,
+`resetcensus.js`, `quiescesites.js`, `breathcensus.js`, `breathdrawn.js` — and
+three single-file readers (`audiodevice.js`, `autopick.js`, `benchlist.js`).
+Fourteen fetch sites in all. Leaving those out would have left the rule
+holdable only against the half that happened to use the buffer, which is the
+kind of partial ownership H68 spent a job undoing.
+
+**Why the list and the fetch had to move together.** `requestbuffer.js`
+censuses the first half by name, so moving only the fetch would have left
+seven declared readers reading the buffer to build a list this module had
+already built. Its table is **three readers at three sites** where it was
+seven at ten: `donedef.js`'s network ban, which wants the entries and not the
+modules and is the one site that did not move; `moduletexts.js`, the owner;
+and this check's own count of what the buffer holds.
+
+**And the other half of the ownership is now held too** (the done-when's *no
+census fetches a module's text for itself*). Clause 5: no module under
+`src/tests/` fetches a path under `src/`. It reads the **weak** reader and
+has to — a path lives inside a template literal and `codeOf` empties the
+literal it sits in, which `sourcetext.js`'s header states in as many words.
+`moduletexts.js` is **not exempted**: it builds its URL from a path it was
+handed, names no subtree and matches nothing, so the owner obeys the rule
+rather than being excused from it, and the owner's own line is one of the
+clause's ignore cases so a rewrite of it is caught as a case. Its own cases
+are assembled from pieces that fail the needle (`fe` + `tch(`), the trap
+`readernames.js` already names. What it catches is the shape all fourteen
+sites were written in; a URL assembled one line earlier walks through, which
+is the same admission `pixelfloors.js` makes about its floors.
+
+**Measured, and the reading is in the line.** The buffer holds **426 entries**
+where the same subset of five checks spent **634** before, and the check now
+prints how many modules the page read between all of them (`readSoFar()`).
+About a third of those entries are gone, and every one of them was a second
+reading of a file already in hand. The modules loaded went 209 to
+**210**, which is the new file.
+
+**It cost a line of somebody else's ceiling, and that was paid rather than
+noticed later.** An import is a line, and `breathcensus.js` was at 550 — one
+outside the cluster — so the first subset came back with the ceiling at
+**twelve**. Two lines of its header went, and it is back at 550 with the
+cluster at **eleven** (D77's subject; H78 paid the same toll three times).
+
+**Proved.** Subset on the plant over sixteen checks — every census that
+changed, the ceiling, the two spec bans, the network ban, the registry, the
+reset census, the pose and breath censuses, the audio device — **16/16**, with
+"3 readers at 3 call sites, all declared: donedef.js, moduletexts.js,
+requestbuffer.js; no module under src/tests/ fetches a path under src/ for
+itself". **Break:** `registry.js` put back to fetching each file itself; red,
+*"registry.js fetches a path under src/ for itself"* and the tally beside it,
+and nothing else moved.
+
+**Verified**, four runs, exit 0: plant **249 / 1 / 8** both runs (1,193,502ms
+and 1,160,890ms), yard **229 / 1 / 28** both runs (803,052ms and 793,541ms),
+spreads **3%** and **1%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green,
+**0 console errors**, no other runner. No new check — H96 is one clause on one
+that existed, and one new helper that registers nothing — so the census is
+unchanged; the modules loaded are **210**, one more than before, and the
+ceiling is **11 within 50 of 600**. The one failure a map is the bench-only
+sweep (H11).

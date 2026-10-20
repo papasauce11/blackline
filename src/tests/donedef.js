@@ -25,6 +25,7 @@
  */
 
 import { CONFIG } from '../config.js';
+import { moduleTexts, ranModules } from './moduletexts.js';
 
 /** The one host Section 2 allows: the pinned Three.js CDN. */
 const ALLOWED_HOST = 'cdn.jsdelivr.net';
@@ -179,24 +180,21 @@ export function register(debugTools) {
     name: 'Every module the game loaded is under the split guidance, config.js excepted, and the detail line names how much headroom the nearest few have left',
     run: async () => {
       // The modules that actually ran, from the same Resource Timing list the
-      // network check reads: nothing here guesses the import graph. Each is
-      // fetched again from the origin (cached) and its lines counted.
+      // network check reads: nothing here guesses the import graph. H96 moved
+      // both halves - the list and the text - into tests/moduletexts.js, which
+      // does them once a page for the eight censuses that want them; before
+      // that each of the seven fetched all 193 for itself.
       const origin = location.origin;
-      const modules = new Set();
-      for (const entry of performance.getEntriesByType('resource')) {
-        const url = entry.name.split('?')[0];
-        if (!url.startsWith(origin) || !url.endsWith('.js') || url.indexOf('/src/') === -1) continue;
-        modules.add(url.slice(url.indexOf('/src/') + 1));
-      }
-      if (modules.size < 40) {
-        return { pass: false, detail: `Resource Timing lists ${modules.size} modules under src/; expected the whole game` };
+      const modules = ranModules(origin) || [];
+      if (modules.length < 40) {
+        return { pass: false, detail: `Resource Timing lists ${modules.length} modules under src/; expected the whole game` };
       }
 
       const sizes = [];
-      for (const path of modules) {
-        const text = await (await fetch(`${origin}/${path}`)).text();
+      for (const read of await moduleTexts(origin, modules)) {
+        if (read.error) return { pass: false, detail: `${read.error}; the ceiling is a count of lines in every module that ran` };
         // A trailing newline is the end of the last line, not an extra one.
-        sizes.push({ path, lines: text.replace(/\r?\n$/, '').split(/\r?\n/).length });
+        sizes.push({ path: read.path, lines: read.body.replace(/\r?\n$/, '').split(/\r?\n/).length });
       }
       sizes.sort((a, b) => b.lines - a.lines);
 
@@ -284,21 +282,18 @@ export function register(debugTools) {
       // in one cannot reach a match — the loaded set is the set the bans are
       // about, and today it is the whole tree anyway.
       const origin = location.origin;
-      const modules = new Set();
-      for (const entry of performance.getEntriesByType('resource')) {
-        const url = entry.name.split('?')[0];
-        if (!url.startsWith(origin) || !url.endsWith('.js') || url.indexOf('/src/') === -1) continue;
-        modules.add(url.slice(url.indexOf('/src/') + 1));
-      }
-      if (modules.size < MIN_MODULES) {
-        return { pass: false, detail: `Resource Timing lists ${modules.size} modules under src/; the whole game is ${MIN_MODULES}+` };
+      const modules = ranModules(origin) || [];
+      if (modules.length < MIN_MODULES) {
+        return { pass: false, detail: `Resource Timing lists ${modules.length} modules under src/; the whole game is ${MIN_MODULES}+` };
       }
 
       const problems = [];
       const calls = [];
       let prose = 0;
-      for (const path of [...modules].sort()) {
-        const lines = (await (await fetch(`${origin}/${path}`)).text()).split(/\r?\n/);
+      for (const read of await moduleTexts(origin, modules)) {
+        if (read.error) { problems.push(read.error); continue; }
+        const path = read.path;
+        const lines = read.body.split(/\r?\n/);
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
           for (const ban of BANNED) {
@@ -336,7 +331,7 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${modules.size} modules read; ${calls.length} calls to ${BANNED.map((ban) => `${callName(ban)})`).join(' / ')}, each the one allowance and argued at the line `
+          ? `${modules.length} modules read; ${calls.length} calls to ${BANNED.map((ban) => `${callName(ban)})`).join(' / ')}, each the one allowance and argued at the line `
             + `(${allowances.map((ban) => `${ban.allowed.slice(4)} ${ban.why}`).join('; ')}); ${prose} more named in prose`
           : problems.join('; '),
       };

@@ -63,6 +63,7 @@
  */
 
 import { CONFIG, rng, lookRng } from '../config.js';
+import { moduleTexts, ranModules } from './moduletexts.js';
 import { codeOf, readerProblems } from './sourcetext.js';
 
 /**
@@ -261,15 +262,13 @@ function walk(h, frames) {
   return { frames, moved: since(before, ledger(h)) };
 }
 
-/** Which modules the page loaded under `src/`, from Resource Timing (H63). */
+/**
+ * Which modules the page loaded under `src/`, from Resource Timing (H63) -
+ * through `tests/moduletexts.js` since H96, which reads the buffer once a page
+ * for the eight censuses that want this list.
+ */
 function loadedModules(origin) {
-  const modules = new Set();
-  for (const entry of performance.getEntriesByType('resource')) {
-    const url = entry.name.split('?')[0];
-    if (!url.startsWith(origin) || !url.endsWith('.js') || url.indexOf('/src/') === -1) continue;
-    modules.add(url.slice(url.indexOf('/src/') + 1));
-  }
-  return [...modules];
+  return ranModules(origin) || [];
 }
 
 /**
@@ -414,12 +413,12 @@ export function register(debugTools) {
       const skip = (path) => NOT_READ.some((n) => path === n.path || path.startsWith(n.path));
       const read = [];
       const found = new Map();
-      for (const path of modules) {
-        if (skip(path)) continue;
+      for (const module of await moduleTexts(origin, modules.filter((path) => !skip(path)))) {
+        if (module.error) { problems.push(module.error); continue; }
+        const path = module.path;
         read.push(path);
-        const code = codeOf(await (await fetch(`${origin}/${path}`)).text());
         for (const { stream, pattern } of STREAMS) {
-          const methods = feedsIn(code, pattern);
+          const methods = feedsIn(module.code, pattern);
           if (methods.length) found.set(`${path} ${stream}`, methods);
         }
       }

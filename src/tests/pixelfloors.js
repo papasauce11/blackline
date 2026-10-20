@@ -35,6 +35,8 @@
  * main.js (Section 3.1).
  */
 
+import { moduleTexts, ranModulesUnder } from './moduletexts.js';
+
 /**
  * A floor is a count-ish name compared against a bare integer. `scaledCount(...)`
  * and a comparison against a named `...Floor` both read as something else and are
@@ -111,17 +113,13 @@ export function register(debugTools) {
     name: 'No check under src/tests/ compares a count of pixels against a bare number, but for the two existence tripwires named here, and each of those is still there',
     run: async () => {
       // The same Resource Timing list F13's bans read: the modules that actually
-      // ran, never a guess at the import graph.
+      // ran, never a guess at the import graph - asked of tests/moduletexts.js
+      // since H96, which reads the buffer once for the eight censuses that want
+      // it and fetches each module once a page.
       const origin = location.origin;
-      const modules = new Set();
-      for (const entry of performance.getEntriesByType('resource')) {
-        const url = entry.name.split('?')[0];
-        if (!url.startsWith(origin) || !url.endsWith('.js') || url.indexOf('/src/') === -1) continue;
-        const path = url.slice(url.indexOf('/src/') + 1);
-        if (path.startsWith('src/tests/')) modules.add(path);
-      }
-      if (modules.size < MIN_MODULES) {
-        return { pass: false, detail: `Resource Timing lists ${modules.size} modules under src/tests/; the suite is ${MIN_MODULES}+` };
+      const modules = ranModulesUnder(origin, 'src/tests/') || [];
+      if (modules.length < MIN_MODULES) {
+        return { pass: false, detail: `Resource Timing lists ${modules.length} modules under src/tests/; the suite is ${MIN_MODULES}+` };
       }
 
       const problems = [];
@@ -140,8 +138,10 @@ export function register(debugTools) {
       if (canTell) {
         problems.push(`the pattern matches ${MUST_NOT_MATCH.trim()}, which is the scaled form - every fixed floor would read as a violation`);
       }
-      for (const path of [...modules].sort()) {
-        const lines = (await (await fetch(`${origin}/${path}`)).text()).split(/\r?\n/);
+      for (const read of await moduleTexts(origin, modules)) {
+        if (read.error) { problems.push(read.error); continue; }
+        const path = read.path;
+        const lines = read.body.split(/\r?\n/);
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
           FLOORS.lastIndex = 0;
@@ -184,7 +184,7 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${modules.size} check modules read; ${found.length} absolute pixel floors, all of them existence tripwires argued at their lines `
+          ? `${modules.length} check modules read; ${found.length} absolute pixel floors, all of them existence tripwires argued at their lines `
             + `(${ALLOWED.map((a) => `${a.path.slice(10)} ${a.value}px: ${a.why}`).join('; ')}); `
             + `${prose} more quoted in prose. Every other floor in the suite is a fraction of the drawing buffer, `
             + 'and the pattern was shown to see a fixed floor and to ignore a scaled one before reporting that'

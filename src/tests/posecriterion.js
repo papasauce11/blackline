@@ -67,6 +67,7 @@
  * system, no entity and no map.
  */
 
+import { moduleTexts, ranModulesUnder } from './moduletexts.js';
 import { codeOf, readerProblems } from './sourcetext.js';
 
 /**
@@ -229,21 +230,15 @@ function proxyProblems() {
  * Resource Timing list `donedef.js` reads. Helpers included, which is the point:
  * a proxy need register no check of its own.
  *
- * @returns {string[]|null} file names, or null where there is no Resource Timing
+ * H96: the buffer is read by `tests/moduletexts.js` now, once for the eight
+ * censuses that want this list; the paths it hands back run from `src/` down
+ * and the names here are the file names, which is what the entries this
+ * discovery returns are keyed by.
+ *
+ * @returns {string[]|null} paths, or null where there is no Resource Timing
  */
-function testModules() {
-  if (typeof performance === 'undefined' || !performance.getEntriesByType) return null;
-  const here = '/src/tests/';
-  const modules = new Set();
-  for (const entry of performance.getEntriesByType('resource')) {
-    const url = entry.name.split('?')[0];
-    if (!url.endsWith('.js')) continue;
-    const at = url.indexOf(here);
-    if (at === -1) continue;
-    const rest = url.slice(at + here.length);
-    if (rest.indexOf('/') === -1) modules.add(rest);
-  }
-  return [...modules].sort();
+function testModules(origin) {
+  return ranModulesUnder(origin, 'src/tests/');
 }
 
 /** Below this many modules the enumeration has stopped working, not the tree shrunk. */
@@ -257,7 +252,7 @@ const MIN_MODULES = 50;
  */
 export async function poseProxies(origin) {
   const problems = [];
-  const files = testModules();
+  const files = testModules(origin);
   if (!files) {
     return { names: [], entries: [], scanned: 0, problems: ['no Resource Timing API, so the proxy set cannot be read off the tree and the criterion has no second half'] };
   }
@@ -265,9 +260,10 @@ export async function poseProxies(origin) {
     problems.push(`Resource Timing lists ${files.length} modules under src/tests/ and the suite is ${MIN_MODULES}+, so the proxy set was read off a list that is not the tree`);
   }
   const entries = [];
-  for (const file of files) {
-    const code = codeOf(await (await fetch(`${origin}/src/tests/${file}`)).text());
-    for (const name of exportsReaching(code)) entries.push({ module: file, name });
+  for (const read of await moduleTexts(origin, files)) {
+    if (read.error) { problems.push(read.error); continue; }
+    const file = read.path.slice(read.path.lastIndexOf('/') + 1);
+    for (const name of exportsReaching(read.code)) entries.push({ module: file, name });
   }
   if (!entries.length) {
     problems.push('no module under src/tests/ exports a function that poses a body, so the discovery has stopped seeing strikedrive.js\'s frame and the criterion is one grep again');

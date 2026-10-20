@@ -808,37 +808,7 @@ one setting only Josh can click; everything else here proceeds.
 
 - [x] **H95 (S)** The sentence said code and the clause had read the wording — done 2026-10-19, under Done. `AS_CODE` and `AS_WORDING` in `tests/sourcetext.js`, the five sites in `benchlist.js` (twice), `grabslide.js`, `timedrenders.js` and `requestbuffer.js`, and clause 3 of `only-sourcetext-owns-the-two-source-readers-and-no-name-claims-the-wrong-one`.
 
-- [ ] **H96 (S)** Seven censuses walk the same tree of modules independently -
-  **eight since H83**, whose `resetcensus.js` reads every module through *both*
-  readers (`codeOf` for what the code does, `uncommented` for the ids) and so
-  pays twice. **What it is not is slow in a run**: 278-322ms in H83's verify
-  beside `quiescesites.js`'s 272-283ms, against **16.5s** in a subset of one,
-  where it is the only check loading the tree. The browser's cache is what makes
-  the duplication free, which is this job's whole premise and now has a number
-  on it.
-  H67's entry named this as worth a later look and H68 made it seven: each one
-  calls `getEntriesByType('resource')` for the modules that ran and then
-  `fetch`es every one of them for its text. The browser serves them from its
-  cache, which is why 991 requests cost nothing measurable, but it is seven
-  times the work and seven copies of the same four lines - the shape H53 and
-  H58 collapsed twice already, one level up.
-  A shared reader in `tests/sourcetext.js` (or beside it) that fetches each
-  module under `src/` **once** and hands back a map of path to text, with the
-  two readings memoised, and the seven censuses asking it instead:
-  `audiocontext.js`, `donedef.js` (three sites), `pixelfloors.js`,
-  `posecriterion.js`, `readernames.js`, `requestbuffer.js`, `rngdraws.js`.
-  **Two things it must not break.** `requestbuffer.js`'s own census counts call
-  sites of the buffer read per module and declares them, so collapsing seven
-  reads into one moves six rows of its table and the counts in them - that is
-  the point, and the table has to move with it. And `requestbuffer.js`'s clause
-  3 measures the live entry count *after* the census has fetched every module,
-  as the proof that the raise took effect; a cache that fetches once would make
-  that measurement smaller and it has 41x of headroom, so it survives, but the
-  number in its detail line moves.
-  *done-when:* one module owns the fetch, the seven ask it, `requestbuffer.js`'s
-  declared sites match the new shape, and a check holds that no census under
-  `src/tests/` fetches a module's text for itself - read off the tree, the way
-  H68 holds the readers.
+- [x] **H96 (S, really an M)** The tree of modules that ran, fetched once — done 2026-10-19, under Done. `tests/moduletexts.js` (new), fifteen modules converted, `requestbuffer.js`'s table from seven readers at ten sites to three at three, and clause 5 of `the-resource-timing-buffer-has-room-for-every-request-the-page-makes`.
 
 - [ ] **H97 (S)** And the *line-local* comment test has three copies of its
   own. `codeOnly(line)` is the one place that decides whether a line is a
@@ -1139,6 +1109,26 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H96** The tree of modules that ran, fetched once. `tests/moduletexts.js`
+  (157 lines, new) reads the Resource Timing buffer for the modules under
+  `src/` that ran and fetches each at most once a page, handing back the body
+  beside both readings, each computed on the first ask. **Fifteen modules, not
+  the seven the queue named**: the grep for who fetches module text found five
+  more taking their list from `src/tests/index.js` rather than from the buffer
+  (`registry.js`, `resetcensus.js`, `quiescesites.js`, `breathcensus.js`,
+  `breathdrawn.js`) and three single-file readers — fourteen fetch sites. The
+  list and the fetch moved together because `requestbuffer.js` censuses the
+  first half by name, and its table is **three readers at three sites** where
+  it was seven at ten. Clause 5 holds the other half: no module under
+  `src/tests/` fetches a path under `src/`, read with the weak reader because
+  a path is a string, with the owner obeying the rule rather than exempted
+  from it and its own line one of the clause's ignore cases. **Measured:** the
+  same subset of five checks spends **426** buffer entries where it spent
+  **634**. It cost a line of `breathcensus.js`'s ceiling (550, one outside the
+  cluster) and two lines of its header paid it, so the cluster is **eleven**
+  (D77). Subset plant 16/16; break: `registry.js` fetching for itself again,
+  red by name — `HASH-H96`, 2026-10-19.
 
 - **H95** The sentence said code and the clause had read the wording. H68 fixed
   the names and left the sentences: four reported problems said *"in code"*

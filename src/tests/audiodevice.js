@@ -109,6 +109,7 @@
  * main.js (Section 3.1).
  */
 
+import { moduleText } from './moduletexts.js';
 import { MIN_WINDOW_SECONDS, readDeviceClock, readUnfedShape, readCoverage, readUnfedFloor, UNFED_FLOOR_SECONDS, CLOCK_CASES, COVERAGE_CASES } from './deviceclock.js';
 
 /**
@@ -325,7 +326,7 @@ export function register(debugTools) {
     name: 'The device journal is read after every registration that drives frames into it, so the suite\'s densest block of marks is inside the window rather than after it',
     run: async () => {
       const problems = [];
-      const index = await (await fetch(`${location.origin}/src/tests/index.js`)).text();
+      const index = (await moduleText(location.origin, 'src/tests/index.js')).body;
       // The calls and never the imports: the two disagree here by design,
       // which is the whole subject. Line-anchored, so a commented-out call is
       // not a call - the same read `tests/registry.js` makes of the same file,

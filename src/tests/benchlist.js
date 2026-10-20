@@ -45,6 +45,7 @@ import {
   VIEWPOINT_SAMPLES, VIEWPOINT_BUDGET_MS, VIEWPOINT_SAMPLES_PARAM,
   MIN_SAMPLES_FOR_A_MEDIAN, sampleSummary, viewpointCost, viewpointSamples,
 } from './viewpointsamples.js';
+import { moduleText } from './moduletexts.js';
 import { AS_WORDING, uncommented } from './sourcetext.js';
 
 /** This check's own id: the policeman is not exemptible, here either. */
@@ -354,7 +355,7 @@ export function register(debugTools) {
       // 5. The sweep is what uses all of it, read from its own text the way
       //    this module reads bench.mjs's - a statistic nothing calls is
       //    decoration, and a parameter nothing reads is a comment.
-      const sweepText = await (await fetch(`${location.origin}/src/tests/soak.js`)).text();
+      const sweepText = (await moduleText(location.origin, 'src/tests/soak.js')).body;
       if (!/viewpointCost\(each\)/.test(sweepText)) {
         problems.push('tests/soak.js does not cost a viewpoint with viewpointCost(each); the sweep is not using the statistic this check holds');
       }

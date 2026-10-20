@@ -37,7 +37,7 @@
  * one thing a reader of those censuses needs is to know **nothing was
  * dropped**.
  *
- * **Four clauses, and the third is the behavioural half this check owes the
+ * **Five clauses, and the third is the behavioural half this check owes the
  * suite** (HANDOFF.md, A1 and A3's debt: a check that reads the constant the
  * derivation read can only ever agree with it).
  *
@@ -56,7 +56,18 @@
  *   4. The readers census, both ways: every module that ran whose **code**
  *      calls the buffer is declared here with what it reads it for, and every
  *      declared module still calls it. A new reader is a new row, not a
- *      silence.
+ *      silence. **H96 took it from seven modules at ten sites to three at
+ *      three** by moving the list, and the fetch with it, into
+ *      `tests/moduletexts.js`; the three left are the one reader that wants
+ *      the entries rather than the modules, the owner of the list, and this
+ *      check's own count.
+ *   5. And nobody goes round the owner (H96): no module under `src/tests/`
+ *      fetches a path under `src/` for itself. Clause 4 holds who may ask
+ *      *which modules ran*; this holds who may read one, which is the other
+ *      half of the same ownership and the half five modules were doing off
+ *      `src/tests/index.js`'s list rather than off the buffer's. It reads the
+ *      **weak** reader, because a path is a string and the strong one empties
+ *      the literal it sits in.
  *
  * **Two readers, and the division is load-bearing** (H62). Membership is a
  * question about what a module *does*, so it is decided on `codeOf` - an
@@ -78,6 +89,7 @@
  * Nothing here imports main.js (Section 3.1).
  */
 
+import { moduleTexts, ranModules, readSoFar } from './moduletexts.js';
 import { AS_CODE, codeOf, uncommented, readerProblems } from './sourcetext.js';
 
 /**
@@ -148,15 +160,63 @@ const ASK_IGNORES = '   * handled, because performance.setResourceTimingBufferSi
  * Every module that ran and reads the buffer, with what it reads it for. Keyed
  * by file name; `sites` is how many call sites it has, so a reader that grows
  * a second one is a number that moved rather than nothing.
+ *
+ * **H96 took this from seven modules at ten sites to three at three**, and
+ * that is the shape of the job rather than a tidy-up: six of the seven were
+ * reading the buffer for the same thing - the list of modules that ran - and
+ * then fetching all 193 of them for themselves. `tests/moduletexts.js` does
+ * both once a page for all of them. What is left here is the one reader that
+ * wants the entries rather than the modules, the owner of the list, and this
+ * check's own count of what the buffer holds.
  */
 const READERS = [
-  { module: 'audiocontext.js', sites: 1, what: 'the modules that ran, for F13-style one-owner ban on the realtime AudioContext constructor' },
-  { module: 'donedef.js', sites: 3, what: 'three sites: the network ban reads every entry (the one reading the 250 cap genuinely broke), and the 600-line ceiling and the two source bans read the modules that ran' },
-  { module: 'pixelfloors.js', sites: 1, what: 'the modules under src/tests/ that ran, for H30 census of pixel floors against the drawing buffer' },
-  { module: 'posecriterion.js', sites: 1, what: 'the modules under src/tests/ that ran, for H61 discovery of the proxies that pose a body' },
-  { module: 'readernames.js', sites: 1, what: 'the modules under src/tests/ that ran, for H68 census of a reader copied into a module or bound to a name claiming the other one' },
-  { module: 'requestbuffer.js', sites: 2, what: 'this check: once to find the modules it then greps, and once afterwards to count what the buffer holds - the instrument is the thing it protects, so it declares itself, and its own second site is the first thing this census caught' },
-  { module: 'rngdraws.js', sites: 1, what: 'the modules that ran, for H77 census of every draw site on the two seeded streams' },
+  { module: 'donedef.js', sites: 1, what: 'the network ban reads every entry, which is the one reading the 250 cap genuinely broke - it wants the requests and not the modules, so it is the one site H96 did not move' },
+  { module: 'moduletexts.js', sites: 1, what: 'the modules that ran, once a page, for the eight censuses that want them: the ceiling and the two source bans, the AudioContext owner ban, the pixel floors, the pose proxies, the two source readers and the draw sites (H96)' },
+  { module: 'requestbuffer.js', sites: 1, what: 'this check, counting what the buffer holds after the census above has read the tree - the instrument is the thing it protects, so it declares itself' },
+];
+
+/**
+ * And the other half of the same ownership, which is the half H96 is about
+ * (its done-when: *no census under `src/tests/` fetches a module's text for
+ * itself*). A buffer reader cannot be declared away by fetching the tree off
+ * some other list - `registry.js`, `resetcensus.js`, `quiescesites.js`,
+ * `breathcensus.js` and `breathdrawn.js` each take their list from
+ * `src/tests/index.js` rather than from the buffer, and each used to fetch
+ * every file on it - so the fetch is held in its own right.
+ *
+ * **Line-local, the way `donedef.js` decides the two spec bans.** The needle
+ * is a `fetch` naming a path under `src/` on the one line, which is the shape
+ * all fourteen sites H96 moved were written in and the shape the next one
+ * will be written in. A fetch whose URL is assembled a line earlier walks
+ * through, which `pixelfloors.js`'s own header makes the same admission
+ * about its floors: this catches the shape, not every possible spelling.
+ */
+const FETCHES_SOURCE = /fetch\([^)]*\bsrc\//;
+
+/**
+ * The reader this clause takes is the **weak** one, and it has to be: the
+ * path is inside a template literal at every one of the sites H96 moved, and
+ * `codeOf` empties a literal where it finds it, so the strong reader cannot
+ * see a path at all - `sourcetext.js`'s header says it in as many words, *a
+ * module path is a string, so this reader cannot see one*.
+ *
+ * Which means this file's own cases are visible to this file's own clause,
+ * so each is assembled from pieces that fail the needle on their own: `fe`
+ * and `tch(` are not `fetch(`. Same trap and same answer as `SPELLINGS` in
+ * `readernames.js`.
+ *
+ * **`moduletexts.js` is not exempted and does not need to be.** It builds its
+ * URL from a path it was handed, so it names no subtree and matches nothing:
+ * the rule is that *no* module under `src/tests/` fetches a path under
+ * `src/`, and the owner obeys it rather than being excused from it. The
+ * second ignore case is the owner's own line, held here so that a rewrite of
+ * it into a form this clause would red is caught as a case and not as a
+ * mystery.
+ */
+const FETCH_SEES = ['      const index = await (await fe', 'tch(`${origin}/src/tests/index.js`)).text();'].join('');
+const FETCH_IGNORES = [
+  ['      const bench = await te', "xt(origin, '/scripts/bench.mjs');"].join(''),
+  ['  const response = await fe', 'tch(`${origin}/${path}`);'].join(''),
 ];
 
 /** Read a file from the origin the way donedef.js and timedrenders.js do. */
@@ -166,15 +226,13 @@ async function text(origin, rel) {
   return { body: await response.text() };
 }
 
-/** Which modules the page loaded under `src/`, from the buffer this check is about. */
+/**
+ * Which modules the page loaded under `src/`. Read through the owner since
+ * H96, which is why this check's own declared site count fell from two to
+ * one: the instrument it protects is now somebody else's single call.
+ */
 function loadedModules(origin) {
-  const modules = new Set();
-  for (const entry of performance.getEntriesByType('resource')) {
-    const url = entry.name.split('?')[0];
-    if (!url.startsWith(origin) || !url.endsWith('.js') || url.indexOf('/src/') === -1) continue;
-    modules.add(url.slice(url.indexOf('/src/') + 1));
-  }
-  return [...modules];
+  return ranModules(origin) || [];
 }
 
 export function register(debugTools) {
@@ -249,6 +307,13 @@ export function register(debugTools) {
         [IGNORES],
         uncommented,
       ));
+      // H96's needle, on the weak reader because a path is a string.
+      problems.push(...readerProblems(
+        (said) => (FETCHES_SOURCE.test(said) ? 'a fetch of the tree' : ''),
+        [[FETCH_SEES, 'a fetch of the tree']],
+        FETCH_IGNORES,
+        uncommented,
+      ));
 
       const modules = loadedModules(origin);
       if (modules.length < 120) {
@@ -256,19 +321,27 @@ export function register(debugTools) {
       }
       const declared = new Map(READERS.map((entry) => [entry.module, entry]));
       const found = new Map();
-      for (const path of modules) {
-        const read = await text(origin, `/${path}`);
+      let fetchers = 0;
+      for (const read of await moduleTexts(origin, modules)) {
         if (read.error) { problems.push(read.error); continue; }
-        const code = codeOf(read.body);
-        if (!READS_BUFFER.test(code)) continue;
+        const path = read.path;
         const file = path.slice(path.lastIndexOf('/') + 1);
+        // H96: and nobody goes round the owner. A path is a string, so this
+        // half asks the weak reader where the half above asks the strong one -
+        // the same division H62 drew for the call and its argument.
+        if (path.startsWith('src/tests/') && FETCHES_SOURCE.test(read.said)) {
+          fetchers += 1;
+          problems.push(`${file} fetches a path under src/ for itself; tests/moduletexts.js reads every module that ran once a page and hands back its text with both readings, so a second fetch is a second list to get wrong and an entry of the buffer this check is about (H96)`);
+        }
+        const code = read.code;
+        if (!READS_BUFFER.test(code)) continue;
         const sites = (code.match(/getEntriesByType\(/g) || []).length;
         found.set(file, sites);
         if (!declared.has(file)) {
           problems.push(`${file} reads the Resource Timing buffer at ${sites} site(s) and this census does not declare it; what it reads the buffer for is what the size has to cover`);
           continue;
         }
-        if (!READS_RESOURCES.test(uncommented(read.body))) {
+        if (!READS_RESOURCES.test(read.said)) {
           problems.push(`${file} calls getEntriesByType and names no resource type in it, so this census cannot say the buffer it reads is the one this size is about`);
         }
         if (sites !== declared.get(file).sites) {
@@ -302,13 +375,17 @@ export function register(debugTools) {
       }
 
       const sites = READERS.reduce((total, entry) => total + entry.sites, 0);
+      if (fetchers) {
+        problems.push(`${fetchers} module(s) under src/tests/ fetch the tree for themselves, which is the duplication H96 ended`);
+      }
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `buffer ${size} of a ${DEFAULT_SIZE} default, never filled; ${entries.length} entries here`
             + ` (${(size / entries.length).toFixed(1)}x left, ${HEADROOM}x held), ${modules.length} modules under src/;`
             + ` ${found.size} readers at ${sites} call sites, all declared: ${READERS.map((entry) => entry.module).join(', ')};`
-            + ` two readers instrumented, the call as code and the resource type as a string (H62)`
+            + ` no module under src/tests/ fetches one for itself, ${readSoFar()} read once between them (H96);`
+            + ` three readers instrumented, the call as code, the type and a path as strings (H62)`
           : problems.join('; '),
       };
     },

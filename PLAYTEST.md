@@ -95,6 +95,31 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### Seven tests were each downloading the whole codebase to read it (H96, 2026-10-19)
+
+**Nothing in the game changed. The test suite stopped doing the same job
+fifteen times.**
+
+A lot of the checks work by reading the game's own source: *which modules
+actually ran, and what does each one say* — that is how the 600-line ceiling,
+the two bans the spec carries, and half a dozen censuses decide what they are
+about. Each of them was asking the browser for the list and then downloading
+all 193 files for itself. Fifteen modules doing it, fourteen places in the
+code, the same four lines copied over and over.
+
+**It was never slow** — the browser serves the second and third copy out of
+its own cache, which is the honest reason nobody caught it. What it cost was
+fifteen places to get the filter subtly wrong in, and about a third of the
+request log the suite keeps for exactly this purpose, filled with re-reads of
+files already in hand.
+
+One module owns it now. The check that polices the request log went from
+declaring **seven** readers to **three**, and it holds a new rule: nothing
+else may read a source file for itself. The break test put one of them back
+and the check named it.
+
+**Nothing is left for you on this one.**
+
 ### Four of the tests were telling a reader the wrong thing about their own evidence (H95, 2026-10-19)
 
 **Nothing in the game changed. Five sentences did.**

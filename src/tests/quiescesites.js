@@ -79,6 +79,7 @@
  * tests/index.js; nothing imports main.js (Section 3.1).
  */
 
+import { moduleText } from './moduletexts.js';
 import { codeOf, readerProblems } from './sourcetext.js';
 import { addsUp } from './censustally.js';
 import { HELPER, HELPER_FILE } from './quiesce.js';
@@ -296,7 +297,7 @@ export function register(debugTools) {
       //    which registers nothing, and is where the lookbehind meets the
       //    real tree rather than only a test vector.
       // ------------------------------------------------------------------
-      const index = await (await fetch(`${origin}/src/tests/index.js`)).text();
+      const index = (await moduleText(origin, 'src/tests/index.js')).body;
       const files = [...index.matchAll(/import \{ register as \w+ \} from '\.\/([a-z0-9]+\.js)';/g)].map((m) => m[1]);
       if (files.length < MIN_TEST_MODULES) {
         return { pass: false, detail: `tests/index.js imports ${files.length} modules and the suite is ${MIN_TEST_MODULES}+, so this census is not reading the tree` };
@@ -305,7 +306,7 @@ export function register(debugTools) {
       const scanned = [...new Set([...files, helper])];
       const sites = [];
       for (const file of scanned) {
-        sites.push(...sitesIn(file, await (await fetch(`${origin}/src/tests/${file}`)).text()));
+        sites.push(...sitesIn(file, (await moduleText(origin, `src/tests/${file}`)).body));
       }
 
       const owned = sites.filter((s) => s.reads && s.drives && s.owns);

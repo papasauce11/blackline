@@ -70,12 +70,12 @@
  *
  * **Since H53 the two criteria read code and not prose** (`tests/sourcetext.js`
  * owns the reader), and one of them grew a proxy. The criteria below say what
- * the raw read cost and what it hid.
+ * the raw read cost and what it hid. H96 moved the fetch to `moduletexts.js`.
  *
- * Registered from tests/index.js beside tests/breath.js. Nothing here imports
- * main.js (Section 3.1).
+ * Registered from tests/index.js beside tests/breath.js (Section 3.1).
  */
 
+import { moduleText } from './moduletexts.js';
 import { CONFIG } from '../config.js';
 import { POSE } from '../entities/agentvisual.js';
 import { QUALITY_FALLBACK, pixelRatioNow } from '../quality.js';
@@ -270,7 +270,7 @@ export function register(debugTools) {
       //    registrar's own import list, as tests/registry.js reads it, so a
       //    module added to the suite is in this census the day it lands.
       // ------------------------------------------------------------------
-      const index = await (await fetch(`${origin}/src/tests/index.js`)).text();
+      const index = (await moduleText(origin, 'src/tests/index.js')).body;
       const files = [...index.matchAll(/import \{ register as \w+ \} from '\.\/([a-z0-9]+\.js)';/g)].map((m) => m[1]);
       if (files.length < 50) {
         return { pass: false, detail: `tests/index.js imports ${files.length} modules; the suite is 50+` };
@@ -300,7 +300,7 @@ export function register(debugTools) {
         // Code and not prose (H53). `tests/deathcam.js` is the live proof of
         // this line: its two sentences name both calls and it makes neither,
         // and between H47 and H53 it could not spell either word.
-        const code = codeOf(await (await fetch(`${origin}/src/tests/${file}`)).text());
+        const code = (await moduleText(origin, `src/tests/${file}`)).code;
         const word = poseWord(code);
         if (word === 'poses') poses.push(file);
         else if (word === 'renders') renders.push(file);

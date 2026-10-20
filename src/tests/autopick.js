@@ -39,6 +39,7 @@
  * imports main.js (Section 3.1).
  */
 
+import { moduleText } from './moduletexts.js';
 import { CONFIG, SETTINGS } from '../config.js';
 import { QUALITY_LEVELS, createQualityProbe, rememberedPick, qualityState } from '../quality.js';
 
@@ -149,7 +150,7 @@ export function register(debugTools) {
       // 4. And the one line that calls it, by its text - a pure function
       //    nothing calls is decoration (H27).
       // ------------------------------------------------------------------
-      const source = await (await fetch(`${location.origin}/src/quality.js`)).text();
+      const source = (await moduleText(location.origin, 'src/quality.js')).body;
       if (source.indexOf(STORES_THROUGH_THE_RULE) === -1) {
         problems.push('quality.js does not store the probe\'s pick through rememberedPick - the rule above is tested and unused');
       }

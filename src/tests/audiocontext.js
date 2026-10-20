@@ -80,6 +80,7 @@
  * source text and draws no frame. Nothing here imports main.js (Section 3.1).
  */
 
+import { moduleTexts, ranModules } from './moduletexts.js';
 import { codeOnly } from './sourcetext.js';
 
 /**
@@ -146,15 +147,11 @@ export function register(debugTools) {
       //    from the Resource Timing list, exactly as F13's bans read them -
       //    never a guess at the import graph.
       // ------------------------------------------------------------------
+      //    H96: read by tests/moduletexts.js, once a page for all eight.
       const origin = location.origin;
-      const modules = new Set();
-      for (const entry of performance.getEntriesByType('resource')) {
-        const url = entry.name.split('?')[0];
-        if (!url.startsWith(origin) || !url.endsWith('.js') || url.indexOf('/src/') === -1) continue;
-        modules.add(url.slice(url.indexOf('/src/') + 1));
-      }
-      if (modules.size < MIN_MODULES) {
-        return { pass: false, detail: `Resource Timing lists ${modules.size} modules under src/; the suite is ${MIN_MODULES}+` };
+      const modules = ranModules(origin) || [];
+      if (modules.length < MIN_MODULES) {
+        return { pass: false, detail: `Resource Timing lists ${modules.length} modules under src/; the suite is ${MIN_MODULES}+` };
       }
 
       if (!DEVICE.test(MUST_MATCH)) problems.push('the device-constructor pattern no longer matches the line it is built to match - the census below reads zero whether it works or not');
@@ -162,11 +159,12 @@ export function register(debugTools) {
 
       const namers = [];
       let offlineNamers = 0;
-      for (const path of [...modules].sort()) {
-        const text = await (await fetch(`${origin}/${path}`)).text();
+      for (const read of await moduleTexts(origin, modules)) {
+        if (read.error) { problems.push(read.error); continue; }
+        const path = read.path;
         let device = 0;
         let offline = false;
-        for (const line of text.split(/\r?\n/)) {
+        for (const line of read.body.split(/\r?\n/)) {
           const code = codeOnly(line);
           if (!code) continue;
           if (DEVICE.test(code)) device++;
@@ -259,7 +257,7 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `${modules.size} modules under src/ scanned, ${namers.length} names the device constructor and it is ${OWNER.path}`
+          ? `${modules.length} modules under src/ scanned, ${namers.length} names the device constructor and it is ${OWNER.path}`
             + ` (${owner ? owner.lines : 0} lines); ${offlineNamers} modules name the offline one, which opens no device`
             + `; all ${recipeNames.length} Section 14 recipes are declared in ${RECIPES.path} and none in the owner (H51)`
             + `; the live context is ${state} and is the same object after rendering a sound offline`

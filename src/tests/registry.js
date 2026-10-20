@@ -31,6 +31,7 @@
  * registrations it counts. Nothing here imports main.js (Section 3.1).
  */
 
+import { moduleText } from './moduletexts.js';
 import { codeOf } from './sourcetext.js';
 
 /**
@@ -103,7 +104,7 @@ export function register(debugTools) {
     run: async (h) => {
       const origin = location.origin;
       const problems = [];
-      const index = await (await fetch(`${origin}/src/tests/index.js`)).text();
+      const index = (await moduleText(origin, 'src/tests/index.js')).body;
 
       // 1. The registrar's own wiring. An import with no call is the silent
       // failure this check was written for; a call with no import would not
@@ -140,7 +141,7 @@ export function register(debugTools) {
       const shared = new Set(SHARED_FROM_A_CHECK.map((row) => `${row.file} ${row.name}`));
       const handedOut = new Set();
       for (const entry of imports) {
-        const text = await (await fetch(`${origin}/src/tests/${entry.file}`)).text();
+        const text = (await moduleText(origin, `src/tests/${entry.file}`)).body;
         // 2a. And the seam: machinery this module hands out that its own
         //     checks never touch (H70). As code, so a reader's own regex
         //     literal is not an export, and `\b` on the name so a longer

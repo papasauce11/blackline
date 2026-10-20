@@ -81,6 +81,7 @@
  * nothing imports main.js (Section 3.1).
  */
 
+import { moduleText } from './moduletexts.js';
 import { codeOf, uncommented, readerProblems } from './sourcetext.js';
 import { addsUp } from './censustally.js';
 
@@ -298,14 +299,14 @@ export function register(debugTools) {
       // ------------------------------------------------------------------
       // 2. The census, over every module the registrar imports.
       // ------------------------------------------------------------------
-      const index = await (await fetch(`${origin}/src/tests/index.js`)).text();
+      const index = (await moduleText(origin, 'src/tests/index.js')).body;
       const files = [...index.matchAll(/import \{ register as \w+ \} from '\.\/([a-z0-9]+\.js)';/g)].map((m) => m[1]);
       if (files.length < MIN_TEST_MODULES) {
         return { pass: false, detail: `tests/index.js imports ${files.length} modules and the suite is ${MIN_TEST_MODULES}+, so this census is not reading the tree` };
       }
       const pairs = [];
       for (const file of files) {
-        pairs.push(...pairsIn(file, await (await fetch(`${origin}/src/tests/${file}`)).text()));
+        pairs.push(...pairsIn(file, (await moduleText(origin, `src/tests/${file}`)).body));
       }
       const byClass = (name) => pairs.filter((p) => classOf(p) === name);
       const exposed = byClass('exposed');

@@ -88,6 +88,7 @@
  * came out of. Nothing here imports main.js (Section 3.1).
  */
 
+import { moduleTexts, ranModulesUnder } from './moduletexts.js';
 import { codeOf, readerProblems, uncommented } from './sourcetext.js';
 
 /** The file that owns both readers, and the only one that may spell either. */
@@ -227,27 +228,6 @@ const PHRASE_IGNORES = [
   '        problems.push(`${file} ships no code at all, so there is nothing to read`);',
 ];
 
-/** Read a file from the origin the way benchlist.js and requestbuffer.js do. */
-async function text(origin, rel) {
-  const response = await fetch(`${origin}${rel}`);
-  if (!response.ok) return { error: `${rel}: ${response.status}` };
-  return { body: await response.text() };
-}
-
-/**
- * Which modules under `src/tests/` the page loaded, from the Resource Timing
- * buffer - the read `requestbuffer.js` declares for this check (H67).
- */
-function loadedModules(origin) {
-  const modules = new Set();
-  for (const entry of performance.getEntriesByType('resource')) {
-    const url = entry.name.split('?')[0];
-    if (!url.startsWith(origin) || !url.endsWith('.js') || url.indexOf('/src/tests/') === -1) continue;
-    modules.add(url.slice(url.indexOf('/src/') + 1));
-  }
-  return [...modules];
-}
-
 /**
  * Every place a module binds one of the shared readers to a local name, line
  * by line and never by parsing - `donedef.js`'s rule, and the reason this is
@@ -347,7 +327,9 @@ export function register(debugTools) {
       //    asked for both, since a needle gone stale would make clause 3
       //    vacuous and that is the only control quoted text can have.
       // ------------------------------------------------------------------
-      const modules = loadedModules(origin);
+      // H96: the list and the text both come from tests/moduletexts.js, which
+      // fetches each module once a page for all eight censuses that want one.
+      const modules = ranModulesUnder(origin, 'src/tests/') || [];
       if (modules.length < MODULE_FLOOR) {
         return { pass: false, detail: `the buffer names ${modules.length} modules under src/tests/ and this page loads ${MODULE_FLOOR}+, so the census below would be a census of nothing` };
       }
@@ -357,12 +339,11 @@ export function register(debugTools) {
       const claiming = new Set();
       const owned = new Set();
       const phrased = new Set();
-      for (const path of modules) {
-        const read = await text(origin, `/${path}`);
+      for (const read of await moduleTexts(origin, modules)) {
         if (read.error) { problems.push(read.error); continue; }
-        const file = path.slice(path.lastIndexOf('/') + 1);
-        const code = codeOf(read.body);
-        const said = uncommented(read.body);
+        const file = read.path.slice(read.path.lastIndexOf('/') + 1);
+        const code = read.code;
+        const said = read.said;
         for (const binding of bindings(code)) {
           bound += 1;
           if (claims(binding.name).length > 0) {
