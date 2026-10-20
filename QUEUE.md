@@ -1160,7 +1160,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   was chosen (H62's question), only that the phrase and the reader are one
   import apart. Subset plant 6/6; breaks: a phrase typed by hand, red naming
   `timedrenders.js:429`; the owner's phrase reworded, red on the control
-  — `HASH-H95`, 2026-10-19.
+  — `97f7337`, 2026-10-19.
 
 - **H22** The settings page in four groups - look, audio, match, system - two
   abreast under headings the ring passes over, at **532px** in a 720p window
