@@ -1182,7 +1182,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   settings page threw on render and took the pause menu's with it. Both
   directions are guarded now and the page stays whole. Subset both maps 14/14;
   breaks: one column, red at 919px and 1013px; a row out of the table, red
-  naming `bl-inv` with the page still rendering — `HASH`, 2026-10-19.
+  naming `bl-inv` with the page still rendering — `0588999`, 2026-10-19.
 
 - **H21** A stored number outside its bounds. `CONFIG.settings.bounds` (new, beside
   the defaults) names each bounded setting's two ends by the constants that
