@@ -20471,3 +20471,76 @@ before them, which is the determinism question asked as hard as this machine
 can ask it. The one failure a map is the bench-only sweep (H11).
 
 **The build task is re-enabled** with this record; the session is over.
+
+## H22 — The settings page in four groups, and it fits 720p
+
+**Built.** `SETTINGS_GROUPS` in `config.js`, beside `BINDING_GROUPS` and shaped
+like it: look (both sensitivities, both fields of view, head-bob, invert Y,
+post-processing, quality), audio (master volume), match (match length,
+difficulty, round briefing), system (debug tooling, reset to defaults).
+`_renderSettings` draws each group under a `.grouphead`, which is never handed
+to `_rows()` and so is passed over, and the two pages now share `.groups` /
+`.group` in `menucss.js` - H20's `.bindgroups` renamed, because there is one
+grouping mechanism and two pages using it. Look only: every row does what it
+did (D55).
+
+**Unlike H20 the table is the draw order.** `BINDING_GROUPS` is the bindings'
+own order cut four ways, so the controls page could keep declaring its rows
+from `DEFAULT_BINDINGS` and nothing about the ring changed. Grouping the
+settings page *does* move rows - invert Y, post and quality come up beside the
+sensitivities, volume goes down to its own heading - so the page reads
+`SETTINGS_GROUPS` twice: once to lay the rows out and once to declare them to
+the ring. The picture and the keyboard cannot disagree about where a row is,
+because there is one list and it is not the page's.
+
+**The fourteen rows became a table keyed by id.** They were fourteen literal
+`<div class="row">` lines in one template, which cannot be reordered by a list
+somewhere else; `ROWS` holds the label and the control of each, and the
+grouping maps over it. That is also what let the guards below be two lines.
+
+**The first draft threw, and the break found it.** Dropping `bl-inv` from the
+table to prove the check holds reddened it with `Cannot set properties of null
+(setting 'onclick')`: the wiring queries every id it knows, so a row no heading
+named was never drawn and the settings page - the pause menu's settings page
+included - died on render. Neither half of a disagreement takes the page down
+now. A heading naming a row the page has not got draws nothing, which is the
+guard `_renderControls` has had since H20; a row no heading names is drawn
+under the groups and declared after them, so it is still there and still
+reachable. What says the two have come apart is the check, by name.
+
+**Measured, not estimated.** The grouped page is **532px** tall at 1280x720 on
+both maps; the flat list it replaces is **919px**, so the bottom two or three
+rows were under the fold of a 720p window and nothing was measuring it. The
+controls page came down with it, **642px at H20 to 627px**, because
+`column-count` balances the two columns where H20's grid gave each row the
+height of its tallest cell - which is why the shared rule is multi-column and
+not the grid: the settings groups are eight rows against one, and a grid left
+half a column of air.
+
+**Held** by `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`,
+which gains the settings half of what H20 gave the controls page: the headings
+read what the table names, the ring stops on none of them, the rows drawn under
+them are exactly the ones the table names **in that order**, the ring walks
+them in that same order, and `FITS` gains `settings` so both pages are held
+under `CONFIG.menu.fitHeight` with both heights in the line it prints. The
+detail line is 376 characters against the runner's 400: H22 added a clause and
+a second fitted page to a line that was already long, so the first clause lost
+the words it could spare.
+
+**Proved.** Subset on both maps - reachability, the settings store's own
+census, the bounds census, the rebind store, the ceiling - **14/14 on the
+plant and 14/14 on the yard**, "both pages fit 720px (settings 532px, controls
+627px)" on each. **Two breaks**, both on the plant. The groups put back in one
+column at 9px of padding: red, "the settings page is 919px tall and needs
+scrolling in a 720px window; the controls page is 1013px tall and needs
+scrolling". A row taken out of the heading table: red, naming `bl-inv` as the
+row the page drew and the headings do not claim, and the page still rendered.
+
+**Verified**, four runs, exit 0: plant **249 / 1 / 8** both runs (1,141,550ms
+and 1,132,712ms), yard **229 / 1 / 28** both runs (782,064ms and 781,752ms),
+spreads **1%** and **0%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green,
+**0 console errors**, no other runner. The census is unchanged - H22 registers
+no new check, only clauses - and the ceiling is **11 modules within 50 of
+600**, of 209, also unchanged: `menupages.js` went 385 to 408 and
+`tests/menu.js` 510 to 544, both outside it. The one failure a map is the
+bench-only sweep (H11).

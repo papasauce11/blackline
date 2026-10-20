@@ -110,6 +110,38 @@ that order; spec 20.34 amends Section 19.
 
 ## Provisional — done as recommended, override any time
 
+### D78 — The settings page's four groups, and which row sits under which
+
+**Raised by:** H22, 2026-10-19, and **taken** rather than asked: the queue
+named the four headings — look, audio, match, system — and said *"look only;
+nothing a player can do changes"*, which is true of the result. Every row does
+exactly what it did and the ring reaches all fourteen.
+
+**What was decided.** Which row goes under which heading, and a layout. **look**
+takes both sensitivities, both fields of view, head-bob, **invert Y**,
+post-processing and quality; **audio** takes master volume alone; **match**
+takes match length, difficulty and round briefing; **system** takes debug
+tooling and reset to defaults.
+
+**The one I went back and forth on is `invert Y`.** It is a look setting in the
+sense that matters — it inverts the pitch axis, so it belongs with the
+sensitivities and the fields of view — but it is also the only row in *look*
+that is about the hands rather than the picture, and an argument for a fifth
+heading (or for putting it under *system* with the other two switches) is
+available. It is one line in `SETTINGS_GROUPS`.
+
+**And the page is two columns on a 900px card**, the shape H20 gave the
+controls page, because four headings on top of fourteen rows in one column is
+919px in a 720p window. The balancing is the browser's (`column-count`), not a
+grid, because the groups are eight rows against one.
+
+**To look:** open Settings. If the groups read wrong, or two columns reads as
+wide where one would read as tidy, both are one line —
+`SETTINGS_GROUPS` in `config.js` and `#bl-menu .groups` in `menucss.js`.
+
+`decided:`
+
+
 ### D76 — A walk and a sprint are photographed at the same point of the stride every time, and the yard's walk changed sides
 
 **Raised by:** H57, 2026-10-14, and **taken** rather than asked: it changes what

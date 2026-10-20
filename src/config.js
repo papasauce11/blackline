@@ -1988,6 +1988,28 @@ export const BINDING_GROUPS = [
 ];
 
 /**
+ * The settings page's headings (H22), by the element id `_renderSettings`
+ * gives each row, in the order the page draws them and the ring walks them.
+ * The cut is the one H20 made on the controls page — look, audio, match,
+ * system — and the same two rules hold it: a heading is not a control, so the
+ * ring passes over it, and
+ * `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard` requires
+ * the rows the page drew to be exactly these, in this order, so a setting
+ * added without a heading is a red check rather than a row the page drops.
+ *
+ * Unlike `BINDING_GROUPS` this one *is* the draw order: the page reads it to
+ * lay the rows out and reads it again to declare them, so the picture and the
+ * keyboard cannot disagree about where a row is. Grouping stays look only —
+ * every row does what it did (D55).
+ */
+export const SETTINGS_GROUPS = [
+  ['look', ['bl-sens', 'bl-sensy', 'bl-fov-shade', 'bl-fov-warden', 'bl-bob', 'bl-inv', 'bl-post', 'bl-quality']],
+  ['audio', ['bl-vol']],
+  ['match', ['bl-len', 'bl-diff', 'bl-brief']],
+  ['system', ['bl-dbg', 'bl-reset']],
+];
+
+/**
  * Keys the browser default is suppressed for while the canvas has focus.
  * Deliberately excludes F5, F12 and anything with a modifier so reload and
  * devtools keep working.

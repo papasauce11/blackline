@@ -95,6 +95,34 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The settings page is in four groups now, and it fits your window (H22, 2026-10-19)
+
+**Nothing you can do changed. Fourteen rows got four headings and two
+columns.** Settings is now **look** (both sensitivities, both fields of view,
+head-bob, invert Y, post-processing, quality), **audio** (master volume),
+**match** (match length, difficulty, round briefing) and **system** (debug
+tooling, reset to defaults). Every row does exactly what it did; the arrow
+keys walk them top to bottom, group by group, and skip the headings — and the
+page is the same 900px-wide card the Controls page has been since H20.
+
+**It had outgrown a 720p window and nobody had said so**, because nothing was
+measuring it: the flat list is **919px** tall at 1280x720, so the last two or
+three rows were below the fold on a laptop. Grouped and two abreast it is
+**532px**. The Controls page came down too, 642px to **627px**, because the
+two pages now share one stylesheet rule and the browser balances the columns
+rather than a grid giving each row the height of its tallest cell.
+
+`every-main-menu-row-is-reachable-and-actionable-from-the-keyboard` gained
+the settings half of what H20 gave the controls page: the rows drawn under
+the headings are exactly the ones the table names, in that order, the ring
+walks them in that same order, and **both** pages are now held under 720px
+with their heights in the line it prints.
+
+**What is left for you:** whether these are the four groups you would have
+picked — `invert Y` under *look* rather than beside the sensitivities is the
+one I went back and forth on — and whether two columns reads as tidy or as
+wide. Both are one line in `SETTINGS_GROUPS` and `menucss.js`.
+
 ### A test that was one step from failing on a coin flip now counts from a known place (H84, 2026-10-18)
 
 **Nothing in the game changed. Two tests changed how they measure the walk.**
@@ -2059,9 +2087,9 @@ out — which also proves the bob moves the body not at all.
 for a game where one side is hiding — **D59**, one line. Whether the bob
 should ship on rather than off. Whether 1.8cm on a third-person boom reads as
 weight or as a wobble; it is the one of the two I am least sure of, because a
-boom swings the whole picture where an eye swings only itself. And the
-settings page is now thirteen rows and wants the grouping **H20** was written
-for the controls page — say if it has outgrown your window.
+boom swings the whole picture where an eye swings only itself. The settings
+page did outgrow the window, which **H22** has since fixed — the entry at the
+top of this file has the numbers.
 
 ### You can rebind every key (H8, 2026-09-28)
 
@@ -2094,9 +2122,10 @@ from the page the way you would, then climbs a ledge on J and requires Space
 `a-key-bound-twice-is-shown-on-both-rows-and-a-row-restores-its-own-default`
 does the conflict and the per-row reset.
 
-**What is left for you:** thirty-five rows is a long flat list and it wants
-grouping (**H20**) — tell me if it reads badly at your window size. And
-whether the *also jump* note is loud enough to be a warning, or should be.
+**What is left for you:** thirty-five rows was a long flat list and **H20**
+has since grouped it (and **H22** the settings page beside it) — tell me if
+it reads badly at your window size. And whether the *also jump* note is loud
+enough to be a warning, or should be.
 
 ### The game remembers you now (H7, 2026-09-28)
 

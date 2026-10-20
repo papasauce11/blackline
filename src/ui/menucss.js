@@ -114,17 +114,28 @@ export const MENU_CSS = `
   color: ${hex(P.shadeTeal)};
 }
 /* H20: the groups two abreast, each under a heading the ring passes over,
-   so seventeen actions fit a 720p window with no scrolling. */
+   so seventeen actions fit a 720p window with no scrolling. H22 gave the
+   settings page the same four headings and the same two columns, which is
+   why these are .groups and not .bindgroups any more.
+
+   Two columns by column-count rather than by grid, because the two pages
+   have very differently sized groups and the browser's own balancing is the
+   only thing that keeps either of them short: the settings page's look group
+   is eight rows against audio's one, and a grid row is as tall as its
+   tallest cell, so the grid that suited four even binding groups would leave
+   half a column of air here. break-inside is what keeps a group whole. */
 #bl-menu .card.wide { max-width: 900px; width: 900px; }
-#bl-menu .bindgroups {
-  display: grid; grid-template-columns: 1fr 1fr; column-gap: 44px; align-items: start;
+#bl-menu .groups { column-count: 2; column-gap: 44px; }
+#bl-menu .group {
+  margin-bottom: 14px; break-inside: avoid; page-break-inside: avoid;
 }
-#bl-menu .bindgroup { margin-bottom: 14px; }
 #bl-menu .grouphead {
   font-size: 10px; letter-spacing: 0.3em; opacity: 0.45; padding-bottom: 2px;
   border-bottom: 1px solid rgba(47,214,195,0.35);
 }
-#bl-menu .bindrow { padding: 6px 0; }
+/* A grouped row is tighter than a lone one: the padding H20 measured the
+   controls page at, which H22 brought the settings rows to as well. */
+#bl-menu .groups .row { padding: 6px 0; }
 
 /* The how-to-play and credits pages: running text, so the menu's uppercase
    tracking is turned off for the body of them. */

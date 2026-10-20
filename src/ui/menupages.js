@@ -16,7 +16,7 @@
  * imports main.js.
  */
 
-import { BINDING_GROUPS, CONFIG, DEFAULT_BINDINGS, SETTINGS } from '../config.js';
+import { BINDING_GROUPS, CONFIG, DEFAULT_BINDINGS, SETTINGS, SETTINGS_GROUPS } from '../config.js';
 import { activeQuality, postEnabled, QUALITY_CHOICES } from '../quality.js';
 import { controlRows, keyLabel, objectiveLine } from './briefing.js';
 
@@ -45,42 +45,59 @@ export const MENU_PAGES = {
       if (!SETTINGS.post) return 'off';
       return postEnabled() ? 'on' : `on, off at ${activeQuality()} quality`;
     };
+    // What each row *is*, by the id it answers to. H22 took the fourteen out
+    // of one flat list and into this table so `SETTINGS_GROUPS` can say only
+    // which heading a row sits under and in what order, and say it once for
+    // both the layout below and the ring at the bottom of this function.
+    const slider = (id, min, max, step, value) =>
+      `<input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}">`;
+    const value = (id, text) => `<span class="value" id="${id}">${text}</span>`;
+    const ROWS = {
+      'bl-sens': ['look sensitivity, turn', slider('bl-sens', CONFIG.settings.mouseSensitivityMin,
+        CONFIG.settings.mouseSensitivityMax, 0.0002, SETTINGS.mouseSensitivity)],
+      'bl-sensy': ['look sensitivity, pitch', slider('bl-sensy', CONFIG.settings.mouseSensitivityMin,
+        CONFIG.settings.mouseSensitivityMax, 0.0002, SETTINGS.mouseSensitivityY)],
+      'bl-fov-shade': ['field of view, shade', slider('bl-fov-shade', CONFIG.settings.fovMin,
+        CONFIG.settings.fovMax, 1, SETTINGS.fovShade)],
+      'bl-fov-warden': ['field of view, warden', slider('bl-fov-warden', CONFIG.settings.fovMin,
+        CONFIG.settings.fovMax, 1, SETTINGS.fovWarden)],
+      'bl-bob': ['head-bob', value('bl-bob', SETTINGS.headBob ? 'on' : 'off')],
+      'bl-inv': ['invert Y', value('bl-inv', SETTINGS.invertY ? 'on' : 'off')],
+      'bl-post': ['post-processing', value('bl-post', postLabel())],
+      'bl-quality': ['quality', value('bl-quality', qualityLabel())],
+      'bl-vol': ['master volume', slider('bl-vol', 0, 1, 0.05, SETTINGS.masterVolume)],
+      'bl-len': ['match length', value('bl-len', `best of ${SETTINGS.matchLength}`)],
+      'bl-diff': ['difficulty', value('bl-diff', SETTINGS.difficulty)],
+      'bl-brief': ['round briefing', value('bl-brief', SETTINGS.briefing ? 'on' : 'off')],
+      'bl-dbg': ['debug tooling', value('bl-dbg', SETTINGS.debug ? 'on' : 'off')],
+      'bl-reset': ['settings', value('bl-reset', 'reset to defaults')],
+    };
+    // H22: the same four headings H20 gave the controls page, drawn the same
+    // way - a `.grouphead` is never handed to `_rows()`, so the ring passes
+    // over it, and the groups share `.groups`, which balances them across two
+    // columns so fourteen rows and four headings fit a 720p window.
+    //
+    // Neither half of a disagreement between the table above and the headings
+    // takes the page down: a heading naming a row this page has not got draws
+    // nothing (which is the guard `_renderControls` has had since H20) and a
+    // row no heading names is drawn under the groups rather than dropped, so
+    // it is still there and still reachable. What says the two have come
+    // apart is the check, by name, and not a thrown settings page - which is
+    // what the first draft of this did, and it would have taken the pause
+    // menu with it.
+    const headed = SETTINGS_GROUPS.map(([group, ids]) => [group, ids.filter((id) => ROWS[id])]);
+    const loose = Object.keys(ROWS).filter((id) => !headed.some(([, ids]) => ids.indexOf(id) !== -1));
+    const drawRow = (id) => `<div class="row"><span>${ROWS[id][0]}</span>${ROWS[id][1]}</div>`;
+    const groups = headed.map(([group, ids]) => `<div class="group">
+        <div class="grouphead">${group}</div>
+        ${ids.map(drawRow).join('')}
+      </div>`).join('') + (loose.length ? `<div class="group">${loose.map(drawRow).join('')}</div>` : '');
+
     this.root.innerHTML = `
-      <div class="card">
+      <div class="card wide">
         <h1 style="font-size:20px">Settings</h1>
         <div class="tag"></div>
-        <div class="row"><span>look sensitivity, turn</span>
-          <input type="range" id="bl-sens" min="${CONFIG.settings.mouseSensitivityMin}"
-            max="${CONFIG.settings.mouseSensitivityMax}" step="0.0002" value="${SETTINGS.mouseSensitivity}"></div>
-        <div class="row"><span>look sensitivity, pitch</span>
-          <input type="range" id="bl-sensy" min="${CONFIG.settings.mouseSensitivityMin}"
-            max="${CONFIG.settings.mouseSensitivityMax}" step="0.0002" value="${SETTINGS.mouseSensitivityY}"></div>
-        <div class="row"><span>field of view, shade</span>
-          <input type="range" id="bl-fov-shade" min="${CONFIG.settings.fovMin}"
-            max="${CONFIG.settings.fovMax}" step="1" value="${SETTINGS.fovShade}"></div>
-        <div class="row"><span>field of view, warden</span>
-          <input type="range" id="bl-fov-warden" min="${CONFIG.settings.fovMin}"
-            max="${CONFIG.settings.fovMax}" step="1" value="${SETTINGS.fovWarden}"></div>
-        <div class="row"><span>head-bob</span>
-          <span class="value" id="bl-bob">${SETTINGS.headBob ? 'on' : 'off'}</span></div>
-        <div class="row"><span>master volume</span>
-          <input type="range" id="bl-vol" min="0" max="1" step="0.05" value="${SETTINGS.masterVolume}"></div>
-        <div class="row"><span>match length</span>
-          <span class="value" id="bl-len">best of ${SETTINGS.matchLength}</span></div>
-        <div class="row"><span>difficulty</span>
-          <span class="value" id="bl-diff">${SETTINGS.difficulty}</span></div>
-        <div class="row"><span>invert Y</span>
-          <span class="value" id="bl-inv">${SETTINGS.invertY ? 'on' : 'off'}</span></div>
-        <div class="row"><span>round briefing</span>
-          <span class="value" id="bl-brief">${SETTINGS.briefing ? 'on' : 'off'}</span></div>
-        <div class="row"><span>post-processing</span>
-          <span class="value" id="bl-post">${postLabel()}</span></div>
-        <div class="row"><span>quality</span>
-          <span class="value" id="bl-quality">${qualityLabel()}</span></div>
-        <div class="row"><span>debug tooling</span>
-          <span class="value" id="bl-dbg">${SETTINGS.debug ? 'on' : 'off'}</span></div>
-        <div class="row"><span>settings</span>
-          <span class="value" id="bl-reset">reset to defaults</span></div>
+        <div class="groups">${groups}</div>
         <button data-action="controls">Controls</button>
         <button class="back" data-action="back">Back</button>
       </div>`;
@@ -202,18 +219,34 @@ export const MENU_PAGES = {
     // slider is the one setting a reload forgets (H7) - which is exactly the
     // gap `every-settings-row-that-moves-a-setting-reports-it-for-saving`
     // found in the two H5 shipped with, and it holds these four too.
-    this._rows([
-      this._slider(sens, () => { SETTINGS.mouseSensitivity = parseFloat(sens.value); this._changed(); }),
-      this._slider(sensY, () => { SETTINGS.mouseSensitivityY = parseFloat(sensY.value); this._changed(); }),
-      this._slider(fovShade, () => { SETTINGS.fovShade = parseFloat(fovShade.value); this._changed(); }),
-      this._slider(fovWarden, () => { SETTINGS.fovWarden = parseFloat(fovWarden.value); this._changed(); }),
-      bob,
-      this._slider(vol, () => {
+    //
+    // H22: declared through `SETTINGS_GROUPS` rather than by hand, so the ring
+    // walks the page in the order the page drew it by construction - a row
+    // moved between headings moves in both at once, and a row added to the
+    // table without a heading is reachable by neither and red.
+    const declared = {
+      'bl-sens': this._slider(sens, () => { SETTINGS.mouseSensitivity = parseFloat(sens.value); this._changed(); }),
+      'bl-sensy': this._slider(sensY, () => { SETTINGS.mouseSensitivityY = parseFloat(sensY.value); this._changed(); }),
+      'bl-fov-shade': this._slider(fovShade, () => { SETTINGS.fovShade = parseFloat(fovShade.value); this._changed(); }),
+      'bl-fov-warden': this._slider(fovWarden, () => { SETTINGS.fovWarden = parseFloat(fovWarden.value); this._changed(); }),
+      'bl-bob': bob,
+      'bl-inv': inv,
+      'bl-post': postRow,
+      'bl-quality': quality,
+      'bl-vol': this._slider(vol, () => {
         SETTINGS.masterVolume = parseFloat(vol.value);
         if (this.handlers.onVolume) this.handlers.onVolume(SETTINGS.masterVolume);
         this._changed();
       }),
-      len, diff, inv, brief, postRow, quality, dbg, reset, controls, back,
+      'bl-len': len,
+      'bl-diff': diff,
+      'bl-brief': brief,
+      'bl-dbg': dbg,
+      'bl-reset': reset,
+    };
+    this._rows([
+      ...headed.flatMap(([, ids]) => ids).concat(loose).map((id) => declared[id]),
+      controls, back,
     ]);
   },
 
@@ -265,7 +298,9 @@ export const MENU_PAGES = {
     // H20: the groups as headings. A heading is not a control, so it is never
     // handed to `_rows()` and the ring passes over it; the rows are declared
     // below in the map's own order, which is the groups' order too.
-    const rows = BINDING_GROUPS.map(([group, members]) => `<div class="bindgroup">
+    // `.group` and `.groups` are shared with the settings page since H22; the
+    // stylesheet balances whatever a page puts in them.
+    const rows = BINDING_GROUPS.map(([group, members]) => `<div class="group">
         <div class="grouphead">${group}</div>
         ${members.filter((action) => actions.indexOf(action) !== -1).map(row).join('')}
       </div>`).join('');
@@ -274,7 +309,7 @@ export const MENU_PAGES = {
       <div class="card wide">
         <h1 style="font-size:20px">Controls</h1>
         <div class="tag">${this.binding ? 'press a key, or esc to cancel' : 'pick a row, then press the key'}</div>
-        <div class="bindgroups">${rows}</div>
+        <div class="groups">${rows}</div>
         <button class="back" data-action="back">Back</button>
       </div>`;
 

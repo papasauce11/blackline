@@ -804,14 +804,7 @@ one setting only Josh can click; everything else here proceeds.
 - [x] **H19 (S)** A rebind survives a reload — done 2026-10-18, under Done. `src/bindingstore.js`, `Input.setBinding`, `a-rebind-survives-a-reload-and-a-dead-action-drops-alone`.
 - [x] **H20 (S)** The controls page in four groups, and it fits 720p — done 2026-10-18, under Done. `BINDING_GROUPS` in `config.js`, `_renderControls`, `CONFIG.menu.fitHeight`, two clauses in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
 - [x] **H21 (S)** A stored number outside its bounds is clamped, and the rest kept — done 2026-10-18, under Done. `CONFIG.settings.bounds`, `volumeMin`/`volumeMax`, `loadSettings` clamping, `bounded-settings-load-clamped-and-keep-the-rest`.
-- [ ] **H22 (S)** The settings page is fourteen rows and two buttons (H10 made
-  the fourteenth), and H20
-  was written for the controls page's thirty-five. The same grouping serves
-  both: **look, audio, match, system**, with the group headings rows the ring
-  skips. Do it once, in `_rows()`, and let H20 be the controls page's turn.
-  Look only; nothing a player can do changes. *done-when:* the reachability
-  check still counts every control on both pages and neither needs scrolling
-  in a 720p window.
+- [x] **H22 (S)** The settings page in four groups, and it fits 720p — done 2026-10-19, under Done. `SETTINGS_GROUPS` in `config.js`, `ROWS` and the groups in `_renderSettings`, `.groups`/`.group` shared with the controls page in `menucss.js`, four clauses and `FITS` gaining `settings` in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
 
 - [ ] **H95 (S)** Four reported problems say *"in code"* where the clause read
   the weak reader. H68 fixed the names and left the wordings: `benchlist.js`
@@ -967,6 +960,26 @@ one setting only Josh can click; everything else here proceeds.
   per site is in `PROGRESS.md`; and a clause or the census's header says that
   the two counts are different questions, so the next comment cannot quote the
   wrong one.
+- [ ] **H101 (S)** Ten jobs are missing from the two files a reader orients
+  from. Batch 3 of Josh's twenty (H12-H16, H19-H21) and H37, H49, H85-H93 were
+  written up in `PROGRESS.md` and marked in this file, and **neither
+  `PLAYTEST.md` nor `HANDOFF.md`'s Block H index got a line for any of them** -
+  so `PLAYTEST.md`'s newest entry is H84 while the game has gained replays, a
+  crash page, a bug report, a pause menu that restarts and changes map, a
+  rebind that survives a reload and a settings record that clamps, none of
+  which Josh has been told how to look at; and the index that is supposed to be
+  one line a job skips from H84 to H70. H22 found this while adding its own
+  line to both. The rule the index carries is that a job which adds a line
+  takes one out (G1, 400 lines), so ten lines in means ten lines out, and the
+  cheapest ten are the oldest Block H entries whose whole argument is in
+  `PROGRESS.md` anyway. **Count first:** `grep "^## H" PROGRESS.md` against
+  `grep "^- \*\*H" HANDOFF.md` and against `PLAYTEST.md`'s headings is the
+  census, and it should be a line of a script rather than a reading, because
+  this is the second time the two have come apart silently.
+  *done-when:* every job with a `PROGRESS.md` entry has a line in the Block H
+  index and a `PLAYTEST.md` entry if it is a Block C, D, E or H job, `HANDOFF.md`
+  is still 400 lines, and a check or a script says so the next time they part.
+
 
 ## Block K — the Warden as an opponent
 
@@ -1149,6 +1162,27 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H22** The settings page in four groups - look, audio, match, system - two
+  abreast under headings the ring passes over, at **532px** in a 720p window
+  where the flat list measures **919px**, which nothing had been measuring.
+  `SETTINGS_GROUPS` (new, beside `BINDING_GROUPS`) differs from it in one way
+  that matters: it **is** the draw order, read once to lay the rows out and
+  once to declare them to the ring, so the picture and the keyboard cannot
+  disagree about where a row is. The fourteen rows became `ROWS`, a table
+  keyed by element id, which is what a list somewhere else can reorder. The
+  two pages now share `.groups` in `menucss.js`, two columns by `column-count`
+  rather than H20's grid because a grid row is as tall as its tallest cell and
+  these groups are eight rows against one - which took the controls page 642px
+  to **627px** as well. Four clauses: the headings read what the table names,
+  the ring stops on none of them, the rows drawn under them are exactly the
+  table's in its order, and the ring walks them in that order; `FITS` gains
+  `settings`. **The break found a defect in the first draft** - a row dropped
+  from the table left the wiring querying an element nobody drew, so the
+  settings page threw on render and took the pause menu's with it. Both
+  directions are guarded now and the page stays whole. Subset both maps 14/14;
+  breaks: one column, red at 919px and 1013px; a row out of the table, red
+  naming `bl-inv` with the page still rendering — `HASH`, 2026-10-19.
 
 - **H21** A stored number outside its bounds. `CONFIG.settings.bounds` (new, beside
   the defaults) names each bounded setting's two ends by the constants that

@@ -22,7 +22,7 @@
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
-import { BINDING_GROUPS, CONFIG, DEFAULT_BINDINGS, SETTINGS } from '../config.js';
+import { BINDING_GROUPS, CONFIG, DEFAULT_BINDINGS, SETTINGS, SETTINGS_GROUPS } from '../config.js';
 import {
   listMaps, mapEntry, requestedMapId, bootMapId, bakeMap, buildMap,
   DEFAULT_MAP_ID, DRAWN_SLICES, BAKE_SLICES,
@@ -44,8 +44,8 @@ const LIT_FLOOR = 24;
  */
 const LIT_MINIMUM = 0.045;
 
-/** The pages that are lists and must fit a 720p window without scrolling (H20). */
-const FITS = ['controls'];
+/** The pages that are lists and must fit a 720p window without scrolling (H20, H22). */
+const FITS = ['controls', 'settings'];
 
 /** Every element on a menu page that does something when it is clicked. */
 function controlsOn(root) {
@@ -378,6 +378,36 @@ export function register(debugTools) {
         if (heads !== BINDING_GROUPS.length) problems.push(`the controls page drew ${heads} headings of ${BINDING_GROUPS.length}`);
         if (menu.rows.some((row) => row.el.classList.contains('grouphead'))) problems.push('the ring stops on a heading');
 
+        // H22: the settings page under the same four headings. Here the
+        // grouping table *is* the draw order, so what is held is stronger
+        // than on the controls page: the rows the page drew under its
+        // headings are exactly the ones `SETTINGS_GROUPS` names, in that
+        // order, and the ring walks them in that order too - a setting added
+        // to the page without a heading is drawn nowhere and reachable by
+        // nothing, and the clause above counting declared against drawn
+        // catches it from the other side.
+        menu.show('settings');
+        const setHeads = [...menu.root.querySelectorAll('.grouphead')].map((el) => el.textContent.trim());
+        if (setHeads.join() !== SETTINGS_GROUPS.map(([group]) => group).join()) {
+          problems.push(`the settings page's headings read ${setHeads.join(',')}, not ${SETTINGS_GROUPS.map(([group]) => group).join(',')}`);
+        }
+        if (menu.rows.some((row) => row.el.classList.contains('grouphead'))) problems.push('the settings ring stops on a heading');
+        const wantIds = SETTINGS_GROUPS.flatMap(([, ids]) => ids);
+        const drewIds = [...menu.root.querySelectorAll('.groups .row')].map((row) => {
+          const control = row.querySelector('input, .value');
+          return control ? control.id : '(no control)';
+        });
+        if (drewIds.join() !== wantIds.join()) {
+          problems.push(`the settings page drew ${drewIds.join(',')} and its headings name ${wantIds.join(',')}`);
+        }
+        // The ring in the order the page drew it, which is what makes a
+        // heading a reading aid rather than a trap: arrow-down goes down the
+        // page. The two buttons below the groups carry no id and are the tail.
+        const ringIds = menu.rows.map((row) => row.el.id).filter((id) => id);
+        if (ringIds.join() !== wantIds.join()) {
+          problems.push(`the settings ring goes ${ringIds.join(',')}, not down the page`);
+        }
+
         // The role row answers the sideways keys, and Play does what it says.
         menu.handlers = {
           ...wasHandlers,
@@ -425,8 +455,12 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? 'main, settings, controls, how to play, credits and pause each declare every control they draw; the ring walks and wraps both ways and is drawn; '
-            + `the controls page groups every action under ${BINDING_GROUPS.length} headings and fits ${CONFIG.menu.fitHeight}px (${fitted.join(', ')}); `
+          // Kept inside `CONFIG.debug.detailBudget` on purpose: H22 added a
+          // clause and a second fitted page to a line that was already long,
+          // so the first clause lost the words it could spare.
+          ? 'main, settings, controls, how to play, credits and pause each declare every control they draw; the ring walks, wraps and is drawn; '
+            + `every action is under one of ${BINDING_GROUPS.length} controls headings and every settings row under one of ${SETTINGS_GROUPS.length}, each in the ring's order; `
+            + `both pages fit ${CONFIG.menu.fitHeight}px (${fitted.join(', ')}); `
             + 'the role row answers the sideways keys and Enter on Play starts what it says'
           : problems.join('; '),
       };
