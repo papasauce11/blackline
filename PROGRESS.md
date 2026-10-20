@@ -20544,3 +20544,76 @@ no new check, only clauses - and the ceiling is **11 modules within 50 of
 600**, of 209, also unchanged: `menupages.js` went 385 to 408 and
 `tests/menu.js` 510 to 544, both outside it. The one failure a map is the
 bench-only sweep (H11).
+
+## H95 — The sentence said code and the clause had read the wording
+
+**The defect.** H68 collapsed the last copies of the weak reader and fixed the
+names that lied about which reader they were; it left the **sentences**, and
+four reported problems went on saying *"in code"* over a clause that had read
+`uncommented` - `benchlist.js` twice (a hard-coded id in `bench.mjs`, a URL
+parameter in `suite.mjs`), `grabslide.js` once and `timedrenders.js` once. The
+evidence in all four is a quoted id or a parameter inside a URL: text with the
+comments out, which is not code. It is the alias's lie moved from a name to a
+prose line, and the prose line is the half a human reads - told the evidence is
+code, a reader greps the file as code and does not find what the check found.
+The fifth site, `requestbuffer.js:210`, says *"in code"* and genuinely reads
+`codeOf`: the control, and it keeps the words it had.
+
+**Taken: the phrase belongs to the reader.** `sourcetext.js` now exports
+`AS_CODE` (`in code`) and `AS_WORDING` (`with its comments out`), and the five
+sites interpolate one. H42's rule applied to this suite's own prose - a
+sentence about what was read cannot be held by a regex over somebody else's
+wording, so the wording comes out of the one file that knows which read it was.
+`requestbuffer.js`'s sentence is byte-identical to the one it had; what changed
+is where its words come from, so the site that was right and the four that were
+wrong are now held by the same rule.
+
+**And it is holdable, which the queue doubted.** Clause 3 of
+`only-sourcetext-owns-the-two-source-readers-and-no-name-claims-the-wrong-one`:
+no module under `src/tests/` may spell either phrase itself, read with the
+**weak** reader because a phrase lives inside a string and the strong reader
+would empty every one of them. That is clause 1's shape - *only the owner
+spells a reader* - one level out to *only the owner spells a reader's phrase*.
+Its patterns are fragments joined at load, as `SPELLINGS` already was, so the
+check is invisible to itself; its cases go through `readerProblems` with
+`uncommented` passed explicitly, which is the fourth caller to need the
+argument H62 added.
+
+**What was measured and rejected.** The obvious rule is module-wide: *a module
+that never calls the strong reader may not report that it read code.* Three of
+the four modules import only `uncommented`, so it catches them - and
+`timedrenders.js` imports both, so the fourth walks straight through. Pairing a
+`problems.push` with the `if` whose reader it is about means following control
+flow, which is a parse and forbidden (`donedef.js`'s rule). So the rule that is
+holdable is **ownership of the words**, and the header says plainly what that
+does and does not buy: not that the right phrase was chosen - that is H62's
+question and no grep answers it - but that the phrase and the reader are one
+import apart instead of a file apart, and that a new clause has to choose
+rather than to type.
+
+**Two controls, because a ban on a quotation is vacuous the day the quotation
+goes stale.** The owner is required to spell both phrases the way this check
+quotes them, and the phrase *names* are counted outside it against a floor of
+6 - a phrase can only be owned while somebody is still asking the owner for it.
+The tree reads **12**.
+
+**Proved.** Subset on the plant - the readernames census, the two bench-list
+checks, the grab slide, the request buffer and the ceiling - **6/6**, with
+"both readers and both of their phrases spelled in tests/sourcetext.js and
+nowhere else, with 12 mentions of a phrase name elsewhere (floor 6)". **Two
+breaks.** One phrase typed back by hand in `timedrenders.js`: red, *"timedrenders.js:429
+spells what the strong reader read itself rather than interpolating it"* -
+the line number, which is what a reader needs. The owner's phrase reworded and
+the sites left alone: red on the control, *"tests/sourcetext.js does not spell
+what the weak reader read the way this check quotes it, so clause 3 would pass
+a tree where every module had typed it out"* - the ban saying it had gone blind
+rather than passing.
+
+**Verified**, four runs, exit 0: plant **249 / 1 / 8** both runs (1,222,392ms
+and 1,180,895ms), yard **229 / 1 / 28** both runs (796,980ms and 787,045ms),
+spreads **3%** and **1%**, 0 red, 0 flaky, 0 skipped, 0 unexpectedly green,
+**0 console errors**, no other runner. No new check - H95 is three clauses on
+one that existed - so the census is unchanged, and the ceiling is **11 modules
+within 50 of 600**, of 209: `readernames.js` 291 to 421 and `sourcetext.js`
+170 to 197, both well outside it. The one failure a map is the bench-only
+sweep (H11).

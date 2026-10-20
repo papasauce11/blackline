@@ -45,7 +45,7 @@ import {
   VIEWPOINT_SAMPLES, VIEWPOINT_BUDGET_MS, VIEWPOINT_SAMPLES_PARAM,
   MIN_SAMPLES_FOR_A_MEDIAN, sampleSummary, viewpointCost, viewpointSamples,
 } from './viewpointsamples.js';
-import { uncommented } from './sourcetext.js';
+import { AS_WORDING, uncommented } from './sourcetext.js';
 
 /** This check's own id: the policeman is not exemptible, here either. */
 const SELF = 'the-bench-only-list-holds-only-checks-the-bench-itself-runs';
@@ -225,13 +225,19 @@ export function register(debugTools) {
         // a list on a line whose first characters are a comment's. The bench's
         // own doc comment names the frame-budget check, because a reader of
         // that file should be told what it is for; what must not exist is the
-        // id in its code, which would be a second set able to drift from the
-        // one the gate dropped.
+        // id outside a comment, which would be a second set able to drift from
+        // the one the gate dropped.
+        //
+        // H95: the quoted id is still an id, so what this wants is the weak
+        // read and the problem below says so - this is a local copy of that
+        // line-local test rather than a call to `uncommented`, which is H97's
+        // subject and not this one's, but it answers the same question and so
+        // owes the same sentence.
         const lines = bench.body.split(/\r?\n/);
         for (const id of seen.keys()) {
           for (let i = 0; i < lines.length; i++) {
             if (!lines[i].includes(id) || /^\s*(\/\/|\/\*|\*)/.test(lines[i])) continue;
-            problems.push(`scripts/bench.mjs:${i + 1} names "${id}" in code; the list is its input, so a hard-coded id is a set that can drift from the gate's`);
+            problems.push(`scripts/bench.mjs:${i + 1} names "${id}" ${AS_WORDING}; the list is its input, so a hard-coded id is a set that can drift from the gate's`);
           }
         }
       }
@@ -419,7 +425,7 @@ export function register(debugTools) {
       const gate = await text(location.origin, '/scripts/suite.mjs');
       if (gate.error) problems.push(`${gate.error}; it is the runner that must NOT ask for a median`);
       else if (new RegExp(`${VIEWPOINT_SAMPLES_PARAM}=`).test(uncommented(gate.body))) {
-        problems.push(`scripts/suite.mjs asks for ${VIEWPOINT_SAMPLES_PARAM} in code; headless a sample costs 610-761ms of queued pipeline and the gate drops this verdict anyway (H36)`);
+        problems.push(`scripts/suite.mjs asks for ${VIEWPOINT_SAMPLES_PARAM} ${AS_WORDING}; headless a sample costs 610-761ms of queued pipeline and the gate drops this verdict anyway (H36)`);
       }
 
       // 7. And the fourth honesty clause's reader (H42). The bench learns a

@@ -82,7 +82,7 @@
  * still see a reading.
  */
 
-import { codeOf, readerProblems, uncommented } from './sourcetext.js';
+import { AS_WORDING, codeOf, readerProblems, uncommented } from './sourcetext.js';
 
 /**
  * The URL parameter that says the clock on this page can price a draw, and so
@@ -426,7 +426,7 @@ export function register(debugTools) {
       const suiteRunner = await text(origin, '/scripts/suite.mjs');
       if (suiteRunner.error) problems.push(`${suiteRunner.error}; it is the runner that must NOT ask`);
       else if (new RegExp(`${TIMED_VERDICT_PARAM}=`).test(uncommented(suiteRunner.body))) {
-        problems.push(`scripts/suite.mjs asks for ${TIMED_VERDICT_PARAM} in code; the gate draws with a software rasteriser, where a wall clock round a frame reads the submission, so it may not ask for a verdict on one (H36)`);
+        problems.push(`scripts/suite.mjs asks for ${TIMED_VERDICT_PARAM} ${AS_WORDING}; the gate draws with a software rasteriser, where a wall clock round a frame reads the submission, so it may not ask for a verdict on one (H36)`);
       }
       // And the clause itself reads the shared reader rather than a local copy
       // of the parameter, which is what keeps the gate and the bench from

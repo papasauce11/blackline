@@ -806,30 +806,7 @@ one setting only Josh can click; everything else here proceeds.
 - [x] **H21 (S)** A stored number outside its bounds is clamped, and the rest kept — done 2026-10-18, under Done. `CONFIG.settings.bounds`, `volumeMin`/`volumeMax`, `loadSettings` clamping, `bounded-settings-load-clamped-and-keep-the-rest`.
 - [x] **H22 (S)** The settings page in four groups, and it fits 720p — done 2026-10-19, under Done. `SETTINGS_GROUPS` in `config.js`, `ROWS` and the groups in `_renderSettings`, `.groups`/`.group` shared with the controls page in `menucss.js`, four clauses and `FITS` gaining `settings` in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
 
-- [ ] **H95 (S)** Four reported problems say *"in code"* where the clause read
-  the weak reader. H68 fixed the names and left the wordings: `benchlist.js`
-  twice (*"scripts/bench.mjs:N names "id" in code"*, *"scripts/suite.mjs asks
-  for samples in code"*), `grabslide.js` once (*"scripts/shot.mjs does not
-  mention X in code"*) and `timedrenders.js` once (*"scripts/suite.mjs asks for
-  timedVerdict in code"*). Every one of those reads `uncommented`, so the
-  evidence is a URL parameter or a quoted id - text with the comments out, and
-  not code. It is the alias's lie moved from a name to a sentence, and the
-  sentence is the half a human reads: a reader told "in code" who then greps
-  the file as code will not find what the check found.
-  Say what was read. The phrase this suite has for it is *with its comments
-  out* (`sourcetext.js`'s header, H53's entry), and `requestbuffer.js:210` is
-  the fifth site to check - it says *"in code"* and genuinely reads `codeOf`,
-  so it is the control rather than a defect.
-  **The hard half is holding it**, and it may not be holdable: the wording of a
-  problem is prose, and `positioncensus.js` already holds two entries against
-  the wording of a reported problem, which is the only precedent. The cheap
-  version is a clause in `readernames.js` that reads each module's problem
-  strings beside the reader its clause used - the two are usually in the same
-  `else if`, which is a parse and so not allowed (`donedef.js`'s rule).
-  *done-when:* the four wordings name the reader they read, the fifth is left
-  alone with a line saying why, and either a clause holds the rule or
-  `readernames.js`'s header says in one paragraph why a message cannot be held
-  the way a name can.
+- [x] **H95 (S)** The sentence said code and the clause had read the wording — done 2026-10-19, under Done. `AS_CODE` and `AS_WORDING` in `tests/sourcetext.js`, the five sites in `benchlist.js` (twice), `grabslide.js`, `timedrenders.js` and `requestbuffer.js`, and clause 3 of `only-sourcetext-owns-the-two-source-readers-and-no-name-claims-the-wrong-one`.
 
 - [ ] **H96 (S)** Seven censuses walk the same tree of modules independently -
   **eight since H83**, whose `resetcensus.js` reads every module through *both*
@@ -1162,6 +1139,28 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H95** The sentence said code and the clause had read the wording. H68 fixed
+  the names and left the sentences: four reported problems said *"in code"*
+  over a clause that had read `uncommented`, where the evidence is a quoted id
+  or a parameter inside a URL. The phrase belongs to the reader now -
+  `sourcetext.js` exports `AS_CODE` (`in code`) and `AS_WORDING` (`with its
+  comments out`) and the five sites interpolate one, `requestbuffer.js`'s
+  sentence coming out byte-identical because it was the one already telling the
+  truth. **It is holdable**, which the queue doubted: clause 3 is clause 1's
+  shape one level out - only the owner may spell a reader's phrase - read with
+  the weak reader because a phrase lives inside a string, with its patterns in
+  fragments so the check is invisible to itself. The module-wide rule was
+  measured and rejected: three of the four modules import only the weak reader,
+  `timedrenders.js` imports both and would have walked through, and pairing a
+  `problems.push` to its `if` is a parse. Two controls - the owner must spell
+  both phrases the way the check quotes them, and the phrase names are counted
+  outside it against a floor of 6, the tree reading 12. The header says in one
+  paragraph what ownership buys and what it cannot: not that the right phrase
+  was chosen (H62's question), only that the phrase and the reader are one
+  import apart. Subset plant 6/6; breaks: a phrase typed by hand, red naming
+  `timedrenders.js:429`; the owner's phrase reworded, red on the control
+  — `HASH-H95`, 2026-10-19.
 
 - **H22** The settings page in four groups - look, audio, match, system - two
   abreast under headings the ring passes over, at **532px** in a 720p window

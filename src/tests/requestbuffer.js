@@ -78,7 +78,7 @@
  * Nothing here imports main.js (Section 3.1).
  */
 
-import { codeOf, uncommented, readerProblems } from './sourcetext.js';
+import { AS_CODE, codeOf, uncommented, readerProblems } from './sourcetext.js';
 
 /**
  * The Resource Timing buffer's default size, from the spec and from what this
@@ -207,8 +207,15 @@ export function register(debugTools) {
           problems.push(`${SIZE_FILE} asks for a buffer of ${size} and the default is already ${DEFAULT_SIZE}, so the call buys nothing`);
         }
       }
+      // The one of the five sites H95 reviewed that was already right, and
+      // so its control: `asked` is the **strong** reader (`codeOf` above), a
+      // registration is a call and not a string, and this sentence is the one
+      // that was telling the truth when it said `in code`. It says the same
+      // words it always did; what changed is where they come from, which is
+      // the reader's own file, so this site and the four that were wrong are
+      // now held by the same rule.
       if (!asked.includes(OVERFLOW_EVENT)) {
-        problems.push(`${SIZE_FILE} does not register ${OVERFLOW_EVENT} in code, so a buffer that fills again fills in silence - which is the whole of what H67 was for`);
+        problems.push(`${SIZE_FILE} does not register ${OVERFLOW_EVENT} ${AS_CODE}, so a buffer that fills again fills in silence - which is the whole of what H67 was for`);
       }
 
       // ------------------------------------------------------------------

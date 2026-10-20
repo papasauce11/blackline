@@ -42,10 +42,39 @@
  *      neither (`carries`, `solver`, `body`, `asked`) is nobody's business
  *      here. This is about a name that makes a promise, not about naming.
  *
+ *   3. **No module spells either reader's own phrase.** H95's finding is the
+ *      same defect one level further out: H68 fixed the names and left the
+ *      sentences, and four reported problems went on saying *"in code"* over
+ *      a clause that had read the weak reader. A name is held by clause 2; a
+ *      sentence was held by nothing, and a sentence is the half a human reads
+ *      - told the evidence is code, they grep the file as code and do not
+ *      find what the check found. So `sourcetext.js` owns the two phrases
+ *      (`AS_CODE`, `AS_WORDING`) and a module interpolates the one its clause
+ *      read with, which is the same shape as clause 1 and H42's rule applied
+ *      to this suite's prose: the wording comes out of the one file that
+ *      knows which read it was.
+ *
  * What it cannot see: whether a clause asked the right reader in the first
  * place. That is H62's question, answered one clause at a time by reading what
  * the clause's evidence is, and no grep can do it. This one holds only that
- * the reader a use site names is the reader it got.
+ * the reader a use site names is the reader it got, and that the phrase a use
+ * site prints is the reader's own words.
+ *
+ * **And a sentence cannot be held the way a name can**, which is worth saying
+ * plainly because the queue asked whether it could. A name sits in the binding
+ * it names - one line, which is why clause 2 is line-local and honest. A
+ * sentence sits in a `problems.push` an arbitrary distance from the `if` whose
+ * reader it is about, usually in the same `else if` and sometimes not, and
+ * pairing the two means following control flow, which is a parse and so
+ * forbidden (`donedef.js`'s rule, and the reason every clause in this file
+ * decides line by line). A module-wide rule was measured instead and is not
+ * enough on its own: three of H95's four modules import only the weak reader,
+ * so "a module that never calls the strong reader may not say it read code"
+ * catches them - but `timedrenders.js` imports both and the fourth would have
+ * walked through. What **is** holdable is ownership of the words, and that is
+ * clause 3: it cannot tell you the right phrase was chosen, only that the
+ * phrase and the reader are now one import apart instead of a file apart, and
+ * that a new clause has to choose rather than to type.
  *
  * **Its patterns are data and not regex literals**, which is the trap
  * `quiescesites.js`'s header names: the strong reader strips a string and
@@ -108,6 +137,45 @@ const SPELLINGS = [
 ];
 
 /**
+ * The two phrases `sourcetext.js` owns (H95), in fragments and for the same
+ * reason the spellings above are: a check that quotes its subject and then
+ * greps for the quotation is a check that reports itself. They are compared
+ * against each module read with the **weak** reader, because a phrase lives
+ * inside a reported problem and a reported problem is a string - the strong
+ * reader would empty every one of them and this clause would be a clause
+ * about nothing.
+ *
+ * `AS_CODE` is two short words, so the owner's own name for it is not enough
+ * of a needle on its own; what makes the pair safe is that the clause reads
+ * only `src/tests/`, where the one other place either phrase occurs is a
+ * doc comment (`materials.js`, "generated in code") and a comment is what the
+ * weak reader drops.
+ */
+const PHRASES = [
+  ['what the strong reader read', ['in', ' code'].join('')],
+  ['what the weak reader read', ['with its ', 'comments out'].join('')],
+];
+
+/**
+ * The names those phrases travel under, which is what a site that got it
+ * right looks like: an import and a `${...}`. Counted rather than judged - a
+ * phrase can only be owned while somebody is still asking the owner for it,
+ * so this is the control `CLAIMED_FLOOR` is for clause 2. The day the last
+ * site is rewritten, clause 3 holds a rule about nothing and says so rather
+ * than passing.
+ */
+const PHRASE_NAMES = ['AS_CODE', 'AS_WORDING'];
+
+/**
+ * The fewest mentions of those names outside the owner, on a healthy tree.
+ * H95 left **five** sites in four modules - `benchlist.js` twice,
+ * `grabslide.js`, `timedrenders.js` and `requestbuffer.js`, which was the one
+ * already telling the truth - and each module names its import as well, so
+ * this is measured rather than derived and the floor sits well under it.
+ */
+const PRINTING_FLOOR = 6;
+
+/**
  * The fewest claimed bindings on a healthy tree. This census answers "nothing
  * wrong" both when its patterns work and when they have stopped seeing
  * anything: the cases below prove the patterns on six lines, and this proves
@@ -139,6 +207,24 @@ const IGNORES = [
   '      const carries = uncommented(source.body);',
   ' * four correct lines above `const code = uncommented;` saying it is the weak reader',
   "export { codeOf, uncommented } from './sourcetext.js';",
+];
+
+/**
+ * Clause 3's own cases, in fragments for the same reason `PHRASES` is. Two
+ * that are the defect - H95's own line, and the other phrase typed out - and
+ * three that are not: the interpolation that replaced them, a doc comment
+ * quoting the defect (which the weak reader drops, and which this file's
+ * header does four times), and a sentence that happens to contain the word
+ * code without claiming a read.
+ */
+const PHRASE_SEES = [
+  [['        problems.push(`scripts/suite.mjs asks for ${P} in', ' code; ...`);'].join(''), 'a phrase spelled by hand'],
+  [['        problems.push(`shot.mjs does not mention it with its ', 'comments out`);'].join(''), 'a phrase spelled by hand'],
+];
+const PHRASE_IGNORES = [
+  '        problems.push(`scripts/suite.mjs asks for ${P} ${AS_WORDING}; ...`);',
+  [' * four problems said *"in', ' code"* over a clause that had read the weak reader'].join(''),
+  '        problems.push(`${file} ships no code at all, so there is nothing to read`);',
 ];
 
 /** Read a file from the origin the way benchlist.js and requestbuffer.js do. */
@@ -205,11 +291,23 @@ function nameProblems(where, code) {
   return problems;
 }
 
+/** What is wrong with one module's phrases, as sentences, usually none. */
+function phraseProblems(where, said) {
+  const problems = [];
+  said.split(/\r?\n/).forEach((line, index) => {
+    for (const [whose, phrase] of PHRASES) {
+      if (!line.includes(phrase)) continue;
+      problems.push(`${where}:${index + 1} spells ${whose} itself rather than interpolating it from tests/${OWNER}; a sentence about what was read is held by nothing when it is typed, which is how four problems went on saying it was code over a clause that had read the wording (H95)`);
+    }
+  });
+  return problems;
+}
+
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'only-sourcetext-owns-the-two-source-readers-and-no-name-claims-the-wrong-one',
-    spec: 'Section 17.1 / H68',
-    name: 'Both source readers are spelled only in tests/sourcetext.js, and no module under src/tests/ binds one of them to a name claiming the other, so a use site reading `code` got the reader that reads code',
+    spec: 'Section 17.1 / H68, H95',
+    name: 'Both source readers and both of the phrases that report them are spelled only in tests/sourcetext.js, and no module under src/tests/ binds one of them to a name claiming the other, so a use site reading `code` got the reader that reads code and a problem saying it read code was reading code',
     run: async () => {
       const problems = [];
       const origin = location.origin;
@@ -228,6 +326,17 @@ export function register(debugTools) {
         SEES,
         IGNORES,
       ));
+      // And clause 3's, through the **weak** reader, because the thing it
+      // looks for lives inside a string and the strong reader would empty
+      // every case here into nothing - which `readerProblems` would then read
+      // as the right answer for an `ignores` and the wrong one for a `sees`,
+      // so this is a place the pair is not interchangeable and says so (H62).
+      problems.push(...readerProblems(
+        (said) => (phraseProblems('a case', said).length ? 'a phrase spelled by hand' : ''),
+        PHRASE_SEES,
+        PHRASE_IGNORES,
+        uncommented,
+      ));
 
       // ------------------------------------------------------------------
       // 2. The census: every module under src/tests/ that ran, read as code.
@@ -244,8 +353,10 @@ export function register(debugTools) {
       }
       let bound = 0;
       let claimed = 0;
+      let printing = 0;
       const claiming = new Set();
       const owned = new Set();
+      const phrased = new Set();
       for (const path of modules) {
         const read = await text(origin, `/${path}`);
         if (read.error) { problems.push(read.error); continue; }
@@ -265,6 +376,16 @@ export function register(debugTools) {
           if (file === OWNER) owned.add(whose);
           else problems.push(`${file} spells ${whose} itself rather than importing it from tests/${OWNER}; a copy is a second answer to a question H53 and H58 decided, and a copy is what carried a wrong name past H62's grep (H68)`);
         }
+        // H95's clause, on the same read: the owner is where both phrases
+        // live and every other module interpolates one. Counted as well as
+        // judged, because a phrase nobody prints is a phrase this clause
+        // would pass a tree with a hand-typed copy of.
+        if (file === OWNER) {
+          for (const [whose, phrase] of PHRASES) if (said.includes(phrase)) phrased.add(whose);
+        } else {
+          problems.push(...phraseProblems(file, said));
+          for (const name of PHRASE_NAMES) printing += said.split(name).length - 1;
+        }
       }
 
       // ------------------------------------------------------------------
@@ -278,12 +399,21 @@ export function register(debugTools) {
       if (claimed < CLAIMED_FLOOR) {
         problems.push(`${claimed} bindings under a name that claims a reader, below the ${CLAIMED_FLOOR} this holds; H68 read 21 of 30 in 15 modules, so the patterns here have stopped seeing what they are for`);
       }
+      for (const [whose] of PHRASES) {
+        if (!phrased.has(whose)) {
+          problems.push(`tests/${OWNER} does not spell ${whose} the way this check quotes it, so clause 3 would pass a tree where every module had typed it out (H95)`);
+        }
+      }
+      if (printing < PRINTING_FLOOR) {
+        problems.push(`${printing} mentions of a phrase name outside tests/${OWNER}, below the ${PRINTING_FLOOR} this holds; H95 left five sites in four modules, so either those sites have gone or the names here have (H95)`);
+      }
 
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `${bound} reader bindings in ${modules.length} modules under src/tests/, ${claimed} under a name claiming one of the two readers (floor ${CLAIMED_FLOOR}) and every one agreeing, across ${claiming.size} modules; `
-            + `both readers spelled in tests/${OWNER} and nowhere else; both directions of the defect instrumented and four lines that are not it`
+            + `both readers and both of their phrases spelled in tests/${OWNER} and nowhere else, with ${printing} mentions of a phrase name elsewhere (floor ${PRINTING_FLOOR}); `
+            + 'both directions of each defect instrumented and seven lines that are neither'
           : problems.join('; '),
       };
     },

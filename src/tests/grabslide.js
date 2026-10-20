@@ -60,7 +60,7 @@ import { findGroundLedge } from './climbpress.js';
 import { press } from './feel.js';
 import { photographHere } from './look.js';
 import { chaseGap } from './positionreads.js';
-import { uncommented } from './sourcetext.js';
+import { AS_WORDING, uncommented } from './sourcetext.js';
 
 const S = CONFIG.shade;
 
@@ -311,7 +311,7 @@ export function register(debugTools) {
         const said = uncommented(await response.text());
         for (const asked of [/grabSlide\(/, /SLIDE_FRAMES/, /slide/]) {
           if (!asked.test(said)) {
-            problems.push(`scripts/shot.mjs does not mention ${asked} in code, so the frames PLAYTEST.md quotes cannot be produced`);
+            problems.push(`scripts/shot.mjs does not mention ${asked} ${AS_WORDING}, so the frames PLAYTEST.md quotes cannot be produced`);
           }
         }
       }

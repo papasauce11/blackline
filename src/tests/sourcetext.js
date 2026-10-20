@@ -168,3 +168,30 @@ export function readerProblems(classify, sees, ignores, read = codeOf) {
   }
   return problems;
 }
+
+/**
+ * What a reported problem calls each of the two reads (H95).
+ *
+ * H68 fixed the names and left the sentences, and the sentences are the half a
+ * human reads: four problems said *"in code"* over a clause that had read the
+ * weak reader, so a reader told the evidence was code and then grepping the
+ * file as code would not have found what the check found. The lie had moved
+ * from a name to a prose line, where no grep over names could see it.
+ *
+ * So the phrase belongs to the reader rather than to the sentence, and these
+ * are the two phrases. A module interpolates the one its clause read with;
+ * `tests/readernames.js` holds that nothing under `src/tests/` spells either
+ * by hand, exactly as it holds that nothing spells a reader by hand. That is
+ * H42's rule applied to this suite's own prose: a sentence about what was read
+ * cannot be held by a regex over somebody else's wording, so the wording comes
+ * out of the one file that knows which read it was.
+ *
+ * **What this cannot hold is that the right one was picked.** Interpolating
+ * `AS_CODE` beside a clause that read the weak reader is the same mistake in a
+ * new costume, and it is H62's question - answered one clause at a time by
+ * reading what the clause's evidence is, and by no grep. What it does buy is
+ * that the phrase and the reader are now one edit apart rather than a file
+ * apart, and that a new clause has to choose rather than to type.
+ */
+export const AS_CODE = 'in code';
+export const AS_WORDING = 'with its comments out';

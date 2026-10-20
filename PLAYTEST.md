@@ -95,6 +95,34 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### Four of the tests were telling a reader the wrong thing about their own evidence (H95, 2026-10-19)
+
+**Nothing in the game changed. Five sentences did.**
+
+The suite reads its own source in two different ways, and which one a check
+used decides what its complaint means. One way takes the comments *and* the
+quoted strings out, and is the right reader for *does this file make this
+call*. The other takes only the comments out and keeps the strings, and is
+the right reader for *does this file mention this id, this URL parameter,
+this wording* — things that **are** strings.
+
+Four checks reported a problem saying the evidence was *"in code"* when they
+had used the second reader. That is not pedantry: it is the sentence a human
+reads at 2am. Told a hard-coded id is in `bench.mjs`'s code, you go and read
+the code; the check had actually found it in a quoted string, and you do not
+find what it found. The fifth place that says *"in code"* really does read
+code, and its sentence is unchanged — it is the control.
+
+**The fix is that the phrase now belongs to the reader.** There is one file
+that owns both ways of reading, and it now owns both phrases too; a check
+asks it for the words rather than typing them, and a new clause has to pick
+one. A test holds that nobody types either phrase by hand again, and says in
+its own header what that does *not* buy: it cannot tell you the right phrase
+was picked, only that picking it is now one import away from picking the
+reader.
+
+**Nothing is left for you on this one.**
+
 ### The settings page is in four groups now, and it fits your window (H22, 2026-10-19)
 
 **Nothing you can do changed. Fourteen rows got four headings and two
