@@ -1128,7 +1128,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   **634**. It cost a line of `breathcensus.js`'s ceiling (550, one outside the
   cluster) and two lines of its header paid it, so the cluster is **eleven**
   (D77). Subset plant 16/16; break: `registry.js` fetching for itself again,
-  red by name — `HASH-H96`, 2026-10-19.
+  red by name — `d9b1c7d`, 2026-10-19.
 
 - **H95** The sentence said code and the clause had read the wording. H68 fixed
   the names and left the sentences: four reported problems said *"in code"*
