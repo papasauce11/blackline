@@ -20990,3 +20990,26 @@ the revert can be revisited — **K8**. And the published 8m kill table in
 `config.js` is the pre-`aimSettle` one; it is left as published with a sentence
 saying so rather than restated, because the honest replacement is a range over
 seeds and not three numbers.
+
+## K6 verified (2026-11-03)
+
+The full two-run suite at `3690c07`, over the run's one job: plant **251 passed
+/ 1 failed / 10 not for this map** (1,147,081ms and 1,147,275ms), yard **233 / 1
+/ 28** (880,536ms and 889,820ms), exit 0, red [], flaky [], expectedRed [],
+unexpectedGreen [], skipped [], skipsWithheld [], consoleErrors 0,
+contextLosses 0, otherRunners []. The one failure on each run is the
+frame-budget sweep, benched and bench-only as always (H11) — it reports a
+single sample against a ceiling that wants nine, and `npm run bench` is the only
+command that asks for them.
+
+**The counts are identical to batch K's**, which is the right answer rather than
+a suspicious one: K6 extended two existing checks and registered no new id, so
+the registry did not grow. What did change is worth the line —
+`each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` returned
+**byte-identical detail lines in both runs of each map** (plant 8m easy
+1.54 / medium 0.75 / hard 0.35s, yard 1.29 / 0.57 / 0.39), which is what a
+pinned-seed measurement is supposed to look like and is the standard F18 set.
+Run spread 194ms on the plant (0% of the longest) and 9,284ms on the yard (1%).
+
+The ceiling reading is the one thing to act on: **11 modules within 50 of 600,
+nearest `src/systems/combat.js` at 593 with seven left**, queued as H104.
