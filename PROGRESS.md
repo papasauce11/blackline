@@ -20832,3 +20832,40 @@ what it does; the gate had a check standing at its own watchdog's edge. The
 PM is asked which fix (P3 in DECISIONS.md, once made). HANDOFF.md carries
 `## UNVERIFIED BATCH` until a verify is green.
 
+## H102 — The check-29 load waits off its own clock
+
+**Built** (a Sonnet builder in the main tree, from the PM's P3 and the lead's
+brief). `src/tests/performance.js`: the check reads `timedVerdictAsked(...)`
+above its warm-up and builds a GPU timer only when it is priced, so at the gate
+it never polls `getQueryParameter`, which on this renderer blocks until the
+queue drains; the detail says why in a note. It declares `drainAfter: true`.
+`src/ui/autosuite.js` (571 lines): `test.drainAfter` documented beside
+`glSync`, and `_runChecks` drains the pipeline right after such a check, on the
+run's clock and under the 600s `--stall-wait`; `glSync` keeps its meaning (F11
+measured a drain after every check at +236s). `src/tests/pipelinewait.js`: a
+nested run of an inline `drainAfter` check and a plain one, requiring the beats
+between them to pass through `pipeline-wait` and `pipeline-waited`, and a pin
+holding `frame-budget-under-the-check-29-load` to the flag.
+`src/tests/timedrenders.js`: the check's census reason names the GPU half
+bench-only; its verdict stays `reported`.
+
+**Why it was the check's and not the torch's** is in "Batch K" above and in
+P3: torch off, the check already stood at 207 of the 240s `--stall`; any
+rendering added to the yard would have carried it over, and the torch was the
+first. And the drain after is not optional: with the GPU read gone, the next
+check to synchronise on the yard is the torch's own pixel check, which would
+have waited for the whole tail inside itself, heartbeat still - the same crash
+with K3's name on it.
+
+**Proved.** Through the runner, one run on both maps under the default
+`--stall 240`, the check-29 load with the torch checks after it in
+registration order, the pipeline-wait and heartbeat checks, the timing census
+and the census set: **28/28 on the plant and 30/30 on the yard**, 0 console
+errors. The check's own ms **3,799** on the plant and **2,724** on the yard
+(206,786 before, torch off); the run lines carry **233,619ms** and
+**244,022ms** of pipeline tail, now the suite's; the torch's cone check after
+it reads +8.8 / +8.2 as before. **Break:** the runner's `drainAfter` line
+commented out; red on the plant with "a drainAfter check was followed by no
+drain: the beats between it and the next check were [running, ran]", and the
+file was put back from a copy.
+

@@ -807,18 +807,7 @@ job names it as a prerequisite, or to fill a run's tail (one S per run, when
 the next game-facing job would not finish). A new hygiene finding is queued at
 the end of this list, never ahead of a game-facing job.
 
-- [ ] **H102 (S)** The check-29 load waits on the renderer inside itself, and
-  it is the one check that does. Taken by P1's first clause on 2026-11-03 (the
-  first batch verify under P2 crashed on it, exit 2) and decided by P3:
-  `frame-budget-under-the-check-29-load` reads its GPU timer only under
-  `?timedVerdict=1`, and a new runner flag `drainAfter` drains the pipeline
-  right after it on the suite's beating clock. *done-when:* the check passes
-  alone on the yard under the default `--stall 240` with its own ms near 20s and
-  the wait on the run line; `pipelinewait.js` holds `drainAfter` (a drained-after
-  check is followed by a beat through the pipeline wait) and pins the check to
-  the flag; a full two-run verify is green as the batch verify of K3, K1 and
-  H102, and HANDOFF.md's `UNVERIFIED BATCH` heading comes off with it.
-
+- [x] **H102 (S)** The check-29 load waits off its own clock — done 2026-11-03, under Done. `drainAfter` in `ui/autosuite.js`, the GPU timer bench-only in `tests/performance.js`, two clauses in `the-pipeline-wait-is-the-runs-number-and-not-a-checks`.
 - [ ] **H98 (S)** A device event in a page's first run reds its second run too,
   and nothing says which run it was in. H70's first verify went red on
   `the-audio-device-keeps-its-clock-and-journals-the-states-it-enters` [plant]
@@ -1143,6 +1132,15 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H102** The check-29 load waits off its own clock (P3). Taken by P1's first clause:
+  the first batch verify under P2 crashed on it, the heartbeat still 240s on
+  the yard. Its GPU timer is read only under `?timedVerdict=1` (the bench),
+  and a new runner flag `drainAfter` drains the pipeline right after it on the
+  suite's beating clock. Alone under the default `--stall 240`: the check's
+  own ms 3,799 on the plant and 2,724 on the yard (206,786 before), the tail
+  it queues - 233,619 and 244,022ms - on the run line, and the torch's
+  `readPixels` after it green. Break: the runner's drain-after commented out,
+  red on its own clause - `5ea2b52`, 2026-11-03, Josh's session.
 - **K1** Search like a person. SEARCH no longer walks the nearest waypoints: from the
   last-known position it sweeps the hiding spots that position cannot see -
   beside crate-sized boxes, under gantries and walkways, found mechanically
