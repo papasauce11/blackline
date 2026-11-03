@@ -1,18 +1,18 @@
 # Blackline — handoff
 
-**Read this first.** Then `QUEUE.md` (the work), `DECISIONS.md` (what waits on
-Josh, and what he has decided), `PLAN.md` (the protocol), and `TRAPS.md` before
-you touch anything — thirty-odd environment traps, an hour each, which lived in
-this file until G2. `BLACKLINE_SPEC.md` is the contract; `PROGRESS.md` is the
-append-only history — read the last entry, and the entry named in the index
-below for whatever you are about to touch. `PLAYTEST.md` is Josh's: how to run
-it, what to look at, what only eyes can judge, what is known to be wrong —
-every Block C, D, E and H job updates it.
+**Read this first.** Then `QUEUE.md` (the work), `DECISIONS.md` (what waits on Josh, and what he has decided), `PLAN.md` (the protocol), and `TRAPS.md` before you touch anything — thirty-odd
+environment traps, an hour each, which lived in this file until G2. `BLACKLINE_SPEC.md` is the contract; `PROGRESS.md` is the append-only history — read the last entry, and the entry named in the
+index below for whatever you are about to touch. `PLAYTEST.md` is Josh's: how to run it, what to look at, what only eyes can judge, what is known to be wrong — every Block C, D, E and H job updates
+it.
 
 This file is orientation, not history: every run reads it and pays for every
 line, so a job's write-up goes in `PROGRESS.md` and gets one line in the index
 here (G1). `traps-md-holds-the-traps-and-handoff-points-at-it` keeps it under
 **400 lines**, and a job that adds to it takes something out.
+
+## UNVERIFIED BATCH
+
+2026-11-03: K3 (`4f6057d`, `ada637e`) and K1 (`3fdeb25`, `091eaed`) are pushed and subset-proven but their batch verify crashed (exit 2): the heartbeat stood still 240s on the yard in `frame-budget-under-the-check-29-load`, which waits on the renderer inside itself and with the torch's extra rendering passes `--stall`. Attributed in PROGRESS.md ("Batch K"); the next gate is the full suite and must not be recorded as a broken base until that check is fixed. Remove this heading in the `Record batch` commit that verifies it.
 
 ## Last audit
 

@@ -20805,3 +20805,30 @@ in 0.8s on both.
 construction; a first search near a top pays 15-30ms once to find its vantages,
 cached after; a sweep plan costs about 0.3ms.
 
+## Batch K — K3 and K1's verify crashed, and why (2026-11-03)
+
+The first batch verify under P2, two full runs of both maps over K3 (the
+torch) and K1 (search like a person), did not reach a verdict: both plant runs
+finished, then on the yard's first run `suite: crashed: run timed out: the
+suite heartbeat stood still for 240s ... the check in flight was
+"frame-budget-under-the-check-29-load" (227/234, phase running)`, exit 2. Both
+jobs were already pushed, each proved by its own subset on both maps; neither
+subset included the check-29 load.
+
+**Attributed by measurement, that one check alone on the yard**
+(`--runs 1 --map yard --stall 900`): with the torch, the run is 282,661ms, of it
+**234,051ms the pipeline tail** the suite drains after the run, and the check's
+own ms 21,344 - its GPU timer reports *unavailable or disjoint* and it does not
+wait. With the torch off (the yard's registry entry `night: false`, restored
+after), the run is 234,424ms with a 5ms tail, and the check's own ms **206,786**:
+its timer works, and `gpuTimer().read()` polls `getQueryParameter`, which on this
+renderer blocks until the queue drains - the check waits on the renderer
+**inside itself**, the shape D48 moved into the suite's beating
+`drainPipeline`. So the check already sat at 207 of the 240s `--stall` on the
+yard before K3, and the torch's spot light, about a fifth more rendering under
+SwiftShader on every lit material, carries it past: in a full run the backlog of
+the checks before it lands in the same in-check wait. Neither job is wrong in
+what it does; the gate had a check standing at its own watchdog's edge. The
+PM is asked which fix (P3 in DECISIONS.md, once made). HANDOFF.md carries
+`## UNVERIFIED BATCH` until a verify is green.
+
