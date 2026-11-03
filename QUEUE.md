@@ -1,7 +1,8 @@
 # Blackline — work queue
 
-The protocol is in `PLAN.md`. **Up to three jobs per run**, one at a time,
-each gated, verified and committed before the next is picked (D19). Take the
+The protocol is in `PLAN.md`. **About an hour of work per run** (D79): one
+job, a second only if it is S, each proved and committed before the next is
+picked (D19, P2); an L job is split before it is taken. Take the
 first job whose
 `blocked:` line is empty, or names a decision that has a `decided:` line in
 `DECISIONS.md`. Blocks are ordered; jobs inside a block are ordered; a later

@@ -70,9 +70,11 @@ what makes it possible. (Decided: D1 in `DECISIONS.md`.)
 
 ### `blackline-build` — twice daily
 
-Up to three jobs per run, one at a time — each proved and committed before
-the next is picked, and one full verify over the run (P2, 2026-11-03). (Was one per run; Josh, 2026-09-10: *"not running
-long enough. maybe 2-3 subphases at a time"* — D19.)
+About an hour of work per run (D79, 2026-11-03): one job, a second only if it
+is S, each proved and committed before the next is picked, and one full verify
+over the run (P2) whose wait is outside the hour. (Was one per run; Josh,
+2026-09-10: *"not running long enough. maybe 2-3 subphases at a time"* - D19,
+up to three, suspended by D79 while the four tiers are tested.)
 
 ```
 1. ORIENT   read HANDOFF.md, QUEUE.md, PLAN.md, git log -8; DECISIONS.md by
@@ -98,8 +100,9 @@ long enough. maybe 2-3 subphases at a time"* — D19.)
             (Haiku) runs each and reports.
 6. RECORD   PROGRESS.md entry, the job's Done line, new questions. Commit,
             stamp, push - per job.
-7. AGAIN    back to 3 while fewer than three jobs are done, the next job is
-            S or M, and more than about two hours of the session remain.
+7. AGAIN    back to 3 only when the job was recorded inside about 30
+            minutes of the hour's start and the next job is S (D79); no
+            job is started after 45 minutes. One builder at a time.
 8. VERIFY   the full two-run suite once, over the run's jobs (P2), committed
             as `Record batch: <ids>`. A red is attributed by the red check's
             subset at each of the run's commits; the job is fixed or
@@ -107,7 +110,7 @@ long enough. maybe 2-3 subphases at a time"* — D19.)
 9. STOP.
 ```
 
-**Budget rule.** Sizes are fractions of one session (`S` = a third, `M` = most,
+**Budget rule.** While D79 holds, the budget is about an hour of work, a job not proved by about 90 minutes is committed as WIP, and an L job is split before it is taken. Sizes are fractions of one session (`S` = a third, `M` = most,
 `L` = all of it), so three `S` jobs or one `M` plus one `S` is a full run. If the job is not done by the time most of the budget has gone:
 commit as `WIP: <job>`, split the remainder into a new queue item with an exact
 "resume from" note, update HANDOFF.md, push, stop. A half-done job with a

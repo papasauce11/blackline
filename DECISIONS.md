@@ -106,6 +106,29 @@ anything it may decide (D49). Josh answered eight questions in two rounds:
 **decided:** as the table. Blocks H, K, M, J, I, L, N, O in `QUEUE.md`, in
 that order; spec 20.34 amends Section 19.
 
+### D79 — A run is about an hour of work while the four tiers are tested
+Josh, 2026-11-03, asked whether D19's three jobs a run should rise now that
+builders work in parallel: *"routine should only take about an hour for now,
+trying to keep usage in check while we test the new structure."* The same
+day he said the desktop app stays open overnight, so the 02:00 run fires: the
+routine only fires while the app runs, and on mains this PC never idle-sleeps
+(`powercfg` standby 0, no battery), so the app is the only condition.
+
+**decided:** about an hour of work a run. The hour starts when the gate is
+done or skipped and ends when the run's verify starts: one job, designed by
+the lead and built by **one** builder at a time; a second only when the first
+is recorded inside about 30 minutes and the next job is S; no job started
+after 45 minutes; a job not proved by about 90 minutes is committed as WIP
+under the budget rule. An L job is split into pieces that fit before it is
+taken. **The suite's waits are outside the hour**, which is the lead's reading
+of the reason Josh gave, usage: the gate and the verify are a Haiku runner
+idling on a background process, and a 70-minute verify costs a few hundred
+words, so P2's one full verify a run stands and a run that verifies is about
+two hours on the clock. If he meant the clock, the verify moves to every other
+run (a build run, then a verify run) and this line is rewritten. D19's "the
+whole session used" is suspended until he lifts this. Prompt, `PLAN.md`,
+`QUEUE.md` and `HANDOFF.md` updated the same day.
+
 ---
 
 ## Provisional — done as recommended, override any time
