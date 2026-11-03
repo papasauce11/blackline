@@ -957,12 +957,7 @@ Order by P1 (2026-11-03): K1 first (the largest change to what a friend meets,
 spec settled), K6 second (it owns H99's standing fresh-seed red), then K2, K3,
 K4, K5, K7.
 
-- [ ] **K1 (M)** Search like a person. From the last-known position, a
-  sweep of the room's hiding spots ranked by distance and cover — behind
-  crates, under the deck — and a look *up*: it aims at climbable tops it
-  cannot reach and fires on a Shade it sees there. *done-when:* a check
-  hides the Shade behind a crate and on a top; the Warden checks both
-  within a bounded time; the AI soak unchanged.
+- [x] **K1 (M)** Search like a person — done 2026-11-03, under Done. `src/systems/aisearch.js` (the SEARCH mixin, hiding spots, tops and vantages), `the-warden-searches-behind-cover-and-looks-up-at-tops-it-cannot-reach`.
 - [ ] **K6 (M)** Difficulty at range. Aim error grows with distance and the
   target's speed and shrinks with time on target, so medium and hard part
   at 8m (D33 found hard a machine there). **Read F17's PROGRESS entry
@@ -1136,6 +1131,17 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **K1** Search like a person. SEARCH no longer walks the nearest waypoints: from the
+  last-known position it sweeps the hiding spots that position cannot see -
+  beside crate-sized boxes, under gantries and walkways, found mechanically
+  and never by tag (78 on the plant, 92 on the yard) - and the climbable tops
+  it cannot stand on (21 and 22), walking to a vantage with a line up to a top
+  and holding its gaze up there while she is in view. The state moved out of
+  `ai.js` (548 to 529) into `src/systems/aisearch.js` as a prototype mixin
+  beside perception and navigation. The Warden found a Shade behind cover in
+  6.0s on the plant and 4.5s on the yard, and on a top from its foot in 2.5s
+  and 6.9s. Built by a Sonnet builder from the lead's brief — 2026-11-03,
+  Josh's session.
 - **K3** The torch, on the night map. A rifle-mounted `SpotLight` (`castShadow` false
   - spec 4.1's one shadowed light stands) and a visible cone, one additive
   depth-write-off mesh in one draw call, both on the Warden's camera rig, so

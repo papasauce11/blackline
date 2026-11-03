@@ -47,7 +47,9 @@ it will not fast-forward, stop and report.
   when the lead's brief or message says the suite is idle: it is not the
   suite, it serves your worktree's `src/`, and it is how K3's floors became
   measurements rather than guesses (2026-11-03). Put the probe file in the
-  scratchpad, not the repo.
+  scratchpad, not the repo, and **name every scratch file after your job**
+  (`k1-probe.js`, not `runcheck.js`): builders running at once share the one
+  scratchpad, and K1's probe file was overwritten by K3's.
 - A worktree-isolated builder cannot write to the main tree. If the lead has
   merged your commit and asks for a fix, make it in your worktree and leave it
   uncommitted with a `git diff > <scratchpad>/<job>-fix.patch` the lead can

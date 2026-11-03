@@ -20756,3 +20756,52 @@ mode open a free-roam Warden's T does both - a debug-only clash, provisional.
 At 300 cd a wall within about 2m of the muzzle blows out, and a dead Warden's
 torch stays on at the body; neither is tuned here.
 
+## K1 — Search like a person
+
+**Built** (the second job of the four-tier org's first hour, by a Sonnet
+builder in its own worktree while the K3 builder worked in another).
+`src/systems/aisearch.js` (new, 461 lines): `deriveHidingSpots(map)` - a point
+beside each face of every box between `searchCoverMinHeight` and
+`searchCoverMaxHeight` above its ground and under `searchMaxSide` on a side, and
+grid points with geometry overhead within `searchOverheadMax`, each kept only
+where a Shade capsule could stand; `deriveTops(map)` - the climbable surfaces
+whose top rises more than `searchLookUpMinRise` over the ground beside them;
+`rankSpots` (distance, with a bonus for a spot the last-known position cannot
+see) and `topsNear`; the per-map index built once at AI construction; and the
+`SEARCH` mixin - `_enterSearch` plans one sweep of spots and tops nearest
+first, `_stepSearch` walks to each spot until it has a line to it and scans,
+and for a top walks to a vantage with a line up to the perch, then faces it
+with no aim error and holds the gaze while she is in view. `ai.js` lost its
+SEARCH (548 to 529 lines) and keeps the alarm camera and the stun grenade;
+`CONFIG.ai` gains the search numbers beside `searchWaypointCount`.
+
+**Where the builder changed the brief, and why.** `searchCoverMaxHeight` is
+3.2m, not 2.6, and `searchMaxSide` 8m, not 6: the yard's containers are 2.9m
+tall and 6 by 2.4, and are the cover a Shade actually hides behind there.
+`searchOverheadMax` stays at 3.5m, so gantries and walkways count and the
+plant's 6m deck does not - raised, the hall under the deck would be a field of
+spots. A gaze that ended after its hold while she was in view let the Warden
+look away before the accumulator reached ENGAGE, so it holds while she is
+seen. A top with no line from where the Warden stands gets a vantage - the
+nearest ground with a line to the perch and to a point 0.3m under it - and a
+vantage on another floor costs four metres of walking per metre of height; a
+few of the yard's tallest stacks (5.8m and up) have none and are skipped.
+
+**The check** drives three searches through the AI's own `_enterSearch`, with
+the meter held at its top as the other AI checks hold it: a crouched Shade
+behind a crate-sized box with the last-known position on its far side; the
+Shade on a top the Warden cannot stand on, lost at its foot; and the same top
+with the Warden already in sight of it, so the look up is its first act. Each
+must both plan right (a spot within 3m of her, or a top that is her perch, is
+in the sweep) and end right (the Warden saw her and its detection rose within
+`searchDuration`); the third also requires the gaze on the top, head raised,
+to 0.3 rad. Measured by the builder's probe: behind cover seen in 6.0s on the
+plant and 4.5s on the yard; on a top from its foot 2.5s and 6.9s; the gaze up
+in 0.8s on both.
+
+**Proved.** Through the runner, one run on both maps - the new check, every AI and Warden check (SEARCH moved modules), the soak, the stuck and patrol checks, the alarm camera, the seed replay and the whole-match leak, both shipped replays, the torch checks (K3 shares `config.js`) and the census set - **53/53 on the plant and 54/54 on the yard**, 0 console errors, ceiling 11 within 50 of 600 of 214 modules. The check's own lines: plant behind `stack-hall-low` (1.0m) in view 6.0s, on `stack-hall-mid` (2.3m) from its foot 2.5s, gaze up 0.8s at pitch 0.30; yard behind `pallets-a` (1.0m) 4.5s, on `ring-west-3` (2.9m) 6.9s, gaze up 0.8s at pitch 0.32; bound 15s. Both replays reach their recorded ends unchanged, and the soak's detail is byte-identical to before (SEARCH is never entered in it). **Break**, run through the harness in a probe page: `topsNear` returning nothing turns both top scenes red on both maps on the plan clause ("the sweep holds no check on the stack"), the in-sight scene on the gaze clause too. Merged by cherry-pick; the one conflict was the two jobs' registrations at the end of `tests/index.js`, both kept (K3's, then K1's).
+
+**Cost.** The spots and tops take 7-9ms and 2ms once per map at AI
+construction; a first search near a top pays 15-30ms once to find its vantages,
+cached after; a sweep plan costs about 0.3ms.
+
