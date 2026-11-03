@@ -46,6 +46,7 @@ export function readWardenIntent(input, intent) {
   intent.ads = input.down('ads');
   intent.fire = input.down('fire');
   intent.reload = input.pressed('reload');
+  intent.torch = input.pressed('torch');
   intent.gadget = input.pressed('gadget1') ? 1
     : input.pressed('gadget2') ? 2
       : input.pressed('gadget3') ? 3 : 0;

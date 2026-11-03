@@ -101,6 +101,7 @@ export function controlRows(match, bindings) {
       [keys(b, 'reload'), 'reload'],
     );
     if (match.objectiveEnabled) rows.push([keys(b, 'interact'), 'defuse - hold at the charge']);
+    rows.push([keys(b, 'torch'), 'torch - on and off, the night map only']);
     rows.push([[1, 2, 3].map((n) => keys(b, `gadget${n}`, true)).join(' '), 'stun grenade, frag, alarm camera']);
   } else {
     rows.push(

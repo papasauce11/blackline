@@ -69,6 +69,8 @@ export function createWardenIntent() {
     ads: false,
     fire: false,
     reload: false,
+    /** An edge, not a hold (K3): the torch's key went down this step. The AI never sets it - its torch is on for the round. */
+    torch: false,
     /** Section 9.2 loadout slot, 0 for none. Free-roam fills it from keys 1-3. */
     gadget: 0,
   };
@@ -219,6 +221,10 @@ export class Warden {
 
   step(dt, intent) {
     if (this.state === WARDEN_STATE.DEAD) return;
+
+    // K3: the torch is a system's, so the press goes out on the emitter and
+    // whatever owns a torch on this map flips it; on the plant nothing listens.
+    if (intent.torch && this.emitter) this.emitter.emit('torch:toggle');
 
     if (this.state === WARDEN_STATE.STUNNED) {
       this.stunTimer -= dt;

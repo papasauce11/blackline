@@ -36,12 +36,15 @@ export const DEFAULT_MAP_ID = 'plant';
 const MAP_QUERY = /(?:^|[?&])map=([a-z0-9-]+)(?:&|$)/i;
 
 /**
- * In the order the menu offers them.
- * @type {{id: string, name: string, build: (options: object) => object}[]}
+ * In the order the menu offers them. `night` marks a map lit by pools with
+ * dark between them (K3): the one the Warden's torch exists on. The flag is
+ * the registry's and not a map id tested somewhere else, so a second night
+ * map is a line here.
+ * @type {{id: string, name: string, night?: boolean, build: (options: object) => object}[]}
  */
 const REGISTRY = [
   { id: 'plant', name: 'Meridian Substation', build: buildPlantMap },
-  { id: 'yard', name: 'Container Yard', build: buildYardMap },
+  { id: 'yard', name: 'Container Yard', night: true, build: buildYardMap },
 ];
 
 /** Every registered id, in menu order. */
@@ -57,6 +60,12 @@ export function listMaps() {
 /** The registry entry for an id, or null. */
 export function mapEntry(id) {
   return REGISTRY.find((entry) => entry.id === id) || null;
+}
+
+/** Is this a night map (K3)? False for an id the registry does not know. */
+export function isNightMap(id) {
+  const entry = mapEntry(id);
+  return !!(entry && entry.night);
 }
 
 /**

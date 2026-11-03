@@ -19,7 +19,7 @@ import { createReplays, installReplayRoutes } from './replay.js';
 import { VERSION } from './version.js';
 import { Freefly } from './freefly.js';
 import { Input } from './input.js';
-import { bakeMap, listMaps, BAKE_SLICES } from './maps/index.js';
+import { bakeMap, listMaps, isNightMap, BAKE_SLICES } from './maps/index.js';
 import { createWardenGroundView } from './groundview.js';
 import {
   createRenderer, createScene, createCamera, createToonGradient, resizeView, watchContextLoss,
@@ -33,6 +33,7 @@ import { wireMatchEvents } from './wiring.js';
 import { Shade } from './entities/agent.js';
 import { Warden } from './entities/enforcer.js';
 import { createDetection } from './systems/detection.js';
+import { createTorch } from './systems/torch.js';
 import { createWardenAI } from './systems/ai.js';
 import { createCombat } from './systems/combat.js';
 import { createAudio } from './systems/audio.js';
@@ -147,6 +148,11 @@ export async function bootWorld({
   scene.add(warden.cameraRig);
   warden.reset(map.wardenSpawns[0]);
 
+  // K3: the rifle-mounted torch, on a night map only - on any other `null`,
+  // and nothing was added to the scene. It rides the Warden's camera rig, so
+  // it goes where the AI or the human looks, and detection is handed it below.
+  const torch = createTorch({ night: isNightMap(mapId), warden, emitter });
+
   // The one camera's owner, now both rigs exist. Combat's finisher and the
   // death camera are handed `set` so they take the camera the same way the
   // frame does, rather than reaching for it.
@@ -156,7 +162,7 @@ export async function bootWorld({
   // Section 7: light sampling, the visibility meter, the Section 4.2 feedback
   // and the noise field. Built after both actors, because it seeds the meter
   // from the Shade's spawn rather than letting it ramp up from zero.
-  const detection = createDetection({ map, emitter });
+  const detection = createDetection({ map, emitter, torch });
   detection.reset(shade);
 
   // Section 11. The AI fills the same intent a human fills in free-roam; the

@@ -702,6 +702,38 @@ export const CONFIG = {
       /** Head-bob (H9), as the Shade's — see `CONFIG.shade.camera.bob`. */
       bob: 0.035,
     },
+
+    /**
+     * The rifle-mounted torch (K3): on the night map only (`night` in the
+     * registry, maps/index.js) and nowhere else. A spot with no shadow -
+     * Section 4.1 keeps the one shadowed light - and a cone you can see; the
+     * Shade inside it counts as lit for detection (Section 7.1) whatever the
+     * dark between the pools would have said.
+     */
+    torch: {
+      /** Metres the beam reaches: the light's own distance, the cone's length and how far a Shade is caught. */
+      range: 18,
+      /** The beam's half-angle in radians (about 18 degrees): the light, the cone and the detection test are cut by this one number. */
+      angle: 0.32,
+      /** How much of the beam's edge is soft, 0 hard to 1 all the way in; the light only - detection is hard at `angle`. */
+      penumbra: 0.4,
+      /** Candela, as the yard's lamps are (26 x 2.5 = 65 each): a patch a few times a lamp's pool at ten metres. TODO(lead): tune against the lit patch. */
+      intensity: 150,
+      /** `palette.lightCool`, a cool white against the masts' warm; `the-torch-casts-a-visible-cone-on-the-night-map` holds the two together. */
+      color: 0xbfd9ff,
+      /** The meter a Shade in the beam is raised to (Section 7.1): above a lamp's pool (the yard's masts land in the fifties) and not crouched out of. */
+      litLevel: 60,
+      /** Where it sits on the rifle, in the camera rig's frame: metres right, up and forward of the eye - by the muzzle, low and to the right. */
+      mount: { x: 0.22, y: -0.24, forward: 0.85 },
+      /**
+       * The visible cone, one additive mesh with no shadow. `opacity` is the
+       * linear light each wall of it adds at the brightest, so it is small:
+       * the yard is dark and a few thousandths read. `peak` is the fraction
+       * of the length it brightens over, and from there it fades to nothing
+       * at the far end. TODO(lead): tune against the pixel check's reading.
+       */
+      cone: { opacity: 0.006, peak: 0.12, radialSegments: 20, lengthSegments: 6 },
+    },
   },
 
   // -------------------------------------------------------------------------
@@ -1964,6 +1996,8 @@ export const DEFAULT_BINDINGS = {
   reload: ['KeyR'],
   interact: ['KeyE'],
   melee: ['KeyF'],
+  // K3: the Warden's torch, on the night map. Nothing for the Shade.
+  torch: ['KeyT'],
   gadget1: ['Digit1'],
   gadget2: ['Digit2'],
   gadget3: ['Digit3'],
@@ -1982,7 +2016,7 @@ export const DEFAULT_BINDINGS = {
  */
 export const BINDING_GROUPS = [
   ['move', ['forward', 'back', 'left', 'right', 'jump', 'crouch', 'sprint']],
-  ['fight', ['fire', 'ads', 'reload', 'interact', 'melee']],
+  ['fight', ['fire', 'ads', 'reload', 'interact', 'melee', 'torch']],
   ['gadgets', ['gadget1', 'gadget2', 'gadget3', 'gadget4']],
   ['system', ['pause']],
 ];

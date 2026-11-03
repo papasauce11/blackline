@@ -11,7 +11,9 @@
  * the same actors:
  *
  *  1. The visibility meter (7.1). Sampled on a 100ms cadence with a hard 5-ray
- *     cap per light, cached between samples, smoothed over 250ms.
+ *     cap per light, cached between samples, smoothed over 250ms. On a night
+ *     map the Warden's torch is one more light (K3): a Shade in its beam is
+ *     lit whatever the pools say.
  *  2. The Section 4.2 feedback on the Shade. The meter and what the player sees
  *     must never disagree, so both are written from one value in one place.
  *  3. Noise events (7.2), emitted from actor movement into a fixed pool that
@@ -140,10 +142,18 @@ export class NoiseField {
 // ---------------------------------------------------------------------------
 
 export class Detection {
-  constructor({ map, emitter }) {
+  /**
+   * @param {object} options
+   * @param {object} options.map
+   * @param {object} options.emitter
+   * @param {object|null} [options.torch] the Warden's torch (systems/torch.js), handed down by
+   *   the composition root on a night map; none elsewhere, and then nothing here changes (K3)
+   */
+  constructor({ map, emitter, torch = null }) {
     this.map = map;
     this.collision = map.collision;
     this.emitter = emitter;
+    this.torch = torch;
     this.noise = new NoiseField(emitter);
 
     /** Latest sampled value, 0-100. The cache Section 7.1 talks about. */
@@ -158,6 +168,9 @@ export class Detection {
     this.samples = 0;
     this.raysLastSample = 0;
     this.lightsLastSample = 0;
+    /** The torch's own rays in the last sample: counted apart, so the 5-per-light cap above still reads the map's lights alone. */
+    this.torchRaysLastSample = 0;
+    this._beam = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0 };
 
     this._lastShadeStride = 0;
     this._lastWardenStride = 0;
@@ -285,10 +298,37 @@ export class Detection {
     // candela since r155), so scoreScale maps it into the meter's range.
     let score = sum * D.scoreScale + D.ambientFloor;
     if (shade.crouching) score *= D.crouchMultiplier;
+    // K3: a Shade in the torch's beam is lit, however dark the ground. After
+    // the crouch and before the vent: a face in a beam is not hidden by
+    // crouching, and a vent is unlit whatever shines at its mouth.
+    const torched = this._torchLevel(origins);
+    if (torched > score) score = torched;
     this.inVent = this.isInVent(shade.position);
     if (this.inVent) score *= D.ventMultiplier;
 
     return clamp(score, D.meterMin, D.meterMax);
+  }
+
+  /**
+   * What the Warden's torch lends the Shade (K3): `litLevel` for a Shade in
+   * the beam with a clear line to it, scaled by the share of the five torso
+   * rays that get through as a lamp's is, and nothing for a Shade outside it,
+   * a torch that is off, or a map with none. The line is the helper every
+   * light here asks. `origins[0]` is the torso's centre, which is the point
+   * the beam's angle and range are asked of.
+   */
+  _torchLevel(origins) {
+    const torch = this.torch;
+    this.torchRaysLastSample = 0;
+    if (!torch || !torch.on) return 0;
+    const beam = torch.beam(this._beam);
+    if (!torch.covers(beam, origins[0])) return 0;
+    let clear = 0;
+    for (let r = 0; r < D.raysPerLight; r++) {
+      this.torchRaysLastSample++;
+      if (this.collision.lineOfSight(origins[r], beam)) clear++;
+    }
+    return torch.litLevel * (clear / D.raysPerLight);
   }
 
   /** Five sample points across the torso, so a light half-blocked reads as half. */

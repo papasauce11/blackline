@@ -117,6 +117,7 @@ import { register as registerRunnerGuard } from './runnerguard.js';
 import { register as registerDetailDrift } from './detaildrift.js';
 import { register as registerTimedRenders } from './timedrenders.js';
 import { register as registerAudioDevice } from './audiodevice.js';
+import { register as registerTorch } from './torch.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -308,4 +309,9 @@ export function registerAutoTests(debugTools) {
   // above performance.js - so the order is a clause rather than a comment:
   // `the-device-journal-is-read-after-the-frames-that-feed-it` (H65).
   registerAudioDevice(debugTools);
+  // K3: the Warden's torch on the night map. After the device journal's read,
+  // where a new module goes until it has a reason to be elsewhere: it steps
+  // and grabs but runs no frame through the audio, so it puts no mark in the
+  // journal that read has closed (H65).
+  registerTorch(debugTools);
 }
