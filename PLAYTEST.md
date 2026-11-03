@@ -95,6 +95,25 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### Medium and hard now part at close range (K6, 2026-11-03)
+
+Set difficulty to **medium**, then **hard**, and let the Warden see you from
+about eight metres on either map with nowhere to go. Up close the two presets
+used to kill in the same time - both put every round on you at that range, so
+the aim cone could not tell them apart, and the clock said 0.49s for each. Each
+preset now spends a **beat getting the gun onto you** before its first round:
+**hard spends none** (it should still read like a machine, exactly as before -
+its time did not move by a hundredth), medium spends 0.16s and easy 0.42s.
+
+What the checks prove: the kill time falls from easy to medium to hard at 8m
+and 16m on both maps, and by at least most of the beat config claims
+(`each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`). What is left
+for you is whether **medium's extra 0.17s reads as a fair fight or as a Warden
+that hesitates** - that is the number to disagree with, and D80 in
+`DECISIONS.md` says what the alternatives were. Easy at eight metres is now a
+little over a second, which is a long time to be shot at and survive; say if
+that is too generous.
+
 ### Seven tests were each downloading the whole codebase to read it (H96, 2026-10-19)
 
 **Nothing in the game changed. The test suite stopped doing the same job

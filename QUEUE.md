@@ -952,6 +952,9 @@ the end of this list, never ahead of a game-facing job.
   H64, H94 (H25, H55 and H64 appear nowhere in HANDOFF.md), and no PLAYTEST
   heading for H1, H2, H34, H38, H39, H45, H51, H53, H55, H58, H77, H94.
 
+
+- [ ] **H103 (S)** The burst check cannot tell an interrupted burst from a short pause. `the-warden-fires-in-bursts-of-rounds-at-the-torso` calls any shot-to-shot gap over `rate + dt * 1.5` a burst boundary and records `gap - rate` as the pause, so eleven frames of *not firing* inside a burst read as a pause of 0.18s and the clause reds with *"config says 0.25-0.7"*. Found by K6 under `?seed=1637054825` on the plant and **attributed to the base**: it reproduces identically on a fully reverted pre-job tree, and the window drives the hardest preset, whose `aimSettle` is 0. The pause is real or the burst was interrupted, and the check should say which — the AI knows, since `_burstPause` is only non-zero for a drawn pause, so the honest reading is a pause the AI declares rather than one inferred from a gap. *done-when:* the check is green on both maps under `?seed=1637054825` and unseeded, no bound in `config.js` has moved, and a break that shortens a real pause below `engageBurstPauseMin` still reds it.
+- [ ] **H104 (S)** `src/systems/combat.js` is 593 lines, seven from the 600 cap, and the ceiling reading K6's run printed names it as the nearest of eleven modules within fifty. The next job that touches combat cannot add a comment. Split it the way F3 split the others, by what the caller needs. *done-when:* no module but `config.js` is within twenty of 600, and the ceiling line of a full run says so.
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -960,26 +963,7 @@ spec settled), K6 second (it owns H99's standing fresh-seed red), then K2, K3,
 K4, K5, K7.
 
 - [x] **K1 (M)** Search like a person — done 2026-11-03, under Done. `src/systems/aisearch.js` (the SEARCH mixin, hiding spots, tops and vantages), `the-warden-searches-behind-cover-and-looks-up-at-tops-it-cannot-reach`.
-- [ ] **K6 (M)** Difficulty at range. Aim error grows with distance and the
-  target's speed and shrinks with time on target, so medium and hard part
-  at 8m (D33 found hard a machine there). **Read F17's PROGRESS entry
-  first**: medium and hard are 0.02s apart at 8m on the yard and 0.16s on
-  the plant, both within a frame or two of the gun's own floor of four
-  rounds at 600rpm, so *no aim model separates them there* — at 8m the body
-  is wider than either cone and both presets already hit with everything
-  they fire. Whatever parts them up close has to be something other than
-  accuracy. F17 also measured, built and reverted the **per-round aim
-  draw** (D54): it removes the time-to-kill's tail at unchanged accuracy and
-  is probably right, but it is what tips medium and hard into a dead heat at
-  8m, so it becomes available again the moment this job separates them.
-  *done-when:* time-to-kill per distance per preset is monotonic and
-  separated in the existing checks. P1 (2026-11-03) folds H99 in: green under
-  `--query seed=20261018` and F17's `1637054825` on both maps,
-  `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` compared no
-  less strictly; if no non-cone separation is found in the session, H99's
-  fallback (the kill clause a reading at the rate-of-fire floor, the floor
-  named from config, the detect clause the verdict there, argued in the header)
-  is the last resort and is recorded as such.
+- [x] **K6 (M)** Difficulty at range — done 2026-11-03, under Done. `aimSettle` on the three `ai.difficulty` presets, `_enter`/`_fireBurst` in `src/systems/ai.js`, the margin clause and `SEPARATION_FRACTION` in `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`, a fourth number in `difficulty-preset-reaches-the-ai`. H99 folded in and green.
 - [ ] **K2 (M)** Hearing with memory. Noise raises an attention level per
   room that decays; a heard noise sends it to the room, not the point;
   metal footsteps louder (I2). *done-when:* attention curves in a check;
@@ -994,6 +978,7 @@ K4, K5, K7.
 - [ ] **K7 (S)** Patrol variety. Route order and pauses from the seed; a
   site room checked when the round clock is low. *done-when:* two seeds
   give two orders in a check; determinism check unchanged.
+- [ ] **K8 (S)** The per-round aim draw, back off the shelf. F17 built it, measured it better at unchanged accuracy — the hit fraction and the mean do not move, only the variance, and the scatter inside a burst goes from 0.675 / 0.614 of the overall scatter to 0.896 / 0.926 — and reverted it for one reason only: it tipped medium and hard into a dead heat at 8m. K6 moved that separation off the cone entirely (D80), so the reason is gone. Draw the hold per round rather than per burst (`_drawAimError` from the `combat:shot` handler, not the burst refill) and re-measure. *done-when:* `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` and `the-widest-cone-kills-at-range-and-not-once-in-a-while` are green on both maps unseeded and under `seed=20261018`, with the margin clause compared no less strictly, and the entry says what the tail did; D54 is answered either way.
 
 ## Block M — vision
 
@@ -1132,6 +1117,8 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **K6** Difficulty at range: what parts medium from hard up close is a beat, not a cone. F17 had proved no aim model can do it — at 8m the body subtends 2.43 degrees either way against medium's 2.5-degree cone and hard's 1.2, so both land everything, and a kill is four rounds of `damageNear` against 100 health, 0.3s at 600rpm, which both presets sat on (0.49s and 0.49s on the yard under `?seed=20261018`, H99's red). `reactionDelay` gates the detection fill and is spent before the kill clock starts. So: `aimSettle`, a per-preset beat spent once per ENGAGE getting the gun onto the body — **easy 0.42, medium 0.16, hard 0.0**, hard's clock deliberately unmoved (0.49s before and 0.49s after, to the hundredth) and the cost carried by the easier presets (D80). The check now holds the separation to **0.6 of the gap config claims**, a floor derived from config, because a tie passes a strict `<` by a step's worth of noise. Proved unseeded (plant 37/0, yard 35/0/2, census set included), under `seed=20261018` (5/0 both maps, the yard's 8m now 1.07 / 0.66 / 0.49) and under `seed=20260927` (3/0 both maps). Break: `_enter`'s assignment to `= 0`, run under 20261018 because the cone alone covers the floor under the pinned seeds — red on its own clause, *"hard kills 0.000s sooner than medium"*. Found and attributed to the base: H103, the burst check's pause classifier, red under `?seed=1637054825` on a pre-job tree too. `88beb70`, 2026-11-03.
 
 - **H102** The check-29 load waits off its own clock (P3). Taken by P1's first clause:
   the first batch verify under P2 crashed on it, the heartbeat still 240s on

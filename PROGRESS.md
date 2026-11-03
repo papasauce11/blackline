@@ -20898,3 +20898,95 @@ patch, a probe measures where a builder would have guessed, builders sharing a
 scratchpad name their files after the job - and a batch verify's crash is
 attributed by measuring the one check alone, not by guessing at the job.
 
+
+## K6 — difficulty at range: what parts medium from hard is a beat, not a cone (2026-11-03 17:00, scheduled run)
+
+**The job was queued to find a separation and F17 had already proved where it
+could not come from.** At 8m the Shade's box subtends **2.43 degrees either
+way**, wider than medium's 2.5-degree cone and hard's 1.2, so both presets put
+every round on the body; `damageNear` is 25 against 100 health, so a kill is
+**four rounds**, which at 600rpm is 0.3s; and both presets sat on that floor.
+`reactionDelay` could not help either, because it gates the *detection* fill and
+is therefore spent before the kill clock starts — the detect column was already
+ordered 3.60 / 4.97 / 7.35s. Under `?seed=20261018` the yard read **medium
+0.49s and hard 0.49s, 32 of 32 rounds each**, which is the red H99 recorded and
+K6 inherited. So the separation had to be **additive and outside accuracy**.
+
+**What shipped is one number per preset.** `ai.difficulty.*.aimSettle`: seconds
+the Warden spends bringing the gun onto a body it has just decided to shoot,
+set in `_enter(ENGAGE)` and spent in `_fireBurst` before the burst-pause branch,
+so it is **once per sighting and not per burst**. `ads` is raised above it
+deliberately — the gun is coming up during the beat, which is the thing being
+timed. **easy 0.42, medium 0.16, hard 0.0**, and the zero is the half worth
+arguing with: hard has to read as a machine at 8m (D33 said so), so the beat is
+spent by the easier presets and hard's clock does not move at all. The
+measurements say it did not: **0.49s under `seed=20261018` before the job and
+0.49s after, to the hundredth**. D80 carries the reasoning, the cost, and the
+alternative that was not taken (a per-preset aim *point*, hard taking the head
+where `headshotMultiplier` 2.0 makes a kill two rounds instead of four — the
+nicer direction, since it makes hard quicker rather than the others slower, but
+at 16m the head is a fraction of hard's own cone wide and the preset could come
+out *slower* there, breaking the monotonicity this job exists to establish).
+
+**The check gained a margin clause, because strictly-sooner was never the
+property that mattered.** `each-difficulty-is-quicker-to-see-you-and-quicker-to-
+kill-you` already required each harder preset to kill sooner; it now also
+requires it to kill sooner **by at least `SEPARATION_FRACTION` (0.6) of the
+`aimSettle` gap config claims** — 0.156s for easy-to-medium, 0.096s for
+medium-to-hard. The floor is derived from config and not from an observation,
+which is the point: a tie passes a strict `<` by a single step's worth of noise,
+and that is exactly what 0.49 against 0.49 was. Four tenths of the gap is left
+to the 1/60 fixed step, to the hit-location variance in a four-round kill over
+eight paired seeds, and to a burst pause a kill may cross. **It is a floor and
+never a ceiling**, and the constant's comment says so, because every pair parts
+further than config claims once the cone is added on top.
+
+**Proved, each `--runs 1` on both maps.** Unseeded, over the new clause, every
+check of all four touched modules and the twenty-four-id census set: plant **37
+passed / 0 failed**, yard **35 / 0 / 2 not for this map**, exit 0, red [], flaky
+[], 0 console errors, 0 context losses. 8m read easy 1.54 / medium 0.75 / hard
+0.35s on the plant and 1.29 / 0.57 / 0.39 on the yard; 16m 8.58 / 2.04 / 0.91
+and 3.70 / 1.76 / 0.99. **Under `?seed=20261018`, the seed that held H99's red:
+5 passed / 0 failed on both maps, exit 0** — the yard's 8m now reads easy 1.07 /
+medium 0.66 / **hard 0.49**, the tie opened by 0.17s with hard's own figure
+unmoved. Under `?seed=20260927`, the URL seed that produces F17's
+`1637054825`: 3 / 0 on both maps, exit 0, `the-widest-cone-kills-at-range` and
+`the-url-seed-reaches-every-exploratory-check` included.
+
+**Broken where the clause is load-bearing, which is not everywhere.** The break
+is one edit — `_enter`'s `this._aimSettle = this.difficulty.aimSettle` to
+`= 0`, so config still claims the gap and nothing delivers it — and it has to
+be run under `seed=20261018`, because under the pinned seeds the **cone alone**
+already parts medium and hard on the plant by 0.13s and the new floor of 0.096s
+is slack there. Under 20261018 the yard went red on exactly its own clause:
+*"at 8m hard kills 0.000s sooner than medium, under the 0.096s its aimSettle gap
+of 0.16s buys"*, alongside the original strict clause reproducing H99 verbatim
+(*"at 8m hard kills in 0.49s, not sooner than medium's 0.49s"*) and the
+easy-to-medium pair at 0.146s against its 0.156s floor. The plant passed the
+same break, which is the finding: **the margin clause earns its keep precisely
+where the cone delivers nothing, and that is the case it was written for.** The
+tree was restored from the copies and all four files compared byte-identical
+before anything else.
+
+**A red was found under a seed nothing had ever run, and it is the base's.**
+`?seed=1637054825` turned `the-warden-fires-in-bursts-of-rounds-at-the-torso`
+red on the plant: *"a pause of 0.18s between bursts, config says 0.25-0.7"*.
+F17's `1637054825` is a *value* `exploreSeed` hands back under `?seed=20260927`,
+not a URL seed, so running it as one is a seed the suite had never seen. It is
+**not K6's**: the window drives the *hardest* preset, whose `aimSettle` is 0.0
+and whose firing this diff therefore cannot touch, and the red reproduces
+identically on a **fully reverted pre-job tree** — same detail, same map, same
+seed. The mechanism is the classifier, not the cadence: the check calls any
+shot-to-shot gap over `rate + dt * 1.5` a burst boundary and records
+`gap - rate` as the pause, so **a burst interrupted for eleven frames is
+indistinguishable from a pause shorter than config allows**. Queued as the
+hygiene job **H103**. Attributing it cost one run on a clean tree and is the
+reason it is not written down as K6's.
+
+**Left.** D54 is available again: F17 built the per-round aim draw, measured it
+as better at unchanged accuracy and reverted it *only* because it tipped medium
+and hard into a dead heat at 8m. That heat is no longer the cone's to cause, so
+the revert can be revisited — **K8**. And the published 8m kill table in
+`config.js` is the pre-`aimSettle` one; it is left as published with a sentence
+saying so rather than restated, because the honest replacement is a range over
+seeds and not three numbers.
