@@ -176,6 +176,471 @@ picked — `invert Y` under *look* rather than beside the sensitivities is the
 one I went back and forth on — and whether two columns reads as tidy or as
 wide. Both are one line in `SETTINGS_GROUPS` and `menucss.js`.
 
+### A setting stored out of range is pulled back to the nearest end, and the rest is kept (H21, 2026-10-19)
+
+**Nothing you can do in the menu changed. A hand-edited setting can no longer
+break the camera.**
+
+Both mouse sensitivities, both fields of view and master volume each have a
+range — the one their slider already draws (sensitivity 0.0004 to 0.008, field
+of view 60 to 100, volume 0 to 1). If the stored record holds a number outside
+it, the game now loads the **nearer end** and keeps every other setting
+exactly as it was, instead of loading a broken value or throwing the record
+away. A value that is not a finite number is ignored, as a wrong type always
+was.
+
+**To see it:** play for a second so the game has written its settings, then
+run this in the browser's console:
+
+```js
+const r = JSON.parse(localStorage['blackline.settings.v1']);
+r.values.fovShade = 500;
+r.values.masterVolume = 9;
+localStorage['blackline.settings.v1'] = JSON.stringify(r);
+```
+
+Reload. Settings should show the Shade's field of view at 100 and volume at
+its maximum, and everything else — difficulty, match length, the briefing —
+where you had left it.
+
+`bounded-settings-load-clamped-and-keep-the-rest` holds it: every bounded key
+is a setting with two ends in order and a default between them, then a record
+with all five past their ends loads each at its nearer end, keeps the eleven
+other settings (two moved off their defaults so a reset could not pass for
+keeping them) and reports five clamped.
+
+**What is left for you:** nothing to judge. Clamping instead of resetting was
+the job's own call — one bad value costs that value, not the record — so say
+so if you would rather a bad record started you from the defaults.
+
+### The controls page is in four groups, and it fits a 720p window (H20, 2026-10-19)
+
+**Nothing you can do changed. Seventeen rows got four headings and two
+columns.** Settings → **Controls** is now **move** (forward, back, left,
+right, jump, crouch, sprint), **fight** (fire, aim down sights, reload,
+interact, melee), **gadgets** (the four slots) and **system** (pause), two
+groups abreast on a 900px card. Every row, every rebind and the keyboard ring
+work as before: the arrow keys walk the rows in the order they always did and
+pass over the headings.
+
+**It had outgrown a small window and nothing was measuring it.** The flat list
+is **911px** tall at 1280x720, so the bottom rows were under the fold on a
+laptop; grouped and two abreast the card is **642px**, measured in the suite
+and in the pane, with no scroll. (H22 brought it to 627px when the settings
+page shared its stylesheet rule.)
+
+`every-main-menu-row-is-reachable-and-actionable-from-the-keyboard` gained two
+clauses: every action is under exactly one heading, in the map's order — an
+action added without a heading is red rather than a row the page silently
+drops — and every page in its `FITS` list is no taller than 720px, with the
+height in the line it prints.
+
+**What is left for you:** open Controls in a window about 720px tall and see
+whether everything is visible without scrolling and whether these are the
+groups you would have drawn. `interact` sits under fight because plant and
+defuse are the round's own verbs; it is one line in `BINDING_GROUPS` to move.
+
+### Every round is recorded, and a recording plays back to the same end (H13, 2026-10-19)
+
+**New for you: replays. Pause → Save replay writes the round so far as a small
+file; drop a file on the page, or open `?replay=<path>`, and the game plays it
+back.**
+
+- **Record one.** Play a minute of either map, press Esc and pick **Save
+  replay**. The browser saves `blackline-<map>-seed<seed>-r<round>.json` and
+  the pause page says *saved … drop it on the page to watch it*.
+- **Watch it.** Drag that file onto the game window. The round plays itself —
+  the same map (a replay of the other map reloads the page onto it first and
+  then plays), the same seed, your keys and your look direction as you gave
+  them. Move the mouse while it plays: nothing should move, the playback owns
+  the aim.
+- **The two that ship.** `?replay=tests/replays/plant.json` and
+  `?replay=tests/replays/yard.json`, 960 steps each against the live Warden.
+  The hosted build serves the repository, so the same paths should work there.
+
+**What to look for:** the game stops where the recording ended and the pause
+page comes up; with the console open you will see `[REPLAY] playing …` at the
+start and `[REPLAY] ended at its recorded end state` at the end. A line saying
+it **differs from its recording** is a finding — send the file. There is no
+on-screen banner and no scrub bar; that was out of the job's scope, and
+whether you want one is yours to say.
+
+**One honest limit:** the death camera's guard runs on the wall clock (spec
+Section 8.3), so a round in which the Shade dies can end differently when
+watched live than in the suite. The two shipped recordings do not hit it; a
+recording of your own death that differs at the very end is that limit and not
+necessarily a bug.
+
+`every-shipped-replay-replays-to-its-recorded-end` proves three things,
+because a matching end alone can prove nothing: both bodies, the health, the
+Warden's state, the score and the random-number count end where the recording
+did; the playback's own journal equals the file's events; and **the same file
+with its first key press taken out ends somewhere else**, so the end is about
+the input. It runs on both maps after the rest of the suite in the same page,
+which is the determinism question asked the hard way. Re-recording a replay on
+purpose is a command in `HANDOFF.md`'s index entry for H13 and has to be said
+in the job that does it — a replay re-recorded whenever it goes red asserts
+nothing.
+
+### A key you rebind is still rebound after a reload (H19, 2026-10-19)
+
+**This closes the gap the rebinding entry below (H8) said was open.** Settings
+→ Controls, click a row, press a key, reload: the row shows the key you chose
+and the game uses it. A row's own **reset** puts that action's shipped keys
+back, and that is kept too. It is a second record, `blackline.bindings.v1`,
+beside the settings one (H7) — so the settings page's *reset to defaults* does
+**not** touch it; each row's own reset is how a rebind is undone.
+
+**To see it:** rebind jump to `J`, reload, and climb a ledge with `J`; Space
+should no longer jump. Then reset that row and reload again — Space is back.
+
+A record from another build is read with the settings rule: an action this
+build does not have, or codes that are not a list of names, loses **that row**
+and keeps the rest. To try it, after a rebind run this in the console:
+
+```js
+const r = JSON.parse(localStorage['blackline.bindings.v1']);
+r.bindings.teleport = ['KeyZ'];
+r.bindings.crouch = 5;
+localStorage['blackline.bindings.v1'] = JSON.stringify(r);
+```
+
+Reload: your rebind stays, crouch is at its default, and the Controls page
+reads normally.
+
+`a-rebind-survives-a-reload-and-a-dead-action-drops-alone` does exactly that
+and drives a climb on the rebound key through the input layer. One thing it
+cost: the two H8 checks rebind through the page, so once a rebind is saved
+they would have written **your** store and put back only the live map — an F4
+run in the pane would have left your next reload with jump on `J`. Both now
+put back the live map **and** the stored record in their `finally`.
+
+**What is left for you:** nothing new to judge. If you run the F4 suite in a
+tab you also play in and find a key rebound afterwards, that is a bug in the
+restore, and worth a line.
+
+### npm run notes writes release notes from the progress log (H16, 2026-10-19)
+
+**New for you, at the terminal: `npm run notes` rebuilds `RELEASES.md` whole
+from git.** A release is the span between two tags, and its notes are the
+`PROGRESS.md` entries that span added — every `## ` heading the later end has
+and the earlier lacks, each with its first sentence (a phase entry's status
+line and sub-headings are skipped for the first paragraph that says something;
+a sentence over 300 characters is cut at a word). The top section is
+everything since the last tag, which is what your next merge ships.
+
+Both ends are read from **commits, never the working tree**, so an entry is a
+release note once it is committed and not before, and the file you committed
+is always one commit behind the moment it was written; rerunning it is the
+remedy. It says not to edit it by hand. First run: **177 unreleased entries
+since `phase-04`** (2026-07-27) and a section for each of the four tags before
+it, 215 lines.
+
+**What is left for you:** run it before you tag and read the top section as a
+friend would. It lists every progress entry with its first sentence,
+test-suite jobs among the game ones, so tell me whether it is the release note
+you would send or whether you want it cut to the player-facing jobs only. Tag
+when you merge and the next run's top section starts from that tag.
+
+### The pause menu restarts the round, restarts the match, changes map and quits — and asks first (H15, 2026-10-19)
+
+**New for you, on the pause page (Esc mid-round): Restart round, Restart match
+and Change map,** beside Resume, Settings, Copy report, Save replay and Main
+menu.
+
+- **Restart round** is the same round number and score on **the seed the match
+  was opened with**, so a restarted round is the round it was — the Warden
+  patrols the same order — and the briefing comes up again, as it does on
+  every route into a round.
+- **Restart match** is round 1, nil–nil, with the briefing.
+- **Change map** ends the match and takes you to the main menu with the ring
+  on another map's card; Enter there switches (a map change reloads the page,
+  as it always has). It is not a second map picker — the cards are the way to
+  pick a map (D55), and H18 would remove a second one.
+- **Each of those and Main menu asks first while a round is live** — *Restart
+  the round?*, *Restart the match?*, *Leave for another map?*, *Quit to the
+  main menu?* — and the first row of the question is **No**, so the Enter that
+  opened it, or a stray one, loses nothing; Esc from it resumes. In free roam,
+  or on a round that is already decided, there is nothing to lose and they go
+  straight through.
+
+**What to look for:** that the question is asked exactly when you would lose
+something and never when you would not (try free roam, and the end-of-round
+screen); that a restarted round is the round you were in; and whether the
+order of the buttons on the pause page is the order you reach for them in.
+
+`the-pause-menu-restarts-changes-map-and-quits-and-asks-first-mid-round`
+drives every button for real: round 2 at 1–0 refused once with No, then
+restarted to round 2 at 1–0 with its clock at zero; restart match is round 1
+at nil–nil with the briefing up; change map puts the ring on the other map's
+card from either map; quit is the main page unpaused; free roam restarts
+without asking.
+
+### If the game throws, it stops and says so instead of freezing on a still frame (H14, 2026-10-19)
+
+**New for you: a Something broke page. You should never see it; if you do, it
+is the most useful thing a friend can send you.**
+
+Before, a throw inside a frame killed the loop *after* it had already asked
+for the next frame, so the same error went to the console sixty times a second
+over a picture that never moved again. Now the loop stops, the match pauses
+and the page names **the error, where it came from (frame, window or promise)
+and the seed**, with three buttons: *Copy report* (the H12 report, which now
+carries `crashes: N` and a line per crash), *Try to continue* (the loop
+restarts and you land on the pause page, from which Resume and Main menu are
+yours) and *Reload the page*. A second throw while the page is up is counted
+in the report, not a second halt.
+
+**To see it without breaking anything:** with a match running, open the
+console and run:
+
+```js
+window.dispatchEvent(new ErrorEvent('error', { error: new Error('a test crash') }));
+```
+
+The page should come up over the match naming that error, with *window* as
+where it came from and the seed beside it. Press Try to continue and you
+should be on the pause page with the game still runnable.
+
+**What to look for:** that the page is readable, that *Copy report* in it
+fills the box, and that *Try to continue* gets you back to a game that still
+moves. The boot's own *failed to start* panel in `index.html` still owns a
+throw that happens before the game exists; this page takes over once there is
+a game to stop.
+
+`a-throw-inside-a-step-stops-the-match-and-the-crash-page-says-so` throws for
+real — the Shade's step is replaced by one that throws and a frame is run
+through the loop's guard — and drives the other two routes with real events.
+It logs as a console *warning*, deliberately, so the gate's console-error
+count is not a count of this check's own probes.
+
+### The pause menu can copy a bug report for you to paste into a message (H12, 2026-10-19)
+
+**New for you: Pause (Esc) → Copy report.** One block of plain text appears in
+a box under the buttons and is also put on the clipboard if the browser lets
+the page — it does on the hosted https page and on localhost, and does not on
+a plain-http address, which is why the text is shown as well. The line above
+the box says which: *copied — paste it into a message*, or *select the text
+below and copy it*.
+
+It holds: the build (commit and date — the footer's stamp from H3), the URL,
+the map, **the seed** (`?map=` and `?seed=` on that URL replay the match: the
+same patrol order, the same shots), the match mode, role and round, the
+assertion failures, the crashes (H14), the browser, your current settings,
+**the last 30 seconds of keys** (`+KeyW` is W going down, `-KeyW` coming up,
+each with its simulation second) and **the last 20 console lines**, each cut
+at 200 characters. It is short — 855 characters and 13 lines on a fresh plant
+in the check — and carries no account or personal data beyond the URL, your
+browser's own name and your settings.
+
+**What to look for:** paste one into a message to yourself and read it as a
+stranger who has never seen the game. Can you tell the build, the map, the
+seed and what they were pressing? Is there something you would ask a friend
+for first that is not in it? H3's note asked whether the build stamp should
+also be on the pause overlay; the report carries it either way.
+
+`copy-report-on-the-pause-menu-says-the-build-the-match-and-the-last-thirty-seconds`
+presses the button and reads exactly the box a player copying by hand would.
+The console tap that fills the log is switched off under automation (a wrapper
+is the top frame of every line it passes on, and the gate's own console list
+would name it for all of them); in your DevTools the wrapper shows as the
+source of a line — add `bugreport.js` to DevTools' ignore list and the real
+caller comes back.
+
+### The audio-device check has a pass mark for how long the sound card can go unfed in one stretch (H92, 2026-10-19)
+
+**Nothing in the game changed.** The test that watches the sound card used to
+print how long the card had gone unfed as a reading, with no pass mark on it.
+Now **one stretch of more than 60 seconds** with the card unfed is red.
+
+Why 60: the worst healthy stretch on record is **2.2 seconds** (the line is 27
+times above it), and every fault we simulate — a card that died, one that
+stopped halfway, a one-buffer card — runs **252 to 815 seconds** (4 to 14
+times over the line). And it cannot invent a red: a stretch is bounded by two
+readings of one monotonic clock, so a blind spot can only make it shorter,
+never longer. It is a floor on the truth, not a guess at it.
+
+It is checked both ways every run — 59 seconds stays green, a healthy run with
+its worst stretch raised to 61 goes red — and moving the line to 900 turns all
+five fault rows red by name. D74's refusal of a pass mark on the *fed* pair
+stands; this is a different quantity. The test report's vocabulary for a timed
+reading gained a fifth word, *span*, for an interval that brackets no draw and
+is a lower bound by construction.
+
+**Nothing is left for you on this one.**
+
+### The sound-card test's rulebook moved into its own file (H93, 2026-10-19)
+
+**Nothing in the game changed.** `audiodevice.js` was at 597 of the 600-line
+guideline and the next job (H92) had to add to it. The readers and constants
+that say what the sound card's numbers *mean* — the window and sample floors,
+the line between concentrated and spread out, the case tables — moved verbatim
+into `deviceclock.js` (271 lines, importing nothing, registering nothing); the
+original is **346** now. Every argument moved with its number.
+
+The three readers answer identically — their case tables run inside the device
+check every suite, and it is green on both maps — and the count of files
+within 50 lines of the ceiling went from **eleven to ten**. Taken ahead of H92
+on purpose, so the new floor landed beside the readers rather than past 600.
+
+**Nothing is left for you on this one.**
+
+### A line in the test report that was being cut off now has to fit, or it is red (H91, 2026-10-19)
+
+**Nothing in the game changed.** The suite's report keeps 400 characters of
+each check's detail line and cuts the rest without an ellipsis. The census of
+which bodies' poses are held was **461** characters even after its list of
+names was taken out of it, so its last readings — the Warden's chest and the 8
+m hood — were past the cut again, as they had been before H60 first found it.
+
+The fix is that **a census's list of names is a second field**: it goes uncut
+into the file the jobs read their numbers from, and the detail line is left
+for the measurements. The seven censuses carry a flag, and the runner makes
+one red if it passes with a line over 400 — the pose census is **385** now,
+and two others sit close under the budget, so the next sentence added to
+either is red instead of silently cut.
+
+**Nothing is left for you on this one.**
+
+### Four tests that try every move on a map now agree on what a refused move means (H90, 2026-10-19)
+
+**Nothing in the game changed.** Four tests drive the Shade through each of
+her moves on each map. H59 set one rule for a move the map genuinely cannot do
+— it is declared, or it is red — and two of the four still answered it their
+own way, in the safe direction: a move declared as impossible would have
+stayed red anyway.
+
+That could not be seen while the declaration lists are empty, so the job was
+the break as much as the change. With `vault` declared on the plant: struck,
+**all four red**; refused, **none**; refused and undeclared, **all four red**;
+declaration taken out again, all four green. The proof also found a second
+instance — a state nobody reached was being called stale, when unreached and
+closed are different things.
+
+**Nothing is left for you on this one.**
+
+### The pixel floors are also checked with the Warden in the pose the pinned seed never photographs (H89, 2026-10-19)
+
+**Nothing in the game changed.** Since H81 every photograph of the settled
+scene opens one patrol circuit, which made twelve checks a better instrument
+and a blind one: the minority poses (17 in 400 circuits on the plant, 37 on
+the yard) stopped being looked at at all.
+
+`the-pixel-floors-hold-at-a-settle-pose-the-pinned-seed-never-photographs`
+takes the largest non-dominant pose from the census every run — never a seed
+written down — and re-runs the post's bloom, the key light's wall and the
+yard's pools at it: **seed 36 on the plant** (the Warden 0.37 m off its
+spawn), **seed 4 on the yard** (on its spawn, facing 130 degrees the other
+way). Every floor held, with the **same readings** as at the dominant pose, so
+those floors are about the Shade and the scene and not about where the Warden
+stands. On its first run it found a check in its list that quiesces nothing
+and so could not be moved — it came out of the list instead of reporting a
+pass.
+
+**Nothing is left for you on this one.**
+
+### Every place the tests take an absolute value was counted, and one hid a left turn from a right turn (H88, 2026-10-19)
+
+**Nothing in the game changed.** H81 lost a job to a test that grouped by an
+absolute turn, so this counted every place the test code does it: **213**
+absolute values in `src/tests/` — 181 plain bounds, 13 helpers whose callers
+are bounds, 19 read one by one. Two of the nineteen compare two magnitudes
+inside one case on purpose and say why.
+
+**One** compared across cases on an absolute value: the settle census held two
+seeds that drew the same first patrol node to one settle by the size of their
+turn, so a Warden that turned 1.13 radians left and one that turned 1.13 right
+agreed. That turn is signed now, and
+`a-reading-grouped-or-compared-across-cases-keeps-its-sign` holds the two
+places that group or compare across cases by name — putting the absolute value
+back turns it red, naming the line.
+
+**Nothing is left for you on this one.**
+
+### Each place the tests count the game's dice now says what the dice feed (H87, 2026-10-19)
+
+**Nothing in the game changed.** The census of who draws from the simulation's
+shared random stream compared bare method names per file, so the ragdoll's
+three *unit* spins were three identical rows, and a reorder or a fourth spin
+was a change it could not see.
+
+Each of the **23** declared draws now names what it feeds — `_pauseTimer`,
+`recoilYaw`, `slot.vx` and so on, read off its own line — and
+`the-simulations-stream-is-drawn-from-only-by-a-decision` compares them as
+pairs and says which draw is extra or missing by name. Adding a fourth spin to
+the effects reds it as *draws unit->spinW that this census does not declare*.
+
+**Nothing is left for you on this one.**
+
+### A budget on how often a test may spend the game's dice beside a live Warden (H86, 2026-10-19)
+
+**Nothing in the game changed.** H77 counted what every check draws from the
+simulation's stream under a live Warden and left the reading without a rule.
+Measured over a full run of each map: ordinary checks draw **1 to 9** values
+(the worst ever seen is 10), and the five gunfight checks draw **71 to
+19,513** — because for them the draw is the subject.
+
+So a check that draws more than **25** under a live Warden without saying why
+is red. The count is the runner's, written after the check's own result, so a
+check cannot clear itself; the five gunfight checks carry their reason where
+they are registered. The line is 2.5 times above the ordinary trickle and 2.8
+times under the lightest declared check.
+
+**Nothing is left for you on this one.**
+
+### A test was printing a negative number of route segments, and the number belonged to another route (H85, 2026-10-18)
+
+**Nothing in the game changed.**
+`the-last-leg-to-every-legal-plant-is-planned-and-short` drove a route, then
+reset the match to write its report line — and the Warden that reset plans its
+own patrol route from the clock. The line subtracted one route's index from
+the *other* route's length, which is how a green check came to print *tails in
+-1 segments*.
+
+The route is copied the moment it is built and the tail counted by the loop
+that walks it, so the count cannot go negative by construction. Read twice a
+map: **3 segments of 6 points on the plant, 3 of 9 on the yard**, the same
+both runs — so the sampled route needs no seed, it never moved.
+
+**Nothing is left for you on this one.**
+
+### The overnight build's prompt now knows what to do when the machine is busy (H49, 2026-10-18)
+
+**Nothing in the game changed, and nothing in the repository: the file is the
+scheduled task's own prompt, which lives outside it.** The suite runner exits
+0 when it is clean, 1 when a check is red, 2 when it crashed and 3 when
+another runner is still alive. The prompt had one sentence for all of them.
+
+It is now a four-line table. **1** is the only code that writes a broken-base
+note. **2** is read first: a browser-launch message earns one re-gate before
+any verdict (H80 showed it is Chrome failing to come up, not the base) and a
+page crash is recorded at once. **3** means the base is fine and the machine
+is busy: the run finds the stray suite's process, confirms it really is the
+suite, ends it and gates again — and never passes the flag that lets a gate
+run beside another runner.
+
+**What is left for you:** nothing to try. No check can hold a file outside the
+repo, so the done-when was the prompt's text read back. If you ever find a
+morning that recorded a broken base after a code 3, the prompt has drifted.
+
+### The weekly audit says how old the last real-GPU benchmark is (H37, 2026-10-18)
+
+**Nothing in the game changed. The weekly audit's report gained a line.** It
+gives the date of the newest `bench/<date>.json` (the file is named in UTC, so
+the audit puts a local time beside it), the commit it was taken at, the GPU,
+how many readings it holds, **how many commits ago** that was, and whether any
+check that only the bench can run has no reading. It recommends `npm run
+bench` when the file is over 7 days or 30 commits old or a check is missing —
+never red, and never a job (D69).
+
+Dry run against this repo: **2026-10-09**, a GTX 1060, 12 readings, **91
+commits behind**, nothing missing — so the first audit to run it recommends a
+bench on the commit count alone.
+
+**What is left for you:** that recommendation is yours to act on. `npm run
+bench` takes about two minutes on this PC's GPU, the window is placed off the
+desktop, and it refuses to run while a suite is running.
+
 ### A test that was one step from failing on a coin flip now counts from a known place (H84, 2026-10-18)
 
 **Nothing in the game changed. Two tests changed how they measure the walk.**

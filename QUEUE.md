@@ -736,6 +736,144 @@ one setting only Josh can click; everything else here proceeds.
   four constants and two case tables verbatim; `audiodevice.js` 597 -> 346;
   ceiling cluster 11 -> 10. Taken before H92 so the floor lands in the new
   module.
+- [x] **H12 (S)** A bug report, on the pause menu — done 2026-10-18, under Done. `src/bugreport.js`, `src/ui/menupause.js`, `copy-report-on-the-pause-menu-says-the-build-the-match-and-the-last-thirty-seconds`.
+- [x] **H13 (M)** Replays: every round journaled, played back to the same end — done 2026-10-18, under Done. `src/replay.js`, `tests/replays/` (`plant.json`, `yard.json`, `index.json`, `record.js`), `every-shipped-replay-replays-to-its-recorded-end`.
+- [x] **H14 (S)** A crash guard, and the page a crash puts up — done 2026-10-18, under Done. `src/crashguard.js`, `FrameLoop.run`, the crash page in `ui/menupause.js`, `a-throw-inside-a-step-stops-the-match-and-the-crash-page-says-so`.
+- [x] **H15 (S)** The pause menu restarts, changes map and quits, asking first mid-round — done 2026-10-18, under Done. `ui/menupause.js` (`_ask`, `_renderConfirm`), `panels.js` (`midRound`, `onRestartRound`, `onRestartMatch`), `the-pause-menu-restarts-changes-map-and-quits-and-asks-first-mid-round`.
+- [x] **H16 (S)** `npm run notes`: release notes from PROGRESS.md, between the tags — done 2026-10-18, under Done. `scripts/notes.mjs`, `RELEASES.md`, a `FLAGS` row in `tests/args.js`.
+- [ ] **H17 (S)** The plant's card shows a slab, because the plant is a
+  sealed shell and every exterior eye gives one (H5, D55). If Josh asks for
+  its inside: hide the roof for the thumbnail render only. There is no
+  generic "the roof" rule — a height cut deletes half the yard's containers —
+  so it wants a per-map hint on the registry entry (`thumbHide: ['roof']`, a
+  tag prefix) rather than a clever derivation. *done-when:* the plant's card
+  is measurably more than the roof (a lit-pixel floor raised, and a check that
+  the yard's card is unchanged by the same code path).
+  **blocked: D55** — only worth doing if he wants it.
+- [ ] **H18 (S)** The map row under the cards does the same job the cards do
+  (H5). Make it a plain label, or drop it. It is kept today because
+  `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one` drives it
+  and `BLACKLINE_SPEC.md` names that check by id, so this job rewrites the
+  check to drive the cards instead — same assertions plus per-map
+  reachability, which is strictly stronger, and the id stays. *done-when:*
+  the check drives a named card rather than a cycle and the menu has one way
+  to pick a map. **blocked: D55.**
+- [x] **H19 (S)** A rebind survives a reload — done 2026-10-18, under Done. `src/bindingstore.js`, `Input.setBinding`, `a-rebind-survives-a-reload-and-a-dead-action-drops-alone`.
+- [x] **H20 (S)** The controls page in four groups, and it fits 720p — done 2026-10-18, under Done. `BINDING_GROUPS` in `config.js`, `_renderControls`, `CONFIG.menu.fitHeight`, two clauses in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
+- [x] **H21 (S)** A stored number outside its bounds is clamped, and the rest kept — done 2026-10-18, under Done. `CONFIG.settings.bounds`, `volumeMin`/`volumeMax`, `loadSettings` clamping, `bounded-settings-load-clamped-and-keep-the-rest`.
+- [x] **H22 (S)** The settings page in four groups, and it fits 720p — done 2026-10-19, under Done. `SETTINGS_GROUPS` in `config.js`, `ROWS` and the groups in `_renderSettings`, `.groups`/`.group` shared with the controls page in `menucss.js`, four clauses and `FITS` gaining `settings` in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
+
+- [x] **H95 (S)** The sentence said code and the clause had read the wording — done 2026-10-19, under Done. `AS_CODE` and `AS_WORDING` in `tests/sourcetext.js`, the five sites in `benchlist.js` (twice), `grabslide.js`, `timedrenders.js` and `requestbuffer.js`, and clause 3 of `only-sourcetext-owns-the-two-source-readers-and-no-name-claims-the-wrong-one`.
+
+- [x] **H96 (S, really an M)** The tree of modules that ran, fetched once — done 2026-10-19, under Done. `tests/moduletexts.js` (new), fifteen modules converted, `requestbuffer.js`'s table from seven readers at ten sites to three at three, and clause 5 of `the-resource-timing-buffer-has-room-for-every-request-the-page-makes`.
+
+- [x] **H99 (S)** *Folded into K6 by P1 (2026-11-03) - K6's done-when carries it.* A fresh seed ties medium and hard at 8m on the yard, and the
+  tie is red. The 2026-10-18 audit's widened fresh-seed run (`--subset
+  "fuzz|soak|stall|stuck|leaks-nothing|random-real-input|never-climbs|difficulty|seed"
+  --query "seed=20261018"`) turned
+  `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` red on the
+  **yard**: *"at 8m hard kills in 0.49s, not sooner than medium's 0.49s"* -
+  medium 4.97s/0.49s **32/32**, hard 3.60s/0.49s **32/32**; every other row
+  ordered (8m easy 7.35s/0.64s 27/38; 16m easy 13.63s/3.39s, medium
+  9.27s/1.74s, hard 6.73s/0.85s). The plant passed under the same seed, the
+  `fuzz|soak` pair the audit is asked for passed 4/4, and the 10-11 audit's
+  seed passed this subset 24/24. One run, so not established as
+  deterministic for the seed. **F17 named this exact shape and left it**: at
+  8m the body subtends ±2.43 degrees, wider than medium's 2.5-degree cone
+  and hard's 1.2, so once both land every round they saturate at the gun's
+  rate-of-fire floor and no aim model separates them - F17 measured the
+  per-round draw producing 0.39s/0.39s and rejected it for that reason, and
+  wrote the separation at 8m down as **K6's** (difficulty at range). What is
+  new is that the per-burst draw, under this seed, reaches the same tie:
+  `tests/difficulty.js:335` asserts `harder.kill < easier.kill` strictly,
+  and the detect column (3.60s against 4.97s) already orders the two. Not
+  fixed by the audit.
+  *done-when:* the same command with `seed=20261018` is green on both maps
+  without a kill time being compared less strictly than today, by one of:
+  the kill clause at a range where both presets read a full-hits tie at the
+  rate-of-fire floor is a reading and the detect clause is the verdict there
+  (argued in the check's header, with F17's geometry, and the floor itself
+  named from config rather than observed); or K6 gives the two presets a
+  separation at 8m that is not the aim cone. Either way the entry says which
+  seeds (20261018 and F17's 1637054825) it was run under, and
+  `the-widest-cone-kills-at-range-and-not-once-in-a-while` is unchanged.
+
+### Hygiene - taken by rule P1 only
+
+P1 (2026-11-03, the PM): game-facing blocks go first. A job whose done-when
+changes only `src/tests/`, `scripts/` or the record files is hygiene, and is
+taken only when the pinned gate is red and it is the fix, when a game-facing
+job names it as a prerequisite, or to fill a run's tail (one S per run, when
+the next game-facing job would not finish). A new hygiene finding is queued at
+the end of this list, never ahead of a game-facing job.
+
+- [ ] **H98 (S)** A device event in a page's first run reds its second run too,
+  and nothing says which run it was in. H70's first verify went red on
+  `the-audio-device-keeps-its-clock-and-journals-the-states-it-enters` [plant]
+  with *"238263ms after the unlock: the device context suspended itself after
+  the unlock resumed it"* - **the same sentence, to the millisecond, in both
+  plant runs**, because the page is loaded once a map and the journal spans
+  both runs of it (F16's rule for anything cumulative; H67 measured the same
+  thing in the request count). The console error beside it is attributed
+  properly - *"[plant run 1, 309s in]"* - so the runner knows which run it
+  happened in and the journal does not say.
+  What that costs: a **transient** device event and a device that is genuinely
+  gone read identically, `flaky` cannot see the difference (both runs answer
+  the same, which is what flaky means by stable), and the reader of a red run
+  cannot tell whether the second run cleared. D73 decided a suspended device is
+  red and that is not in question here; what is missing is **which run**.
+  The journal already carries wall-clock marks, and `suitereport.mjs` already
+  stamps a console error with its run - so the fix is to say it: the state
+  transitions in the detail line name the run each landed in, and the last
+  clause says whether anything happened in **this** run as against earlier in
+  the page's life.
+  *done-when:* the journal's detail names the run of the page each transition
+  landed in, a clause holds that it does (the shape H65's own check has), and
+  the entry says in one line why a per-run verdict is still D73's and not this
+  job's.
+
+- [ ] **H97 (S)** And the *line-local* comment test has three copies of its
+  own. `codeOnly(line)` is the one place that decides whether a line is a
+  comment - that is its first statement, and `tests/sourcetext.js` argues the
+  decision at length - and three censuses that need a **line number** rather
+  than a whole stripped file wrote the test again instead:
+  `benchlist.js:233`, `donedef.js:311` and `pixelfloors.js:153`, all three
+  `/^\s*(\/\/|\/\*|\*)/.test(line)`. H68 found them while collapsing the two
+  whole-file readers and left them, because they are not either reader and its
+  clause is about the readers.
+  **They are not even the same test.** `codeOnly` guards on `[\t ]*` and these
+  three on `\s*`; per line the difference is nothing, which is exactly why
+  three copies of a four-character divergence can sit in a suite whose whole
+  subject is that two readers are not interchangeable.
+  `codeOnly(line) === ''` already answers it, and an `isCommentLine(line)`
+  beside it would say so at the call site - the question each of the three is
+  asking in words.
+  *done-when:* one module decides whether a line is a comment, the three ask
+  it, every clause answers as it did (`benchlist.js`'s id census,
+  `donedef.js`'s prose-or-code split and `pixelfloors.js`'s floor census all
+  quote readings in `PROGRESS.md`), and `readernames.js` grows a clause that
+  holds the line-local test the way it holds the whole-file ones.
+
+- [ ] **H100 (S)** The per-site comments name frame counts that span the
+  reset. H82 corrected the census's header and found the same shape one level
+  down: `visual.js`'s death-camera site carries *"H74: fifteen frames are
+  driven below and the Warden is reset where this check wants it"*, and fifteen
+  is the count of frames driven in the whole span - **ten of them before the
+  Warden is moved at all**. The number that says anything about the mark is the
+  six after it (five `stepFrames` plus the one fixed step inside the warm
+  `renderFrame`), which is the column H78 measured 0.13542695m in. Each of the
+  fourteen stepping sites got a one-line comment from H74 and several name a
+  count the same way, so the question is how many of those counts are about the
+  gap between the body being placed and the picture being taken and how many
+  are about the whole span. **Count first** (H71, H74, H77): the census before
+  any clause, and the cheap instrument is H82's own - the span reader run off
+  disk against `codeOf`, which answers in 40ms.
+  *done-when:* every stepping site's comment names the frames driven **after**
+  the body it reads was last placed, or says that nothing places one; the count
+  per site is in `PROGRESS.md`; and a clause or the census's header says that
+  the two counts are different questions, so the next comment cannot quote the
+  wrong one.
+
 - [~] **H94 (S)** The journal is marked on frames and the gap is between
   bursts. H66 measured the blind spot: the widest interval between two marks
   is **1.00 of everything the plant loses and 1.16 of everything the yard
@@ -779,135 +917,9 @@ one setting only Josh can click; everything else here proceeds.
   step is to say where: the journal keeps the `atMs` its widest gap opened at,
   the runner's beat names the check in flight then, and the device check
   prints both - then the seam is the one that reading names.
-- [x] **H12 (S)** A bug report, on the pause menu — done 2026-10-18, under Done. `src/bugreport.js`, `src/ui/menupause.js`, `copy-report-on-the-pause-menu-says-the-build-the-match-and-the-last-thirty-seconds`.
-- [x] **H13 (M)** Replays: every round journaled, played back to the same end — done 2026-10-18, under Done. `src/replay.js`, `tests/replays/` (`plant.json`, `yard.json`, `index.json`, `record.js`), `every-shipped-replay-replays-to-its-recorded-end`.
-- [x] **H14 (S)** A crash guard, and the page a crash puts up — done 2026-10-18, under Done. `src/crashguard.js`, `FrameLoop.run`, the crash page in `ui/menupause.js`, `a-throw-inside-a-step-stops-the-match-and-the-crash-page-says-so`.
-- [x] **H15 (S)** The pause menu restarts, changes map and quits, asking first mid-round — done 2026-10-18, under Done. `ui/menupause.js` (`_ask`, `_renderConfirm`), `panels.js` (`midRound`, `onRestartRound`, `onRestartMatch`), `the-pause-menu-restarts-changes-map-and-quits-and-asks-first-mid-round`.
-- [x] **H16 (S)** `npm run notes`: release notes from PROGRESS.md, between the tags — done 2026-10-18, under Done. `scripts/notes.mjs`, `RELEASES.md`, a `FLAGS` row in `tests/args.js`.
-- [ ] **H17 (S)** The plant's card shows a slab, because the plant is a
-  sealed shell and every exterior eye gives one (H5, D55). If Josh asks for
-  its inside: hide the roof for the thumbnail render only. There is no
-  generic "the roof" rule — a height cut deletes half the yard's containers —
-  so it wants a per-map hint on the registry entry (`thumbHide: ['roof']`, a
-  tag prefix) rather than a clever derivation. *done-when:* the plant's card
-  is measurably more than the roof (a lit-pixel floor raised, and a check that
-  the yard's card is unchanged by the same code path).
-  **blocked: D55** — only worth doing if he wants it.
-- [ ] **H18 (S)** The map row under the cards does the same job the cards do
-  (H5). Make it a plain label, or drop it. It is kept today because
-  `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one` drives it
-  and `BLACKLINE_SPEC.md` names that check by id, so this job rewrites the
-  check to drive the cards instead — same assertions plus per-map
-  reachability, which is strictly stronger, and the id stays. *done-when:*
-  the check drives a named card rather than a cycle and the menu has one way
-  to pick a map. **blocked: D55.**
-- [x] **H19 (S)** A rebind survives a reload — done 2026-10-18, under Done. `src/bindingstore.js`, `Input.setBinding`, `a-rebind-survives-a-reload-and-a-dead-action-drops-alone`.
-- [x] **H20 (S)** The controls page in four groups, and it fits 720p — done 2026-10-18, under Done. `BINDING_GROUPS` in `config.js`, `_renderControls`, `CONFIG.menu.fitHeight`, two clauses in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
-- [x] **H21 (S)** A stored number outside its bounds is clamped, and the rest kept — done 2026-10-18, under Done. `CONFIG.settings.bounds`, `volumeMin`/`volumeMax`, `loadSettings` clamping, `bounded-settings-load-clamped-and-keep-the-rest`.
-- [x] **H22 (S)** The settings page in four groups, and it fits 720p — done 2026-10-19, under Done. `SETTINGS_GROUPS` in `config.js`, `ROWS` and the groups in `_renderSettings`, `.groups`/`.group` shared with the controls page in `menucss.js`, four clauses and `FITS` gaining `settings` in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
 
-- [x] **H95 (S)** The sentence said code and the clause had read the wording — done 2026-10-19, under Done. `AS_CODE` and `AS_WORDING` in `tests/sourcetext.js`, the five sites in `benchlist.js` (twice), `grabslide.js`, `timedrenders.js` and `requestbuffer.js`, and clause 3 of `only-sourcetext-owns-the-two-source-readers-and-no-name-claims-the-wrong-one`.
 
-- [x] **H96 (S, really an M)** The tree of modules that ran, fetched once — done 2026-10-19, under Done. `tests/moduletexts.js` (new), fifteen modules converted, `requestbuffer.js`'s table from seven readers at ten sites to three at three, and clause 5 of `the-resource-timing-buffer-has-room-for-every-request-the-page-makes`.
-
-- [ ] **H97 (S)** And the *line-local* comment test has three copies of its
-  own. `codeOnly(line)` is the one place that decides whether a line is a
-  comment - that is its first statement, and `tests/sourcetext.js` argues the
-  decision at length - and three censuses that need a **line number** rather
-  than a whole stripped file wrote the test again instead:
-  `benchlist.js:233`, `donedef.js:311` and `pixelfloors.js:153`, all three
-  `/^\s*(\/\/|\/\*|\*)/.test(line)`. H68 found them while collapsing the two
-  whole-file readers and left them, because they are not either reader and its
-  clause is about the readers.
-  **They are not even the same test.** `codeOnly` guards on `[\t ]*` and these
-  three on `\s*`; per line the difference is nothing, which is exactly why
-  three copies of a four-character divergence can sit in a suite whose whole
-  subject is that two readers are not interchangeable.
-  `codeOnly(line) === ''` already answers it, and an `isCommentLine(line)`
-  beside it would say so at the call site - the question each of the three is
-  asking in words.
-  *done-when:* one module decides whether a line is a comment, the three ask
-  it, every clause answers as it did (`benchlist.js`'s id census,
-  `donedef.js`'s prose-or-code split and `pixelfloors.js`'s floor census all
-  quote readings in `PROGRESS.md`), and `readernames.js` grows a clause that
-  holds the line-local test the way it holds the whole-file ones.
-
-- [ ] **H98 (S)** A device event in a page's first run reds its second run too,
-  and nothing says which run it was in. H70's first verify went red on
-  `the-audio-device-keeps-its-clock-and-journals-the-states-it-enters` [plant]
-  with *"238263ms after the unlock: the device context suspended itself after
-  the unlock resumed it"* - **the same sentence, to the millisecond, in both
-  plant runs**, because the page is loaded once a map and the journal spans
-  both runs of it (F16's rule for anything cumulative; H67 measured the same
-  thing in the request count). The console error beside it is attributed
-  properly - *"[plant run 1, 309s in]"* - so the runner knows which run it
-  happened in and the journal does not say.
-  What that costs: a **transient** device event and a device that is genuinely
-  gone read identically, `flaky` cannot see the difference (both runs answer
-  the same, which is what flaky means by stable), and the reader of a red run
-  cannot tell whether the second run cleared. D73 decided a suspended device is
-  red and that is not in question here; what is missing is **which run**.
-  The journal already carries wall-clock marks, and `suitereport.mjs` already
-  stamps a console error with its run - so the fix is to say it: the state
-  transitions in the detail line name the run each landed in, and the last
-  clause says whether anything happened in **this** run as against earlier in
-  the page's life.
-  *done-when:* the journal's detail names the run of the page each transition
-  landed in, a clause holds that it does (the shape H65's own check has), and
-  the entry says in one line why a per-run verdict is still D73's and not this
-  job's.
-
-- [ ] **H99 (S)** A fresh seed ties medium and hard at 8m on the yard, and the
-  tie is red. The 2026-10-18 audit's widened fresh-seed run (`--subset
-  "fuzz|soak|stall|stuck|leaks-nothing|random-real-input|never-climbs|difficulty|seed"
-  --query "seed=20261018"`) turned
-  `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` red on the
-  **yard**: *"at 8m hard kills in 0.49s, not sooner than medium's 0.49s"* -
-  medium 4.97s/0.49s **32/32**, hard 3.60s/0.49s **32/32**; every other row
-  ordered (8m easy 7.35s/0.64s 27/38; 16m easy 13.63s/3.39s, medium
-  9.27s/1.74s, hard 6.73s/0.85s). The plant passed under the same seed, the
-  `fuzz|soak` pair the audit is asked for passed 4/4, and the 10-11 audit's
-  seed passed this subset 24/24. One run, so not established as
-  deterministic for the seed. **F17 named this exact shape and left it**: at
-  8m the body subtends ±2.43 degrees, wider than medium's 2.5-degree cone
-  and hard's 1.2, so once both land every round they saturate at the gun's
-  rate-of-fire floor and no aim model separates them - F17 measured the
-  per-round draw producing 0.39s/0.39s and rejected it for that reason, and
-  wrote the separation at 8m down as **K6's** (difficulty at range). What is
-  new is that the per-burst draw, under this seed, reaches the same tie:
-  `tests/difficulty.js:335` asserts `harder.kill < easier.kill` strictly,
-  and the detect column (3.60s against 4.97s) already orders the two. Not
-  fixed by the audit.
-  *done-when:* the same command with `seed=20261018` is green on both maps
-  without a kill time being compared less strictly than today, by one of:
-  the kill clause at a range where both presets read a full-hits tie at the
-  rate-of-fire floor is a reading and the detect clause is the verdict there
-  (argued in the check's header, with F17's geometry, and the floor itself
-  named from config rather than observed); or K6 gives the two presets a
-  separation at 8m that is not the aim cone. Either way the entry says which
-  seeds (20261018 and F17's 1637054825) it was run under, and
-  `the-widest-cone-kills-at-range-and-not-once-in-a-while` is unchanged.
-
-- [ ] **H100 (S)** The per-site comments name frame counts that span the
-  reset. H82 corrected the census's header and found the same shape one level
-  down: `visual.js`'s death-camera site carries *"H74: fifteen frames are
-  driven below and the Warden is reset where this check wants it"*, and fifteen
-  is the count of frames driven in the whole span - **ten of them before the
-  Warden is moved at all**. The number that says anything about the mark is the
-  six after it (five `stepFrames` plus the one fixed step inside the warm
-  `renderFrame`), which is the column H78 measured 0.13542695m in. Each of the
-  fourteen stepping sites got a one-line comment from H74 and several name a
-  count the same way, so the question is how many of those counts are about the
-  gap between the body being placed and the picture being taken and how many
-  are about the whole span. **Count first** (H71, H74, H77): the census before
-  any clause, and the cheap instrument is H82's own - the span reader run off
-  disk against `codeOf`, which answers in 40ms.
-  *done-when:* every stepping site's comment names the frames driven **after**
-  the body it reads was last placed, or says that nothing places one; the count
-  per site is in `PROGRESS.md`; and a clause or the census's header says that
-  the two counts are different questions, so the next comment cannot quote the
-  wrong one.
-- [ ] **H101 (S)** Ten jobs are missing from the two files a reader orients
+- [~] **H101 (S)** Ten jobs are missing from the two files a reader orients
   from. Batch 3 of Josh's twenty (H12-H16, H19-H21) and H37, H49, H85-H93 were
   written up in `PROGRESS.md` and marked in this file, and **neither
   `PLAYTEST.md` nor `HANDOFF.md`'s Block H index got a line for any of them** -
@@ -926,11 +938,24 @@ one setting only Josh can click; everything else here proceeds.
   *done-when:* every job with a `PROGRESS.md` entry has a line in the Block H
   index and a `PLAYTEST.md` entry if it is a Block C, D, E or H job, `HANDOFF.md`
   is still 400 lines, and a check or a script says so the next time they part.
-
+  **Partial, 2026-11-03 (P1 had the lead take it in-session):** the prose is
+  done - `PLAYTEST.md` gained an entry for each of the 19 jobs the census
+  named (H12-H16, H19-H21, H37, H49, H85-H93; seven a player can try, twelve
+  saying nothing in the game changed) and `HANDOFF.md`'s Block H index nine
+  lines covering the 18 it lacked, at 399 of 400. **Left, as hygiene:** the
+  census script and the check that reds when `PROGRESS.md`'s `## H` headings,
+  the index and `PLAYTEST.md` part - and before it can be green, the gaps the
+  scribe's throwaway census still finds: no index lead for H1, H2, H9, H23,
+  H24, H25, H28, H29, H32, H34, H40, H46, H47, H51, H52, H55, H57, H62, H63,
+  H64, H94 (H25, H55 and H64 appear nowhere in HANDOFF.md), and no PLAYTEST
+  heading for H1, H2, H34, H38, H39, H45, H51, H53, H55, H58, H77, H94.
 
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
+Order by P1 (2026-11-03): K1 first (the largest change to what a friend meets,
+spec settled), K6 second (it owns H99's standing fresh-seed red), then K2, K3,
+K4, K5, K7.
 
 - [ ] **K1 (M)** Search like a person. From the last-known position, a
   sweep of the room's hiding spots ranked by distance and cover — behind
@@ -938,6 +963,26 @@ A third-sized pass (D50). The rule to protect: the Warden stays grounded.
   cannot reach and fires on a Shade it sees there. *done-when:* a check
   hides the Shade behind a crate and on a top; the Warden checks both
   within a bounded time; the AI soak unchanged.
+- [ ] **K6 (M)** Difficulty at range. Aim error grows with distance and the
+  target's speed and shrinks with time on target, so medium and hard part
+  at 8m (D33 found hard a machine there). **Read F17's PROGRESS entry
+  first**: medium and hard are 0.02s apart at 8m on the yard and 0.16s on
+  the plant, both within a frame or two of the gun's own floor of four
+  rounds at 600rpm, so *no aim model separates them there* — at 8m the body
+  is wider than either cone and both presets already hit with everything
+  they fire. Whatever parts them up close has to be something other than
+  accuracy. F17 also measured, built and reverted the **per-round aim
+  draw** (D54): it removes the time-to-kill's tail at unchanged accuracy and
+  is probably right, but it is what tips medium and hard into a dead heat at
+  8m, so it becomes available again the moment this job separates them.
+  *done-when:* time-to-kill per distance per preset is monotonic and
+  separated in the existing checks. P1 (2026-11-03) folds H99 in: green under
+  `--query seed=20261018` and F17's `1637054825` on both maps,
+  `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` compared no
+  less strictly; if no non-cone separation is found in the session, H99's
+  fallback (the kill clause a reading at the rate-of-fire floor, the floor
+  named from config, the detect clause the verdict there, argued in the header)
+  is the last resort and is recorded as such.
 - [ ] **K2 (M)** Hearing with memory. Noise raises an attention level per
   room that decays; a heard noise sends it to the room, not the point;
   metal footsteps louder (I2). *done-when:* attention curves in a check;
@@ -954,20 +999,6 @@ A third-sized pass (D50). The rule to protect: the Warden stays grounded.
 - [ ] **K5 (S)** Giving up. A search timer by difficulty; back to patrol
   with a bark (N2); faster to re-alert the second time. *done-when:* a check
   times both.
-- [ ] **K6 (M)** Difficulty at range. Aim error grows with distance and the
-  target's speed and shrinks with time on target, so medium and hard part
-  at 8m (D33 found hard a machine there). **Read F17's PROGRESS entry
-  first**: medium and hard are 0.02s apart at 8m on the yard and 0.16s on
-  the plant, both within a frame or two of the gun's own floor of four
-  rounds at 600rpm, so *no aim model separates them there* — at 8m the body
-  is wider than either cone and both presets already hit with everything
-  they fire. Whatever parts them up close has to be something other than
-  accuracy. F17 also measured, built and reverted the **per-round aim
-  draw** (D54): it removes the time-to-kill's tail at unchanged accuracy and
-  is probably right, but it is what tips medium and hard into a dead heat at
-  8m, so it becomes available again the moment this job separates them.
-  *done-when:* time-to-kill per distance per preset is monotonic and
-  separated in the existing checks.
 - [ ] **K7 (S)** Patrol variety. Route order and pauses from the seed; a
   site room checked when the round clock is low. *done-when:* two seeds
   give two orders in a check; determinism check unchanged.
