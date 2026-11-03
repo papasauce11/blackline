@@ -2463,6 +2463,30 @@ batch protocol landed 20 jobs on 2026-10-18/19 across three verifies, all
 exit 0, 0 red, 0 flaky, 0 console errors, and the subsets missed nothing a
 verify then caught.
 
+### P3 — The check waits off its own clock; the watchdog and the torch stay (2026-11-03)
+
+The first batch verify under P2 crashed (exit 2): the heartbeat stood still
+240s on the yard in `frame-budget-under-the-check-29-load`. The red belongs
+to the base, not to K3: measured alone on the yard with the torch off, the
+check already sat at 206,786ms of the 240s `--stall`, because
+`gpuTimer().read()` polls `getQueryParameter`, which blocks on this renderer
+until the queue drains - the in-check wait D48 moved into `drainPipeline`. The
+torch's fifth more rendering is what any rendering addition would add, and
+Block M adds more. **The fix (H102):** the check reads its GPU timer only when
+the page asked for a timed verdict (`?timedVerdict=1`, the bench's - the gate's
+GPU ms has been *reported* since D71 and read "unavailable or disjoint" at
+HEAD), and declares a new runner flag, `drainAfter`, under which the suite
+drains the pipeline right after it on its own beating clock - because the next
+check to sync on the yard is K3's own `readPixels`, which would otherwise wait
+for the ~234s tail inside itself with the heartbeat still. `glSync` keeps its
+meaning (F11 measured a drain after every check at +236s). **Refused:** raising
+`--stall` (it hides a check standing at its watchdog's edge, which D48 argued
+against in writing), the torch out of the load scene, and reverting K3 - a
+proven game-facing job's light off the gate or the live site to fix a
+stopwatch. K3 stays live. H102 is hygiene taken by P1's first clause (the
+pinned gate is red and this is its fix), done in the session before the 17:09
+routine; if it were not proven by 15:30, `--stall` 360 was the named stopgap.
+
 ## Blocking — waiting on Josh
 
 ### D77 — Should a module that has been split once carry a tighter ceiling than 600?

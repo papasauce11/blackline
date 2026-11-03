@@ -807,6 +807,18 @@ job names it as a prerequisite, or to fill a run's tail (one S per run, when
 the next game-facing job would not finish). A new hygiene finding is queued at
 the end of this list, never ahead of a game-facing job.
 
+- [ ] **H102 (S)** The check-29 load waits on the renderer inside itself, and
+  it is the one check that does. Taken by P1's first clause on 2026-11-03 (the
+  first batch verify under P2 crashed on it, exit 2) and decided by P3:
+  `frame-budget-under-the-check-29-load` reads its GPU timer only under
+  `?timedVerdict=1`, and a new runner flag `drainAfter` drains the pipeline
+  right after it on the suite's beating clock. *done-when:* the check passes
+  alone on the yard under the default `--stall 240` with its own ms near 20s and
+  the wait on the run line; `pipelinewait.js` holds `drainAfter` (a drained-after
+  check is followed by a beat through the pipeline wait) and pins the check to
+  the flag; a full two-run verify is green as the batch verify of K3, K1 and
+  H102, and HANDOFF.md's `UNVERIFIED BATCH` heading comes off with it.
+
 - [ ] **H98 (S)** A device event in a page's first run reds its second run too,
   and nothing says which run it was in. H70's first verify went red on
   `the-audio-device-keeps-its-clock-and-journals-the-states-it-enters` [plant]
