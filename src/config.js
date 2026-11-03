@@ -1076,6 +1076,61 @@ export const CONFIG = {
     engageLoseSightTime: 2.5,
     searchDuration: 15,
     searchWaypointCount: 3,
+    /**
+     * K1: SEARCH sweeps the places a person would look, not the nearest nodes.
+     * From the last-known position it walks the `searchSpotCount` best hiding
+     * spots within `searchSpotRadius` - ranked by distance, less
+     * `searchHiddenBonus` metres for a spot that position cannot see, which is
+     * what cover is - and looks up at the `searchLookUpCount` nearest
+     * climbable tops within `searchLookUpRadius` that it cannot climb to.
+     * Read by systems/aisearch.js; tests/aisearch.js reads a few to place its scenes.
+     */
+    searchSpotCount: 4,
+    /** A spot farther than this from the last-known position is not searched. */
+    searchSpotRadius: 25,
+    /** Metres knocked off a spot's distance when the last-known position cannot see it. */
+    searchHiddenBonus: 6,
+    /** Only this many times `searchSpotCount` of the nearest spots are asked whether they are hidden: each ask is a ray. */
+    searchRankPool: 6,
+    /** A box this far above its floor hides a crouching Shade behind it (a crate to a container). */
+    searchCoverMinHeight: 0.9,
+    searchCoverMaxHeight: 3.2,
+    /** The longest side of a box worth walking round, and of a top worth aiming at its centre: longer is a wall or a deck. */
+    searchMaxSide: 8,
+    /** How far off its floor a box's base may be and still be standing on it, not hung in the air (a vent lip). */
+    searchCoverLift: 0.3,
+    /** Metres between the Shade's body and the face she hides behind. */
+    searchSpotMargin: 0.35,
+    /** Two spots closer than this are one: a flight of stair treads is one place to hide, not twenty. */
+    searchSpotSpacing: 1.5,
+    /** The most hiding spots a map keeps. */
+    searchSpotCap: 400,
+    /** Geometry overhead within this of the floor makes shelter (under a gantry, a walkway), and the floor beneath it is a spot. */
+    searchOverheadMax: 3.5,
+    /** Ground cells between samples of the under-an-overhang grid (6 cells of 0.5m is a spot every 3m). */
+    searchOverheadStride: 6,
+    /** A sweep point this close, flat, is reached; the gaze starts there. */
+    searchArriveRadius: 1.5,
+    /** Seconds the gaze rests on a hiding spot once it is on it, or longer while the Shade is in view. */
+    searchSpotHold: 1.0,
+    /** A top must stand this far above the ground beside it to be looked up at: lower is in plain view. */
+    searchLookUpMinRise: 1.6,
+    /** How far from the last-known position a top is looked up at, and how far from the top the Warden will go to see it. */
+    searchLookUpRadius: 12,
+    /** The most tops looked up at in one search. */
+    searchLookUpCount: 2,
+    /** Seconds the gaze rests on a top once it is on it, or longer while the Shade is in view. */
+    searchLookUpHold: 1.2,
+    /** Radians off its target, in yaw and pitch, at which the gaze counts as on it. */
+    searchAlign: 0.15,
+    /** One ground cell in this many near a top is tried for a line up to it, once per top (each try is a ray). */
+    searchVantageStride: 6,
+    /** A vantage on another floor counts this many metres of walking per metre of height: a deck is a staircase away. */
+    searchFloorWeight: 4,
+    /** Metres below the perch a vantage must also have a line to, so it is not a place a step short of loses the top. */
+    searchVantageMargin: 0.3,
+    /** Walking the last of the way to a vantage, the check is spent this close to it with no line to the top. */
+    searchApproachDone: 0.25,
     /** Throw a frag if the Shade is static for 2s (Section 11, ENGAGE). */
     fragStaticTime: 2,
     /** Effective firing range the AI closes to before shooting. */

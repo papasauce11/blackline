@@ -16,9 +16,10 @@
  * controller. If the AI can do something the player cannot, it is because the
  * intent has a field for it.
  *
- * Three files (F3): this one is the state machine; `aiperception.js` is the
- * senses; `ainav.js` is the route, the steering and the stuck detector. They
- * are methods of the one class, installed on its prototype at the bottom.
+ * Four files (F3, K1): this one is the state machine; `aiperception.js` is the
+ * senses; `ainav.js` is the route, the steering and the stuck detector;
+ * `aisearch.js` is SEARCH, where it looks. They are methods of the one class,
+ * installed on its prototype at the bottom.
  */
 
 import { CONFIG, SETTINGS, rng } from '../config.js';
@@ -27,6 +28,7 @@ import { A, AI_STATE, angleDelta, defuseSnapFor } from './aistate.js';
 import { withinDefuseReach } from './plantrule.js';
 import { PERCEPTION } from './aiperception.js';
 import { NAVIGATION } from './ainav.js';
+import { SEARCH, searchIndexFor } from './aisearch.js';
 
 export { AI_STATE } from './aistate.js';
 
@@ -75,6 +77,9 @@ export class WardenAI {
     this._burstRemaining = 0;
     this._burstPause = 0;
     this._searchSpots = [];
+    /** The search check (aisearch.js) the gaze is resting on, or null. */
+    this.lookingAt = null;
+    this._searchHold = 0;
     this._stunGrenades = A.searchStunGrenades;
     this._alarmProbeTimer = 0;
     this._repathTimer = 0;
@@ -83,6 +88,9 @@ export class WardenAI {
     /** Where DEFEND stands to work on the charge: a cell the reach accepts. */
     this._defendStand = null;
     this._defuseSnap = defuseSnapFor(map);
+    // Where it can be hiding is read off the map once, here, behind the menu,
+    // and not on the step a fight is lost.
+    searchIndexFor(map);
     this._feet = { x: 0, y: 0, z: 0 };
     this._aimYaw = 0;
     this._aimPitch = 0;
@@ -160,6 +168,8 @@ export class WardenAI {
     this._burstRemaining = 0;
     this._burstPause = 0;
     this._searchSpots.length = 0;
+    this.lookingAt = null;
+    this._searchHold = 0;
     this._stunGrenades = A.searchStunGrenades;
     this._alarmProbeTimer = 0;
     this._repathTimer = 0;
@@ -244,8 +254,9 @@ export class WardenAI {
     return intent;
   }
 
-  // Perception is aiperception.js and navigation ainav.js; both are installed
-  // on the prototype below, so `this` is the same AI throughout.
+  // Perception is aiperception.js, navigation ainav.js and SEARCH aisearch.js;
+  // all three are installed on the prototype below, so `this` is the same AI
+  // throughout.
 
   // -------------------------------------------------------------------------
   // States
@@ -257,6 +268,7 @@ export class WardenAI {
     this.state = state;
     this._stateTimer = 0;
     this._scanPhase = 0;
+    this.lookingAt = null;
     if (state === AI_STATE.ENGAGE) {
       this._drawAimError();
       this._shadeAnchor.x = Infinity;
@@ -432,38 +444,7 @@ export class WardenAI {
     this._aimPitch = rng.unit() * cone;
   }
 
-  /** SEARCH: sweep the nearest waypoints to the last known position. */
-  _enterSearch() {
-    this._enter(AI_STATE.SEARCH);
-    this._searchSpots = this._nearestWaypoints(this.lastKnown || this.warden.position, A.searchWaypointCount);
-    if (this._searchSpots.length) this._pathTo(this._searchSpots[0].position);
-
-    // One stun grenade into a likely hiding spot (Section 11). Phase 9 throws.
-    if (this._stunGrenades > 0 && this.lastKnown) {
-      this._stunGrenades -= 1;
-      if (this.emitter) this.emitter.emit('ai:throw', { type: 'stunGrenade', at: { ...this.lastKnown } });
-    }
-  }
-
-  _stepSearch(dt) {
-    if (this._stateTimer >= A.searchDuration) {
-      this._enter(AI_STATE.PATROL);
-      this._pathTo(this.map.waypoints[this._circuit[this._circuitIndex]].position);
-      return;
-    }
-    // Section 9.2's camera, hung on any wall it passes while sweeping. Tried
-    // as it walks rather than only where it stops: waypoints sit in open
-    // space by design, so a Warden standing on one is usually nowhere near a
-    // wall, and a camera it can never place is a camera it does not have.
-    this._maybePlaceAlarm(dt);
-
-    if (this._followRoute(dt, false)) {
-      this._scan(dt);
-      this._searchSpots.shift();
-      if (this._searchSpots.length) this._pathTo(this._searchSpots[0].position);
-      else this._enter(AI_STATE.PATROL);
-    }
-  }
+  // SEARCH is aisearch.js: where the Warden looks, and how long it looks there.
 
   /** DEFEND: go to the charge and hold it. Fed by Phase 10. */
   _stepDefend(dt) {
@@ -541,7 +522,7 @@ export class WardenAI {
   // -------------------------------------------------------------------------
 }
 
-Object.assign(WardenAI.prototype, PERCEPTION, NAVIGATION);
+Object.assign(WardenAI.prototype, PERCEPTION, NAVIGATION, SEARCH);
 
 export function createWardenAI(options) {
   return new WardenAI(options);

@@ -118,6 +118,7 @@ import { register as registerDetailDrift } from './detaildrift.js';
 import { register as registerTimedRenders } from './timedrenders.js';
 import { register as registerAudioDevice } from './audiodevice.js';
 import { register as registerTorch } from './torch.js';
+import { register as registerAiSearch } from './aisearch.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -314,4 +315,8 @@ export function registerAutoTests(debugTools) {
   // and grabs but runs no frame through the audio, so it puts no mark in the
   // journal that read has closed (H65).
   registerTorch(debugTools);
+  // K1: the Warden's SEARCH, behind cover and up at a top. After the journal
+  // above on purpose: it steps the simulation and draws no frame, so it feeds
+  // that journal nothing, and it ends in a fresh match like the AI checks.
+  registerAiSearch(debugTools);
 }
