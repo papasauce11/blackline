@@ -133,11 +133,16 @@ appended to `PROGRESS.md` and mirrored to the top of `HANDOFF.md`:
 - Drift: files over 600 lines, `TODO`/`FIXME` counts, `Math.random` and
   `setTimeout` in `src/`.
 - A fresh-seed run of the fuzz and soak checks, since the builder always runs
-  the same seeds.
+  the same seeds - a red filed by P1, against the game-facing job that owns it
+  or at the end of the hygiene list.
+- Whether the org kept its rules (since 2026-11-03): each PM call stayed off
+  Josh's ground; each hygiene job was taken by P1's rule; every job commit is
+  covered by a later green verify (P2); how many of the fourteen scheduled
+  runs landed anything. Suite runs go through the Haiku runner.
 - One recommendation, if any, for what Josh should look at.
 
-If the builder has been stopping on a broken base for more than two runs, the
-audit says so loudly at the top.
+If the builder has been stopping on a broken base for more than two runs, or
+an `UNVERIFIED BATCH` has survived a run, the audit says so loudly at the top.
 
 ---
 
