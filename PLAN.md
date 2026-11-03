@@ -169,6 +169,44 @@ the second block allows, and the census work continues alongside.
 
 ---
 
+## Who decides, and who builds (2026-11-03)
+
+Josh, 2026-11-03: *"I'm going to be the project sponsor, so I make the most
+game design affecting or crucial decisions, but I want Fable to make the next
+high priority decisions. Opus should be making all the rest of the decisions
+as needed and doing a lot of the work, but still using Sonnet for things that
+don't require much thought process and are just implementing or writing code.
+And then you can even use Haiku in very specific ways."* Four tiers, each with
+an agent definition under `.claude/agents/`:
+
+| Who | Model | Decides | Does |
+|---|---|---|---|
+| **Josh** | - | everything in the section below: what a player sees, feels or can do | answers Blocking questions in `DECISIONS.md` |
+| **PM** (`blackline-pm`) | Fable | the next-highest calls: queue and block order, verify policy, which of two viable designs, split / park / abandon a job, whether a red is the job's or the base's | reads and decides; never edits, commits or runs the suite |
+| **Lead** | Opus (the routine, or the session) | every other decision; records the PM's | orients, picks, designs each job and writes its brief, reviews every diff, runs the proofs, records, commits, pushes |
+| **Builder** (`blackline-builder`) | Sonnet | nothing a player sees | implements one briefed job - the code and its check - and proves it parses |
+| **Runner** (`blackline-runner`) | Haiku | nothing | runs one suite command, waits, reports the summary and every red verbatim |
+
+**When the PM is called, and only then.** (a) A high-priority decision the
+protocol does not settle and that is not Josh's; (b) a problem the lead has
+tried twice and failed - a red nobody can attribute, a check that will not
+settle, a design that keeps collapsing. Never for a routine pick, a spec, a
+review or code. The lead records each call in `DECISIONS.md` under **PM
+calls** as `P<n>`, dated, and acts on it; a PM call that turns out to be
+Josh's is redrafted as a Blocking question instead.
+
+**What the lead keeps.** The design of every job and the brief that carries
+it, the review of every diff before it is committed, and every proof: a
+builder's word that a check passes is never a proof, the suite's is. One
+suite runs on this machine at a time (the runner refuses a second, exit 3),
+so builders never run it; the lead schedules the runner.
+
+**How the work flows.** Builders can work in parallel on jobs whose files do
+not overlap, each in its own git worktree; the lead merges each into the
+branch in order, then the runner proves it (the job's subset on both maps and
+the break-and-restore), then the lead records and commits it. While the runner
+waits on the suite, the lead writes the next brief.
+
 ## What is Josh's, and only Josh's
 
 Anything that changes what the player sees, feels, or can do. Concretely, the
