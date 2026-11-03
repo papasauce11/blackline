@@ -1150,7 +1150,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   `ai.js` (548 to 529) into `src/systems/aisearch.js` as a prototype mixin
   beside perception and navigation. The Warden found a Shade behind cover in
   6.0s on the plant and 4.5s on the yard, and on a top from its foot in 2.5s
-  and 6.9s. Built by a Sonnet builder from the lead's brief — 2026-11-03,
+  and 6.9s. Built by a Sonnet builder from the lead's brief — `3fdeb25`, 2026-11-03,
   Josh's session.
 - **K3** The torch, on the night map. A rifle-mounted `SpotLight` (`castShadow` false
   - spec 4.1's one shadowed light stands) and a visible cone, one additive
@@ -1165,7 +1165,7 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
   alignment clause caught it at exactly 1.000m and 45 degrees; fixed, and the
   floors set from a probe's measurement (+8.8 luma with the torch, +8.2 the
   cone alone, floors 4). Built by a Sonnet builder from the lead's brief, the
-  fix sent back to it with the red verbatim — 2026-11-03, Josh's session.
+  fix sent back to it with the red verbatim — `4f6057d`, `ada637e`, 2026-11-03, Josh's session.
 - **H96** The tree of modules that ran, fetched once. `tests/moduletexts.js`
   (157 lines, new) reads the Resource Timing buffer for the modules under
   `src/` that ran and fetches each at most once a page, handing back the body

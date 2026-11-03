@@ -20869,3 +20869,32 @@ commented out; red on the plant with "a drainAfter check was followed by no
 drain: the beats between it and the next check were [running, ran]", and the
 file was put back from a copy.
 
+## Batch K verified — K3, K1 and H102 (2026-11-03)
+
+The second batch verify of the day, after H102 took the check-29 load's wait
+off its own clock (P3): **four runs at `3e13b86`, exit 0** - plant **251 / 1 /
+10** both runs (1,144,688ms and 1,138,275ms), yard **233 / 1 / 28** both runs
+(877,300ms and 883,685ms), spreads 1% and 1%, 0 red, 0 flaky, 0 console errors,
+no other runner, ceiling 11 within 50 of 600 of 214 modules. Two checks more on
+the plant than batch 3 (K1's, and K3's "built on the night map and nowhere
+else") and four more on the yard (K1's and K3's three); the plant's
+not-for-this-map count rose by the two yard-only torch checks. Every new check
+read the same on both runs as in its own subset: the search times to the tenth
+of a second, the torch's +8.8 / +8.2 luma and its 25-step catch, both replays
+at their recorded ends. The check-29 load passed under the default watchdog on
+all four runs, its GPU timer not read at the gate. The one failure a map is
+the bench-only sweep (H11). HANDOFF.md's `UNVERIFIED BATCH` heading comes off
+with this record.
+
+**The org's first day, in numbers.** One PM call in the morning (P1 and P2, 6.6
+minutes) and one in the afternoon (P3, 5.3 minutes); two Sonnet builders in
+parallel worktrees (K3 in 29 minutes and a 10-minute fix round, K1 in 79
+minutes), one Sonnet scribe (the P1 reorder and H101's prose) and one Sonnet
+builder in the main tree (H102, 7 minutes); nine Haiku runner calls, each a
+summary of a few hundred words in place of a 3,000-line report. What the day
+learned is in the builder role and the routine's prompt: a worktree can be cut
+from stale `main`, a worktree-isolated builder sends a post-merge fix as a
+patch, a probe measures where a builder would have guessed, builders sharing a
+scratchpad name their files after the job - and a batch verify's crash is
+attributed by measuring the one check alone, not by guessing at the job.
+
