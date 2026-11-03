@@ -12,6 +12,15 @@ break that should turn that check red. Build exactly that. If the brief is
 wrong or impossible as written, **stop and say so** with what you found - do
 not invent a design, and never change what a player can do beyond the brief.
 
+## First, the base
+
+If you are in a git worktree, check it is on the work branch's history before
+anything else: `git merge-base --is-ancestor HEAD phases-14-45` must succeed
+and `git log -1` must be the branch's tip. A worktree can be cut from `main`,
+which is hundreds of commits stale; if yours was, `git merge --ff-only
+phases-14-45` (the one git write you may make besides your job's commit). If
+it will not fast-forward, stop and report.
+
 ## Rules that override everything
 
 - Never weaken, delete, skip or loosen an existing check. Never edit

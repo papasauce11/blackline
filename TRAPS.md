@@ -127,9 +127,18 @@ written - and `breathcensus.js` and `timedrenders.js` test the **raw** text,
 comments included (H53). H52 ran its new check as a subset, twice, on both
 maps, and paid **seventy minutes** of verify to learn that three comments
 naming `updateVisual` had enrolled it in the breath census. The cheap version
-is two minutes: `npm run suite -- --runs 1 --map plant --subset
-"every-check-that-poses-a-body|every-check-that-draws-a-body|every-check-that-reads-a-world-position|every-check-that-times-a-draw|the-registry-holds-every-check|no-source-file-outside-config-is-over-600-lines|no-source-file-calls-math-random|the-regression-set-resolves-to-real-checks|every-runner-reads-one-command-line"`,
-then the same on the yard. This is H46's lesson (*"run the check the moved
+is a few minutes, and since P2 (2026-11-03) it is part of every job's proof:
+**the census set** - every check that decides membership by reading the tree
+or the record files, widened from the nine this paragraph first named to the
+twenty-four that exist after H67, H68, H83, H87, H88, H91, H95 and H96 added
+source-reading censuses. Run it on both maps,
+`npm run suite -- --runs 1 --map plant --map yard --subset "<the census set>"`:
+
+```
+every-runner-reads-one-command-line|one-module-owns-the-audio-device|the-bench-only-list|every-check-that-poses-a-body|every-check-that-draws-a-body|every-check-that-reads-a-world-position|every-check-that-times-a-draw|every-check-that-resets-an-actor|every-pixel-floor-under-tests|a-check-that-drives-the-world-after-a-quiesce|only-sourcetext-owns|the-registry-holds-every-check|the-simulations-stream-is-drawn|the-settle-is-a-function-of-the-circuit|a-reading-grouped-or-compared|the-solvers-read-only-queries|no-network-beyond|no-source-file-outside-config|no-source-file-calls-math-random|the-regression-set-resolves|playtest-md-exists|traps-md-holds|the-suite-refuses-to-run-beside|the-runners-own-summary
+```
+
+A new census joins this list the job it is written in. This is H46's lesson (*"run the check the moved
 code came out of, not only the new one"*) in the currency a new file pays in.
 
 **And a new module under `scripts/` is a row in a fifth census, which the list

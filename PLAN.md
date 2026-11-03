@@ -70,29 +70,40 @@ what makes it possible. (Decided: D1 in `DECISIONS.md`.)
 
 ### `blackline-build` — twice daily
 
-Up to three jobs per run, one at a time — each gated, verified and committed
-before the next is picked. (Was one per run; Josh, 2026-09-10: *"not running
+Up to three jobs per run, one at a time — each proved and committed before
+the next is picked, and one full verify over the run (P2, 2026-11-03). (Was one per run; Josh, 2026-09-10: *"not running
 long enough. maybe 2-3 subphases at a time"* — D19.)
 
 ```
-1. ORIENT   read HANDOFF.md, QUEUE.md, DECISIONS.md, git log -5.
-2. GATE     npm run suite. If anything is red that QUEUE.md does not list as
-            deliberately red, STOP: write what broke to HANDOFF.md, commit,
-            push, end. Never build on a broken base.
-3. PICK     the first job in QUEUE.md that is not blocked on an undecided
-            question. If every remaining job is blocked, STOP and say so.
-4. DO       the job, in small commits. If the job needs a call that changes
-            what the player sees, feels or can do: do NOT make it. Write it to
-            DECISIONS.md, mark the job blocked, pick the next one.
-5. VERIFY   npm run suite, twice. A check that answers differently between the
-            two runs is flaky, and flaky is a bug in the check.
-6. RECORD   PROGRESS.md entry. HANDOFF.md rewritten. Job marked done in
-            QUEUE.md. New questions in DECISIONS.md.
-7. CLEAN    commit everything; push if a remote exists. The tree is
-            clean or the session is not over.
-8. AGAIN    back to 3 while fewer than three jobs are done, at least a third
-            of the budget remains, and the next job is S or M. The VERIFY
-            just run is the next job's GATE. An L job ends the run.
+1. ORIENT   read HANDOFF.md, QUEUE.md, PLAN.md, git log -8; DECISIONS.md by
+            grep for the ids the picked job names, not whole (P2's lever on
+            the usage limit).
+2. GATE     skip it when the tree is clean and nothing since the last
+            verified commit touches src, scripts, tests, index.html or
+            package*.json (P2). Otherwise the full two-run suite, which then
+            stands as the previous batch's verify. Red: STOP, write what
+            broke to HANDOFF.md, commit, push, end.
+3. PICK     the first unblocked job in QUEUE.md, game-facing blocks first
+            (P1): a hygiene job only when the gate is red and it is the fix,
+            when a game-facing job names it, or to fill a run's tail.
+4. DO       the lead (Opus) designs the job and writes the brief; a builder
+            (Sonnet) implements it; the lead reviews the diff. A call that
+            changes what the player sees, feels or can do is Josh's: write
+            it to DECISIONS.md, mark the job blocked, pick the next one. A
+            high-priority call that is not his, or a problem the lead has
+            failed twice, goes to the PM (Fable).
+5. PROVE    per job (P2): the new check on both maps; a break that turns it
+            red on its own clause, restored; the checks of every module it
+            touched; the census set (TRAPS.md), both maps. The runner
+            (Haiku) runs each and reports.
+6. RECORD   PROGRESS.md entry, the job's Done line, new questions. Commit,
+            stamp, push - per job.
+7. AGAIN    back to 3 while fewer than three jobs are done, the next job is
+            S or M, and more than about two hours of the session remain.
+8. VERIFY   the full two-run suite once, over the run's jobs (P2), committed
+            as `Record batch: <ids>`. A red is attributed by the red check's
+            subset at each of the run's commits; the job is fixed or
+            reverted and the verify re-run.
 9. STOP.
 ```
 

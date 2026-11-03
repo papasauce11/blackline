@@ -2418,6 +2418,51 @@ number changed to make the sentence true:
   is red on the yard until D4 gives it a night rig.
 **decided:**
 
+## PM calls — the project manager's decisions (Fable, since 2026-11-03)
+
+Josh, 2026-11-03, made himself the sponsor and gave the next-highest
+decisions to a Fable PM (`PLAN.md`, "Who decides, and who builds"). Each
+call is the PM's, recorded here by the lead and acted on; Josh can overrule
+any of them, and anything that turns out to be his is redrafted as a
+Blocking question instead.
+
+### P1 — Game-facing blocks before gate hygiene (2026-11-03)
+
+Block K next, as K1, K6, K2, K3, K4, K5, K7, then M, J, I, L, N, O as D50
+ordered them. H99 is folded into K6 as a done-when clause; H98, H97, H100 and
+H94's remainder are parked under "Hygiene - taken by rule P1 only" at the end
+of Block H, and are taken only when the pinned gate is red and the job is its
+fix, when a game-facing job names one as a prerequisite, or to fill a run's
+tail (one S per run, when the next game-facing job would not finish). A new
+hygiene finding is queued at the end of that list, never ahead of a
+game-facing job; an audit's fresh-seed red is filed against the game-facing
+job that owns its subject. H101 (PLAYTEST.md ten features behind) is done by
+the lead in the session that made this call. **Why:** of the last 38 jobs, 9
+were game-facing and all 9 came from the session Josh sat in; the routine's
+own 16 picks from 10-14 to 10-17 were all hygiene, and each hygiene job found
+one to three more, so that queue regrew faster than it drained. This answers
+the question put to Josh on 2026-10-19.
+
+### P2 — Verify per run, not per job (2026-11-03)
+
+Every job is proved on its own - its new check on both maps, a break that
+turns it red on the clause it is for and a restore, the checks of every
+module it touched, and the census set (`TRAPS.md`), both maps - then
+committed, recorded, stamped and pushed alone. **One** full two-run
+`npm run suite` closes a routine run, or a session sitting of at most eight
+jobs, and is committed as `Record batch: <ids>`. The start-of-run gate is
+skipped when the tree is clean and nothing since the last verified commit
+touches `src`, `scripts`, `tests`, `index.html` or `package*.json`;
+otherwise the gate is the full two-run suite, which then stands as the
+previous batch's verify. A red batch verify is attributed by the red check's
+own subset at each commit of the batch. D19's "verified before the next is
+picked" is read as "proved": up to three jobs, one at a time, the whole
+session used - unchanged. **Why:** a full verify is 70 minutes and a gate
+33, so a run was 33 + 70 per job and landed 2-3 jobs in 5-6 hours; the
+batch protocol landed 20 jobs on 2026-10-18/19 across three verifies, all
+exit 0, 0 red, 0 flaky, 0 console errors, and the subsets missed nothing a
+verify then caught.
+
 ## Blocking — waiting on Josh
 
 ### D77 — Should a module that has been split once carry a tighter ceiling than 600?
