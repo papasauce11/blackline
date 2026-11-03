@@ -42,7 +42,18 @@ it will not fast-forward, stop and report.
   backslashes and `$` in JS.
 - **Do not run the suite** (`npm run suite`, `node scripts/suite.mjs`) and
   never kill a node or Chrome process: one suite runs at a time on this
-  machine and the lead schedules it. Do not commit, push, stash, or touch
+  machine and the lead schedules it. **To measure** a number your check needs
+  (a luma, a time, a distance), use `npm run probe -- --map <id> <file.js>`
+  when the lead's brief or message says the suite is idle: it is not the
+  suite, it serves your worktree's `src/`, and it is how K3's floors became
+  measurements rather than guesses (2026-11-03). Put the probe file in the
+  scratchpad, not the repo.
+- A worktree-isolated builder cannot write to the main tree. If the lead has
+  merged your commit and asks for a fix, make it in your worktree and leave it
+  uncommitted with a `git diff > <scratchpad>/<job>-fix.patch` the lead can
+  apply.
+- Commit only on your own worktree's branch, and only when the brief says
+  to. Never commit to `phases-14-45`, push, or stash, and never touch
   `QUEUE.md`, `PROGRESS.md`, `HANDOFF.md`, `DECISIONS.md` or `version.json`.
 
 ## Before you report

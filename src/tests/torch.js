@@ -39,13 +39,17 @@ const S = CONFIG.shade;
 
 /**
  * What the torch adds to the mean luma (0-255) of the screen area over the
- * beam, and what the cone alone adds. Floors, and small ones: the yard is
- * dark, the cone is a few thousandths of linear light, and what these guard
- * against is a torch that draws nothing, not its brightness.
- * TODO(lead): fill the measured readings in beside these once a suite has run.
+ * beam, and what the cone alone adds. Floors at about half of what a probe
+ * measured (`npm run probe -- --map yard`, the box and camera this check
+ * picks - site C's lane, 5.5m to the side - 1280x720 at `medium`): off 35.3,
+ * on 44.1 (+8.8), cone alone 43.5 (+8.2), with the cone at 0.02 and the light
+ * at 300 candela; 0.006 read +3.2 and +2.8, which is why it is 0.02. The box
+ * is mid-air at the beam's height, so it reads the cone and not the pool the
+ * light puts on the floor below it: on and cone alone agree, and what these
+ * guard against is a cone that draws nothing, not its brightness.
  */
-const TORCH_GAIN_MIN = 3;
-const CONE_GAIN_MIN = 1;
+const TORCH_GAIN_MIN = 4;
+const CONE_GAIN_MIN = 4;
 
 /** Metres of lane behind the Warden, for a camera that looks down the beam from behind. */
 const LEAD = 5;

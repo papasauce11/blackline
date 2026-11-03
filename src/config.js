@@ -717,8 +717,8 @@ export const CONFIG = {
       angle: 0.32,
       /** How much of the beam's edge is soft, 0 hard to 1 all the way in; the light only - detection is hard at `angle`. */
       penumbra: 0.4,
-      /** Candela, as the yard's lamps are (26 x 2.5 = 65 each): a patch a few times a lamp's pool at ten metres. TODO(lead): tune against the lit patch. */
-      intensity: 150,
+      /** Candela, as the yard's lamps are (26 x 2.5 = 65 each): a pool on the floor a few times a lamp's, read in a probe (K3) at 150, 400 and 800 - 150 is hard to find in the dark, 800 starts to blow out. */
+      intensity: 300,
       /** `palette.lightCool`, a cool white against the masts' warm; `the-torch-casts-a-visible-cone-on-the-night-map` holds the two together. */
       color: 0xbfd9ff,
       /** The meter a Shade in the beam is raised to (Section 7.1): above a lamp's pool (the yard's masts land in the fifties) and not crouched out of. */
@@ -728,11 +728,12 @@ export const CONFIG = {
       /**
        * The visible cone, one additive mesh with no shadow. `opacity` is the
        * linear light each wall of it adds at the brightest, so it is small:
-       * the yard is dark and a few thousandths read. `peak` is the fraction
-       * of the length it brightens over, and from there it fades to nothing
-       * at the far end. TODO(lead): tune against the pixel check's reading.
+       * the yard is dark and hundredths read. 0.006 was a wedge you had to
+       * look for (+3 luma over a 35 background); 0.02 is a plain beam (+8)
+       * and 0.04 a solid one (+15). `peak` is the fraction of the length it
+       * brightens over, and from there it fades to nothing at the far end.
        */
-      cone: { opacity: 0.006, peak: 0.12, radialSegments: 20, lengthSegments: 6 },
+      cone: { opacity: 0.02, peak: 0.12, radialSegments: 20, lengthSegments: 6 },
     },
   },
 

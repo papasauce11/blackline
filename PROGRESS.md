@@ -20691,3 +20691,68 @@ that existed, and one new helper that registers nothing — so the census is
 unchanged; the modules loaded are **210**, one more than before, and the
 ceiling is **11 within 50 of 600**. The one failure a map is the bench-only
 sweep (H11).
+
+## K3 — The torch, on the night map
+
+**Built** (the first job of the four-tier org: the lead's brief, a Sonnet
+builder in its own worktree, a Haiku runner for every suite run).
+`src/systems/torch.js` (new, 190 lines): `createTorch({ night, warden,
+emitter })` returns `null` on a map that is not night and otherwise a light
+and a cone in a group parented to `warden.cameraRig` at
+`CONFIG.warden.torch.mount`, plus `beamOf()` - the beam's origin and
+direction from the simulation's own position, eye height, yaw and pitch, which
+is what detection reads (the drawn rig's lag and bob are ignored, and a clause
+holds the drawn light to it). `night: true` on the yard's registry entry and
+`isNightMap(id)`; detection is handed the torch and `_torchLevel` raises a
+Shade inside the cone with a clear line of sight to `litLevel`, after the
+crouch multiplier and before the vent one, scaled by the share of the five
+torso rays that are clear and counted in its own ray budget. The human
+Warden's `torch` action (T, after melee in `DEFAULT_BINDINGS` and the fight
+group) is read in `readWardenIntent` and leaves `Warden.step` as a
+`torch:toggle` on the emitter, so `main.js` is untouched at 578; `match:init`
+puts it back on, and off is intensity 0 and the cone hidden rather than
+`light.visible = false`, which would recompile every lit material. The
+Warden's controls card has a row for it.
+
+**The three checks** (`src/tests/torch.js`): `the-torch-casts-a-visible-cone-
+on-the-night-map` (yard) photographs the beam from beside it with the torch on,
+off, and the cone alone, and holds the drawn light to detection's beam;
+`a-shade-the-dark-hid-is-caught-in-the-torch` (yard) finds a dark spot, holds a
+crouched Shade under 50 with the torch off, catches her in the beam, loses her
+when it turns away and again when the key turns it off; `the-torch-is-built-on-
+the-night-map-and-nowhere-else` (both maps) holds the registry to one night map
+and the plant's scene to no spot light and no cone.
+
+**What the first build got wrong, and how the org found it.** The builder had
+no browser and checked the logic in node against a faked `three`, which did not
+copy `Object3D.DEFAULT_UP`; three starts every spot light at (0, 1, 0), and the
+module never moved it, so the light hung **exactly 1.000m** over the muzzle,
+aimed **45 degrees** off the cone (dot 0.70711) - and "cone alone +2.8 = on
++2.8" said the spot added nothing over the beam. The runner's first subset
+caught it on the alignment clause; the red went back to the same builder with
+its detail verbatim, it found the cause in one pass, and measured with
+`npm run probe` (the suite idle) instead of guessing: at the first settings
+(cone 0.006, 150 cd) +3.2 / +2.8, at 0.02 and 300 cd **off 35.3, on 44.1
+(+8.8), cone alone 43.5 (+8.2)**; floors are about half, 4 and 4, with the
+readings in the comment. The box is mid-air at beam height, so the check reads
+the cone rather than the pool the light puts on the floor below; a floor-pool
+clause would be a separate one.
+
+**Proved.** Subset on both maps through the runner, one run each - the three
+new checks, the shadow caster, the visibility budget, the replays, the menu's
+reachability (one more row on the controls page), the rebind checks, every
+detection and meter check, and the census set: first pass 38/38 plant and
+38/39 yard (the alignment red above), then after the fix 29/29 plant and 31/31
+yard with no console errors; both shipped replays still reach their recorded
+end, so the AI's own torch did not move them. **Breaks**, run through the
+harness in a probe page against the fixed tree: the light put back at
+(0, 1, 0) reproduces the 1.000m / 0.70711 red; the cone's opacity at 0 reds
+both gain clauses (+0.68 and +0.00 under 4); `forceSinglePass` removed reds the
+one-draw-call clause; additive to normal blending, or `depthWrite`, reds the
+material clause.
+
+**Left, and noted.** T is also the F4 test mode's time-scale key, so with test
+mode open a free-roam Warden's T does both - a debug-only clash, provisional.
+At 300 cd a wall within about 2m of the muzzle blows out, and a dead Warden's
+torch stays on at the body; neither is tuned here.
+

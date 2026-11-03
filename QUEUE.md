@@ -987,12 +987,7 @@ K4, K5, K7.
   room that decays; a heard noise sends it to the room, not the point;
   metal footsteps louder (I2). *done-when:* attention curves in a check;
   the detection checks unchanged.
-- [ ] **K3 (M)** The torch, on the night map. A rifle-mounted spot, no
-  shadows (spec 4.1 keeps the one shadowed light), a visible cone; the
-  Shade inside it counts as lit for detection; the AI sweeps it where it
-  looks; a key for the human Warden; off on the plant. *done-when:* a pixel
-  check sees the cone; a detection check catches a Shade in it that the dark
-  hid; frame budget unchanged.
+- [x] **K3 (M)** The torch, on the night map — done 2026-11-03, under Done. `src/systems/torch.js`, `night` on the yard's registry entry, the `torch` action on T, three checks in `src/tests/torch.js`.
 - [ ] **K4 (S)** Alarm response. A trip sends it along the route past the
   camera, and it places the camera on the likeliest approach. *done-when:*
   the placement is on a declared route in a check.
@@ -1141,6 +1136,20 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **K3** The torch, on the night map. A rifle-mounted `SpotLight` (`castShadow` false
+  - spec 4.1's one shadowed light stands) and a visible cone, one additive
+  depth-write-off mesh in one draw call, both on the Warden's camera rig, so
+  the AI's look and the human's mouse carry the beam with no change to either.
+  Built only where the registry marks a map `night` (the yard); on the plant
+  nothing is added to the scene. Detection lifts a Shade inside the beam to
+  `litLevel` (crouching does not hide her, a vent still does): a crouched
+  Shade the dark held at 10.0 crosses 50 in 25 steps. The human Warden flips
+  it with `torch` on T, in the fight group. The first build drew the light a
+  metre above its muzzle - three's spot lights start at (0, 1, 0) - and the
+  alignment clause caught it at exactly 1.000m and 45 degrees; fixed, and the
+  floors set from a probe's measurement (+8.8 luma with the torch, +8.2 the
+  cone alone, floors 4). Built by a Sonnet builder from the lead's brief, the
+  fix sent back to it with the red verbatim — 2026-11-03, Josh's session.
 - **H96** The tree of modules that ran, fetched once. `tests/moduletexts.js`
   (157 lines, new) reads the Resource Timing buffer for the modules under
   `src/` that ran and fetches each at most once a page, handing back the body

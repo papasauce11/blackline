@@ -148,6 +148,10 @@ export function createTorch({ night, warden, emitter }) {
   const light = new THREE.SpotLight(T.color, T.intensity, T.range, T.angle, T.penumbra, 2);
   light.name = 'warden-torch-light';
   light.castShadow = false; // Section 4.1. Never change this.
+  // Three starts every spot light at (0, 1, 0), its default up, and the
+  // group is the mount: left there the light hangs a metre over the muzzle,
+  // aimed 45 degrees off the cone, and detection's beam is not the drawn one.
+  light.position.set(0, 0, 0);
   light.target.position.set(0, 0, -1);
   const cone = buildCone();
   group.add(light, light.target, cone);
