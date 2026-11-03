@@ -13,7 +13,7 @@
  *
  * D48 answered it: the suite waits, the suite reports the number, and no
  * check carries a wait it did not cause. This check holds that arrangement,
- * in the four places it can be taken back out:
+ * in the five places it can be taken back out:
  *
  *   - `AutoSuite.drainPipeline()` exists, answers with its own ms, leaves the
  *     GL error state clear behind it, and BEATS while it waits. The beat is
@@ -25,6 +25,11 @@
  *     halves are asserted, because the first alone would pass just as well if
  *     the runner drained before every check - which F11 measured at 236s of
  *     added run.
+ *   - A check that declares `drainAfter: true` is drained after, on the run's
+ *     clock, and the one real declarer is pinned: the check-29 load queues the
+ *     run's largest single backlog and does not wait for it (H102), so without
+ *     the declaration its ~234s lands inside whichever check synchronises
+ *     next - on the yard the torch's `readPixels` - with the heartbeat still.
  *   - A top-level `runChecks` drains once more after its last check and
  *     returns the total as `pipelineWaitMs`, which `scripts/suitereport.mjs` prints
  *     beside the run's ms.
@@ -101,6 +106,45 @@ export function register(debugTools) {
       if (!Number.isFinite(nested.pipelineWaitMs)) problems.push(`runChecks answered pipelineWaitMs ${nested.pipelineWaitMs}`);
       if (nested.results.length !== 2) problems.push(`the nested run returned ${nested.results.length} results for 2 checks`);
 
+      // 2b. And the drain AFTER one, for a check that queues a backlog and does
+      // not wait for it (H102). Read off the beats as they are published, not off
+      // the phase the next check is entered under: the runner publishes `running`
+      // for that check after the drain, so the evidence is overwritten before the
+      // check can look. Recorded on the instance for the length of the run only.
+      const published = [];
+      const realBeat = suite.beat;
+      suite.beat = function recordingBeat(fields) {
+        if (fields && fields.phase) published.push(fields.phase);
+        return realBeat.call(this, fields);
+      };
+      const entered = {};
+      const backlog = {
+        id: 'inline-a-check-that-queues-a-backlog-and-does-not-wait',
+        spec: 'H102',
+        drainAfter: true,
+        run: () => ({ pass: true, detail: 'entered' }),
+      };
+      const afterIt = {
+        id: 'inline-the-check-after-a-backlog',
+        spec: 'H102',
+        run: () => {
+          entered.phase = (state.suiteProgress || {}).phase;
+          return { pass: true, detail: 'entered' };
+        },
+      };
+      let later;
+      try {
+        later = await suite.runChecks([backlog, afterIt]);
+      } finally {
+        delete suite.beat;
+      }
+      const gap = published.slice(published.indexOf('running'), published.lastIndexOf('running'));
+      if (gap.indexOf('pipeline-wait') === -1 || gap.indexOf('pipeline-waited') < gap.indexOf('pipeline-wait')) {
+        problems.push(`a drainAfter check was followed by no drain: the beats between it and the next check were [${gap.join(', ')}], so the backlog it queued is left inside whichever check synchronises next, with the heartbeat still (H102)`);
+      }
+      if (entered.phase !== 'running') problems.push(`the check after a drainAfter check was entered under phase "${entered.phase}", not running; a drain is being paid before a check that asked for none (F11)`);
+      if (!Number.isFinite(later.pipelineWaitMs)) problems.push(`the run with a drainAfter check answered pipelineWaitMs ${later.pipelineWaitMs}`);
+
       // 3. The drain after the last check of a run - the one clause the whole
       // of F16 rests on, and the one `runChecks` above cannot show, because a
       // nested run deliberately skips it. Driven through the private method
@@ -142,13 +186,18 @@ export function register(debugTools) {
       if (!found) problems.push('a-zero-size-viewport-does-not-blind-the-renderer is not registered');
       else if (!found.glSync) problems.push('a-zero-size-viewport-does-not-blind-the-renderer no longer declares glSync: the renderer tail is back on its own clock, and the report calls a 265s wait a 265s check');
 
+      // 6. And the check that queues the largest backlog in the run still says so.
+      const frame = h.debugTools._autoTests.find((test) => test.id === 'frame-budget-under-the-check-29-load');
+      if (!frame) problems.push('frame-budget-under-the-check-29-load is not registered');
+      else if (!frame.drainAfter) problems.push('frame-budget-under-the-check-29-load no longer declares drainAfter: the ~234s of rendering its load queues goes back inside whichever check synchronises next - on the yard the torch\'s readPixels - with the heartbeat still, and --stall kills the run there (H102)');
+
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
           ? `the drain answered in ${Math.round(ms)}ms across ${beats} beats and left the error state clear, `
-            + `a glSync check is entered after one and a plain check is not, a top-level run drains `
-            + `after its last check, and the run carries ${Math.round(nested.pipelineWaitMs)}ms of wait `
-            + `for the two`
+            + `a glSync check is entered after one and a plain check is not, a drainAfter check is drained `
+            + `after (the check-29 load declares it), a top-level run drains after its last check, and the `
+            + `run carries ${Math.round(nested.pipelineWaitMs)}ms of wait for the two`
           : problems.join('; '),
       };
     },

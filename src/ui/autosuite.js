@@ -43,6 +43,12 @@ export class AutoSuite {
    *   `gl.getError()`, so the runner drains the renderer's pipeline tail
    *   before it and charges the wait to the run rather than to the check
    *   (F11, D48; `drainPipeline` says why)
+   * @param {boolean} [test.drainAfter] this check queues more rendering than a
+   *   watchdog's worth and does not wait for it: the runner drains the pipeline
+   *   right after it, on the run's clock, so the next check to synchronise is
+   *   not the one that waits for it with the heartbeat still (H102). `glSync`
+   *   is the drain before a check and this is the one after; F11 measured one
+   *   after every check at +236s, so neither is the default
    * @param {string} [test.drawsUnderAi] why this check draws more than
    *   `debug.drawsUnderAiBudget` values under a live AI; past the budget
    *   without it, the runner reds the check (H86)
@@ -432,6 +438,9 @@ export class AutoSuite {
       }
       results.push(result);
       this._printResult(result);
+      // A check that queued a backlog and did not wait for it pays it here, after
+      // its own clock has stopped, so the next check to synchronise does not (H102).
+      if (test.drainAfter) pipelineWaitMs += await this.drainPipeline(`after ${test.id}`);
       this._markDevice();
       this.beat({ total, done: results.length, inFlight: null, last: test.id, phase: 'ran' });
     }

@@ -32,7 +32,11 @@
  *    out almost all of what the frame cost (H36, `TRAPS.md`). The verdict
  *    belongs to the runner whose clock can price a draw: `npm run bench` runs
  *    this check in a headed Chrome on the real GPU, refuses a software
- *    rasteriser outright, and asks for it with `?timedVerdict=1`.
+ *    rasteriser outright, and asks for it with `?timedVerdict=1`. The GPU
+ *    timer is read there and only there (H41, P3): its read polls
+ *    `getQueryParameter(QUERY_RESULT_AVAILABLE)`, which blocks on this
+ *    renderer until its queue drains, so at the gate the check would be
+ *    waiting on the renderer inside itself - 206s of its own ms on the yard.
  *    Everything else here is clock-free and still the gate's: that the load
  *    assembled, that Section 15's caps held under it, that the pools neither
  *    grew nor leaked, that no runtime assertion fired.
@@ -111,6 +115,9 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'frame-budget-under-the-check-29-load',
     drawsUnderAi: 'the check-29 load is gunfire by definition, and every round draws from the stream',
+    // The check-29 load queues the run's largest single backlog, and the next check to sync on
+    // the yard (the torch's `readPixels`) would otherwise wait for it inside itself, heartbeat still.
+    drainAfter: true,
     spec: 'Section 2 / check 29',
     name: 'Smoke, flashbang, sustained gunfire and a ragdoll at once, frame timed',
     run: async (h) => {
@@ -245,7 +252,12 @@ export function register(debugTools) {
       };
 
       const renderer = h.renderer;
-      const timer = gpuTimer(renderer);
+      // Asked here, above the warm-up, because it decides whether there is a GPU
+      // timer at all (H41, P3): its read blocks on this renderer until the queue
+      // drains, which at the gate is the check waiting on the renderer inside
+      // itself. The bench is the runner with a GPU worth reading.
+      const priced = timedVerdictAsked(typeof location !== 'undefined' ? location.search : '');
+      const timer = priced ? gpuTimer(renderer) : null;
       const frameMs = [];
       let peakCalls = 0;
       let peakTriangles = 0;
@@ -306,14 +318,15 @@ export function register(debugTools) {
       }
 
       // The budget. CPU only: the GPU number is reported when the driver gives
-      // one, but it is this machine's GPU, not the target's.
+      // one - on the bench, the only runner that reads it - but it is this
+      // machine's GPU, not the target's.
       //
-      // **And asserted only where the clock can price a draw** (H41). The two
-      // lines below are built either way, so the numbers reach the reader
-      // whichever runner is asking; what the parameter decides is whether they
-      // are a verdict. One reader for that, `tests/timedrenders.js`'s, so the
-      // gate and the bench cannot come to two answers about it.
-      const priced = timedVerdictAsked(typeof location !== 'undefined' ? location.search : '');
+      // **And asserted only where the clock can price a draw** (H41). The CPU
+      // line below is built either way, so the number reaches the reader
+      // whichever runner is asking; what the parameter decides is whether it
+      // is a verdict. One reader for that, `tests/timedrenders.js`'s (asked
+      // above the warm-up), so the gate and the bench cannot come to two
+      // answers about it.
       const over = [];
       if (cpuMedian > cpuCeiling) {
         over.push(
@@ -331,7 +344,11 @@ export function register(debugTools) {
         // which is a real regression about something other than a frame rate.
         notes.push(`not asserted on this clock (H41): ${over.join('; ')}`);
       }
-      if (gpuMs === null) notes.push('no GPU timer (EXT_disjoint_timer_query_webgl2 unavailable or disjoint)');
+      if (!priced) {
+        notes.push('GPU timer not read at the gate (H41, P3): its read waits on the renderer inside the check; npm run bench reads it');
+      } else if (gpuMs === null) {
+        notes.push('no GPU timer (EXT_disjoint_timer_query_webgl2 unavailable or disjoint)');
+      }
 
       // Nothing may have gone non-finite or fallen through the floor under load.
       const failuresBefore = h.debugTools.assertionFailures;
