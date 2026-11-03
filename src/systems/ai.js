@@ -76,6 +76,7 @@ export class WardenAI {
     this._shadeAnchor = { x: 0, z: 0 };
     this._burstRemaining = 0;
     this._burstPause = 0;
+    this._aimSettle = 0;
     this._searchSpots = [];
     /** The search check (aisearch.js) the gaze is resting on, or null. */
     this.lookingAt = null;
@@ -167,6 +168,7 @@ export class WardenAI {
     this._staticTimer = 0;
     this._burstRemaining = 0;
     this._burstPause = 0;
+    this._aimSettle = 0;
     this._searchSpots.length = 0;
     this.lookingAt = null;
     this._searchHold = 0;
@@ -271,6 +273,7 @@ export class WardenAI {
     this.lookingAt = null;
     if (state === AI_STATE.ENGAGE) {
       this._drawAimError();
+      this._aimSettle = this.difficulty.aimSettle;
       this._shadeAnchor.x = Infinity;
       this._staticTimer = 0;
     }
@@ -416,6 +419,13 @@ export class WardenAI {
 
   _fireBurst(dt) {
     this.intent.ads = true;
+    // The beat the preset takes to bring the gun onto a body it has just
+    // decided to shoot (`aimSettle`); ads is up above because the gun is
+    // coming up during it. Hard spends none.
+    if (this._aimSettle > 0) {
+      this._aimSettle -= dt;
+      return;
+    }
     if (this._burstPause > 0) {
       this._burstPause -= dt;
       return;

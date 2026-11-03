@@ -19,7 +19,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'difficulty-preset-reaches-the-ai',
     spec: 'Section 11 / Section 13',
-    name: 'All three presets change the AI fill rate, aim error and reaction delay',
+    name: 'All three presets change the AI fill rate, aim error, reaction delay and aim settle',
     run: (h) => {
       const problems = [];
       const was = SETTINGS.difficulty;
@@ -41,16 +41,18 @@ export function register(debugTools) {
         if (h.match.difficulty !== name) {
           problems.push(`"${name}": the match recorded difficulty "${h.match.difficulty}"`);
         }
-        seen.push(`${name} fill ${live.fillRate}/s aim ${live.aimErrorDegrees}deg react ${live.reactionDelay}s`);
+        seen.push(`${name} fill ${live.fillRate}/s aim ${live.aimErrorDegrees}deg react ${live.reactionDelay}s settle ${live.aimSettle}s`);
       }
 
       // The three must actually differ, or "three presets" is decoration.
       const fills = new Set(names.map((n) => A.difficulty[n].fillRate));
       const aims = new Set(names.map((n) => A.difficulty[n].aimErrorDegrees));
       const delays = new Set(names.map((n) => A.difficulty[n].reactionDelay));
+      const settles = new Set(names.map((n) => A.difficulty[n].aimSettle));
       if (fills.size !== 3) problems.push('the presets do not all differ in fill rate');
       if (aims.size !== 3) problems.push('the presets do not all differ in aim error');
       if (delays.size !== 3) problems.push('the presets do not all differ in reaction delay');
+      if (settles.size !== 3) problems.push('the presets do not all differ in aim settle');
 
       // Section 11: "Default is medium: 120ms reaction delay, 2.5 degree aim error."
       const medium = A.difficulty[A.defaultDifficulty];

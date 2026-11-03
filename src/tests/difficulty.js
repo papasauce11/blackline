@@ -54,6 +54,16 @@ const ENGAGEMENT_SEED = exploreSeed('difficulty-engagement', 0xb0b5);
 /** The longest a detection or a kill is allowed to take before it is a stall. */
 const DETECT_LIMIT = 40;
 const KILL_LIMIT = 30;
+/**
+ * The share of a pair's `aimSettle` gap that the mean kill must open between
+ * them. The beat is spent before the first round at every range, so the gap
+ * is a floor under the difference in mean kills and not an estimate of it:
+ * 0.6 leaves four tenths of it to the 1/60 fixed step, to the hit-location
+ * variance in a four-round kill over eight paired seeds, and to a burst pause
+ * a kill may cross. It is a floor and never a ceiling - a preset that parts
+ * further than config claims is not a failure.
+ */
+const SEPARATION_FRACTION = 0.6;
 
 /**
  * F17's twelve engagements, and they stay pinned. The first two are the
@@ -295,7 +305,7 @@ export function register(debugTools) {
     id: 'each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you',
     drawsUnderAi: 'an engagement per preset against a god-moded Shade, so the aim cone is sampled for as long as it takes',
     spec: 'Section 11 (difficulty)',
-    name: 'Time-to-detect and time-to-kill both fall from one preset to the next, at 8m and at 16m',
+    name: 'Time-to-detect and time-to-kill both fall from one preset to the next, at 8m and at 16m, the kill by at least most of the aimSettle gap',
     run: (h) => {
       const problems = [];
       const was = SETTINGS.difficulty;
@@ -335,6 +345,13 @@ export function register(debugTools) {
           }
           if (!(harder.kill < easier.kill)) {
             problems.push(`at ${range}m ${harder.name} kills in ${harder.kill.toFixed(2)}s, not sooner than ${easier.name}'s ${easier.kill.toFixed(2)}s`);
+          }
+          // Strictly sooner can be a step's worth (F17: medium and hard tied
+          // at 8m); the gap config claims has to show up, not just the sign.
+          const settleGap = A.difficulty[easier.name].aimSettle - A.difficulty[harder.name].aimSettle;
+          const floor = settleGap * SEPARATION_FRACTION;
+          if (!(easier.kill - harder.kill >= floor)) {
+            problems.push(`at ${range}m ${harder.name} kills ${(easier.kill - harder.kill).toFixed(3)}s sooner than ${easier.name}, under the ${floor.toFixed(3)}s its aimSettle gap of ${settleGap.toFixed(2)}s buys`);
           }
         }
 

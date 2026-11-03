@@ -133,6 +133,58 @@ whole session used" is suspended until he lifts this. Prompt, `PLAN.md`,
 
 ## Provisional — done as recommended, override any time
 
+### D80 — What parts medium from hard up close is a beat, not a cone
+
+**Raised by:** K6, 2026-11-03, and **taken** rather than asked, because K6 was
+queued to separate the presets at 8m and the separation had to come from
+somewhere. It is written here because it moves two presets' clocks, which a
+player feels, and Josh may want a different lever or different numbers.
+
+**What was decided.** A fourth per-preset number, `ai.difficulty.*.aimSettle`:
+seconds the Warden spends getting the gun onto a body it has just decided to
+shoot, once per ENGAGE rather than per burst. **easy 0.42, medium 0.16, hard
+0.0.**
+
+**Why it could not be the cone.** F17 settled that and K6's entry carries it: at
+8m the body subtends 2.43 degrees either way, wider than medium's 2.5-degree
+cone and hard's 1.2, so both presets put every round on it; a kill is four
+rounds of `damageNear` 25 against 100 health, which is 0.3s at 600rpm; and both
+sit on that floor. `reactionDelay` cannot help either — it gates the detection
+fill, so it is already spent when the kill clock starts. Under `?seed=20261018`
+the yard read **medium 0.49s and hard 0.49s, 32 of 32 rounds each**, which is
+the red H99 recorded and K6 inherited. Anything that parts them there has to be
+additive and outside accuracy.
+
+**Why hard is zero.** The beat could have been spent anywhere, and spending none
+of it on hard is the half of this most worth overriding. Hard is the preset that
+has to read as a machine, and D33 already called it one at 8m, so the separation
+is bought by the easier presets taking a beat rather than by slowing the
+hardest. Its clock does not move at all, and the measurement says so: 0.49s
+under `seed=20261018` before this job and 0.49s after, to the hundredth. The
+cost is carried where it is affordable — medium's kill at 8m goes 0.49 to
+0.66s on the yard, easy's 0.64 to 1.07s. **Medium is the default**, so that
+0.17s is the number to disagree with first.
+
+**The alternative I did not take** was a per-preset aim *point* — hard taking
+the head, where `headshotMultiplier` 2.0 makes a kill two rounds instead of
+four. It buys the separation by making hard quicker rather than the others
+slower, which is the nicer direction, but at 16m the head is a fraction of
+hard's own cone wide and the preset could come out slower there, breaking the
+monotonicity this job exists to establish. It is measurable and it is not
+measured; a job can take it if Josh would rather hard got quicker.
+
+**What it does not touch.** The cone, the burst length and pause bands, and
+F18's `MIN_BURST_LANDING_RATE` — that one reads easy's cone over forty 30s
+windows, where a single 0.42s beat costs about a third of one burst in
+twenty-six, and it read 0.563 and 0.578 against its 0.486 floor after the
+change. The detect column is unmoved to the hundredth on both maps.
+
+**And it makes D54 available again.** F17 built the per-round aim draw, measured
+it as better at unchanged accuracy, and reverted it only because it tipped
+medium and hard into a dead heat at 8m. That heat is no longer the cone's to
+cause, so the revert can be revisited; queued as K8.
+
+
 ### D78 — The settings page's four groups, and which row sits under which
 
 **Raised by:** H22, 2026-10-19, and **taken** rather than asked: the queue

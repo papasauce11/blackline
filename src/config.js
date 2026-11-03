@@ -1222,11 +1222,26 @@ export const CONFIG = {
      * Narrowing it further buys a shorter tail with the thing this preset
      * is for: at 3.5 easy kills at 8m in 0.71s against medium's 0.51s, and
      * the two are no longer telling a player much apart.
+     *
+     * **The fourth number, `aimSettle`, is seconds spent getting the gun onto
+     * the target before the first round of a sighting** - once per ENGAGE, not
+     * per burst. Hard is 0 on purpose: a professional's gun is already up, so
+     * hard's clock does not move and the separation is bought by the easier
+     * presets taking a beat, not by making hard slower. It had to be additive
+     * and not another draw from the cone, because at 8m the body is wider than
+     * either of the two harder cones (it subtends 2.43 degrees either way
+     * against medium's 2.5 and hard's 1.2, so both put every round on it), a
+     * kill is four rounds of `combat.gun.damageNear` against 100 health and so
+     * 0.3s at 600 rpm, both presets sit on that floor (0.49s and 0.49s on the
+     * yard), and `reactionDelay` is spent before the kill clock starts - it
+     * gates the detection fill. The kill column of the table above is the
+     * pre-`aimSettle` one and is left as published (F17, D54); the beat is
+     * what parts it now.
      */
     difficulty: {
-      easy: { fillRate: 26, aimErrorDegrees: 4.0, reactionDelay: 0.28 },
-      medium: { fillRate: 38, aimErrorDegrees: 2.5, reactionDelay: 0.12 },
-      hard: { fillRate: 52, aimErrorDegrees: 1.2, reactionDelay: 0.05 },
+      easy: { fillRate: 26, aimErrorDegrees: 4.0, reactionDelay: 0.28, aimSettle: 0.42 },
+      medium: { fillRate: 38, aimErrorDegrees: 2.5, reactionDelay: 0.12, aimSettle: 0.16 },
+      hard: { fillRate: 52, aimErrorDegrees: 1.2, reactionDelay: 0.05, aimSettle: 0.0 },
     },
     defaultDifficulty: 'medium',
   },
