@@ -120,6 +120,7 @@ import { register as registerTimedRenders } from './timedrenders.js';
 import { register as registerAudioDevice } from './audiodevice.js';
 import { register as registerTorch } from './torch.js';
 import { register as registerNightVision } from './nightvision.js';
+import { register as registerAlarmSeen } from './alarmseen.js';
 import { register as registerAiSearch } from './aisearch.js';
 import { register as registerHearing } from './hearing.js';
 import { register as registerPatrol } from './patrol.js';
@@ -339,4 +340,6 @@ export function registerAutoTests(debugTools) {
   registerAiAlarm(debugTools);
   // M1: the Shade's night vision; it steps and photographs through the lens, draws no frame of its own, ends in a fresh round.
   registerNightVision(debugTools);
+  // M7: the placed camera found by its lens light from 6m; it photographs through its own lens and draws no frame of its own, which is what lets it sit after the device journal's read (H65).
+  registerAlarmSeen(debugTools);
 }

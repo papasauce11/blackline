@@ -147,6 +147,17 @@ export class Effects {
     lens.position.z = -C.bodyLength;
     group.add(lens);
 
+    // The lens's light (M7), built once like the rest of the pool: a flat
+    // MeshBasicMaterial dot is invisible in a dark room, and a camera nobody
+    // can find is a camera nobody can taser. No shadow, as every point light
+    // but the key is (Section 4.1). It is dimmed to 0 rather than hidden or
+    // removed, because a light added to or dropped from the scene changes the
+    // shader's light count and recompiles every lit material in it.
+    this._alarmLensLight = new THREE.PointLight(P.wardenOrange, C.lensLight.intensity, C.lensLight.distance, C.lensLight.decay);
+    this._alarmLensLight.castShadow = false;
+    this._alarmLensLight.position.z = -C.bodyLength;
+    group.add(this._alarmLensLight);
+
     this.alarmFixture = group;
     this.root.add(group);
   }
@@ -158,11 +169,15 @@ export class Effects {
     fixture.rotation.set(0, at.yaw, 0);
     fixture.visible = true;
     this._alarmLensMaterial.color.setHex(P.wardenOrange);
+    this._alarmLensLight.intensity = GA.alarmCamera.lensLight.intensity;
     this._alarmBlink = 0;
   }
 
   breakAlarm() {
     this.alarmFixture.visible = false;
+    // Dark as well as hidden: whichever of a hide and a step comes last, a dead
+    // camera casts nothing.
+    this._alarmLensLight.intensity = 0;
     this.sparks(this.alarmFixture.position, E.impactSparks);
   }
 
@@ -180,6 +195,9 @@ export class Effects {
     this._alarmLensMaterial.color.setHex(
       !on ? P.wardenGunmetal : alerted ? P.hazardOrange : P.wardenOrange
     );
+    // The same `on` as the glass, so the light and the lens cannot disagree:
+    // a lens gone dark that still lit the wall would read as a lamp.
+    this._alarmLensLight.intensity = on ? GA.alarmCamera.lensLight.intensity : 0;
   }
 
   /**

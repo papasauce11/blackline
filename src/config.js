@@ -1023,6 +1023,23 @@ export const CONFIG = {
       lensRadius: 0.055,
       /** How far off the wall the fixture floats, so it does not z-fight. */
       surfaceOffset: 0.06,
+      /**
+       * The lens's own light (M7). **PROVISIONAL**, like every number in Block
+       * M. Without it the lens is a flat orange dot in a dark room and the
+       * fixture reads as nothing; with it the wall around the lens warms, so a
+       * Shade can find the camera from across the room and taser it. It is the
+       * same kind of light as a map fixture (`lighting.pointIntensity` 26,
+       * `pointDistance` 18, `pointDecay` 2) at a fraction of the size: it
+       * should read from 6m and must not light the room.
+       */
+      lensLight: {
+        /** Candela. 0.4m off the wall that is about 12 on the wall, a lamp's worth at a metre and gone by three. */
+        intensity: 2,
+        /** Metres to nothing. A fixture's is 18; this one reaches a wall's width and no further. */
+        distance: 4,
+        /** The map fixtures' inverse square, so it falls off the way the eye expects. */
+        decay: 2,
+      },
     },
   },
 
