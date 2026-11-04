@@ -664,8 +664,7 @@ export const CONFIG = {
      * an exposure lift, a green phosphor cast, grain and a vignette (nightvision.js).
      * It costs the body nothing: the Shade's problem is being seen, not seeing,
      * so detection never reads it. PROVISIONAL - Josh asked for it by name
-     * and the numbers are a first guess to be tuned against the yard.
-     * TODO(lead): tune against the snapshot pair.
+     * and the numbers are a first guess to be tuned against the yard (D82).
      */
     nightVision: {
       /** Linear multiplier on the frame: the yard sits between its pools at a few hundredths linear, and this is what brings it to a picture. */

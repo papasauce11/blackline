@@ -152,6 +152,23 @@ describe.
 
 ## Provisional — done as recommended, override any time
 
+### D82 — The Shade's night vision as built: four times the light, one soft green, grain that moves with the step
+
+M1 (2026-11-03). Josh asked for night vision by name (D50) and left its look
+to the build, so these are taken and his to overrule from the yard. `V`
+toggles it for the Shade only; it multiplies the frame's linear light by
+**4**, adds **0.03**, keeps only its luma times a tint of **[0.35, 1, 0.45]**,
+adds grain of **0.06** from a hash of the pixel and the step count (the same
+on every run of a seed), and darkens the edge by **0.35**
+(`CONFIG.shade.nightVision`). Measured on the yard from a lit lane's head:
+mean luma **19.9 to 58.8**, about 2.9x, at every quality level - at `low`,
+where the post draws nothing, it draws its own single pass. It costs her
+nothing: 180 steps of detection read identically on and off. It is off at a
+round's start, held dark behind the pause page and the briefing, and the
+HUD says `NV` while it is on. **The green is soft**: R and B sit at about
+60% of G after the sRGB encode. A harder phosphor is one number,
+`tint: [0.2, 1, 0.3]`, if the snapshot pair reads too grey.
+
 ### D80 — What parts medium from hard up close is a beat, not a cone
 
 **Raised by:** K6, 2026-11-03, and **taken** rather than asked, because K6 was
