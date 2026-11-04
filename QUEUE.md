@@ -1,6 +1,7 @@
 # Blackline — work queue
 
-The protocol is in `PLAN.md`. **About an hour of work per run** (D79): up to
+The protocol is in `PLAN.md`. **About an hour of work per run**, from the first
+builder's start (D79): up to
 three builders at once on jobs whose files do not overlap (D81), each job
 proved and committed on its own (D19, P2); an L job is split before it is
 taken. Take the
@@ -1035,8 +1036,22 @@ camera gets a live feed; the Warden a torch (K3). Parameters are
 provisional; the rule for "thin" is mechanical, never a tag.
 
 - [x] **M1 (M)** The Shade's night vision — done 2026-11-03, under Done. `src/nightvision.js`, the `NIGHT_VISION` stage in `src/post.js`, `nightVision` on V, the HUD `NV` tag, `the-shades-night-vision-lifts-the-dark-and-costs-her-nothing`.
-- [x] **M2 (M)** The x-ray rule — done 2026-11-04, under Done. `src/mapxray.js` (`seeThroughBox`, `seeThroughAlong`), `GameMap.seeThroughAlong`, `tExit` on `raySlab`, `CONFIG.shade.xray.maxThickness` 2.5 (provisional), `the-xray-sees-through-a-duct-a-crate-and-a-container-and-never-through-a-wall`. **It would see through the wall under a window and not through the grade vents' sheet — D83 asks Josh, and M3 waits on it.**
-- [ ] **M3 (M)** **blocked: D83** — what counts as a real wall, mechanically, is the thing this job draws. The x-ray, drawn. `X` toggles; the Warden, its camera and
+- [x] **M2 (M)** The x-ray rule — done 2026-11-04, under Done. `src/mapxray.js` (`seeThroughBox`, `seeThroughAlong`), `GameMap.seeThroughAlong`, `tExit` on `raySlab`, `CONFIG.shade.xray.maxThickness` 2.5 (provisional), `the-xray-sees-through-a-duct-a-crate-and-a-container-and-never-through-a-wall`. **It would see through the wall under a window and not through the grade vents' sheet — D83, decided 2026-11-04: option 2, built by M8.**
+- [ ] **M8 (M)** D83's two rules in M2's x-ray (Josh, 2026-11-04: option 2).
+  In `src/mapxray.js`: a box that stands in its own wall plane beside a
+  full-height opaque box, within a touch, is opaque - the sill and the lintel
+  round a window or a vent mouth become wall, mechanically, with no tag; and a
+  box is shell only if it lies *along* `map.shell`'s boundary, its extent
+  inward no greater than its extent along it, so a slab is shell and a tube
+  through it is not. *done-when:* M2's check holds no unasserted low pieces -
+  every piece under or over an opening on the plant reads opaque; the grade
+  vents' side walls (`vent-grade-west`, `vent-grade-south`) read see-through
+  and a sightline crosses their 0.12m sheet; `shell-*` and the yard's ring
+  still read shell; every duct M2 names still reads see-through, so no duct
+  mounted flat on a wall went opaque with it; a break of each rule reds its
+  own clause on both maps. Touches only `mapxray.js` and M2's check, so it fits
+  beside a Block K job (D81).
+- [ ] **M3 (M)** After **M8** (D83, decided 2026-11-04) — what counts as a real wall, mechanically, is the thing this job draws. The x-ray, drawn. `X` toggles; the Warden, its camera and
   the charge drawn as silhouettes where M2 says yes, within a range; draw
   calls counted. *done-when:* a pixel check sees the Warden through a crate
   and not through the west wall; frame budget unchanged.

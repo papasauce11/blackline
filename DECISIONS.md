@@ -129,6 +129,15 @@ run (a build run, then a verify run) and this line is rewritten. D19's "the
 whole session used" is suspended until he lifts this. Prompt, `PLAN.md`,
 `QUEUE.md` and `HANDOFF.md` updated the same day.
 
+**Amended 2026-11-04, Josh ("yes"): the hour starts when the first builder
+starts**, not when the gate is done. The 02:00 run that day started its three
+builders at 02:19, under the gate, and counted its hour from the gate's end at
+03:23: it reported 83 minutes of work for 2h27m of building, and four hours on
+the clock. So the hour runs from the first builder's start to the verify's
+start, the gate included when builders run under it; the 45-minute last start
+and the 90-minute WIP count from the same point. The verify's wait at the end
+stays outside the hour.
+
 ### D81 — Up to five agents at once, the lead included
 Josh, 2026-11-03, an hour into D79, asked why only one agent was running
 (D79 had held the builders to one at a time), then: *"do what works
@@ -3165,4 +3174,9 @@ therefore the same question as above rather than a tidy-up of it. If the answer
 to this page is 1 ("leave it"), the grade vents are still worth fixing on their
 own, and the queue has that job waiting on this page.
 
-**decided:**
+**decided:** option 2, both halves - Josh, 2026-11-04 ("yes"). A wall piece
+that stands in its own wall plane beside a full-height opaque piece, within a
+touch, is wall; and a box is shell only if it lies *along* the boundary (its
+extent inward no greater than its extent along it), so the grade vents' sheet
+is see-through. The duct risk is settled by M2's check naming its ducts. M8
+builds it; M3 follows.

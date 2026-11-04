@@ -21345,3 +21345,15 @@ Overrun, honestly: D79 asks for about an hour of work and this run's hour ran
 03:23 to 04:46, **83 minutes**, before the 70-minute verify. The three builders
 ran in worktrees underneath the opening gate, which is what bought the third
 job at all.
+
+## Josh's answers, 2026-11-04 morning: the hour's start, and D83
+
+Asked how the 02:00 run went, Josh was told it did good work and overran: its
+builders started at 02:19 under the gate and its hour was counted from the
+gate's end at 03:23, so 2h27m of building read as 83 minutes. He said yes to
+both recommendations. **D79 amended**: the hour starts at the first builder's
+start, wherever the gate is. **D83 decided, option 2**: a wall piece beside a
+full-height piece in its own plane is wall, and only a box lying along the
+shell's boundary is shell, so the grade vents become see-through. **M8**
+builds both into M2's rule and M3 waits on it. Prompt, `PLAN.md`, `QUEUE.md`,
+`HANDOFF.md` and the audit's D79 line updated the same morning.
