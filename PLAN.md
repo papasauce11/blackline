@@ -108,10 +108,10 @@ up to three, suspended by D79 while the four tiers are tested.)
             as `Record batch: <ids>`. A red is attributed by the red check's
             subset at each of the run's commits; the job is fixed or
             reverted and the verify re-run.
-9. SHOW     photographs of the run's HEAD (`npm run shot`, a pose for a
-            job that touched a body) sent to Josh, two to four picked to
-            show the run's work (Josh, 2026-11-03: "show screenshots of
-            progress after each run").
+9. SHOW     a snapshot per visible job as it lands, saved by its
+            builder's probe (the cheaper way, Josh 2026-11-03: "send
+            snapshots along the way ... especially if its less usage");
+            a run that sent none sends `npm run shot` frames of its HEAD.
 10. STOP.
 ```
 
