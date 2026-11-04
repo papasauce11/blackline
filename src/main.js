@@ -421,7 +421,7 @@ function renderFrame(wallDelta) {
   // The HUD is not drawn behind a menu, an intermission or the briefing.
   hud.setVisible(!menu.open && !scoreboard.open && !briefing.open);
   if (hud.visible) {
-    hud.update(wallDelta, gatherHudState({ match, shade, warden, gadgets, detection, combat, objective }));
+    hud.update(wallDelta, gatherHudState({ match, shade, warden, gadgets, detection, combat, objective, post }));
   }
 
   emitter.emit('frame:render', { alpha, wallDelta });

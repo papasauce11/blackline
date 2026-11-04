@@ -658,6 +658,30 @@ export const CONFIG = {
        */
       bob: 0.018,
     },
+
+    /**
+     * Night vision (M1, D50): `V` toggles a post effect on the Shade's view -
+     * an exposure lift, a green phosphor cast, grain and a vignette (nightvision.js).
+     * It costs the body nothing: the Shade's problem is being seen, not seeing,
+     * so detection never reads it. PROVISIONAL - Josh asked for it by name
+     * and the numbers are a first guess to be tuned against the yard.
+     * TODO(lead): tune against the snapshot pair.
+     */
+    nightVision: {
+      /** Linear multiplier on the frame: the yard sits between its pools at a few hundredths linear, and this is what brings it to a picture. */
+      gain: 4,
+      /** Linear light added after the gain, so the black floor lifts off zero instead of staying a hole. */
+      lift: 0.03,
+      /** The phosphor: the lifted frame's luma times this, so the picture is one green and the hue of the scene is gone. */
+      tint: [0.35, 1.0, 0.45],
+      /** Peak-to-peak linear noise, a hash of the pixel and the step count: it moves with the simulation and is the same on every run of a seed. */
+      grain: 0.06,
+      /** How much the edge of the view goes dark, 0 none to 1 black: the goggles' tube, on top of the post's own vignette. */
+      vignette: 0.35,
+      /** Where that falls, as shares of the half-diagonal: the same radii as `render.post`'s, so the two vignettes start and end together. */
+      vignetteInner: 0.55,
+      vignetteOuter: 1.25,
+    },
   },
 
   // -------------------------------------------------------------------------
@@ -2102,6 +2126,8 @@ export const DEFAULT_BINDINGS = {
   melee: ['KeyF'],
   // K3: the Warden's torch, on the night map. Nothing for the Shade.
   torch: ['KeyT'],
+  // M1: the Shade's night vision (D50): a toggle on her view, and nothing for the Warden.
+  nightVision: ['KeyV'],
   gadget1: ['Digit1'],
   gadget2: ['Digit2'],
   gadget3: ['Digit3'],
@@ -2120,7 +2146,7 @@ export const DEFAULT_BINDINGS = {
  */
 export const BINDING_GROUPS = [
   ['move', ['forward', 'back', 'left', 'right', 'jump', 'crouch', 'sprint']],
-  ['fight', ['fire', 'ads', 'reload', 'interact', 'melee', 'torch']],
+  ['fight', ['fire', 'ads', 'reload', 'interact', 'melee', 'torch', 'nightVision']],
   ['gadgets', ['gadget1', 'gadget2', 'gadget3', 'gadget4']],
   ['system', ['pause']],
 ];

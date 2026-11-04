@@ -118,6 +118,7 @@ import { register as registerDetailDrift } from './detaildrift.js';
 import { register as registerTimedRenders } from './timedrenders.js';
 import { register as registerAudioDevice } from './audiodevice.js';
 import { register as registerTorch } from './torch.js';
+import { register as registerNightVision } from './nightvision.js';
 import { register as registerAiSearch } from './aisearch.js';
 import { register as registerHearing } from './hearing.js';
 import { register as registerPatrol } from './patrol.js';
@@ -328,4 +329,6 @@ export function registerAutoTests(debugTools) {
   // K7: the Warden's site-room check on a low round clock. Last, beside
   // K1's: it steps the AI and the objective and draws no frame.
   registerPatrol(debugTools);
+  // M1: the Shade's night vision; it steps and photographs through the lens, draws no frame of its own, ends in a fresh round.
+  registerNightVision(debugTools);
 }

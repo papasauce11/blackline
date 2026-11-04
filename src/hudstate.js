@@ -10,7 +10,7 @@
 import { CONFIG } from './config.js';
 
 /** @returns {object} the state bag `hud.update()` takes */
-export function gatherHudState({ match, shade, warden, gadgets, detection, combat, objective }) {
+export function gatherHudState({ match, shade, warden, gadgets, detection, combat, objective, post }) {
   const objectiveHud = objective.hud;
   // The site the player is standing in (C7): named for either role; the
   // plant prompt is the Shade's alone.
@@ -45,5 +45,7 @@ export function gatherHudState({ match, shade, warden, gadgets, detection, comba
     score: objectiveHud.score,
     roundNumber: objectiveHud.roundNumber,
     blind: gadgets.playerBlindFraction(),
+    // M1: the Shade's night vision, the player's toggle (the post owns it).
+    nightVision: !!(post && post.nightVision),
   };
 }

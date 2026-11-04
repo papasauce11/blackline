@@ -20,6 +20,7 @@ export function readShadeIntent(input, intent) {
   intent.sprint = input.down('sprint');
   intent.melee = input.pressed('melee');
   intent.interact = input.down('interact');
+  intent.nightVision = input.pressed('nightVision');
   intent.gadget = input.pressed('gadget1') ? 1
     : input.pressed('gadget2') ? 2
       : input.pressed('gadget3') ? 3 : 0;
@@ -35,6 +36,9 @@ export function idleShadeIntent(intent) {
   intent.crouch = false;
   intent.crouchPressed = false;
   intent.sprint = false;
+  // An edge the reader sets and nothing else clears: left true it would flip
+  // the goggles every step of a dead Shade's countdown (M1).
+  intent.nightVision = false;
   return intent;
 }
 

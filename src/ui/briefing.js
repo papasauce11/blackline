@@ -111,6 +111,7 @@ export function controlRows(match, bindings) {
     if (match.objectiveEnabled) rows.push([keys(b, 'interact'), 'plant - hold in a site room']);
     rows.push(
       [keys(b, 'melee'), 'knife'],
+      [keys(b, 'nightVision'), 'night vision - on and off'],
       [[1, 2, 3].map((n) => keys(b, `gadget${n}`, true)).join(' '), 'smoke, flashbang, taser'],
     );
   }

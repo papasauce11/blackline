@@ -52,6 +52,8 @@ export function createIntent() {
     melee: false,
     /** Plant hold (Section 10.1). Read by systems/objective.js. */
     interact: false,
+    /** An edge (M1): the night-vision key went down this step. Carried out on the emitter by `step`. */
+    nightVision: false,
     /** Gadget slots 1-4 (Section 9.1). Read by systems/gadgets.js. */
     gadget: 0,
   };
@@ -259,6 +261,8 @@ export class Shade {
    * @param {object} intent see createIntent()
    */
   step(dt, intent) {
+    // M1: the goggles are the picture's, so the press goes out on the emitter (K3's torch route).
+    if (intent.nightVision && this.emitter) this.emitter.emit('nightvision:toggle');
     this.landedFallHeight = 0;
     this.scuffedAt = null;
     if (this._slideCooldown > 0) this._slideCooldown -= dt;

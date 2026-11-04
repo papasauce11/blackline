@@ -237,6 +237,7 @@ export async function bootWorld({
 
   wireMatchEvents({
     emitter, hud, audio, combat, shade, warden, deathCam, effects, scoreboard, objective, gadgets,
+    post, menu, briefing,
   });
 
   input = new Input(canvas);

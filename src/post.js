@@ -35,11 +35,16 @@
  * the quality preset (H10, D60) - `low` draws no post whatever the row says,
  * and the row still remembers what the player chose. `CONFIG.render.post` is
  * the numbers. Layering (Section 3.1): as view.js - three and config.
+ *
+ * The Shade's night vision (M1) is a stage of the fourth pass when the post is
+ * on - the composite, with the effect's shader spliced in - and its own two
+ * draws (nightvision.js) when it is off. Off, none of it is in the frame.
  */
 
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { postEnabled } from './quality.js';
+import { NIGHT_VISION_GLSL, createNightVision } from './nightvision.js';
 
 const PP = CONFIG.render.post;
 
@@ -90,8 +95,14 @@ uniform float vignetteOuter;
 uniform float vignetteStrength;
 uniform float aspect;
 varying vec2 vUv;
+#ifdef NIGHT_VISION
+${NIGHT_VISION_GLSL}
+#endif
 void main() {
   vec3 c = texture2D( tScene, vUv ).rgb + texture2D( tBloom, vUv ).rgb * strength;
+  #ifdef NIGHT_VISION
+  c = nightVision( c, vUv, gl_FragCoord.xy, aspect );
+  #endif
   vec2 p = ( vUv - 0.5 ) * 2.0;
   p.x *= aspect;
   float r = length( p ) / length( vec2( aspect, 1.0 ) );
@@ -144,11 +155,32 @@ export function createPost(renderer) {
   const brightMaterial = quad.material;
   const blurMaterial = material(BLUR, uniforms.blur);
   const compositeMaterial = material(COMPOSITE, uniforms.composite);
+  // M1: the same composite with the night-vision stage defined in, sharing the
+  // composite's uniforms by reference. Compiled when first used, not before.
+  const night = createNightVision({ renderer, vertex: VERTEX, geometry: quad.geometry });
+  const nightMaterial = new THREE.ShaderMaterial({
+    vertexShader: VERTEX, fragmentShader: COMPOSITE, uniforms: { ...uniforms.composite, ...night.uniforms },
+    defines: { NIGHT_VISION: '' }, depthTest: false, depthWrite: false,
+  });
 
   const pass = (mat, to) => {
     quad.material = mat;
     renderer.setRenderTarget(to);
     renderer.render(passScene, passCamera);
+  };
+
+  // The feedback quad over a composite, on its own layer, unbloomed. The
+  // scene's background comes off for it: a Color background clears the canvas
+  // whatever `autoClear` says, and took the composite with it.
+  const overlay = (world, camera) => {
+    camera.layers.set(OVERLAY_LAYER);
+    const autoClear = renderer.autoClear;
+    const background = world.background;
+    renderer.autoClear = false;
+    world.background = null;
+    renderer.render(world, camera);
+    world.background = background;
+    renderer.autoClear = autoClear;
   };
 
   const post = {
@@ -166,6 +198,25 @@ export function createPost(renderer) {
     get enabled() {
       return postEnabled();
     },
+    /** The Shade's night vision (M1): the player's toggle, and what moves it. @see nightvision.js */
+    get nightVision() {
+      return night.on;
+    },
+    setNightVision(on) {
+      return night.setOn(on);
+    },
+    /** One fixed step: the grain moves. */
+    tickNightVision() {
+      night.tick();
+    },
+    /** Hold it dark while `allowed()` says no. */
+    setNightVisionGate(allowed) {
+      night.setGate(allowed);
+    },
+    /** The night-vision module, for the checks: its uniforms and the target of the post-off path. */
+    get night() {
+      return night;
+    },
     /**
      * Draw the frame: the scene through the passes when on, straight to
      * the canvas when off. The camera's layer mask is borrowed and given
@@ -177,7 +228,13 @@ export function createPost(renderer) {
       // the scene's draws plus the passes - whichever path drew it.
       renderer.info.autoReset = false;
       renderer.info.reset();
+      const goggles = night.active;
       if (!postEnabled()) {
+        if (goggles) {
+          night.render(world, camera, overlay);
+          post.passes = 1;
+          return;
+        }
         renderer.setRenderTarget(null);
         renderer.render(world, camera);
         post.passes = 0;
@@ -202,19 +259,9 @@ export function createPost(renderer) {
       }
       uniforms.composite.tScene.value = scene.texture;
       uniforms.composite.tBloom.value = from.texture;
-      pass(compositeMaterial, null);
+      pass(goggles ? nightMaterial : compositeMaterial, null);
 
-      // The feedback quad over the composite, on its own layer, unbloomed.
-      // The scene's background comes off for it: a Color background clears
-      // the canvas whatever `autoClear` says, and took the composite with it.
-      camera.layers.set(OVERLAY_LAYER);
-      const autoClear = renderer.autoClear;
-      const background = world.background;
-      renderer.autoClear = false;
-      world.background = null;
-      renderer.render(world, camera);
-      world.background = background;
-      renderer.autoClear = autoClear;
+      overlay(world, camera);
       camera.layers.mask = mask;
       post.passes = 3 + 2 * PP.blurPasses;
     },
@@ -230,7 +277,8 @@ export function createPost(renderer) {
     },
     dispose() {
       for (const t of [scene, bright, blurA]) t.dispose();
-      for (const m of [brightMaterial, blurMaterial, compositeMaterial]) m.dispose();
+      for (const m of [brightMaterial, blurMaterial, compositeMaterial, nightMaterial]) m.dispose();
+      night.dispose();
       quad.geometry.dispose();
     },
   };
