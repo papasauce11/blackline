@@ -21371,3 +21371,9 @@ high-priority, and none blocks a job on him. So **H48** (D72 option 3),
 are unblocked; **H17** and **H26** are dropped; D56 stays free roam, a Shade
 AI being the PM's call if it is ever one. Nothing is waiting on Josh. `PLAN.md`,
 the PM's definition, the routine and audit prompts updated the same morning.
+
+**Amended the same morning.** Josh: *"also ask me about key "feel" decisions like movement, combat etc.."* D84 now
+reads personality, styling **and key feel** - how moving and fighting handle.
+Asked as Blocking with where he can feel each option; a fix that makes a move
+do what it already meant to stays the lead's. The next such questions in the
+queue are J2, J9 and L1's stick curves.

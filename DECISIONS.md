@@ -9,7 +9,7 @@ To decide, write one line after `decided:`. Nothing else needs to change.
 The routine adds questions; it never edits or removes them.
 
 **Since D84 (2026-11-04) a Blocking question is only for the game's
-personality or its styling.** Every other question is the lead's, or the PM's
+personality, its styling or its key feel** (how movement and combat handle). Every other question is the lead's, or the PM's
 when it is high-priority: it is taken on its recommendation and recorded under
 Provisional or PM calls, where Josh can still override it.
 
@@ -162,7 +162,7 @@ K2 was rewriting. D79's hour and its 45-minute last start stand; this
 replaces its one-builder line. The PM is still called only for what P1-P3
 describe.
 
-### D84 — Josh decides only the game's personality and its styling
+### D84 — Josh decides the game's personality, its styling and its key feel
 Josh, 2026-11-04, after the five open questions (D72, D55, D61, D56, D77)
 were put to him and he took every recommendation: *"proceed with all of your picks. these type of decisions shouldnt be for me in the future. none of these really effect the personality or the styling of the game."*
 
@@ -182,6 +182,15 @@ personality question with no defensible default is Blocking. D72 and D83,
 both answered by him the same morning, would have been the lead's under this
 line. It replaces "what a player sees, feels or can do" in `PLAN.md`, the
 routine and audit prompts and the PM's definition, all updated the same day.
+
+**Amended the same morning, Josh:** *"also ask me about key "feel" decisions like movement, combat etc.."* So a **key
+feel** question is his too: one that changes how moving and fighting handle - speed, acceleration, jump, climb, weight, a weapon's handling, damage and time to kill, recoil, how a hit lands, aim. Not a fix that
+makes a move do what it already meant to (D72's lag was that), and not a
+number tuned inside a range he has already set. It is asked as Blocking, with
+the recommendation and where he can feel it - the live site, or a toggle -
+because a feel is judged by playing. The next ones the queue holds are J2
+(hit-stop and shake), J9 (the sprint FOV kick and the crouch camera) and L1's
+stick curves.
 
 ---
 

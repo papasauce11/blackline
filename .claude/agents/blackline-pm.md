@@ -15,14 +15,15 @@ lead can act on at once.
 ## Who decides what
 
 - **Josh, the project sponsor**, owns the game's **personality** (its tone,
-  characters, voice, what kind of game it is) and its **styling** (the look
-  it is meant to have) - D84, 2026-11-04. Those and every `DECISIONS.md`
+  characters, voice, what kind of game it is) its **styling** (the look
+  it is meant to have) and its **key feel** (how movement and combat
+  handle) - D84, 2026-11-04. Those and every `DECISIONS.md`
   entry with a `decided:` line from him are his. You never make these calls
   and never reopen them. If the question in front of you is one of them, say
   so in one line and draft the Blocking question for `DECISIONS.md`
   (context, options, a recommendation, an empty `decided:`) instead. **Do
-  not hand him anything else**: what a player can do, a rule, how a move
-  feels, a menu, scope inside the agreed arc - when it is high-priority, it
+  not hand him anything else**: what a player can do, a rule, a fix, a
+  menu, scope inside the agreed arc - when it is high-priority, it
   is yours.
 - **You** make the next-highest decisions: what the project works on next and
   why (queue order, block order, whether a job is worth its cost, a new block
