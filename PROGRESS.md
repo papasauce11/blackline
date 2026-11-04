@@ -21013,3 +21013,109 @@ Run spread 194ms on the plant (0% of the longest) and 9,284ms on the yard (1%).
 
 The ceiling reading is the one thing to act on: **11 modules within 50 of 600,
 nearest `src/systems/combat.js` at 593 with seven left**, queued as H104.
+
+## K2 — Hearing with memory
+
+**Built** by a Sonnet builder in the main tree while two others built K7 and
+M1 in worktrees (D81). `src/systems/aihearing.js` (189 lines), a mixin beside
+perception: `_hear` fades every room's attention each step, counts each new
+non-Warden noise once - the pool recycles slots, so `NoiseField.emit` now
+stamps a `seq` - and adds to its room; `_whereHeard` picks the room's waypoint
+nearest its centre for a sound from another room and the sound itself for one
+in the Warden's own room or on open ground. `aiperception.js`'s hearing block
+became one call.
+
+**The fix round.** The first build sent the Warden to the room's waypoint for
+every sound in a room, its own included, so a Warden in a room with a scuff
+beside it turned to the room's centre - the scuff check stayed green only
+because its wall is on open ground. The rule the job means is "a sound from
+another room sends it to that room", and the check now proves both halves: (b)
+from outside, (e) from inside.
+
+**The check**, `the-warden-remembers-what-it-heard-room-by-room`, two scenes
+on each map. Inside: the Warden held in the Shade's room while she walks a
+1.8m ring - attention 0.34, 0.65, 0.93, INVESTIGATE at 1.88s where the hold
+would have run to 2.2s, sent to her last footstep (0.00m); one footstep
+leaves it SUSPICIOUS at 0.28; the half-life reads 49.9%. Outside: the Warden on
+open ground 3.8m from a sprint ring in the turbine hall (plant) and bay A
+(yard) - 0.58 then 1.00, INVESTIGATE at 0.90s, sent to the room's waypoint.
+Three breaks, each red on its own clause only (decay, room target, same-room
+point); the decay break ran through the suite with M1's.
+
+**Left as it was, on purpose.** The suspicious hold still turns any single
+heard noise into an INVESTIGATE after 1.5s, so the memory escalates faster and
+never slower: changing that would change what Section 11 says a heard noise
+does, and the detection checks were to stay unchanged.
+
+## K7 — Patrol variety
+
+**Built** by a Sonnet builder in its own worktree (D81), proved in that
+worktree on the verified base, then cherry-picked. `src/systems/aipatrol.js`
+(155 lines): `siteStands(map)` - each site's room's waypoint nearest the site,
+or the Warden-ground stand beside it - and a PATROL mixin that, at each node
+pick while `round:clock` reads under `siteCheckAt`, sends the Warden to the
+nearest unvisited site room, marks it seen on arrival, and resumes the circuit
+one node on. Not latching: a takedown's +30s lifts the clock back over the
+line and stops further legs. `objective.js` emits `round:clock` when the clock
+crosses a whole second and only while time is left - without that condition
+the round-ending step said a negative time and the break stayed green.
+
+**Proved** through the runner in the worktree: break first, `siteCheckAt: 0`,
+red on (b) on both maps (*"arrival 1 after the pick (27.6s past the line) is in
+no site room, want A"*); restored; then the check, the checks of every module
+it touched and the census set, plant **46 / 0**, yard **45 / 0 / 1**, no flaky,
+no console error.
+
+**Left for Josh to feel.** The last minute is short for the plant's sweep
+(69-133s): the Warden reaches one or two site rooms before the clock runs out.
+That is the queue's "a site room checked"; a longer `siteCheckAt` is one number.
+
+## M1 — The Shade's night vision
+
+**Built** by a Sonnet builder in its own worktree beside K2 and K7 (D81), on
+K3's torch route: a binding, an intent edge cleared by the idle reader (left
+set, a dead Shade's countdown flipped the goggles every step), `nightvision:toggle`
+on the emitter, and the state owned by the post. `src/nightvision.js` (206
+lines) holds the shader chunk, the toggle, the gate, the step tick and the
+post-off path; `src/post.js` (286) gained an `#ifdef NIGHT_VISION` stage as a
+second material compiled on first use, so a frame with the goggles off is the
+old path byte for byte. The builder's `TODO(lead)` on the numbers became D82.
+
+**The check**, `the-shades-night-vision-lifts-the-dark-and-costs-her-nothing`,
+both maps: the lift (floor 2.0x; measured 2.84x-2.96x, 2.58x-4.05x over four
+lanes) and the green (floor 12 over red and blue; measured 22.8-29.7, against an
+unlifted control under 12) with the post on, the row off and at `low`; the
+passes (none extra with post on, one with it off); 180 steps of the meter, the
+accumulator, her health and the rng draws identical on and off; a second
+press, the pause page, the briefing, a new round and a Warden in free roam all
+without it; the HUD tag. Break `gain 1, lift 0, tint white`, run through the
+suite with K2's: red on the lift and the green at all three levels.
+
+**The snapshots** (Josh, 2026-11-03: send them along the way) went out before
+the proof: the same yard pose off and on, mean luma 23.2 and 63.6.
+
+## Batch K2, K7 and M1 — the verify found a bug older than all three (2026-11-03)
+
+The third batch of the day, built by three Sonnet builders at once (D81) and
+verified as one: **four runs at `0575544`, exit 1** - plant **253 / 2 / 10**
+both runs (1,146,975ms and 1,149,026ms), yard **235 / 2 / 28** both runs
+(883,972ms and 883,984ms), spreads 0% and 0%, 0 flaky, 0 console errors. One
+failure a map is the bench-only sweep (H11); the other was M1's own check,
+identically in all four runs: *"GL error in the low reads"*, every number in
+it passing. K2's and K7's checks and every other check were green.
+**Attributed** in 2.7 minutes by a subset - the check after seventeen of the
+renderer checks reds on the plant - and bisected by M1's builder to one
+predecessor, `a-lost-gl-context-is-caught-and-the-check-re-run`: a render
+target that outlived a context loss keeps three's dispose listener from the
+old context, so a later quality change deleted 13 GL objects into the dead
+context, INVALID_OPERATION each. A player who lost the GPU and then changed
+quality had it; M1's check was the first to read the error flag across a
+resize after the loss. **Fixed in the game** at `a60fcbb` (on
+`view:contextrestored` the post rebuilds its targets and night vision forgets
+its own, undisposed, and the key light's shadow map is let go), the clause
+untouched; proved by the eighteen checks and the census set on both maps
+through the runner. K2 and K7 were pushed at `40a9d28` while M1 was
+attributed. The full verify of the batch with the fix is the next run's gate -
+HANDOFF.md's `UNVERIFIED BATCH` heading says so - because a second 70 minutes
+would have run into the 02:00 routine. A check of its own for the
+loss-then-quality path is H105.

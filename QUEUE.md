@@ -956,6 +956,7 @@ the end of this list, never ahead of a game-facing job.
 
 - [ ] **H103 (S)** The burst check cannot tell an interrupted burst from a short pause. `the-warden-fires-in-bursts-of-rounds-at-the-torso` calls any shot-to-shot gap over `rate + dt * 1.5` a burst boundary and records `gap - rate` as the pause, so eleven frames of *not firing* inside a burst read as a pause of 0.18s and the clause reds with *"config says 0.25-0.7"*. Found by K6 under `?seed=1637054825` on the plant and **attributed to the base**: it reproduces identically on a fully reverted pre-job tree, and the window drives the hardest preset, whose `aimSettle` is 0. The pause is real or the burst was interrupted, and the check should say which — the AI knows, since `_burstPause` is only non-zero for a drawn pause, so the honest reading is a pause the AI declares rather than one inferred from a gap. *done-when:* the check is green on both maps under `?seed=1637054825` and unseeded, no bound in `config.js` has moved, and a break that shortens a real pause below `engageBurstPauseMin` still reds it.
 - [ ] **H104 (S)** `src/systems/combat.js` is 593 lines, seven from the 600 cap, and the ceiling reading K6's run printed names it as the nearest of eleven modules within fifty. The next job that touches combat cannot add a comment. Split it the way F3 split the others, by what the caller needs. *done-when:* no module but `config.js` is within twenty of 600, and the ceiling line of a full run says so.
+- [ ] **H105 (S)** A quality change after a lost GL context is pinned by a check of its own. `a60fcbb` fixed it - a render target that outlived the loss deleted 13 GL objects into the dead context on the next quality change - and the only check that reads it is M1's, by its place in the registry after `a-lost-gl-context-is-caught-and-the-check-re-run`. *done-when:* a check stages a loss and a restore, changes the quality level and back, toggles night vision on and off, and reads `gl.getError()` 0 at each step on both maps; it reds with `post.contextRestored`'s body emptied; it runs alone and still reds, so it does not lean on the registry's order.
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -965,10 +966,7 @@ K4, K5, K7.
 
 - [x] **K1 (M)** Search like a person — done 2026-11-03, under Done. `src/systems/aisearch.js` (the SEARCH mixin, hiding spots, tops and vantages), `the-warden-searches-behind-cover-and-looks-up-at-tops-it-cannot-reach`.
 - [x] **K6 (M)** Difficulty at range — done 2026-11-03, under Done. `aimSettle` on the three `ai.difficulty` presets, `_enter`/`_fireBurst` in `src/systems/ai.js`, the margin clause and `SEPARATION_FRACTION` in `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`, a fourth number in `difficulty-preset-reaches-the-ai`. H99 folded in and green.
-- [ ] **K2 (M)** Hearing with memory. Noise raises an attention level per
-  room that decays; a heard noise sends it to the room, not the point;
-  metal footsteps louder (I2). *done-when:* attention curves in a check;
-  the detection checks unchanged.
+- [x] **K2 (M)** Hearing with memory — done 2026-11-03, under Done. `src/systems/aihearing.js` (attention per room, the room target), `seq` on noise events, `CONFIG.ai.hearing`, `the-warden-remembers-what-it-heard-room-by-room`.
 - [x] **K3 (M)** The torch, on the night map — done 2026-11-03, under Done. `src/systems/torch.js`, `night` on the yard's registry entry, the `torch` action on T, three checks in `src/tests/torch.js`.
 - [ ] **K4 (S)** Alarm response. A trip sends it along the route past the
   camera, and it places the camera on the likeliest approach. *done-when:*
@@ -976,9 +974,7 @@ K4, K5, K7.
 - [ ] **K5 (S)** Giving up. A search timer by difficulty; back to patrol
   with a bark (N2); faster to re-alert the second time. *done-when:* a check
   times both.
-- [ ] **K7 (S)** Patrol variety. Route order and pauses from the seed; a
-  site room checked when the round clock is low. *done-when:* two seeds
-  give two orders in a check; determinism check unchanged.
+- [x] **K7 (S)** Patrol variety — done 2026-11-03, under Done. `src/systems/aipatrol.js`, `round:clock` from the objective, `CONFIG.ai.patrol.siteCheckAt`, `the-warden-checks-a-site-room-when-the-round-clock-is-low`.
 - [ ] **K8 (S)** The per-round aim draw, back off the shelf. F17 built it, measured it better at unchanged accuracy — the hit fraction and the mean do not move, only the variance, and the scatter inside a burst goes from 0.675 / 0.614 of the overall scatter to 0.896 / 0.926 — and reverted it for one reason only: it tipped medium and hard into a dead heat at 8m. K6 moved that separation off the cone entirely (D80), so the reason is gone. Draw the hold per round rather than per burst (`_drawAimError` from the `combat:shot` handler, not the burst refill) and re-measure. *done-when:* `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` and `the-widest-cone-kills-at-range-and-not-once-in-a-while` are green on both maps unseeded and under `seed=20261018`, with the margin clause compared no less strictly, and the entry says what the tail did; D54 is answered either way.
 
 ## Block M — vision
@@ -988,11 +984,7 @@ thin walls like vents, crates and such, not real regular walls"; the alarm
 camera gets a live feed; the Warden a torch (K3). Parameters are
 provisional; the rule for "thin" is mechanical, never a tag.
 
-- [ ] **M1 (M)** The Shade's night vision. `V` toggles; a post effect on the
-  Shade's view — exposure lift, a green cast, grain — no cost to the body
-  (provisional; the Shade's problem is being seen, not seeing); the HUD
-  shows it; off in menus. *done-when:* a pixel check measures the lift on
-  the yard; detection of the Shade unchanged.
+- [x] **M1 (M)** The Shade's night vision — done 2026-11-03, under Done. `src/nightvision.js`, the `NIGHT_VISION` stage in `src/post.js`, `nightVision` on V, the HUD `NV` tag, `the-shades-night-vision-lifts-the-dark-and-costs-her-nothing`.
 - [ ] **M2 (M)** The x-ray rule. `seeThroughAlong(from, to)` in the map: a
   solid is see-through if its top is below its room's ceiling by a body's
   height (or it stands under the sky), and the sightline's total thickness
@@ -1055,8 +1047,10 @@ Josh (D50): no music. The map's own sound carries it.
   night wants it. Synthesised, seeded, looping without a seam; louder in
   bigger rooms. *done-when:* `renderOffline` proves each bed and the seam.
 - [ ] **I2 (S)** Footstep materials. Concrete, metal, grate, wet from the
-  finish under the feet (E4/E5). *done-when:* a check walks each and
-  compares the samples.
+  finish under the feet (E4/E5); and a metal footstep is louder to the Warden
+  too (moved from K2: nothing reads the surface under a foot yet, and this is
+  the job that makes it). *done-when:* a check walks each and compares the
+  samples, and a metal step's noise radius is larger than concrete's.
 - [ ] **I3 (S)** Room acoustics. A delay sized by the room's volume;
   outdoors dry with a slap off the ring. *done-when:* the tail length per
   room in a check.
@@ -1119,6 +1113,44 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **M1** The Shade's night vision. `V` toggles it for the Shade only: the frame's
+  light times 4 plus 0.03, its luma in a soft phosphor green, grain from a
+  hash of the pixel and the step (the same every run of a seed), a tube
+  vignette (D82, provisional). Mean luma on the yard 19.9 to 58.8 and on the
+  plant 21.9 to 62.2, at every quality level - at `low`, where the post draws
+  nothing, it draws its own one pass. It costs her nothing: 180 steps of
+  detection identical on and off. Off at a round's start, dark behind the
+  pause page and the briefing, an `NV` tag on the HUD. Built by a Sonnet
+  builder in a worktree; Josh was sent the off/on pair from the yard as it
+  landed — `848725e`, `0575544`, 2026-11-03, Josh's session.
+- **K7** Patrol variety. The order and pauses were already the seed's (H-era
+  `reset()` shuffle, `ai-patrol-order-is-seed-reproducible` asserting seed+1
+  differs), so K7 built the other half: under 60s left (a quarter of the
+  round), a patrolling Warden at its next node visits each plant site's room
+  once, nearest first, pauses there, and returns to the circuit where it left
+  it. The objective now says the clock on the emitter (`round:clock`, once a
+  second while time is left). Measured: the pick 6.5s (plant) and 16.4s (yard)
+  after the line, and a full sweep 69-133s on the plant and 45-73s on the yard
+  - so in the last minute the plant reaches one or two site rooms and the yard
+  all three, which is what "a site room checked" asks; `siteCheckAt` stays 60.
+  Built by a Sonnet builder in a worktree, proved there (plant 46/0, yard
+  45/0/1, census set included; break `siteCheckAt: 0` red on (b) both maps) —
+  `40a9d28`, 2026-11-03, Josh's session.
+- **K2** Hearing with memory. Every noise the Warden hears adds `gain * (1 - d / r)`
+  (0.7) to an attention level for the room it came from, fading with a 6s time
+  constant; a room reaching 0.8 sends it to INVESTIGATE at once, with no
+  suspicious hold - three walking footsteps at 1.8m (0.34, 0.65, 0.93) or two
+  sprinting ones, never one. A sound from another room sends it to that room's
+  waypoint (10.2m from the last footstep on the plant, 5.8m on the yard), not
+  the point; a sound in its own room, to the sound - the lead sent the first
+  build back for that, because a Warden turning to its own room's centre away
+  from a scuff beside it reads as deaf. A single noise still makes it
+  SUSPICIOUS, as before. Rooms by `addSite`'s own containment, so the plant's
+  deck offices are not the Loading Bay; `office-east` has no waypoint and
+  keeps the point. "Metal footsteps louder" moved to I2: finishes are chosen
+  by palette colour and nothing reads the surface under a foot. Built by a
+  Sonnet builder from the lead's brief, one fix round — `823972b`, 2026-11-03,
+  Josh's session.
 - **K6** Difficulty at range: what parts medium from hard up close is a beat, not a cone. F17 had proved no aim model can do it — at 8m the body subtends 2.43 degrees either way against medium's 2.5-degree cone and hard's 1.2, so both land everything, and a kill is four rounds of `damageNear` against 100 health, 0.3s at 600rpm, which both presets sat on (0.49s and 0.49s on the yard under `?seed=20261018`, H99's red). `reactionDelay` gates the detection fill and is spent before the kill clock starts. So: `aimSettle`, a per-preset beat spent once per ENGAGE getting the gun onto the body — **easy 0.42, medium 0.16, hard 0.0**, hard's clock deliberately unmoved (0.49s before and 0.49s after, to the hundredth) and the cost carried by the easier presets (D80). The check now holds the separation to **0.6 of the gap config claims**, a floor derived from config, because a tie passes a strict `<` by a step's worth of noise. Proved unseeded (plant 37/0, yard 35/0/2, census set included), under `seed=20261018` (5/0 both maps, the yard's 8m now 1.07 / 0.66 / 0.49) and under `seed=20260927` (3/0 both maps). Break: `_enter`'s assignment to `= 0`, run under 20261018 because the cone alone covers the floor under the pinned seeds — red on its own clause, *"hard kills 0.000s sooner than medium"*. Found and attributed to the base: H103, the burst check's pause classifier, red under `?seed=1637054825` on a pre-job tree too. `88beb70`, 2026-11-03.
 
 - **H102** The check-29 load waits off its own clock (P3). Taken by P1's first clause:
