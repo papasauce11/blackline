@@ -21305,3 +21305,43 @@ shot, only one of which the suite ever runs, is a drift waiting to happen. The
 probe's own numbers agree with the check's exactly (ring 149.83 lit against
 89.27 dark, margin 60.56, noise 0), which is the reassurance available today.
 `56bf387`, `315e009`, `0b509a7`.
+
+## Batch K4, M2 and M7 verified (2026-11-04 02:00, scheduled run)
+
+A full verify at `187da67`, the three jobs' eight commits on it: plant
+**257 passed / 1 failed / 10 not for this map** (1,235,347ms and 1,214,600ms,
+spread 2%), yard **239 / 1 / 28** (916,708ms and 912,175ms, spread 0%), `red`
+and `flaky` both empty, `expectedRed` and `unexpectedGreen` empty, nothing
+skipped, **0 console errors**, ceiling 11 modules within 50 of 600 with
+`systems/combat.js` nearest at 593. The one failure a map is H11's bench-only
+sweep, `fail` in the report's `benched` block on all four runs because it times
+a single SwiftShader draw against an 8.33ms ceiling - 823.10ms at worst - and
+`red: []` is the suite's verdict on it.
+
+**The arithmetic attributes the batch without a subset.** The last green verify
+was 254 / 1 on the plant and 236 / 1 on the yard; this one is 257 / 1 and
+239 / 1, **three more green on each map**, which is exactly the three checks
+this run added and no other movement. Their detail lines, both maps, both runs:
+`the-warden-puts-its-one-camera-on-the-way-in-and-a-trip-walks-it-past-the-lens`
+covers the feet of seven ways in on the plant and nine on the yard, with the
+plant's `fire-escape-roof` still unwatchable by any of 529 stands (K9);
+`the-xray-sees-through-a-duct-a-crate-and-a-container-and-never-through-a-wall`
+31 thin / 15 shell / 43 wall on the plant and 28 / 18 / none on the yard, the
+stacked pair 5.20m against the 2.5m line; and
+`a-placed-alarm-camera-is-found-from-six-metres-by-its-lens-light` a ring
+**60.561** luma brighter against a noise of **0.000** on the plant and 40.934
+on the yard, four times over the bar. The plant's 60.561 is the number the
+scratchpad probe read before the check existed, to three decimals.
+
+**A process finding, for the record.** The runner agent's monitors kept
+re-firing after it had finished, and each firing re-delivered its *first*,
+pre-fix report verbatim - K4's red numbers, four times, after the fix had
+landed and gone green. What caught it every time was reading the run by its
+agent id and output file rather than by the numbers in the message, since a
+stale report is indistinguishable from a fresh one on its contents alone. That
+belongs in TRAPS.md and is queued.
+
+Overrun, honestly: D79 asks for about an hour of work and this run's hour ran
+03:23 to 04:46, **83 minutes**, before the 70-minute verify. The three builders
+ran in worktrees underneath the opening gate, which is what bought the third
+job at all.

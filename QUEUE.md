@@ -969,6 +969,18 @@ the end of this list, never ahead of a game-facing job.
   *done-when:* a pixel check names a frame, a full run writes it under the
   run's own folder, and M7's probe file is deleted because the check is the
   only staging left.
+- [ ] **H107 (S)** TRAPS.md does not warn that a finished runner agent can
+  re-deliver a stale report. This run's verify runner re-sent its *first*,
+  pre-fix report four times after its monitors had expired and the fix had
+  already landed and gone green — K4's red numbers, verbatim, indistinguishable
+  from a fresh verdict on their contents alone. What caught it each time was
+  reading the run by its agent id and output file rather than by the numbers in
+  the message. The rule is cheap and worth writing down: a report is only the
+  run named by the output file it quotes, and a run at a commit the tree has
+  moved past is not a verdict on the tree. *done-when:* TRAPS.md carries the
+  trap with the idiom (compare the report's `FILES` path and the commit it was
+  started at against HEAD before acting on it), and a full verify after the
+  edit is green, since three checks `fetch` that file.
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
