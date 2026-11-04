@@ -196,6 +196,94 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D85 — How long the Warden looks for you, and how much quicker it suspects you the second time
+
+**Raised by:** K5, 2026-11-04, and **taken** rather than asked, because K5 was
+queued to make giving up a difficulty's business and the numbers had to come
+from somewhere. It is written here because a player feels all three of them.
+Under D84 this is a rule's tuning and not a key feel question: it changes how
+long an opponent hunts, not how moving or shooting handles.
+
+**What was decided.** A fifth per-preset number,
+`ai.difficulty.*.searchDuration` - seconds of SEARCH before the Warden gives
+up and goes back to its rounds: **easy 10, medium 15, hard 22.** Medium keeps
+the fifteen it always had, deliberately: `A.searchDuration` is still there as
+the shared fallback and three existing checks bound their own stepping on it,
+so holding medium still means nothing already proved had to move.
+
+And two numbers for the re-alert: **`reAlertFactor` 0.7** and
+**`reAlertFloor` 0.4**. Each search the Warden gives up multiplies the
+suspicion threshold by the factor, never below the floor of the base - so the
+first give-up takes 40 to 28, the second to 19.6, and the fourth hits the
+floor at 16 and stays.
+
+**The alternatives.** The timer could have stayed shared and only the re-alert
+scaled by difficulty; that is a smaller change but it leaves easy and hard
+equally patient, which is the thing K5 exists to fix. The re-alert could have
+been a flat subtraction rather than a factor; a factor compounds, which reads
+as a Warden getting steadily harder to shake over a round, and that seemed the
+better story for a stealth round that is meant to tighten. The floor exists so
+a long round cannot drive the threshold to nothing and leave the Warden
+permanently suspicious, which would read as broken rather than as alert.
+
+**What to disagree with.** Whether **hard's 22 seconds is oppressive** is the
+number to argue with first - it is nearly half again medium's, and it is spent
+sweeping hiding spots and tops near where she was last seen. And whether the
+**compounding should reset** on something: today only a new round clears
+`_giveUps`, so a Warden that has given up three times in one round is still
+carrying that at the ten-minute mark.
+
+### D86 — Sixteen rays, and a check that measures a gain rather than a share
+
+**Raised by:** K10, 2026-11-04, and **taken**: the queue asked for the fan to
+be raised or bisected, and what to assert afterwards was left open.
+
+**What was decided.** `ai.alarmPlacementProbes` goes **8 to 16** - 22.5
+degrees between rays instead of 45. And the check holds **the gain, not a
+standard**: it asserts the fan covers strictly more stands than the eight rays
+the AI swept before K10, which is sound without any threshold because the
+coarse fan's angles are a subset of the fine one's at any multiple of eight.
+
+**Why not the parity the brief asked for.** It is unreachable. Against a
+72-ray reference sweep no count closes the gap - the fan is centred on the
+route's foot and a plain sweep is not, so they never share a ray - and across
+arbitrary counts the relation is not even monotone (the plant's `hall-south`
+covers 186 stands at 48 rays and 185 at 72). The full table is in PROGRESS.md
+under K10.
+
+**Why not the share.** The first version of the clause capped the shortfall at
+16% per map, a number picked to sit between the measured 21% before and 13%
+after. On the yard the revert to eight rays would have reddened it by 1.4
+points. A check whose break turns on a 1.4-point margin stops guarding the
+constant the first time a map edit moves the stands, and nothing would say so.
+
+**What to disagree with.** Whether **16 is enough**: 24 and 32 keep buying
+stands (the plant's shortfall goes 13% to 9% to 8%), and the cost is only rays
+inside a sweep already throttled to twice a second. 16 was taken as the
+smallest count strictly better than 8 on every route with any cover and worse
+on none; a case for 24 is a case about how much the camera should be expected
+to see, which is a design question rather than a measurement.
+
+### D87 — What makes a neighbour a wall, in the x-ray's own terms
+
+**Raised by:** M8, 2026-11-04, building D83's option 2, and **taken**: D83
+settled *that* a wall plane's low pieces are wall and that shell is what lies
+along the boundary, not the mechanics of either.
+
+**What was decided.** Two tests, both measured on the built maps rather than
+reasoned about. A piece is wall when its neighbour **spans its room** - starts
+within 0.5m of the floor and reaches the ceiling - and not merely when the
+neighbour's top touches a ceiling: the yard's `bay-c-t3` container tower tops
+out above its bay's ceiling, and the looser test turned the container beside it
+opaque. And the piece's thickness must sit **inside** the neighbour's rather
+than overlap it, or a crate stood flush against a wall reads as wall.
+
+**What to disagree with.** The **0.5m floor band** is the one guessed number
+here; every wall on both maps starts at its room's floor exactly, so nothing
+measured chose it and nothing yet tests its edge. A map with a wall standing
+on a 0.6m plinth would read that wall as not spanning its room, and the sill
+beside it would go see-through.
+
 ### D82 — The Shade's night vision as built: four times the light, one soft green, grain that moves with the step
 
 M1 (2026-11-03). Josh asked for night vision by name (D50) and left its look

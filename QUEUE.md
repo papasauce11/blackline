@@ -994,6 +994,30 @@ the end of this list, never ahead of a game-facing job.
   an exit code. *done-when:* the line prints on a real run with the modules it
   names; a module bumped one line over its row in a scratch copy shows in it
   and the suite still exits 0.
+- [ ] **H109 (S)** Worktrees from finished runs are never pruned. `git
+  worktree list` holds five from earlier runs (K4, K7, M1, M2, M7 - all
+  merged, recorded and pushed), two with uncommitted files, each a full
+  checkout on disk and each a branch `git branch` still lists. Nothing removes
+  them: the builder agents that made them are gone and the lead has never been
+  told to. They cost disk and they make `git worktree list` unreadable at
+  exactly the moment a run needs to check whether a builder's tree is on the
+  branch's history. *done-when:* the run's own procedure (the routine prompt,
+  or a line in TRAPS.md) says when a worktree is pruned and by whom; `git
+  worktree prune` plus the explicit `git worktree remove` of each merged tree
+  is run once, the five are gone, and the entry says what was in the two dirty
+  ones before they went.
+- [ ] **H110 (S)** A red's detail is truncated, mid-word, at 400 characters.
+  K5/K10/M8's two break runs both wrote the plant's x-ray detail cut off at
+  **exactly 400 characters** - once at `... 0/5 l`, once at `... 1.00m of
+  1.00m; a` - in `--details`' own JSON as well as the printed output, so it is
+  the harness filling `detail`, not the reporting of it. The reading a red is
+  read by is the detail string: one break lost the `0/5` count it had just
+  earned and the other lost every reading after its first line. 400 is a cap
+  nothing announces. *done-when:* the cap is found and either raised past the
+  longest detail the suite produces or made to announce itself (`...
+  [truncated, N chars]`), a check asserts a detail longer than the old cap
+  survives the round trip, and the entry says what the cap was and where it
+  lived.
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -1006,9 +1030,7 @@ K4, K5, K7.
 - [x] **K2 (M)** Hearing with memory — done 2026-11-03, under Done. `src/systems/aihearing.js` (attention per room, the room target), `seq` on noise events, `CONFIG.ai.hearing`, `the-warden-remembers-what-it-heard-room-by-room`.
 - [x] **K3 (M)** The torch, on the night map — done 2026-11-03, under Done. `src/systems/torch.js`, `night` on the yard's registry entry, the `torch` action on T, three checks in `src/tests/torch.js`.
 - [x] **K4 (S)** Alarm response — done 2026-11-04, under Done. `src/systems/aialarm.js` (the ALARM mixin, the route-ordered fan), `gadgets.alarmCovers` and `findAlarmWall`, the via in `_enterInvestigate` / `_stepInvestigate`, `the-warden-puts-its-one-camera-on-the-way-in-and-a-trip-walks-it-past-the-lens`. `fa39e8c`, `9b979f6`, `1496cc9`.
-- [ ] **K5 (S)** Giving up. A search timer by difficulty; back to patrol
-  with a bark (N2); faster to re-alert the second time. *done-when:* a check
-  times both.
+- [x] **K5 (S)** Giving up — done 2026-11-04, under Done. `searchDuration` on the three `ai.difficulty` presets (10 / 15 / 22), `_giveUpSearch` and `_suspicionThreshold` in `src/systems/aisearch.js`, `ai.reAlertFactor` 0.7 / `reAlertFloor` 0.4, the `ai:bark` seam for N2, `the-warden-gives-up-sooner-on-easy-and-re-alerts-faster-the-second-time`. D85. `ef592dc`.
 - [x] **K7 (S)** Patrol variety — done 2026-11-03, under Done. `src/systems/aipatrol.js`, `round:clock` from the objective, `CONFIG.ai.patrol.siteCheckAt`, `the-warden-checks-a-site-room-when-the-round-clock-is-low`.
 - [ ] **K9 (S)** The one approach the camera cannot watch. K4's probe swept
   every standable cell within the camera's 8m of each declared route's foot and
@@ -1020,13 +1042,7 @@ K4, K5, K7.
   or it may be a hole; either way a player can only learn it by losing to it.
   *done-when:* `PLAYTEST.md` names it as the approach the camera cannot
   watch, or a covering stand exists and K4's check asserts that route too.
-- [ ] **K10 (S)** A finer fan for the camera's wall. `alarmPlacementProbes` is
-  8, so K4's route-ordered sweep tries directions 45 degrees apart and misses
-  covering walls that are there: the probe found a yard stand (`store-west`)
-  where a plain sweep covered the foot and the fanned order did not, which is
-  why the fallback exists. Raise the fan, or bisect between the two nearest
-  hits. *done-when:* the covers-per-route column is measured before and after
-  on both maps, the entry says the gain, and K4's check stays green.
+- [x] **K10 (S)** A finer fan for the camera's wall — done 2026-11-04, under Done. `ai.alarmPlacementProbes` 8 to 16 (22.5 degrees), clause 3 of K4's check comparing the fan with the eight rays before it: +86 stands on the plant, +69 on the yard. **Parity with a fine sweep is unreachable at any count** - the fan is centred on the foot and a plain sweep is not, so they never share a ray - and the covers-per-route table is in PROGRESS.md. D86. `8bb3163`.
 - [ ] **K11 (S)** A Warden that starts its circuit the wrong way and freezes.
   Seen while staging K4 on the plant, and **not K4's doing**: a Warden
   beginning a patrol leg from near the hall-west camera laid a route toward a
@@ -1049,24 +1065,27 @@ provisional; the rule for "thin" is mechanical, never a tag.
 
 - [x] **M1 (M)** The Shade's night vision — done 2026-11-03, under Done. `src/nightvision.js`, the `NIGHT_VISION` stage in `src/post.js`, `nightVision` on V, the HUD `NV` tag, `the-shades-night-vision-lifts-the-dark-and-costs-her-nothing`.
 - [x] **M2 (M)** The x-ray rule — done 2026-11-04, under Done. `src/mapxray.js` (`seeThroughBox`, `seeThroughAlong`), `GameMap.seeThroughAlong`, `tExit` on `raySlab`, `CONFIG.shade.xray.maxThickness` 2.5 (provisional), `the-xray-sees-through-a-duct-a-crate-and-a-container-and-never-through-a-wall`. **It would see through the wall under a window and not through the grade vents' sheet — D83, decided 2026-11-04: option 2, built by M8.**
-- [ ] **M8 (M)** D83's two rules in M2's x-ray (Josh, 2026-11-04: option 2).
-  In `src/mapxray.js`: a box that stands in its own wall plane beside a
-  full-height opaque box, within a touch, is opaque - the sill and the lintel
-  round a window or a vent mouth become wall, mechanically, with no tag; and a
-  box is shell only if it lies *along* `map.shell`'s boundary, its extent
-  inward no greater than its extent along it, so a slab is shell and a tube
-  through it is not. *done-when:* M2's check holds no unasserted low pieces -
-  every piece under or over an opening on the plant reads opaque; the grade
-  vents' side walls (`vent-grade-west`, `vent-grade-south`) read see-through
-  and a sightline crosses their 0.12m sheet; `shell-*` and the yard's ring
-  still read shell; every duct M2 names still reads see-through, so no duct
-  mounted flat on a wall went opaque with it; a break of each rule reds its
-  own clause on both maps. Touches only `mapxray.js` and M2's check, so it fits
-  beside a Block K job (D81).
+- [x] **M8 (M)** D83's two rules in M2's x-ray — done 2026-11-04, under Done. `liesAlongShell` and `isWallPiece` in `src/mapxray.js`, clause 1a and the grade-vent lines in M2's check. Five plant sills read wall; the grade vents' 0.12m sheet is seen through; the yard's tower still refused. Two corrections the build found: the neighbour must span its room, and the piece must sit inside its thickness. D87. `ad08ae5`.
+- [ ] **M9 (S)** A wall that does not start on its room's floor. M8's
+  `spansItsRoom` takes a neighbour as a wall when it starts within **0.5m**
+  of the room's floor and reaches the ceiling. Every wall on both maps starts
+  at its floor exactly, so nothing measured that 0.5m and no check reads its
+  edge (D87). A wall on a plinth taller than the band would read as not
+  spanning its room, and the sill beside it would go see-through - a hole of
+  exactly the kind D83 closed. *done-when:* a check stands a wall-shaped
+  sight-blocker on a plinth or lifts one of the plant's by more than the
+  band, asserts the sill beside it still reads opaque, and the entry says
+  whether the band was widened, measured from the maps, or replaced by a
+  test that does not need one.
 - [ ] **M3 (M)** After **M8** (D83, decided 2026-11-04) — what counts as a real wall, mechanically, is the thing this job draws. The x-ray, drawn. `X` toggles; the Warden, its camera and
   the charge drawn as silhouettes where M2 says yes, within a range; draw
   calls counted. *done-when:* a pixel check sees the Warden through a crate
   and not through the west wall; frame budget unchanged.
+  **Before the draw: `seeThroughBox` queries the collision grid and `query`
+  hands back one reused array (physics.js), so a draw loop that walks a live
+  `query` result and asks the rule inside it reads boxes that are not there.
+  M8 left the warning in the function's comment; collect first, as
+  `seeThroughAlong` does.**
 - [ ] **M4 (S)** Vision-mode bookkeeping. Keys in the controls card and the
   tutorial (H6), HUD state, spec 20.x, a provisional entry for every number.
   *done-when:* the card and the spec say it; the check for the card reads it.

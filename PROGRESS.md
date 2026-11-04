@@ -21377,3 +21377,197 @@ reads personality, styling **and key feel** - how moving and fighting handle.
 Asked as Blocking with where he can feel each option; a fix that makes a move
 do what it already meant to stays the lead's. The next such questions in the
 queue are J2, J9 and L1's stick curves.
+
+## K5 — Giving up: patience is a preset, and the second time is quicker (2026-11-04 17:00, scheduled run)
+
+A search ended at one shared fifteen seconds, in silence, and left the Warden
+exactly as easily fooled as it had been before it went looking. K5 makes all
+three of those a difficulty's business. `ai.difficulty[*].searchDuration` is a
+fifth per-preset number - **easy 10, medium 15, hard 22, PROVISIONAL** (D85) -
+and medium keeps the number it always had, which is why three existing checks
+that bound their own stepping on `A.searchDuration` did not have to move.
+
+**Every way out of SEARCH is the same thing to a listener**, so all three of
+them - the timer, the empty sweep, the exhausted one - now go through one
+`_giveUpSearch()` in the SEARCH mixin: it counts the give-up, emits `ai:bark`
+`{ kind: 'giveUp', at }` for N2 to put a voice to, and enters PATROL. Nothing
+hears the bark yet; it is the seam N2 needs and it costs nothing to leave.
+
+**And the Warden that has lost her once is harder to talk out of it.** Each
+give-up scales the suspicion threshold perception compares against by
+`reAlertFactor` 0.7, floored at `reAlertFloor` 0.4 of the base (both
+PROVISIONAL, D85), through a new `_suspicionThreshold()`. `_giveUps` is
+declared in the constructor and zeroed in `reset()`, because round state must
+not bleed (Section 15).
+
+**Proved** on both maps at `ef592dc`. The new check
+`the-warden-gives-up-sooner-on-easy-and-re-alerts-faster-the-second-time`
+reads the timer rather than the sweep by telling the Warden the Shade was last
+seen at the ground cell *farthest* from where it stands - so the sweep it
+plans is a long walk it cannot finish first - and it asserts the sweep still
+had checks left at the moment it gave up, which is what makes the reading the
+timer's. Both maps read the same, to the hundredth: *"gave up after 10.00s on easy,
+15.00s on medium, 22.00s on hard; one giveUp bark at the Warden; accumulator 34
+(threshold 40, then 28): patrol, then investigate"*. The accumulator is the
+clause that matters most: 34 sits under the base 40 and over the reduced 28, so
+the *same* number leaves a fresh Warden on its rounds and sends one that has
+given up once to investigate. `difficulty-preset-reaches-the-ai` grew a fifth
+number and reads *"search 10s / 15s / 22s"*, which is how the presets' own
+patience is held to reaching the AI at all.
+
+The break: `_stepSearch` reads `A.searchDuration` again instead of the
+preset's. Red on both maps on exactly the clause it is for: *"easy: gave up after
+15.00s, want 10s (within 0.03s); hard: gave up after 15.00s, want 22s; gave up
+in 15.00s, 15.00s, 15.00s on easy, medium, hard, want each longer than the
+last"*.
+
+**And the control in that run is worth keeping.** `difficulty-preset-reaches-the-ai` was in the break subset on purpose, and it
+stayed **green**, still reporting *"search 10s / 15s / 22s"* while the AI was
+ignoring all three. It compares the config object with the object the AI is
+running, which is a different question from whether the AI *honours* what it
+reads - so the fifth number it now prints is a reading, not a guarantee, and
+K5's own check is the only thing holding the per-preset timer. Worth knowing
+before the next preset number is added and assumed covered.
+
+## K10 — A finer fan for the camera's wall, and a clause that needs no threshold (2026-11-04 17:00, scheduled run)
+
+K4's route-ordered fan tried directions 45 degrees apart, which is coarse
+enough to walk past a covering wall that is there; the fallback to a plain
+sweep exists because of it. `ai.alarmPlacementProbes` goes **8 to 16**, so the
+fan is 22.5 degrees fine, and the fallback is now reached mostly because no
+wall watches the foot rather than because a wall fell between two rays.
+
+**The brief asked for parity with a fine sweep and parity turned out to be
+impossible, which is the finding.** Measured against a 72-ray reference (5
+degrees), no fan count reaches it - not 16, not 32, not 72 - because *the fan
+is centred on the foot and a plain sweep is not*, so the two never share a ray.
+At 72 the fan still misses 6 stands on the plant's `hall-south` and 14 on
+`hall-west`; and the relation is not even monotone across arbitrary counts
+(`hall-south` goes 5 misses at 48 to 6 at 72, its covered count dipping 186 to
+185), because a different count is a different set of angles, not a refinement
+of the last one.
+
+Covers-per-route, before and after, as stands within the camera's radius of
+each route's foot that the fan can hang a covering camera from:
+
+| map | fan at 8 | fan at 16 | reference (72) |
+|---|---|---|---|
+| plant | 867 | 953 | 1,098 |
+| yard | 631 | 700 | 764 |
+
+so the share the reference covers and the fan does not falls from **21% to
+13%** on the plant and **17% to 9%** on the yard. Per route the worst case is
+the plant's `hall-west` (159 of 218 at 8, 176 at 16) and the yard's
+`store-east-corner` (87 of 117 at 8, 106 at 16). The plant's
+`fire-escape-roof` is 0 of 0 at every count, which is K9's subject and not
+this job's.
+
+**The clause this landed with is not the one the builder first wrote, and the
+difference is the point.** A measured parity being impossible, the first
+version asserted a *share* - the shortfall must stay under 16% per map - which
+is a number chosen to sit between 21% and 13%, and on the yard the revert to 8
+would have reddened it by only 1.4 points. A check whose break depends on a
+1.4-point margin is a tripwire, not a rule. The clause instead compares the
+fan with **the eight rays it ran before K10** and asserts it covers strictly
+more stands. That needs no threshold at all and cannot drift: because the
+coarse fan's angles are a *subset* of the fine one's whenever the count is a
+multiple of eight (every 45 degrees is a multiple of 22.5), the count can only
+rise, so the only thing left to assert is that it does - by +86 stands on the
+plant and +69 on the yard. It also drops the 72-ray sweep out of the check
+entirely, which is 72 rays a stand the suite would otherwise have paid twice a
+map forever for an answer that does not change. The reading is here instead.
+
+Cost of the change itself: a probe tick goes from at most 8 `findAlarmWall`
+calls to at most 16, throttled at `alarmPlacementInterval` 0.5s - tens of
+microseconds against half a second.
+
+**Proved** on both maps at `8bb3163`. The clause reads *"the 16-ray fan covers 953 stands against the 8-ray fan's
+867, +86 (most on hall-west, +17)"* on the plant and *"700 stands against the
+8-ray fan's 631, +69 (most on store-east-corner, +19)"* on the yard - the same
+counts the probe measured, now asserted every run. **And the check corroborates
+K9 in passing**: *"no wall near [fire-escape-roof (7.1, -23.9) (529 stands
+tried)] watches it"*, which is the one route on either map with no covering
+stand at any ray count, and is K9's whole subject.
+
+The break: `alarmPlacementProbes` back to 8. Red on both maps, and on
+clause 3 alone - clauses 1 and 2 stayed green, which is what makes it a break
+of the new clause rather than of the check: *"the 8-ray fan covers 867 stands
+against the 8-ray fan's 867: a finer fan bought nothing, so
+ai.alarmPlacementProbes is no finer than the eight rays K10 raised it from"*
+(631 against 631 on the yard).
+
+## M8 — The sill beside a vent is wall, and a tube through the shell is not shell (2026-11-04 17:00, scheduled run)
+
+D83's two holes in M2's x-ray, closed as Josh chose on 2026-11-04 (option 2),
+both mechanical and neither reading a tag.
+
+**The wall under a window.** M2's rule looked through any box whose top is a
+body's height below its room's ceiling, which is exactly the sill under an
+opening and the lintel over it - so the x-ray saw through the brickwork beside
+the glass. Such a piece is now opaque when it stands in its own wall plane
+*inside the thickness of* a sight-blocker that spans its room floor to ceiling
+and abuts it along the plane. Height is not asked, so a sill and a lintel both
+qualify by standing end to end with the jamb. On the plant it catches five
+pieces: the two sills under the hall's vent mouths (y 0..1.96) and three 0.4m
+sills in the vault and office openings (y 6..6.4). The matching top pieces
+already reached the ceiling and were already opaque.
+
+**Two corrections the build found in the design, both real.** The neighbour
+must *span its room*, not merely reach the ceiling: the yard's `bay-c-t3`
+tower tops out above its bay's ceiling, so "reaches the ceiling" made the
+container beside it read as wall. And the candidate's thickness must sit
+*inside* the neighbour's rather than merely overlap it, or a crate stood flush
+against a wall becomes wall. Every neighbour on the plant abuts its piece with
+a 0.00m gap, so `TOUCH` stays 0.01 and no measured slack was needed.
+
+**The shell.** A box was shell if its footprint reached the shell rectangle's
+boundary, which caught the plant's grade vents - they run *out through* the
+wall - and so refused to look through the thinnest thing on either map, a
+0.12m sheet. Shell is now what lies *along* the boundary: it reaches an edge
+and runs no farther inward than it does along that edge. A slab on the wall is
+shell; a tube through it, long inward and a hand's width along, is not. A
+corner box qualifies on either edge. The grade vents' six pieces move into the
+check's duct set, where they belong, and the comment that excused their absence
+is gone.
+
+**A latent trap recorded rather than hit.** `isWallPiece` asks the collision
+grid a question, and `CollisionGrid.query` hands back *one reused array*
+(physics.js: "Reuses one array and a stamp table, so a query allocates
+nothing"). Every caller of the x-ray rule today is safe - `seeThroughAlong`
+collects its crossings into its own array before it asks about any of them,
+which it does for the sort, and the check reads `collision.boxes` - but a
+future caller that loops a live `query` result and asks the rule inside the
+loop would read boxes that are not there. The warning is in the function's own
+comment, where the next person to call it will be looking. **M3 draws this
+rule and is the next caller**, so it is written into M3's queue entry too.
+
+**Proved** on both maps at `ad08ae5`. Plant: *"37 thin (22 duct, 14 crate, 1 container), 15 shell, 43 wall (+5 low
+pieces); 5/5 low wall pieces opaque; ... across vent-grade-west-wall-a 0.12m of
+0.12m; across vent-grade-south-wall-a 0.12m of 0.12m; across shell-west-0
+stopped by shell-west-0; across hall-east-wall-0 stopped by hall-east-wall-0"*.
+Yard: 28 thin, 18 shell, no room walls, and `bay-c-t3` still refused at *"top
+8.70 under ceiling 8.00"* - the tower M2 taught it to keep, which the new
+neighbour test had to be careful not to break and did not.
+
+The break: two edits, one for each rule, each from a copy and
+restored from it, and **each red on its own clause with the other's green**,
+which is what makes them two breaks and not one.
+
+Rule 1, `isWallPiece`'s neighbour search made to find nothing: all five
+pieces named - *"low wall piece hall-east-wall-1 (y 0.00..1.96) is
+see-through; ... 0/5 low wall pieces opaque"* - and the grade-vent lines still
+green. Rule 2, the old boundary clause put back in place of `liesAlongShell`:
+*"thin vent-grade-west-wall-a (y 0.00..1.15) is not see-through; line across
+vent-grade-west-wall-a: seeThrough false, thickness 0.000 against its 0.120"*,
+the same for `vent-grade-south-wall-a`, and *"5/5 low wall pieces opaque"*
+beside it. The yard is green under both breaks, correctly: it has no room
+walls for rule 1 and nothing that runs out through its ring for rule 2.
+
+**A finding about the suite, queued as H110.** Both break runs wrote the
+plant's detail cut off mid-word, at **exactly 400 characters** - *"... across
+vent-low-north-lip-to 1.00m of 1.00m; a"* and nothing after. The cut is in the
+`--details` JSON as well as the printed output, so it is the harness filling
+`detail`, not the reporting of it, and the reading a red is read by is the
+detail string. Rule 1's break lost the `0/5` count it had just earned, and
+rule 2's lost every reading after the first line. 400 is a cap nothing
+announces.

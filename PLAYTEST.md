@@ -95,6 +95,33 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The Warden gives up, and is quicker the second time (K5, 2026-11-04)
+
+Break line of sight and hide. The Warden sweeps the hiding spots and the tops
+near where it last saw you, and it used to do that for fifteen seconds on
+every difficulty, then walk off in silence. Now its patience is its
+difficulty's: **easy gives up after 10 seconds, medium after 15 - the number
+it always had - and hard after 22.** Set hard and hide somewhere obvious: you
+should feel it staying too long.
+
+Then let it find you a second time. **Every search it gives up makes the next
+one easier to trigger**: the suspicion it needs drops to 70% of the base each
+time, down to a floor of 40%. So the second time you clip a sightline it
+should come looking off far less than the first.
+
+What the checks prove: the three timers to within two frames, that the sweep
+had not merely run out of places to look, and that the same accumulator leaves
+a fresh Warden patrolling and sends a Warden that has given up once to
+investigate (`the-warden-gives-up-sooner-on-easy-and-re-alerts-faster-the-second-time`).
+What is left for you is whether **hard's 22 seconds is oppressive or correct** -
+it is nearly half again medium's, and it is the number to disagree with - and
+whether the compounding needs to **reset** on anything: today only a new round
+clears it, so a Warden you have shaken three times is still carrying all three
+at the ten-minute mark. D85 in `DECISIONS.md` says what the alternatives were.
+
+**It also barks when it gives up** - `ai:bark`, `kind: 'giveUp'` - but nothing
+voices it yet, so you will not hear anything. N2 is that job.
+
 ### Medium and hard now part at close range (K6, 2026-11-03)
 
 Set difficulty to **medium**, then **hard**, and let the Warden see you from
