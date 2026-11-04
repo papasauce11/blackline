@@ -123,12 +123,14 @@ export function register(debugTools) {
 
       // The fixture points along the wall's normal, so from the eye it is seen
       // end-on: a disc of the body's radius at the lens's depth. The lens's
-      // world point is the one the lamp is placed at, read back off it once the
-      // camera is up, so the projection and the light cannot be two copies of
-      // the arithmetic.
+      // world point is the one the lamp is placed at, read once the camera is
+      // up, so the projection and the light cannot be two copies of the
+      // arithmetic. The lamp is a child of the effects root, which sits at the
+      // origin, so its position is its world position and no drawn body is
+      // read here.
       h.gadgets.placeAlarm(mount, Math.atan2(-hit.nx, -hit.nz));
       h.stepFrames(1);
-      const tip = h.effects._alarmLensLight.getWorldPosition(new THREE.Vector3());
+      const tip = h.effects._alarmLensLight.position.clone();
       const depth = Math.hypot(tip.x - eye.x, tip.z - eye.z);
       const projected = tip.clone().project(h.camera);
       const cx = ((projected.x + 1) / 2) * lens.width;
