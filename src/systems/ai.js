@@ -16,10 +16,10 @@
  * controller. If the AI can do something the player cannot, it is because the
  * intent has a field for it.
  *
- * Five files (F3, K1, K2): this one is the state machine; `aiperception.js` is
+ * Six files (F3, K1, K2, K4): this one is the state machine; `aiperception.js` is
  * the senses; `ainav.js` is the route, the steering and the stuck detector;
  * `aisearch.js` is SEARCH, where it looks; `aihearing.js` is what it remembers
- * hearing. They are methods of the one class, installed on its prototype at
+ * hearing; `aialarm.js` is where it hangs its camera. They are methods of the one class, installed on its prototype at
  * the bottom.
  */
 
@@ -32,6 +32,7 @@ import { NAVIGATION } from './ainav.js';
 import { PATROL } from './aipatrol.js';
 import { SEARCH, searchIndexFor } from './aisearch.js';
 import { HEARING } from './aihearing.js';
+import { ALARM } from './aialarm.js';
 
 export { AI_STATE } from './aistate.js';
 
@@ -511,79 +512,12 @@ export class WardenAI {
     this._scan(dt);
   }
 
-  /**
-   * Section 9.2: one alarm camera per round, placed on a wall.
-   *
-   * The Warden gets a single one, so it is spent where it earns the most —
-   * standing over a charge in DEFEND, or at a spot it has just cleared in
-   * SEARCH and is about to walk away from. It sweeps for a wall in reach
-   * rather than firing straight ahead, because the useful direction is
-   * whichever one it will not be looking at.
-   *
-   * Throttled rather than run every step: it is a sweep of raycasts, and half
-   * a second of walking is the resolution at which "a wall it passed" means
-   * anything.
-   *
-   * @param {number} dt
-   * @returns {object|null} the alarm placed, or null
-   */
-  _maybePlaceAlarm(dt) {
-    if (!this.gadgets || this.gadgets.alarm) return null;
-    if (this.gadgets.loadout.alarmCamera <= 0) return null;
-
-    this._alarmProbeTimer -= dt;
-    if (this._alarmProbeTimer > 0) return null;
-    this._alarmProbeTimer = A.alarmPlacementInterval;
-
-    const warden = this.warden;
-    const origin = { x: warden.position.x, y: warden.eyeY, z: warden.position.z };
-    const way = this._likeliestApproach();
-    if (way) {
-      // The camera faces back off its wall, so it wants the wall opposite the
-      // way in. Hang it only where it watches that way: the one camera waits
-      // for the right spot, and this runs again from elsewhere in half a second.
-      const base = Math.atan2(-(way.x - origin.x), -(way.z - origin.z));
-      for (let i = 0; i < A.alarmPlacementProbes; i++) {
-        const step = i === 0 ? 0 : (i % 2 ? (i + 1) / 2 : -i / 2);
-        const angle = base + (step * TAU) / A.alarmPlacementProbes;
-        const at = this.gadgets.findAlarmWall(origin, { x: -Math.sin(angle), y: 0, z: -Math.cos(angle) });
-        if (at && this.gadgets.alarmCovers(at, way)) return this.gadgets.placeAlarm(at, at.yaw);
-      }
-      return null;
-    }
-    for (let i = 0; i < A.alarmPlacementProbes; i++) {
-      // Start behind and work around, so it covers what its back is turned on.
-      const angle = warden.yaw + Math.PI + (i / A.alarmPlacementProbes) * TAU;
-      const placed = this.gadgets.placeAlarmOnWall(origin, {
-        x: -Math.sin(angle), y: 0, z: -Math.cos(angle),
-      });
-      if (placed) return placed;
-    }
-    return null;
-  }
-
-  /** The nearest declared route's foot in `alarmRouteRange`: the likeliest approach (K4). */
-  _likeliestApproach() {
-    const warden = this.warden;
-    let best = null;
-    let bestDistance = A.alarmRouteRange;
-    for (const route of this.map.routes) {
-      const box = route.stages[0][0];
-      const d = Math.hypot(box.centerX - warden.position.x, box.centerZ - warden.position.z);
-      if (d <= bestDistance) {
-        bestDistance = d;
-        best = { x: box.centerX, y: box.top, z: box.centerZ };
-      }
-    }
-    return best;
-  }
-
   // -------------------------------------------------------------------------
   // Navigation — A* over the waypoint graph (Section 11: no pathfinding library)
   // -------------------------------------------------------------------------
 }
 
-Object.assign(WardenAI.prototype, PERCEPTION, HEARING, NAVIGATION, SEARCH, PATROL);
+Object.assign(WardenAI.prototype, PERCEPTION, HEARING, NAVIGATION, SEARCH, PATROL, ALARM);
 
 export function createWardenAI(options) {
   return new WardenAI(options);
