@@ -28,6 +28,7 @@
 import { CONFIG } from '../config.js';
 import { raySlab } from '../collisionbox.js';
 import { seeThroughBox } from '../mapxray.js';
+import { CONTAINER } from '../maps/yarddata.js';
 
 const BUDGET = CONFIG.shade.xray.maxThickness;
 
@@ -46,7 +47,12 @@ const SUBJECTS = {
     walls: /^(hall-east|hall-south|bay-west|bay-south)-wall-\d+$|^vault-wall-[wens]-\d+$|^office-wall-[wens]-\d+$|^office-divider-\d+$/,
   },
   yard: {
-    containers: /^bay-/,
+    // The third tier of a bay is a tower, not a container: its top is within a
+    // body of the bay's ceiling, so the rule refuses it (clause 1b). Tier
+    // suffixes in the data are not uniform (`-t2` is the second container
+    // high), so the tower is named, and the counts below are by height.
+    containers: /^bay-(?!c-t3$)/,
+    towers: /^bay-c-t3$/,
     crates: /^pallets-/,
     shell: /^(ring|arch)-/,
     // The yard has no walls inside its ring: its rooms are bays open to the sky.
@@ -135,6 +141,7 @@ export function register(debugTools) {
       const ceiling = (box) => map.rooms.some((room) => Math.abs(room.ceilingY - box.max.y) < 0.01);
       const thin = [...pick(subjects.ducts), ...pick(subjects.crates), ...pick(subjects.containers)];
       const shell = pick(subjects.shell);
+      const towers = pick(subjects.towers);
       const wallsAll = pick(subjects.walls);
       const walls = wallsAll.filter(ceiling);
       const sets = [['thin', thin], ['shell', shell]];
@@ -142,13 +149,26 @@ export function register(debugTools) {
       for (const [name, set] of sets) {
         if (set.length === 0) problems.push(`no ${name} boxes found on ${map.id}`);
       }
-      readings.push(`${map.id}: ${thin.length} thin (${pick(subjects.ducts).length} duct, ${pick(subjects.crates).length} crate, ${pick(subjects.containers).length} container), ${shell.length} shell, ${subjects.walls ? `${walls.length} wall (+${wallsAll.length - walls.length} low pieces not asserted)` : 'no room walls'}`);
+      readings.push(`${map.id}: ${thin.length} thin (${pick(subjects.ducts).length} duct, ${pick(subjects.crates).length} crate, ${pick(subjects.containers).length} container${subjects.towers ? `, by height ${[1, 2, 3].map((n) => `${thin.filter((box) => Math.round(box.max.y / CONTAINER.height) === n).length} at ${n}`).join(' / ')}; ${towers.length} tower` : ''}), ${shell.length} shell, ${subjects.walls ? `${walls.length} wall (+${wallsAll.length - walls.length} low pieces not asserted)` : 'no room walls'}`);
+
+      if (subjects.towers && towers.length === 0) problems.push(`no tower boxes found on ${map.id}`);
 
       // 1. Per box.
       const wrong = thin.find((box) => !seeThroughBox(map, box));
       if (wrong) problems.push(`thin ${fmt(wrong)} is not see-through`);
       const solid = [...shell, ...walls].find((box) => seeThroughBox(map, box));
       if (solid) problems.push(`${solid.tag} (top ${solid.max.y.toFixed(2)}) is see-through but is a shell box or room wall`);
+
+      // 1b. A stack that comes within a body of its room's ceiling is not seen
+      // through: the difference between a container and a tower of them.
+      for (const tower of towers) {
+        const room = map.rooms.find((r) => tower.centerX >= r.min.x && tower.centerX <= r.max.x
+          && tower.centerZ >= r.min.z && tower.centerZ <= r.max.z);
+        if (seeThroughBox(map, tower)) {
+          problems.push(`tower ${tower.tag} (top ${tower.max.y.toFixed(2)}, ceiling ${room ? room.ceilingY.toFixed(2) : 'none'}) is see-through`);
+        }
+        readings.push(`${tower.tag} top ${tower.max.y.toFixed(2)} under ceiling ${room ? room.ceilingY.toFixed(2) : 'none'} is not`);
+      }
 
       // 2. Along a line.
       const across = thin.filter((box) => size(box, 'x') < BUDGET - 0.1 && size(box, 'z') < BUDGET - 0.1);
