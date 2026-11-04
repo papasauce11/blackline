@@ -95,7 +95,9 @@ export const PERCEPTION = {
       const marked = this.gadgets.shadeMarkedAt;
       this.lastKnown = { x: marked.x, y: marked.y, z: marked.z };
       if (this.state === AI_STATE.PATROL || this.state === AI_STATE.SUSPICIOUS) {
-        this._enterInvestigate();
+        // Via the camera when one stands: it was hung over the way in, so
+        // walking to it is walking the approach she used (K4).
+        this._enterInvestigate(this.gadgets.alarm);
       }
     }
 

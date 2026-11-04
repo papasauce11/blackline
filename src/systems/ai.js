@@ -67,6 +67,8 @@ export class WardenAI {
     this._route = [];
     this._routeIndex = 0;
     this._arrivalTime = 0;
+    /** Where INVESTIGATE walks first, on the way to `lastKnown` (K4: past the camera). */
+    this._investigateVia = null;
     this._circuit = [];
     this._circuitIndex = 0;
     this._stateTimer = 0;
@@ -181,6 +183,7 @@ export class WardenAI {
     this._searchHold = 0;
     this._stunGrenades = A.searchStunGrenades;
     this._alarmProbeTimer = 0;
+    this._investigateVia = null;
     this._repathTimer = 0;
     this._defendTarget = null;
     this._defendStand = null;
@@ -313,14 +316,22 @@ export class WardenAI {
     }
   }
 
-  _enterInvestigate() {
+  /** `via`: a place to walk past first - the alarm camera, hung over the way in. */
+  _enterInvestigate(via) {
     this._enter(AI_STATE.INVESTIGATE);
-    if (this.lastKnown) this._pathTo(this.lastKnown);
+    this._investigateVia = via && this.lastKnown ? { x: via.x, y: via.y, z: via.z } : null;
+    if (this.lastKnown) this._pathTo(this._investigateVia || this.lastKnown);
   }
 
   /** INVESTIGATE: walk to it, scan on arrival, give up to SEARCH. */
   _stepInvestigate(dt) {
     const arrived = this._followRoute(dt, false);
+    if (arrived && this._investigateVia) {
+      // At the lens, not at the mark: the scan belongs where the Shade was.
+      this._investigateVia = null;
+      this._pathTo(this.lastKnown);
+      return;
+    }
     if (arrived) {
       this._scan(dt);
       if (this._stateTimer >= A.investigateScanTime + this._arrivalTime) this._enterSearch();
@@ -526,6 +537,20 @@ export class WardenAI {
 
     const warden = this.warden;
     const origin = { x: warden.position.x, y: warden.eyeY, z: warden.position.z };
+    const way = this._likeliestApproach();
+    if (way) {
+      // The camera faces back off its wall, so it wants the wall opposite the
+      // way in. Hang it only where it watches that way: the one camera waits
+      // for the right spot, and this runs again from elsewhere in half a second.
+      const base = Math.atan2(-(way.x - origin.x), -(way.z - origin.z));
+      for (let i = 0; i < A.alarmPlacementProbes; i++) {
+        const step = i === 0 ? 0 : (i % 2 ? (i + 1) / 2 : -i / 2);
+        const angle = base + (step * TAU) / A.alarmPlacementProbes;
+        const at = this.gadgets.findAlarmWall(origin, { x: -Math.sin(angle), y: 0, z: -Math.cos(angle) });
+        if (at && this.gadgets.alarmCovers(at, way)) return this.gadgets.placeAlarm(at, at.yaw);
+      }
+      return null;
+    }
     for (let i = 0; i < A.alarmPlacementProbes; i++) {
       // Start behind and work around, so it covers what its back is turned on.
       const angle = warden.yaw + Math.PI + (i / A.alarmPlacementProbes) * TAU;
@@ -535,6 +560,22 @@ export class WardenAI {
       if (placed) return placed;
     }
     return null;
+  }
+
+  /** The nearest declared route's foot in `alarmRouteRange`: the likeliest approach (K4). */
+  _likeliestApproach() {
+    const warden = this.warden;
+    let best = null;
+    let bestDistance = A.alarmRouteRange;
+    for (const route of this.map.routes) {
+      const box = route.stages[0][0];
+      const d = Math.hypot(box.centerX - warden.position.x, box.centerZ - warden.position.z);
+      if (d <= bestDistance) {
+        bestDistance = d;
+        best = { x: box.centerX, y: box.top, z: box.centerZ };
+      }
+    }
+    return best;
   }
 
   // -------------------------------------------------------------------------

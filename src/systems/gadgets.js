@@ -357,18 +357,40 @@ export class Gadgets {
    * @returns {object|null} the alarm, or null if there is no wall in reach
    */
   placeAlarmOnWall(origin, direction) {
+    const at = this.findAlarmWall(origin, direction);
+    return at ? this.placeAlarm(at, at.yaw) : null;
+  }
+
+  /**
+   * Where the camera would hang along `direction`, without hanging it. The AI
+   * asks this of each candidate wall so it can ask `alarmCovers` before it
+   * spends the one camera; nothing here touches the loadout or the emitter.
+   *
+   * @returns {{x:number,y:number,z:number,yaw:number}|null}
+   */
+  findAlarmWall(origin, direction) {
     const C = GA.alarmCamera;
     const surface = this.collision.raycast(origin, direction, C.placeRange);
     // A floor or a ceiling is not a wall.
     if (!surface || Math.abs(surface.ny) > 0.5) return null;
-    return this.placeAlarm(
-      {
-        x: surface.x + surface.nx * C.surfaceOffset,
-        y: surface.y + surface.ny * C.surfaceOffset,
-        z: surface.z + surface.nz * C.surfaceOffset,
-      },
-      Math.atan2(-surface.nx, -surface.nz)
-    );
+    return {
+      x: surface.x + surface.nx * C.surfaceOffset,
+      y: surface.y + surface.ny * C.surfaceOffset,
+      z: surface.z + surface.nz * C.surfaceOffset,
+      yaw: Math.atan2(-surface.nx, -surface.nz),
+    };
+  }
+
+  /**
+   * The camera's own trip rule as a question: is `target` in reach, inside the
+   * cone and in clear sight of a camera hung at `placement` ({x,y,z,yaw})?
+   * The trip, the AI choosing a wall and the check all read this one rule.
+   */
+  alarmCovers(placement, target) {
+    const forward = { x: -Math.sin(placement.yaw), y: 0, z: -Math.cos(placement.yaw) };
+    const cone = Math.cos((GA.alarmCamera.coneDegrees * Math.PI) / 360);
+    return this._inCone(placement, forward, target, GA.alarmCamera.radius, cone)
+      && this.collision.lineOfSight(placement, target);
   }
 
   placeAlarm(position, yaw) {
@@ -399,10 +421,7 @@ export class Gadgets {
       y: shade.feetY + shade.height * CONFIG.detection.torsoHeightRatio,
       z: shade.position.z,
     };
-    const forward = { x: -Math.sin(alarm.yaw), y: 0, z: -Math.cos(alarm.yaw) };
-    const cone = Math.cos((GA.alarmCamera.coneDegrees * Math.PI) / 360);
-    if (!this._inCone(alarm, forward, target, GA.alarmCamera.radius, cone)) return;
-    if (!this.collision.lineOfSight(alarm, target)) return;
+    if (!this.alarmCovers(alarm, target)) return;
 
     this.shadeMarkedFor = GA.alarmCamera.markDuration;
     // Where the Shade was when it tripped. Section 9.2 marks it "on the
