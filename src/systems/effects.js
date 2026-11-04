@@ -103,6 +103,8 @@ export class Effects {
     // Section 9.2 allows one alarm camera per round, so a new round starts
     // with none placed rather than with the last one still on the wall.
     this.alarmFixture.visible = false;
+    // The lamp is not in the group, so hiding the group no longer darkens it.
+    this._alarmLensLight.intensity = 0;
     this._alarmBlink = 0;
     this._syncFootprints();
     this._syncParticles();
@@ -147,16 +149,19 @@ export class Effects {
     lens.position.z = -C.bodyLength;
     group.add(lens);
 
-    // The lens's light (M7), built once like the rest of the pool: a flat
-    // MeshBasicMaterial dot is invisible in a dark room, and a camera nobody
-    // can find is a camera nobody can taser. No shadow, as every point light
-    // but the key is (Section 4.1). It is dimmed to 0 rather than hidden or
-    // removed, because a light added to or dropped from the scene changes the
-    // shader's light count and recompiles every lit material in it.
-    this._alarmLensLight = new THREE.PointLight(P.wardenOrange, C.lensLight.intensity, C.lensLight.distance, C.lensLight.decay);
+    // The lens's light (M7): a flat MeshBasicMaterial dot is invisible in a
+    // dark room, and a camera nobody can find is a camera nobody can taser.
+    // **It is permanent and its intensity is its state, and it is on the root
+    // rather than in the group above.** three gathers lights while it walks
+    // the scene and skips an invisible object's whole subtree, so a light in
+    // the group that hides and shows would enter and leave the scene's light
+    // count the frame the camera goes up and the frame it dies, and every lit
+    // material would recompile mid-round, at the two moments something is
+    // happening. Dark at construction, so a camera never placed lights
+    // nothing. No shadow, as every point light but the key is (Section 4.1).
+    this._alarmLensLight = new THREE.PointLight(P.wardenOrange, 0, C.lensLight.distance, C.lensLight.decay);
     this._alarmLensLight.castShadow = false;
-    this._alarmLensLight.position.z = -C.bodyLength;
-    group.add(this._alarmLensLight);
+    this.root.add(this._alarmLensLight);
 
     this.alarmFixture = group;
     this.root.add(group);
@@ -169,6 +174,13 @@ export class Effects {
     fixture.rotation.set(0, at.yaw, 0);
     fixture.visible = true;
     this._alarmLensMaterial.color.setHex(P.wardenOrange);
+    // The lens's world point: the mount, out along the fixture's forward (-Z
+    // turned by yaw) by the body's length. The group carries the glass; this
+    // carries the lamp, so the two are placed from the same `at`.
+    const length = GA.alarmCamera.bodyLength;
+    this._alarmLensLight.position.set(
+      at.x - Math.sin(at.yaw) * length, at.y, at.z - Math.cos(at.yaw) * length
+    );
     this._alarmLensLight.intensity = GA.alarmCamera.lensLight.intensity;
     this._alarmBlink = 0;
   }

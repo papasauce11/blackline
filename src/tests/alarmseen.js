@@ -122,8 +122,13 @@ export function register(debugTools) {
       lens.look(eye, mount);
 
       // The fixture points along the wall's normal, so from the eye it is seen
-      // end-on: a disc of the body's radius at the lens's depth.
-      const tip = new THREE.Vector3(mount.x + hit.nx * C.bodyLength, mount.y, mount.z + hit.nz * C.bodyLength);
+      // end-on: a disc of the body's radius at the lens's depth. The lens's
+      // world point is the one the lamp is placed at, read back off it once the
+      // camera is up, so the projection and the light cannot be two copies of
+      // the arithmetic.
+      h.gadgets.placeAlarm(mount, Math.atan2(-hit.nx, -hit.nz));
+      h.stepFrames(1);
+      const tip = h.effects._alarmLensLight.getWorldPosition(new THREE.Vector3());
       const depth = Math.hypot(tip.x - eye.x, tip.z - eye.z);
       const projected = tip.clone().project(h.camera);
       const cx = ((projected.x + 1) / 2) * lens.width;
@@ -135,11 +140,8 @@ export function register(debugTools) {
       const referenceRadius = C.bodyRadius * ((REFERENCE_HEIGHT / 2) / (Math.tan((h.camera.fov * Math.PI) / 360) * depth));
       const areaFloor = scaledCount(lens, Math.PI * referenceRadius * referenceRadius);
 
-      h.gadgets.destroyAlarm('test');
-      h.stepFrames(SETTLE_STEPS);
-      const noise0 = lens.grab();
-      h.gadgets.placeAlarm(mount, Math.atan2(-hit.nx, -hit.nz));
-      h.stepFrames(1);
+      // Placed once: a round allows one camera and a second placement would
+      // find the loadout spent. The two no-camera frames are the pair below.
       const withCamera = lens.grab();
       h.gadgets.destroyAlarm('test');
       h.stepFrames(SETTLE_STEPS);
@@ -168,7 +170,7 @@ export function register(debugTools) {
       const ringOff = ringLuma(without, lens.width, lens.height, cx, cy, radius, radius * RING_OUTER);
       const margin = ringOn - ringOff;
       const noise = Math.abs(
-        ringLuma(noise0, lens.width, lens.height, cx, cy, radius, radius * RING_OUTER)
+        ringLuma(without, lens.width, lens.height, cx, cy, radius, radius * RING_OUTER)
         - ringLuma(noise1, lens.width, lens.height, cx, cy, radius, radius * RING_OUTER)
       );
       if (!(margin > 0)) problems.push(`the wall round the camera is no brighter with it there (${ringOn.toFixed(3)} against ${ringOff.toFixed(3)})`);
