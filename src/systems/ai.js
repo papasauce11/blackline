@@ -87,6 +87,8 @@ export class WardenAI {
     /** The search check (aisearch.js) the gaze is resting on, or null. */
     this.lookingAt = null;
     this._searchHold = 0;
+    /** Searches given up this round (aisearch.js); each lowers the next suspicion threshold. */
+    this._giveUps = 0;
     this._stunGrenades = A.searchStunGrenades;
     this._alarmProbeTimer = 0;
     this._repathTimer = 0;
@@ -182,6 +184,7 @@ export class WardenAI {
     this._searchSpots.length = 0;
     this.lookingAt = null;
     this._searchHold = 0;
+    this._giveUps = 0;
     this._stunGrenades = A.searchStunGrenades;
     this._alarmProbeTimer = 0;
     this._investigateVia = null;

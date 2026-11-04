@@ -351,8 +351,9 @@ export const SEARCH = {
   },
 
   _stepSearch(dt) {
-    if (this._stateTimer >= A.searchDuration) {
-      this._enter(AI_STATE.PATROL);
+    // A preset may set its own patience; the shared number is the fallback.
+    if (this._stateTimer >= (this.difficulty.searchDuration ?? A.searchDuration)) {
+      this._giveUpSearch();
       this._pathTo(this.map.waypoints[this._circuit[this._circuitIndex]].position);
       return;
     }
@@ -364,7 +365,7 @@ export const SEARCH = {
 
     const check = this._searchSpots[0];
     if (!check) {
-      this._enter(AI_STATE.PATROL);
+      this._giveUpSearch();
       return;
     }
     // A plain waypoint (the fallback): walk to it, glance, move on.
@@ -403,7 +404,25 @@ export const SEARCH = {
     this._searchHold = 0;
     this._searchSpots.shift();
     if (this._searchSpots.length) this._pathTo(this._searchSpots[0].position);
-    else this._enter(AI_STATE.PATROL);
+    else this._giveUpSearch();
+  },
+
+  /**
+   * Every way out of SEARCH is the same thing to a listener: the Warden has
+   * not found her and says so, out loud, on its way back to its rounds (N2
+   * gives it a voice; nothing hears it yet). It also counts, because the next
+   * suspicion comes sooner (`_suspicionThreshold`).
+   */
+  _giveUpSearch() {
+    this._giveUps += 1;
+    const p = this.warden.position;
+    if (this.emitter) this.emitter.emit('ai:bark', { kind: 'giveUp', at: { x: p.x, y: p.y, z: p.z } });
+    this._enter(AI_STATE.PATROL);
+  },
+
+  /** The accumulator level that stirs the Warden: lower by `reAlertFactor` for each search it has given up, down to `reAlertFloor`. */
+  _suspicionThreshold() {
+    return A.suspicionThreshold * Math.max(A.reAlertFloor, A.reAlertFactor ** this._giveUps);
   },
 
   /**

@@ -105,7 +105,7 @@ export const PERCEPTION = {
     if (this.accumulator >= A.engageThreshold && this.state !== AI_STATE.ENGAGE) {
       this._enter(AI_STATE.ENGAGE);
     } else if (
-      this.accumulator > A.suspicionThreshold &&
+      this.accumulator > this._suspicionThreshold() &&
       (this.state === AI_STATE.PATROL || this.state === AI_STATE.SUSPICIOUS)
     ) {
       this._enterInvestigate();

@@ -41,7 +41,7 @@ export function register(debugTools) {
         if (h.match.difficulty !== name) {
           problems.push(`"${name}": the match recorded difficulty "${h.match.difficulty}"`);
         }
-        seen.push(`${name} fill ${live.fillRate}/s aim ${live.aimErrorDegrees}deg react ${live.reactionDelay}s settle ${live.aimSettle}s`);
+        seen.push(`${name} fill ${live.fillRate}/s aim ${live.aimErrorDegrees}deg react ${live.reactionDelay}s settle ${live.aimSettle}s search ${live.searchDuration}s`);
       }
 
       // The three must actually differ, or "three presets" is decoration.
@@ -53,6 +53,8 @@ export function register(debugTools) {
       if (aims.size !== 3) problems.push('the presets do not all differ in aim error');
       if (delays.size !== 3) problems.push('the presets do not all differ in reaction delay');
       if (settles.size !== 3) problems.push('the presets do not all differ in aim settle');
+      const searches = new Set(names.map((n) => A.difficulty[n].searchDuration));
+      if (searches.size !== 3) problems.push('the presets do not all differ in search duration');
 
       // Section 11: "Default is medium: 120ms reaction delay, 2.5 degree aim error."
       const medium = A.difficulty[A.defaultDifficulty];

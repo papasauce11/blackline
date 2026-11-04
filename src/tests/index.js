@@ -125,6 +125,7 @@ import { register as registerAiSearch } from './aisearch.js';
 import { register as registerHearing } from './hearing.js';
 import { register as registerPatrol } from './patrol.js';
 import { register as registerAiAlarm } from './aialarm.js';
+import { register as registerAiGiveUp } from './aigiveup.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -342,4 +343,6 @@ export function registerAutoTests(debugTools) {
   registerNightVision(debugTools);
   // M7: the placed camera found by its lens light from 6m; it photographs through its own lens and draws no frame of its own, which is what lets it sit after the device journal's read (H65).
   registerAlarmSeen(debugTools);
+  // K5: the Warden gives up sooner on easy and re-alerts faster the second time; it steps the AI only and ends in a fresh match.
+  registerAiGiveUp(debugTools);
 }

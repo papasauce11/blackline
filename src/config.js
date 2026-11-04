@@ -1113,6 +1113,13 @@ export const CONFIG = {
     drainRate: 15,
     /** Accumulator thresholds. */
     suspicionThreshold: 40,
+    /**
+     * K5, **provisional**: each search the Warden gives up scales the next
+     * suspicion threshold by `reAlertFactor`, never below `reAlertFloor` of it.
+     * A Warden that has lost her once is not so easily talked out of it.
+     */
+    reAlertFactor: 0.7,
+    reAlertFloor: 0.4,
     engageThreshold: 100,
     accumulatorMax: 100,
     /** Movement multiplier applied to the fill rate. */
@@ -1136,6 +1143,7 @@ export const CONFIG = {
     investigateScanTime: 4,
     investigateTimeout: 12,
     engageLoseSightTime: 2.5,
+    /** Seconds of SEARCH before giving up; a difficulty preset may override it (K5). */
     searchDuration: 15,
     searchWaypointCount: 3,
     /**
@@ -1323,11 +1331,15 @@ export const CONFIG = {
      * gates the detection fill. The kill column of the table above is the
      * pre-`aimSettle` one and is left as published (F17, D54); the beat is
      * what parts it now.
+     *
+     * **The fifth, `searchDuration`, is seconds of SEARCH before the Warden
+     * gives up (K5); 10, 15 and 22 are provisional.** Medium keeps the number
+     * it always had.
      */
     difficulty: {
-      easy: { fillRate: 26, aimErrorDegrees: 4.0, reactionDelay: 0.28, aimSettle: 0.42 },
-      medium: { fillRate: 38, aimErrorDegrees: 2.5, reactionDelay: 0.12, aimSettle: 0.16 },
-      hard: { fillRate: 52, aimErrorDegrees: 1.2, reactionDelay: 0.05, aimSettle: 0.0 },
+      easy: { fillRate: 26, aimErrorDegrees: 4.0, reactionDelay: 0.28, aimSettle: 0.42, searchDuration: 10 },
+      medium: { fillRate: 38, aimErrorDegrees: 2.5, reactionDelay: 0.12, aimSettle: 0.16, searchDuration: 15 },
+      hard: { fillRate: 52, aimErrorDegrees: 1.2, reactionDelay: 0.05, aimSettle: 0.0, searchDuration: 22 },
     },
     defaultDifficulty: 'medium',
   },
