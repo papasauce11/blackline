@@ -1246,13 +1246,6 @@ export const CONFIG = {
 
     /** Directions swept looking for a wall to hang the alarm camera on. */
     alarmPlacementProbes: 8,
-    /**
-     * How far, flat, the Warden looks for a declared route's foot to hang its
-     * camera over (K4). PROVISIONAL. 25 because the plant's interior is 60 x
-     * 45: a route anywhere in the Warden's half of the map is the way in, and
-     * one across the building is not its to watch yet. Nothing measured it.
-     */
-    alarmRouteRange: 25,
     /** How often that sweep runs while searching or defending. */
     alarmPlacementInterval: 0.5,
     /**
