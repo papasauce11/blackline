@@ -21119,3 +21119,26 @@ attributed. The full verify of the batch with the fix is the next run's gate -
 HANDOFF.md's `UNVERIFIED BATCH` heading says so - because a second 70 minutes
 would have run into the 02:00 routine. A check of its own for the
 loss-then-quality path is H105.
+## Batch K2, K7 and M1 verified, and the GL fix with it (2026-11-04 02:00, scheduled run)
+
+The gate the `UNVERIFIED BATCH` heading asked for, run at `f413d34`: **exit 0,
+four runs** - plant **254 / 1 / 10** both runs (1,186,065ms and 1,167,854ms),
+yard **236 / 1 / 28** both runs (892,624ms and 924,741ms), spreads 2% and 3%,
+`flaky` empty, `red` empty, 0 console errors, ceiling 11 modules within 50 of
+600 with `combat.js` nearest at 593. The one failure a map is the bench-only
+sweep (H11), which the report's own `benched` block marks `fail` with the
+reason that it times a draw against an 8.33ms ceiling on SwiftShader; `red: []`
+is the suite's verdict on it.
+
+**The reading that matters is the arithmetic against the previous verify.** At
+`0575544` it was plant 253 / 2 and yard 235 / 2; here it is plant 254 / 1 and
+yard 236 / 1. One more check passing and one fewer failing on each map, which
+is exactly `the-shades-night-vision-lifts-the-dark-and-costs-her-nothing`
+going green - so `a60fcbb`, the lost-context fix the last batch proved only by
+its eighteen renderer checks and the census set, is now proved by a full
+verify on both maps, and the bug it found is closed. Nothing else moved.
+
+So the batch is recorded: K2 `823972b`, K7 `40a9d28`, M1 `848725e` `0575544`,
+the fix `a60fcbb`. The heading is gone from HANDOFF.md, and the 70 minutes it
+cost this run are the 70 the previous run did not have - which is the trade
+`UNVERIFIED BATCH` exists to make, and the first time it has been paid back.
