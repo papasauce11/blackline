@@ -3,9 +3,9 @@
  *
  * The Warden's senses (Section 11): sight through a cone and a line-of-sight
  * test, filling the 0-100 accumulator against the visibility meter; hearing
- * against the noise field; the alarm camera's mark arriving as knowledge. It
- * moves the state machine only through `_enter` / `_enterInvestigate`, which
- * ai.js owns.
+ * against the noise field (what it remembers is aihearing.js); the alarm
+ * camera's mark arriving as knowledge. It moves the state machine only
+ * through `_enter` / `_enterInvestigate`, which ai.js owns.
  *
  * Methods of `WardenAI`, kept in their own file (F3). ai.js installs them on
  * the prototype, so `this` is the AI and every field keeps its name.
@@ -80,15 +80,11 @@ export const PERCEPTION = {
     }
     this.accumulator = Math.max(0, Math.min(A.accumulatorMax, this.accumulator));
 
-    // Hearing is a distance test against live noise events (Section 7.2). The
-    // Warden ignores its own footsteps, or it would investigate itself.
-    if (this.detection && this.state !== AI_STATE.ENGAGE && this.state !== AI_STATE.DEFEND) {
-      const heard = this.detection.noise.heard(warden.position);
-      if (heard && heard.source !== 'warden') {
-        this.lastKnown = { x: heard.x, y: heard.y, z: heard.z };
-        if (this.state === AI_STATE.PATROL) this._enter(AI_STATE.SUSPICIOUS);
-      }
-    }
+    // Hearing is a distance test against live noise events (Section 7.2), and
+    // since K2 a memory of them per room (aihearing.js). The Warden ignores
+    // its own footsteps, or it would investigate itself, and a Warden in
+    // ENGAGE or DEFEND is not listening.
+    if (this.detection) this._hear(dt, warden);
 
     // Section 9.2: the alarm camera marks the Shade "on the Warden's HUD for
     // 2s". In competitive the Warden is this, and it has no HUD — so the mark

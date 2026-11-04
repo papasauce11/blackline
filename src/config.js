@@ -1077,6 +1077,30 @@ export const CONFIG = {
     searchDuration: 15,
     searchWaypointCount: 3,
     /**
+     * K2: hearing has a memory, kept per room (systems/aihearing.js). Every
+     * noise the Warden hears in a room adds to that room's attention, the
+     * attention fades, and when a room's reaches `investigateAt` the Warden
+     * goes at once, without the suspicious hold a single noise waits out: to
+     * the sound if it is in that room, to the room's waypoint if it is not.
+     * What it is worth, measured with a Shade walking a ring round a held
+     * Warden on the plant (tests/hearing.js is that scene): a
+     * walking footstep 1.8m off adds 0.34 and the third crosses the line, 1.2s
+     * after the first; 1m off takes two; 2.6m off takes the hold's 1.5s before
+     * it takes the attention. A sprinting one 3m off adds 0.52 and the second
+     * crosses it, 6m off the third. One footstep never does, nor can one noise
+     * of any radius: `gain` is under `investigateAt`.
+     */
+    hearing: {
+      /** Seconds for attention to fall to 1/e: a room is forgotten in about twenty, half-forgotten in 4.2. */
+      decayTau: 6,
+      /** Attention one noise adds at the Warden's feet, falling to nothing at the edge of its radius. */
+      gain: 0.7,
+      /** The ceiling: more noise than this in a room is no more certain than this much. */
+      max: 1,
+      /** Attention at which PATROL or SUSPICIOUS stops wondering and goes to the room: above one noise's gain, so one is never enough. */
+      investigateAt: 0.8,
+    },
+    /**
      * K1: SEARCH sweeps the places a person would look, not the nearest nodes.
      * From the last-known position it walks the `searchSpotCount` best hiding
      * spots within `searchSpotRadius` - ranked by distance, less

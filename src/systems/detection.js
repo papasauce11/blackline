@@ -45,7 +45,7 @@ export class NoiseField {
     /** @type {object[]} */
     this.pool = [];
     for (let i = 0; i < N.maxEvents; i++) {
-      this.pool.push({ x: 0, y: 0, z: 0, radius: 0, type: '', source: '', age: 0, active: false });
+      this.pool.push({ x: 0, y: 0, z: 0, radius: 0, type: '', source: '', age: 0, active: false, seq: 0 });
     }
     this.emitted = 0;
     this.dropped = 0;
@@ -85,6 +85,9 @@ export class NoiseField {
     slot.age = 0;
     slot.active = true;
     this.emitted++;
+    // Which emit this slot holds: the pool recycles slots, so a listener that
+    // counts each event once (the AI's hearing memory, K2) keys on this.
+    slot.seq = this.emitted;
     // Cross-system messaging goes through the emitter (Section 3.1); audio in
     // Phase 8 and the AI in Phase 6 both listen here.
     if (this.emitter) this.emitter.emit('noise', slot);

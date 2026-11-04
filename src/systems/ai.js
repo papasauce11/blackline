@@ -16,10 +16,11 @@
  * controller. If the AI can do something the player cannot, it is because the
  * intent has a field for it.
  *
- * Four files (F3, K1): this one is the state machine; `aiperception.js` is the
- * senses; `ainav.js` is the route, the steering and the stuck detector;
- * `aisearch.js` is SEARCH, where it looks. They are methods of the one class,
- * installed on its prototype at the bottom.
+ * Five files (F3, K1, K2): this one is the state machine; `aiperception.js` is
+ * the senses; `ainav.js` is the route, the steering and the stuck detector;
+ * `aisearch.js` is SEARCH, where it looks; `aihearing.js` is what it remembers
+ * hearing. They are methods of the one class, installed on its prototype at
+ * the bottom.
  */
 
 import { CONFIG, SETTINGS, rng } from '../config.js';
@@ -29,6 +30,7 @@ import { withinDefuseReach } from './plantrule.js';
 import { PERCEPTION } from './aiperception.js';
 import { NAVIGATION } from './ainav.js';
 import { SEARCH, searchIndexFor } from './aisearch.js';
+import { HEARING } from './aihearing.js';
 
 export { AI_STATE } from './aistate.js';
 
@@ -98,6 +100,9 @@ export class WardenAI {
     this._aim = { x: 0, y: 0, z: 0 };
 
     this._scratch = { x: 0, y: 0, z: 0 };
+
+    // Per-room attention to what it has heard (aihearing.js).
+    this._resetHearing();
 
     this._unsubscribe = [];
     this._subscribe();
@@ -179,6 +184,7 @@ export class WardenAI {
     this._defendStand = null;
     this._aimYaw = 0;
     this._aimPitch = 0;
+    this._resetHearing();
     this._stuckAnchor.x = this.warden.position.x;
     this._stuckAnchor.z = this.warden.position.z;
 
@@ -256,9 +262,9 @@ export class WardenAI {
     return intent;
   }
 
-  // Perception is aiperception.js, navigation ainav.js and SEARCH aisearch.js;
-  // all three are installed on the prototype below, so `this` is the same AI
-  // throughout.
+  // Perception is aiperception.js, hearing's memory aihearing.js, navigation
+  // ainav.js and SEARCH aisearch.js; all four are installed on the prototype
+  // below, so `this` is the same AI throughout.
 
   // -------------------------------------------------------------------------
   // States
@@ -532,7 +538,7 @@ export class WardenAI {
   // -------------------------------------------------------------------------
 }
 
-Object.assign(WardenAI.prototype, PERCEPTION, NAVIGATION, SEARCH);
+Object.assign(WardenAI.prototype, PERCEPTION, HEARING, NAVIGATION, SEARCH);
 
 export function createWardenAI(options) {
   return new WardenAI(options);

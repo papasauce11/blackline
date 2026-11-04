@@ -119,6 +119,7 @@ import { register as registerTimedRenders } from './timedrenders.js';
 import { register as registerAudioDevice } from './audiodevice.js';
 import { register as registerTorch } from './torch.js';
 import { register as registerAiSearch } from './aisearch.js';
+import { register as registerHearing } from './hearing.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -319,4 +320,8 @@ export function registerAutoTests(debugTools) {
   // above on purpose: it steps the simulation and draws no frame, so it feeds
   // that journal nothing, and it ends in a fresh match like the AI checks.
   registerAiSearch(debugTools);
+  // K2: what the Warden remembers of what it heard, room by room. After the
+  // search it is the AI's sibling, and the same shape: it steps the simulation
+  // and draws no frame, and ends in a fresh match.
+  registerHearing(debugTools);
 }
