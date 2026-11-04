@@ -6,7 +6,9 @@
  * the rule that decides is mechanical (mapxray.js): a box is see-through if
  * its top is a body below its room's ceiling or it stands under the sky, a
  * box on the shell's boundary never is, and a sightline's budget is
- * `xray.maxThickness` metres of such solids in total. The rule reads no tag.
+ * `xray.maxThickness` metres of such solids in total; M8 closed its two holes:
+ * the low pieces of a wall plane (the sill under an opening) are wall, and a
+ * tube that runs out through the shell is not shell. The rule reads no tag.
  * **This check does** - it names its subjects by tag, because that is how it
  * finds the duct it means, and then asks the live rule about each. A map that
  * loses its ducts would otherwise pass by finding none, so every set must be
@@ -21,6 +23,9 @@
  *      stopped, and by that box.
  *   3. The budget bites: a line across two thin solids that add to more than
  *      the budget is not seen through, and nothing in it is the culprit.
+ *   4. (M8) Every low piece of a plant wall is opaque, and the plant's grade
+ *      vents - which run out through the shell - are seen through, a line
+ *      across the sheet of each costing its own 0.12m.
  *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
@@ -34,13 +39,15 @@ const BUDGET = CONFIG.shade.xray.maxThickness;
 
 /**
  * The subjects, by tag, per map. Ducts and crates and containers are the thin
- * ones; `grade` vents are left out on purpose: they run out through the
- * plant's shell wall, so their footprint reaches the shell boundary and the
- * rule (rightly, by its own words) will not look through them.
+ * ones, and so are the `grade` vents: they run out through the plant's shell
+ * wall, so their footprint reaches the shell boundary, but they run *inward*
+ * and a sheet wide along it, which is not lying along the shell (M8).
+ * `grade` names the sheet of each, the piece a line across them crosses.
  */
 const SUBJECTS = {
   plant: {
-    ducts: /^vent-(low-north|low-south|up-vault)-/,
+    ducts: /^vent-(low-north|low-south|up-vault|grade-west|grade-south)-/,
+    grade: /^vent-grade-(west|south)-wall-a$/,
     crates: /^(stack-|crate-)/,
     containers: /^hall-container$/,
     shell: /^shell-/,
@@ -134,9 +141,10 @@ export function register(debugTools) {
       const readings = [];
 
       // The sets. A room wall "reaches the ceiling" if its top is some room's:
-      // the piece under a window or over a vent mouth is a low wall, and the
-      // rule (top a body below the ceiling) does look over those; they are
-      // counted, not asserted.
+      // the piece under a window or over a vent mouth is a low wall. The rule
+      // (top a body below the ceiling) would look over those, but a wall
+      // plane's own low pieces are wall (M8), so they are asserted opaque in
+      // their own clause, and their count must not be zero.
       const pick = (re) => (re ? boxes.filter((box) => re.test(box.tag || '')) : []);
       const ceiling = (box) => map.rooms.some((room) => Math.abs(room.ceilingY - box.max.y) < 0.01);
       const thin = [...pick(subjects.ducts), ...pick(subjects.crates), ...pick(subjects.containers)];
@@ -144,12 +152,17 @@ export function register(debugTools) {
       const towers = pick(subjects.towers);
       const wallsAll = pick(subjects.walls);
       const walls = wallsAll.filter(ceiling);
+      const lows = wallsAll.filter((box) => !ceiling(box));
+      const grade = pick(subjects.grade);
       const sets = [['thin', thin], ['shell', shell]];
       if (subjects.walls) sets.push(['wall', walls]);
       for (const [name, set] of sets) {
         if (set.length === 0) problems.push(`no ${name} boxes found on ${map.id}`);
       }
-      readings.push(`${map.id}: ${thin.length} thin (${pick(subjects.ducts).length} duct, ${pick(subjects.crates).length} crate, ${pick(subjects.containers).length} container${subjects.towers ? `, by height ${[1, 2, 3].map((n) => `${thin.filter((box) => Math.round(box.max.y / CONTAINER.height) === n).length} at ${n}`).join(' / ')}; ${towers.length} tower` : ''}), ${shell.length} shell, ${subjects.walls ? `${walls.length} wall (+${wallsAll.length - walls.length} low pieces not asserted)` : 'no room walls'}`);
+      readings.push(`${map.id}: ${thin.length} thin (${pick(subjects.ducts).length} duct, ${pick(subjects.crates).length} crate, ${pick(subjects.containers).length} container${subjects.towers ? `, by height ${[1, 2, 3].map((n) => `${thin.filter((box) => Math.round(box.max.y / CONTAINER.height) === n).length} at ${n}`).join(' / ')}; ${towers.length} tower` : ''}), ${shell.length} shell, ${subjects.walls ? `${walls.length} wall (+${lows.length} low pieces)` : 'no room walls'}`);
+
+      if (subjects.walls && lows.length === 0) problems.push(`no low wall pieces found on ${map.id}`);
+      if (subjects.grade && grade.length !== 2) problems.push(`${grade.length} grade vent sheets found on ${map.id}, not 2`);
 
       if (subjects.towers && towers.length === 0) problems.push(`no tower boxes found on ${map.id}`);
 
@@ -158,6 +171,11 @@ export function register(debugTools) {
       if (wrong) problems.push(`thin ${fmt(wrong)} is not see-through`);
       const solid = [...shell, ...walls].find((box) => seeThroughBox(map, box));
       if (solid) problems.push(`${solid.tag} (top ${solid.max.y.toFixed(2)}) is see-through but is a shell box or room wall`);
+
+      // 1a. A wall plane's low pieces are wall: every one opaque, named if not.
+      const seen = lows.filter((box) => seeThroughBox(map, box));
+      for (const box of seen) problems.push(`low wall piece ${fmt(box)} is see-through`);
+      if (lows.length) readings.push(`${lows.length - seen.length}/${lows.length} low wall pieces opaque`);
 
       // 1b. A stack that comes within a body of its room's ceiling is not seen
       // through: the difference between a container and a tower of them.
@@ -177,6 +195,20 @@ export function register(debugTools) {
         problems.push('no thin solid with a clear line across its short axis');
       } else {
         const { box, line } = thinLine;
+        const got = map.seeThroughAlong(line.from, line.to);
+        if (!got.seeThrough || Math.abs(got.thickness - line.extent) > SLOP) {
+          problems.push(`line across ${box.tag}: seeThrough ${got.seeThrough}, thickness ${got.thickness.toFixed(3)} against its ${line.extent.toFixed(3)}`);
+        }
+        readings.push(`across ${box.tag} ${got.thickness.toFixed(2)}m of ${line.extent.toFixed(2)}m`);
+      }
+      // The grade vents, across the sheet of each: the shell clause used to
+      // refuse these; now the sheet costs its own thickness and no more.
+      for (const box of grade) {
+        const line = acrossLine(map, box);
+        if (!line) {
+          problems.push(`no clear line across ${box.tag}`);
+          continue;
+        }
         const got = map.seeThroughAlong(line.from, line.to);
         if (!got.seeThrough || Math.abs(got.thickness - line.extent) > SLOP) {
           problems.push(`line across ${box.tag}: seeThrough ${got.seeThrough}, thickness ${got.thickness.toFixed(3)} against its ${line.extent.toFixed(3)}`);
