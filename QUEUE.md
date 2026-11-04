@@ -968,13 +968,39 @@ K4, K5, K7.
 - [x] **K6 (M)** Difficulty at range — done 2026-11-03, under Done. `aimSettle` on the three `ai.difficulty` presets, `_enter`/`_fireBurst` in `src/systems/ai.js`, the margin clause and `SEPARATION_FRACTION` in `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`, a fourth number in `difficulty-preset-reaches-the-ai`. H99 folded in and green.
 - [x] **K2 (M)** Hearing with memory — done 2026-11-03, under Done. `src/systems/aihearing.js` (attention per room, the room target), `seq` on noise events, `CONFIG.ai.hearing`, `the-warden-remembers-what-it-heard-room-by-room`.
 - [x] **K3 (M)** The torch, on the night map — done 2026-11-03, under Done. `src/systems/torch.js`, `night` on the yard's registry entry, the `torch` action on T, three checks in `src/tests/torch.js`.
-- [ ] **K4 (S)** Alarm response. A trip sends it along the route past the
-  camera, and it places the camera on the likeliest approach. *done-when:*
-  the placement is on a declared route in a check.
+- [x] **K4 (S)** Alarm response — done 2026-11-04, under Done. `src/systems/aialarm.js` (the ALARM mixin, the route-ordered fan), `gadgets.alarmCovers` and `findAlarmWall`, the via in `_enterInvestigate` / `_stepInvestigate`, `the-warden-puts-its-one-camera-on-the-way-in-and-a-trip-walks-it-past-the-lens`. `fa39e8c`, `9b979f6`, `1496cc9`.
 - [ ] **K5 (S)** Giving up. A search timer by difficulty; back to patrol
   with a bark (N2); faster to re-alert the second time. *done-when:* a check
   times both.
 - [x] **K7 (S)** Patrol variety — done 2026-11-03, under Done. `src/systems/aipatrol.js`, `round:clock` from the objective, `CONFIG.ai.patrol.siteCheckAt`, `the-warden-checks-a-site-room-when-the-round-clock-is-low`.
+- [ ] **K9 (S)** The one approach the camera cannot watch. K4's probe swept
+  every standable cell within the camera's 8m of each declared route's foot and
+  counted the stands where a wall in reach hangs a camera that covers it: every
+  route on both maps has between 29 and 167 of them **except the plant's
+  `fire-escape-roof`, which has 0 of 862** - its foot is on a roof at (7.1,
+  -23.95) and nothing a ground-bound Warden can reach sees it. That may be
+  right (the roof is the hardest way in and one camera cannot be everywhere)
+  or it may be a hole; either way a player can only learn it by losing to it.
+  *done-when:* `PLAYTEST.md` names it as the approach the camera cannot
+  watch, or a covering stand exists and K4's check asserts that route too.
+- [ ] **K10 (S)** A finer fan for the camera's wall. `alarmPlacementProbes` is
+  8, so K4's route-ordered sweep tries directions 45 degrees apart and misses
+  covering walls that are there: the probe found a yard stand (`store-west`)
+  where a plain sweep covered the foot and the fanned order did not, which is
+  why the fallback exists. Raise the fan, or bisect between the two nearest
+  hits. *done-when:* the covers-per-route column is measured before and after
+  on both maps, the entry says the gain, and K4's check stays green.
+- [ ] **K11 (S)** A Warden that starts its circuit the wrong way and freezes.
+  Seen while staging K4 on the plant, and **not K4's doing**: a Warden
+  beginning a patrol leg from near the hall-west camera laid a route toward a
+  node 10m the wrong way and stopped against an obstacle at (-12, -17). K4's
+  check works around it by holding the Warden in a PATROL pause so its route
+  starts where it was placed, which is why K4 is green over it. The soak
+  reports **0 stuck re-paths** in nine rounds a map, so the stuck detector
+  never fires on it - it is not a stall it recovers from, it is a route it
+  should not have laid. *done-when:* a check stands the Warden at that spot,
+  steps one circuit leg, and asserts it reaches the node; the entry says
+  whether `nearestWaypoint` or the stuck detector was the fault.
 - [ ] **K8 (S)** The per-round aim draw, back off the shelf. F17 built it, measured it better at unchanged accuracy — the hit fraction and the mean do not move, only the variance, and the scatter inside a burst goes from 0.675 / 0.614 of the overall scatter to 0.896 / 0.926 — and reverted it for one reason only: it tipped medium and hard into a dead heat at 8m. K6 moved that separation off the cone entirely (D80), so the reason is gone. Draw the hold per round rather than per burst (`_drawAimError` from the `combat:shot` handler, not the burst refill) and re-measure. *done-when:* `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` and `the-widest-cone-kills-at-range-and-not-once-in-a-while` are green on both maps unseeded and under `seed=20261018`, with the margin clause compared no less strictly, and the entry says what the tail did; D54 is answered either way.
 
 ## Block M — vision
@@ -1113,6 +1139,21 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **K4** Alarm response. The Warden's one camera goes up where it watches the
+  likeliest approach - a declared route's foot, where the Shade's climb starts
+  - and a trip walks it to the camera before the mark. `aialarm.js` is a mixin
+  beside K1's, K2's and K7's; it fans its probes from the direction opposite
+  the foot, because a camera faces back off its wall, and accepts one only if
+  `gadgets.alarmCovers` - the camera's own trip rule, now public and read by
+  the AI, the camera and the check alike - says the foot is in reach, in the
+  cone and in sight. It **prefers** rather than gates: the first attempt
+  withheld the camera for whole rounds because the brief let it consider feet
+  25m away of a camera that sees 8, so the range is now the camera's own
+  radius and a miss falls through to the pre-K4 sweep in the same tick. Plant
+  43 / 0 and yard 40 / 0 by subset; the soak hangs 9 cameras in nine rounds a
+  map where it had hung 0. Built by a Sonnet builder in a worktree, fixed by
+  the same builder off a probe of every stand near every route foot —
+  `fa39e8c`, `9b979f6`, `1496cc9`, 2026-11-04, scheduled run.
 - **M1** The Shade's night vision. `V` toggles it for the Shade only: the frame's
   light times 4 plus 0.03, its luma in a soft phosphor green, grain from a
   hash of the pixel and the step (the same every run of a seed), a tube

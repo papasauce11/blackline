@@ -3091,3 +3091,78 @@ it), and in its *Settings → Pages* set **Source: GitHub Actions**. Then paste
 the HTTPS URL here. The first push may ask for your GitHub login once in the
 session that runs H1; after that the credential manager holds it.
 **decided:** https://github.com/papasauce11/blackline - Josh, 2026-09-26. Pages was already set up; the session made it a **branch deploy** of `phases-14-45` (the CLI token cannot push workflow files, so an Actions deploy would have needed Josh to re-authorise it) and added the branch to the `github-pages` environment. The game is at https://papasauce11.github.io/blackline/.
+### D83 - The x-ray would see through the wall under a window. Should a cut-down wall piece count as a wall?
+Raised by M2, 2026-11-04. M2 built the rule Josh asked for: the x-ray "works
+through thin walls like vents, crates and such, not real regular walls", and
+the test is mechanical, never a tag. A solid is see-through if its top is a
+body's height below its room's ceiling, or it stands under the sky; the shell
+and anything reaching the shell's boundary never is. A room wall needs no
+special case, because it spans floor to ceiling and its top *is* the ceiling.
+
+**Except where a wall has an opening cut in it.** `addWall` cuts a wall into
+pieces around a window or a vent mouth, and the piece under the opening - the
+sill - has a top well below the ceiling. By the rule it is see-through, and
+0.4m of it is nothing against a 2.5m budget. So an x-ray built on M2 as it
+stands looks through the wall below every window and below every vent mouth,
+which is not "a thin wall like a vent or a crate" by any reading of what Josh
+asked for. M2's check counts those pieces in its detail and asserts nothing
+about them, so the hole is recorded rather than hidden; nothing draws the
+x-ray yet, so nothing a player sees has changed. **M3 is the job that would
+make it visible, and it is blocked on this.**
+
+Why it is not mine to take: it changes what the Shade can see, which is to say
+what she can do with the thing. And the obvious mechanical fixes each cost
+something real:
+
+1. **Leave it.** The sill is see-through. Cheapest, and it is arguably fair -
+   the Shade can already *shoot* through nothing there, only look. But it
+   means the x-ray's edge is drawn by where a mapper happened to cut an
+   opening, which is the kind of rule nobody can learn by playing.
+2. **A box is opaque if an opaque box stands in its own wall plane, beside it
+   within a touch.** The sill's left and right pieces run floor to ceiling, so
+   they are opaque, and the sill is coplanar with them and adjacent - so the
+   sill becomes opaque too, mechanically, with no tag. This is the honest fix
+   and it is the one I would build. It is also a new mechanism with its own
+   clauses, and a duct or a pipe mounted flat against a wall may read as "in
+   that wall's plane" and go opaque with it, which would cost exactly the
+   thing Josh named first.
+3. **A floor on the opening, not the piece: a wall is see-through only where
+   the hole is.** Treat the opening as the see-through solid and the wall as
+   never see-through. Truest to the fiction and the most work by far - it
+   needs the openings as geometry, which `maprooms.js` derives for room
+   entries but not for a sightline.
+4. **A thickness floor instead.** Anything thinner than a wall is see-through
+   and a wall's thickness is not. One number, no new mechanism - but a crate
+   wall and a room wall are both about half a metre here, so it does not
+   separate the two things it has to separate.
+
+Recommendation: **2**, with the duct risk settled by a check rather than an
+argument - M2's check already names its ducts, so it would say at once whether
+any of them went opaque. If the answer is 1, say so and M3 is unblocked
+immediately.
+**And the sill is the milder half of it. The sharper half is the grade vents.**
+`vent-grade-west` and `vent-grade-south` are the Shade's two quietest ways in,
+and `addVentRun` builds each from galvanised sheet 0.12m thick (`mapgen.js`'s
+`wallT`) - the thinnest solid on either map, and literally the thing Josh named
+first. Both runs span from outside the shell to inside it (x -37 to -25 against
+a shell at -30.5), so each side wall's footprint reaches the shell rectangle's
+boundary and **the shell clause makes it opaque**. The x-ray as M2 built it
+looks through a crate and not through a vent.
+
+That is the shell clause over-reaching, not the ceiling rule: "its footprint
+reaches the shell's boundary" catches anything that *crosses* the boundary as
+well as everything lying along it, which is also why `fire-escape-base` and the
+ground plane fall out of M2's thin sets. A mechanical fix exists and is the
+same shape as option 2 - **a box is shell only if it lies *along* the boundary
+rather than through it**: its extent inward from the boundary is no greater
+than its extent along it. The plant's `shell-west` is 45m along and 0.5m in, a
+slab; a yard ring container is 12m along and 2.4m in, a slab; a grade vent's
+side wall is 0.12m along and 12m in, a tube through the wall, not the wall. It
+separates all three cases on both maps with no tag and no new data.
+
+I have not built it, because it changes what the Shade can see through and is
+therefore the same question as above rather than a tidy-up of it. If the answer
+to this page is 1 ("leave it"), the grade vents are still worth fixing on their
+own, and the queue has that job waiting on this page.
+
+**decided:**

@@ -21142,3 +21142,70 @@ So the batch is recorded: K2 `823972b`, K7 `40a9d28`, M1 `848725e` `0575544`,
 the fix `a60fcbb`. The heading is gone from HANDOFF.md, and the 70 minutes it
 cost this run are the 70 the previous run did not have - which is the trade
 `UNVERIFIED BATCH` exists to make, and the first time it has been paid back.
+## K4 — Alarm response: the camera over the way in, and a trip that walks past it (2026-11-04 02:00, scheduled run)
+
+Two halves, both of them the Warden's. **The placement**: its one camera
+(Section 9.2) now goes up where it watches the likeliest approach - a declared
+stairless route's foot, which is where the Shade's climb starts - rather than
+on the first wall behind it. `_maybePlaceAlarm` moved out of `ai.js` into a
+mixin of its own, `src/systems/aialarm.js`, beside K1's, K2's and K7's, and
+fans its probes out from the direction opposite the nearest route foot, since
+a camera faces back off its wall and so wants the wall *opposite* the thing it
+is to watch. It accepts a wall only if `gadgets.alarmCovers` says the foot is
+in reach, in the cone and in clear sight - a new public method that is the
+camera's own trip rule, lifted out of `_stepAlarm` so the AI, the camera and
+the check all read one rule rather than three copies. **The response**: a trip
+sends it to the camera first and to the mark second (`_enterInvestigate(via)`,
+`_stepInvestigate` clearing the via on arrival), because the camera is hung
+over the way in, so walking to it is walking the approach she used.
+
+**The first attempt was red on both maps, and the fault was arithmetic in the
+brief.** `alarmCovers` requires the target inside the camera's radius, 8m; the
+brief set `alarmRouteRange` to 25. So the AI asked whether a wall watched a
+point up to 25m away of a camera that cannot see past 8, the answer was almost
+always no, and the brief told it to place nothing in that case - so the one
+camera was withheld for the whole round, every round. Three checks said so in
+three ways: `ai-places-its-alarm-camera-and-acts-on-it` *"never placed a camera
+across 40s of SEARCH"*, the soak *"never hung its camera"* in nine matches a
+map, and K4's own *"no camera stood"*. The fix is two lines of principle: the
+approach is bounded by `CONFIG.gadgets.alarmCamera.radius` and the config key
+is gone, so the range cannot drift above what the camera sees again; and the
+coverage test **prefers** rather than gates - if no wall in the fanned order
+covers the foot, it falls through to the pre-K4 sweep in the same tick, so the
+camera is always spent when a wall is in reach.
+
+**Proved** by subset on both maps at `1496cc9`: plant **43 / 0**, yard **40 / 0**
+(three not for the yard), `flaky` empty, 0 console errors, ceiling 11 within 50
+of 600. The three checks the first attempt broke all read right afterwards -
+the soak now reports **9 cameras hung** in nine rounds a map where it had hung
+0, and `ai-places-its-alarm-camera-and-acts-on-it` *"hung its one camera on a
+wall after 8.8s of SEARCH"* on the plant and 0.0s on the yard. K4's own check
+names what it watched: on the plant *"cameras cover the feet of
+[hall-west,hall-south,hall-vent-north,hall-vent-south,bay,vault-hatch,fire-escape]"*
+and on the yard all nine routes, plus *"a trip on hall-west laid the route to
+the camera, then to the mark"*. **The break** - `_likeliestApproach()` returning
+null, which is the pre-K4 blind sweep - reds it on both maps on exactly its
+first clause, and says why: *"the camera at (-6.1, -1.7) facing 1.57rad does not
+cover its foot (-12.5, 4.0), though a wall near stand 86 of those tried does"*.
+Restored from a copy and byte-identical after.
+
+**Three findings, all measured rather than argued, and all in the queue.** The
+builder probed every standable cell within the camera's radius of every route
+foot on both maps and counted the stands that yield a covering wall. Every
+route has between 29 and 167 - **except the plant's `fire-escape-roof`, which
+has 0 of 862**: its foot is on a roof and nothing a ground-bound Warden can
+reach can see it, so one approach on one map is permanently unwatchable (K9).
+The fan is only 8 directions, 45 degrees apart, and misses covering walls that
+exist - a yard stand where a plain sweep covered the foot and the fanned order
+did not, which is why the fallback earns its keep (K10). And, unrelated to K4
+but seen while staging it, **a Warden beginning a patrol leg near the plant's
+hall-west camera laid a route 10m the wrong way and stopped against an obstacle
+at (-12, -17)**, with the soak reporting 0 stuck re-paths - so the stuck
+detector never fires on it, which makes it a route that should not have been
+laid rather than a stall it fails to recover from (K11). K4's check steps
+around it by holding the Warden in a PATROL pause.
+
+**What was left.** The check reports the roof route rather than failing on it,
+which was the builder's call against the brief and the right one: a permanent
+red on a geometry fact is a check nobody reads. `fa39e8c`, `9b979f6`,
+`1496cc9`.

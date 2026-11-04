@@ -16,11 +16,11 @@
  * controller. If the AI can do something the player cannot, it is because the
  * intent has a field for it.
  *
- * Six files (F3, K1, K2, K4): this one is the state machine; `aiperception.js` is
- * the senses; `ainav.js` is the route, the steering and the stuck detector;
+ * Six files (F3, K1, K2, K4): this one is the state machine; `aiperception.js`
+ * is the senses; `ainav.js` is the route, the steering and the stuck detector;
  * `aisearch.js` is SEARCH, where it looks; `aihearing.js` is what it remembers
- * hearing; `aialarm.js` is where it hangs its camera. They are methods of the one class, installed on its prototype at
- * the bottom.
+ * hearing; `aialarm.js` is where it hangs its camera. They are methods of the
+ * one class, installed on its prototype at the bottom.
  */
 
 import { CONFIG, SETTINGS, rng } from '../config.js';
