@@ -131,7 +131,14 @@ export class Objective {
     } else {
       // Section 10.4: the base clock only matters before a plant. After one,
       // the detonation clock is the effective timer.
+      const before = round.timeRemaining;
       round.timeRemaining -= dt;
+      // K7: the Warden's patrol reads the clock (aipatrol.js) and nothing may
+      // import this file, so the clock is said, once each time it passes a
+      // second - while there is some left: the round's end says the rest.
+      if (round.timeRemaining > 0 && Math.floor(before) !== Math.floor(round.timeRemaining)) {
+        this.emitter.emit('round:clock', { remaining: round.timeRemaining });
+      }
       if (round.timeRemaining <= 0) this._end('warden', 'time expired with no plant', OUTCOME.TIME);
     }
   }

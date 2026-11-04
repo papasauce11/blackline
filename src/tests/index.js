@@ -120,6 +120,7 @@ import { register as registerAudioDevice } from './audiodevice.js';
 import { register as registerTorch } from './torch.js';
 import { register as registerAiSearch } from './aisearch.js';
 import { register as registerHearing } from './hearing.js';
+import { register as registerPatrol } from './patrol.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -324,4 +325,7 @@ export function registerAutoTests(debugTools) {
   // search it is the AI's sibling, and the same shape: it steps the simulation
   // and draws no frame, and ends in a fresh match.
   registerHearing(debugTools);
+  // K7: the Warden's site-room check on a low round clock. Last, beside
+  // K1's: it steps the AI and the objective and draws no frame.
+  registerPatrol(debugTools);
 }

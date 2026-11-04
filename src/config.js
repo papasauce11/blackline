@@ -1068,6 +1068,15 @@ export const CONFIG = {
     /** State timings. */
     patrolPauseMin: 2,
     patrolPauseMax: 4,
+    /**
+     * K7: a low round clock sends a patrolling Warden to look at each plant
+     * site's room (systems/aipatrol.js). `siteCheckAt` is the seconds left
+     * below which it does - a quarter of `round.duration` (240s), the last
+     * minute, when a Shade that has not planted yet has to.
+     */
+    patrol: {
+      siteCheckAt: 60,
+    },
     patrolScanDegrees: 55,
     patrolScanSpeed: 0.9,
     suspiciousHold: 1.5,

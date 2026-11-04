@@ -29,6 +29,7 @@ import { A, AI_STATE, angleDelta, defuseSnapFor } from './aistate.js';
 import { withinDefuseReach } from './plantrule.js';
 import { PERCEPTION } from './aiperception.js';
 import { NAVIGATION } from './ainav.js';
+import { PATROL } from './aipatrol.js';
 import { SEARCH, searchIndexFor } from './aisearch.js';
 import { HEARING } from './aihearing.js';
 
@@ -117,6 +118,7 @@ export class WardenAI {
    */
   _subscribe() {
     if (!this.emitter) return;
+    this._subscribePatrol();
     this._unsubscribe.push(this.emitter.on('combat:damage', (event) => {
       if (event.target !== 'warden') return;
       if (this.state !== AI_STATE.DEFEND) return;
@@ -191,6 +193,7 @@ export class WardenAI {
     this._circuit = this.map.waypoints.map((node) => node.id);
     rng.shuffle(this._circuit);
     this._circuitIndex = 0;
+    this._resetPatrol();
     this._pathTo(this.map.waypoints[this._circuit[0]].position);
   }
 
@@ -295,6 +298,7 @@ export class WardenAI {
     }
     if (this._followRoute(dt, false)) {
       this._pauseTimer = rng.range(A.patrolPauseMin, A.patrolPauseMax);
+      if (this._pickSiteRoom()) return; // aipatrol.js: a low round clock sends it to a site room first
       this._circuitIndex = (this._circuitIndex + 1) % this._circuit.length;
       this._pathTo(this.map.waypoints[this._circuit[this._circuitIndex]].position);
     }
@@ -538,7 +542,7 @@ export class WardenAI {
   // -------------------------------------------------------------------------
 }
 
-Object.assign(WardenAI.prototype, PERCEPTION, HEARING, NAVIGATION, SEARCH);
+Object.assign(WardenAI.prototype, PERCEPTION, HEARING, NAVIGATION, SEARCH, PATROL);
 
 export function createWardenAI(options) {
   return new WardenAI(options);
