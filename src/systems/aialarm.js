@@ -8,7 +8,9 @@
  * watches the way in. It prefers; it never withholds. A camera held for the
  * perfect wall is a camera the round never gets, and the radius it sees is
  * short, so where no wall watches an approach it sweeps for any wall, as it
- * did before K4.
+ * did before K4. That fallback is now reached less: the fan is 22.5 degrees
+ * fine (K10), not 45, so what sends it there is mostly that no wall watches
+ * the foot, not that a wall was passed between two rays.
  *
  * Methods of `WardenAI`, installed on its prototype as ainav.js's are (F3):
  * `this` is the AI. Layering (Section 3.1): imports config and aistate.js.

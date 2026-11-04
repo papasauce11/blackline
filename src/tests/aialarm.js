@@ -27,6 +27,17 @@
  *                  her sight, so the arrival is about the via and not
  *                  `investigateTimeout`.
  *
+ *   the fan        the fan of `alarmPlacementProbes` rays buys stands (K10):
+ *                  over the stands within the camera's radius of each route's
+ *                  foot, it covers strictly more than the eight rays the AI
+ *                  swept before K10. Measured that way the clause needs no
+ *                  threshold - the coarse fan's rays are a subset of the
+ *                  fine one's, so the count can only rise, and the assertion
+ *                  is that it does. A 5-degree sweep found walls neither fan
+ *                  reaches and no fan ever will, because the fan is centred on
+ *                  the foot and a plain sweep is not; that reading is in
+ *                  PROGRESS.md under K10, not paid for here.
+ *
  * Each map is read as the page is on it: no coordinate and no tag is named.
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
@@ -39,6 +50,8 @@ const GA = CONFIG.gadgets.alarmCamera;
 const R = GA.radius;
 const N = CONFIG.ai.alarmPlacementProbes;
 const TAU = Math.PI * 2;
+/** The fan the AI ran before K10, which clause 3 measures the gain against. */
+const COARSE = 8;
 /** Steps given to SEARCH to hang the camera: the first tick tries, so this is generous. */
 const PLACE_FRAMES = Math.round(2 / dt);
 /** The Shade's torso above her feet, crouching, and the Warden's eye above its. */
@@ -64,19 +77,52 @@ const approaches = (h) => h.map.routes.map((route) => {
 
 /**
  * Would a camera hung by the AI's own sweep from this stand cover `foot`? The
- * camera's rule, asked of the same eight walls in the order the AI tries them
+ * camera's rule, asked of the same walls in the order the AI tries them
  * (opposite the foot first): where this says no, no preference can make it yes.
+ * `fan` is how many rays, so clause 3 can ask the same question of the fan the
+ * AI had before K10; it defaults to the one the AI runs.
  */
-function watchedFrom(h, stand, foot) {
+function watchedFrom(h, stand, foot, fan = N) {
   const origin = { x: stand.x, y: stand.y + EYE, z: stand.z };
   const base = Math.atan2(-(foot.x - origin.x), -(foot.z - origin.z));
-  for (let i = 0; i < N; i++) {
+  for (let i = 0; i < fan; i++) {
     const step = i === 0 ? 0 : (i % 2 ? (i + 1) / 2 : -i / 2);
-    const angle = base + (step * TAU) / N;
+    const angle = base + (step * TAU) / fan;
     const at = h.gadgets.findAlarmWall(origin, { x: -Math.sin(angle), y: 0, z: -Math.cos(angle) });
     if (at && h.gadgets.alarmCovers(at, foot)) return true;
   }
   return false;
+}
+
+/**
+ * Both fans over every stand each route's foot owns: the one the AI runs and
+ * the eight rays it ran before K10. Compared this way the claim needs no
+ * threshold and no reference sweep, because the coarse fan's rays are a subset
+ * of the fine one's whenever `N` is a multiple of `COARSE` - every 45 degrees
+ * is a multiple of 22.5 - so a stand the eight cover the sixteen cover too and
+ * the count can only go up. What is measured is how far up.
+ *
+ * A stand costs `N + COARSE` rays and nothing else; the 5-degree sweep that
+ * diagnosed this (PROGRESS.md, K10) is not run here, because its answer does
+ * not change and a check should not pay 72 rays a stand twice a map forever.
+ */
+function fanGain(h, routes) {
+  let fan = 0;
+  let coarse = 0;
+  let best = null;
+  for (const route of routes) {
+    let routeGain = 0;
+    let first = null;
+    for (const s of h.map.wardenGround.cellsWithin(route.at, R)) {
+      if (!routes.every((r) => flat(s, route.at) <= flat(s, r.at) + 1e-9)) continue;
+      const fine = watchedFrom(h, s, route.at);
+      if (fine) fan++;
+      if (watchedFrom(h, s, route.at, COARSE)) coarse++;
+      else if (fine) { routeGain++; first = first || s; }
+    }
+    if (routeGain && (!best || routeGain > best.gain)) best = { id: route.id, gain: routeGain, first };
+  }
+  return { fan, coarse, best };
 }
 
 /**
@@ -226,6 +272,12 @@ export function register(debugTools) {
         problems.push(`no route on this map has a wall that watches its foot: [${unwatched.join('; ')}]`);
       }
 
+      // (3) The fan is finer than it was, and that buys stands: K10.
+      const { fan, coarse, best } = fanGain(h, routes);
+      if (fan <= coarse) {
+        problems.push(`the ${N}-ray fan covers ${fan} stands against the ${COARSE}-ray fan's ${coarse}: a finer fan bought nothing, so ai.alarmPlacementProbes is no finer than the eight rays K10 raised it from`);
+      }
+
       // (2) A trip walks it past the lens, on the first route that was watched.
       if (first) {
         const again = hangFrom(h, first.route, routes);
@@ -237,7 +289,7 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `cameras cover the feet of [${watched}]${unwatched.length ? `; no wall near [${unwatched.join('; ')}] watches it` : ''}; a trip on ${first.route.id} laid the route to the camera, then to the mark`
+          ? `cameras cover the feet of [${watched}]${unwatched.length ? `; no wall near [${unwatched.join('; ')}] watches it` : ''}; the ${N}-ray fan covers ${fan} stands against the ${COARSE}-ray fan's ${coarse}, +${fan - coarse}${best ? ` (most on ${best.id}, +${best.gain})` : ''}; a trip on ${first.route.id} laid the route to the camera, then to the mark`
           : problems.join('; '),
       };
     },

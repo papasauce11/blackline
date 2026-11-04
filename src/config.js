@@ -1282,8 +1282,17 @@ export const CONFIG = {
     /** Turn rate, radians per second. */
     turnRate: 3.4,
 
-    /** Directions swept looking for a wall to hang the alarm camera on. */
-    alarmPlacementProbes: 8,
+    /**
+     * Directions swept looking for a wall to hang the alarm camera on, and so
+     * the fan's resolution: 360/16 = 22.5 degrees between rays. At 8 (45) the
+     * fan walked past covering walls that were there - K10 measured it against
+     * a 5-degree sweep and found 21% of the stands that sweep covers a route's
+     * foot from unreachable on plant, 17% on yard, which 16 cuts to 13% and
+     * 9%. No count reaches the sweep's parity: the fan is centred on the foot,
+     * the sweep is not, and they never share a ray. What the check holds is
+     * therefore the gain, not a share - 16 rays must cover more stands than 8.
+     */
+    alarmPlacementProbes: 16,
     /** How often that sweep runs while searching or defending. */
     alarmPlacementInterval: 0.5,
     /**
