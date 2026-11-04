@@ -107,7 +107,11 @@ up to three, suspended by D79 while the four tiers are tested.)
             as `Record batch: <ids>`. A red is attributed by the red check's
             subset at each of the run's commits; the job is fixed or
             reverted and the verify re-run.
-9. STOP.
+9. SHOW     photographs of the run's HEAD (`npm run shot`, a pose for a
+            job that touched a body) sent to Josh, two to four picked to
+            show the run's work (Josh, 2026-11-03: "show screenshots of
+            progress after each run").
+10. STOP.
 ```
 
 **Budget rule.** While D79 holds, the budget is about an hour of work, a job not proved by about 90 minutes is committed as WIP, and an L job is split before it is taken. Sizes are fractions of one session (`S` = a third, `M` = most,
