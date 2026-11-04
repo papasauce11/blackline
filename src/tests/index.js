@@ -35,6 +35,7 @@ import { register as registerReadability } from './readability.js';
 import { register as registerDeck } from './deck.js';
 import { register as registerRoutes } from './routes.js';
 import { register as registerAnyMap } from './anymap.js';
+import { register as registerXray } from './xray.js';
 import { register as registerLegibility } from './legibility.js';
 import { register as registerWarden } from './warden.js';
 import { register as registerWardenGround } from './wardenground.js';
@@ -153,6 +154,8 @@ export function registerAutoTests(debugTools) {
   registerDeck(debugTools);
   registerRoutes(debugTools);
   registerAnyMap(debugTools);
+  // M2: the x-ray's rule, read off the built map - no frame is drawn.
+  registerXray(debugTools);
   registerLegibility(debugTools);
   registerWarden(debugTools);
   registerWardenGround(debugTools);

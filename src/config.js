@@ -681,6 +681,19 @@ export const CONFIG = {
       vignetteInner: 0.55,
       vignetteOuter: 1.25,
     },
+
+    /**
+     * The x-ray (Block M, M2): what it will look through. Josh: it "works
+     * through thin walls like vents, crates and such, not real regular
+     * walls". PROVISIONAL - Block M says the parameters are, and M3 draws it.
+     * The rule is mapxray.js: a solid is see-through if its top is a body
+     * lower than its room's ceiling (or it stands under the sky), and a room
+     * wall or the shell never is; this is the budget on top of that.
+     */
+    xray: {
+      /** Metres of see-through solid a sightline may cross in total. 2.5 because a 40ft container is 2.4m across its short axis: one is seen through and a second is not, and a duct or a crate is well under half of it. */
+      maxThickness: 2.5,
+    },
   },
 
   // -------------------------------------------------------------------------

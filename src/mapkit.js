@@ -32,6 +32,7 @@ import { GENERATORS } from './mapgen.js';
 import { deriveRoomEntries } from './maprooms.js';
 import { deriveWardenGround } from './mapground.js';
 import { deriveClimbableSurfaces, supportHeightBelow, supportCandidates, supportApproaches } from './mapclimb.js';
+import { seeThroughAlong } from './mapxray.js';
 
 const M = CONFIG.map;
 const P = CONFIG.palette;
@@ -333,6 +334,15 @@ export class GameMap {
    */
   deriveClimbableSurfaces() {
     deriveClimbableSurfaces(this.collision, this.ledges);
+  }
+
+  /**
+   * The question the x-ray asks (M2): can the Shade see along this line
+   * through what stands on it? The rule lives in mapxray.js.
+   * @returns {{seeThrough: boolean, thickness: number, blockedBy: object|null}}
+   */
+  seeThroughAlong(from, to) {
+    return seeThroughAlong(this, from, to);
   }
 
   /** Height of the surface an actor would stand on to climb this box. */

@@ -69,8 +69,10 @@ export class CollisionBox {
 // ---------------------------------------------------------------------------
 
 /**
- * @returns {{t:number, nx:number, ny:number, nz:number}|null} entry time and
- * the outward normal of the face entered through, or null if no crossing.
+ * @returns {{t:number, tExit:number, nx:number, ny:number, nz:number}|null} entry
+ * time, exit time and the outward normal of the face entered through, or null
+ * if no crossing. `tExit` is for the x-ray (mapxray.js), which needs the length
+ * of a crossing and not just where it begins; nothing else reads it.
  */
 export function raySlab(origin, delta, min, max) {
   let tEnter = 0;
@@ -149,5 +151,5 @@ export function raySlab(origin, delta, min, max) {
   }
 
   if (tEnter > 1 || tExit < 0) return null;
-  return { t: tEnter, nx, ny, nz };
+  return { t: tEnter, tExit, nx, ny, nz };
 }
