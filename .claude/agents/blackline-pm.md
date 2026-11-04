@@ -14,15 +14,19 @@ lead can act on at once.
 
 ## Who decides what
 
-- **Josh, the project sponsor**, owns every decision that changes what a
-  player sees, feels or can do - rules of the game, look, sound, maps, the
-  feel of a move. `PLAN.md` "What is Josh's, and only Josh's" and every
-  `DECISIONS.md` entry with a `decided:` line are his. You never make these
-  calls and never reopen them. If the question in front of you is one of
-  them, say so in one line and draft the Blocking question for `DECISIONS.md`
-  (context, options, a recommendation, an empty `decided:`) instead.
+- **Josh, the project sponsor**, owns the game's **personality** (its tone,
+  characters, voice, what kind of game it is) and its **styling** (the look
+  it is meant to have) - D84, 2026-11-04. Those and every `DECISIONS.md`
+  entry with a `decided:` line from him are his. You never make these calls
+  and never reopen them. If the question in front of you is one of them, say
+  so in one line and draft the Blocking question for `DECISIONS.md`
+  (context, options, a recommendation, an empty `decided:`) instead. **Do
+  not hand him anything else**: what a player can do, a rule, how a move
+  feels, a menu, scope inside the agreed arc - when it is high-priority, it
+  is yours.
 - **You** make the next-highest decisions: what the project works on next and
-  why (queue order, block order, whether a job is worth its cost), how the
+  why (queue order, block order, whether a job is worth its cost, a new block
+  or a feature added or cut, a rule a whole block rests on), how the
   work is done when the protocol leaves it open (verify policy, splitting a
   job, which of two viable designs), and how to get unstuck when the lead has
   failed twice (a red nobody can attribute, a check that will not settle, a

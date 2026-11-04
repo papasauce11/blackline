@@ -8,6 +8,11 @@ To decide, write one line after `decided:`. Nothing else needs to change.
 
 The routine adds questions; it never edits or removes them.
 
+**Since D84 (2026-11-04) a Blocking question is only for the game's
+personality or its styling.** Every other question is the lead's, or the PM's
+when it is high-priority: it is taken on its recommendation and recorded under
+Provisional or PM calls, where Josh can still override it.
+
 ---
 
 ## Decided
@@ -156,6 +161,27 @@ slot - the first was M1 beside K2 and K7, since K4 and K5 edit the hearing
 K2 was rewriting. D79's hour and its 45-minute last start stand; this
 replaces its one-builder line. The PM is still called only for what P1-P3
 describe.
+
+### D84 — Josh decides only the game's personality and its styling
+Josh, 2026-11-04, after the five open questions (D72, D55, D61, D56, D77)
+were put to him and he took every recommendation: *"proceed with all of your picks. these type of decisions shouldnt be for me in the future. none of these really effect the personality or the styling of the game."*
+
+**decided:** a question comes to Josh only if it shapes the game's
+**personality** - its tone, its characters, its voice, what kind of game it
+is - or its **styling**, the look it is meant to have: art direction,
+palette, how a character, a map or an effect is meant to read. Everything
+else is not his: what a player can do, a rule's tuning, how a move feels, a
+menu, scope inside the agreed arc, gate policy. The lead takes its own
+recommendation on those and records it under **Provisional** with the
+options, so Josh can still override any of it; a high-priority one - a new
+block, a feature added or cut, a rule a whole block rests on - goes to the PM
+under P1-P3's rules and is recorded as a `P<n>`. Neither ever blocks a job on
+him. A styling detail with a recommendation the lead can defend is taken as
+before (D39-D46, D82) and sent to him as a picture; only a styling or
+personality question with no defensible default is Blocking. D72 and D83,
+both answered by him the same morning, would have been the lead's under this
+line. It replaces "what a player sees, feels or can do" in `PLAN.md`, the
+routine and audit prompts and the PM's definition, all updated the same day.
 
 ---
 
@@ -672,7 +698,7 @@ twelve-state table, and `tests/grabslide.js`'s own profile. Every one of them
 would go red, correctly, and want re-measuring. That is a job, not an edit, and
 it should be done once, after he has looked.
 
-**decided:**
+**decided:** option 3 - Josh, 2026-11-04 ("proceed with all of your picks"). H48 builds it, re-measuring the four constants rather than widening them.
 
 ### D71 — The gate reports a frame cost it used to assert, because no clock in this page can price a draw
 
@@ -1273,7 +1299,7 @@ is insurance rather than a repair. Three ways to go:
    unguarded on the argument that it does not show today, which is the argument
    that let it survive H10.
 
-decided:
+decided: option 1, as built - Josh, 2026-11-04 ("proceed with all of your picks"). H26 is dropped.
 
 ### D60 — Quality presets: the post is an AND, and what each level is worth
 
@@ -1533,7 +1559,7 @@ nudge a slider, **Enter** activates. Enter and not Space, because Space is the
 jump key and a menu that swallowed it would still leave it held for the first
 step after the menu closes.
 
-**decided:**
+**decided:** as built, with the map row made a plain label - Josh, 2026-11-04 ("proceed with all of your picks"). The plant's card stays the outside, so H17 is dropped; H18 makes the row a label.
 
 ### D54 — Easy's aim cone is 4.0 degrees, not 5.0
 F17. A fresh seed turned the difficulty check red on the yard: easy at 16m,
@@ -2640,7 +2666,7 @@ The options, in the order they cost:
 what the gate stops for, so it is yours; nothing is blocked on it, and H70 and
 H93 are the next two instances either way.
 
-decided:
+decided: option 3 - Josh, 2026-11-04 ("proceed with all of your picks"). H108 adds the summary line; the gate never reds on it.
 
 ### D56 — Should the Warden be playable competitively?
 H5 put a role row on the main menu and found there are only two things the
@@ -2673,7 +2699,7 @@ The options, in the order they cost:
 changes what a player can *do*, so it is yours; nothing is blocked on it,
 because the menu as built already offers both of the things that exist.
 
-**decided:**
+**decided:** option 1, leave it - Josh, 2026-11-04 ("proceed with all of your picks"). Whether a Shade AI is ever built (option 3, a block) is the PM's call under D84, not his.
 
 ### D8 — Does the site ring still read, now the plant is the whole room?
 The ring still looks like "plant here" while meaning "this room". Options:

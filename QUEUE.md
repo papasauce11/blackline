@@ -177,7 +177,8 @@ one setting only Josh can click; everything else here proceeds.
   hold makes the *record* true rather than repairing a picture: **D61**, and
   **H26** is the option it leaves open.
 
-- [ ] **H26 (S)** Should a menu card honour the quality level? Today it cannot:
+- [x] ~~**H26 (S)**~~ — **dropped 2026-11-04: D61 decided option 1, as built.**
+  Kept for the record: should a menu card honour the quality level? Today it cannot:
   H23 measured a card as **byte-identical at `low` and at `medium`** while the
   renderer was demonstrably at low, because the outlines are hidden by a
   traverse of the live scene and the shadow map resized on the live map's key
@@ -391,8 +392,8 @@ one setting only Josh can click; everything else here proceeds.
   **capsule** now as well; proved by walking the corpse 0.75m, which the old
   clause did not notice. The census entry moved `frozen` → `ragdoll`.
 - [ ] **H48 (M)** No position smoothing while a timed move owns the body.
-  **blocked: D72** — it is a look, Josh has the numbers and the frames, and
-  nobody should do this until he has said the slide reads wrong.
+  **D72 decided 2026-11-04: option 3** (Josh took the recommendation; under
+  D84 a call like this is the lead's).
   H44 measured what a grab does: the drawn body trails the climb by 0.16m at
   frame 1, **0.46m at frame 7**, 0.15m at frame 15 and 1.5mm at 45, so for a
   quarter of a second the gloves drawn gripping a lip are up to 0.46m under
@@ -744,7 +745,8 @@ one setting only Josh can click; everything else here proceeds.
 - [x] **H14 (S)** A crash guard, and the page a crash puts up — done 2026-10-18, under Done. `src/crashguard.js`, `FrameLoop.run`, the crash page in `ui/menupause.js`, `a-throw-inside-a-step-stops-the-match-and-the-crash-page-says-so`.
 - [x] **H15 (S)** The pause menu restarts, changes map and quits, asking first mid-round — done 2026-10-18, under Done. `ui/menupause.js` (`_ask`, `_renderConfirm`), `panels.js` (`midRound`, `onRestartRound`, `onRestartMatch`), `the-pause-menu-restarts-changes-map-and-quits-and-asks-first-mid-round`.
 - [x] **H16 (S)** `npm run notes`: release notes from PROGRESS.md, between the tags — done 2026-10-18, under Done. `scripts/notes.mjs`, `RELEASES.md`, a `FLAGS` row in `tests/args.js`.
-- [ ] **H17 (S)** The plant's card shows a slab, because the plant is a
+- [x] ~~**H17 (S)**~~ — **dropped 2026-11-04: D55 decided, the plant's card
+  stays the outside.** Kept for the record: the plant's card shows a slab, because the plant is a
   sealed shell and every exterior eye gives one (H5, D55). If Josh asks for
   its inside: hide the roof for the thumbnail render only. There is no
   generic "the roof" rule — a height cut deletes half the yard's containers —
@@ -752,7 +754,6 @@ one setting only Josh can click; everything else here proceeds.
   tag prefix) rather than a clever derivation. *done-when:* the plant's card
   is measurably more than the roof (a lit-pixel floor raised, and a check that
   the yard's card is unchanged by the same code path).
-  **blocked: D55** — only worth doing if he wants it.
 - [ ] **H18 (S)** The map row under the cards does the same job the cards do
   (H5). Make it a plain label, or drop it. It is kept today because
   `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one` drives it
@@ -760,7 +761,7 @@ one setting only Josh can click; everything else here proceeds.
   check to drive the cards instead — same assertions plus per-map
   reachability, which is strictly stronger, and the id stays. *done-when:*
   the check drives a named card rather than a cycle and the menu has one way
-  to pick a map. **blocked: D55.**
+  to pick a map. **D55 decided 2026-11-04: a plain label.**
 - [x] **H19 (S)** A rebind survives a reload — done 2026-10-18, under Done. `src/bindingstore.js`, `Input.setBinding`, `a-rebind-survives-a-reload-and-a-dead-action-drops-alone`.
 - [x] **H20 (S)** The controls page in four groups, and it fits 720p — done 2026-10-18, under Done. `BINDING_GROUPS` in `config.js`, `_renderControls`, `CONFIG.menu.fitHeight`, two clauses in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
 - [x] **H21 (S)** A stored number outside its bounds is clamped, and the rest kept — done 2026-10-18, under Done. `CONFIG.settings.bounds`, `volumeMin`/`volumeMax`, `loadSettings` clamping, `bounded-settings-load-clamped-and-keep-the-rest`.
@@ -982,6 +983,17 @@ the end of this list, never ahead of a game-facing job.
   trap with the idiom (compare the report's `FILES` path and the commit it was
   started at against HEAD before acting on it), and a full verify after the
   edit is green, since three checks `fetch` that file.
+- [ ] **H108 (S)** The ceiling summary names a module that has crept back
+  above the length it was split to (D77, decided 2026-11-04: option 3). Today
+  the runner's `ceiling:` line prints the cluster within 50 of 600 and
+  nothing knows which of them were split once to get under it. A table of
+  split modules and the length each was split or extracted to - read from
+  the commits of H51, H53, H58, H61, H62, H69 and H70 onward, one row each,
+  beside the summary code - and a second line: *"N modules are back above the
+  length they were split to: <module> <now>/<split>, ..."*. Never a red, never
+  an exit code. *done-when:* the line prints on a real run with the modules it
+  names; a module bumped one line over its row in a scratch copy shows in it
+  and the suite still exits 0.
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.

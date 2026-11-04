@@ -21357,3 +21357,17 @@ full-height piece in its own plane is wall, and only a box lying along the
 shell's boundary is shell, so the grade vents become see-through. **M8**
 builds both into M2's rule and M3 waits on it. Prompt, `PLAN.md`, `QUEUE.md`,
 `HANDOFF.md` and the audit's D79 line updated the same morning.
+
+## Josh takes every open recommendation, and draws D84 (2026-11-04 morning)
+
+The five open questions were put to him in one message - D72 (the climb's
+smoothing lag), D55 (the plant's card, the map row), D61 (cards at every
+quality level), D56 (a competitive Warden), D77 (a split module's ceiling).
+He took every recommendation and said these should not be his. **D84**: only
+the game's personality and its styling go to Josh; every other call is the
+lead's, recorded under Provisional with its options, or the PM's when it is
+high-priority, and none blocks a job on him. So **H48** (D72 option 3),
+**H18** (the map row a plain label) and **H108** (D77's summary line, new)
+are unblocked; **H17** and **H26** are dropped; D56 stays free roam, a Shade
+AI being the PM's call if it is ever one. Nothing is waiting on Josh. `PLAN.md`,
+the PM's definition, the routine and audit prompts updated the same morning.

@@ -90,9 +90,10 @@ up to three, suspended by D79 while the four tiers are tested.)
             (P1): a hygiene job only when the gate is red and it is the fix,
             when a game-facing job names it, or to fill a run's tail.
 4. DO       the lead (Opus) designs the job and writes the brief; a builder
-            (Sonnet) implements it; the lead reviews the diff. A call that
-            changes what the player sees, feels or can do is Josh's: write
-            it to DECISIONS.md, mark the job blocked, pick the next one. A
+            (Sonnet) implements it; the lead reviews the diff. A call on
+            the game's personality or styling is Josh's (D84): write it to
+            DECISIONS.md, mark the job blocked, pick the next one; any other
+            call the lead takes and records under Provisional. A
             high-priority call that is not his, or a problem the lead has
             failed twice, goes to the PM (Fable).
 5. PROVE    per job (P2): the new check on both maps; a break that turns it
@@ -145,7 +146,8 @@ appended to `PROGRESS.md` and mirrored to the top of `HANDOFF.md`:
   the same seeds - a red filed by P1, against the game-facing job that owns it
   or at the end of the hygiene list.
 - Whether the org kept its rules (since 2026-11-03): each PM call stayed off
-  Josh's ground; each hygiene job was taken by P1's rule; every job commit is
+  Josh's ground (D84: personality and styling), and no question off it was
+  put to him as Blocking; each hygiene job was taken by P1's rule; every job commit is
   covered by a later green verify (P2); how many of the fourteen scheduled
   runs landed anything. Suite runs go through the Haiku runner.
 - One recommendation, if any, for what Josh should look at.
@@ -206,14 +208,16 @@ an agent definition under `.claude/agents/`:
 
 | Who | Model | Decides | Does |
 |---|---|---|---|
-| **Josh** | - | everything in the section below: what a player sees, feels or can do | answers Blocking questions in `DECISIONS.md` |
+| **Josh** | - | everything in the section below: the game's personality and its styling (D84) | answers Blocking questions in `DECISIONS.md`; overrides anything under Provisional |
 | **PM** (`blackline-pm`) | Fable | the next-highest calls: queue and block order, verify policy, which of two viable designs, split / park / abandon a job, whether a red is the job's or the base's | reads and decides; never edits, commits or runs the suite |
 | **Lead** | Opus (the routine, or the session) | every other decision; records the PM's | orients, picks, designs each job and writes its brief, reviews every diff, runs the proofs, records, commits, pushes |
 | **Builder** (`blackline-builder`) | Sonnet | nothing a player sees | implements one briefed job - the code and its check - and proves it parses |
 | **Runner** (`blackline-runner`) | Haiku | nothing | runs one suite command, waits, reports the summary and every red verbatim |
 
 **When the PM is called, and only then.** (a) A high-priority decision the
-protocol does not settle and that is not Josh's; (b) a problem the lead has
+protocol does not settle and that is not Josh's - since D84 that includes
+what a player can do at large: a new block, a feature added or cut, a rule a
+whole block rests on; (b) a problem the lead has
 tried twice and failed - a red nobody can attribute, a check that will not
 settle, a design that keeps collapsing. Never for a routine pick, a spec, a
 review or code. The lead records each call in `DECISIONS.md` under **PM
@@ -234,8 +238,15 @@ waits on the suite, the lead writes the next brief.
 
 ## What is Josh's, and only Josh's
 
-Anything that changes what the player sees, feels, or can do. Concretely, the
-questions seeded in `DECISIONS.md` now:
+**The game's personality and its styling** (D84, 2026-11-04: *"proceed with all of your picks. these type of decisions shouldnt be for me in the future. none of these really effect the personality or the styling of the game."*).
+Personality is its tone, its characters, its voice, what kind of game it is;
+styling is the look it is meant to have. Everything else - what a player can
+do, a rule's tuning, how a move feels, a menu, scope inside the agreed arc,
+gate policy - is the lead's, or the PM's when it is high-priority, recorded
+under Provisional or PM calls so Josh can override it, and it never blocks a
+job on him. Until D84 the line was "anything that changes what the player
+sees, feels or can do", and the questions seeded in `DECISIONS.md` at the
+start were:
 
 - Where the second map is set, how big, and what its hook is.
 - What "more styling" means — post-processing, material detail, props, colour.
