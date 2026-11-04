@@ -957,6 +957,18 @@ the end of this list, never ahead of a game-facing job.
 - [ ] **H103 (S)** The burst check cannot tell an interrupted burst from a short pause. `the-warden-fires-in-bursts-of-rounds-at-the-torso` calls any shot-to-shot gap over `rate + dt * 1.5` a burst boundary and records `gap - rate` as the pause, so eleven frames of *not firing* inside a burst read as a pause of 0.18s and the clause reds with *"config says 0.25-0.7"*. Found by K6 under `?seed=1637054825` on the plant and **attributed to the base**: it reproduces identically on a fully reverted pre-job tree, and the window drives the hardest preset, whose `aimSettle` is 0. The pause is real or the burst was interrupted, and the check should say which — the AI knows, since `_burstPause` is only non-zero for a drawn pause, so the honest reading is a pause the AI declares rather than one inferred from a gap. *done-when:* the check is green on both maps under `?seed=1637054825` and unseeded, no bound in `config.js` has moved, and a break that shortens a real pause below `engageBurstPauseMin` still reds it.
 - [ ] **H104 (S)** `src/systems/combat.js` is 593 lines, seven from the 600 cap, and the ceiling reading K6's run printed names it as the nearest of eleven modules within fifty. The next job that touches combat cannot add a comment. Split it the way F3 split the others, by what the caller needs. *done-when:* no module but `config.js` is within twenty of 600, and the ceiling line of a full run says so.
 - [ ] **H105 (S)** A quality change after a lost GL context is pinned by a check of its own. `a60fcbb` fixed it - a render target that outlived the loss deleted 13 GL objects into the dead context on the next quality change - and the only check that reads it is M1's, by its place in the registry after `a-lost-gl-context-is-caught-and-the-check-re-run`. *done-when:* a check stages a loss and a restore, changes the quality level and back, toggles night vision on and off, and reads `gl.getError()` 0 at each step on both maps; it reds with `post.contextRestored`'s body emptied; it runs alone and still reds, so it does not lean on the registry's order.
+- [ ] **H106 (S)** A check cannot hand a frame out, so a job that owes Josh a
+  picture stages its shot twice. M7 found it: a check runs inside the page and
+  nothing in the page can write a PNG — only the node scripts can
+  (`writePng` in `scripts/headless.mjs`, used by `probe.mjs` and `shot.mjs`).
+  So M7's frames came from `m7-probe.js`, a scratchpad file repeating the
+  check's wall search, standoff, `ai:false` match and hidden bodies line for
+  line; the two can drift and only one of them is ever run by the suite. Let
+  a check return a frame the runner writes — the report already carries a
+  details JSON, and a named `dataUrl` beside a detail is the same road.
+  *done-when:* a pixel check names a frame, a full run writes it under the
+  run's own folder, and M7's probe file is deleted because the check is the
+  only staging left.
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -1011,13 +1023,8 @@ camera gets a live feed; the Warden a torch (K3). Parameters are
 provisional; the rule for "thin" is mechanical, never a tag.
 
 - [x] **M1 (M)** The Shade's night vision — done 2026-11-03, under Done. `src/nightvision.js`, the `NIGHT_VISION` stage in `src/post.js`, `nightVision` on V, the HUD `NV` tag, `the-shades-night-vision-lifts-the-dark-and-costs-her-nothing`.
-- [ ] **M2 (M)** The x-ray rule. `seeThroughAlong(from, to)` in the map: a
-  solid is see-through if its top is below its room's ceiling by a body's
-  height (or it stands under the sky), and the sightline's total thickness
-  in such solids is under `xray.maxThickness`; a room wall or the shell
-  never is. *done-when:* a check proves ducts, crates and containers pass
-  and every shell and room wall does not, on both maps.
-- [ ] **M3 (M)** The x-ray, drawn. `X` toggles; the Warden, its camera and
+- [x] **M2 (M)** The x-ray rule — done 2026-11-04, under Done. `src/mapxray.js` (`seeThroughBox`, `seeThroughAlong`), `GameMap.seeThroughAlong`, `tExit` on `raySlab`, `CONFIG.shade.xray.maxThickness` 2.5 (provisional), `the-xray-sees-through-a-duct-a-crate-and-a-container-and-never-through-a-wall`. **It would see through the wall under a window and not through the grade vents' sheet — D83 asks Josh, and M3 waits on it.**
+- [ ] **M3 (M)** **blocked: D83** — what counts as a real wall, mechanically, is the thing this job draws. The x-ray, drawn. `X` toggles; the Warden, its camera and
   the charge drawn as silhouettes where M2 says yes, within a range; draw
   calls counted. *done-when:* a pixel check sees the Warden through a crate
   and not through the west wall; frame budget unchanged.
@@ -1032,9 +1039,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **M6 (S)** What the feed means. Seeing the Shade on the feed is the
   human Warden's to notice; the AI trips on proximity as before. *done-when:*
   the AI checks unchanged; `PLAYTEST.md` says so.
-- [ ] **M7 (S)** The camera seen. A placed camera is visible and has a
-  small lens light, so a Shade can find and taser it. *done-when:* a pixel
-  check from 6m.
+- [x] **M7 (S)** The camera seen — done 2026-11-04, under Done. The lens's own `PointLight` on the effects root (never in the hiding group, so the scene's light count never moves), `CONFIG.gadgets.alarmCamera.lensLight` 2 / 4 / 2 (provisional), `a-placed-alarm-camera-is-found-from-six-metres-by-its-lens-light`.
 
 ## Block J — feel and juice
 
@@ -1139,6 +1144,32 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **M2** The x-ray rule. `seeThroughAlong(from, to)` on the map, in
+  `mapxray.js`: a solid is see-through if its top is a body's height below its
+  room's ceiling or it stands under the sky, and a sightline may spend 2.5m of
+  such solids (provisional — a 40ft container is 2.4m across, so one yes and
+  two no). A room wall needs no special case, since it spans floor to ceiling
+  and its top *is* the ceiling; the shell is a box whose footprint reaches
+  `map.shell`'s boundary, which is the plant's `shell-*` walls and the yard's
+  ring alike. Room membership is by footprint overlap, not centre, because the
+  plant's partition walls stand just outside their room's rectangle. Plant
+  31 thin / 15 shell / 43 wall, yard 28 thin / 18 shell / 1 tower, 26 / 0 on
+  both maps. **Two holes, both D83 and both blocking M3**: it looks through
+  the wall below a window, and the grade vents cross the shell so it does
+  *not* look through their 0.12m sheet — a crate yes, a vent no. Built by a
+  Sonnet builder in a worktree — `67df3da`, `dcaa3af`, 2026-11-04, scheduled run.
+- **M7** The camera seen. The alarm camera's lens gets its own small point
+  light (2 / 4 / 2, provisional), so a camera in a dark room announces itself
+  and a Shade can find it and taser it. It lives on the effects root with
+  intensity 0 until one is placed, **not** inside the fixture group: three
+  leaves an invisible object's lights out of the list, so hiding the group
+  would move the scene's light count and recompile every lit material on the
+  frame the camera goes up. Driven by the same `on` boolean as the lens glass;
+  dark on the taser and at a new round. Both clauses relative, so no measured
+  floor: at 6m it changes 2877 pixels and lifts the ring round it 60.6 luma on
+  the plant and 40.9 on the yard against a noise of 0. Built by a Sonnet
+  builder in a worktree; Josh was sent the off/on pair from the plant as it
+  landed — `56bf387`, `315e009`, `0b509a7`, 2026-11-04, scheduled run.
 - **K4** Alarm response. The Warden's one camera goes up where it watches the
   likeliest approach - a declared route's foot, where the Shade's climb starts
   - and a trip walks it to the camera before the mark. `aialarm.js` is a mixin

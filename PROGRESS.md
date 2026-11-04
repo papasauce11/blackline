@@ -21209,3 +21209,99 @@ around it by holding the Warden in a PATROL pause.
 which was the builder's call against the brief and the right one: a permanent
 red on a geometry fact is a check nobody reads. `fa39e8c`, `9b979f6`,
 `1496cc9`.
+## M2 — The x-ray rule: what counts as thin, read off the geometry (2026-11-04 02:00, scheduled run)
+
+Josh (D50): the Shade's x-ray "works through thin walls like vents, crates and
+such, not real regular walls", and Block M says the test for thin is
+mechanical, never a tag. `src/mapxray.js` is that test, on `mapclimb.js`'s
+model - free functions the map calls from a thin `GameMap.seeThroughAlong`.
+A solid is see-through if its top is a body's height below **its room's**
+ceiling, or it stands under the sky; **a room wall needs no special case**,
+because it spans floor to ceiling and so its top *is* the ceiling, which is the
+part of the rule that is pleasing. The shell never is: a box whose footprint
+reaches `map.shell`'s boundary, which catches the plant's `shell-*` walls and
+the yard's ring of containers alike - the ring is the yard's shell and its
+boxes sit exactly on that line. A sightline then spends a budget, 2.5m
+(`CONFIG.shade.xray.maxThickness`, PROVISIONAL): a 40ft container is 2.4m
+across, so one is seen through and two are not. `raySlab` gained a `tExit` so
+the crossing has two ends; nothing but `mapxray.js` reads it.
+
+**Two deviations from the brief, both of them corrections.** Room membership is
+by footprint overlap, not by the box's centre: the plant's partition walls
+stand just *outside* their room's rectangle (`hall-east-wall` at x -6..-5.6
+where the hall ends at -6), so by centre they are in no room, would have read
+as under the sky, and would have been see-through - the exact opposite of the
+rule's intent. And the yard's three-high container tower, which the first proof
+caught: the check had called every `bay-*` box thin, and `bay-c-t3`'s top at
+8.70 is inside a body of its bay's 8.00 ceiling, so the rule refuses it. **The
+rule was right and the check was wrong**, and the fix turned the red into a
+clause worth having - a tower is not a container, and the check now holds that
+the rule refuses one.
+
+**Proved** on both maps at `0b509a7`: plant **26 / 0**, yard **26 / 0** over
+the two new checks and the full census set, flaky empty, 0 console errors. The
+check's own reading, plant: *"31 thin (16 duct, 14 crate, 1 container), 15
+shell, 43 wall (+5 low pieces not asserted); across vent-low-north-lip-to 1.00m
+of 1.00m; across shell-west-0 stopped by shell-west-0; across hall-east-wall-0
+stopped by hall-east-wall-0; stack-hall-mid+hall-container 5.20m against 2.5m"*;
+yard: *"28 thin (0 duct, 11 crate, 17 container, by height 14 at 1 / 3 at 2 / 0
+at 3; 1 tower), 18 shell, no room walls; bay-c-t3 top 8.70 under ceiling 8.00 is
+not; across pallets-a 1.50m of 1.50m; across ring-west-0 stopped by ring-west-0;
+pallets-gatehouse+bay-b-lane 3.90m against 2.5m"*.
+
+**What it cannot do, and why nothing draws it yet.** Two holes, both in the
+record as **D83** and both blocking M3. `addWall` cuts a wall into pieces round
+an opening, and the piece under a window has a top well below the ceiling, so
+the rule looks through the wall below every window - the check counts those
+five pieces on the plant and asserts nothing about them rather than hiding
+them. Worse, the shell clause reads "reaches the boundary", which catches
+anything *crossing* it as well as everything lying along it: the grade vents
+run from outside the shell to inside, so their 0.12m galvanised sheet - the
+thinnest solid on either map, and literally the thing Josh named first - reads
+as shell and is opaque. **The x-ray as built looks through a crate and not
+through a vent.** A mechanical fix exists and is written up (a box is shell only
+if it lies *along* the boundary, its inward extent no greater than its extent
+along it, which separates slab from tube on both maps), but it changes what the
+Shade can see and so is Josh's. `67df3da`, `dcaa3af`.
+
+## M7 — The camera seen: a lamp in the lens (2026-11-04 02:00, scheduled run)
+
+The fixture has always drawn - `the-alarm-fixture-is-visible-and-changes-state`
+has held a body and a lens since Section 9.2 - but the lens is a
+`MeshBasicMaterial` dot, which lights nothing, so in a dark room the camera was
+a speck you had to be standing on. M7 gives it a small point light
+(`lensLight`, 2 / 4 / 2, PROVISIONAL, sized off a map fixture's 26 / 18 / 2 and
+deliberately short of lighting the room), driven by the same `on` boolean as
+the lens glass so the lamp and the glass can never disagree, dark when the
+taser kills it and dark again at a new round.
+
+**The light is on the effects root, not in the fixture group, and that is the
+whole of the review on this job.** The builder's first version put it in the
+group and argued in its comment that a light must not be added to or dropped
+from the scene because that moves the shader's light count and recompiles every
+lit material. The argument is right and the placement contradicted it: three
+renders an invisible object's lights out of the list, so toggling that group's
+visibility does exactly the thing the comment was avoiding, at the two worst
+moments - the frame the camera goes up and the frame it dies. On the root with
+intensity 0 until placed, the count never moves and nothing ever recompiles;
+`reset()` had to learn to zero it too, which the group had been doing for free.
+
+**Proved** on both maps at `0b509a7`, with both clauses relative - the same
+scene photographed with the camera and without, so neither carries a measured
+luma floor. Plant: *"at 6m the camera changed 2877 pixels at its position (floor
+259), brighter by 183.1; the ring round it is 60.561 luma brighter against a
+noise of 0.000 (need 4x)"*; yard the same shape at 149.2 and 40.934. The ring
+excludes the fixture's own silhouette, so it is the wall the lamp lights and
+nothing else, and the noise it must beat is the same ring measured across two
+frames that both have no camera. `the-alarm-fixture-is-visible-and-changes-state`
+stayed green on both maps, so the lamp did not disturb what was already held.
+
+**A finding about the suite, not the game, now queued as H106.** A check runs
+inside the page and nothing in the page can write a PNG - only the node scripts
+can. So the frame Josh is owed could not come from the check, and came instead
+from `m7-probe.js`, a scratchpad file that repeats the check's wall search,
+standoff, `ai:false` match and hidden bodies line for line. Two stagings of one
+shot, only one of which the suite ever runs, is a drift waiting to happen. The
+probe's own numbers agree with the check's exactly (ring 149.83 lit against
+89.27 dark, margin 60.56, noise 0), which is the reassurance available today.
+`56bf387`, `315e009`, `0b509a7`.
