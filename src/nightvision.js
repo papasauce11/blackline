@@ -166,6 +166,10 @@ export function createNightVision({ renderer, vertex, geometry }) {
     get active() {
       return on && gate();
     },
+    /** The context was lost and is back: a target made before is let go undisposed (post.js, `contextRestored`). */
+    forget() {
+      target = null;
+    },
     /** The scene target, once the post-off path has needed one; for the checks. */
     get sceneTarget() {
       return target;

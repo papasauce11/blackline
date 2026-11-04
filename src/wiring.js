@@ -8,6 +8,7 @@
  */
 
 import { sayOutcome } from './ui/scoreboard.js';
+import { contextRestored } from './quality.js';
 
 /**
  * @param {object} s the built systems and actors, by name
@@ -25,6 +26,12 @@ export function wireMatchEvents(s) {
   emitter.on('match:init', () => post.setNightVision(false));
   emitter.on('sim:step', () => post.tickNightVision());
   post.setNightVisionGate(() => !menu.open && !scoreboard.open && !briefing.open);
+  // A restored context is a new one: what was drawn into before the loss is let
+  // go undisposed, not disposed into the old context's listeners (post.js).
+  emitter.on('view:contextrestored', () => {
+    post.contextRestored();
+    contextRestored();
+  });
 
   // Frag blasts are damage from outside combat; combat still owns applying
   // it, and god mode (Section 17.1) with it.

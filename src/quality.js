@@ -275,6 +275,17 @@ function setShadowMap(light, size) {
 }
 
 /**
+ * The context came back (`view:contextrestored`): the key light's shadow map
+ * from before the loss is let go undisposed and three makes another at the next
+ * draw, so a later `setShadowMap` has no stale dispose listener to run - the
+ * trap `post.js`'s `contextRestored` has the whole argument for.
+ */
+export function contextRestored() {
+  const light = live.map && live.map.keyLight;
+  if (light) light.shadow.map = null;
+}
+
+/**
  * The inverted-hull outlines (Section 4), which are exactly two things: the
  * map's `outlines` group (mapkit.js) and the hull child inside every part of
  * both figures (entities/parts.js). Each carries `userData.isOutline`, so this

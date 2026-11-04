@@ -135,6 +135,11 @@ export function createPost(renderer) {
   let scene = target(size.x, size.y, PP.samples);
   let bright = target(size.x >> 1, size.y >> 1);
   let blurA = target(size.x >> 1, size.y >> 1);
+  const rebuild = (now) => {
+    scene = target(now.x, now.y, PP.samples);
+    bright = target(now.x >> 1, now.y >> 1);
+    blurA = target(now.x >> 1, now.y >> 1);
+  };
 
   const uniforms = {
     bright: { tScene: { value: null }, threshold: { value: PP.bloomThreshold } },
@@ -270,10 +275,23 @@ export function createPost(renderer) {
       const now = renderer.getDrawingBufferSize(new THREE.Vector2());
       if (now.x === scene.width && now.y === scene.height) return;
       for (const t of [scene, bright, blurA]) t.dispose();
-      scene = target(now.x, now.y, PP.samples);
-      bright = target(now.x >> 1, now.y >> 1);
-      blurA = target(now.x >> 1, now.y >> 1);
+      rebuild(now);
       uniforms.composite.aspect.value = now.x / now.y;
+    },
+    /**
+     * The context came back (`view:contextrestored`). A restored context is a
+     * new one, and three's `dispose` listener on a render target is the closure
+     * of the WebGLTextures that first drew into it - the one the restore
+     * replaced. So disposing a target that outlived the loss runs that listener
+     * as well as the new one, and it deletes GL objects the old context took
+     * with it: an INVALID_OPERATION from every delete, left in the error flag
+     * for whoever reads it next (M1's low-quality read, after a quality change).
+     * So the targets are replaced and the old ones let go undisposed - what they
+     * held is gone, and nothing else refers to them.
+     */
+    contextRestored() {
+      rebuild(renderer.getDrawingBufferSize(new THREE.Vector2()));
+      night.forget();
     },
     dispose() {
       for (const t of [scene, bright, blurA]) t.dispose();
