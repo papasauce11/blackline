@@ -129,6 +129,25 @@ run (a build run, then a verify run) and this line is rewritten. D19's "the
 whole session used" is suspended until he lifts this. Prompt, `PLAN.md`,
 `QUEUE.md` and `HANDOFF.md` updated the same day.
 
+### D81 — Up to five agents at once, the lead included
+Josh, 2026-11-03, an hour into D79, asked why only one agent was running
+(D79 had held the builders to one at a time), then: *"do what works
+optimally, up to a max of 5 simultaneous agents running including
+yourself."*
+
+**decided:** at most five agents at once - the lead, the Haiku runner and
+**up to three Sonnet builders**. Three and not four because every proof goes
+through the one suite in turn: a fourth builder's work would wait for the
+runner, not for a builder. Builders run at once only on jobs whose files do
+not overlap (each appends its own `tests/index.js` registration and its own
+`config.js` section); one may work in the main tree, the others in
+worktrees. When every next job in the block touches a running job's files,
+the next block's first job that does not is taken rather than idling a
+slot - the first was M1 beside K2 and K7, since K4 and K5 edit the hearing
+K2 was rewriting. D79's hour and its 45-minute last start stand; this
+replaces its one-builder line. The PM is still called only for what P1-P3
+describe.
+
 ---
 
 ## Provisional — done as recommended, override any time

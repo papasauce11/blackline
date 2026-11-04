@@ -1,8 +1,9 @@
 # Blackline — work queue
 
-The protocol is in `PLAN.md`. **About an hour of work per run** (D79): one
-job, a second only if it is S, each proved and committed before the next is
-picked (D19, P2); an L job is split before it is taken. Take the
+The protocol is in `PLAN.md`. **About an hour of work per run** (D79): up to
+three builders at once on jobs whose files do not overlap (D81), each job
+proved and committed on its own (D19, P2); an L job is split before it is
+taken. Take the
 first job whose
 `blocked:` line is empty, or names a decision that has a `decided:` line in
 `DECISIONS.md`. Blocks are ordered; jobs inside a block are ordered; a later

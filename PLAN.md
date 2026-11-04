@@ -70,9 +70,9 @@ what makes it possible. (Decided: D1 in `DECISIONS.md`.)
 
 ### `blackline-build` — twice daily
 
-About an hour of work per run (D79, 2026-11-03): one job, a second only if it
-is S, each proved and committed before the next is picked, and one full verify
-over the run (P2) whose wait is outside the hour. (Was one per run; Josh,
+About an hour of work per run (D79, 2026-11-03), up to three builders at once
+on jobs whose files do not overlap (D81), each job proved and committed on its
+own, and one full verify over the run (P2) whose wait is outside the hour. (Was one per run; Josh,
 2026-09-10: *"not running long enough. maybe 2-3 subphases at a time"* - D19,
 up to three, suspended by D79 while the four tiers are tested.)
 
@@ -100,9 +100,10 @@ up to three, suspended by D79 while the four tiers are tested.)
             (Haiku) runs each and reports.
 6. RECORD   PROGRESS.md entry, the job's Done line, new questions. Commit,
             stamp, push - per job.
-7. AGAIN    back to 3 only when the job was recorded inside about 30
-            minutes of the hour's start and the next job is S (D79); no
-            job is started after 45 minutes. One builder at a time.
+7. AGAIN    a builder's freed slot takes the next job that fits; no job
+            is started after 45 minutes (D79). Up to three builders at
+            once on jobs whose files do not overlap, five agents at most
+            with the lead and the runner (D81).
 8. VERIFY   the full two-run suite once, over the run's jobs (P2), committed
             as `Record batch: <ids>`. A red is attributed by the red check's
             subset at each of the run's commits; the job is fixed or
