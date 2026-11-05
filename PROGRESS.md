@@ -21571,3 +21571,51 @@ vent-low-north-lip-to 1.00m of 1.00m; a"* and nothing after. The cut is in the
 detail string. Rule 1's break lost the `0/5` count it had just earned, and
 rule 2's lost every reading after the first line. 400 is a cap nothing
 announces.
+
+## Batch K5, K10 and M8 verified (2026-11-04 17:00, scheduled run)
+
+Full two-run verify at `1bff045`, 73 minutes: plant **258 / 1 / 10**
+(1,216,354ms, 1,198,338ms), yard **240 / 1 / 28** (903,872ms, 895,334ms),
+spreads 1.5% and 1.0%, `red` and `flaky` both empty, 0 console errors, ceiling
+11 modules within 50 of 600 with `systems/combat.js` nearest at 593, of 226
+loaded. The one failure a map is the bench-only sweep (H11): the `benched`
+block marks it `fail` because it times the worst viewpoint on a single sample
+rather than a median (`?viewpointSamples=9`, which only `npm run bench` asks
+for) - 115.40ms and 781.70ms on the plant, 570.50ms and 472.50ms on the yard,
+all on SwiftShader. `red: []` is the verdict.
+
+**One more green on each map, 257 to 258 and 239 to 240, and that is the right
+number** - K5 added a check and K10 and M8 each extended one, and an extended
+clause does not move a count. The three read identically across all four runs:
+K5's *"gave up after 10.00s on easy, 15.00s on medium, 22.00s on hard ...
+accumulator 34 (threshold 40, then 28): patrol, then investigate"*, K10's
+*"the 16-ray fan covers 953 stands against the 8-ray fan's 867, +86"* (700
+against 631 on the yard), and M8's *"5/5 low wall pieces opaque ... across
+vent-grade-west-wall-a 0.12m of 0.12m"*. H110 did not bite: the longest detail
+in the verify was 187 characters, well under the 400-character cut that cost
+two of this run's breaks their readings.
+
+**The verify had to be started twice, and the second start is H111.** The first
+runner ran `node scripts/suite.mjs --help` to look up the flags. `suite.mjs`
+does not implement `--help` and does not refuse an unknown flag: it ignored it
+and began a full default run - both maps twice - whose stdout went nowhere
+readable, because the foreground call had timed out and been backgrounded. The
+runner then correctly refused to start the verify beside it and correctly left
+the process alone. Letting it finish would have been fifteen minutes cheaper
+than restarting and was the first instinct; it was the wrong one, because a
+verify with no `--details`, no `GATEOK`/`GATEFAIL` branch and no readable
+output is seventy minutes bought for nothing. The tree was killed (node 7996
+and its headless Chrome 11788, `taskkill /T`) and the verify started again.
+**The pid the runner reported was not the pid that was running** - it said
+45349, the process table said 7996 - which matters because the same table held
+Josh's RicochetRoyale node processes and his 25-process Chrome tree, and
+killing by a reported pid rather than a confirmed one is how the wrong tree
+dies. `version.json` had been stamped by the stray run and was restored to
+HEAD before the real verify began, so it ran on a clean tree.
+
+Five findings queued from the run: **M9** (`spansItsRoom`'s 0.5m floor band is
+its one guessed number), **H109** (five worktrees from finished runs are never
+pruned), **H110** (a red's detail is cut off mid-word at exactly 400
+characters), **H111** (`--help` starts a run, and an undeclared flag is
+silent), and the warning in M3's own entry that `query` hands back one reused
+array. `8499562`, `1bff045`.

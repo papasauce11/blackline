@@ -1018,6 +1018,22 @@ the end of this list, never ahead of a game-facing job.
   [truncated, N chars]`), a check asserts a detail longer than the old cap
   survives the round trip, and the entry says what the cap was and where it
   lived.
+- [ ] **H111 (S)** `suite.mjs --help` starts a seventy-minute run. It does not
+  implement `--help` and does not refuse an unknown flag: it ignores it and
+  falls through to the default, which is both maps twice. A runner on
+  2026-11-04 ran `node scripts/suite.mjs --help` to look up the flags, started
+  a full suite by accident, could not see its output (the foreground call had
+  timed out and been backgrounded, so its stdout went nowhere readable), and
+  correctly refused to start the verify it had been sent to run - one suite at
+  a time. The lead killed the tree (node 7996 and its headless Chrome 11788,
+  taskkill /T) and started the verify again, fifteen minutes late. Two faults
+  in one: there is no usage to ask for, and an undeclared flag is silent when
+  `args.mjs` refuses a repeated one. *done-when:* `--help` (and `-h`) print the
+  `FLAGS` table and exit 0 without launching anything; an undeclared flag is
+  refused with `suite: REFUSED: unknown flag --x` and exit 2; a check asserts
+  both, since `every-runner-reads-one-command-line-and-a-flag-given-twice-is-kept`
+  already walks every `.mjs` the commands reach and knows what each declares;
+  and TRAPS.md gets the line that any invocation of the suite is a real run.
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
