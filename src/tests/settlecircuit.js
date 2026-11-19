@@ -289,10 +289,10 @@ export function register(debugTools) {
       //    sites is wrong about, and it is why it may not quietly empty.
       // ------------------------------------------------------------------
       if (!classes.onSpawn.length) {
-        problems.push(`no circuit of ${classes.scanned} leaves the Warden on its spawn over the ${settle} settling frames, and twelve of quiesce()'s sites grab their frame there - so either the turn-before-step the premise rests on is gone or this scan is driving nothing`);
+        problems.push(`no circuit of ${classes.scanned} leaves the Warden on its spawn over the ${settle} settling frames, and the outlier floors are held at that pose - so either the turn-before-step the minority circuits keep since K11 is gone (H114) or this scan is driving nothing`);
       }
       if (!classes.offSpawn.length) {
-        problems.push(`every circuit of ${classes.scanned} leaves the Warden on its spawn, and on both maps one node of twenty-one does not - so either a map's Warden spawn no longer faces a waypoint, the walk gate has moved, or this scan has stopped varying the circuit (H80)`);
+        problems.push(`every circuit of ${classes.scanned} leaves the Warden on its spawn, and since K11 most do not on both maps (H114) - so either a map's Warden spawn no longer faces a waypoint, the walk gate has moved, or this scan has stopped varying the circuit (H80)`);
       }
       if (classes.nodes.length < 2) {
         problems.push(`${classes.scanned} seeds drew ${classes.nodes.length} distinct first node(s), so the seed is not reaching the shuffle and every reading below is one circuit over again`);

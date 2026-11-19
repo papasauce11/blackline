@@ -288,6 +288,12 @@ export function erode(source, width, height) {
  * degrees from the one the other seventeen photographed, and nothing could see
  * it.
  *
+ * **K11 moved the classes (H114).** A patrol now skips a first route node
+ * behind the Warden, so over 48 seeds the plant's dominant pose is 31 at
+ * 0.699297m, yaw 3.4895, and the yard's 43 at 0.836667m, yaw 3.1416 - walking
+ * poses - with the on-spawn turn left to the minority. The seed below drew the
+ * dominant pose before and after.
+ *
  * **The seed is in the dominant class on both maps and is held there.**
  * `the-settle-is-a-function-of-the-circuit-and-the-helper-names-the-seed`
  * drives the settle once per seed, groups by **pose** rather than by distance,
@@ -307,15 +313,14 @@ export const SETTLE_SEED = 20261016;
  *
  * **The AI is running throughout, and until H71 this sentence said it was
  * not.** The Warden hunts on its own frames while a check measures. That is
- * harmless to a reading taken off one drawn frame - the Warden is **0.000000m**
- * off its spawn at the moment this returns, and since H81 that is a pinned fact
- * rather than a 95% one - and the reason is a **turn** rather than a delay
- * (H73): the AI is awake on the first frame and a patrol's first act is to face
- * its first route node, so the body rotates 0.0567 rad a frame and translates
- * nothing until it is round. The angle is map data, so the headroom is too:
- * after this returns the Warden first moves on frame 4 or 5 on the plant and
- * frame 17 on the yard, which is all the room a caller has before a walking
- * Warden is in its frame. It is **not** harmless to
+ * harmless to a reading taken off one drawn frame because the frame is
+ * pinned: since H81 the Warden is where this seed's circuit leaves it, to the
+ * micrometre, on every run. Since K11 that is **walking** - a patrol skips a
+ * first route node behind it, so when this returns the body is 0.699297m off
+ * its spawn on the plant and 0.836667m on the yard and moves again on the next
+ * frame (H114). H73's turn, which left it on its spawn with four frames (plant)
+ * or seventeen (yard) in hand, is now the minority circuits' only. It is
+ * **not** harmless to
  * anything driven for longer: H57 is what the old wording cost,
  * where `strikerepeat.js` inherited this restore, walked the Shade down a lit
  * lane and had her shot dead in the middle of a strike. A check that needs the

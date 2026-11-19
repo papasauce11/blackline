@@ -73,6 +73,22 @@
  * group by: the yard has a circuit that is on its spawn to the micrometre and
  * facing 2.27rad the other way, which H80's census counted with the majority.
  *
+ * **K11 retired the turn, and H114 is what this check asserts instead.** K11
+ * (2026-11-19) skips a patrol's first route node when it lies behind the
+ * Warden, so a route that used to run back through the node at its back now
+ * walks straight on from frame 1. That is most circuits: 31 of 48 seeds on the
+ * plant settle 0.699297m off the spawn and 43 of 48 on the yard 0.836667m (the
+ * yard's without turning at all), and `SETTLE_SEED` draws that pose on both.
+ * So the settle's two bars - the body translated nothing and the yaw moved -
+ * were H73's mechanism and are no longer the callers'. Their frame is
+ * reproducible because of H81's pin, held below to the micrometre, and
+ * `the-pixel-floors-hold-at-a-settle-pose-the-pinned-seed-never-photographs`
+ * holds their floors at the on-spawn pose as well. The settle clause now asks
+ * that the AI be live over the settle (moved or turned) and that the settle,
+ * driven again here, end on the pinned pose; the first moving frame is still
+ * reported. With K11's planner taken back to its parent the old bars were
+ * green on both maps, which is how the red was attributed.
+ *
  * **H74 asked the other half of H71's count, and found that the question could
  * not be answered the way it was posed.** Whether a walking Warden changes a
  * reading is not measurable one run at a time on these checks, because **ten of
@@ -217,6 +233,9 @@ const UNTURNED = 0.001;
  * the helper settles **the yaw moves and the position does not**: the AI is
  * live, which is the sentence, and the body is where `initMatch` put it, which
  * is the reading. Both halves asserted, the first moving frame reported.
+ * **H114: since K11 the second half is the minority circuits' only** - the
+ * pinned one walks from frame 1 - so the clause holds the pinned pose instead
+ * (the header says why).
  *
  * **H80: stable in a circuit, and the circuit is the clock's.** Both halves are
  * true of a settle the Warden spends turning and false of the one circuit that
@@ -278,7 +297,7 @@ function whatTheSettleDoes(h, flag, settle, seed) {
   h.input.clearAll();
   const spawn = { x: h.warden.position.x, z: h.warden.position.z, yaw: h.warden.yaw };
   h.stepFrames(settle);
-  const over = { moved: flat(h.warden.position, spawn), turned: turn(h.warden.yaw, spawn.yaw) };
+  const over = { moved: flat(h.warden.position, spawn), turned: turn(h.warden.yaw, spawn.yaw), yaw: h.warden.yaw };
   let firstMove = 0;
   for (let i = 1; i <= FIRST_MOVE_CAP && !firstMove; i++) {
     h.stepFrames(1);
@@ -473,11 +492,17 @@ export function register(debugTools) {
         const known = classes.poses.map((c) => `${c.moved.toFixed(6)}m/yaw ${c.yaw.toFixed(4)} (${c.seeds}x)`).join(', ');
         problems.push(`${HELPER}() returns with the Warden ${wardenSettled.toFixed(6)}m off its spawn facing ${wardenFacing.toFixed(4)}, and the pose ${dominant.seeds} of ${classes.scanned} circuits share is ${dominant.moved.toFixed(6)}m/yaw ${dominant.yaw.toFixed(4)} - the ${classes.poses.length} driven are ${known}, so either the helper is no longer passing its seed, or its seed is not the one this run's dominant pose belongs to, or the circuit no longer decides the settle (H81)`);
       }
-      if (during.moved > ON_SPAWN) {
-        problems.push(`over the ${settle} frames ${HELPER}() settles the Warden translated ${during.moved.toFixed(6)}m, against ${ON_SPAWN}m - a settle that outlasts the turn puts a walking Warden in twelve checks' frames, and the frames it takes are map data (${during.firstMove || `>${FIRST_MOVE_CAP}`} after the settle here)`);
+      //
+      // H114: K11 retired the turn - a patrol skips a first node behind the
+      // Warden, so the pinned circuit walks from frame 1 on both maps and
+      // "translated nothing" is no longer true of the settle the callers get.
+      // What is, and what makes their frame reproducible: the AI is live over
+      // the settle, and the settle driven again here ends on the pinned pose.
+      if (wants && during.moved <= ON_SPAWN && during.turned < TURNS_BY) {
+        problems.push(`over the ${settle} frames ${HELPER}() settles the Warden neither translated (${during.moved.toFixed(6)}m) nor turned (${during.turned.toFixed(4)}rad, against ${TURNS_BY}) - with the AI live it walks its route or turns to face it from the first frame, so nothing is driving this body`);
       }
-      if (wants && during.turned < TURNS_BY) {
-        problems.push(`over the ${settle} frames ${HELPER}() settles the Warden turned ${during.turned.toFixed(4)}rad, against ${TURNS_BY}rad - with the AI live its first act is to face its first route node, and a body that did not turn either has no AI driving it or is already round, which would make the clause above about nothing`);
+      if (Math.abs(during.moved - dominant.moved) > ON_SPAWN || turn(during.yaw, dominant.yaw) > ON_SPAWN) {
+        problems.push(`the settle driven again at seed ${settleSeed} ends ${during.moved.toFixed(6)}m off spawn facing ${during.yaw.toFixed(4)}, against the pinned pose ${dominant.moved.toFixed(6)}m/yaw ${dominant.yaw.toFixed(4)} - twelve callers photograph that pose, so a settle that does not reproduce it puts a Warden nobody measured in their frame (H81, H114)`);
       }
 
       return {

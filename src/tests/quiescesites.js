@@ -13,6 +13,12 @@
  * whether a Warden is in a picture is **how many frames the check steps between
  * the quiesce and the grab**, and until this file nothing read that number.
  *
+ * **H114: K11 took that headroom away.** A patrol now skips a first route node
+ * behind the Warden, so the circuit `quiesce()` pins walks from frame 1 on both
+ * maps, and the four and seventeen frames below are the minority circuits'
+ * only. Nothing here leaned on them - every stepping site owns a match with the
+ * AI off, which is this file's clause - so only the sentences citing them moved.
+ *
  * **The measurement the entry asked for, and what it could not settle.** All
  * eleven sites that step the simulation before they read a frame were run
  * through the real runner on both maps, once with the match `quiesce()` leaves
@@ -63,7 +69,8 @@
  * A site that teleports the Warden has no headroom whatever, and nothing but
  * its own `ai: false` between the mark and the picture; a site that leaves the
  * Warden where its own match opened has H73's four frames (plant) or seventeen
- * (yard) as well, because that body is on a spawn. Both counts are in the
+ * (yard) as well, in a circuit that turns first - and since K11 most do not
+ * (H114). Both counts are in the
  * detail line and `TELEPORTS` declares which modules do it, so the next
  * stepping site cannot quietly inherit a margin that is not about it - the
  * same declaration `registry.js` asks for (H70) and the shape H83 will take
@@ -327,12 +334,13 @@ export function register(debugTools) {
       if (live.length) {
         // H82: the margin cited depends on which class the site is in, and
         // citing the wrong one is the defect this job was raised for. A body
-        // on its spawn has H73's turn to spend; a body put on a mark has
-        // nothing, and the number for it is H78's.
+        // on its spawn had H73's turn to spend until K11 took it from most
+        // circuits (H114); a body put on a mark has nothing, and the number
+        // for it is H78's.
         const spawned = live.filter((s) => !s.teleports);
         const moved = live.filter((s) => s.teleports);
         const parts = [];
-        if (spawned.length) parts.push(`${spawned.length} leave the Warden where their match opened, where H73 gives it 4 frames of turning on the plant and 17 on the yard and no more (${spawned.map((s) => s.where).join(', ')})`);
+        if (spawned.length) parts.push(`${spawned.length} leave the Warden where their match opened, where since K11 a live Warden walks from frame one in most circuits (H114) (${spawned.map((s) => s.where).join(', ')})`);
         if (moved.length) parts.push(`${moved.length} teleport it onto a mark first, where H73's headroom does not apply at all and a body translates on frame one - 0.13542695m by the sixth step, both maps, H78 (${moved.map((s) => s.where).join(', ')})`);
         problems.push(`${live.length} quiesce site(s) step the simulation and then read the framebuffer with no match of their own, so the Warden in that frame has walked a distance the check does not state: ${parts.join('; ')}`);
       }
@@ -378,7 +386,7 @@ export function register(debugTools) {
       for (const [file, found] of teleportsIn) {
         const declared = declaredTeleports.get(file);
         if (!declared) {
-          problems.push(`${file} has ${found} stepping quiesce site(s) that reset the Warden onto a spot of their own and TELEPORTS declares none, so a site is relying on H73's four frames (plant) and seventeen (yard), which are about a Warden on its spawn - a teleported body translates on frame one (H78, H82)`);
+          problems.push(`${file} has ${found} stepping quiesce site(s) that reset the Warden onto a spot of their own and TELEPORTS declares none, so a site is relying on H73's four frames (plant) and seventeen (yard), which are about a Warden on its spawn in a circuit that turns first (H114) - a teleported body translates on frame one (H78, H82)`);
         } else if (declared.sites !== found) {
           problems.push(`${file} teleports the Warden at ${found} stepping site(s) and TELEPORTS declares ${declared.sites}, onto ${declared.onto}`);
         }
@@ -409,8 +417,8 @@ export function register(debugTools) {
           // H60's rule about a line this long: the readings first, because the
           // runner keeps 400 characters of it and the two new counts are what
           // this check is read for. H91 is the cut itself.
-          ? `${sites.length} quiesce sites over ${scanned.length} modules: ${stepping.length} step the simulation and read a frame, all owning a match with the AI off - ${teleported.length} teleport the Warden onto their own mark, where a body translates on frame 1 (0.1354m by six, H78), ${fromTheOpening.length} leave it where their match opened, with H73's 4 (plant) / 17 (yard) frames of headroom on top; `
-            + `${oneFrame.length} read a frame without stepping one (Warden unmoved, H73); ${blind.length} read no frame`
+          ? `${sites.length} quiesce sites over ${scanned.length} modules: ${stepping.length} step the simulation and read a frame, all owning a match with the AI off - ${teleported.length} teleport the Warden onto their own mark, where a body translates on frame 1 (0.1354m by six, H78), ${fromTheOpening.length} leave it where their match opened; `
+            + `${oneFrame.length} read a frame without stepping one (the Warden in quiesce()'s pinned pose, H81, H114); ${blind.length} read no frame`
           : problems.join('; '),
       };
     },
