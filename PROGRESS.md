@@ -21969,3 +21969,85 @@ first.
 **Flagged to Josh** as a combat-feel change he may veto (D84): the Warden's
 worst-case slowness to kill shrinks on easy and medium; one line in `ai.js`
 undoes it.
+
+## H114 — The settle clause after K11 (2026-11-19, Josh's session)
+
+Raised by the batch's own full verify, not the queue: at `a659b98` every check
+was green but the bench-only sweep and
+`quiesce-says-what-it-does-about-the-ai`, red in all four runs - *"over the 20
+frames quiesce() settles the Warden translated 0.699297m, against 0.000001m"*
+on the plant, 0.836667m on the yard, and on the yard *"turned 0.0000rad,
+against 0.05rad"* as well. None of the batch's subsets had run it.
+
+**Attributed before it was touched.** The settle census in the same verify
+(`the-settle-is-a-function-of-the-circuit-and-the-helper-names-the-seed`,
+green) had the plant's dominant pose at 31 of 48 seeds 0.699297m off the spawn,
+yaw 3.4895, and the yard's at 43 of 48 0.836667m, yaw 3.1416 - walking poses -
+where H81 measured 383/400 and 363/400 on the spawn. That is K11's node-behind
+rule: the Warden spawns between two nodes and most circuits' routes ran back
+through the one behind it, which it used to turn to face and now skips. With
+K11's parent `src/systems/ainav.js` copied into the tree, the four settle and
+quiesce checks were green on both maps and the census read 46 of 48 on spawn
+(plant) and 43 of 48 (yard), as H81 had them; the file was restored by copy and
+diffed clean against HEAD.
+
+**The fix is the clause, not the AI.** K11's skip is the behaviour the game
+wants - the Warden walks on to the node ahead instead of back to the one at its
+back - and the replay K11 re-recorded on the yard is the same case. What the
+red showed is that H73's two bars (translated nothing; turned at least 0.05rad)
+described a mechanism, the turn, rather than the thing twelve callers lean on,
+which since H81 is a pinned pose. So the settle clause now asks two things: the
+AI is live over the settle (it moved or it turned, which a body under `ai:
+false` does neither of), and the settle, driven a second time in the same run
+after the `ai: false` control, ends on the pinned pose to 1e-6m and 1e-6rad.
+The first moving frame is still reported. H81's own pose clause and
+`the-pixel-floors-hold-at-a-settle-pose-the-pinned-seed-never-photographs`
+(green at both poses in the verify) are what make a walking Warden in those
+frames harmless. The prose that cited H73's four and seventeen frames as a
+margin - the doc above `quiesce()`, its seed note, two red-path messages in
+`settlecircuit.js` and the header and detail line of `quiescesites.js` - now
+says they are the minority circuits' only. No threshold moved.
+
+**Proved**: 26 checks a map on both maps - the four settle and quiesce checks
+and the 24-entry census - all green, the clause reading *"its named seed
+20261016 drew node 9 and left the Warden 0.699297m off spawn facing 3.4895,
+which is the pose 31 of 48 circuits share"* on the plant and node 11,
+0.836667m, facing 3.1416, 43 of 48 on the yard. **Breaks**, each from a copy
+and restored by copy: the settle driven with `ai: false` - red on both maps on
+both new clauses, *"neither translated (0.000000m) nor turned (0.0000rad,
+against 0.05)"* and the settle *"ends 0.000000m off spawn facing 2.3562,
+against the pinned pose 0.699297m/yaw 3.4895"* on the plant (0.000000m against
+0.836667m on the yard); and the settle driven one frame longer - red on the
+pose clause alone on both maps, *"ends 0.744616m off spawn facing 3.5462,
+against the pinned pose 0.699297m/yaw 3.4895"* on the plant and 0.886667m
+against 0.836667m on the yard.
+
+## Batch M3, H48, M4, H18, K11, M9 and K8 verified, one red fixed by H114 (2026-11-19, Josh's session)
+
+Full two-run verify at `a659b98`, about 75 minutes: plant **260 / 2 / 10**
+(1,314,270ms, 1,289,380ms), yard **242 / 2 / 28** (963,957ms, 939,343ms),
+spreads 2% and 3%, `flaky` empty, 0 console errors, ceiling 13 modules within
+50 of 600 with `tests/difficulty.js` nearest at 600 (0 left, H113), of 229
+loaded. One failure a map is the bench-only sweep (H11), benched: 711.50ms and
+102.80ms on the plant, 160.60ms and 851.10ms on the yard, single samples on
+SwiftShader.
+
+**The other was a real red**, `quiesce-says-what-it-does-about-the-ai` on both
+maps in all four runs, attributed to K11 and fixed by H114 (above): a test's
+description of the Warden's first frames that K11 changed on purpose, nothing a
+player sees. The fix was proved by its subset and two breaks on both maps
+rather than by a second 75-minute verify, so **the last fully green verify is
+still 2026-11-04's at `1bff045`**, and the next run's verify is the first with
+H114 in it.
+
+**Three checks more on each map, and that is the right number**: 259 to 262 and
+241 to 244 checks run, from M3's
+`the-shades-xray-sees-the-warden-through-a-crate-and-never-through-a-wall`,
+M4's vision-modes check and K11's
+`a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`; H48, M9 and K8
+extended a check each and H18 rewrote one under its own id, which moves no
+count. With H114 the expected reading is 261 / 1 and 243 / 1.
+
+**Pruned** (H109's rule): the seven builders' worktrees and branches - M3, H48,
+M4, H18, K11, M9 and K8 - each found on `phases-14-45` by its cherry-picked
+subject first.

@@ -1013,6 +1013,8 @@ the end of this list, never ahead of a game-facing job.
   is measured under per-round draws on both maps, and the floor sits between
   the two readings again, or the entry says why the stall seeds are enough.
 
+- [x] **H114 (S)** The settle clause after K11 — done 2026-11-19, under Done. The settle clause of `quiesce-says-what-it-does-about-the-ai` in `src/tests/quiesce.js`; the prose in `tests/pixels.js`, `tests/quiescesites.js` and `tests/settlecircuit.js`.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -1177,6 +1179,17 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H114** The settle clause after K11. Batch five's verify was red on
+  `quiesce-says-what-it-does-about-the-ai` on both maps in all four runs: K11
+  skips a patrol's first route node when it lies behind the Warden, so the
+  circuit `quiesce()` pins walks from frame 1 - 0.699297m off its spawn on the
+  plant, 0.836667m on the yard - where H73's bars said the body translates
+  nothing and turns. Attributed by K11's parent `ainav.js` in the tree: green
+  on both maps. The clause now holds that the AI is live over the settle and
+  that the settle, driven again, ends on the pinned pose to the micrometre,
+  which is what keeps twelve callers' frame reproducible; four files' prose
+  that cited H73's four and seventeen frames of headroom says what is true now.
+  By the lead - `59d3a8f`, 2026-11-19, Josh's session.
 - **K8** The per-round aim draw. The Warden's aim hold is drawn for every round
   it fires rather than once a burst, as F17 built it: the hit fraction and the
   mean time to kill do not move, the share of the scatter inside a burst goes
