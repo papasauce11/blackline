@@ -80,6 +80,13 @@ export const TUTORIAL_STEPS = [
     done: (r) => r.hanging,
   },
   {
+    id: 'lens',
+    // One prompt for both modes, cleared by either: the act is the toggle,
+    // and they share a lens, so trying the one is the lesson of the other.
+    text: (k) => `${k('nightVision')} night vision lifts the dark, ${k('xray')} the x-ray shows the Warden through thin cover - one lens, so one turns the other off. Try one`,
+    done: (r) => r.lens,
+  },
+  {
     id: 'plant',
     text: (k) => `stand in a site room and hold ${k('interact')} to plant`,
     done: (r) => r.planted,
@@ -139,6 +146,7 @@ export function createTutorial({ emitter, shade, map }) {
     leftGroundUpward: false,
     climbedBy: 0,
     hanging: false,
+    lens: false,
     planted: false,
   });
 
@@ -238,6 +246,13 @@ export function createTutorial({ emitter, shade, map }) {
       api._advance();
     },
 
+    /** The lens is an event too: either mode's toggle is the act (M4). */
+    _lens() {
+      if (!api.running) return;
+      reading.lens = true;
+      api._advance();
+    },
+
     /** The plant is an event, not a state: the round system owns it. */
     _planted() {
       if (!api.running) return;
@@ -258,6 +273,8 @@ export function createTutorial({ emitter, shade, map }) {
   };
 
   emitter.on('sim:step', () => api.observe());
+  emitter.on('nightvision:toggle', () => api._lens());
+  emitter.on('xray:toggle', () => api._lens());
   emitter.on('objective:planted', () => api._planted());
 
   return api;

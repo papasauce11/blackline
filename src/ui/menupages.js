@@ -18,13 +18,16 @@
 
 import { BINDING_GROUPS, CONFIG, DEFAULT_BINDINGS, SETTINGS, SETTINGS_GROUPS } from '../config.js';
 import { activeQuality, postEnabled, QUALITY_CHOICES } from '../quality.js';
-import { controlRows, keyLabel, objectiveLine } from './briefing.js';
+import { controlRows, keyLabel, lensLine, objectiveLine } from './briefing.js';
 
 /** What the how-to-play page describes: the two roles, as the game has them. */
 const HOW_TO_ROLES = [
   { role: 'shade', mode: 'competitive', objectiveEnabled: true, title: 'As the Shade' },
   { role: 'warden', mode: 'freeroam', objectiveEnabled: false, title: 'As the Warden' },
 ];
+
+/** What a row calls an action where its id does not read: the rest show the id itself (M4). */
+const ACTION_LABELS = { nightVision: 'night vision', xray: 'x-ray' };
 
 export const MENU_PAGES = {
   _renderSettings() {
@@ -289,7 +292,7 @@ export const MENU_PAGES = {
       const waiting = this.binding === action;
       const keys = codes.length ? codes.map(keyLabel).join(' / ') : 'unbound';
       return `<div class="row bindrow">
-        <span class="what">${action}</span>
+        <span class="what">${ACTION_LABELS[action] || action}</span>
         <span class="clash" id="bl-clash-${action}">${also.length ? `also ${also.join(', ')}` : ''}</span>
         <span class="value${waiting ? ' waiting' : ''}" id="bl-bind-${action}">${waiting ? 'press a key' : keys}</span>
         <span class="value small" id="bl-bindreset-${action}">reset</span>
@@ -365,7 +368,7 @@ export const MENU_PAGES = {
         ([key, does]) => `<tr><td class="key">${key}</td><td class="does">${does}</td></tr>`
       ).join('');
       return `<h2 style="font-size:13px;letter-spacing:0.24em;margin:18px 0 6px">${role.title}</h2>
-        <div class="prose"><p>${objectiveLine(role, bindings)}</p></div>
+        <div class="prose"><p>${objectiveLine(role, bindings)}</p>${role.role === 'shade' ? `<p>${lensLine(role, bindings)}</p>` : ''}</div>
         <table>${rows}</table>`;
     }).join('');
 

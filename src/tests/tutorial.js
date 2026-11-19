@@ -1,7 +1,7 @@
 /**
  * BLACKLINE - tests/tutorial.js
  *
- * AUTO suite (Section 13, H6): the first-run tutorial's eight moves, driven.
+ * AUTO suite (Section 13, H6): the first-run tutorial's nine moves, driven.
  *
  * The chain's whole claim is that a prompt clears on the **act** and not on
  * the key, so a check that set `tutorial.reading` by hand would be testing
@@ -89,7 +89,7 @@ export function register(debugTools) {
     // The plant's ducts at grade are what step 4 needs; `tutorialFits` is the
     // rule and this says which map it happens to be true of today.
     maps: ['plant'],
-    name: 'All eight prompts are cleared by driving the real controller, each on the act and not on the key press, and the chain ends itself',
+    name: 'All nine prompts are cleared by driving the real controller, each on the act and not on the key press, and the chain ends itself',
     run: (h) => {
       const problems = [];
       const tutorial = h.tutorial;
@@ -220,7 +220,19 @@ export function register(debugTools) {
           h.input.clearAll();
         }
 
-        // ---- 8. plant ------------------------------------------------------
+        // ---- 8. the lens (M4) ----------------------------------------------
+        // Either mode's key is the act: X here, so the x-ray's half of the
+        // listener is the one driven; the night-vision half is the same line.
+        shade.reset(h.map.shadeSpawns[0]);
+        step(h, 2);
+        h.input.clearAll();
+        h.input.heldCodes.add(code(h, 'xray'));
+        h.input.pressedCodes.add(code(h, 'xray'));
+        step(h, 3);
+        h.input.clearAll();
+        cleared('lens', 'the x-ray key');
+
+        // ---- 9. plant ------------------------------------------------------
         // The real hold, at a spot the plant rule allows, through the fixed
         // step - so the objective system emits the event the chain listens
         // for, and the key that does it is the bound one.
@@ -239,7 +251,7 @@ export function register(debugTools) {
         cleared('plant');
 
         // ---- and the chain ends itself ------------------------------------
-        if (!tutorial.finished) problems.push(`after eight moves the chain is on "${at()}" and not finished`);
+        if (!tutorial.finished) problems.push(`after nine moves the chain is on "${at()}" and not finished`);
         if (!SETTINGS.tutorialSeen) problems.push('a finished chain did not mark the browser as having seen it');
         if (h.tutorialPanel.open) problems.push('the prompt is still on screen after the chain ended');
         // And what it hands over to: the match Play was pressed for.

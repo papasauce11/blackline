@@ -35,6 +35,7 @@ const CSS = `
 #bl-briefing h1 { font-size: 22px; letter-spacing: 0.3em; margin: 0 0 2px; }
 #bl-briefing .sub { opacity: 0.55; font-size: 11px; margin-bottom: 18px; }
 #bl-briefing .objective { font-size: 13px; line-height: 1.6; margin-bottom: 14px; }
+#bl-briefing .lens { margin-bottom: 14px; opacity: 0.7; }
 #bl-briefing .sites { margin-bottom: 18px; opacity: 0.85; }
 #bl-briefing .sites b { font-weight: normal; color: ${hex(P.hazardOrange)}; }
 #bl-briefing table { width: 100%; border-collapse: collapse; }
@@ -85,6 +86,19 @@ export function objectiveLine(match, bindings) {
     + `${Math.round(R.duration / 60)} minutes to plant.`;
 }
 
+/**
+ * The Shade's two vision modes in one sentence (M4), for the card and the
+ * How to play page the way `objectiveLine` is: the keys are the live
+ * bindings, the range is the rule's own number, and the Warden, who has
+ * neither, gets nothing.
+ */
+export function lensLine(match, bindings) {
+  if (match.role === 'warden') return '';
+  return `Night vision (${keys(bindings, 'nightVision', true)}) lifts the dark; the x-ray (${keys(bindings, 'xray', true)}) `
+    + `draws the Warden through crates, ducts and other thin cover within ${CONFIG.shade.xray.range} metres, never through a wall. `
+    + 'They share one lens: turning one on turns the other off.';
+}
+
 /** The rows of the controls table for a role: `[keys, what it does]`. Shared with the menu's How to play page (H5). */
 export function controlRows(match, bindings) {
   const b = bindings;
@@ -112,6 +126,7 @@ export function controlRows(match, bindings) {
     rows.push(
       [keys(b, 'melee'), 'knife'],
       [keys(b, 'nightVision'), 'night vision - on and off'],
+      [keys(b, 'xray'), 'x-ray - on and off'],
       [[1, 2, 3].map((n) => keys(b, `gadget${n}`, true)).join(' '), 'smoke, flashbang, taser'],
     );
   }
@@ -177,6 +192,7 @@ export class Briefing {
         <h1>${heading}</h1>
         <div class="sub">you are the ${warden ? 'Warden' : 'Shade'}</div>
         <div class="objective">${objectiveLine(match, bindings)}</div>
+        ${warden ? '' : `<div class="lens">${lensLine(match, bindings)}</div>`}
         <div class="sites">${(sites || []).map((site) => `<span><b>${site.id}</b> ${site.name}</span>`).join(' &middot; ')}${where}</div>
         <table><tbody>
           ${controlRows(match, bindings).map(([key, does]) => `

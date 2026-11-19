@@ -23,6 +23,8 @@ import { CONFIG, DEFAULT_BINDINGS } from '../config.js';
 import { bindingConflicts } from '../input.js';
 import { driveAtLedge, findGroundLedge } from './climbpress.js';
 import { BINDINGS_KEY } from '../bindingstore.js';
+import { TUTORIAL_STEPS } from '../systems/tutorial.js';
+import { keyLabel } from '../ui/briefing.js';
 
 /**
  * The keymap as a check found it, and the way back to it (H19). A rebind
@@ -143,6 +145,104 @@ export function register(debugTools) {
         detail: problems.length === 0
           ? `${detail}; the How to play card says J`
           : problems.join('; '),
+      };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'the-two-vision-modes-are-on-the-card-the-briefing-and-the-tutorial-and-follow-a-rebind',
+    spec: 'Section 2, Section 20, M4',
+    name: 'Night vision and the x-ray each have a labelled row on the controls page and a row on the How to play card with their keys, the Shade\'s briefing says both and that they share one lens, the Warden\'s says neither, rebinding the x-ray moves the page, the card, the briefing and the tutorial prompt, and the tutorial names both',
+    run: (h) => {
+      const problems = [];
+      const menu = h.menu;
+      const input = h.input;
+      const restore = keepBindings(input);
+      const squash = (text) => text.replace(/\s+/g, ' ').trim();
+      const shadeMatch = { role: 'shade', mode: 'competitive', objectiveEnabled: true };
+      const wardenMatch = { role: 'warden', mode: 'freeroam', objectiveEnabled: false };
+      const briefed = (match) => {
+        h.briefing.show({ match, round: 1, sites: h.map.sites, bindings: input.bindings, mapName: h.map.name });
+        const text = squash(h.briefing.text);
+        h.briefing.hide();
+        return text;
+      };
+      /** What a row on the controls page says: its label and its key. */
+      const pageRow = (action) => {
+        const key = menu.root.querySelector(`#bl-bind-${action}`);
+        const label = key && key.parentElement.querySelector('.what');
+        return { key: key ? key.textContent.trim() : null, label: label ? label.textContent.trim() : null };
+      };
+      /** The Shade's How to play table, row by what it does. */
+      const cardKey = (prefix) => {
+        menu.show('howto');
+        const cells = [...menu.root.querySelectorAll('tr')].map((tr) => [...tr.children].map((td) => td.textContent.trim()));
+        menu.hide();
+        const row = cells.find(([, does]) => does && does.indexOf(prefix) === 0);
+        return row ? row[0] : null;
+      };
+      const tutorialText = (id) => {
+        const step = TUTORIAL_STEPS.find((s) => s.id === id);
+        if (!step) return null;
+        return step.text((action) => `[${keyLabel((input.bindings[action] || [])[0] || 'unbound')}]`);
+      };
+      const detail = [];
+      try {
+        h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
+
+        // The page, as it stands: both rows, labelled, on their default keys.
+        menu.show('controls');
+        for (const [action, label, key] of [['nightVision', 'night vision', 'V'], ['xray', 'x-ray', 'X']]) {
+          const row = pageRow(action);
+          if (row.key === null) problems.push(`the controls page has no ${action} row`);
+          else {
+            if (row.label !== label) problems.push(`the ${action} row is labelled "${row.label}", want "${label}"`);
+            if (row.key !== key) problems.push(`the ${action} row reads "${row.key}", want "${key}"`);
+          }
+        }
+        menu.hide();
+        if (cardKey('night vision') !== 'V') problems.push(`the How to play card gives night vision "${cardKey('night vision')}"`);
+        if (cardKey('x-ray') !== 'X') problems.push(`the How to play card gives the x-ray "${cardKey('x-ray')}"`);
+
+        // The briefing: the Shade's says both modes, the one lens and the
+        // range; the Warden has neither mode and her card says neither.
+        const shade = briefed(shadeMatch).toLowerCase();
+        for (const word of ['night vision', 'x-ray', 'one lens', `${CONFIG.shade.xray.range} metres`]) {
+          if (shade.indexOf(word) === -1) problems.push(`the Shade's briefing does not say "${word}"`);
+        }
+        const warden = briefed(wardenMatch).toLowerCase();
+        if (warden.indexOf('night vision') !== -1 || warden.indexOf('x-ray') !== -1) problems.push('the Warden\'s briefing names a vision mode');
+
+        // The tutorial names both, with their keys.
+        const lens = tutorialText('lens') || '';
+        if (!lens) problems.push('the tutorial has no lens step');
+        for (const word of ['night vision', 'x-ray', 'one lens', '[V]', '[X]']) {
+          if (lens.toLowerCase().indexOf(word.toLowerCase()) === -1) problems.push(`the tutorial's lens prompt does not say "${word}": "${lens}"`);
+        }
+        detail.push(`default keys V and X on both pages, ${shade.length} chars of Shade briefing`);
+
+        // Rebind the x-ray from the page and read every place that names it.
+        menu.show('controls');
+        problems.push(...rebindFromTheKeyboard(menu, 'xray', 'KeyZ'));
+        const moved = pageRow('xray');
+        if (moved.key !== 'Z') problems.push(`the x-ray row reads "${moved.key}" after the rebind to Z`);
+        menu.hide();
+        if (cardKey('x-ray') !== 'Z') problems.push(`the How to play card gives the x-ray "${cardKey('x-ray')}" after the rebind`);
+        const rebound = briefed(shadeMatch);
+        if (rebound.indexOf('x-ray (Z)') === -1) problems.push('the Shade\'s briefing does not say the x-ray is on Z after the rebind');
+        if (rebound.indexOf('x-ray (X)') !== -1) problems.push('the Shade\'s briefing still says the x-ray is on X');
+        if ((tutorialText('lens') || '').indexOf('[Z]') === -1) problems.push('the tutorial\'s lens prompt does not say [Z] after the rebind');
+        if (cardKey('night vision') !== 'V') problems.push('rebinding the x-ray moved night vision\'s key on the card');
+        detail.push('rebound to Z, the page, the card, the briefing and the tutorial follow');
+      } finally {
+        restore();
+        menu.binding = null;
+        menu.hide();
+        h.briefing.hide();
+      }
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0 ? detail.join('; ') : problems.join('; '),
       };
     },
   });
