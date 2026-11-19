@@ -135,7 +135,7 @@ export const MENU_CSS = `
 }
 /* A grouped row is tighter than a lone one: the padding H20 measured the
    controls page at, which H22 brought the settings rows to as well. */
-#bl-menu .groups .row { padding: 6px 0; }
+#bl-menu .groups .row { padding: 5px 0; }
 
 /* The how-to-play and credits pages: running text, so the menu's uppercase
    tracking is turned off for the body of them. */
