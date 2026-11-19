@@ -697,8 +697,8 @@ export const CONFIG = {
       maxThickness: 2.5,
       /** Metres from the Shade's eye past which a target is not looked for. 20 because it is about the length of a plant hall and a yard lane: far enough to find the Warden through the next crate or two, near enough that the whole map is not a lit-up diagram. */
       range: 20,
-      /** The silhouette's colour: the Warden's own orange, the colour of what the Shade has to find, so it reads as hers to be avoided and never as a second light in the room. */
-      color: 0xffb060,
+      /** The silhouette's colour: a pale cyan, the complement of the warm palette (the plant's crates are orange and an orange silhouette vanished on them) and clear of night vision's green. PROVISIONAL, a styling detail Josh is shown. */
+      color: 0x8fe6ff,
       /** Its opacity: most of the way to solid so it reads against a lit floor, short of it so the crate it is behind still shows through it. */
       opacity: 0.85,
       /** Edge of the cube that stands for the planted charge, which has no mesh in the world: about the size of a satchel, so a silhouette is the thing she is looking for and not a landmark. */
