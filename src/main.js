@@ -229,7 +229,7 @@ async function bootstrap() {
   // getter because the menu is built before the first match exists.
   const built = await bootWorld({
     emitter, debugState, harness, initMatch, setPaused, setTimeScale, match: () => match, loop,
-    // D1: the map is the URL's for this page load; the menu's map row
+    // D1: the map is the URL's for this page load; the menu's map cards
     // reloads with another, keeping the seed and the debug gate.
     mapId: bootMapId(location.search),
     goToMap: (id) => { location.search = mapUrl(location.search, id); },

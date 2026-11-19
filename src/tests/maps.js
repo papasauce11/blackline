@@ -3,7 +3,7 @@
  *
  * AUTO suite: D1, the map registry. Every registered map builds and calls
  * itself by its id; the page is on the map its URL asked for; `?map=` and
- * the menu's map row agree on what the next page load will open; and a
+ * the menu's cards agree on what the next page load will open; and a
  * check registered for other maps is reported as not for this one rather
  * than run, or passed. These run on every map: they read the registry and
  * `h.map`, never a coordinate of either.
@@ -11,15 +11,14 @@
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
-import { CONFIG } from '../config.js';
+import { CONFIG, SETTINGS } from '../config.js';
 import { createToonGradient } from '../view.js';
 import { buildMap, mapIds, listMaps, requestedMapId, mapUrl, DEFAULT_MAP_ID } from '../maps/index.js';
 
-/** Click a menu control the way the player does. */
-function click(root, selector) {
-  const control = root.querySelector(selector);
-  if (!control) throw new Error(`no ${selector} on the panel`);
-  control.click();
+/** A real key press at the window, the way a player's arrives. */
+function press(code) {
+  window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true }));
+  window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true, cancelable: true }));
 }
 
 /** What every map, whatever its shape, has to have for a match to run on it. */
@@ -51,7 +50,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'every-registered-map-builds-and-the-page-is-on-the-one-its-url-asked-for',
     spec: 'Section 5, amended (D1)',
-    name: 'Every map in the registry builds under its own id with spawns, sites in rooms and Warden ground; the page booted the map its URL names; ?map= and the map row\'s URL agree',
+    name: 'Every map in the registry builds under its own id with spawns, sites in rooms and Warden ground; the page booted the map its URL names; ?map= and mapUrl agree',
     run: (h) => {
       const problems = [];
       const ids = mapIds();
@@ -87,7 +86,7 @@ export function register(debugTools) {
       try { buildMap('no-such-map', { gradientMap }); } catch (error) { unknownThrew = true; }
       if (!unknownThrew) problems.push('buildMap of an unknown id did not throw');
 
-      // The URL side: what `?map=` reads, and what the map row writes.
+      // The URL side: what `?map=` reads, and what a map card writes.
       const url = [
         [requestedMapId(''), DEFAULT_MAP_ID, 'no query'],
         [requestedMapId('?map=yard'), 'yard', '?map=yard'],
@@ -115,45 +114,88 @@ export function register(debugTools) {
 
   debugTools.registerAutoTest({
     id: 'the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one',
-    spec: 'Section 13, amended (D1)',
-    name: 'The main menu names the map the page is on, lists every registered map, and a click on the map row hands the next id to the page-load handler',
+    spec: 'Section 13, amended (D1, D55)',
+    // The id is the spec's and stays. It was a check on a row that cycled;
+    // the row is a label now (H18) and the cards are the one way to pick.
+    name: 'The main menu names the map the page is on in a plain label that is no control, and every registered map is reachable by its own card - from the keyboard and by a click - which hands that map\'s id to the page-load handler, after which the label names it',
     run: (h) => {
       const problems = [];
       const maps = listMaps();
-      h.menu.show('main');
-      const root = h.menu.root;
-      const row = root.querySelector('#bl-map');
-      if (!row) problems.push('the main menu has no map row');
-      const text = root.textContent.replace(/\s+/g, ' ').toLowerCase();
-      if (!text.includes(h.map.name.toLowerCase())) problems.push(`the menu does not name "${h.map.name}"`);
-      const offered = row ? String(row.title || '') : '';
-      for (const entry of maps) {
-        if (!offered.includes(entry.name)) problems.push(`the map row does not offer "${entry.name}"`);
-      }
-
-      // The click, through the real DOM, to the handler the composition root
-      // wired - stood in for, because the real one is a page load. The row
-      // asks for the map after this one in the registry's order.
-      const handlers = h.menu.handlers;
-      const real = handlers.onMap;
+      const menu = h.menu;
+      const wasHandlers = menu.handlers;
+      const wasMap = SETTINGS.lastMap;
+      let chosen = h.map.id;
       const asked = [];
-      handlers.onMap = (id) => asked.push(id);
+      // Another map is a page load, stood in for: the stub records the id and
+      // answers `mapId` with it, so the next render is the page that load
+      // would have drawn.
+      menu.handlers = { ...wasHandlers, onMap: (id) => { asked.push(id); chosen = id; }, mapId: () => chosen };
+      const nameOf = (id) => maps.find((entry) => entry.id === id).name;
+      const label = () => menu.root.querySelector('#bl-map');
+      const reopen = () => menu.show('main');
+      const walkTo = (el) => {
+        for (let i = 0; i < menu.rows.length && menu.rows[menu.focus].el !== el; i++) press('ArrowDown');
+        return menu.rows[menu.focus].el === el;
+      };
       try {
-        click(root, '#bl-map');
+        reopen();
+        // The label: names this map, and is not a control.
+        const text = menu.root.textContent.replace(/\s+/g, ' ').toLowerCase();
+        if (!text.includes(h.map.name.toLowerCase())) problems.push(`the menu does not name "${h.map.name}"`);
+        const row = label();
+        if (!row) problems.push('the main menu has no map label');
+        else {
+          if (row.textContent.trim() !== h.map.name) problems.push(`the map label says "${row.textContent.trim()}", the page is on "${h.map.name}"`);
+          if (row.onclick || row.tagName === 'BUTTON' || row.tagName === 'INPUT' || row.hasAttribute('tabindex')) problems.push('the map label is a control');
+          if (menu.rows.some((entry) => entry.el === row || row.contains(entry.el))) problems.push('the map label is in the keyboard walk');
+          const lastMap = SETTINGS.lastMap;
+          row.click();
+          if (asked.length || SETTINGS.lastMap !== lastMap) problems.push('a press on the map label changed the map');
+        }
+
+        // Every map by its own card, twice: the keyboard, then the pointer.
+        for (const entry of maps) {
+          for (const how of ['keyboard', 'pointer']) {
+            chosen = h.map.id;
+            asked.length = 0;
+            reopen();
+            const card = menu.root.querySelector(`.mapcard[data-map="${entry.id}"]`);
+            if (!card) {
+              problems.push(`no card for "${entry.id}"`);
+              break;
+            }
+            if (!card.textContent.includes(entry.name)) problems.push(`the ${entry.id} card does not name it`);
+            if (how === 'keyboard') {
+              if (!walkTo(card)) {
+                problems.push(`the ${entry.id} card is not in the keyboard walk`);
+                continue;
+              }
+              press('Enter');
+            } else card.click();
+            const want = entry.id === h.map.id ? '' : entry.id;
+            if (asked.join(',') !== want) problems.push(`the ${entry.id} card by ${how} asked for "${asked.join(',')}", want "${want}"`);
+            if (want && SETTINGS.lastMap !== entry.id) problems.push(`the ${entry.id} card by ${how} did not record the choice`);
+            reopen();
+            const after = label();
+            if (!after || after.textContent.trim() !== nameOf(chosen)) problems.push(`after the ${entry.id} card by ${how} the label says "${after ? after.textContent.trim() : ''}", want "${nameOf(chosen)}"`);
+            const here = menu.root.querySelector('.mapcard[aria-current=true]');
+            if (!here || here.dataset.map !== chosen) problems.push(`after the ${entry.id} card by ${how} the selected card is "${here ? here.dataset.map : 'none'}"`);
+          }
+        }
+        if (typeof wasHandlers.onMap !== 'function') problems.push('no page-load handler is wired to the cards');
       } finally {
-        handlers.onMap = real;
-        h.menu.hide();
+        menu.handlers = wasHandlers;
+        SETTINGS.lastMap = wasMap;
+        // The ring is kept across a re-render of the same page, and the next
+        // check that opens the main page walks it from the top.
+        menu.focus = 0;
+        menu.hide();
       }
-      const index = maps.findIndex((entry) => entry.id === h.map.id);
-      const next = maps[(index + 1) % maps.length].id;
-      if (asked.length !== 1) problems.push(`the click asked for ${asked.length} maps (${asked.join(', ')})`);
-      else if (asked[0] !== next) problems.push(`the click asked for "${asked[0]}", the next after ${h.map.id} is "${next}"`);
-      if (typeof real !== 'function') problems.push('no page-load handler is wired to the row');
 
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `the menu says ${h.map.name}, offers ${maps.map((entry) => entry.name).join(' / ')}, and the row asks for ${next}`
+          ? `the menu says ${h.map.name} in a label no key or click moves, and ${maps.map((entry) => entry.name).join(' / ')} each opens from its card by keyboard and pointer`
           : problems.join('; '),
       };
     },

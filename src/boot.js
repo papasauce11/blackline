@@ -61,7 +61,7 @@ import { wireTestCommands } from './testcommands.js';
  * @param {(value: number) => void} root.setTimeScale
  * @param {() => object} root.match the current match record, read live
  * @param {string} root.mapId which registered map to build (D1); the URL's, or the default
- * @param {(id: string) => void} root.goToMap reload the page on another map, for the menu's map row
+ * @param {(id: string) => void} root.goToMap reload the page on another map, for the menu's map cards
  * @param {(label: string, done: number, of: number) => Promise<void>} [root.onSlice]
  *   awaited between bake slices (H4), so the loading screen gets drawn. Absent,
  *   the bake runs straight through and this function still resolves.

@@ -309,7 +309,7 @@ export class Menu {
         <button data-action="howto">How to play</button>
         <button data-action="credits">Credits</button>
         <div class="row"><span>map</span>
-          <span class="value" id="bl-map" title="${maps.map((entry) => entry.name).join(' / ')}">${current.name}</span></div>
+          <span class="plain" id="bl-map">${current.name}</span></div>
         <div class="footer" id="bl-version">${this._version()}</div>
       </div>`;
 
@@ -329,17 +329,9 @@ export class Menu {
       };
     }
 
-    // The map row stays what D1 made it — the label for which map this page is
-    // on, cycling to the next on a click. The cards are the way to pick one;
-    // this is the line that answers "which am I on".
-    const row = this.root.querySelector('#bl-map');
-    row.onclick = () => {
-      if (maps.length < 2) return;
-      const next = maps[(maps.findIndex((entry) => entry.id === current.id) + 1) % maps.length];
-      SETTINGS.lastMap = next.id;
-      this._changed();
-      if (this.handlers.onMap) this.handlers.onMap(next.id);
-    };
+    // The map row is a label (H18, D55): the line that answers "which am I
+    // on", with no click, no place in the ring and no cycling. The cards above
+    // are the one way to pick a map, and they are in the ring.
 
     // H5: which role Play starts. Two, because those are the two the game has
     // — a competitive Warden would need a Shade AI and there is none (D56).
@@ -386,7 +378,7 @@ export class Menu {
     const credits = this.root.querySelector('[data-action=credits]');
     credits.onclick = () => this.show('credits');
 
-    this._rows([...cards, roleRow, play, freeroam, settings, howto, credits, row]);
+    this._rows([...cards, roleRow, play, freeroam, settings, howto, credits]);
   }
 }
 

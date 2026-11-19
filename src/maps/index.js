@@ -8,7 +8,7 @@
  * `buildMap(id)` is the only way a map gets built — or `bakeMap(id)`, which is
  * the same generator driven a slice at a time so the loading screen can paint
  * between them (H4); `?map=<id>` on the URL picks one for the page load,
- * the main menu's map row does the same by reloading with it, and the
+ * the main menu's map cards do the same by reloading with it, and the
  * headless runner passes it per run (`npm run suite -- --map plant,yard`).
  *
  * A map is built once, at boot, and the whole world is built on it: every
@@ -119,7 +119,7 @@ export function bootMapId(search) {
 
 /**
  * The query string that opens `id` while keeping everything else the URL
- * carried (`?seed=`, `?debug=1`): what the menu's map row navigates to.
+ * carried (`?seed=`, `?debug=1`): what a menu map card navigates to.
  * Pure, so a check can ask it without leaving the page.
  *
  * @param {string} search the current `location.search`

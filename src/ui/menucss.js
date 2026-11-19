@@ -59,6 +59,7 @@ export const MENU_CSS = `
   padding: 9px 0; border-bottom: 1px solid rgba(47,214,195,0.14); }
 #bl-menu .row span { opacity: 0.7; }
 #bl-menu .row .value { opacity: 1; color: ${hex(P.hazardOrange)}; cursor: pointer; }
+#bl-menu .row .plain { opacity: 1; color: ${hex(P.shadeTeal)}; }
 #bl-menu input[type=range] { width: 150px; accent-color: ${hex(P.shadeTeal)}; }
 #bl-menu .back { margin-top: 20px; opacity: 0.6; }
 /* H14: the crash page's lines are what the code said, so they are not shouted. */
