@@ -999,6 +999,11 @@ the end of this list, never ahead of a game-facing job.
   label. *done-when:* the check measures the main page too, on both maps, and
   it fits 720px with nothing dropped - or the entry says why it may scroll.
 
+- [ ] **H112 (S)** K4's check may not need its PATROL pause any more. It held
+  the Warden in a pause so its route started where it was placed, stepping
+  round the freeze K11 fixed. *done-when:* the pause is removed and K4's check
+  is green on both maps, or the entry says what it still steps round.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -1015,17 +1020,27 @@ K4, K5, K7.
 - [x] **K7 (S)** Patrol variety — done 2026-11-03, under Done. `src/systems/aipatrol.js`, `round:clock` from the objective, `CONFIG.ai.patrol.siteCheckAt`, `the-warden-checks-a-site-room-when-the-round-clock-is-low`.
 - [x] **K9 (S)** The one approach the camera cannot watch — done 2026-11-19, under Done. `PLAYTEST.md` names it under Known issues; K10's clause 3 asserts it every run.
 - [x] **K10 (S)** A finer fan for the camera's wall — done 2026-11-04, under Done. `ai.alarmPlacementProbes` 8 to 16 (22.5 degrees), clause 3 of K4's check comparing the fan with the eight rays before it: +86 stands on the plant, +69 on the yard. **Parity with a fine sweep is unreachable at any count** - the fan is centred on the foot and a plain sweep is not, so they never share a ray - and the covers-per-route table is in PROGRESS.md. D86. `8bb3163`.
-- [ ] **K11 (S)** A Warden that starts its circuit the wrong way and freezes.
-  Seen while staging K4 on the plant, and **not K4's doing**: a Warden
-  beginning a patrol leg from near the hall-west camera laid a route toward a
-  node 10m the wrong way and stopped against an obstacle at (-12, -17). K4's
-  check works around it by holding the Warden in a PATROL pause so its route
-  starts where it was placed, which is why K4 is green over it. The soak
-  reports **0 stuck re-paths** in nine rounds a map, so the stuck detector
-  never fires on it - it is not a stall it recovers from, it is a route it
-  should not have laid. *done-when:* a check stands the Warden at that spot,
-  steps one circuit leg, and asserts it reaches the node; the entry says
-  whether `nearestWaypoint` or the stuck detector was the fault.
+- [x] **K11 (S)** A Warden that starts its circuit the wrong way and freezes — done 2026-11-19, under Done. `_leadTo` / `_pathTo` in `src/systems/ainav.js` plan a leg's first stretch over the ground; `GameMap.canWalk` in `src/mapground.js`; `CONFIG.ai.leadSnapRadius`; `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`; the yard replay re-recorded.
+- [ ] **K12 (S)** A short leg pins on a door jamb. K11 found it and kept it
+  out of its sweep: a leg of 10m or less (`directRouteRange`, D5) is planned
+  from the feet with no node, and on the plant from (17.25, 4.75) to site-c the
+  body slides along a door jamb at about 0.1m/s; the stuck detector fires and
+  re-paths to the same route. *done-when:* a stuck re-path plans a different
+  route than the one it is stuck on (or the steering walks only when aligned
+  tightly enough to clear the jamb), and K11's check extends its sweep to legs
+  under 10m on both maps.
+- [ ] **K13 (S)** A leg to a stair node arrives under the stair. K11's sweep:
+  from (-26.25, -19.25) on the plant to n10 the route runs along the stair's
+  edge cell (z -19.8) and the body ends at the node's x and z on the floor
+  below. Not a freeze, so K11's check passes it. *done-when:* arrival is
+  checked in y as well as x and z, and the plant's stair legs arrive on the
+  stair.
+- [ ] **K14 (S)** The deck ring walks off the deck. K11's reproduction: a
+  Warden on the plant's west deck at (-29.25, 6, -18.25) sent to the hall's
+  stair foot walks the ring and goes off the deck edge near (-11, -19.8). The
+  Warden never climbs (its ground has no climb), but nothing says it may not
+  fall. *done-when:* a route on the deck stays on the deck to the stair, and a
+  check walks the ring and holds the Warden's y.
 - [ ] **K8 (S)** The per-round aim draw, back off the shelf. F17 built it, measured it better at unchanged accuracy — the hit fraction and the mean do not move, only the variance, and the scatter inside a burst goes from 0.675 / 0.614 of the overall scatter to 0.896 / 0.926 — and reverted it for one reason only: it tipped medium and hard into a dead heat at 8m. K6 moved that separation off the cone entirely (D80), so the reason is gone. Draw the hold per round rather than per burst (`_drawAimError` from the `combat:shot` handler, not the burst refill) and re-measure. *done-when:* `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` and `the-widest-cone-kills-at-range-and-not-once-in-a-while` are green on both maps unseeded and under `seed=20261018`, with the margin clause compared no less strictly, and the entry says what the tail did; D54 is answered either way.
 
 ## Block M — vision
@@ -1164,6 +1179,18 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **K11** A Warden that starts its circuit the wrong way and freezes. The fault
+  was neither `nearestWaypoint` nor the stuck detector: `_pathTo` planned only
+  the last stretch over the ground and walked the first - feet to nearest node
+  - as a straight line, and at (-12, -17) on the plant the body stood on no
+  cell of the ground at all, so the planner had no start. The detector fired (7
+  times from 28.2s); each re-path laid the same line. Now a first line that is
+  not walkable is planned over the ground (from the nearest cell within 1m when
+  the feet are off it), and a first node behind the Warden is skipped when the
+  walk from the second is no longer. The spot arrives in 7.6s of 16.4s; 327
+  plant and 339 yard stands each reach a node beyond 10m. The yard replay was
+  re-recorded on purpose (the node-behind case at its spawn). Built by a Sonnet
+  builder in a worktree - `01c4e01`, `fe0fb97`, 2026-11-19, Josh's session.
 - **H18** The map row under the cards is a plain label (D55, as built with the
   row a label). It names the chosen map, is not focusable, is out of the
   keyboard ring, and a press on it changes nothing; the cards are the one way

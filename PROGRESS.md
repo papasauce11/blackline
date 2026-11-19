@@ -21829,3 +21829,66 @@ label is in the keyboard walk"*.
 title at the top edge and the build stamp at the bottom edge of a 720px window;
 the reachability check measures the settings and controls pages, not the main
 one.
+
+## K11 — A Warden that starts its circuit the wrong way and freezes (2026-11-19, Josh's session)
+
+**Built** by a Sonnet builder in its own worktree, which reproduced the freeze
+before touching anything. **The diagnosis the queue asked for: it was neither
+of the two suspects.** `nearestWaypoint` is nearest in the air and is right as
+it is; the stuck detector was not blind - in the reproduction it fired at 28.2s
+and every 2s after, seven times. The fault was `_pathTo`, which planned over
+the Warden's ground only from the first node on and walked the first stretch,
+feet to that node, as a straight line. At (-12, -17) the body stands on no cell
+of the ground (a Warden on the west deck walks the ring, goes off the deck edge
+near (-11, -19.8), lands, re-paths to node 0 and slides along a crate into the
+pocket), so even a planned first stretch had no start; and a re-path starts
+from the same feet, picks the same node and lays the same line, which is why
+the soak's count stayed at 0 - the soak never stood there.
+
+**The fix**, in `_leadTo` and `_pathTo`: a walkable first line (`canWalk`, new
+on the map, with `routeEdgeMargin`) changes nothing, so every other check and
+both replays keep the routes they had where they can; otherwise the first
+stretch is planned over the ground in segments of at most 6m, from the nearest
+cell within `CONFIG.ai.leadSnapRadius` (1m) when the feet are off the ground;
+and when the route turns back more than 90 degrees at its first node, the walk
+starts at the second when that is no longer - the vault-door stand, 1.7m short
+of the door, walked to the door's node and back, turned on the spot, was called
+wedged, re-pathed to the same node and began again.
+
+**The check**, `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`: (a)
+the plant's spot to `stair-hall-foot`, arrived in 7.6s of 16.4s allowed (route
+length over walk speed, times 1.5, plus 4s to turn; the slowest legs use 61-67%
+of it); (b) every third Warden-ground cell within 2m of each waypoint, sent to
+a node beyond `directRouteRange`, 327 stands on the plant (slowest 25.0s of
+37.3s) and 339 on the yard (27.4s of 44.6s). A leg frozen 6s without moving
+0.5m ends early as a failure. No clause on the detector: it fired every time,
+and what was missing was a re-path that changes the route, which (a) and (b)
+hold. **Break**: `if (!ground) return null;` inverted in `_leadTo`, red on both
+maps - the spot frozen at (-12.0, -17.0) with 2 re-paths, the vault-door stand,
+and two yard stands on the store-west lane.
+
+**The yard replay, re-recorded on purpose.** The batch's combined run had one
+red, `every-shipped-replay-replays-to-its-recorded-end` on the yard - the
+Warden ending at (-18.60, 1.35) against the recorded (-20.23, 2.84). Attributed
+before it was touched: with `_leadTo` disabled in a scratch copy the playback
+ended exactly where the file says. It is the node-behind case - the Warden
+spawns at (0, -15) between `gate` (0, -17) and its next node, and used to walk
+back to `gate` and turn round. Re-recorded per H13 under the file's own seed
+(`scripts/probe.mjs --query seed=1395624846`, since `npm run probe` picks a
+fresh one): three lines change - the Warden's end, the build stamp, and the
+recorded bindings gaining the torch and the two vision modes; all 127 inputs,
+the 20 rng calls and the Shade's end are unchanged. The plant replay is
+untouched and still ends where it says.
+
+**Proved** in the batch's combined run at `01c4e01`: the check green on both
+maps, and every AI, navigation, search, give-up, hearing, patrol, alarm, soak,
+defuse-reach and determinism check in the subset with it (plant 58 / 0, yard 55
+/ 1, the red the replay above).
+
+**Found and queued, not fixed:** K12 (a leg of 10m or less, planned from the
+feet with no node, can pin on a door jamb at about 0.1m/s and re-path to the
+same route); K13 (a stand at the plant's stair foot reaches its node's x and z
+on the floor under the stair); K14 (the deck-ring route that walks off the deck
+edge near (-11, -19.8)); and H112 (K4's check holds the Warden in a PATROL
+pause to step round this freeze, which may no longer be needed). `mapground.js`
+is 548 lines.
