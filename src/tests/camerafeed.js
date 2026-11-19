@@ -243,7 +243,10 @@ export function register(debugTools) {
         } catch (error) {
           thrown = true;
         } finally {
-          delete h.renderer.render;
+          // Restore by assignment: three assigns `render` as an OWN property in the
+          // constructor, so `delete` leaves nothing on the prototype and every later
+          // call in the run throws "renderer.render is not a function".
+          h.renderer.render = render;
         }
         const afterThrow = snapshot(h);
         if (!thrown) problems.push('(b) the render this check made fail did not reach the feed, so the restore was not tried');
