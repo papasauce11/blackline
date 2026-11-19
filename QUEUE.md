@@ -1004,6 +1004,15 @@ the end of this list, never ahead of a game-facing job.
   round the freeze K11 fixed. *done-when:* the pause is removed and K4's check
   is green on both maps, or the entry says what it still steps round.
 
+- [ ] **H113 (S)** The burst-landing floor after K8. K8 drew the aim per round
+  and the burst-landing rate rose 0.563 / 0.578 to 0.669 / 0.670, so
+  `MIN_BURST_LANDING_RATE` 0.486 now stands about 12.8 standard errors clear
+  and its F17 table (0.400 / 0.432 at a 5.0-degree cone against 0.541 / 0.579
+  at 4.0) describes the per-burst statistic. `tests/difficulty.js` is exactly
+  600 lines. *done-when:* the module is split under the cap, a 5.0-degree cone
+  is measured under per-round draws on both maps, and the floor sits between
+  the two readings again, or the entry says why the stall seeds are enough.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -1041,8 +1050,7 @@ K4, K5, K7.
   Warden never climbs (its ground has no climb), but nothing says it may not
   fall. *done-when:* a route on the deck stays on the deck to the stair, and a
   check walks the ring and holds the Warden's y.
-- [ ] **K8 (S)** The per-round aim draw, back off the shelf. F17 built it, measured it better at unchanged accuracy — the hit fraction and the mean do not move, only the variance, and the scatter inside a burst goes from 0.675 / 0.614 of the overall scatter to 0.896 / 0.926 — and reverted it for one reason only: it tipped medium and hard into a dead heat at 8m. K6 moved that separation off the cone entirely (D80), so the reason is gone. Draw the hold per round rather than per burst (`_drawAimError` from the `combat:shot` handler, not the burst refill) and re-measure. *done-when:* `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` and `the-widest-cone-kills-at-range-and-not-once-in-a-while` are green on both maps unseeded and under `seed=20261018`, with the margin clause compared no less strictly, and the entry says what the tail did; D54 is answered either way.
-
+- [x] **K8 (S)** The per-round aim draw — done 2026-11-19, under Done. `_drawAimError` from the `combat:shot` handler in `src/systems/ai.js`, not the burst refill; `MIN_IN_BURST_SCATTER` 0.77 on `the-widest-cone-kills-at-range-and-not-once-in-a-while`.
 ## Block M — vision
 
 Josh (D50): the *Shade* gets night vision and an x-ray "that works through
@@ -1053,17 +1061,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [x] **M1 (M)** The Shade's night vision — done 2026-11-03, under Done. `src/nightvision.js`, the `NIGHT_VISION` stage in `src/post.js`, `nightVision` on V, the HUD `NV` tag, `the-shades-night-vision-lifts-the-dark-and-costs-her-nothing`.
 - [x] **M2 (M)** The x-ray rule — done 2026-11-04, under Done. `src/mapxray.js` (`seeThroughBox`, `seeThroughAlong`), `GameMap.seeThroughAlong`, `tExit` on `raySlab`, `CONFIG.shade.xray.maxThickness` 2.5 (provisional), `the-xray-sees-through-a-duct-a-crate-and-a-container-and-never-through-a-wall`. **It would see through the wall under a window and not through the grade vents' sheet — D83, decided 2026-11-04: option 2, built by M8.**
 - [x] **M8 (M)** D83's two rules in M2's x-ray — done 2026-11-04, under Done. `liesAlongShell` and `isWallPiece` in `src/mapxray.js`, clause 1a and the grade-vent lines in M2's check. Five plant sills read wall; the grade vents' 0.12m sheet is seen through; the yard's tower still refused. Two corrections the build found: the neighbour must span its room, and the piece must sit inside its thickness. D87. `ad08ae5`.
-- [ ] **M9 (S)** A wall that does not start on its room's floor. M8's
-  `spansItsRoom` takes a neighbour as a wall when it starts within **0.5m**
-  of the room's floor and reaches the ceiling. Every wall on both maps starts
-  at its floor exactly, so nothing measured that 0.5m and no check reads its
-  edge (D87). A wall on a plinth taller than the band would read as not
-  spanning its room, and the sill beside it would go see-through - a hole of
-  exactly the kind D83 closed. *done-when:* a check stands a wall-shaped
-  sight-blocker on a plinth or lifts one of the plant's by more than the
-  band, asserts the sill beside it still reads opaque, and the entry says
-  whether the band was widened, measured from the maps, or replaced by a
-  test that does not need one.
+- [x] **M9 (S)** A wall that does not start on its room's floor — done 2026-11-19, under Done. `spansItsRoom` in `src/mapxray.js` takes a body's height (`CONFIG.shade.standHeight`) as its floor band; clause 1c of `the-xray-sees-through-a-duct-a-crate-and-a-container-and-never-through-a-wall`.
 - [x] **M3 (M)** The x-ray, drawn — done 2026-11-19, under Done. `src/xray.js`, the silhouette pass in `src/post.js`, `xray` on X, the HUD `XR` tag, `CONFIG.shade.xray` range / color / opacity / chargeSize and `render.xrayLayer`, `the-shades-xray-sees-the-warden-through-a-crate-and-never-through-a-wall`.
 - [x] **M4 (S)** Vision-mode bookkeeping — done 2026-11-19, under Done. `ACTION_LABELS` on the controls page, `lensLine` in `src/ui/briefing.js`, the tutorial's `lens` step, the grouped-row padding 6px to 5px, `the-two-vision-modes-are-on-the-card-the-briefing-and-the-tutorial-and-follow-a-rebind`; spec 20.35; D88.
 - [ ] **M5 (M)** The alarm camera's live feed. A second low-res render — no
@@ -1081,7 +1079,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **J1 (S)** Camera collision. The third-person boom sphere-casts to the
   wall and eases back. *done-when:* a check backs the Shade into a wall and
   the camera never enters geometry.
-- [ ] **J2 (S)** Hit-stop and shake. 70ms of wall-clock stop on a knife or
+- [ ] **J2 (S)** **blocked: D89** (key feel, D84) — Hit-stop and shake. 70ms of wall-clock stop on a knife or
   finisher; shake on a grenade by distance; both under a setting.
   *done-when:* the fixed step count is unchanged by hit-stop in a check.
 - [ ] **J3 (M)** Ragdoll polish. Limb flail from the hit direction, a
@@ -1101,7 +1099,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **J8 (S)** Idle life. Breathing sway; the Warden's head turns before
   its body; the Shade's hood moves in the yard's wind. *done-when:* a check
   sees motion at rest and none in a menu.
-- [ ] **J9 (S)** Sprint FOV kick and the crouch camera's easing, under H9's
+- [ ] **J9 (S)** **blocked: D90** (key feel, D84) — Sprint FOV kick and the crouch camera's easing, under H9's
   toggles. *done-when:* a check reads the FOV over a sprint.
 
 ## Block I — audio, ambience only
@@ -1179,6 +1177,23 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **K8** The per-round aim draw. The Warden's aim hold is drawn for every round
+  it fires rather than once a burst, as F17 built it: the hit fraction and the
+  mean time to kill do not move, the share of the scatter inside a burst goes
+  from 0.65 / 0.62 to 0.89 / 0.89 on easy, and the long tail of a lucky
+  survival shrinks - easy at 16m, the pinned worst 10.5s to 9.0s on the plant
+  and 12.0s to 6.4s on the yard. Medium and hard did not tie at 8m, the reason
+  F17 reverted it, because K6 moved that separation off the cone (D80). Built
+  by a Sonnet builder in a worktree - `fa426e6`, 2026-11-19, Josh's session.
+- **M9** A wall that does not start on its room's floor. `spansItsRoom`'s
+  guessed 0.5m floor band is a body's height, 1.85m, measured: on both maps
+  every wall that reaches a ceiling starts at its floor exactly, the lintels
+  over openings start 1.3-3.6m up and are walls, and everything the rule must
+  refuse - rails, decks, the yard's tower - starts at 5.3m or higher. A test
+  with no band was built and refused: it turned the plant's decks opaque, since
+  a tier on a stack or a rail on a deck is geometrically a wall on a plinth.
+  Every box's reading is unchanged on both maps. Built by a Sonnet builder in a
+  worktree - `438d0b6`, 2026-11-19, Josh's session.
 - **K11** A Warden that starts its circuit the wrong way and freezes. The fault
   was neither `nearestWaypoint` nor the stuck detector: `_pathTo` planned only
   the last stretch over the ground and walked the first - feet to nearest node

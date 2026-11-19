@@ -21892,3 +21892,80 @@ on the floor under the stair); K14 (the deck-ring route that walks off the deck
 edge near (-11, -19.8)); and H112 (K4's check holds the Warden in a PATROL
 pause to step round this freeze, which may no longer be needed). `mapground.js`
 is 548 lines.
+
+## M9 — A wall that does not start on its room's floor (2026-11-19, Josh's session)
+
+**Built** by a Sonnet builder in its own worktree, which built the no-band test
+first, as the brief preferred, and measured it out of the job: "a neighbour is
+a wall if it reaches the ceiling and overlaps the piece in height" changed two
+boxes on the plant - `deck-20` and `deck-21` went opaque because the parapet
+`lip-hall-south` (5.3-6.0m, its top at the hall's ceiling) counted as their
+wall - and a looser version also took the yard's `bay-c-t2` and `store-w-t2`.
+Only a height tells a wall on a plinth from a tier on a stack, so no test free
+of a number exists.
+
+**The number, measured.** On both maps every ceiling-reaching wall stands on
+its floor (a plinth of 0m), the lintels start 1.29-3.59m up and are walls all
+the same, and everything to refuse starts no lower than 5.3m (rails 5.3, decks
+5.65, the roof 5 over the vault floors, the yard's tower 5.8). Any band from 0
+to 5.3m reproduces today's readings; the lower edge is the argument, and
+`CONFIG.shade.standHeight` is it - a box a body can stand under is a wall on a
+plinth, not a tier - and is a number `mapxray.js` already holds for a body. The
+per-box `seeThroughBox` vector is identical before and after on both maps
+(plant 214 boxes, 124 see-through, 90 opaque; yard 132, 90, 31), and so are the
+check's counts.
+
+**The check**: clause 1c of M2's check lifts the plant's full-height pieces end
+to end with a sill (`hall-east-wall-1`'s two) by 0.925m in place, restored in a
+`finally` that the check asserts, and holds the sill opaque before and during
+the lift, the lifted walls opaque, and a line across the sill stopped by it.
+The yard has no wall planes, so 1c says it is plant-only by its own words.
+**Break**: the band back at 0.5m - red on clause 1c alone on the plant
+(*"hall-east-wall-1 (y 0.00..1.96) reads see-through with its wall on a 0.93m
+plinth"*), the yard green by its own words, in the batch's second break run.
+
+**Left, for D87's record:** `lowForItsRoom`'s room-finding line holds two more
+0.5m numbers (`floorY - 0.5`, `ceilingY - 0.5`), which only stop a box in the
+next storey matching and whose edge nothing reads either.
+
+## K8 — The per-round aim draw (2026-11-19, Josh's session)
+
+**Built** by a Sonnet builder in its own worktree: `_drawAimError()` runs in
+the `combat:shot` handler on every Warden round, before the burst count's early
+return; the burst refill in `_fireBurst` draws no more; the draw on entering
+ENGAGE stays. The rng census (`tests/rngdraws.js`) compares by file, method and
+target, so only two `when` strings changed.
+
+**Measured** through the probe, both checks on both maps, unseeded and under
+`seed=20261018`, before and after - all eight green both ways, nothing
+re-thresholded. In-burst scatter share, yaw / pitch, 20 windows of 30s: easy
+0.646 / 0.620 to 0.888 / 0.889, medium 0.716 / 0.691 to 0.885 / 0.888, hard
+0.829 / 0.810 to 0.882 / 0.891 - F17's 0.675 / 0.614 to 0.896 / 0.926 again.
+Detection times did not move anywhere. **The tail**, worst per-seed kill at 16m
+before and after: plant unseeded easy 19.63 to 5.42, medium 4.12 to 1.63, hard
+1.30 to 0.98; yard unseeded easy 8.68 to 4.93, medium 2.83 to 2.13; the one
+worse reading is yard seeded easy, 6.22 to 9.10 on one seed of eight (the other
+seven 2.0-5.3). At 8m medium against hard stayed apart (0.55-0.75s against
+0.35-0.49s), so the dead heat that sent F17 back did not recur.
+
+**The check**: `MIN_IN_BURST_SCATTER` 0.77 on
+`the-widest-cone-kills-at-range-and-not-once-in-a-while`, midway between the
+per-burst reading (0.62) and the per-round one (0.88), from the aims its 40
+windows already fire - no extra simulation. **Break**: `ai.js` back to the
+per-burst draw - red on the new clause alone on both maps (*"the scatter inside
+a burst is 0.669 of the overall in yaw and 0.615 in pitch, under 0.77: the
+rounds of a burst share an aim draw again"* on the plant, 0.621 / 0.617 on the
+yard), `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you` green
+beside it, in the batch's second break run.
+
+**A guard that got weaker, queued as H113.** The burst-landing rate rose from
+0.563 / 0.578 to 0.669 / 0.670, since a burst is now several independent draws,
+so the unchanged `MIN_BURST_LANDING_RATE` 0.486 sits about 12.8 standard errors
+clear instead of 5-6: it still holds but is a blunter guard against the cone
+widening, and nobody has measured a 5.0-degree cone under per-round draws.
+`tests/difficulty.js` is exactly 600 lines, so the re-measure needs a split
+first.
+
+**Flagged to Josh** as a combat-feel change he may veto (D84): the Warden's
+worst-case slowness to kill shrinks on easy and medium; one line in `ai.js`
+undoes it.

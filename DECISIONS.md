@@ -307,6 +307,13 @@ measured chose it and nothing yet tests its edge. A map with a wall standing
 on a 0.6m plinth would read that wall as not spanning its room, and the sill
 beside it would go see-through.
 
+**M9, 2026-11-19:** the 0.5m floor band of `spansItsRoom` is now
+`CONFIG.shade.standHeight` (1.85m), measured on both maps - every wall starts
+at its floor, lintels start 1.3-3.6m up and are walls, and everything to
+refuse starts at 5.3m or higher. A test needing no band was built and refused:
+it turned the plant's decks opaque. `lowForItsRoom`'s two 0.5m room-finding
+numbers are left as they were.
+
 ### D82 — The Shade's night vision as built: four times the light, one soft green, grain that moves with the step
 
 M1 (2026-11-03). Josh asked for night vision by name (D50) and left its look
@@ -1722,6 +1729,13 @@ about:**
 
 **decided:**
 
+**K8, 2026-11-19:** the per-round aim draw F17 built and reverted is taken -
+the hit fraction and the mean unchanged, the in-burst scatter share 0.62-0.65
+to 0.89 on easy, the easy tail at 16m shorter (pinned worst 12.0s to 6.4s on
+the yard, 10.5s to 9.0s on the plant), and medium and hard still apart at 8m
+because K6 moved that separation off the cone (D80). The 4.0-degree cone
+stands.
+
 ### D53 — What boot says, and what it refuses
 H4 as built. Nothing here changes a rule — a player who can run the game sees
 the same game — so it is provisional, and all of it is wording and timing you
@@ -2754,6 +2768,34 @@ pinned gate is red and this is its fix), done in the session before the 17:09
 routine; if it were not proven by 15:30, `--stall` 360 was the named stopgap.
 
 ## Blocking — waiting on Josh
+
+### D89 — J2's hit-stop and shake: how punchy?
+Key feel (D84), asked in Josh's session 2026-11-19 before Block J is reached.
+J2 puts a short wall-clock stop on the instant a knife or a finisher lands and
+a screen shake on a nearby grenade, harder the closer, both under a setting
+that turns them off.
+
+1. **Punchy**: a 70ms stop, and a strong shake on a close grenade.
+2. **Subtle**: a 40ms stop, and a light shake only within a few metres.
+3. **None**: neither.
+
+Recommendation: **1**, the queue's own numbers - the setting is the way out
+for anyone who does not want it. Josh feels it on the live site once built.
+
+decided:
+
+### D90 — J9's sprint camera: how much wider?
+Key feel (D84), asked with D89. J9 widens the camera's field of view a little
+while the Shade sprints, so speed reads, and eases the crouch camera down
+instead of snapping it, both under H9's toggles.
+
+1. **Noticeable**: about 8 degrees wider, eased in over a quarter second.
+2. **Barely**: about 4 degrees.
+3. **None**: no widening; only the crouch easing.
+
+Recommendation: **1**. Felt on the live site once built.
+
+decided:
 
 ### D77 — Should a module that has been split once carry a tighter ceiling than 600?
 600 is the only line, so every module creeps to 599. `movement.js` has sat at
