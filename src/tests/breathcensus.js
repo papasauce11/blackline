@@ -170,6 +170,12 @@ const POSED = [
     note: 'the thinnest in the suite, and the detail line did not carry it. H38 gave it a second check that sweeps the cycle, asserts the worst phase and holds the glove\'s own ride absolutely as the control. It also corrected this line: read from a settled pose |gloveY - lip| runs -0.014m to +0.066m, not the -0.021m to +0.055m recorded here, because the hang pose was still easing when this census read it. The ride agrees (0.080m) and the margin is 2.26x, not 2.75x',
   },
   {
+    module: 'grabslide.js',
+    reach: 'none',
+    proof: 'root',
+    note: 'reads the drawn **feet** against the capsule\'s - `mesh.position.y`, the root - and, in its 144Hz walk (H48), the root\'s travel per draw. The breath writes group rotations and a torso lift and the gait moves limbs, neither reaches the root, which is the proof `look.js` already rests on. Measured by starting the grab and the walk at eight evenly spaced phases of the breath with the gait at eight different phases too: the in-move drop is 0.000000m at all eight on both maps, the worst drop (the hand-over, frame 11) is 0.0248m on the plant and 0.0261m on the yard at all eight, the walk\'s largest single-draw jump is 0.0260m of a 0.0583m step (0.446, against a bar of 0.6) and its trail 0.342m (against 0.1) at all eight. Identical to four places, so the thinnest clause - the 1mm in-move one - has all of its 1mm to spare',
+  },
+  {
     module: 'animation.js',
     reach: 'none',
     proof: 'rotations',
