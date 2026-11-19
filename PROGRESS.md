@@ -21639,3 +21639,193 @@ verified, every builder's worktree from it is removed (`git worktree remove
 since a cherry-picked commit is never an ancestor and `-d` refuses it). The
 routine prompt's verify step says so, and TRAPS.md carries the trap for a
 session that makes worktrees by hand.
+
+## M3 — The x-ray, drawn (2026-11-19, Josh's session)
+
+**Built** by a Sonnet builder in its own worktree beside H48 and K11 (D81), on
+M1's route: a binding (`xray`, KeyX, the fight group), an intent edge the idle
+reader clears, `xray:toggle` on the emitter from the Shade's step, and the
+state in `src/xray.js` (212 lines). `step()` runs on `sim:step` and asks
+`map.seeThroughAlong` from her eye to three points of the Warden (head, chest,
+hips) and one of the placed camera and the charge, inside
+`CONFIG.shade.xray.range`, 20m, provisional. A seen mesh gains
+`render.xrayLayer` and a second render over the finished frame - post included,
+before the feedback quad - draws that layer alone with one flat unlit material,
+depth test off. The charge has no mesh in the world, so a 0.35m cube of the
+module's own stands for it in a scene the world's camera never sees. The wiring
+holds the one-lens rule, so neither vision module imports the other.
+
+**The check**,
+`the-shades-xray-sees-the-warden-through-a-crate-and-never-through-a-wall`,
+both maps, every clause relative to the same frame with the x-ray off (noise 0
+on both): (a) through a thin solid - plant `stack-hall-mid` 6021 / 14608 px of
+the Warden's rectangle, yard 4053 / 9936, against a 20% floor; (b) behind a
+wall the rule refuses - plant `hall-east-wall-0`, yard `ring-west-0` - 0 px
+anywhere in the frame; (c) past the range behind a thin solid, 0 px; (d) draw
+calls 349 / 158 off, +6 on for six meshes, and off is the baseline before and
+after; (e) a second press, the pause page, the briefing, a new round and night
+vision each turn it off; (f) 180 steps of detection identical on and off.
+**Break**: `seesPoint` returning `true` (silhouette whenever in range) reds (b)
+alone on both maps - plant 20040 px behind the wall, yard 9001.
+
+**Proved** through the runner: its subset at `2ef563a` - the check, the
+night-vision, x-ray rule, binding, HUD, post, quality, menu and briefing checks
+and the census set - 40 / 2 a map, both reds its own: the controls page at
+729px in a 720px window, which M4 owned and fixed, and `xraydraw.js` undeclared
+in the pose census, fixed here. After both, the batch's combined run at
+`01c4e01` had the check and the census green on both maps (plant 58 / 0, yard
+55 / 1, the one red the yard replay K11 owns), and the batch's break run red it
+on (b) alone on both maps.
+
+**Two rounds on the colour, both the lead's.** The builder's 0xffb060 was the
+Warden's own orange and sat on the plant's orange crates with almost no
+contrast; the lead's first replacement, a pale cyan, was the Shade's own teal,
+and a Warden drawn in her colour reads as hers. It is a cool white-hot,
+0xf4f8ff, provisional, a styling detail sent to Josh (D88). **And one red the
+first proof found**: the pose census did not declare `xraydraw.js`, which poses
+a body; its entry is measured - the Warden alone in the frame, standing, so
+neither phase reaches it: (a)'s changed count read 5908 on the plant and 3983
+on the yard at all sixteen phases of one breath, a spread of zero, against a
+20% floor.
+
+## H48 — No position smoothing while a timed move owns the body (2026-11-19, Josh's session)
+
+**Built** by a Sonnet builder in its own worktree. `positionSmoothing` in
+`src/entities/pose.js` takes `owned`, and answers 1 - the answer a reset gets -
+while a timed move carries the capsule, so the drawn body is seeded from it
+each frame of the move and the first frame after eases on from where it is
+drawn. Both bodies call it the same way (`this._move !== null` on the Shade,
+`Boolean(this._move)` on the Warden, which has no timed move and never takes
+the branch), so `positioncensus.js`'s one-law clause stays true.
+
+**The grab's drop, before and after**, metres the drawn feet are below the
+capsule's, whole frames of the real loop driven through the keys:
+
+| frame | 1 | 4 | 7 | 10 | 11 (hang) | 15 | |---|---|---|---|---|---|---| |
+plant before | 0.159 | 0.358 | **0.461** | 0.355 | 0.280 | 0.151 | | plant
+after | 0.000 | 0.000 | 0.000 | 0.000 | -0.025 | -0.013 | | yard before | 0.157
+| 0.335 | **0.416** | 0.308 | 0.238 | 0.129 | | yard after | 0.000 | 0.000 |
+0.000 | 0.000 | -0.026 | -0.014 |
+
+Negative is the drawn feet above the capsule's: at the hand-over the capsule
+steps about 2.5cm down into the hang and the smoothing eases it.
+
+**The four constants the queue named, re-measured, none widened.**
+`tests/grabslide.js`'s `PROFILE` is now 0 at frames 1, 4 and 7, -0.025 at 11
+and -0.013 at 15, its band 0.08m narrowed to 0.01m, and `PEAK_FRAME` 7 became
+11, the hand-over. `tests/hang.js`'s `SETTLE_FRAMES` (150) and its 2.26x margin
+**did not move**: `hangAtGroundLedge` steps the simulation 90 times with no
+draws, so the drawn body is still at the pre-grab spot when the grab ends and
+the chase it waits on is the check's staging, not a player's frame (0.80m /
+0.71m first frame, closing in 50 / 49) - the comment beside it now says so, and
+that driving it in whole frames would make 30 enough is an instrument change
+left for its own job. `positioncensus.js`'s `LOOK_GAP_CEILING` (1.2m, not in
+`positionreads.js` as the entry said) stands: the worst row is still `landing`
+at 0.794m, which is not a timed move. The timed moves' rows collapsed to 0.000
+(vault, mantle, grab, pullup) and 0.001 (hang) on both maps; six moving states
+remain (landing 0.794, slide 0.675, sprint 0.632, walk 0.350, rise 0.207, fall
+0.157). **Two constants the entry did not name went red by the same mechanism
+and were re-measured**: `tests/poseeye.js`'s `EYE_MOVES` lost the plant's
+`vault` and the yard's `mantle` and `pullup` - the three that were climbs - and
+its `MIN_STATES_WITH_A_GAP` went 8 to 5, one under the six that now carry a
+gap.
+
+**New clauses** on
+`a-grab-slides-the-drawn-body-up-into-the-hang-by-a-measured-amount`: the drop
+under 0.15m (`GLOVE_ON_LIP`, now exported from `hang.js` so there is one
+source) at every one of the first fifteen frames; at most 1mm on every frame
+still in GRAB, at least five of them; and outside a move, a 3.5m/s walk on a
+144Hz wall clock over 129 draws whose largest single-draw jump is 0.026m
+against a 0.058m capsule step, trailing 0.34-0.39m - still smoothed. **Break**:
+`positionSmoothing(wallDt, false)` in `agentvisual.js` reds the band on both
+maps (frame 1 at 0.159m / 0.157m), and the in-move and profile clauses with it.
+
+**Proved** through the runner: its subset with M4's at `16419da`, plant 41 / 1
+and yard 40 / 1, the one red the pose census, which now named `grabslide.js`
+too - the 144Hz walk calls `updateVisual`, so the module poses a body. Declared
+`reach: 'none'`, `proof: 'root'`, measured at eight breath and eight gait
+phases on both maps with every reading identical to the digit (in-move
+0.000000m, hand-over 0.0248m / 0.0261m, the walk's jump 0.446 of a step, trail
+0.342m). Green with the batch at `01c4e01`; the batch's break run red the band
+at frame 1 on both maps (0.159m, 0.157m). `PLAYTEST.md`'s H44 section says what
+changed; `npm run shot -- --slide` frame 7 before and after went to Josh.
+
+## M4 — Vision-mode bookkeeping (2026-11-19, Josh's session)
+
+**Built** by a Sonnet builder in its own worktree. The controls page is
+generated from `BINDING_GROUPS`, so both rows were already on it under their
+raw ids; `ACTION_LABELS` names them. `lensLine` in `ui/briefing.js` is the one
+sentence the briefing and How to play both read - *"Night vision (V) lifts the
+dark; the x-ray (X) draws the Warden through crates, ducts and other thin cover
+within 20 metres, never through a wall. They share one lens: turning one on
+turns the other off."* - with the keys and the range read live, Shade only. The
+tutorial's ninth step is the builder's own call and the lead kept it: a prompt
+clears on the act, so a sentence added to an existing prompt would have
+described an act that prompt does not ask for.
+
+**And M3's red, fixed here.** The first proof of M3 found the controls page
+729px tall in a 720px window -
+`every-main-menu-row-is-reachable-and-actionable-from-the-keyboard` on both
+maps - because M3 added a row; M4 owned the page, so it took the fix: the
+grouped-row padding 6px to 5px, the page 703px, the settings page sharing the
+rule and well under.
+
+**The check**,
+`the-two-vision-modes-are-on-the-card-the-briefing-and-the-tutorial-and-follow-a-rebind`
+(registered through `registerBindings`, every map): both rows and their keys on
+the controls page, both modes on How to play and in the Shade's briefing ("one
+lens", "20 metres"), neither in the Warden's, both in the tutorial's `lens`
+prompt; then `xray` rebound to Z through the page, and the page, the card, the
+briefing and the prompt all follow while night vision stays on V. **Break**:
+`ACTION_LABELS` without `xray` reds it (*"the xray row is labelled "xray", want
+"x-ray""*); dropping the How to play row or the tutorial step reds their own
+clauses.
+
+**Proved** through the runner: its subset with H48's at `16419da`, the new
+check, the tutorial chain, the binding and rebind checks, the menu's keyboard
+walk (the controls page 703px, the settings page 518px) and the briefing checks
+green on both maps; the batch's break run red the label clause on both maps.
+
+## K9 — The one approach the camera cannot watch (2026-11-19, Josh's session)
+
+Done by the lead in a minute while the builders ran: the finding was already
+measured (K4's probe, 0 of 862 stands) and already asserted (K10's clause 3,
+529 stands tried and no covering wall, every run), so the queue's first branch
+was the job - `PLAYTEST.md` names it as the approach the camera cannot watch.
+Whether it is a hole or the price of the hardest way in is a playtest question;
+the line says what to look for and that the answer, if it is a hole, is a wall
+the Warden can reach facing the roof, which is a map change and not a rule.
+
+## H18 — The map row is a plain label (2026-11-19, Josh's session)
+
+**Built** by a Sonnet builder in its own worktree. In `ui/menu.js` the row is a
+`<span class="plain">` with no handler, out of `_rows`, and its `title` listing
+every map is gone; `menucss.js` gives `.row .plain` the row colour without a
+pointer cursor. The cards were already in the keyboard ring, and Enter on a
+card already ran its handler, so nothing else moved.
+
+**The check kept its id** (`BLACKLINE_SPEC.md` names it) and every old
+assertion has a home: the menu still names the page's map, and the label's own
+text is that map; "a map row exists" became "a label exists and is not a
+control" - no handler, not a button or input, no tabindex, not in `menu.rows`;
+the row's `title` offering every map became a card per map that names it, a
+named control rather than a tooltip; the click asking for the next map became
+two picks per map, ArrowDown to the card and Enter, and the pointer's
+`card.click()`, each asking `onMap` for exactly that id and recording
+`SETTINGS.lastMap`, the page's own card asking for nothing; the page-load
+handler is still wired. New: after each pick the label follows and the
+`aria-current` card is that map, and a press on the label changes nothing. The
+check restores the handlers, `lastMap` and the ring's focus, which the
+builder's probe showed the next check needs.
+
+**Proved** in the batch's combined run at `01c4e01`, with the menu's keyboard
+walk, its memory, its thumbnails and its title, green on both maps: *"the menu
+says Meridian Substation in a label no key or click moves, and Meridian
+Substation / Container Yard each opens from its card by keyboard and pointer"*.
+**Break**: the label put back in the keyboard walk, red on both maps, *"the map
+label is in the keyboard walk"*.
+
+**A finding, queued as H111.** The builder's frame of the main page has the
+title at the top edge and the build stamp at the bottom edge of a 720px window;
+the reachability check measures the settings and controls pages, not the main
+one.

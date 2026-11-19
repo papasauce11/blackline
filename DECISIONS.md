@@ -196,6 +196,29 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D88 — The x-ray as built: twenty metres, white-hot, one lens with night vision, and a tutorial step
+Taken by the lead under D84 (none of it personality or key feel; the colour
+is a styling detail with a default the lead can defend, so Josh was sent the
+picture rather than asked). M3 and M4, 2026-11-19, Josh's session.
+
+- **Range 20m** (`CONFIG.shade.xray.range`): about the length of a plant hall
+  or a yard lane - far enough to find the Warden through the next crate or
+  two, near enough that the map is not a lit-up diagram. Override: any number.
+- **Colour 0xf4f8ff at 0.85** (`color`, `opacity`), a cool white-hot. The
+  Warden's own orange sat on the plant's orange crates with no contrast; a
+  pale cyan was the Shade's own teal, and a Warden in her colour reads as
+  hers. Override: any colour, with the picture in front of you.
+- **One lens**: night vision on turns the x-ray off and the reverse. The
+  goggles have one; both at once would be a brighter, busier frame than
+  either. Override: two independent toggles, one line in `wiring.js`.
+- **What it shows**: the Warden, its placed camera and a planted charge -
+  the charge as a 0.35m cube (`chargeSize`), since it has no mesh in the
+  world. Nothing else is drawn through.
+- **A ninth tutorial prompt**, `lens`, before the plant, cleared by either
+  toggle (M4). Override: drop the step and keep the sentence in the briefing.
+
+decided:
+
 ### D85 — How long the Warden looks for you, and how much quicker it suspects you the second time
 
 **Raised by:** K5, 2026-11-04, and **taken** rather than asked, because K5 was

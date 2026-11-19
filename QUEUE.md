@@ -391,32 +391,7 @@ one setting only Josh can click; everything else here proceeds.
   mesh nothing could have moved. — done 2026-10-10, under Done. It reads the
   **capsule** now as well; proved by walking the corpse 0.75m, which the old
   clause did not notice. The census entry moved `frozen` → `ragdoll`.
-- [ ] **H48 (M)** No position smoothing while a timed move owns the body.
-  **D72 decided 2026-11-04: option 3** (Josh took the recommendation; under
-  D84 a call like this is the lead's).
-  H44 measured what a grab does: the drawn body trails the climb by 0.16m at
-  frame 1, **0.46m at frame 7**, 0.15m at frame 15 and 1.5mm at 45, so for a
-  quarter of a second the gloves drawn gripping a lip are up to 0.46m under
-  it, against the 0.15m `tests/hang.js` enforces once settled. D72 has the
-  four options and recommends the third: `positionSmoothing` exists to hide a
-  60Hz step on a faster screen, and a timed move (`_move`, with its own timer
-  and duration) already interpolates the capsule smoothly — there is no step
-  to hide and nothing to gain by lagging it. Outside a move, unchanged.
-  **Sized M because of what it moves, not because of the edit**, which is one
-  branch in `updateVisual` on each body. Four measured constants in three
-  modules rest on today's profile and all four go red, correctly:
-  `tests/hang.js`'s `SETTLE_FRAMES` of 150 and the 2.26x margin argued from
-  it (H38, H40); `tests/positionreads.js`'s `LOOK_GAP_CEILING` of 1.2m and the
-  twelve-state table under it (H43) — four of those twelve states are timed
-  moves and their gaps should collapse; and `tests/grabslide.js`'s own
-  `PROFILE` and `PEAK_FRAME`, which is the point. Re-measure each rather than
-  widening any, and the Warden gets the same branch as the Shade or
-  `positioncensus.js`'s one-law clause is a lie.
-  *done-when:* a grab's drop is under the band D72 settles on at every frame
-  of the first fifteen, measured the same way; the four constants above are
-  re-measured with their new numbers in `PROGRESS.md`; `PLAYTEST.md`'s H44
-  section says what changed and `npm run shot -- --slide` shows it; and the
-  60Hz jitter the smoothing exists for is shown still smoothed outside a move.
+- [x] **H48 (M)** No position smoothing while a timed move owns the body — done 2026-11-19, under Done. `positionSmoothing(wallDt, owned)` in `src/entities/pose.js`, owned by `_move` on both bodies; `tests/grabslide.js` re-measured with the 0.15m band and the 144Hz jitter clause; `tests/poseeye.js` re-measured.
 - [x] **H49 (S)** The build task's prompt knows exit 3 — done 2026-10-18,
   under Done. Taken by a session Josh was watching (2026-10-18), as the entry
   asked.
@@ -754,14 +729,7 @@ one setting only Josh can click; everything else here proceeds.
   tag prefix) rather than a clever derivation. *done-when:* the plant's card
   is measurably more than the roof (a lit-pixel floor raised, and a check that
   the yard's card is unchanged by the same code path).
-- [ ] **H18 (S)** The map row under the cards does the same job the cards do
-  (H5). Make it a plain label, or drop it. It is kept today because
-  `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one` drives it
-  and `BLACKLINE_SPEC.md` names that check by id, so this job rewrites the
-  check to drive the cards instead — same assertions plus per-map
-  reachability, which is strictly stronger, and the id stays. *done-when:*
-  the check drives a named card rather than a cycle and the menu has one way
-  to pick a map. **D55 decided 2026-11-04: a plain label.**
+- [x] **H18 (S)** The map row is a plain label — done 2026-11-19, under Done. `#bl-map` is a plain label out of the keyboard ring; `the-menu-offers-every-map-and-its-map-row-asks-for-the-next-one` drives the cards.
 - [x] **H19 (S)** A rebind survives a reload — done 2026-10-18, under Done. `src/bindingstore.js`, `Input.setBinding`, `a-rebind-survives-a-reload-and-a-dead-action-drops-alone`.
 - [x] **H20 (S)** The controls page in four groups, and it fits 720p — done 2026-10-18, under Done. `BINDING_GROUPS` in `config.js`, `_renderControls`, `CONFIG.menu.fitHeight`, two clauses in `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`.
 - [x] **H21 (S)** A stored number outside its bounds is clamped, and the rest kept — done 2026-10-18, under Done. `CONFIG.settings.bounds`, `volumeMin`/`volumeMax`, `loadSettings` clamping, `bounded-settings-load-clamped-and-keep-the-rest`.
@@ -1023,6 +991,14 @@ the end of this list, never ahead of a game-facing job.
   both, since `every-runner-reads-one-command-line-and-a-flag-given-twice-is-kept`
   already walks every `.mjs` the commands reach and knows what each declares;
   and TRAPS.md gets the line that any invocation of the suite is a real run.
+- [ ] **H111 (S)** The main page may not fit a 720px window. H18's frame of
+  it (2026-11-19) has the title at the top edge and the build stamp at the
+  bottom edge; `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`
+  measures the settings page (518px) and the controls page (703px), not the
+  main one, which carries two cards, the role row, five buttons and the map
+  label. *done-when:* the check measures the main page too, on both maps, and
+  it fits 720px with nothing dropped - or the entry says why it may scroll.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -1037,16 +1013,7 @@ K4, K5, K7.
 - [x] **K4 (S)** Alarm response — done 2026-11-04, under Done. `src/systems/aialarm.js` (the ALARM mixin, the route-ordered fan), `gadgets.alarmCovers` and `findAlarmWall`, the via in `_enterInvestigate` / `_stepInvestigate`, `the-warden-puts-its-one-camera-on-the-way-in-and-a-trip-walks-it-past-the-lens`. `fa39e8c`, `9b979f6`, `1496cc9`.
 - [x] **K5 (S)** Giving up — done 2026-11-04, under Done. `searchDuration` on the three `ai.difficulty` presets (10 / 15 / 22), `_giveUpSearch` and `_suspicionThreshold` in `src/systems/aisearch.js`, `ai.reAlertFactor` 0.7 / `reAlertFloor` 0.4, the `ai:bark` seam for N2, `the-warden-gives-up-sooner-on-easy-and-re-alerts-faster-the-second-time`. D85. `ef592dc`.
 - [x] **K7 (S)** Patrol variety — done 2026-11-03, under Done. `src/systems/aipatrol.js`, `round:clock` from the objective, `CONFIG.ai.patrol.siteCheckAt`, `the-warden-checks-a-site-room-when-the-round-clock-is-low`.
-- [ ] **K9 (S)** The one approach the camera cannot watch. K4's probe swept
-  every standable cell within the camera's 8m of each declared route's foot and
-  counted the stands where a wall in reach hangs a camera that covers it: every
-  route on both maps has between 29 and 167 of them **except the plant's
-  `fire-escape-roof`, which has 0 of 862** - its foot is on a roof at (7.1,
-  -23.95) and nothing a ground-bound Warden can reach sees it. That may be
-  right (the roof is the hardest way in and one camera cannot be everywhere)
-  or it may be a hole; either way a player can only learn it by losing to it.
-  *done-when:* `PLAYTEST.md` names it as the approach the camera cannot
-  watch, or a covering stand exists and K4's check asserts that route too.
+- [x] **K9 (S)** The one approach the camera cannot watch — done 2026-11-19, under Done. `PLAYTEST.md` names it under Known issues; K10's clause 3 asserts it every run.
 - [x] **K10 (S)** A finer fan for the camera's wall — done 2026-11-04, under Done. `ai.alarmPlacementProbes` 8 to 16 (22.5 degrees), clause 3 of K4's check comparing the fan with the eight rays before it: +86 stands on the plant, +69 on the yard. **Parity with a fine sweep is unreachable at any count** - the fan is centred on the foot and a plain sweep is not, so they never share a ray - and the covers-per-route table is in PROGRESS.md. D86. `8bb3163`.
 - [ ] **K11 (S)** A Warden that starts its circuit the wrong way and freezes.
   Seen while staging K4 on the plant, and **not K4's doing**: a Warden
@@ -1082,18 +1049,8 @@ provisional; the rule for "thin" is mechanical, never a tag.
   band, asserts the sill beside it still reads opaque, and the entry says
   whether the band was widened, measured from the maps, or replaced by a
   test that does not need one.
-- [ ] **M3 (M)** After **M8** (D83, decided 2026-11-04) — what counts as a real wall, mechanically, is the thing this job draws. The x-ray, drawn. `X` toggles; the Warden, its camera and
-  the charge drawn as silhouettes where M2 says yes, within a range; draw
-  calls counted. *done-when:* a pixel check sees the Warden through a crate
-  and not through the west wall; frame budget unchanged.
-  **Before the draw: `seeThroughBox` queries the collision grid and `query`
-  hands back one reused array (physics.js), so a draw loop that walks a live
-  `query` result and asks the rule inside it reads boxes that are not there.
-  M8 left the warning in the function's comment; collect first, as
-  `seeThroughAlong` does.**
-- [ ] **M4 (S)** Vision-mode bookkeeping. Keys in the controls card and the
-  tutorial (H6), HUD state, spec 20.x, a provisional entry for every number.
-  *done-when:* the card and the spec say it; the check for the card reads it.
+- [x] **M3 (M)** The x-ray, drawn — done 2026-11-19, under Done. `src/xray.js`, the silhouette pass in `src/post.js`, `xray` on X, the HUD `XR` tag, `CONFIG.shade.xray` range / color / opacity / chargeSize and `render.xrayLayer`, `the-shades-xray-sees-the-warden-through-a-crate-and-never-through-a-wall`.
+- [x] **M4 (S)** Vision-mode bookkeeping — done 2026-11-19, under Done. `ACTION_LABELS` on the controls page, `lensLine` in `src/ui/briefing.js`, the tutorial's `lens` step, the grouped-row padding 6px to 5px, `the-two-vision-modes-are-on-the-card-the-briefing-and-the-tutorial-and-follow-a-rebind`; spec 20.35; D88.
 - [ ] **M5 (M)** The alarm camera's live feed. A second low-res render — no
   shadows, no post — into a texture, picture-in-picture on the Warden's HUD
   while a camera stands; dark when the taser kills it. *done-when:* a pixel
@@ -1207,6 +1164,45 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H18** The map row under the cards is a plain label (D55, as built with the
+  row a label). It names the chosen map, is not focusable, is out of the
+  keyboard ring, and a press on it changes nothing; the cards are the one way
+  to pick a map, by keyboard and by pointer. The check kept its id, since the
+  spec names it, and now drives every map's card both ways. Built by a Sonnet
+  builder in a worktree - `e8d4909`, 2026-11-19, Josh's session.
+- **K9** The one approach the camera cannot watch. The plant's
+  `fire-escape-roof` starts on a roof, and no stand a ground-bound Warden can
+  reach within the camera's 8m hangs a camera that sees its foot - K10's clause
+  3 tries 529 and prints none every run. `PLAYTEST.md` now says so in Josh's
+  words, with what to look for and that the fix would be a map change, not a
+  rule. Done by the lead - 2026-11-19, Josh's session.
+- **M4** Vision-mode bookkeeping. The controls page labels the two rows "night
+  vision" and "x-ray"; How to play and the Shade's briefing say what each does,
+  that they share one lens, and the x-ray's 20 metres, keys read live; the
+  first-run tutorial gained a ninth prompt, `lens`, before the plant, cleared
+  by either toggle. M3's row had pushed the controls page to 729px in a 720px
+  window; the grouped rows went 6px to 5px of padding and it is 703px. Spec
+  20.35; every number provisional under D82 and D88. Built by a Sonnet builder
+  in a worktree - `d54baf4`, `16419da`, 2026-11-19, Josh's session.
+- **H48** No position smoothing while a timed move owns the body (D72 option
+  3). A grab's drawn feet are 0.000m under the capsule at every frame of the
+  climb, where they trailed by up to 0.461m (plant) and 0.416m (yard) at frame
+  7; at the hand-over into the hang the capsule steps 2.5cm down and the
+  smoothing, back on, eases it - no snap. Outside a move a 60Hz step on a 144Hz
+  screen is smoothed as before. Built by a Sonnet builder in a worktree -
+  `07f0ea6`, `005b7c2`, 2026-11-19, Josh's session.
+- **M3** The x-ray, drawn. `X` toggles it for the Shade: within 20m of her eye,
+  the Warden, its placed camera and a planted charge are drawn as a flat
+  white-hot silhouette over the finished frame wherever M2's rule says her eye
+  looks through to them - asked on the fixed step at three points of the Warden
+  and one of the camera and the charge. One lens: night vision on takes it off
+  and the reverse (D88). Off, the frame is the frame it always was; on, it adds
+  one draw call per silhouette mesh (+6 on both maps). Plant: through
+  `stack-hall-mid` 6021 of 14608 px of the Warden's rectangle change, behind
+  `hall-east-wall-0` none; yard through a container on the gatehouse line 4053
+  of 9936, behind `ring-west-0` none; at 23.7m none. Built by a Sonnet builder
+  in a worktree, two colour rounds and a census entry - `8ac1220`, `2ef563a`,
+  `864704b`, `eae24ce`, 2026-11-19, Josh's session.
 - **H109** Worktrees from finished runs are pruned. Seven were registered - K4,
   K7, M1, M2, M7, K5 and K10, two more than the entry counted because the 11-04
   17:00 run added its own - each checked before it went: its last commit's

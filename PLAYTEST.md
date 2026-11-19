@@ -3203,6 +3203,17 @@ now. What is not, and why:
 
 ## Known issues and open questions
 
+- **One way in is never on the Warden's camera** (K9, 2026-11-19). The Warden
+  hangs its one alarm camera over the way in it thinks you will use (K4). On
+  the plant one way in can never be watched: the climb that starts on the
+  fire escape's roof. Of every spot the Warden can stand within the camera's
+  eight metres of it, none has a wall from which the camera would see where
+  that climb starts - the tests try 529 of them every run and find none. So
+  going in over the roof is never caught by the camera. That may be right -
+  it is the hardest way in, and one camera cannot be everywhere - or it may
+  feel like a free pass. **What to look for:** whether the roof is the route
+  you always take once you know. If it is, the fix is a wall the Warden can
+  reach that faces the roof, which is a map change, not a rule.
 - **The patrolling Warden almost never touches the shared dice** (H77,
   2026-10-16). One suspect for why the pixel counts wander between runs was
   that the game's one seeded source of random numbers is shared: the Warden

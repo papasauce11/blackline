@@ -1504,3 +1504,35 @@ Still out: online multiplayer, a human Warden in competitive play,
 progression and loadouts, wall-running, prone. Multiple maps came in with
 D1 (20.21). Music is out by choice (D50: ambience only).
 
+### 20.35 Section 19 - the Shade's vision modes: night vision and the x-ray, one lens
+
+Blocks M1-M4, 2026-11-03 to 11-19 (D50, D82, D83, D88). The Shade has two
+vision modes on two toggles and one lens: turning either on turns the other
+off, a round starts with both off, and both are held dark behind the pause
+page, the scoreboard and the briefing. Neither costs her anything -
+detection never reads them - and the Warden has neither (it has the torch on
+the night map, K3).
+
+**Night vision**, `V` (M1): a stage of the post on her view - the frame's
+light times 4 plus 0.03, its luma in a soft phosphor green, grain hashed on
+the pixel and the step, a tube vignette - drawn as one pass of its own where
+the post draws nothing (D82).
+
+**The x-ray**, `X` (M2, M8, M3): the Warden, its placed camera and a
+planted charge drawn as a flat white-hot silhouette over the finished frame,
+within 20m of her eye, wherever the map's rule (`mapxray.js`,
+`GameMap.seeThroughAlong`) looks through to them. A solid is see-through if
+its top is a body's height below its room's ceiling or it stands under the
+sky; a room wall or anything lying along the shell never is, and neither is
+a wall's own low piece beside a full-height one (D83); a sightline may cross
+2.5m of such solids in all, so a vent, a crate or one 40ft container is seen
+through and a second container is not. The rule is mechanical and never
+reads a tag. Asked on the fixed step, never per frame.
+
+The controls page, How to play and the briefing name both keys from the
+live bindings, and the first-run tutorial's `lens` prompt asks her to try
+one (M4). `the-shades-night-vision-lifts-the-dark-and-costs-her-nothing`,
+`the-xray-sees-through-a-duct-a-crate-and-a-container-and-never-through-a-wall`,
+`the-shades-xray-sees-the-warden-through-a-crate-and-never-through-a-wall`
+and `the-two-vision-modes-are-on-the-card-the-briefing-and-the-tutorial-and-follow-a-rebind`
+hold it.
