@@ -47,5 +47,7 @@ export function gatherHudState({ match, shade, warden, gadgets, detection, comba
     blind: gadgets.playerBlindFraction(),
     // M1: the Shade's night vision, the player's toggle (the post owns it).
     nightVision: !!(post && post.nightVision),
+    // M3: the x-ray, the same way: a toggle the post's xray owns.
+    xray: !!(post && post.xray && post.xray.on),
   };
 }

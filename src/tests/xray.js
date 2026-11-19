@@ -44,7 +44,7 @@ const BUDGET = CONFIG.shade.xray.maxThickness;
  * and a sheet wide along it, which is not lying along the shell (M8).
  * `grade` names the sheet of each, the piece a line across them crosses.
  */
-const SUBJECTS = {
+export const SUBJECTS = {
   plant: {
     ducts: /^vent-(low-north|low-south|up-vault|grade-west|grade-south)-/,
     grade: /^vent-grade-(west|south)-wall-a$/,

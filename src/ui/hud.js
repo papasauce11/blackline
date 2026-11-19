@@ -31,6 +31,9 @@ const hex = (value) => `#${value.toString(16).padStart(6, '0')}`;
 /** The night-vision tag's colour (M1): the phosphor itself, so the label is the green the picture is. */
 const NV_GREEN = `rgb(${CONFIG.shade.nightVision.tint.map((t) => Math.round(t * 255)).join(',')})`;
 
+/** The x-ray tag's colour (M3): the silhouette's own, so the label is the colour of what it shows. */
+const XR_ORANGE = `#${CONFIG.shade.xray.color.toString(16).padStart(6, '0')}`;
+
 const CSS = `
 #bl-hud {
   position: fixed; inset: 0; pointer-events: none; z-index: 20;
@@ -47,6 +50,8 @@ const CSS = `
 #bl-vis-label { position: absolute; left: 0; top: -18px; font-size: 10px; opacity: 0.7; }
 #bl-nv { left: 26px; top: 22px; display: none; padding: 1px 7px; font-size: 11px;
   letter-spacing: 0.2em; color: ${NV_GREEN}; border: 1px solid ${NV_GREEN}; }
+#bl-xr { left: 26px; top: 22px; display: none; padding: 1px 7px; font-size: 11px;
+  letter-spacing: 0.2em; color: ${XR_ORANGE}; border: 1px solid ${XR_ORANGE}; }
 #bl-bottom-left { left: 26px; bottom: 26px; }
 #bl-lives { display: flex; gap: 6px; margin-bottom: 8px; }
 #bl-lives i { width: 14px; height: 14px; border: 1px solid ${hex(P.shadeTeal)};
@@ -94,6 +99,7 @@ export class Hud {
     this.root.innerHTML = `
       <div class="panel" id="bl-vis"><div id="bl-vis-label">seen</div><div id="bl-vis-fill"></div></div>
       <div class="panel" id="bl-nv" title="night vision">NV</div>
+      <div class="panel" id="bl-xr" title="x-ray">XR</div>
       <div class="panel" id="bl-bottom-left">
         <div id="bl-lives"></div>
         <div id="bl-health"><span></span></div>
@@ -153,6 +159,7 @@ export class Hud {
       top: this.root.querySelector('#bl-top'),
       scorePanel: this.root.querySelector('#bl-score'),
       nightVision: this.root.querySelector('#bl-nv'),
+      xray: this.root.querySelector('#bl-xr'),
     };
 
     // Section 13: three pips, dimming as they are spent.
@@ -214,6 +221,8 @@ export class Hud {
     this.el.wardenPanel.style.display = warden ? 'block' : 'none';
     // M1: the Shade's goggles are on. The Warden has none, so it is hers alone.
     this.el.nightVision.style.display = state.nightVision && !warden ? 'block' : 'none';
+    // M3: the x-ray's, the same slot - the two lenses are never on together.
+    this.el.xray.style.display = state.xray && !warden ? 'block' : 'none';
 
     if (warden) this._updateWarden(state);
     else this._updateShade(state);

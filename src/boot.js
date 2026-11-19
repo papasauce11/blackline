@@ -26,6 +26,7 @@ import {
 } from './view.js';
 import { createCameraOwnership } from './cameraowner.js';
 import { createPost } from './post.js';
+import { createXray } from './xray.js';
 import { installQuality } from './quality.js';
 import { saveSettings } from './settingsstore.js';
 import { loadBindings } from './bindingstore.js';
@@ -38,7 +39,7 @@ import { createWardenAI } from './systems/ai.js';
 import { createCombat } from './systems/combat.js';
 import { createAudio } from './systems/audio.js';
 import { createGadgets } from './systems/gadgets.js';
-import { createObjective } from './systems/objective.js';
+import { createObjective, CHARGE } from './systems/objective.js';
 import { createEffects } from './systems/effects.js';
 import { createDeathCam } from './systems/deathcam.js';
 import { createFeedback } from './systems/feedback.js';
@@ -235,9 +236,19 @@ export async function bootWorld({
     saveReplay: () => (replayRoutes ? replayRoutes.download() : null),
   });
 
+  // M3: the x-ray looks at the Warden, the placed camera and the planted charge,
+  // and is drawn by the post over the finished frame.
+  const xray = createXray({
+    map, scene, shade, warden,
+    alarm: () => gadgets.alarm,
+    alarmRoot: effects.alarmFixture,
+    charge: () => (objective.round.charge === CHARGE.PLANTED ? objective.round.chargeAt : null),
+  });
+  post.setXray(xray);
+
   wireMatchEvents({
     emitter, hud, audio, combat, shade, warden, deathCam, effects, scoreboard, objective, gadgets,
-    post, menu, briefing,
+    post, menu, briefing, xray,
   });
 
   input = new Input(canvas);

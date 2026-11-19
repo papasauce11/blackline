@@ -15,17 +15,33 @@ import { contextRestored } from './quality.js';
  */
 export function wireMatchEvents(s) {
   const { emitter, hud, audio, combat, shade, warden, deathCam, effects, scoreboard, objective, gadgets } = s;
-  const { post, menu, briefing } = s;
+  const { post, menu, briefing, xray } = s;
 
   // M1: the Shade's night vision. Her step sends the key's press (the Warden's
   // step does the same for the torch); the post owns the state and draws it. A
   // round starts without it, it is held dark behind every panel that covers
   // the picture, and the grain moves once per fixed step so a seed's pixels
   // are the same every run.
-  emitter.on('nightvision:toggle', () => post.setNightVision(!post.nightVision));
-  emitter.on('match:init', () => post.setNightVision(false));
-  emitter.on('sim:step', () => post.tickNightVision());
-  post.setNightVisionGate(() => !menu.open && !scoreboard.open && !briefing.open);
+  emitter.on('nightvision:toggle', () => {
+    post.setNightVision(!post.nightVision);
+    // M3: the goggles have one lens - whichever goes on takes the other off.
+    if (post.nightVision) xray.setOn(false);
+  });
+  emitter.on('xray:toggle', () => {
+    xray.setOn(!xray.on);
+    if (xray.on) post.setNightVision(false);
+  });
+  emitter.on('match:init', () => {
+    post.setNightVision(false);
+    xray.setOn(false);
+  });
+  emitter.on('sim:step', () => {
+    post.tickNightVision();
+    xray.step();
+  });
+  const dark = () => !menu.open && !scoreboard.open && !briefing.open;
+  post.setNightVisionGate(dark);
+  xray.setGate(dark);
   // A restored context is a new one: what was drawn into before the loss is let
   // go undisposed, not disposed into the old context's listeners (post.js).
   emitter.on('view:contextrestored', () => {

@@ -313,6 +313,8 @@ export const CONFIG = {
     },
     /** The layer the feedback quad draws on, over the post-processed frame (E6). */
     overlayLayer: 1,
+    /** The layer the x-ray's silhouettes are drawn from (M3): a body keeps layer 0 and gains this one while it is seen; the charge's marker has this one alone, so the main camera never draws it. */
+    xrayLayer: 2,
   },
 
   // -------------------------------------------------------------------------
@@ -693,6 +695,14 @@ export const CONFIG = {
     xray: {
       /** Metres of see-through solid a sightline may cross in total. 2.5 because a 40ft container is 2.4m across its short axis: one is seen through and a second is not, and a duct or a crate is well under half of it. */
       maxThickness: 2.5,
+      /** Metres from the Shade's eye past which a target is not looked for. 20 because it is about the length of a plant hall and a yard lane: far enough to find the Warden through the next crate or two, near enough that the whole map is not a lit-up diagram. */
+      range: 20,
+      /** The silhouette's colour: the Warden's own orange, the colour of what the Shade has to find, so it reads as hers to be avoided and never as a second light in the room. */
+      color: 0xffb060,
+      /** Its opacity: most of the way to solid so it reads against a lit floor, short of it so the crate it is behind still shows through it. */
+      opacity: 0.85,
+      /** Edge of the cube that stands for the planted charge, which has no mesh in the world: about the size of a satchel, so a silhouette is the thing she is looking for and not a landmark. */
+      chargeSize: 0.35,
     },
   },
 
@@ -2178,6 +2188,8 @@ export const DEFAULT_BINDINGS = {
   torch: ['KeyT'],
   // M1: the Shade's night vision (D50): a toggle on her view, and nothing for the Warden.
   nightVision: ['KeyV'],
+  // M3: the Shade's x-ray: thin things drawn through, within a range. One lens, so it and night vision are never both on.
+  xray: ['KeyX'],
   gadget1: ['Digit1'],
   gadget2: ['Digit2'],
   gadget3: ['Digit3'],
@@ -2196,7 +2208,7 @@ export const DEFAULT_BINDINGS = {
  */
 export const BINDING_GROUPS = [
   ['move', ['forward', 'back', 'left', 'right', 'jump', 'crouch', 'sprint']],
-  ['fight', ['fire', 'ads', 'reload', 'interact', 'melee', 'torch', 'nightVision']],
+  ['fight', ['fire', 'ads', 'reload', 'interact', 'melee', 'torch', 'nightVision', 'xray']],
   ['gadgets', ['gadget1', 'gadget2', 'gadget3', 'gadget4']],
   ['system', ['pause']],
 ];

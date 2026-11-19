@@ -120,6 +120,7 @@ import { register as registerTimedRenders } from './timedrenders.js';
 import { register as registerAudioDevice } from './audiodevice.js';
 import { register as registerTorch } from './torch.js';
 import { register as registerNightVision } from './nightvision.js';
+import { register as registerXrayDraw } from './xraydraw.js';
 import { register as registerAlarmSeen } from './alarmseen.js';
 import { register as registerAiSearch } from './aisearch.js';
 import { register as registerHearing } from './hearing.js';
@@ -341,6 +342,8 @@ export function registerAutoTests(debugTools) {
   registerAiAlarm(debugTools);
   // M1: the Shade's night vision; it steps and photographs through the lens, draws no frame of its own, ends in a fresh round.
   registerNightVision(debugTools);
+  // M3: the x-ray, drawn; through a crate and never through a wall, in pixels.
+  registerXrayDraw(debugTools);
   // M7: the placed camera found by its lens light from 6m; it photographs through its own lens and draws no frame of its own, which is what lets it sit after the device journal's read (H65).
   registerAlarmSeen(debugTools);
   // K5: the Warden gives up sooner on easy and re-alerts faster the second time; it steps the AI only and ends in a fresh match.

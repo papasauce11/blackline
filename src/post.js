@@ -188,6 +188,13 @@ export function createPost(renderer) {
     renderer.autoClear = autoClear;
   };
 
+  // M3: the silhouettes go on top of the finished frame, post included and the
+  // feedback quad not - a hit marker over the Warden's outline, not under it.
+  let xrayView = null;
+  const silhouettes = (world, camera) => {
+    if (xrayView && xrayView.drawing) xrayView.draw(renderer, world, camera);
+  };
+
   const post = {
     uniforms,
     /** The last frame's passes, for the checks: 0 when off. */
@@ -222,6 +229,13 @@ export function createPost(renderer) {
     get night() {
       return night;
     },
+    /** The Shade's x-ray (M3): handed in once it is built, drawn over the finished frame. @see xray.js */
+    get xray() {
+      return xrayView;
+    },
+    setXray(view) {
+      xrayView = view;
+    },
     /**
      * Draw the frame: the scene through the passes when on, straight to
      * the canvas when off. The camera's layer mask is borrowed and given
@@ -236,12 +250,16 @@ export function createPost(renderer) {
       const goggles = night.active;
       if (!postEnabled()) {
         if (goggles) {
-          night.render(world, camera, overlay);
+          night.render(world, camera, (w, c) => {
+            silhouettes(w, c);
+            overlay(w, c);
+          });
           post.passes = 1;
           return;
         }
         renderer.setRenderTarget(null);
         renderer.render(world, camera);
+        silhouettes(world, camera);
         post.passes = 0;
         return;
       }
@@ -266,6 +284,7 @@ export function createPost(renderer) {
       uniforms.composite.tBloom.value = from.texture;
       pass(goggles ? nightMaterial : compositeMaterial, null);
 
+      silhouettes(world, camera);
       overlay(world, camera);
       camera.layers.mask = mask;
       post.passes = 3 + 2 * PP.blurPasses;
