@@ -18,10 +18,9 @@ import { A, AI_STATE, DEFUSE_SNAP, MOVING_STATES, angleDelta } from './aistate.j
 export const NAVIGATION = {
   /**
    * Build a route to a world position: graph nodes from here to the node
-   * nearest the goal, then the goal itself. `margin` is how far the ground
-   * planner keeps from an edge; a re-path after a stuck passes a wider one.
+   * nearest the goal, then the goal itself.
    */
-  _pathTo(goal, margin = A.routeEdgeMargin) {
+  _pathTo(goal) {
     this._route.length = 0;
     this._routeIndex = 0;
     this._arrivalTime = 0;
@@ -51,7 +50,7 @@ export const NAVIGATION = {
     // planner is the same one that does the last leg below; only the goal
     // it cannot reach - off the ground, past the snap - falls through.
     if (ground && this._distanceTo(stand || goal) <= A.directRouteRange) {
-      const direct = ground.route(feet, goal, A.maxUnpathedLeg, DEFUSE_SNAP, margin);
+      const direct = ground.route(feet, goal, A.maxUnpathedLeg, DEFUSE_SNAP, A.routeEdgeMargin);
       if (direct) {
         for (let i = 1; i < direct.length; i++) this._route.push(direct[i]);
         return;
@@ -69,7 +68,7 @@ export const NAVIGATION = {
       // and re-laid the same route from the same feet (K11).
       const nodes = this._findPath(from.id, to.id);
       let first = 0;
-      let lead = nodes.length ? this._leadTo(feet, this.map.waypoints[nodes[0]], margin) : null;
+      let lead = nodes.length ? this._leadTo(feet, this.map.waypoints[nodes[0]]) : null;
       // And the node is not always on the way: the nearest may be behind the
       // Warden, the route turning straight back at it. From 1.7m short of the
       // plant's vault door the nearest node is the door's, and the walk to it
@@ -81,7 +80,7 @@ export const NAVIGATION = {
         const p0 = this.map.waypoints[nodes[0]].position;
         const p1 = this.map.waypoints[nodes[1]].position;
         if ((p0.x - feet.x) * (p1.x - p0.x) + (p0.z - feet.z) * (p1.z - p0.z) < 0) {
-          const skip = this._leadTo(feet, this.map.waypoints[nodes[1]], margin);
+          const skip = this._leadTo(feet, this.map.waypoints[nodes[1]]);
           if (skip && skip.length <= lead.length + Math.hypot(p1.x - p0.x, p1.z - p0.z)) {
             lead = skip;
             first = 1;
@@ -106,7 +105,7 @@ export const NAVIGATION = {
     const tail = ground
       ? ground.route(
         { x: last.x, y: last === this.warden.position ? this.warden.feetY : last.y, z: last.z },
-        goal, A.maxUnpathedLeg, DEFUSE_SNAP, margin
+        goal, A.maxUnpathedLeg, DEFUSE_SNAP, A.routeEdgeMargin
       )
       : null;
     if (tail) {
@@ -133,17 +132,17 @@ export const NAVIGATION = {
    * @returns {{points:{x:number,y:number,z:number}[], length:number}|null}
    *   the points to walk before the node, and the walk's length to it
    */
-  _leadTo(feet, node, margin = A.routeEdgeMargin) {
+  _leadTo(feet, node) {
     const ground = this.map.wardenGround;
     if (!ground) return null;
     const onGround = ground.cellAt(feet);
     // A line the body can walk is the route as it always was: nothing laid
     // ahead of the node, and the node itself the first point.
-    if (onGround && ground.canWalk(feet, node.position, margin)) {
+    if (onGround && ground.canWalk(feet, node.position, A.routeEdgeMargin)) {
       return { points: [], length: Math.hypot(node.position.x - feet.x, node.position.z - feet.z) };
     }
     const start = onGround ? feet : ground.standAt(feet, { radius: A.leadSnapRadius, dy: CONFIG.warden.stepHeight });
-    const lead = start ? ground.route(start, node.position, A.maxUnpathedLeg, null, margin) : null;
+    const lead = start ? ground.route(start, node.position, A.maxUnpathedLeg, null, A.routeEdgeMargin) : null;
     if (!lead) return null;
     const points = onGround ? [] : [{ x: start.x, y: start.y, z: start.z }];
     for (let i = 1; i < lead.length - 1; i++) points.push(lead[i]);
@@ -288,8 +287,6 @@ export const NAVIGATION = {
     if (this.emitter) this.emitter.emit('ai:stuck', { at: { ...this._stuckAnchor }, count: this.stuckCount });
 
     const goal = this._route.length ? this._route[this._route.length - 1] : null;
-    // At a wider margin than the route it is stuck on, or it is that route
-    // again from the same feet (K12: a short leg pinned on a door jamb).
-    if (goal) this._pathTo(goal, A.stuckEdgeMargin);
+    if (goal) this._pathTo(goal);
   }
 };

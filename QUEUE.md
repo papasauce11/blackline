@@ -1032,7 +1032,7 @@ K4, K5, K7.
 - [x] **K9 (S)** The one approach the camera cannot watch — done 2026-11-19, under Done. `PLAYTEST.md` names it under Known issues; K10's clause 3 asserts it every run.
 - [x] **K10 (S)** A finer fan for the camera's wall — done 2026-11-04, under Done. `ai.alarmPlacementProbes` 8 to 16 (22.5 degrees), clause 3 of K4's check comparing the fan with the eight rays before it: +86 stands on the plant, +69 on the yard. **Parity with a fine sweep is unreachable at any count** - the fan is centred on the foot and a plain sweep is not, so they never share a ray - and the covers-per-route table is in PROGRESS.md. D86. `8bb3163`.
 - [x] **K11 (S)** A Warden that starts its circuit the wrong way and freezes — done 2026-11-19, under Done. `_leadTo` / `_pathTo` in `src/systems/ainav.js` plan a leg's first stretch over the ground; `GameMap.canWalk` in `src/mapground.js`; `CONFIG.ai.leadSnapRadius`; `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`; the yard replay re-recorded.
-- [ ] **K12 (S)** A short leg pins on a door jamb. K11 found it and kept it
+- [~] **K12 (S)** A short leg pins on a door jamb. K11 found it and kept it
   out of its sweep: a leg of 10m or less (`directRouteRange`, D5) is planned
   from the feet with no node, and on the plant from (17.25, 4.75) to site-c the
   body slides along a door jamb at about 0.1m/s; the stuck detector fires and
@@ -1040,6 +1040,33 @@ K4, K5, K7.
   route than the one it is stuck on (or the steering walks only when aligned
   tightly enough to clear the jamb), and K11's check extends its sweep to legs
   under 10m on both maps.
+  **Attempted and reverted 2026-11-19 (the 17:00 run, `3672cc0` on `wt-k12`,
+  reverted off the branch): the ground-margin lever is disproved.** The first
+  design gave `_pathTo` a `margin` parameter and had `_checkStuck` re-path at a
+  new `ai.stuckEdgeMargin` 1.1 instead of `routeEdgeMargin` 0.6, on the reading
+  that a wider margin forbids the straightener's tighter shortcuts. Measured on
+  the plant, both margins lay **the same route: 8.1m, 2 points** - so the
+  re-path is identical, the leg still times out after 8.0s at (18.2, 5.2) with
+  2 stuck re-paths, and clause (d) is red with a correct implementation. The
+  reason: `_segmentOnGround` asks whether there is **ground under the line**
+  and `margin` either side, and a doorway's floor is continuous - a jamb is a
+  wall at body height, which that test cannot see at any margin. An 8.1m route
+  with `maxUnpathedLeg` 6 is 2 points whatever the margin.
+  *resume from:* **measure first** (`npm run probe` on the plant, the leg from
+  (17.25, 4.75) to site-c) - where the body contacts, its off-axis angle while
+  it slides, and whether it is aligned and simply walking into a wall edge.
+  Then take the done-when's **second** option, the steering: `_followRoute`
+  sets `forward = 1` whenever `Math.abs(off) < Math.PI / 3` (60 degrees), so
+  the body walks while badly off-axis. Tighten it **after a stuck only**, not
+  globally - a global change moves every AI walk and the whole ai/nav check set
+  with it. The alternative, making the route respect body-height clearance and
+  not just ground presence, is the real fix and a bigger job: split it out if
+  the steering does not hold. **K12's check extension is already written,
+  proved to bite and reusable from `wt-k12` (`3672cc0`)**: clause (c), the
+  short-leg sweep (200 stands on the plant, 337 on the yard, zero tolerance -
+  and with the bug present exactly **1 of 200** fails, so the tolerance is
+  right), and clause (d), the measured leg plus a re-path that must differ.
+  Cherry-pick the test file alone and build the fix under it.
 - [ ] **K13 (S)** A leg to a stair node arrives under the stair. K11's sweep:
   from (-26.25, -19.25) on the plant to n10 the route runs along the stair's
   edge cell (z -19.8) and the body ends at the node's x and z on the floor

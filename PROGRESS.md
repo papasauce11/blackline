@@ -22086,3 +22086,57 @@ OK.
 
 `version.json` moved from `dca685c` to `e0e527c` under the gate, which is what
 `npm run suite` is supposed to do with a clean tree (D52).
+
+## K12 — The jamb re-path attempted, measured, and reverted (2026-11-19, the 17:00 run)
+
+**What was built.** `_pathTo(goal, margin = A.routeEdgeMargin)` passing the
+margin at all three of its planning sites (the direct route, both `_leadTo`
+calls, the tail leg), `_leadTo` taking it through to `canWalk` and
+`ground.route`, a new `ai.stuckEdgeMargin` of 1.1, and `_checkStuck` re-pathing
+at that wider margin instead of the shipped 0.6. The reading behind it:
+`GameMap.route` spends `margin` only in `_pullStraight`, so a **wider** margin
+forbids the straightener's tighter shortcuts and should keep the route to the
+cell centres, through the middle of a doorway rather than cutting the corner
+along its jamb.
+
+**How it was proved, and what the proof said.** The break first — `_checkStuck`
+back to `this._pathTo(goal)` — on the one check, both maps: **red on the plant
+with the clause it was aimed at**, "after a stuck at (17.25, 4.75) the route did
+not differ from the one it was stuck on (8.1m, 2 points both)", green on the
+yard, which is right because the jamb is the plant's. Restored byte-identical
+from the copy, then the full proof: the check, sixteen checks of the modules
+`ainav.js` serves, and the census set — **plant 41 ran, yard 38 ran plus 3 not
+for this map, all 24 census ids green on both maps, `flaky` empty, 0 console
+errors**.
+
+And **the same red, word for word.** `stuckEdgeMargin` 1.1 lays the identical
+route to `routeEdgeMargin` 0.6 — 8.1m of 2 points at both — so the re-path is
+the route it was stuck on, the leg still times out after 8.0s at (18.2, 5.2)
+with 2 stuck re-paths, and clause (d) is red against a correct implementation of
+the design it was given.
+
+**Why the lever cannot work, which is the finding.** `_segmentOnGround` asks
+whether there is **ground under the line** and `margin` metres either side of
+it. A doorway's floor is continuous, so a straight line through one passes that
+test at any margin: a jamb is a wall at *body* height, and the Warden's ground
+is a flood of walkable floor that does not model it. The 8.1m route is 2 points
+because `maxUnpathedLeg` is 6, not because of any margin. So the whole family of
+fixes that turns this dial is dead, and that is worth more than the dial would
+have been.
+
+**Reverted off the branch** rather than left red (PLAN.md: fix the game or
+revert the change — never weaken the check). The commit survives as `3672cc0`
+on `wt-k12`, and **its check extension is the part worth keeping**: clause (c),
+the short-leg sweep, generates 200 stands on the plant and 337 on the yard at
+zero tolerance, and with the bug present **exactly 1 of 200 fails** — the jamb
+leg and nothing else — so the tolerance is calibrated, not hopeful. Clause (d)
+drives `_checkStuck` itself rather than calling `_pathTo`, which is why the
+break bit at all.
+
+**Left for the next run**, in QUEUE.md under `[~]` K12: probe the leg before
+touching it, then the done-when's second option — `_followRoute` walks whenever
+the body is within 60 degrees of its target (`Math.abs(off) < Math.PI / 3`),
+which is how it travels while badly off-axis — tightened **after a stuck only**,
+since a global change moves every AI walk and the whole ai/nav set with it. The
+real fix, a route that respects body-height clearance and not only ground
+presence, is a bigger job to split out if the steering does not hold.
