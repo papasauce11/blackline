@@ -131,6 +131,13 @@ const RATE_MIN_BURSTS = 800;
  * of noise on each, and it was red on the day it was written.
  */
 const MIN_BURST_LANDING_RATE = 0.486;
+/**
+ * K8's hold is drawn per round, which lifted the rate above to ~0.67 and left
+ * its table the per-burst one. K8 itself is the share of the rounds' scatter
+ * that lies inside a burst: ~0.63 on the widest cone when a burst shared a
+ * draw, ~0.89 now. Midway between.
+ */
+const MIN_IN_BURST_SCATTER = 0.77;
 
 /**
  * One engagement on one preset from one seed: the Warden held on its spot
@@ -266,6 +273,7 @@ function burstWindow(h, name, seed, range, LANE) {
   let hits = 0;
   let now = 0;
   let last = -Infinity;
+  const aims = [];
   const offs = [
     h.emitter.on('combat:shot', (event) => {
       if (event.actor !== 'warden') return;
@@ -275,6 +283,7 @@ function burstWindow(h, name, seed, range, LANE) {
         open = false;
       }
       last = now;
+      aims.push([bursts, Math.atan2(-event.direction.x, -event.direction.z), Math.asin(event.direction.y)]);
     }),
     h.emitter.on('combat:impact', (event) => {
       if (event.target !== 'shade') return;
@@ -297,7 +306,7 @@ function burstWindow(h, name, seed, range, LANE) {
   const engaged = wardenAI.state === AI_STATE.ENGAGE;
   const unhurt = shade.health >= CONFIG.shade.health;
   h.debugState.godMode = false;
-  return { bursts, landed, rounds, hits, engaged, unhurt };
+  return { bursts, landed, rounds, hits, engaged, unhurt, aims };
 }
 
 export function register(debugTools) {
@@ -556,6 +565,23 @@ export function register(debugTools) {
           + 'is wide enough at this range that a burst is a coin, and the kill inherits its tail');
       }
 
+      // K8: a burst's rounds scatter nearly as widely as the windows' whole
+      // (deviation from the burst's own mean over that from the grand mean).
+      const inBurst = (col) => {
+        const mean = (xs) => xs.reduce((s, x) => s + x, 0) / xs.length;
+        const all = windows.flatMap((w, i) => w.aims.map((a) => [`${i}:${a[0]}`, a[col]]));
+        const groups = new Map();
+        for (const [k, v] of all) (groups.get(k) || groups.set(k, []).get(k)).push(v);
+        const m = mean(all.map((a) => a[1]));
+        let within = 0;
+        for (const g of groups.values()) within += g.reduce((s, v) => s + (v - mean(g)) ** 2, 0);
+        return Math.sqrt(within / all.reduce((s, a) => s + (a[1] - m) ** 2, 0));
+      };
+      const [shareYaw, sharePitch] = [inBurst(1), inBurst(2)];
+      if (!(shareYaw >= MIN_IN_BURST_SCATTER && sharePitch >= MIN_IN_BURST_SCATTER)) {
+        problems.push(`the scatter inside a burst is ${shareYaw.toFixed(3)} of the overall in yaw and ${sharePitch.toFixed(3)} in pitch, under ${MIN_IN_BURST_SCATTER}: the rounds of a burst share an aim draw again`);
+      }
+
       const sorted = kills.slice().sort((a, b) => a - b);
       return {
         pass: problems.length === 0,
@@ -565,7 +591,7 @@ export function register(debugTools) {
             + `${sorted[sorted.length >> 1].toFixed(2)}s, ${hits} of ${shots} rounds landed. `
             + `${windows.length} god-moded ${RATE_SECONDS}s windows: ${landedBursts} of ${bursts} bursts landed - `
             + `${rate.toFixed(3)} +- ${se.toFixed(3)}, at least ${MIN_BURST_LANDING_RATE} `
-            + `(${((rate - MIN_BURST_LANDING_RATE) / se).toFixed(1)} se clear); ${onBody}/${fired} rounds`
+            + `(${((rate - MIN_BURST_LANDING_RATE) / se).toFixed(1)} se clear); ${onBody}/${fired} rounds; in-burst scatter ${shareYaw.toFixed(3)}/${sharePitch.toFixed(3)}`
           : `${problems.join('; ')} - kills [${kills.map((k) => k.toFixed(1)).join(' ')}]s, `
             + `${landedBursts}/${bursts} bursts landed`,
       };

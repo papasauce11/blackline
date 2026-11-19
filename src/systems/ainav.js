@@ -196,7 +196,7 @@ export const NAVIGATION = {
     if (Math.abs(dx) < 1e-6 && Math.abs(dz) < 1e-6) return 0;
 
     // Aim error cone (Section 11 difficulty): the gun is held off the target
-    // by `_aimYaw` and `_aimPitch`, drawn per burst (`_drawAimError`).
+    // by `_aimYaw` and `_aimPitch`, drawn per round (`_drawAimError`).
     const desired = Math.atan2(-dx, -dz) + (aim ? this._aimYaw : 0);
     let delta = angleDelta(this.warden.yaw, desired);
     const maxTurn = A.turnRate * dt;

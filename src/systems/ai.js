@@ -138,8 +138,12 @@ export class WardenAI {
     // trigger (`_fireBurst`) and the gun's own rate decides when a round
     // leaves; before C5 the AI counted steps, so a "burst of 3-7" was a
     // sixtieth of a second's worth - one round, sometimes two - and a pause.
+    // The hold is redrawn here too, round by round (K8): drawn once per burst
+    // a wide cone made a burst a coin, and a fight a run of them.
     this._unsubscribe.push(this.emitter.on('combat:shot', (event) => {
-      if (event.actor !== 'warden' || this._burstRemaining <= 0) return;
+      if (event.actor !== 'warden') return;
+      this._drawAimError();
+      if (this._burstRemaining <= 0) return;
       this._burstRemaining -= 1;
       if (this._burstRemaining <= 0) {
         this._burstPause = rng.range(A.engageBurstPauseMin, A.engageBurstPauseMax);
@@ -457,7 +461,6 @@ export class WardenAI {
     }
     if (this._burstRemaining <= 0) {
       this._burstRemaining = rng.int(A.engageBurstMin, A.engageBurstMax);
-      this._drawAimError();
     }
     // Held until the burst's rounds are out (`combat:shot`, above).
     this.intent.fire = true;
@@ -466,12 +469,13 @@ export class WardenAI {
   /**
    * The aim error cone (Section 11 difficulty): where the hands hold the gun
    * against the torso they mean to hit, in yaw and in pitch, up to
-   * `aimErrorDegrees` either way. Drawn on entering ENGAGE and again for
-   * every burst, from the seeded stream so a replayed seed reproduces the
+   * `aimErrorDegrees` either way. Drawn on entering ENGAGE and again after
+   * every round, from the seeded stream so a replayed seed reproduces the
    * same shots (Section 16 check 28); the gun's own spread (Section 8.1) is
    * on top of it. Before C5 it was a pitch-only bias held for the whole
-   * engagement, so one draw decided a fight and a preset's number meant
-   * nothing across it.
+   * engagement, and until K8 one draw held for a whole burst, so one draw
+   * decided a fight and then a burst, and a preset's number meant less
+   * than it said; per round the same accuracy comes without the tail.
    */
   _drawAimError() {
     const cone = (this.difficulty.aimErrorDegrees * Math.PI) / 180;
