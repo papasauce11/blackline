@@ -346,8 +346,11 @@ export class Warden {
     }
     // The Shade's law, not a copy of it: this line carried its own
     // `1 - Math.pow(0.0001, wallDt)` until H43, which is the shape pose.js's
-    // header warns about for the head bob.
-    const smoothing = positionSmoothing(wallDt);
+    // header warns about for the head bob. The Warden has no timed move to own
+    // its body (`_move` is the Shade's), so the branch H48 put on the Shade
+    // never fires here - it is written so that a Warden given one reads the
+    // same law, which is what `tests/positioncensus.js` holds.
+    const smoothing = positionSmoothing(wallDt, Boolean(this._move));
     this._smoothPosition.lerp(this.position, smoothing);
 
     const feet = this._smoothPosition.y - this.half.y;

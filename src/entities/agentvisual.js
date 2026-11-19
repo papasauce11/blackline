@@ -89,7 +89,11 @@ export const VISUAL = {
     // reads a world position off this mesh must wait for it and not for the
     // pose - the law is `pose.js`'s, where both bodies read it (H43), and
     // `tests/positioncensus.js` is the census of who reads this mesh when.
-    const smoothing = positionSmoothing(wallDt);
+    //
+    // Except while a timed move owns the body (H48): a grab, vault, mantle or
+    // pull-up already carries the capsule smoothly over its own duration, so
+    // the ease had no step to hide and only trailed the climb by up to 0.46m.
+    const smoothing = positionSmoothing(wallDt, this._move !== null);
     this._smoothPosition.lerp(this.position, smoothing);
 
     const feet = this._smoothPosition.y - this.half.y;

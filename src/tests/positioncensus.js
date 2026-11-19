@@ -107,6 +107,15 @@ const NEARLY_STILL = 1e-6;
  * measuring again. 1.2m is 1.5x the measured worst: a chase slowed by half
  * reds this, and a map that offers a different ledge does not (the three
  * ledge-dependent rows differ between the maps by 0.10m at most).
+ *
+ * **Re-measured by H48 and unchanged at 1.2m**: the worst was `landing` and
+ * is, 0.794m on both maps, because a landing is not a timed move. What H48
+ * took out of the table is the four timed moves - `mantle` 0.50/0.40,
+ * `pullup` 0.49, `grab` 0.46/0.43 and `vault` 0.43 are 0.000m on both maps,
+ * and `hang` is 0.001m (it was 0.014/0.012) - so six of the twelve rows still
+ * carry a gap (`landing` 0.79, `slide` 0.68, `sprint` 0.63, `walk` 0.35, `rise`
+ * 0.21, `fall` 0.16; H43 read `sprint` at 0.65 and it reads 0.63 now, which
+ * this job did not look into) and the ceiling is still 1.5x the worst.
  */
 const LOOK_GAP_CEILING = 1.2;
 

@@ -71,7 +71,7 @@ const S = CONFIG.shade;
  * The glove's own tolerance, named once so the two clauses that read it cannot
  * come to read it at two different numbers.
  */
-const GLOVE_ON_LIP = 0.15;
+export const GLOVE_ON_LIP = 0.15;
 
 /**
  * Frames of `updateVisual` after a grab before **either** check reads the
@@ -94,6 +94,20 @@ const GLOVE_ON_LIP = 0.15;
  * and under a tenth of one at 60. So thirty frames drew the body 9mm below
  * where it was going and the glove's offset carried it; a hundred and fifty is
  * 3.3 of those eases, with the gap at zero to five decimal places.
+ *
+ * **Re-measured by H48 and left at 150, on purpose.** H48 stopped the chase
+ * while a timed move owns the body, so in the real loop the glove is on the
+ * lip from the grab's own last frame (`tests/grabslide.js`: 0.000m through the
+ * move, 0.026m at the hand-over). It does not reach this check. `hangAtGroundLedge`
+ * steps the simulation ninety times and draws **nothing** (`driveAtLedge`), so
+ * the drawn body is still where the Shade stood before the grab when it ends,
+ * and the chase it then walks is the 0.80m (plant) and 0.71m (yard) the first
+ * frame reads, closing in 50 and 49 frames exactly as before. That is the
+ * staging, and no player ever sees it; but it is the staging all three
+ * clauses rest on, so the count stays the 3.3 of the 45-frame ease it is
+ * argued from and the margin stays 2.26x-2.27x. Driving this in whole
+ * frames would make 150 an over-wait and 30 enough, and is a change to the
+ * check's instrument, not to its number.
  */
 const SETTLE_FRAMES = 150;
 

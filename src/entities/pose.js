@@ -82,9 +82,17 @@ export function blendFactor(wallDt) {
  * reason `headBobLift` is - both bodies chase, and `enforcer.js` carried its
  * own copy of the expression until H43 - and it is exported so a check can
  * argue a settle from the law rather than from a copy of its result.
+ *
+ * **Not while a timed move owns the body (H48, D72).** `owned` is true when a
+ * traversal's own timer is carrying the capsule: that move already
+ * interpolates smoothly, so there is no 60Hz step to hide and the ease only
+ * trailed a climb the simulation had made - the gloves drawn gripping a lip up
+ * to 0.46m under it. The answer is then 1, the same one a reset gets, so the
+ * drawn body is *seeded from the capsule* each frame of the move and the first
+ * frame after it eases on from where the body is drawn: no snap to close.
  */
-export function positionSmoothing(wallDt) {
-  return wallDt > 0 ? 1 - Math.pow(0.0001, wallDt) : 1;
+export function positionSmoothing(wallDt, owned = false) {
+  return owned || !(wallDt > 0) ? 1 : 1 - Math.pow(0.0001, wallDt);
 }
 
 /**

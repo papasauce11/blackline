@@ -32,6 +32,13 @@
  * candidate eye 4.5m off it is where `isClear` has a crate to disagree about.
  * It is not a proof that nothing moves. It is the three that do.
  *
+ * **H48 closed those three** (2026-11-19): no easing while a timed move owns
+ * the body means the drawn body is the capsule at the frame the strike
+ * arrives, so `vault`, `mantle` and `pullup` choose the same eye either way.
+ * The yard's `walk`, which H57 added and which was never a climb, is the one
+ * left, and the plant moves nothing. The paragraphs from here are the finding
+ * as it stood before.
+ *
  * **The gaps this measures agree with H43's table to the millimetre**, which is
  * how the instrument is known to be reading the right quantity: walk 0.35
  * against H43's 0.352, landing 0.79 against 0.794, hang 0.01 against 0.014,
@@ -136,14 +143,17 @@ import { CONFIG } from '../config.js';
  * too: an entry appearing for it is the hole growing.
  */
 const EYE_MOVES = {
-  plant: {
-    vault: { drawn: 'front-left', capsule: 'front-right' },
-  },
+  // H48 (2026-11-19): the plant's `vault` and the yard's `mantle` and `pullup`
+  // left this set, and they are the three that were climbs. No smoothing runs
+  // while a timed move owns the body, so the drawn body *is* the capsule at
+  // the frame the strike arrives (0.000m, measured on both maps) and the two
+  // eyes cannot differ. The plant moves nothing now, which the check holds
+  // the same way it held the one entry: a map with no row is a map where
+  // nothing moves, and a row appearing for it is the hole growing.
   yard: {
-    mantle: { drawn: 'right', capsule: 'front-right' },
-    pullup: { drawn: 'left', capsule: 'front-left' },
-    // The fourth, and the first that is not a climb (H57, 2026-10-14). The
-    // other three are the timed moves' own lag (D72, up to 0.46m); this one
+    // The one left, and the one that was never a climb (H57, 2026-10-14). The
+    // three H46 found were the timed moves' own lag (D72, up to 0.46m, closed
+    // by H48); this one
     // is the ordinary 0.35m a body walking at 3.5m/s carries, and it is here
     // because H57 pinned where a walk is photographed from. The strike now
     // ends 2.04m down the lane instead of wherever the carried phase left it,
@@ -167,9 +177,16 @@ const MIN_GAP = 0.05;
 
 /**
  * At least this many of the twelve states must carry a real gap, or the
- * instrument is not reading what it claims to. H43's table says ten do.
+ * instrument is not reading what it claims to. H43's table said ten do; H48
+ * took the four timed moves (`vault`, `mantle`, `grab`, `pullup`) out of the
+ * chase and **six** remain on both maps - `landing` 0.79, `slide` 0.68,
+ * `sprint` 0.63, `walk` 0.35, `rise` 0.21, `fall` 0.16 - every one a body
+ * still travelling at a speed `config.js` owns, which is why the six agree
+ * between the maps to the millimetre. Five, one under the measured count, as
+ * eight was two under ten: a tree where the chase has been snapped reads zero
+ * and cannot reach it, which is all this floor is for.
  */
-const MIN_STATES_WITH_A_GAP = 8;
+const MIN_STATES_WITH_A_GAP = 5;
 
 /** Eye names shortened for the detail line, which is cut at 400 characters. */
 function brief(name) {

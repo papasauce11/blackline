@@ -32,6 +32,16 @@
  * puts on the lip are up to 0.46m under the lip while the slide runs. D72 is
  * that question, with these numbers in it.
  *
+ * **H48 closed it (D72, option 3), and this module is what measures that it
+ * stayed closed.** While a timed move owns the body - `_move`, with its own
+ * timer and duration - the drawn body follows the capsule with no smoothing,
+ * and the drop above is **0.000m at every frame of the move on both maps**.
+ * What is left is the hand-over: the grab ends at frame 11 and the hang's own
+ * settle is a 2.5cm step the capsule takes *down*, which the smoothing (back on,
+ * since nothing owns the body) eases in, so the drawn feet are 0.026m **above**
+ * the capsule's there and 0.013m at frame 15. The figures that follow are the
+ * ones from before, kept where they are measured against in `PLAYTEST.md`.
+ *
  * **It drives whole frames**, which is the whole point and the thing H43's
  * census exists to keep straight: the harness's `stepFrames()` advances the
  * simulation and draws nothing, so a grab driven with it leaves the drawn body
@@ -55,7 +65,8 @@ import { CONFIG } from '../config.js';
 import { positionSmoothing } from '../entities/pose.js';
 import { SHADE_STATE } from '../entities/agent.js';
 import { quiesce } from './pixels.js';
-import { frame as wholeFrame } from './strikedrive.js';
+import { frame as wholeFrame, strike } from './strikedrive.js';
+import { GLOVE_ON_LIP } from './hang.js';
 import { findGroundLedge } from './climbpress.js';
 import { press } from './feel.js';
 import { photographHere } from './look.js';
@@ -78,52 +89,83 @@ const WAIT_FOR_GRAB = 20;
 
 /**
  * The measured profile, in metres of drop - how far the drawn feet are below
- * the capsule's feet - at the frames `PLAYTEST.md` and D72 quote.
+ * the capsule's feet - at the frames `PLAYTEST.md` and D72 quote. **Signed**:
+ * a negative drop is the drawn body *above* the capsule.
  *
- * **The queue's premise was wrong and this is the correction.** H44 was
- * written expecting a metre of displacement closing: "0.80m one frame in,
- * 0.20m at a tenth of a second". That is what an *instantaneous* lift looks
- * like, which is how H40 measured it - `_smoothPosition` moved a metre by hand
- * and then drawn. A real grab does not teleport the capsule. It carries it up
- * over the move's own duration, so the drawn body falls progressively further
- * behind while the climb is happening and only then catches up: the drop
- * **builds** from 0.16m at frame 1 to a peak of 0.42-0.46m at frame 7, and is
- * back under 0.15m by frame 15. Measured on both maps, which differ only by
- * their lips: the plant lifts 0.90m and peaks at 0.46m, the yard lifts 0.81m
- * and peaks at 0.42m.
+ * **Re-measured by H48.** It was 0.16, 0.345, 0.44, 0.26, 0.14 - a lag that
+ * built to 0.46m (plant) and 0.42m (yard) at frame 7 and closed by 15, because
+ * the drawn body chased a capsule the grab was carrying up 0.90m and 0.81m.
+ * With no smoothing while the move owns the body it is **0.000 at every frame
+ * of the move**, frames 1 to 10, on both maps; the hang begins at frame 11 and
+ * there the drawn body is 0.025m (plant) and 0.026m (yard) *above* the capsule
+ * and easing down, 0.013m and 0.014m at frame 15. Frame 4 is the middle of the
+ * move and 7 was the old peak, so they stay in the table as the samples that
+ * were worst.
  *
  * Asserted **absolutely**, with a band, and not as a fraction of anything the
  * smoothing derives (D70): a clause that re-derives its bar from the constant
- * it guards is satisfied by any constant at all, and the whole value of this
- * table is that it is a set of numbers a human can be told and then look at.
- * The band is 0.08m, which covers the two maps' 0.04m of difference and still
- * reds on a smoothing changed by anything like the factor D72 recommends.
+ * it guards is satisfied by any constant at all. The band is **0.01m**, down
+ * from 0.08m - the old one covered a 0.04m difference between the maps and a
+ * peak of half a metre; these numbers differ between the maps by 0.001m and
+ * the band is ten of those.
  */
 const PROFILE = [
-  { frame: 1, drop: 0.16 },
-  { frame: 4, drop: 0.345 },
-  { frame: 7, drop: 0.44 },
-  { frame: 11, drop: 0.26 },
-  { frame: 15, drop: 0.14 },
+  { frame: 1, drop: 0 },
+  { frame: 4, drop: 0 },
+  { frame: 7, drop: 0 },
+  { frame: 11, drop: -0.025 },
+  { frame: 15, drop: -0.013 },
 ];
-const PROFILE_BAND = 0.08;
+const PROFILE_BAND = 0.01;
 
 /**
- * The frame the drop peaks at, which is the shape rather than the size: a
- * profile that peaked at frame 1 would be the instantaneous displacement H44
- * expected, and one that never peaked would be a body still climbing. Pinned
- * at 7 on both maps, with two frames either side for a lip that moves.
+ * **The band H48 exists to hold:** the drop under this at every frame of the
+ * first fifteen, the 0.15m `tests/hang.js` calls "on the lip" once settled.
+ * Before H48 it was exceeded from frame 5 to frame 14 on the plant; now the
+ * worst of the fifteen is 0.026m. Read as an absolute value, so a body drawn
+ * far *above* the capsule is as red as one drawn far below.
  */
-const PEAK_FRAME = 7;
-const PEAK_FRAME_BAND = 2;
+const DROP_BAND = GLOVE_ON_LIP;
 
 /**
- * How much of the peak must have closed by the last frame of the slide, and
- * how much of it must have built after the first. Measured: the plant runs
- * 0.16 to 0.46 to 0.15, so each end is a third of the peak - 0.6 asks only
- * that the shape is a rise and a fall rather than a plateau.
+ * While the grab owns the body the drawn feet are the capsule's: measured
+ * 0.000m on both maps, so a millimetre is the arithmetic and nothing else.
+ * This is the clause the one-line break reds hardest - a restored smoothing
+ * leaves 0.16m at frame 1 - and it needs `MOVE_FRAMES` of them to be about a
+ * move at all (measured 10, frames 1 to 10).
  */
-const SHAPE = 0.6;
+const IN_MOVE_DROP = 0.001;
+const MOVE_FRAMES = 5;
+
+/**
+ * The frame the largest drop falls on, which is the shape rather than the
+ * size: it used to be 7, the middle of the climb, and is now the **hand-over**
+ * - the first frame of the hang, 11 on both maps - because that is the one
+ * place left where the body is not on the capsule. One frame either side for a
+ * lip that moves the move's length. `PEAK_CEILING` is its size, measured
+ * 0.026m, which is the 0.05m it may not pass: 3x the measurement, a fraction
+ * of the band, and a smoothing that had come back reads 0.16 at frame 1.
+ */
+const PEAK_FRAME = 11;
+const PEAK_FRAME_BAND = 1;
+const PEAK_CEILING = 0.05;
+
+/**
+ * What the smoothing still has to do outside a move, which is the half of
+ * D72's option 3 that must not be lost: a Shade walking at 3.5m/s on a 144Hz
+ * wall clock, the simulation still stepping at 60. Unsmoothed the drawn body
+ * jumps the whole step - **0.058m** - on the first draw after each step and
+ * sits still on the others; smoothed it moves a little on every draw. Measured
+ * on both maps over 129 draws: the largest single-draw jump is **0.026m**
+ * (0.45 of a step) and the drawn body trails the capsule by 0.34m to 0.39m.
+ * `JUMP_SHARE` is 0.6 of a step, and `LAG_FLOOR` 0.1m, which an unsmoothed
+ * body (0.000m) cannot reach.
+ */
+const WALL_HZ = 144;
+const WALK_WARM = 70;
+const WALK_TICKS = 200;
+const JUMP_SHARE = 0.6;
+const LAG_FLOOR = 0.1;
 
 /**
  * The controls the profile needs, or it is a table about a body that never
@@ -228,6 +270,57 @@ function dropAt(slide, frame) {
   return record ? record.drop : null;
 }
 
+/**
+ * A 60Hz step on a 144Hz wall clock, outside any move: the Shade struck into a
+ * walk, KeyW held, one draw every 1/144s and a step each time 1/60s has
+ * accumulated. After the warm-up it reports the largest single-draw travel of
+ * the drawn feet, the capsule's largest step, how far the drawn body trails it,
+ * and the number of draws a timed move owned the body - which must be none, or
+ * this is a reading about a climb.
+ */
+export function jitterWalk(h) {
+  const shade = h.shade;
+  const restore = quiesce(h);
+  const empty = (why) => { h.input.clearAll(); restore(); return { reached: false, why }; };
+  try {
+    h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
+    const struck = strike(h, 'walk');
+    if (!struck.reached) return empty(`no walk could be struck: ${struck.why}`);
+    h.input.heldCodes.add('KeyW');
+    const wall = 1 / WALL_HZ;
+    const step = 1 / 60;
+    let owed = 0;
+    let before = null;
+    let last = shade.position.clone();
+    const out = { reached: true, why: '', maxJump: 0, maxStep: 0, minLag: Infinity, moving: 0, draws: 0, speed: 0 };
+    for (let tick = 0; tick < WALK_TICKS; tick++) {
+      owed += wall;
+      while (owed >= step) {
+        owed -= step;
+        h.stepFrames(1);
+        h.input.clearEdges();
+        if (tick > WALK_WARM) out.maxStep = Math.max(out.maxStep, Math.hypot(shade.position.x - last.x, shade.position.z - last.z));
+        last = shade.position.clone();
+      }
+      shade.updateVisual(wall);
+      const at = { x: shade.mesh.position.x, z: shade.mesh.position.z };
+      if (shade._move) out.moving++;
+      if (before && tick > WALK_WARM) {
+        out.maxJump = Math.max(out.maxJump, Math.hypot(at.x - before.x, at.z - before.z));
+        out.minLag = Math.min(out.minLag, chaseGap(shade));
+        out.draws++;
+      }
+      before = at;
+    }
+    out.speed = shade.speed;
+    h.input.clearAll();
+    restore();
+    return out;
+  } catch (err) {
+    return empty(`jitterWalk threw: ${err.message}`);
+  }
+}
+
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: SELF,
@@ -251,6 +344,25 @@ export function register(debugTools) {
         problems.push(`the grab lifted the capsule ${run.lift.toFixed(3)}m, under the ${LIFT_FLOOR}m this profile was measured against; every drop below is about a body that did not move`);
       }
 
+      // The band H48 exists for, at every frame and not at a sample of them.
+      const worstDrop = run.slide.reduce((worst, e) => (Math.abs(e.drop) > Math.abs(worst.drop) ? e : worst), run.slide[0]);
+      for (const e of run.slide) {
+        if (Math.abs(e.drop) >= DROP_BAND) {
+          problems.push(`at frame ${e.frame} (${e.state}) the drawn feet are ${e.drop.toFixed(3)}m from the capsule's, over the ${DROP_BAND}m a hand is allowed to be off the lip; the smoothing is trailing a climb a timed move already carries`);
+          break;
+        }
+      }
+      // And while the move owns the body they are the capsule's feet, which is
+      // what no smoothing means; counted, so that it is about a move.
+      const inMove = run.slide.filter((e) => e.state === SHADE_STATE.GRAB);
+      if (inMove.length < MOVE_FRAMES) {
+        problems.push(`only ${inMove.length} of the ${SLIDE_FRAMES} frames were in the grab, under the ${MOVE_FRAMES} this clause is measured over`);
+      }
+      const offTheCapsule = inMove.find((e) => Math.abs(e.drop) > IN_MOVE_DROP);
+      if (offTheCapsule) {
+        problems.push(`frame ${offTheCapsule.frame} is in the grab and the drawn feet are ${offTheCapsule.drop.toFixed(3)}m from the capsule's; a timed move owns the body and it is drawn where it is, with no smoothing (D72, H48)`);
+      }
+
       for (const want of PROFILE) {
         const drop = dropAt(run.slide, want.frame);
         if (drop === null) { problems.push(`the slide has no frame ${want.frame}`); continue; }
@@ -258,27 +370,16 @@ export function register(debugTools) {
           problems.push(`at frame ${want.frame} the drawn body is ${drop.toFixed(3)}m under the capsule and this profile was measured at ${want.drop}m; PLAYTEST.md and D72 quote these numbers to a human, so they are re-measured rather than widened`);
         }
       }
-      // And the shape, not only the four samples: a slide that is not closing
-      // is not a slide.
 
-      // And the shape, which is what the queue got wrong and what a reader of
-      // PLAYTEST.md is being told: the lag BUILDS while the capsule climbs and
-      // closes after it stops, so the peak is in the middle. A profile that
-      // peaked at the first frame would be the instantaneous displacement H44
-      // expected, and the four pinned sizes above would pass a plateau.
-      const peak = run.slide.reduce((worst, e) => (e.drop > worst.drop ? e : worst), run.slide[0]);
-      if (Math.abs(peak.frame - PEAK_FRAME) > PEAK_FRAME_BAND) {
-        problems.push(`the drop peaks at frame ${peak.frame} and this profile was measured peaking at ${PEAK_FRAME}; the lag builds while the capsule climbs, so a peak at either end is a different mechanism and the table wants re-measuring`);
+      // And the shape: the one place left where the body is not on the
+      // capsule is the hand-over, so that is where the largest drop falls.
+      if (Math.abs(worstDrop.frame - PEAK_FRAME) > PEAK_FRAME_BAND) {
+        problems.push(`the largest drop is at frame ${worstDrop.frame} and this profile was measured with it at ${PEAK_FRAME}, the first frame of the hang; a peak inside the move is the lag H48 took out`);
       }
-      const first = dropAt(run.slide, 1);
-      const last = dropAt(run.slide, SLIDE_FRAMES);
-      if (!(first < peak.drop * SHAPE)) {
-        problems.push(`the drop starts at ${first.toFixed(3)}m of a ${peak.drop.toFixed(3)}m peak; it is not building`);
+      if (Math.abs(worstDrop.drop) > PEAK_CEILING) {
+        problems.push(`the largest drop is ${worstDrop.drop.toFixed(3)}m, over the ${PEAK_CEILING}m this was measured under`);
       }
-      if (!(last < peak.drop * SHAPE)) {
-        problems.push(`the drop is still ${last.toFixed(3)}m of a ${peak.drop.toFixed(3)}m peak at frame ${SLIDE_FRAMES}; it is not closing`);
-      }
-      readings.push(`lift ${run.lift.toFixed(2)}m, peak ${peak.drop.toFixed(2)}m at ${peak.frame}f, drop ${run.slide.map((e) => `${e.frame}f ${e.drop.toFixed(2)}`).join(' ')}`);
+      readings.push(`lift ${run.lift.toFixed(2)}m, worst ${worstDrop.drop.toFixed(3)}m at ${worstDrop.frame}f, drop ${run.slide.map((e) => `${e.frame}f ${e.drop.toFixed(3)}`).join(' ')}`);
 
       // ------------------------------------------------------------------
       // 2. It does arrive, which is the other half of a look question: the
@@ -294,6 +395,25 @@ export function register(debugTools) {
           problems.push(`${settleFrames} frames after the grab the drawn body is still ${arrived.toFixed(4)}m out, over the ${SETTLED}m this calls arrived`);
         }
         readings.push(`arrived ${arrived.toFixed(4)}m at ${settleFrames}f`);
+      }
+
+      // ------------------------------------------------------------------
+      // 2b. Outside a move the smoothing is untouched (H48): a walk at a
+      //     60Hz step on a 144Hz clock still has the jitter hidden. Without
+      //     it the drawn body would jump a whole step on one draw in 2.4.
+      // ------------------------------------------------------------------
+      const walk = jitterWalk(h);
+      if (!walk.reached) problems.push(`the walk did not start: ${walk.why}`);
+      else {
+        if (walk.moving > 0) problems.push(`a timed move owned the body for ${walk.moving} draws of a walk; this reading is about a climb`);
+        if (walk.speed < 3) problems.push(`the walk had slowed to ${walk.speed.toFixed(2)}m/s, so the step it measures is not a walking step`);
+        if (!(walk.maxJump < walk.maxStep * JUMP_SHARE)) {
+          problems.push(`outside a move a ${WALL_HZ}Hz draw of a 60Hz walk moved the drawn body ${walk.maxJump.toFixed(3)}m, against ${walk.maxStep.toFixed(3)}m for the capsule's step; over ${JUMP_SHARE} of a step is the jitter drawn, not hidden`);
+        }
+        if (!(walk.minLag > LAG_FLOOR)) {
+          problems.push(`outside a move the drawn body trailed the capsule by only ${walk.minLag.toFixed(3)}m while walking, under the ${LAG_FLOOR}m an eased body carries (measured 0.34m); it is following the capsule directly`);
+        }
+        readings.push(`walk at ${WALL_HZ}Hz: jump ${walk.maxJump.toFixed(3)}m of a ${walk.maxStep.toFixed(3)}m step, trailing ${walk.minLag.toFixed(2)}m`);
       }
 
       // ------------------------------------------------------------------

@@ -1879,8 +1879,22 @@ mean the starvation reaches ordinary play too.
 
 ### For your eyes: the Shade trails her own climb by a quarter of her height (H44, 2026-10-09)
 
-**Nothing changed, on purpose.** This is a measurement and a question, and the
-question is yours — D72 has the same thing with the options written out.
+**Changed since (H48, 2026-11-19): she does not trail it any more.** D72 was
+decided for option 3 and H48 is it. While a grab, vault, mantle or pull-up is
+carrying her, the drawn body is exactly where the simulation has her — no
+easing at all — and the gloves are on the lip for the whole of the grab: the
+drop below reads **0.000m at frames 1 to 10 on both maps**, where it was up to
+0.46m. The hang begins at frame 11 and there she is drawn 2.5cm *above* where
+the simulation settles her and eases down, 1.3cm at frame 15. Everywhere else
+the easing is exactly what it was: a walk on a 144Hz screen still trails the
+simulation by 0.34m and still moves a little on every draw instead of jumping a
+whole step on one in two and a half (the test now drives that too).
+`npm run shot -- --slide` shows it: frame 7 is the one that was worst, and the
+gloves are on the lip in it. The table and the rest of this section are what it
+was **before** H48, kept because they are what the new test is measured against.
+
+**What follows is how it was before H48:** a measurement and a question, left
+alone on purpose until you had looked — D72 has the options written out.
 
 Every climb moves the Shade a long way quickly, and the drawn body eases toward
 where the simulation has her (the section below this one says why that easing
@@ -1962,7 +1976,7 @@ twelve photographs catches the body still travelling:
 | landing | **0.79m** |
 | slide | 0.68m |
 | sprint | 0.65m |
-| mantle, pull-up, grab, vault | 0.40m to 0.50m |
+| mantle, pull-up, grab, vault | 0.40m to 0.50m (**0.00m since H48**: no easing while a climb carries her) |
 | walk | 0.35m |
 | jumping up, falling | 0.16m to 0.21m |
 | hanging, crouching | under 1.5cm |
