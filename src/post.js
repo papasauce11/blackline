@@ -191,8 +191,12 @@ export function createPost(renderer) {
   // M3: the silhouettes go on top of the finished frame, post included and the
   // feedback quad not - a hit marker over the Warden's outline, not under it.
   let xrayView = null;
+  let feedView = null;
   const silhouettes = (world, camera) => {
     if (xrayView && xrayView.drawing) xrayView.draw(renderer, world, camera);
+    // M5: the alarm camera's panel goes on at the same point, over the same
+    // finished frame, so each of the three paths below carries it.
+    if (feedView) feedView.draw();
   };
 
   const post = {
@@ -235,6 +239,13 @@ export function createPost(renderer) {
     },
     setXray(view) {
       xrayView = view;
+    },
+    /** The alarm camera's live feed (M5), handed in once it is built. @see camerafeed.js */
+    get feed() {
+      return feedView;
+    },
+    setFeed(view) {
+      feedView = view;
     },
     /**
      * Draw the frame: the scene through the passes when on, straight to
@@ -311,6 +322,7 @@ export function createPost(renderer) {
     contextRestored() {
       rebuild(renderer.getDrawingBufferSize(new THREE.Vector2()));
       night.forget();
+      if (feedView) feedView.contextRestored();
     },
     dispose() {
       for (const t of [scene, bright, blurA]) t.dispose();

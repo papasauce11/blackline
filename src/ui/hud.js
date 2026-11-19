@@ -34,6 +34,9 @@ const NV_GREEN = `rgb(${CONFIG.shade.nightVision.tint.map((t) => Math.round(t * 
 /** The x-ray tag's colour (M3): the silhouette's own, so the label is the colour of what it shows. */
 const XR_ORANGE = `#${CONFIG.shade.xray.color.toString(16).padStart(6, '0')}`;
 
+/** The alarm camera's feed (M5): where its panel is on the canvas, so the frame round it lies on the picture. */
+const FEED = CONFIG.gadgets.alarmCamera.cameraFeed;
+
 const CSS = `
 #bl-hud {
   position: fixed; inset: 0; pointer-events: none; z-index: 20;
@@ -52,6 +55,13 @@ const CSS = `
   letter-spacing: 0.2em; color: ${NV_GREEN}; border: 1px solid ${NV_GREEN}; }
 #bl-xr { left: 26px; top: 22px; display: none; padding: 1px 7px; font-size: 11px;
   letter-spacing: 0.2em; color: ${XR_ORANGE}; border: 1px solid ${XR_ORANGE}; }
+/* M5: the frame and label of the alarm camera's feed. The picture itself is the canvas's (camerafeed.js); this is transparent inside. */
+#bl-camfeed { left: ${FEED.anchor.x * 100}%; top: ${FEED.anchor.y * 100}%; width: ${FEED.widthShare * 100}%;
+  aspect-ratio: ${FEED.width} / ${FEED.height}; box-sizing: border-box; display: none;
+  border: 1px solid ${hex(P.wardenOrange)}; }
+#bl-camfeed span { position: absolute; left: 6px; top: 3px; font-size: 10px; letter-spacing: 0.2em; color: ${hex(P.wardenOrange)}; }
+#bl-camfeed.dead { border-color: rgba(255,255,255,0.25); }
+#bl-camfeed.dead span { color: rgba(255,255,255,0.45); }
 #bl-bottom-left { left: 26px; bottom: 26px; }
 #bl-lives { display: flex; gap: 6px; margin-bottom: 8px; }
 #bl-lives i { width: 14px; height: 14px; border: 1px solid ${hex(P.shadeTeal)};
@@ -100,6 +110,7 @@ export class Hud {
       <div class="panel" id="bl-vis"><div id="bl-vis-label">seen</div><div id="bl-vis-fill"></div></div>
       <div class="panel" id="bl-nv" title="night vision">NV</div>
       <div class="panel" id="bl-xr" title="x-ray">XR</div>
+      <div class="panel" id="bl-camfeed"><span>CAM</span></div>
       <div class="panel" id="bl-bottom-left">
         <div id="bl-lives"></div>
         <div id="bl-health"><span></span></div>
@@ -156,6 +167,8 @@ export class Hud {
       wardenAmmo: this.root.querySelector('#bl-w-ammo'),
       wardenGadgets: this.root.querySelector('#bl-w-gadgets'),
       marked: this.root.querySelector('#bl-marked'),
+      camFeed: this.root.querySelector('#bl-camfeed'),
+      camFeedLabel: this.root.querySelector('#bl-camfeed span'),
       top: this.root.querySelector('#bl-top'),
       scorePanel: this.root.querySelector('#bl-score'),
       nightVision: this.root.querySelector('#bl-nv'),
@@ -223,6 +236,12 @@ export class Hud {
     this.el.nightVision.style.display = state.nightVision && !warden ? 'block' : 'none';
     // M3: the x-ray's, the same slot - the two lenses are never on together.
     this.el.xray.style.display = state.xray && !warden ? 'block' : 'none';
+
+    // M5: the feed's frame, hers alone and only while a camera stands or has gone dark.
+    const feed = warden ? state.cameraFeed : 'none';
+    this.el.camFeed.style.display = feed === 'live' || feed === 'dead' ? 'block' : 'none';
+    this.el.camFeed.classList.toggle('dead', feed === 'dead');
+    this.el.camFeedLabel.textContent = feed === 'dead' ? 'CAM - NO SIGNAL' : 'CAM';
 
     if (warden) this._updateWarden(state);
     else this._updateShade(state);

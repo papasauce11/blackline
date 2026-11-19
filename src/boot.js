@@ -27,6 +27,7 @@ import {
 import { createCameraOwnership } from './cameraowner.js';
 import { createPost } from './post.js';
 import { createXray } from './xray.js';
+import { createCameraFeed } from './camerafeed.js';
 import { installQuality } from './quality.js';
 import { saveSettings } from './settingsstore.js';
 import { loadBindings } from './bindingstore.js';
@@ -245,6 +246,14 @@ export async function bootWorld({
     charge: () => (objective.round.charge === CHARGE.PLANTED ? objective.round.chargeAt : null),
   });
   post.setXray(xray);
+
+  // M5: the alarm camera's feed, on the Warden's frame only - the gate is who is
+  // driving. It borrows the one camera and gives it back.
+  post.setFeed(createCameraFeed({
+    renderer, camera, scene, emitter,
+    alarm: () => gadgets.alarm,
+    gate: () => match.role === 'warden' && !menu.open && !scoreboard.open && !briefing.open,
+  }));
 
   wireMatchEvents({
     emitter, hud, audio, combat, shade, warden, deathCam, effects, scoreboard, objective, gadgets,

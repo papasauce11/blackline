@@ -1013,7 +1013,7 @@ export const CONFIG = {
       noLineOfSightMultiplier: 0.35,
     },
     alarmCamera: {
-      /** 1 per round. Proximity alarm only, renders no live feed. */
+      /** 1 per round. A proximity alarm, and (M5) a live feed on the Warden's HUD while it stands: `cameraFeed`. */
       count: 1,
       radius: 8,
       coneDegrees: 100,
@@ -1049,6 +1049,47 @@ export const CONFIG = {
         distance: 4,
         /** The map fixtures' inverse square, so it falls off the way the eye expects. */
         decay: 2,
+      },
+      /**
+       * The lens's live feed on the Warden's HUD (M5). **PROVISIONAL**, like
+       * every number in Block M: the look is Josh's to retune (D82/D55), and the
+       * numbers that are not look say where they came from. A second, small
+       * render of the world from the lens through the one borrowed camera, laid
+       * over the finished frame as a panel (camerafeed.js).
+       */
+      cameraFeed: {
+        /** The target: 16:9 and low, a fifth of 720p a side, so a render is a small share of the frame's pixels. */
+        width: 256,
+        height: 144,
+        /** The lens's own field of view, vertical. A wall camera is a wide angle; the player's is 70 (`render.fov`) and this matches it until someone looks. */
+        fov: 70,
+        near: 0.1,
+        /** Metres. Fogged to 10% well before this on both maps (`render.fogDensity`), so it is a cull and not a look. */
+        far: 40,
+        /**
+         * Where the panel sits: its top-left corner as shares of the screen's
+         * width and height, and its width as a share of the screen's. The
+         * top-left is the one corner the Warden's HUD leaves empty (the Shade's
+         * meters live there and are hidden for her). The height follows from
+         * the target's aspect, so the panel is never stretched.
+         */
+        anchor: { x: 0.02, y: 0.03 },
+        widthShare: 0.22,
+        /** 1: the panel is opaque. Under it the world would read through a dark feed as a ghost, and a pixel check could not tell the feed from the room behind it. */
+        opacity: 1,
+        /** What the panel shows once the camera is destroyed: nearly black, a screen that has lost its signal. */
+        deadColor: 0x050506,
+        /**
+         * What the feed may add to a frame, as a share of the frame's own draw
+         * calls and triangles, counted and not timed (a wall clock cannot price
+         * a draw on the gate's renderer, H36/H41). Its parent is the frame
+         * ceiling: `performance.cpuBudgetFraction` allows the CPU frame half of
+         * 16.67ms, and the check-29 load measured 3.10ms against it, so a feed
+         * that adds at most the frame's own calls again doubles that to 6.2ms,
+         * inside the 8.33ms ceiling with 1.7x to spare. The feed has no shadow
+         * pass and no post chain, so in practice it adds far less than one.
+         */
+        budgetShare: 1,
       },
     },
   },

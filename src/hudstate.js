@@ -49,5 +49,7 @@ export function gatherHudState({ match, shade, warden, gadgets, detection, comba
     nightVision: !!(post && post.nightVision),
     // M3: the x-ray, the same way: a toggle the post's xray owns.
     xray: !!(post && post.xray && post.xray.on),
+    // M5: the alarm camera's feed, `none`/`live`/`dead`; the Warden's alone (its gate says who is driving).
+    cameraFeed: post && post.feed ? post.feed.state : 'none',
   };
 }
