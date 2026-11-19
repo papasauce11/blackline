@@ -193,6 +193,11 @@ const POSED = [
     proof: 'camera',
     note: 'reads speeds, step counts and the camera\'s landing dip',
   },
+  {
+    module: 'xraydraw.js',
+    reach: 'measured',
+    note: 'the Warden is the only body in its frame (the Shade\'s is hidden, the lens is at her eye) and it stands: it does not breathe, and nothing walks, so neither phase has a pose to move. Its thinnest clause is (a), the changed share of the Warden\'s rectangle against a floor of 20%: 6,021 of 14,608px (41%) on the plant and 4,053 of 9,936px (41%) on the yard. Measured over sixteen phases of one breath with both actors\' `updateVisual` driven between frames, the changed count read 5,908 at every phase on the plant and 3,983 at every phase on the yard - a spread of zero, the measurement agreeing with the code (the silhouette is drawn from the meshes the pose has already put in place, and the same pose is in the off frame). (b) and (c) are no-change clauses against a frame taken a step apart, whose noise read 0px on both maps',
+  },
 ];
 
 /**
