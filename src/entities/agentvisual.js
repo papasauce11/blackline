@@ -69,6 +69,77 @@ export const POSE = {
   head: 0.25,
 };
 
+/** Rays in one `boomSweep`: the centre and four offsets. */
+export const BOOM_RAYS = 5;
+/** Two sweeps a frame (axis, then shoulder): what the camera costs the box set. */
+export const BOOM_CASTS_PER_FRAME = 2 * BOOM_RAYS;
+const BOOM_ORIGIN = { x: 0, y: 0, z: 0 };
+
+/**
+ * The boom's second axis: the cross of its direction and the horizontal right
+ * vector, normalised. At full pitch the two are still perpendicular (the right
+ * vector is horizontal and the boom is not along it), but the length is not
+ * assumed to be one.
+ */
+export function boomUp(direction, rightX, rightZ, out = { x: 0, y: 0, z: 0 }) {
+  const x = direction.y * rightZ;
+  const y = direction.z * rightX - direction.x * rightZ;
+  const z = -direction.y * rightX;
+  const length = Math.hypot(x, y, z) || 1;
+  out.x = x / length;
+  out.y = y / length;
+  out.z = z / length;
+  return out;
+}
+
+/**
+ * Section 6.1 asks for a sphere-cast; `physicsquery.js` has no sphere-cast and
+ * a real one is not worth a new solver. A camera 0.22m wide clips a corner, a
+ * pipe or a door frame the single centre ray clears, and on a boom that
+ * points down at the floor the centre ray reaches it a hand later than the
+ * camera's own lower edge does. So: the centre ray plus four offset by `radius`
+ * perpendicular to the boom (right, left, up, down in its own frame), all the
+ * same `length`, and the nearest hit wins. Ties go to the centre ray, so a
+ * hit that carries `ray > 0` is one the centre ray would have missed or
+ * reached later.
+ *
+ * @returns {object|null} the nearest raycast hit with `ray` (0 centre, 1-4
+ *   offset) added; `distance` is along the boom from `pivot`
+ */
+export function boomSweep(collision, pivot, direction, rightX, rightZ, up, radius, length) {
+  let best = collision.raycast(pivot, direction, length);
+  if (best) best.ray = 0;
+  for (let i = 1; i < BOOM_RAYS; i++) {
+    const sign = i % 2 === 1 ? 1 : -1;
+    const sideways = i <= 2;
+    BOOM_ORIGIN.x = pivot.x + (sideways ? rightX : up.x) * radius * sign;
+    BOOM_ORIGIN.y = pivot.y + (sideways ? 0 : up.y) * radius * sign;
+    BOOM_ORIGIN.z = pivot.z + (sideways ? rightZ : up.z) * radius * sign;
+    const hit = collision.raycast(BOOM_ORIGIN, direction, length);
+    if (hit && (!best || hit.distance < best.distance - 1e-9)) {
+      best = hit;
+      best.ray = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * Where the boom may sit given what the sweep hit. `minDistance` is the floor
+ * except where it would put the camera at or behind the surface: pressed flat
+ * to a wall the body's own radius (0.34) is nearer than the floor, and the
+ * floor alone would have the camera 0.2m inside it. There it sits
+ * `CONFIG.render.near` short of the hit, because the near plane is what the
+ * picture cares about - no world surface may be inside it - and that is why
+ * the bound is that number and not a literal of its own.
+ */
+export function boomDistance(hit, cam) {
+  if (!hit) return cam.back;
+  const clear = hit.distance - cam.collisionRadius;
+  const front = hit.distance - CONFIG.render.near;
+  return Math.min(Math.max(cam.minDistance, clear), Math.max(0, front));
+}
+
 export const VISUAL = {
   /**
    * @param {number} wallDt unscaled frame delta, for smoothing only
@@ -368,10 +439,31 @@ export const VISUAL = {
     const rightZ = -Math.sin(this.yaw);
 
     // Sweep from the pivot out to the desired boom length and pull in on a hit.
-    let desired = cam.back;
+    // Twice: once from the axis, and once from where the shoulder will put the
+    // camera at the length the first pass settled on, since the rig sits
+    // `cam.side` to the right of the axis and a wall beside the body is a wall
+    // the axis never sees.
     const direction = { x: backX, y: backY, z: backZ };
-    const hit = this.collision.raycast(pivot, direction, cam.back + cam.collisionRadius);
-    if (hit) desired = Math.max(cam.minDistance, hit.distance - cam.collisionRadius);
+    const up = boomUp(direction, rightX, rightZ, this._boomUp || (this._boomUp = { x: 0, y: 0, z: 0 }));
+    const reach = cam.back + cam.collisionRadius;
+    const probe = this._boomProbe || (this._boomProbe = { ray1: 0, ray2: 0, hit1: null, hit2: null, pulledBy: 0, casts: 0 });
+    const axisHit = boomSweep(this.collision, pivot, direction, rightX, rightZ, up, cam.collisionRadius, reach);
+    const axisDesired = boomDistance(axisHit, cam);
+    const shoulderAt = cam.side * (axisDesired / cam.back);
+    const shouldered = {
+      x: pivot.x + rightX * shoulderAt, y: pivot.y, z: pivot.z + rightZ * shoulderAt
+    };
+    const shoulderHit = boomSweep(this.collision, shouldered, direction, rightX, rightZ, up, cam.collisionRadius, reach);
+    const hit = shoulderHit && (!axisHit || shoulderHit.distance < axisHit.distance) ? shoulderHit : axisHit;
+    const desired = boomDistance(hit, cam);
+    // What a check reads: which ray won each pass, and whether the shoulder
+    // pass was the nearer (the frames the single axis would have clipped).
+    probe.hit1 = axisHit;
+    probe.hit2 = shoulderHit;
+    probe.ray1 = axisHit ? axisHit.ray : -1;
+    probe.ray2 = shoulderHit ? shoulderHit.ray : -1;
+    probe.pulledBy = hit === shoulderHit && shoulderHit ? 2 : (hit ? 1 : 0);
+    probe.casts = BOOM_CASTS_PER_FRAME;
 
     // Snap in immediately, ease out. A camera that lerps into a wall clips.
     if (desired < this._cameraDistance) {

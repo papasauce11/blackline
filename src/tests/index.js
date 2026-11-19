@@ -129,6 +129,7 @@ import { register as registerAiAlarm } from './aialarm.js';
 import { register as registerAiGiveUp } from './aigiveup.js';
 import { register as registerPatrolLeg } from './patrolleg.js';
 import { register as registerCameraFeed } from './camerafeed.js';
+import { register as registerCameraClip } from './cameraclip.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -354,4 +355,6 @@ export function registerAutoTests(debugTools) {
   registerPatrolLeg(debugTools);
   // M5: the alarm camera's feed on the Warden's HUD and the one camera given back; it drives frames of its own and ends in a fresh match.
   registerCameraFeed(debugTools);
+  // J1: the third-person boom sphere-cast; it steps the Shade into a wall and updates the visual, draws no frame, ends in a fresh match.
+  registerCameraClip(debugTools);
 }
