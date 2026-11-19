@@ -72,10 +72,25 @@ function lowForItsRoom(map, box) {
 const probeLo = { x: 0, y: 0, z: 0 };
 const probeHi = { x: 0, y: 0, z: 0 };
 
-/** Does this box stand floor to ceiling in a room - a wall, and not the top tier of a stack that merely reaches the ceiling? */
+/**
+ * Does this box stand floor to ceiling in a room - a wall, and not the top
+ * tier of a stack that merely reaches the ceiling?
+ *
+ * "Starts at the floor" has a band, and the band is a body's height (M9).
+ * Measured on both maps: every wall that reaches a ceiling starts at its
+ * floor exactly (a plinth of 0m), the lintels over openings start between 1.3m
+ * and 3.6m up and are walls all the same, and what must be refused starts no
+ * lower than 5.3m (the rails and the decks of the gantry level; the yard's
+ * tower at 5.8m). So the band sits in a 5m window and the only argument is
+ * the lower edge: a box a body can stand under is a wall on a plinth, not a
+ * tier, and `standHeight` is the number this file already has for a body. A
+ * numberless test was tried (the neighbour overlaps the piece in height) and
+ * turned the decks and the yard's second container opaque - a tier standing
+ * on a stack is geometrically a wall on a plinth, so only a height can say.
+ */
 function spansItsRoom(map, box) {
   if (lowForItsRoom(map, box)) return false;
-  return map.rooms.some((room) => box.min.y <= room.floorY + 0.5 && box.max.y >= room.ceilingY - 0.01
+  return map.rooms.some((room) => box.min.y <= room.floorY + CONFIG.shade.standHeight && box.max.y >= room.ceilingY - 0.01
     && box.max.x >= room.min.x - TOUCH && box.min.x <= room.max.x + TOUCH
     && box.max.z >= room.min.z - TOUCH && box.min.z <= room.max.z + TOUCH);
 }

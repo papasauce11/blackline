@@ -177,6 +177,59 @@ export function register(debugTools) {
       for (const box of seen) problems.push(`low wall piece ${fmt(box)} is see-through`);
       if (lows.length) readings.push(`${lows.length - seen.length}/${lows.length} low wall pieces opaque`);
 
+      // 1c. (M9) A wall on a plinth is still a wall to the sill beside it. Every
+      // wall on both maps starts at its floor, so nothing else puts a wall's
+      // bottom above the floor band of `spansItsRoom`: lift the full-height
+      // pieces that stand end to end with one sill by more than the old 0.5m
+      // band and less than a body, in place and put back (the map is the
+      // game's own, and the grid indexes x
+      // and z, so a lifted y is read live), and the sill must stay opaque. The
+      // yard has no wall planes - its rooms are bays open to the sky, and its
+      // tower is the refusal 1b asserts - so there is nothing to lift there and
+      // the clause is plant-only, which the reading says.
+      if (subjects.walls) {
+        const PLINTH = CONFIG.shade.standHeight / 2;
+        // Only the pieces that stand on a floor: a lintel reaches the ceiling
+        // too, and lifting that would be lifting the lintel, not putting a wall on a plinth.
+        const onItsFloor = (wall) => map.rooms.some((room) => Math.abs(room.floorY - wall.min.y) < 0.01);
+        const beside = (sill, wall) => {
+          const axis = size(sill, 'x') <= size(sill, 'z') ? 'x' : 'z';
+          const along = axis === 'x' ? 'z' : 'x';
+          return size(wall, axis) <= size(wall, along)
+            && sill.min[axis] >= wall.min[axis] - 0.01 && sill.max[axis] <= wall.max[axis] + 0.01
+            && sill.max[along] >= wall.min[along] - 0.01 && sill.min[along] <= wall.max[along] + 0.01;
+        };
+        const lift = lows.map((sill) => ({ sill, jambs: walls.filter((wall) => onItsFloor(wall) && beside(sill, wall)) })).find((entry) => entry.jambs.length);
+        if (!lift) {
+          problems.push(`no low wall piece with a full-height piece beside it on ${map.id}`);
+        } else {
+          const { sill, jambs } = lift;
+          const floors = jambs.map((jamb) => jamb.min.y);
+          const before = seeThroughBox(map, sill);
+          let during = null;
+          let lifted = null;
+          let along = null;
+          try {
+            for (const jamb of jambs) jamb.min.y += PLINTH;
+            during = seeThroughBox(map, sill);
+            lifted = jambs.filter((jamb) => seeThroughBox(map, jamb));
+            const line = acrossLine(map, sill);
+            along = line ? map.seeThroughAlong(line.from, line.to) : null;
+          } finally {
+            jambs.forEach((jamb, i) => { jamb.min.y = floors[i]; });
+          }
+          if (before) problems.push(`${fmt(sill)} reads see-through before the lift`);
+          if (during) problems.push(`${fmt(sill)} reads see-through with its wall on a ${PLINTH.toFixed(2)}m plinth`);
+          if (jambs.some((jamb, i) => jamb.min.y !== floors[i])) problems.push('the lifted walls were not put back');
+          if (lifted.length) problems.push(`lifted ${lifted.map(fmt).join(', ')} read see-through`);
+          readings.push(`${sill.tag} lifted ${jambs.length} wall piece(s) ${PLINTH.toFixed(2)}m: ${lifted.length === 0 ? 'wall still opaque' : 'wall see-through'}`);
+          if (!along) problems.push(`no clear line across ${sill.tag}`);
+          else if (along.seeThrough || along.blockedBy !== sill) problems.push(`line across ${sill.tag} with its wall lifted: seeThrough ${along.seeThrough}, blocked by ${along.blockedBy ? along.blockedBy.tag : 'nothing'}`);
+        }
+      } else {
+        readings.push('no wall planes on this map, 1c is plant-only');
+      }
+
       // 1b. A stack that comes within a body of its room's ceiling is not seen
       // through: the difference between a container and a tower of them.
       for (const tower of towers) {
