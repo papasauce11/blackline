@@ -22051,3 +22051,38 @@ count. With H114 the expected reading is 261 / 1 and 243 / 1.
 **Pruned** (H109's rule): the seven builders' worktrees and branches - M3, H48,
 M4, H18, K11, M9 and K8 - each found on `phases-14-45` by its cherry-picked
 subject first.
+
+## The fifth batch fully verified, H114 included (2026-11-19, the 17:00 run's gate)
+
+The 17:00 build run found a clean tree whose diff from the last verified commit
+`a659b98` was not empty — H114 had landed after that verify, four files under
+`src/tests/` — so P2's gate was the full two-run suite, and by the same rule it
+stands as the fifth batch's verify. It ran 17:11 to 18:25, **exit 0**.
+
+**Plant 261 / 1 / 10** (1,234,274ms and 1,224,802ms, about 474,000ms of each
+the renderer's pipeline tail, F11); **yard 243 / 1 / 28** (934,694ms and
+942,739ms, about 397,000ms of each the tail). Spreads under 1% on both maps,
+`flaky` empty, no console-error block, ceiling 13 modules within 50 of 600 with
+`tests/difficulty.js` **at 600 and nothing left** (H113 is the queued job for
+it), of 229 the run loaded.
+
+**It is the reading the previous entry predicted, to the check.** That entry
+closed "with H114 the expected reading is 261 / 1 and 243 / 1", and that is what
+came back: H114's settle clause is green on both maps, and K11's
+`quiesce-says-what-it-does-about-the-ai` — red in all four runs of the previous
+verify, where the pinned settle walked from frame 1 and H73's bars said it never
+moves — is gone. **This is the first fully green verify since 2026-11-04's at
+`1bff045`, and it replaces it as the one the record points at.**
+
+The one failure a map is the **bench-only sweep** (H11),
+`the-frame-budget-holds-everywhere-not-just-at-site-a`, benched and not a
+regression: four worst-viewpoint frame times measured on SwiftShader, each a
+single sample and explicitly not a median (a median wants
+`?viewpointSamples=9`, which only `npm run bench` asks for), against an 8.33ms
+ceiling — plant `corridor-n@1` 482.70ms and `stair-corridor-head@3` 713.10ms,
+yard `store-east@1` 334.40ms and `site-a@2` 414.80ms. The honest reading of that
+check is headed, on a real GPU: last taken 2026-10-09 (`76c6e50`, GTX 1060) and
+OK.
+
+`version.json` moved from `dca685c` to `e0e527c` under the gate, which is what
+`npm run suite` is supposed to do with a clean tree (D52).
