@@ -127,6 +127,7 @@ import { register as registerHearing } from './hearing.js';
 import { register as registerPatrol } from './patrol.js';
 import { register as registerAiAlarm } from './aialarm.js';
 import { register as registerAiGiveUp } from './aigiveup.js';
+import { register as registerPatrolLeg } from './patrolleg.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -348,4 +349,6 @@ export function registerAutoTests(debugTools) {
   registerAlarmSeen(debugTools);
   // K5: the Warden gives up sooner on easy and re-alerts faster the second time; it steps the AI only and ends in a fresh match.
   registerAiGiveUp(debugTools);
+  // K11: a patrol leg begun from anywhere reaches its node; it steps the AI alone and ends in a fresh match.
+  registerPatrolLeg(debugTools);
 }

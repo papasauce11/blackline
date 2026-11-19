@@ -11,6 +11,7 @@
  * the prototype, so `this` is the AI and every field keeps its name.
  */
 
+import { CONFIG } from '../config.js';
 import { findPath } from './astar.js';
 import { A, AI_STATE, DEFUSE_SNAP, MOVING_STATES, angleDelta } from './aistate.js';
 
@@ -59,9 +60,36 @@ export const NAVIGATION = {
     const from = this.map.nearestWaypoint(feet);
     const to = this.map.nearestWaypoint(stand || goal);
     if (from && to) {
+      // The first leg, feet to `from`, is planned like the last: the node is
+      // the nearest in the air, not the nearest a body can walk to. From the
+      // plant's hall floor at (-12, -17) it is the hall-north node ten metres
+      // west with a crate between, and a straight line at it pinned the
+      // Warden there for good - the stuck detector fired every two seconds
+      // and re-laid the same route from the same feet (K11).
       const nodes = this._findPath(from.id, to.id);
-      for (const id of nodes) {
-        const p = this.map.waypoints[id].position;
+      let first = 0;
+      let lead = nodes.length ? this._leadTo(feet, this.map.waypoints[nodes[0]]) : null;
+      // And the node is not always on the way: the nearest may be behind the
+      // Warden, the route turning straight back at it. From 1.7m short of the
+      // plant's vault door the nearest node is the door's, and the walk to it
+      // and back through the frame turned the Warden on the spot long enough
+      // for the stuck detector to call it wedged, re-path to the same node,
+      // and begin again. When the second node is as near by the ground, that
+      // is where the walk begins.
+      if (lead && nodes.length > 1) {
+        const p0 = this.map.waypoints[nodes[0]].position;
+        const p1 = this.map.waypoints[nodes[1]].position;
+        if ((p0.x - feet.x) * (p1.x - p0.x) + (p0.z - feet.z) * (p1.z - p0.z) < 0) {
+          const skip = this._leadTo(feet, this.map.waypoints[nodes[1]]);
+          if (skip && skip.length <= lead.length + Math.hypot(p1.x - p0.x, p1.z - p0.z)) {
+            lead = skip;
+            first = 1;
+          }
+        }
+      }
+      if (lead) for (const p of lead.points) this._route.push(p);
+      for (let i = first; i < nodes.length; i++) {
+        const p = this.map.waypoints[nodes[i]].position;
         this._route.push({ x: p.x, y: p.y, z: p.z });
       }
     }
@@ -85,6 +113,43 @@ export const NAVIGATION = {
     } else {
       this._route.push({ x: goal.x, y: goal.y, z: goal.z });
     }
+  },
+
+  /**
+   * The walk from the feet to the first graph node, over the ground in
+   * segments no longer than `maxUnpathedLeg`, as `_pathTo` plans its last
+   * leg. The planner's own end is a cell centre beside the node, so it is
+   * left off: the node is the next point on the route.
+   *
+   * Feet on no cell are the case that made this necessary: a body that has
+   * slid along a crate into a pocket the flood left out (the plant's
+   * (-12, -17)) is off the ground, the planner has no start, and the straight
+   * line was laid again - as many times as the stuck detector asked. So the
+   * route begins at the nearest cell, the way back onto the ground, and is
+   * planned from there. Only a node nothing connects to the ground leaves the
+   * straight line, as before.
+   *
+   * @returns {{points:{x:number,y:number,z:number}[], length:number}|null}
+   *   the points to walk before the node, and the walk's length to it
+   */
+  _leadTo(feet, node) {
+    const ground = this.map.wardenGround;
+    if (!ground) return null;
+    const onGround = ground.cellAt(feet);
+    // A line the body can walk is the route as it always was: nothing laid
+    // ahead of the node, and the node itself the first point.
+    if (onGround && ground.canWalk(feet, node.position, A.routeEdgeMargin)) {
+      return { points: [], length: Math.hypot(node.position.x - feet.x, node.position.z - feet.z) };
+    }
+    const start = onGround ? feet : ground.standAt(feet, { radius: A.leadSnapRadius, dy: CONFIG.warden.stepHeight });
+    const lead = start ? ground.route(start, node.position, A.maxUnpathedLeg, null, A.routeEdgeMargin) : null;
+    if (!lead) return null;
+    const points = onGround ? [] : [{ x: start.x, y: start.y, z: start.z }];
+    for (let i = 1; i < lead.length - 1; i++) points.push(lead[i]);
+    let length = 0;
+    let at = feet;
+    for (const p of points) { length += Math.hypot(p.x - at.x, p.z - at.z); at = p; }
+    return { points, length: length + Math.hypot(node.position.x - at.x, node.position.z - at.z) };
   },
 
   /**

@@ -277,6 +277,11 @@ export class WardenGround {
     return out;
   }
 
+  /** Can a standing body walk the straight line `a` to `b`, with ground `margin` either side? The AI asks it of a first leg (K11). */
+  canWalk(a, b, margin = 0) {
+    return this._segmentOnGround(a, b, margin);
+  }
+
   /**
    * Can a standing body walk this line, resting on whatever is under it -
    * and, `margin` metres to either side of it, is there still something to

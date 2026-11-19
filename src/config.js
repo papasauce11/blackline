@@ -1269,6 +1269,14 @@ export const CONFIG = {
      */
     maxUnpathedLeg: 6,
     /**
+     * How far from a Warden whose feet are on no cell of its ground - wedged
+     * against a crate in a pocket the flood left out (K11) - the nearest cell
+     * is looked for, to plan the walk back onto it from. A cell is half a
+     * metre, so this is a couple of them: a pocket is the body's width and
+     * the free side of it is the nearest ground.
+     */
+    leadSnapRadius: 1,
+    /**
      * A goal this close, flat, is walked to over the ground planner from
      * the Warden's own feet, and the waypoint graph is not consulted (D5).
      * The graph is for the long haul; routed through it, a goal eight
