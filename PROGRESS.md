@@ -21619,3 +21619,23 @@ pruned), **H110** (a red's detail is cut off mid-word at exactly 400
 characters), **H111** (`--help` starts a run, and an undeclared flag is
 silent), and the warning in M3's own entry that `query` hands back one reused
 array. `8499562`, `1bff045`.
+
+## H109 — Worktrees from finished runs are pruned (2026-11-19, Josh's session)
+
+Taken by P1's third clause, to fill a run's idle minutes: the lead did it while
+three builders worked on M3, H48 and K11, since it touches no file theirs do.
+
+**Seven, not five.** The entry counted K4, K7, M1, M2 and M7; the 11-04 17:00
+run left K5's and K10's beside them. Before each went, its last commit was
+found on `phases-14-45` by subject (K10's message was rewritten in the landing
+and its content superseded by `8bb3163`, which carries the lead's fix round),
+and its dirty files read: K7's was a stamped `version.json`, and M1's four were
+byte-identical to the branch, the lost-context fix having landed as `a60fcbb`
+from exactly those copies. Nothing was lost.
+
+**Who prunes, and when.** The lead, in the `Record batch` turn: once a batch is
+verified, every builder's worktree from it is removed (`git worktree remove
+--force`, twice for a locked one) and its branch deleted (`git branch -D`,
+since a cherry-picked commit is never an ancestor and `-d` refuses it). The
+routine prompt's verify step says so, and TRAPS.md carries the trap for a
+session that makes worktrees by hand.

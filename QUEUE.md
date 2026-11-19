@@ -994,18 +994,7 @@ the end of this list, never ahead of a game-facing job.
   an exit code. *done-when:* the line prints on a real run with the modules it
   names; a module bumped one line over its row in a scratch copy shows in it
   and the suite still exits 0.
-- [ ] **H109 (S)** Worktrees from finished runs are never pruned. `git
-  worktree list` holds five from earlier runs (K4, K7, M1, M2, M7 - all
-  merged, recorded and pushed), two with uncommitted files, each a full
-  checkout on disk and each a branch `git branch` still lists. Nothing removes
-  them: the builder agents that made them are gone and the lead has never been
-  told to. They cost disk and they make `git worktree list` unreadable at
-  exactly the moment a run needs to check whether a builder's tree is on the
-  branch's history. *done-when:* the run's own procedure (the routine prompt,
-  or a line in TRAPS.md) says when a worktree is pruned and by whom; `git
-  worktree prune` plus the explicit `git worktree remove` of each merged tree
-  is run once, the five are gone, and the entry says what was in the two dirty
-  ones before they went.
+- [x] **H109 (S)** Worktrees from finished runs are pruned — done 2026-11-19, under Done. Seven removed with their branches; the routine prunes each builder's worktree once its batch is verified, and TRAPS.md says so.
 - [ ] **H110 (S)** A red's detail is truncated, mid-word, at 400 characters.
   K5/K10/M8's two break runs both wrote the plant's x-ray detail cut off at
   **exactly 400 characters** - once at `... 0/5 l`, once at `... 1.00m of
@@ -1218,6 +1207,18 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **H109** Worktrees from finished runs are pruned. Seven were registered - K4,
+  K7, M1, M2, M7, K5 and K10, two more than the entry counted because the 11-04
+  17:00 run added its own - each checked before it went: its last commit's
+  subject is on `phases-14-45` (K10's by a rewritten message, its content
+  superseded by the landed `8bb3163`), K7's one dirty file was `version.json`,
+  and M1's four (`nightvision.js`, `post.js`, `quality.js`, `wiring.js`) were
+  byte-identical to the branch's, the `a60fcbb` fix already landed. Removed
+  with `git worktree remove --force --force` (M1's was locked) and their
+  branches with `git branch -D`. The routine's verify step now removes each
+  builder's worktree and branch in the `Record batch` commit's turn, and
+  TRAPS.md has the trap. Done by the lead while three builders ran -
+  2026-11-19, Josh's session.
 - **M2** The x-ray rule. `seeThroughAlong(from, to)` on the map, in
   `mapxray.js`: a solid is see-through if its top is a body's height below its
   room's ceiling or it stands under the sky, and a sightline may spend 2.5m of

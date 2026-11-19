@@ -1180,3 +1180,16 @@ appears nowhere in the file that is looking for it. The general rule, which
 `quiescesites.js` states from the other end: **`codeOf` strips a string and
 leaves a regex literal where it found it**, so which of the two you write your
 needle as decides whether your own file is in your own census.
+
+**A builder's worktree outlives its builder, and nothing removed one for
+three weeks.** The Agent tool's `isolation: "worktree"` makes a full checkout
+under `.claude/worktrees/` and a branch for it; the builder finishes, the lead
+cherry-picks its commit, and the tree and the branch stay - seven of them by
+2026-11-19, two with uncommitted files, every one making `git worktree list`
+harder to read at exactly the moment a run checks a new builder's base (H109).
+**The lead removes them once the batch is verified**: `git worktree remove
+--force <path>` (`--force` twice for a locked one) and `git branch -D <branch>`,
+which has to be `-D` because a cherry-picked commit is never an ancestor of
+the branch. Before removing one with dirty files, diff them against the branch
+- M1's four were the GL fix that had already landed, and that is the only
+reason they could go unread.
