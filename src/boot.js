@@ -252,7 +252,7 @@ export async function bootWorld({
   post.setFeed(createCameraFeed({
     renderer, camera, scene, emitter,
     alarm: () => gadgets.alarm,
-    gate: () => match.role === 'warden' && !menu.open && !scoreboard.open && !briefing.open,
+    gate: () => match() && match().role === 'warden' && !menu.open && !scoreboard.open && !briefing.open,
   }));
 
   wireMatchEvents({

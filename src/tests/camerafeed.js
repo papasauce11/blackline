@@ -212,7 +212,7 @@ export function register(debugTools) {
         h.renderFrame();
         const feed = h.post.feed;
         if (!feed) return { pass: false, detail: 'the post has no feed: boot.js did not hand it one' };
-        if (feed.state !== 'live') problems.push(`a camera stands under the Warden and the feed says "${feed.state}"`);
+        if (feed.state !== 'live') problems.push(`a camera stands under the Warden and the feed says "${feed.state}" (role ${h.match.role}, menu ${h.menu.open}, scoreboard ${h.scoreboard.open}, briefing ${h.briefing.open}, gadgets.alarm ${h.gadgets.alarm ? 'set' : 'null'})`);
 
         // (b) the borrow, on the rig's own camera: a frame, not a lens. The
         // camera hangs on the Warden's rig here, which is the case a re-parent
