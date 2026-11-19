@@ -115,8 +115,10 @@ export class Effects {
   // Alarm camera fixture (Section 9.2)
   //
   // One mesh, built once and hidden, because Section 9.2 allows exactly one per
-  // round. It renders NO live feed — there is no second camera, no render
-  // target and no second draw of the scene here, only a body and a lens.
+  // round. **Nothing here renders the feed**: the lens DOES carry a live picture
+  // since M5, and it is camerafeed.js that draws it, borrowing the one camera -
+  // there is no second camera, no render target and no second draw of the scene
+  // in this file, only a body and a lens.
   // -------------------------------------------------------------------------
 
   _buildAlarmFixture() {

@@ -223,7 +223,10 @@ export function register(debugTools) {
       arm();
       if (!gadgets.alarm) problems.push('placeAlarm returned nothing');
       if (!effects.alarmFixture.visible) problems.push('no fixture appeared in the world');
-      // Section 9.2: no live feed. There must be no second camera anywhere.
+      // Section 15, and it outlived the rule it was written for: Section 9.2 said
+      // the alarm renders no live feed, and since M5 it does. What this still holds,
+      // and the reason to keep it, is that the feed never adds a camera - it borrows
+      // the one there is. One, anywhere in the scene, placed or not.
       let cameras = 0;
       h.scene.traverse((object) => { if (object.isCamera) cameras++; });
       if (cameras !== 1) problems.push(`${cameras} cameras in the scene — the alarm rendered a feed`);

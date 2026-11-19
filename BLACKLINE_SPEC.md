@@ -1536,3 +1536,33 @@ one (M4). `the-shades-night-vision-lifts-the-dark-and-costs-her-nothing`,
 `the-shades-xray-sees-the-warden-through-a-crate-and-never-through-a-wall`
 and `the-two-vision-modes-are-on-the-card-the-briefing-and-the-tutorial-and-follow-a-rebind`
 hold it.
+
+### 20.36 Section 9.2 - the alarm camera does render a live feed
+
+Section 9.2's table says of the alarm camera, in bold, **"Renders no live
+camera feed. It is a proximity alarm, not a second viewport"**. That is no longer
+true, and M5 is what made it false.
+
+The feed was asked for by name by Josh in **D50**, and Section 19 already admits
+it - amendment 20.34 records "the alarm camera's live feed" among what the second
+arc takes on. So the contract disagreed with itself: 9.2 forbade the thing 19
+promised. **19 wins**, because it is the later decision and the owner's.
+
+What 9.2 was protecting is not given up. The risk register's rule - *"one camera
+object, reparent and adjust FOV only, never instantiate a second camera"* - still
+holds, and the feed obeys it the way `thumbnails.js` does: it **borrows** the one
+camera, puts it at the lens, renders into a 256x144 target, and gives it back -
+parent, local position, rotation, field of view, aspect, planes and layer mask -
+in a `finally`, so a throw mid-render cannot leave the player looking at a wall.
+`createCamera()` still throws on a second call, and the check that counts cameras
+in the scene graph (`tests/freeroam.js`) still reads exactly one with a camera
+placed. So "not a second viewport" survives as the engineering rule it really
+was; only the sentence about the picture is withdrawn.
+
+The feed is the Warden's alone, drawn over the finished frame as M3's silhouettes
+are, and it stops rendering - rather than being redrawn black - once the Shade's
+taser has destroyed the camera.
+
+Section 9.2 above is left as it was written: this routine may only append to
+Section 20 (PLAN.md), so the amended rule lives here rather than in the table.
+A reader of 9.2 must read this entry with it.

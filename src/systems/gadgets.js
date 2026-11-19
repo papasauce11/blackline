@@ -343,9 +343,11 @@ export class Gadgets {
   // -------------------------------------------------------------------------
 
   /**
-   * A proximity alarm, not a second viewport. Section 9.2 is explicit that it
-   * renders no live feed, so there is no camera, no render target and no second
-   * draw of the scene here — only a cone test.
+   * A proximity alarm, and since M5 a live feed as well - but not from here.
+   * Section 9.2 said it renders no live feed; Section 19 and D50 asked for one
+   * and camerafeed.js draws it, borrowing the one camera (spec 20.36). What is
+   * still true of THIS file is the part that matters to it: no camera, no
+   * render target and no second draw of the scene - only a cone test.
    */
   /**
    * Find a wall along `direction` and hang the camera on it, facing back out.
