@@ -1,11 +1,11 @@
 {
   "v": 1,
-  "build": "fd3264ab62e7326c3cf13f40219e4d4fbce241a3",
+  "build": "26ab1f865065dcba3a5f7f2fd970ade8f708f28b",
   "map": "yard",
   "seed": 1395624846,
   "match": {"mode":"competitive","role":"shade","ai":true,"objective":true,"matchLength":5,"difficulty":"medium","round":1},
   "score": {"shade":0,"warden":0},
-  "bindings": {"forward":["KeyW","ArrowUp"],"back":["KeyS","ArrowDown"],"left":["KeyA","ArrowLeft"],"right":["KeyD","ArrowRight"],"jump":["Space"],"crouch":["ControlLeft","KeyC"],"sprint":["ShiftLeft"],"fire":["Mouse0"],"ads":["Mouse2"],"reload":["KeyR"],"interact":["KeyE"],"melee":["KeyF"],"gadget1":["Digit1"],"gadget2":["Digit2"],"gadget3":["Digit3"],"gadget4":["Digit4"],"pause":["Escape"]},
+  "bindings": {"forward":["KeyW","ArrowUp"],"back":["KeyS","ArrowDown"],"left":["KeyA","ArrowLeft"],"right":["KeyD","ArrowRight"],"jump":["Space"],"crouch":["ControlLeft","KeyC"],"sprint":["ShiftLeft"],"fire":["Mouse0"],"ads":["Mouse2"],"reload":["KeyR"],"interact":["KeyE"],"melee":["KeyF"],"torch":["KeyT"],"nightVision":["KeyV"],"xray":["KeyX"],"gadget1":["Digit1"],"gadget2":["Digit2"],"gadget3":["Digit3"],"gadget4":["Digit4"],"pause":["Escape"]},
   "steps": 960,
   "events": [
     [0,"+","KeyW"],
@@ -136,5 +136,5 @@
     [898,"-","KeyE"],
     [898,"p","KeyS"]
   ],
-  "end": {"shade":[-10.031054,0.926,22.230884,-1.313721],"shadeHealth":100,"warden":[-20.230615,0.976,2.837054,-4.146707],"wardenState":"ground","round":{"number":1,"state":"active","outcome":null,"timeRemaining":224,"charge":"carried"},"score":{"shade":0,"warden":0},"rngCalls":20}
+  "end": {"shade":[-10.031054,0.926,22.230884,-1.313721],"shadeHealth":100,"warden":[-18.602279,0.976,1.350699,-4.104308],"wardenState":"ground","round":{"number":1,"state":"active","outcome":null,"timeRemaining":224,"charge":"carried"},"score":{"shade":0,"warden":0},"rngCalls":20}
 }
