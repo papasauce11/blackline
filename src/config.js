@@ -1297,6 +1297,14 @@ export const CONFIG = {
      * corner by a footprint's sliver had the Warden off the deck.
      */
     routeEdgeMargin: 0.6,
+    /**
+     * The margin a re-path after a stuck is planned at. A wider margin forbids
+     * the straightener's tighter shortcuts, so the route keeps to the cell
+     * centres and clears a door jamb the pulled line grazed (K12); the first
+     * route is still planned at `routeEdgeMargin`, because a route that keeps
+     * to cell centres everywhere is a worse walk everywhere.
+     */
+    stuckEdgeMargin: 1.1,
     /** Turn rate, radians per second. */
     turnRate: 3.4,
 

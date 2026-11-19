@@ -41,7 +41,9 @@
  * route with a different failure - the plant's vault door, from (17.25, 4.75)
  * to site-c, grazes the jamb on a pulled segment and slides at a tenth of a
  * metre a second - and is not what a circuit leg's first node is about. It is
- * recorded in PROGRESS.md, not hidden here.
+ * recorded in PROGRESS.md, and K12 walks it: clause (c) is every short leg of the
+ * same stands, clause (d) that very leg, with a re-path after a stuck planned
+ * at `ai.stuckEdgeMargin`.
  *
  * **The time allowed** is the walk the route itself lays, at the Warden's
  * walking speed, with `SLACK` over for the bends and the stairs and `TURNS`
@@ -81,6 +83,12 @@ const TURNS = 4;
 /** The one stand the freeze was measured at, and the node its leg was for. */
 const SPOT = { x: -12, z: -17 };
 const SPOT_NODE_TAG = 'stair-hall-foot';
+
+/** K12's measured leg: the raw point the jamb pinned a body at, and the node it was walking to. */
+const JAMB = { x: 17.25, z: 4.75 };
+const JAMB_NODE_TAG = 'site-c';
+/** A short leg's goal is at least this far from its stand. */
+const SHORT_FLOOR = 2;
 
 const flat = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const fresh = (h) => h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
@@ -154,6 +162,38 @@ function stands(h) {
   return out;
 }
 
+/**
+ * K12's population: the same stands, each with a node on its own floor within
+ * `directRouteRange` (and past `SHORT_FLOOR`, so a stand is not on its goal),
+ * which `_pathTo` plans from the feet over the ground with no node in it.
+ */
+function shortStands(h) {
+  const out = [];
+  const seen = new Set();
+  const ground = h.map.wardenGround;
+  const nodes = h.map.waypoints.filter(Boolean);
+  for (const node of nodes) {
+    let k = 0;
+    for (const c of ground.cellsWithin(node.position, NEAR)) {
+      if (Math.abs(c.y - node.position.y) > SAME_FLOOR) continue;
+      const key = `${c.x.toFixed(2)},${c.y.toFixed(2)},${c.z.toFixed(2)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (k++ % THIN) continue;
+      const close = nodes.filter((n) => {
+        const d = flat(n.position, c);
+        return d > SHORT_FLOOR && d <= A.directRouteRange && Math.abs(n.position.y - c.y) <= SAME_FLOOR;
+      });
+      if (!close.length) continue;
+      out.push({ at: { x: c.x, y: c.y, z: c.z }, near: node, goal: close[(k / THIN | 0) % close.length] });
+    }
+  }
+  return out;
+}
+
+/** The route the AI holds, as a string of its points to 2dp. */
+const routeKey = (ai) => ai._route.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)}`).join(' ');
+
 export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'a-warden-starting-a-patrol-leg-anywhere-reaches-its-node',
@@ -204,6 +244,62 @@ export function register(debugTools) {
       if (tried === 0) problems.push('no stand was found around any waypoint');
       if (failed > 3) problems.push(`${failed} of ${tried} stands did not arrive`);
 
+      // (c) Short legs: a goal within `directRouteRange` is planned from the feet with no node (K12).
+      // Zero tolerance: a leg of ten metres or less arrives, or it is a failure and is listed.
+      let shortTried = 0;
+      let shortFailed = 0;
+      for (const stand of shortStands(h)) {
+        const leg = walkLeg(h, stand.at, stand.goal);
+        shortTried++;
+        if (leg.how !== 'arrived') {
+          shortFailed++;
+          if (shortFailed <= 6) {
+            problems.push(`short leg from (${stand.at.x.toFixed(2)}, ${stand.at.z.toFixed(2)}) to ${stand.goal.tag || stand.goal.id} ${leg.how} after ${leg.seconds.toFixed(1)}s at (${leg.at.x.toFixed(1)}, ${leg.at.z.toFixed(1)}), stuck re-paths ${leg.stuck}`);
+          }
+        }
+      }
+      if (shortTried === 0) problems.push('no short leg was found around any waypoint');
+      if (shortFailed) problems.push(`${shortFailed} of ${shortTried} short legs did not arrive`);
+
+      // (d) The measured case, plant only: the leg that pinned on the vault door's jamb.
+      // The plant is told by clause (a)'s node; the yard has no such stand and says so.
+      const jambGoal = goal ? h.map.waypoints.find((node) => node && node.tag === JAMB_NODE_TAG) : null;
+      if (jambGoal) {
+        const jamb = { x: JAMB.x, y: jambGoal.position.y, z: JAMB.z };
+        const leg = walkLeg(h, jamb, jambGoal);
+        if (leg.how !== 'arrived') {
+          problems.push(`from (${JAMB.x}, ${JAMB.z}) to ${JAMB_NODE_TAG} the Warden ${leg.how} after ${leg.seconds.toFixed(1)}s at (${leg.at.x.toFixed(1)}, ${leg.at.z.toFixed(1)}), stuck re-paths ${leg.stuck}`);
+        }
+        // The re-path, driven the way the detector drives it: a freeze is the
+        // anchor not having moved in `stuckTime`, so it is given one, and
+        // `_checkStuck` lays what it lays. A call to `_pathTo` here would
+        // prove the planner, not that the detector asks for a wider one.
+        const { warden, wardenAI: ai } = h;
+        warden.reset({ position: { x: jamb.x, y: jamb.y, z: jamb.z }, yaw: 0 });
+        ai._enter(AI_STATE.PATROL);
+        ai._pauseTimer = 0;
+        ai.stuckCount = 0;
+        ai._pathTo(jambGoal.position);
+        const first = routeKey(ai);
+        const firstLength = routeLength(ai, jamb);
+        const firstPoints = ai._route.length;
+        ai.stuckTimer = A.stuckTime;
+        ai._stuckAnchor.x = warden.position.x;
+        ai._stuckAnchor.z = warden.position.z;
+        ai._checkStuck(dt);
+        const second = routeKey(ai);
+        const secondLength = routeLength(ai, jamb);
+        facts.push(`${JAMB_NODE_TAG} from (${JAMB.x}, ${JAMB.z}): ${leg.how} in ${leg.seconds.toFixed(1)}s, route ${firstLength.toFixed(1)}m of ${firstPoints} points, after a stuck ${secondLength.toFixed(1)}m of ${ai._route.length}`);
+        if (ai.stuckCount !== 1) {
+          problems.push(`a freeze given to the detector at (${JAMB.x}, ${JAMB.z}) was not counted (stuck ${ai.stuckCount}): the re-path was not driven`);
+        } else if (second === first) {
+          problems.push(`after a stuck at (${JAMB.x}, ${JAMB.z}) the route did not differ from the one it was stuck on (${firstLength.toFixed(1)}m, ${firstPoints} points both)`);
+        }
+      } else {
+        facts.push(`no ${JAMB_NODE_TAG} stand of the plant's on this map (the jamb leg is the plant's)`);
+      }
+      const shortNote = `${shortTried} short legs of ${SHORT_FLOOR}-${A.directRouteRange}m each arrived`;
+
       fresh(h);
       const slow = slowest
         ? `, slowest ${slowest.leg.seconds.toFixed(1)}s of ${slowest.leg.limit.toFixed(1)}s from (${slowest.stand.at.x.toFixed(1)}, ${slowest.stand.at.z.toFixed(1)}) to ${slowest.stand.goal.tag || slowest.stand.goal.id}`
@@ -212,7 +308,7 @@ export function register(debugTools) {
         pass: problems.length === 0,
         detail: problems.length
           ? problems.join('; ')
-          : `${facts.join('; ')}; ${tried} stands within ${NEAR}m of a waypoint each reached a node beyond ${A.directRouteRange}m${slow}`,
+          : `${facts.join('; ')}; ${shortNote}; ${tried} stands within ${NEAR}m of a waypoint each reached a node beyond ${A.directRouteRange}m${slow}`,
       };
     },
   });
