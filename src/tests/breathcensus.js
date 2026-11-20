@@ -204,6 +204,12 @@ const POSED = [
     reach: 'measured',
     note: 'the Warden is the only body in its frame (the Shade\'s is hidden, the lens is at her eye) and it stands: it does not breathe, and nothing walks, so neither phase has a pose to move. Its thinnest clause is (a), the changed share of the Warden\'s rectangle against a floor of 20%: 6,021 of 14,608px (41%) on the plant and 4,053 of 9,936px (41%) on the yard. Measured over sixteen phases of one breath with both actors\' `updateVisual` driven between frames, the changed count read 5,908 at every phase on the plant and 3,983 at every phase on the yard - a spread of zero, the measurement agreeing with the code (the silhouette is drawn from the meshes the pose has already put in place, and the same pose is in the off frame). (b) and (c) are no-change clauses against a frame taken a step apart, whose noise read 0px on both maps',
   },
+  {
+    module: 'camerafeed.js',
+    reach: 'none',
+    proof: 'camera',
+    note: 'drives whole frames with the Warden standing and the Shade at its spawn, and reads two things off them: the one camera\'s world pose and fov across a frame, and the spread of luma in the feed\'s panel. The first is the camera, which a breath does not move (the `camera` proof, held above: a whole breath moves it under 1e-4m) - and the clause compares the camera with its own earlier read, so there is no phase to cross. The second reads a picture rendered from a wall fixture\'s lens, where the Warden does not breathe and a Shade at its spawn is at most a few pixels of a panel the clause asks only to be above a spread of 6: 61.6 on the plant and 72.8 on the yard, an order of magnitude clear. **Unmeasured across breath phases** - nothing here sweeps the cycle - and the clause does not rest on it: eight centimetres of torso on a body that is a fraction of the panel cannot cross a floor ten times under the reading',
+  },
 ];
 
 /**

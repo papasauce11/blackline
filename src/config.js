@@ -1082,14 +1082,17 @@ export const CONFIG = {
         /**
          * What the feed may add to a frame, as a share of the frame's own draw
          * calls and triangles, counted and not timed (a wall clock cannot price
-         * a draw on the gate's renderer, H36/H41). Its parent is the frame
-         * ceiling: `performance.cpuBudgetFraction` allows the CPU frame half of
-         * 16.67ms, and the check-29 load measured 3.10ms against it, so a feed
-         * that adds at most the frame's own calls again doubles that to 6.2ms,
-         * inside the 8.33ms ceiling with 1.7x to spare. The feed has no shadow
-         * pass and no post chain, so in practice it adds far less than one.
+         * a draw on the gate's renderer, H36/H41). **Its parent is what was
+         * measured**: the feed added 81 of a 203-call, 4080-triangle frame on
+         * the plant (0.40 of the calls, 0.34 of the triangles) and 88 of a
+         * 172-call, 3598-triangle one on the yard (0.51 and 0.42), so 0.75
+         * leaves about half again over the worst reading and still reds a feed
+         * that costs most of a second frame. The ceiling behind it is
+         * `performance.cpuBudgetFraction` of 16.67ms, 8.33ms, against the
+         * check-29 median of 3.10ms: a feed at the full 0.75 of the calls
+         * would put the frame near 5.4ms, inside it.
          */
-        budgetShare: 1,
+        budgetShare: 0.75,
       },
     },
   },

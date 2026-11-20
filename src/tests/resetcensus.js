@@ -215,6 +215,11 @@ const EXPOSED = [
     holds: 'the body is the subject',
     why: 'the Shade is killed and the ragdoll tumbles it, which the check measures; the Warden half of this same check is H78s clause and holds its mark to 1e-6m',
   },
+  {
+    file: 'camerafeed.js', id: 'the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back', actor: 'shade',
+    holds: 'a live comparison and not a mark',
+    why: 'the Shade is put two and a half metres out from the wall only to be the taser\'s origin, and its position is read in the same breath to aim down the line to the camera - both ends of the aim are read live, so a Shade that moved would aim from where it is; nothing drives it (the round has no AI) and the clause is about the camera it destroys, not about where the body stands',
+  },
 ];
 
 /**

@@ -227,6 +227,15 @@ export const CENSUS = [
     reads: /shade\.mesh\.position\.set\(/,
     note: 'the one module that **writes** the drawn position and reads none: it snaps the mesh to the capsule\'s feet before ragdolling the body for the check-29 load, because a ragdolled body\'s `updateVisual` returns early and would never bring it there. Every clause in that check is a count, a cap or a pool',
   },
+  {
+    module: 'camerafeed.js',
+    reach: 'none',
+    proof: 'relative',
+    frames: '1',
+    reads: /camera\.getWorldPosition\(/,
+    control: /camera\.getWorldQuaternion\(/,
+    note: 'reads the one camera\'s world position and world rotation before and after a frame that drew the alarm feed, and asserts they are identical - the camera against **itself** across a draw, with `updateVisual` nowhere between the two reads (the frame is `post.render`, which draws and never advances the chase), so whatever gap the chase has open it has open on both sides and the difference is the borrow alone. No drawn body\'s position is read at all: the Warden and the Shade are placed by `reset()`, which snaps, and the panel is read in screen space',
+  },
 ];
 
 /** The reasons a read is out of reach of the chase, each held by the census. */
