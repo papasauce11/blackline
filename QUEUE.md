@@ -939,6 +939,18 @@ the end of this list, never ahead of a game-facing job.
   *done-when:* a pixel check names a frame, a full run writes it under the
   run's own folder, and M7's probe file is deleted because the check is the
   only staging left.
+  **And the cheap path Josh was offered does not scale past one builder a run
+  (2026-11-20, the 17:00 run).** The protocol's economical option is to brief a
+  builder to save the frame from the probe it is already running. But there is
+  **one headless slot on this machine** and the suite refuses to run beside
+  another runner, so of three concurrent builders only one can probe at all -
+  this run gave the slot to K12 and then K14, which left J10 unable to
+  photograph the camera change it had just made, although that change is one of
+  the two most visible things the run did. So the end-of-run `npm run shot` set
+  is not the fallback the protocol calls it; it is the only route for every job
+  but one, and it costs three minutes plus a read of a folder of PNGs. This job
+  is what makes the cheap path real, because a frame that comes out of the
+  **verify** costs no extra run at all.
 - [ ] **H107 (S)** TRAPS.md does not warn that a finished runner agent can
   re-deliver a stale report. This run's verify runner re-sent its *first*,
   pre-fix report four times after its monitors had expired and the fix had
