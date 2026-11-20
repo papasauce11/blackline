@@ -55,6 +55,20 @@
  * seconds without moving `PINNED` metres ends a leg early as a failure, which
  * keeps a red cheap.
  *
+ * **Arrival is in y as well (K13).** The follower called a route point reached
+ * on flat distance alone, so the plant's leg from (-26.25, -19.25) to the hall
+ * stair's head ran along the stair's edge cell and finished at the head's x
+ * and z on the floor six metres below it - not a freeze, so (a) and (b) passed
+ * it. `_followRoute` now asks the feet to be within `ai.waypointArriveRise` of
+ * a floored point, and this file's arrival is that band and a margin, no longer
+ * a storey's worth:
+ *
+ *   (c) the stair legs     the measured stand (-26.25, -19.25) to the stair's
+ *                          head, and the sweep's stands, thinned again, to every
+ *                          stair node standing above the lowest floor. A map
+ *                          with none (the yard's stair is not a waypoint) says
+ *                          so. The detail gives the y the slowest finished at.
+ *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
@@ -71,6 +85,10 @@ const THIN = 3;
 /** A node is reached inside the follower's arrival radius and a stride's margin, on its own floor within this. */
 const ARRIVE = A.waypointArriveRadius + 0.2;
 const SAME_FLOOR = 1;
+/** Arrival's floor band: the follower's own, `ai.waypointArriveRise`, and a stride's margin. */
+const FLOOR = A.waypointArriveRise + 0.15;
+/** Every this many of the sweep's stands is walked to each stair node. */
+const STAIR_THIN = 8;
 /** Seconds without moving `PINNED` metres that ends a leg as a freeze. */
 const FROZEN = 6;
 const PINNED = 0.5;
@@ -81,6 +99,9 @@ const TURNS = 4;
 /** The one stand the freeze was measured at, and the node its leg was for. */
 const SPOT = { x: -12, z: -17 };
 const SPOT_NODE_TAG = 'stair-hall-foot';
+/** The stand the under-the-stair finish was measured at, and the tag of the stair's head it was walking to. */
+const STAIR_SPOT = { x: -26.25, z: -19.25 };
+const STAIR_NODE_TAG = 'stair-hall-head';
 
 const flat = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const fresh = (h) => h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
@@ -118,8 +139,8 @@ function walkLeg(h, stand, node) {
   let anchorStep = 0;
   for (let f = 0; f < steps; f++) {
     warden.step(dt, ai.step(dt, { shade: null }));
-    if (flat(warden.position, node.position) <= ARRIVE && Math.abs(warden.feetY - node.position.y) < SAME_FLOOR) {
-      return { how: 'arrived', seconds: (f + 1) * dt, planned, limit, stuck: ai.stuckCount };
+    if (flat(warden.position, node.position) <= ARRIVE && Math.abs(warden.feetY - node.position.y) <= FLOOR) {
+      return { how: 'arrived', seconds: (f + 1) * dt, planned, limit, stuck: ai.stuckCount, y: warden.feetY };
     }
     if (f - anchorStep >= window) {
       if (flat(warden.position, anchor) < PINNED) {
@@ -152,6 +173,13 @@ function stands(h) {
     }
   }
   return out;
+}
+
+/** The waypoints a body reaches by climbing: tagged for a stair and standing above the map's lowest floor. */
+function stairNodes(h) {
+  const nodes = h.map.waypoints.filter(Boolean);
+  const floor = Math.min(...nodes.map((n) => n.position.y));
+  return nodes.filter((n) => /stair/.test(n.tag || '') && n.position.y - floor > A.waypointArriveRise);
 }
 
 export function register(debugTools) {
@@ -203,6 +231,43 @@ export function register(debugTools) {
       }
       if (tried === 0) problems.push('no stand was found around any waypoint');
       if (failed > 3) problems.push(`${failed} of ${tried} stands did not arrive`);
+
+      // (c) The stair legs.
+      const stairs = stairNodes(h);
+      let climbed = 0;
+      let slowestStair = null;
+      if (!stairs.length) {
+        facts.push('no stair node on this map');
+      } else {
+        const head = stairs.find((n) => n.tag === STAIR_NODE_TAG);
+        const legs = [];
+        if (head) {
+          // The raw point on the lowest floor, as (a) puts its stand: the stair climbs from here.
+          const base = Math.min(...h.map.waypoints.filter(Boolean).map((n) => n.position.y));
+          const spot = { x: STAIR_SPOT.x, y: base, z: STAIR_SPOT.z };
+          if (ground.cellAt({ x: spot.x, y: base + 0.01, z: spot.z })) legs.push({ at: spot, goal: head, label: `(${STAIR_SPOT.x}, ${STAIR_SPOT.z})` });
+          else problems.push(`(${STAIR_SPOT.x}, ${STAIR_SPOT.z}) is on no cell of the Warden's ground: the stand the stair clause was measured at has moved`);
+        }
+        const all = stands(h);
+        for (const goal of stairs) {
+          for (let i = 0; i < all.length; i += STAIR_THIN) {
+            if (flat(all[i].at, goal.position) > A.directRouteRange + 1) legs.push({ at: all[i].at, goal, label: `(${all[i].at.x.toFixed(2)}, ${all[i].at.z.toFixed(2)})` });
+          }
+        }
+        let bad = 0;
+        for (const leg of legs) {
+          const walked = walkLeg(h, leg.at, leg.goal);
+          if (walked.how === 'arrived') {
+            climbed++;
+            if (!slowestStair || walked.seconds / walked.limit > slowestStair.used) slowestStair = { used: walked.seconds / walked.limit, y: walked.y, to: leg.goal, label: leg.label, seconds: walked.seconds };
+          } else if (bad++ < 3) {
+            problems.push(`from ${leg.label} to the stair node ${leg.goal.tag || leg.goal.id} (y ${leg.goal.position.y.toFixed(1)}) the Warden ${walked.how} after ${walked.seconds.toFixed(1)}s at (${walked.at.x.toFixed(1)}, ${walked.at.z.toFixed(1)}, feet ${h.warden.feetY.toFixed(1)}), stuck re-paths ${walked.stuck}`);
+          }
+        }
+        if (legs.length === 0) problems.push('no stand was found for a stair leg');
+        if (bad > 3) problems.push(`${bad} of ${legs.length} stair legs did not arrive on the stair`);
+        facts.push(`${climbed} of ${legs.length} stair legs arrived within ${FLOOR.toFixed(2)}m of the node's height${slowestStair ? `, slowest ${slowestStair.seconds.toFixed(1)}s from ${slowestStair.label} to ${slowestStair.to.tag || slowestStair.to.id}, finishing at y ${slowestStair.y.toFixed(2)} for the node's ${slowestStair.to.position.y.toFixed(2)}` : ''}`);
+      }
 
       fresh(h);
       const slow = slowest

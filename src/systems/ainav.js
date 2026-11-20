@@ -52,7 +52,7 @@ export const NAVIGATION = {
     if (ground && this._distanceTo(stand || goal) <= A.directRouteRange) {
       const direct = ground.route(feet, goal, A.maxUnpathedLeg, DEFUSE_SNAP, A.routeEdgeMargin);
       if (direct) {
-        for (let i = 1; i < direct.length; i++) this._route.push(direct[i]);
+        for (let i = 1; i < direct.length; i++) this._route.push({ ...direct[i], floored: true });
         return;
       }
     }
@@ -87,10 +87,10 @@ export const NAVIGATION = {
           }
         }
       }
-      if (lead) for (const p of lead.points) this._route.push(p);
+      if (lead) for (const p of lead.points) this._route.push({ ...p, floored: true });
       for (let i = first; i < nodes.length; i++) {
         const p = this.map.waypoints[nodes[i]].position;
-        this._route.push({ x: p.x, y: p.y, z: p.z });
+        this._route.push({ x: p.x, y: p.y, z: p.z, floored: true });
       }
     }
 
@@ -109,7 +109,7 @@ export const NAVIGATION = {
       )
       : null;
     if (tail) {
-      for (let i = 1; i < tail.length; i++) this._route.push(tail[i]);
+      for (let i = 1; i < tail.length; i++) this._route.push({ ...tail[i], floored: true });
     } else {
       this._route.push({ x: goal.x, y: goal.y, z: goal.z });
     }
@@ -171,7 +171,16 @@ export const NAVIGATION = {
     }
     const target = this._route[this._routeIndex];
     const flat = Math.hypot(target.x - this.warden.position.x, target.z - this.warden.position.z);
-    if (flat <= A.waypointArriveRadius) {
+    // Reached is flat AND on the point's floor. Flat alone called a stair's
+    // head reached from the floor beneath it - the plant's leg from
+    // (-26.25, -19.25) to the hall stair's head ran along the stair's edge
+    // cell and finished at the node's x and z six metres below it (K13). The
+    // one point with no floor is the straight-line goal off the ground (a
+    // charge on a vent lip): that is only ever reached from beneath, and a
+    // defuse that waited for its y would never begin. Near but off the floor
+    // the follower keeps steering at the point, which is what walks it up.
+    const onFloor = !target.floored || Math.abs(this.warden.feetY - target.y) <= A.waypointArriveRise;
+    if (flat <= A.waypointArriveRadius && onFloor) {
       this._routeIndex++;
       return this._routeIndex >= this._route.length ? this._followRoute(dt, sprint) : false;
     }

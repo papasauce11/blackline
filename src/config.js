@@ -1305,6 +1305,13 @@ export const CONFIG = {
     /** Distance at which a waypoint counts as reached. */
     waypointArriveRadius: 0.9,
     /**
+     * How far off a floored route point's height the feet may be and still
+     * have reached it. PROVISIONAL: a little over the Warden's `stepHeight`
+     * (0.35), so a body mid-stride on a step is on the point's floor, and a
+     * body a storey beneath a stair's head is not.
+     */
+    waypointArriveRise: 0.5,
+    /**
      * How far the AI may have to walk from its last waypoint to a goal with
      * only the solver to steer it - the one leg nothing plans (Block A8). A
      * bound on the waypoint graph's density, measured from the ground a
