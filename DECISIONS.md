@@ -196,6 +196,44 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D93 — A comment-only diff since the verified commit does not earn a seventy-minute gate
+Taken by the lead under D84 (not personality, not styling, not key feel: a
+verify policy, and the kind P2 was written to price). 2026-11-20, the 02:00
+run.
+
+- **The case.** The gate is skipped when the tree is clean and
+  `git diff --stat <last verified commit>..HEAD -- src scripts tests
+  index.html package.json package-lock.json` is empty. At the start of this
+  run it was not empty: `b05d8c2`, the previous run's own `Record batch`
+  commit, changed **one line of `src/tests/camerafeed.js`**, and that line is
+  inside a `//` comment - `H110` corrected to `H115`, the id of the bug the
+  comment describes. Read literally the rule bought a two-run gate, about
+  seventy minutes, for a four-character fix to a cross-reference.
+- **Skipped, and here is why that is safe rather than convenient.** The honest
+  objection is not that a comment cannot change behaviour - `node --check`
+  settles that - but that it **can**: `breathcensus.js` and `timedrenders.js`
+  read the raw text of every module under `src/tests/`, comments included,
+  and H53 cost a verify to learn it. So the argument is not "a comment is
+  invisible". It is that **the run's own verify covers this commit too**. The
+  verify at the end of a run is a full two-run suite over everything in the
+  branch, `b05d8c2` included, and a red is attributed by the red check's own
+  subset at each of the run's commits. Skipping the gate therefore costs one
+  extra candidate commit in an attribution - and that candidate is a bare job
+  id in a comment, the cheapest commit this project has ever had to rule out.
+  What the gate buys that the verify does not is *not building on a red base*,
+  and the base here is `7a2400f`, verified green nine hours earlier at plant
+  264/1/10 and yard 246/1/28 with an empty `flaky` list.
+- **The rule this leaves behind**, for the next run that reads it: a diff
+  since the verified commit whose every changed line lies inside a comment
+  **and** whose changed text matches no census criterion may be carried into
+  the run's verify instead of gated for, and the skip is written down with
+  the commit named. Any changed line outside a comment, in any file the rule
+  lists, is a gate as before. A comment edit that adds or removes a word a
+  source census keys on - `updateVisual` is the one that has bitten - is a
+  gate as before, because that is a real change to what a check reads.
+- **Override:** gate anyway. The cost is seventy minutes of a run's hour and
+  no proofs can run beside it, which is the whole of the trade.
+
 ### D91 — The alarm camera's feed borrows the one camera, and spec 9.2's ban on a feed is withdrawn
 Taken by the lead under D84 (not personality, not styling, not key feel: an
 engineering route and a contradiction in the contract). M5, 2026-11-19, the
