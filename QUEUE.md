@@ -1015,6 +1015,17 @@ the end of this list, never ahead of a game-facing job.
 
 - [x] **H114 (S)** The settle clause after K11 — done 2026-11-19, under Done. The settle clause of `quiesce-says-what-it-does-about-the-ai` in `src/tests/quiesce.js`; the prose in `tests/pixels.js`, `tests/quiescesites.js` and `tests/settlecircuit.js`.
 
+- [ ] **H116 (S)** `shot.mjs` cannot photograph the Warden's HUD. M5 landed
+  the alarm camera's live feed and the batch could not show Josh a single frame
+  of it: `scripts/shot.mjs` boots as the Shade with no gadget placed, so there
+  is no camera to feed a panel and no Warden HUD to put it in. The run shipped
+  two three-quarter frames with a caption saying neither of the run's two jobs
+  is visible in them, which is honest and not useful. The same gap hides K3's
+  torch, the scoreboard and anything else role-gated. *done-when:* `shot.mjs`
+  takes a flag that boots the Warden with a placed alarm camera (reusing what
+  the camera-feed check already does to get there), the pose list has one frame
+  that includes the HUD panel, and `npm run shot` writes it on both maps.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
