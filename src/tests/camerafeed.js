@@ -169,14 +169,14 @@ function snapshot(h) {
 }
 
 /** What differs between two snapshots, as words, or an empty list. */
-function moved(before, after, { mask = true } = {}) {
+function moved(before, after) {
   const out = [];
   if (before.parent !== after.parent) out.push('its parent');
   const worse = (a, b) => a.some((value, i) => !(Math.abs(value - b[i]) <= SAME));
   if (worse(before.world, after.world)) out.push('its world pose');
   if (worse(before.local, after.local)) out.push('its local pose');
   if (worse(before.lens, after.lens)) out.push('its fov, aspect or planes');
-  if (mask && before.mask !== after.mask) out.push('its layer mask');
+  if (before.mask !== after.mask) out.push('its layer mask');
   if (before.shadows !== after.shadows) out.push('the renderer\'s shadow update');
   if (before.autoClear !== after.autoClear) out.push('the renderer\'s autoClear');
   if (before.target !== after.target) out.push('the renderer\'s target');
@@ -250,14 +250,15 @@ export function register(debugTools) {
         }
         const afterThrow = snapshot(h);
         if (!thrown) problems.push('(b) the render this check made fail did not reach the feed, so the restore was not tried');
-        // The mask is post.js's to put back and a throw skips that line, so it is not asked of a throw.
-        // It IS this check's to put back: post.render sets the camera to layer 0 for the scene pass and
-        // only restores the standing mask after the overlay, so the throw leaves the one camera blind to
-        // `render.overlayLayer`. The post-OFF path draws the world with whatever mask the camera carries,
-        // so the feedback quad - the hit marker - then draws in no later check, and the two runs of a map
-        // share one page: run 1 passed and run 2 read "the hit marker changed nothing" (H115).
-        h.camera.layers.mask = beforeThrow.mask;
-        const driftedThrow = moved(beforeThrow, afterThrow, { mask: false });
+        // The mask is post.js's to put back, throw or no throw: post.render sets the camera to layer 0
+        // for the scene pass and gives the standing mask back in a `finally`, so this asks the render
+        // path for it and does not put it back itself. It used to: the restore sat on the line after
+        // `overlay()`, a throw skipped it, and the one camera stayed blind to `render.overlayLayer`. The
+        // post-OFF path draws the world with whatever mask the camera carries, so the feedback quad - the
+        // hit marker - then drew in no later check, and the two runs of a map share one page: run 1
+        // passed and run 2 read "the hit marker changed nothing" (H115). The check had to restore it
+        // for the render path then; now it is the render path's.
+        const driftedThrow = moved(beforeThrow, afterThrow);
         if (driftedThrow.length) problems.push(`(b) after a feed render that threw the one camera has moved ${driftedThrow.join(', ')}`);
         notes.push(`(b) the camera on ${before.parent === h.scene ? 'the scene' : 'its rig'} came back across a frame${thrown ? ' and across a throw' : ''}`);
 

@@ -183,9 +183,14 @@ export function createPost(renderer) {
     const background = world.background;
     renderer.autoClear = false;
     world.background = null;
-    renderer.render(world, camera);
-    world.background = background;
-    renderer.autoClear = autoClear;
+    // A throw in the draw must not leave the scene without its background or
+    // the renderer without its clear.
+    try {
+      renderer.render(world, camera);
+    } finally {
+      world.background = background;
+      renderer.autoClear = autoClear;
+    }
   };
 
   // M3: the silhouettes go on top of the finished frame, post included and the
@@ -275,30 +280,36 @@ export function createPost(renderer) {
         return;
       }
       const mask = camera.layers.mask;
-      camera.layers.set(0);
-      renderer.setRenderTarget(scene);
-      renderer.render(world, camera);
+      // The mask goes back in a `finally`: a throw anywhere in the frame (the feed's
+      // own render, say) used to skip the restore after `overlay()` and leave the one
+      // camera blind to `render.overlayLayer` for every later frame (H115).
+      try {
+        camera.layers.set(0);
+        renderer.setRenderTarget(scene);
+        renderer.render(world, camera);
 
-      uniforms.bright.tScene.value = scene.texture;
-      pass(brightMaterial, bright);
-      let from = bright;
-      let to = blurA;
-      for (let i = 0; i < PP.blurPasses; i++) {
-        uniforms.blur.tSource.value = from.texture;
-        uniforms.blur.step.value.set(1 / from.width, 0);
-        pass(blurMaterial, to);
-        uniforms.blur.tSource.value = to.texture;
-        uniforms.blur.step.value.set(0, 1 / to.height);
-        pass(blurMaterial, from);
+        uniforms.bright.tScene.value = scene.texture;
+        pass(brightMaterial, bright);
+        let from = bright;
+        let to = blurA;
+        for (let i = 0; i < PP.blurPasses; i++) {
+          uniforms.blur.tSource.value = from.texture;
+          uniforms.blur.step.value.set(1 / from.width, 0);
+          pass(blurMaterial, to);
+          uniforms.blur.tSource.value = to.texture;
+          uniforms.blur.step.value.set(0, 1 / to.height);
+          pass(blurMaterial, from);
+        }
+        uniforms.composite.tScene.value = scene.texture;
+        uniforms.composite.tBloom.value = from.texture;
+        pass(goggles ? nightMaterial : compositeMaterial, null);
+
+        silhouettes(world, camera);
+        overlay(world, camera);
+        post.passes = 3 + 2 * PP.blurPasses;
+      } finally {
+        camera.layers.mask = mask;
       }
-      uniforms.composite.tScene.value = scene.texture;
-      uniforms.composite.tBloom.value = from.texture;
-      pass(goggles ? nightMaterial : compositeMaterial, null);
-
-      silhouettes(world, camera);
-      overlay(world, camera);
-      camera.layers.mask = mask;
-      post.passes = 3 + 2 * PP.blurPasses;
     },
     /** The targets follow the drawing buffer. */
     setSize() {
