@@ -95,6 +95,55 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The Warden stops walking off the deck (K14, 2026-11-20)
+
+Send the Warden across the plant’s west deck to the stairs and it used to
+walk 24 metres along the deck edge, drift ten centimetres, and fall into the
+hall. It was not a bug in the walking. The map is divided into little squares
+the Warden is allowed to stand on, and a square counted as standable if *any
+sliver* of its footprint was over real floor - so the row of squares right
+along the void’s rim counted, and they were the shortest way round. The body
+really could stand on them. It just could not stay on them.
+
+Routes are now planned over squares whose **centre** has floor under it, and
+only fall back to the old set if there is no such route at all - so no walk
+the Warden could take before has been taken away from it.
+
+**What the checks prove.** The exact walk that failed, driven every run on the
+plant: 1813 frames over 177 route points, the lowest the feet ever got on the
+deck 6.00m against the deck’s 6m, arrived. And the old soak alongside it: 4200
+steps of a real match, never once off its ground.
+
+**What is left for you.** Nothing is wrong that I can see, but the routes the
+Warden takes around the plant have all shifted a little inboard, away from
+edges. **What to look for:** whether it now hugs the middle of walkways in a
+way that reads as timid, or walks a longer way round than you would. If it
+does, that is a tuning question and worth saying - the margin is a number.
+
+### The camera no longer has a blind spot beside you (J10, 2026-11-20)
+
+In third person the camera checks for walls twice - once from your centre,
+once from over your shoulder. The shoulder check started from a point up to
+0.45m out to the side, and when you ran along a wall closer than that, the
+starting point was **inside the wall** - where the test it uses reports
+nothing at all. So beside a wall, half the camera’s eyes were shut. It never
+showed as the camera going through a wall, because a second, cruder test
+caught it every time; it showed as the camera being yanked in by that cruder
+test instead of easing.
+
+The shoulder point now steps back in until it is in open air, and the final
+check is re-run at the shoulder the camera actually ends up at rather than the
+one it guessed at.
+
+**What the checks prove.** The run along the fence, 1820 frames at seven
+distances on each shoulder: the start point was inside the wall on **576** of
+them, and on **572** the rays saw nothing and the crude test was all there was.
+The camera never entered the world on any frame. And the eight poses J1
+measured read exactly as they did before - nothing in the open changed.
+
+**What is left for you.** Run along a long wall in third person, on either
+shoulder, and say whether the camera now slides rather than snapping. That is
+the part no check can judge.
 ### The alarm camera has a picture now (M5, 2026-11-19)
 
 Play the **Warden**, place your camera (gadget 3) on a wall, and look at the
@@ -3262,6 +3311,20 @@ now. What is not, and why:
 
 ## Known issues and open questions
 
+- **The camera can end up inside the Shade when you are jammed beside a wall**
+  (J11, measured by J10, 2026-11-20). When the camera has nowhere to go it
+  pulls all the way in to the Shade’s own centre. J1 found it happening when
+  you press flat into a corner; J10’s run along the fence found it happening
+  while simply **walking** beside a wall at close quarters - four frames out of
+  1820, at the closest distances tested. The camera is then inside her 0.34m
+  body, not inside the world, so none of the wall checks have anything to say
+  about it, deliberately. What a player actually sees there is unknown: the
+  back faces of the model are not drawn, so she may simply vanish for those
+  frames, or the inside of her chest may fill the frame. **What to look for:**
+  walk the Shade along a wall in third person, as close as she will go, and
+  say whether anything flickers. If it does, the fix is to fade or hide the
+  body below a camera distance, and which of those two it should be is a look
+  I will recommend rather than ask you about.
 - **One way in is never on the Warden's camera** (K9, 2026-11-19). The Warden
   hangs its one alarm camera over the way in it thinks you will use (K4). On
   the plant one way in can never be watched: the climb that starts on the
