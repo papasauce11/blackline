@@ -22594,3 +22594,57 @@ steps, finite=true, new assertion failures=0`, and the number that moved is
 `sim=`, the shared page's simulation clock, which cannot match between run 1 and
 run 2 by construction. A reading that always carries a 100% change is a reading
 people learn to skip, and that is how H115 hid for a whole batch - **H119**.
+
+## K12 — Both levers measured dead, and the fix named (2026-11-20, the 17:00 run)
+
+K12 is the plant's vault door: a leg of ten metres or less is planned from the
+feet over the ground with no graph node in it (`ai.directRouteRange`, D5), and
+from (17.25, 4.75) to `site-c` the body slides along the jamb at a tenth of a
+metre a second until the stuck detector gives up and lays the same route again.
+Its done-when offered two levers. **Both are now measured dead, and this entry
+is the measurement** — the job built no code, which is the right outcome rather
+than an omission.
+
+The first lever went on 2026-11-19: a wider ground margin on the re-path lays
+the *identical* route, 8.1m of 2 points either way, because `_segmentOnGround`
+asks whether there is ground **under the line** and a doorway's floor is
+continuous. A jamb is a wall at body height and that test cannot see it at any
+margin.
+
+The second lever was the steering: `_followRoute` sets `forward = 1` whenever
+`Math.abs(off) < Math.PI / 3`, so the reading was that the body walks while
+badly off-axis and grazes the jamb, and the fix would be a tighter gate for the
+two seconds after a stuck. The resume note said **measure first**, and the
+measurement is why there is no code. The probe stepped the leg for twelve
+seconds and read `off` — the very angle the gate tests — every frame. Over the
+657 sliding frames `|off|` is **median 0.0 degrees**, and under one degree the
+whole time the body creeps; the maxima, up to 171 degrees, are the handful of
+frames right after each re-path while the body turns on the spot. **The Warden
+is facing its target and walking into a wall edge at z 5.18, with the target at
+z 10.25.** A gate of 15 degrees changes nothing when the body is already inside
+one.
+
+The rest of the trace, because the next job needs it: the body turns in place
+for about 50 frames, walks out to (17.74, 5.18), and from there creeps in +x
+along that z — 0.41 m/s at frame 60, 0.19 at 90, 0.10 at 150, 0.04 at 240. The
+detector fires at frames 270, 510 and 750; each re-path releases one burst of
+0.5 to 0.75 m/s before the body pins again. Four stucks in twelve seconds, and
+at frame 690 it is at (18.17, 5.18) — half a metre of progress in eleven
+seconds.
+
+So the fix is the one K12's own note named as the bigger job, and the note also
+said to split it out if the steering did not hold: **K16**, a ground route that
+refuses a segment the body's width cannot pass at body height, rather than one
+with a floor under it. D96 records the split and the three options rejected.
+K12 is `[~]` and `blocked: K16`; K15's stray climbing cells sit on the same
+strip of ground and may be the same family.
+
+**The check is written and deliberately not landed.** The two clauses the
+done-when asks for — the short-leg sweep (every stand near a waypoint with a
+goal inside `directRouteRange`: 200 on the plant, 337 on the yard, zero
+tolerance, and with the bug present exactly 1 of 200 fails) and the measured
+jamb leg — are written against today's clause letters as (d) and (e), with the
+disproved "a stuck re-path lays a different route" assertion dropped, and they
+are **red on today's game**. Landing a red check breaks the base, so they sit on
+`k12-check-wip` (`38d8da4`) beside `3672cc0`'s earlier copy on `wt-k12`. K16
+takes them whole and turns them green; that is K16's break, already written.

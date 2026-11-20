@@ -196,6 +196,54 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D96 — K12's two levers are both measured dead, so the job splits and K16 is the fix
+Taken by the lead under D84 (not personality, not styling, not key feel: a bug's
+cause, and whether a job is split). 2026-11-20, the 17:00 run. The split was
+pre-authorised by K12's own done-when, which says *"split it out if the steering
+does not hold"* - this entry records that it did not, and why.
+
+- **What K12 asks for.** A short leg (10m or less, so `_pathTo` plans it from
+  the feet over the ground with no graph node in it) pins on the plant's vault
+  door jamb: from (17.25, 4.75) to `site-c` the body slides at about 0.1 m/s,
+  the stuck detector fires, and the re-path lays the same route. Its done-when
+  offered two levers: **a re-path that plans a different route**, or **steering
+  that walks only when aligned tightly enough to clear the jamb**.
+- **The first lever was disproved on 2026-11-19** (the 17:00 run, `3672cc0`,
+  reverted): a wider `margin` lays the identical route, because
+  `_segmentOnGround` asks whether there is ground *under the line* and a
+  doorway's floor is continuous. A jamb is a wall at body height, which that
+  test cannot see at any margin.
+- **The second lever is disproved now, by measurement.** The probe stepped the
+  leg for 12 seconds and read `off` - the angle `_followRoute` gates on - every
+  frame. Over the 657 sliding frames `|off|` is **median 0.0 degrees** and
+  under a degree the whole time the body creeps; the maxima (up to 171) are the
+  handful of frames just after each re-path, while the body turns on the spot.
+  The Warden is **facing its target and walking into a wall edge at z 5.18**,
+  with the target at z 10.25. Tightening the gate from 60 degrees to 15 after a
+  stuck would change nothing, because the body is already inside one degree.
+  The full creep: 0.41 m/s at frame 60, 0.19 at 90, 0.10 at 150, 0.04 at 240;
+  the detector fires at 270, 510 and 750, each time releasing one 0.5-0.75 m/s
+  burst before the body pins again. Four stucks in twelve seconds.
+- **So the real fix is the one K12's note already named as the bigger job**: a
+  route that respects **body-height clearance** and not just ground presence.
+  That is **K16**, queued with its own done-when. K12 is `[~]` and
+  `blocked: K16` - it is the same leg, so it is K16's check that will show it
+  green, and there is nothing left in K12 that K16 does not do.
+- **The options, and why this one.** (1) Build the steering gate anyway, as the
+  done-when's second option, and let it fail - rejected, the measurement says
+  it cannot work and a change that moves no number is worse than none. (2) Fold
+  K12 whole into K16 and mark it `[x]` - rejected, K12's *reproduction* and its
+  two measurements are the content of the job and deleting the entry loses
+  them. (3) Park K12 under K16, which is this. (4) Widen K12 to the clearance
+  route in place - rejected under D79: the clearance work is not an S.
+- **What landed, and what did not.** The clauses K12's done-when asks for are
+  written and parse - the short-leg sweep (200 stands on the plant, 337 on the
+  yard, zero tolerance, exactly 1 of 200 failing with the bug present) and the
+  measured jamb leg - and they are **red on today's game**, correctly. They are
+  held off the branch on `k12-check-wip` (`38d8da4`), beside `3672cc0`'s
+  earlier copy on `wt-k12`, because landing a red check breaks the base. K16
+  takes them whole.
+
 ### D95 — One feed, and it is Section 13's; J4's five events go onto it rather than beside it
 Taken by the lead under D84 (not personality, not styling, not key feel: which
 of two viable builds a job takes, and a duplicate a player would have seen).

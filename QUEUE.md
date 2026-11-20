@@ -1056,6 +1056,33 @@ the end of this list, never ahead of a game-facing job.
   and having those checks not print the clock at all - then the H79 list is
   shorter by exactly the clock entries, every other entry reads as it did, and
   the reading says how many it dropped.
+- [ ] **H120 (S)** `night.render` restores nothing on a throw, which is H115
+  again on the path nobody looked at. M11 found it while putting the post
+  path's render target back: `createNightVision`'s `render` in
+  `src/nightvision.js` sets its target, draws the world, sets null, draws the
+  pass scene, runs `overlay`, and restores the camera's layer mask on its
+  **last line, with no `try`/`finally`**. So a throw in the scene draw leaves
+  the night-vision target bound, and a throw in the pass draw or in `overlay`
+  leaves the one camera stuck on layer 0 — the exact H115 failure M10 fixed on
+  the other path, and `post.render` does not cover this one because it
+  `return`s before its own `try`. *done-when:* the mask and the target come
+  back from `night.render` in a `finally` the way M10 and M11 put them back in
+  `post.render`, the night-vision check induces a throw on that path and reads
+  both, and the frame's call count is unmoved (the target restore is
+  conditional, as M11's is, or it costs a call on the happy path).
+- [ ] **H121 (S)** `src/entities/agentvisual.js` is 582 lines of the 600 cap,
+  18 left, after J10 added `boomOrigin` and the closing clear test. It was 535.
+  That makes it the second of the cluster behind `src/tests/audiodevice.js`
+  (597), and the next job to touch the boom will meet the ceiling rather than
+  choose a seam. **The seam is already visible and it is `registry.js`'s
+  shape**: `boomSweep`, `boomClear`, `boomDistance`, `boomUp` and now
+  `boomOrigin` are five pure functions of the collision world that the rig
+  calls and that `tests/cameraclip.js` imports by name — the boom's geometry,
+  which is not the same subject as a figure's visual state. *done-when:* the
+  boom's pure geometry is one module, `agentvisual.js` imports it, every call
+  site and every check import is unchanged in behaviour, the cluster reading
+  names the new sizes, and no number moves (H56 is the worked example of a
+  split that changed no call site; H75 of one that changed five).
 
 ## Block K — the Warden as an opponent
 
@@ -1074,7 +1101,7 @@ K4, K5, K7.
 - [x] **K9 (S)** The one approach the camera cannot watch — done 2026-11-19, under Done. `PLAYTEST.md` names it under Known issues; K10's clause 3 asserts it every run.
 - [x] **K10 (S)** A finer fan for the camera's wall — done 2026-11-04, under Done. `ai.alarmPlacementProbes` 8 to 16 (22.5 degrees), clause 3 of K4's check comparing the fan with the eight rays before it: +86 stands on the plant, +69 on the yard. **Parity with a fine sweep is unreachable at any count** - the fan is centred on the foot and a plain sweep is not, so they never share a ray - and the covers-per-route table is in PROGRESS.md. D86. `8bb3163`.
 - [x] **K11 (S)** A Warden that starts its circuit the wrong way and freezes — done 2026-11-19, under Done. `_leadTo` / `_pathTo` in `src/systems/ainav.js` plan a leg's first stretch over the ground; `GameMap.canWalk` in `src/mapground.js`; `CONFIG.ai.leadSnapRadius`; `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`; the yard replay re-recorded.
-- [~] **K12 (S)** A short leg pins on a door jamb. K11 found it and kept it
+- [~] **K12 (S)** **blocked: K16** (D96; unblocks the day K16 lands) — A short leg pins on a door jamb. K11 found it and kept it
   out of its sweep: a leg of 10m or less (`directRouteRange`, D5) is planned
   from the feet with no node, and on the plant from (17.25, 4.75) to site-c the
   body slides along a door jamb at about 0.1m/s; the stuck detector fires and
@@ -1109,6 +1136,22 @@ K4, K5, K7.
   and with the bug present exactly **1 of 200** fails, so the tolerance is
   right), and clause (d), the measured leg plus a re-path that must differ.
   Cherry-pick the test file alone and build the fix under it.
+  **The steering lever is disproved too, 2026-11-20 (the 17:00 run) - D96, and
+  the job is parked under K16.** The probe stepped the leg for 12s and read
+  `off`, the angle `_followRoute` gates on, every frame: over the 657 sliding
+  frames `|off|` is **median 0.0 degrees** and under one degree the whole time
+  the body creeps (the maxima, up to 171, are the few frames after each re-path
+  while it turns on the spot). **The Warden is facing its target and walking
+  into a wall edge at z 5.18, with the target at z 10.25** - it is not
+  off-axis, so tightening the gate to 15 degrees after a stuck moves nothing.
+  The creep: 0.41 m/s at frame 60, 0.19 at 90, 0.10 at 150, 0.04 at 240; the
+  detector fires at frames 270, 510 and 750, each time releasing one
+  0.5-0.75 m/s burst before it pins again; four stucks in twelve seconds. Both
+  of the done-when's options are now measured dead, so the real fix is **K16**,
+  and K12's own note already said to split it out if the steering did not hold.
+  *resume from:* nothing - K16 is the same leg and its check is K12's clauses,
+  written as (d) and (e) and held on `k12-check-wip` (`38d8da4`) because they
+  are red on today's game. When K16 lands, mark this `[x]` under it.
 - [x] **K13 (S)** A leg to a stair node arrives under the stair — done 2026-11-20, under Done. `floored` on every ground-laid point of `_pathTo` and the floor condition in `_followRoute` (`src/systems/ainav.js`), `CONFIG.ai.waypointArriveRise` 0.5 (PROVISIONAL), clause (c) and `stairNodes()` on `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`. `bf0460b`.
 - [ ] **K14 (S)** The deck ring walks off the deck. K11's reproduction: a
   Warden on the plant's west deck at (-29.25, 6, -18.25) sent to the hall's
@@ -1130,6 +1173,26 @@ K4, K5, K7.
   stair's declared cross range on either map, or the declared range is what is
   wrong and moves, with a check that reads the two against each other and names
   the stair.
+- [ ] **K16 (M)** A route that clears a body, not just a floor. K12's two
+  measurements (D96) say the same thing from both ends: `_segmentOnGround` asks
+  whether there is **ground under the line** and a margin either side, so a
+  doorway's continuous floor passes at any margin, and the straightener pulls a
+  segment through a jamb the body cannot fit past. The 2026-11-20 probe closed
+  the other door: the body is aligned to within **one degree** while it slides,
+  so it is not orbiting its target, it is walking into a wall edge at z 5.18
+  with the target at z 10.25. Steering cannot fix it and neither can a margin;
+  the planner has to know the body's **width at body height**. *done-when:* the
+  ground route (`src/mapground.js`) refuses a segment whose swept body width -
+  `CONFIG.warden.radius` either side, over the stand height, not the floor -
+  meets collision geometry, so the plant's leg from (17.25, 4.75) to `site-c`
+  arrives; the two clauses already written for it land from `k12-check-wip`
+  (`38d8da4`) as (d) the short-leg sweep (zero tolerance, 200 stands on the
+  plant and 337 on the yard) and (e) the measured jamb leg, both green; and the
+  ai/nav check set is unmoved, since a clearance test that refuses segments the
+  body *can* walk would shorten every route on both maps. **Measure before
+  building**: a swept test per segment is run inside the planner, so read what
+  it costs against `ai-paths-between-every-waypoint-pair` before widening it.
+  K12 is `[~]` under this and K15's cells sit on the same strip.
 - [x] **K8 (S)** The per-round aim draw — done 2026-11-19, under Done. `_drawAimError` from the `combat:shot` handler in `src/systems/ai.js`, not the burst refill; `MIN_IN_BURST_SCATTER` 0.77 on `the-widest-cone-kills-at-range-and-not-once-in-a-while`.
 ## Block M — vision
 
