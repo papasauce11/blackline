@@ -22557,3 +22557,40 @@ resume note says to treat the staging as a draft.
 It also found the one line of the five that nothing can carry: **defusing raises
 no event at all** — `objective.js` has only the `defuseProgress` field, and a
 field cannot feed a feed without polling it. That is **J13**.
+
+## The verify — the seventh batch is green (2026-11-20, the 02:00 run)
+
+The full two-run suite at `cd800ef`, no `--subset` and no `--runs`: **exit 0,
+GATEOK**. Plant **265 passed / 1 failed / 10 not for this map** (1,310,448ms and
+1,277,196ms), yard **247 / 1 / 28** (960,131ms and 1,001,324ms), about 79
+minutes in all. `red` **empty**, `flaky` **empty**, `skipped` **empty**,
+`skipsWithheld` empty, `consoleErrors.count` **0**, `otherRunners` empty. Pair
+spreads 3% (plant) and 4% (yard), so the two runs of a map are comparable (F16).
+Ceiling 13 modules within 50 of 600, `tests/difficulty.js` still **at 600 with 0
+left** (H113), of 232 loaded.
+
+The one failure in each run is the benched GPU sweep,
+`the-frame-budget-holds-everywhere-not-just-at-site-a` (H11): a single-sample
+worst viewpoint on SwiftShader against an 8.33ms ceiling - plant `deck-sw@2`
+25.20ms and `deck-office-door@3` 833.30ms, yard `store-east-pocket@2` 641.60ms
+and `site-a@3` 412.80ms. It is on the suite's own `benched` list, which is why
+the gate is still green; its real reading is `npm run bench` on a GPU, last
+2026-10-09 (`76c6e50`, GTX 1060), OK, 12 readings. Informational medians this
+run: plant CPU 5.70ms over 8 frames, yard 5.50ms over 14, both medium quality.
+
+**The batch's three checks pass in all four runs**, read out of
+`--details` rather than taken from the summary:
+`a-warden-starting-a-patrol-leg-anywhere-reaches-its-node` (K13) and
+`the-alarm-feed-is-the-human-wardens-to-notice-and-the-ai-never-reads-it` (M6)
+by their own ids, and M10 - which adds no id of its own - through
+`the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back`
+and `the-alarm-feed-adds-no-more-than-its-budget-to-a-frame`, the second being
+the claim that the three new restores in the `finally` cost the frame nothing.
+
+**One reading worth not chasing.** The H79 list is 35 checks on the plant and 37
+on the yard, and its widest entry is `no-nan-after-sustained-stepping` at 11.08
+-> 3682.90, which reads as a 100% change. It is not one: both runs report `600
+steps, finite=true, new assertion failures=0`, and the number that moved is
+`sim=`, the shared page's simulation clock, which cannot match between run 1 and
+run 2 by construction. A reading that always carries a 100% change is a reading
+people learn to skip, and that is how H115 hid for a whole batch - **H119**.

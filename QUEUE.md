@@ -1042,6 +1042,20 @@ the end of this list, never ahead of a game-facing job.
   tree rather than from a list. *done-when:* the clause reads every module under
   `src/systems/` that ran (`ranModulesUnder`), not a list, the count in its
   detail is that number, and a module added to the tree joins it with no edit.
+- [ ] **H119 (S)** The H79 reading counts a check's own clock as a changed
+  number. The 02:00 verify listed 35 plant and 37 yard checks answered
+  differently between the two runs of a map, and the widest of them was
+  `no-nan-after-sustained-stepping` at 11.08 -> 3682.90, a 100% change that is
+  only the shared page's simulation clock: both runs read `600 steps,
+  finite=true, new assertion failures=0`, and the field that moved is `sim=`,
+  which is hours-into-the-page and cannot match between run 1 and run 2 by
+  construction. A reading that always carries a 100% change is one the reader
+  learns to skip, and skipping it is how H115 hid for a batch. *done-when:*
+  measured first - count how many of the 35 and the 37 are a wall or simulation
+  clock before choosing between naming the field in the reporter's comparison
+  and having those checks not print the clock at all - then the H79 list is
+  shorter by exactly the clock entries, every other entry reads as it did, and
+  the reading says how many it dropped.
 
 ## Block K — the Warden as an opponent
 
