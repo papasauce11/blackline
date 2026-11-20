@@ -255,7 +255,7 @@ export function register(debugTools) {
         // only restores the standing mask after the overlay, so the throw leaves the one camera blind to
         // `render.overlayLayer`. The post-OFF path draws the world with whatever mask the camera carries,
         // so the feedback quad - the hit marker - then draws in no later check, and the two runs of a map
-        // share one page: run 1 passed and run 2 read "the hit marker changed nothing" (H110).
+        // share one page: run 1 passed and run 2 read "the hit marker changed nothing" (H115).
         h.camera.layers.mask = beforeThrow.mask;
         const driftedThrow = moved(beforeThrow, afterThrow, { mask: false });
         if (driftedThrow.length) problems.push(`(b) after a feed render that threw the one camera has moved ${driftedThrow.join(', ')}`);

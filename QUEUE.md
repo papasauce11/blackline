@@ -1098,6 +1098,17 @@ provisional; the rule for "thin" is mechanical, never a tag.
   human Warden's to notice; the AI trips on proximity as before. *done-when:*
   the AI checks unchanged; `PLAYTEST.md` says so.
 - [x] **M7 (S)** The camera seen — done 2026-11-04, under Done. The lens's own `PointLight` on the effects root (never in the hiding group, so the scene's light count never moves), `CONFIG.gadgets.alarmCamera.lensLight` 2 / 4 / 2 (provisional), `a-placed-alarm-camera-is-found-from-six-metres-by-its-lens-light`.
+- [ ] **M10 (S)** post.js puts the camera's layer mask back even when a frame
+  throws. `post.render` saves the standing mask, sets the camera to layer 0 for
+  the scene pass, and restores the mask on the line after `overlay()` - so any
+  throw between those two points leaves the one camera blind to
+  `render.overlayLayer`, and nothing draws the feedback quad again. M5's check
+  induced exactly that throw and cost this batch a second 80-minute verify
+  (H115); the check now puts the mask back itself, which is correct hygiene but
+  leaves the render path as it was. *done-when:* `post.render` restores the mask
+  (and anything else it borrows for the frame) in a `finally`, the camera-feed
+  check's clause (b) drops its own restore and stops exempting the mask from
+  `moved()` on the throw path, and the frame's call count is unchanged.
 
 ## Block J — feel and juice
 

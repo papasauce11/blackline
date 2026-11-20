@@ -1193,3 +1193,23 @@ which has to be `-D` because a cherry-picked commit is never an ancestor of
 the branch. Before removing one with dirty files, diff them against the branch
 - M1's four were the GL fix that had already landed, and that is the only
 reason they could go unread.
+
+**The two runs of a map share one page, so a check that breaks the game
+breaks every check after it — in the next run.** `scripts/suite.mjs` calls
+`page.goto` *outside* the `for (let i = 0; i < RUNS; i++)` loop, so run 2 of a
+map inherits whatever run 1 left behind. M5's camera-feed check proves the feed
+hands the one camera back across a render that fails, which means inducing a
+throw inside `post.render` — and that throw unwinds past post.js's closing
+`camera.layers.mask = mask`, leaving the one camera on layer 0 and blind to
+`render.overlayLayer` for the rest of the page's life. The checks register
+`post.js` (line 72) and `pixelfloors.js` (88) before `camerafeed.js` (131), so
+run 1 of each map ran them clean and green, and run 2 ran them poisoned: the
+post-OFF path draws the world with whatever mask the camera carries, the hit
+marker is the feedback quad, the feedback quad is on the overlay layer, and the
+clause read "the hit marker changed nothing". Four reds, two checks, two maps,
+one leaked integer (H115). The tell was the shape: every one of them was in the
+`flaky` list with outcomes `[true,false]`, failing only in the **second** run of
+each map — a fixed check order plus a shared page, never a flake. **A check that
+deliberately damages the game puts it back**, even where the damage is something
+the game itself would restore in a frame that completed, and even where the
+clause rightly declines to *assert* that value.

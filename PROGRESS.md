@@ -22323,3 +22323,54 @@ hit — the box test catches the camera there but no pose drives it; and the boo
 jammed flat now clamps to about 0.24m from the body centre, **inside the Shade's
 own 0.34m capsule**, which is not world geometry and so is outside this check by
 design, but is something eyes must judge.
+
+## 2026-11-19, the 17:00 run's batch verify — the sixth batch, verified at `7a2400f`
+
+The batch (M5, J1; K12 attempted and reverted) took **two** verifies. The
+first, over `d13ba9e`, came back exit 1 with **four** reds beyond the benched
+frame-budget sweep: `post-processing-blooms-...` and
+`the-pixel-floors-...-the-pinned-seed-never-photographs`, each in run 2 of the
+plant and run 4 of the yard, and each in the `flaky` list with outcomes
+`[true,false]`.
+
+The cause was not a flake and not either job's game code. It is H115: the two
+runs of a map share one page, M5's camera-feed check induces a throw inside
+`post.render` to prove the feed gives the one camera back, and the throw skips
+post.js's closing `camera.layers.mask = mask` — so the camera was left blind to
+`render.overlayLayer`, and the hit marker, which is the feedback quad on that
+layer, stopped drawing for every later check. `post.js` registers at line 72 and
+`camerafeed.js` at 131, which is exactly why run 1 of each map was green and run
+2 was not. **No player could reach it**: it needs a renderer that throws, and the
+feed's own `finally` restores everything the game owns.
+
+Fixed in `d259f74` by one line in the check — the mask goes back after the
+clause's `afterThrow` snapshot is taken, so the clause asserts no less than it
+did, and it already held the mask exempt on the throw path by design. post.js
+making its own restore throw-safe is the better long-term answer and is queued
+as **M10** rather than taken here: it is the render hot path and it was not in
+QUEUE.md.
+
+The second verify, over `7a2400f`, is **green**: exit 0, `flaky` **empty**, 0
+console errors, plant **264 / 1 / 10** (1,274,387ms, 1,264,416ms), yard **246 /
+1 / 28** (987,087ms, 950,072ms), ceiling 13 within 50 of 600 with
+`tests/difficulty.js` at 600 (0 left), of 232 loaded. The one failure a map is
+the bench-only H11 sweep, benched. The fix is proved by the shape of the two
+runs read together: run 2 went **262 / 3 → 264 / 1** and run 4 **244 / 3 → 246 /
+1**, while runs 1 and 3 did not move a check.
+
+I left `--details` off the second command, so that run wrote no per-check detail
+file. The three batch checks' numbers below are therefore the ones measured at
+`d13ba9e`, where all three passed in all four runs; the only difference between
+the two trees is the restore line, which sits after the assertions it follows.
+
+- `the-wardens-hud-carries-a-live-feed-...`: panel spread 61.6 luma, mean 14.6,
+  max 228 (floor 6) over 41,374 px on the plant; 72.8 / 30.5 / 255 on the yard;
+  the camera came back across a frame and across a throw; a tasered alarm stops
+  the renders and the panel goes flat (brightest 5.1, spread 0.0); the Shade
+  sees nothing (state `none`, 0 px differ).
+- `the-alarm-feed-adds-no-more-than-its-budget-to-a-frame`: plant, the feed adds
+  **81 calls and 1,392 triangles** of a 203 / 4,080 frame; yard, **88 and
+  1,498** of 172 / 3,598; budget 0.75.
+- `the-third-person-boom-never-puts-the-camera-inside-the-world`: offset 582,
+  shoulder 172, **worst 0.220m**, d0 0; 720 frames, 8 poses on `site-fence`, 10
+  casts plus up to 4 box tests, 233 pulled in by the box test.
