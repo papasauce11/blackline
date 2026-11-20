@@ -113,6 +113,11 @@ that the one camera the game owns is **exactly** where it was after a frame
 that drew the feed, and after one whose render deliberately threw mid-borrow.
 There is only ever one camera in this game and the feed borrows it.
 
+**What the feed means.** The feed is on the Warden's HUD for a *human* Warden to watch, and
+spotting the Shade on it is that player's own job. The AI never reads the feed: the AI Warden finds
+the Shade exactly as it did before the feed existed, by its own eyes, its ears and the camera's
+proximity trip. (M6, 2026-11-20.)
+
 **What is left for you**, and all of it is look rather than rule: whether the
 panel is in the right corner, the right size (22% of the width) and opaque
 rather than translucent; whether 70 degrees is the right field of view for a

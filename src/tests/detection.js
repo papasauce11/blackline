@@ -12,7 +12,10 @@
 import { CONFIG } from '../config.js';
 import { createIntent } from '../entities/agent.js';
 import { createWardenIntent } from '../entities/enforcer.js';
+import { AI_STATE } from '../systems/ai.js';
 import { clearLane } from './lanes.js';
+import { moduleText, ranModules } from './moduletexts.js';
+import { AS_CODE, AS_WORDING, codeOf, readerProblems, uncommented } from './sourcetext.js';
 
 export function register(debugTools) {
   // -------------------------------------------------------------------------
@@ -344,6 +347,143 @@ export function register(debugTools) {
       return {
         pass: monotonic && darkAtZero && rimVisibleAtZero && tracksSmoothed,
         detail: `body lightness ${readings.map((r) => r.body.toFixed(2)).join(' -> ')}, rim ${readings.map((r) => r.rim.toFixed(2)).join(' -> ')} across meter 0..100; monotonic=${monotonic}, near-black at 0=${darkAtZero}, teal edge still visible at 0=${rimVisibleAtZero}, driven by smoothed not raw=${tracksSmoothed} (raw was ${rawOnly.toFixed(1)})`,
+      };
+    },
+  });
+
+  // -------------------------------------------------------------------------
+  // M6 - what the alarm camera's feed means (Section 9.2 / 20.36)
+  // -------------------------------------------------------------------------
+  debugTools.registerAutoTest({
+    id: 'the-alarm-feed-is-the-human-wardens-to-notice-and-the-ai-never-reads-it',
+    spec: 'Section 9.2 / 20.36 / M6',
+    name: 'The AI modules name nothing of the camera feed (read with their comments out), a Shade in the camera lens but beyond its trip radius and out of the Warden\'s sight leaves the AI in PATROL with no suspicion, and PLAYTEST.md says the feed is the human Warden\'s to watch',
+    run: async (h) => {
+      const problems = [];
+      const notes = [];
+      const origin = location.origin;
+
+      // 1. The source, two clauses and two readers (H62, H95). Does the AI
+      //    *read* the feed is a doing question, so the body is asked of the
+      //    strong reader: a mention in prose or in a string is not a use. The
+      //    import is a string, which that reader empties, so it is asked
+      //    separately of the weak one.
+      const AI_MODULES = ['ai', 'ainav', 'aiperception', 'aihearing', 'aisearch', 'aialarm', 'aipatrol', 'aistate', 'detection'];
+      const FEED = /camera\s*feed/i;
+      const inBody = (code) => (FEED.test(code) ? 'the feed' : '');
+      const inImport = (said) => (/^\s*import\b[^;]*['"][^'"]*camerafeed/i.test(said) ? 'the feed module' : '');
+      problems.push(...readerProblems(
+        inBody,
+        [['this.cameraFeed = null;', 'the feed'], ['const f = createCameraFeed(renderer);', 'the feed']],
+        ["import { x } from '../camerafeed.js';", '// the cameraFeed is not read here', "  * cameraFeed is the human's", 'const a = 1; // cameraFeed'],
+        codeOf,
+      ));
+      problems.push(...readerProblems(
+        inImport,
+        [["import { x } from '../camerafeed.js';", 'the feed module']],
+        ["// import { x } from '../camerafeed.js';", 'const a = 1;'],
+        uncommented,
+      ));
+      const ran = ranModules(origin) || [];
+      const paths = AI_MODULES.map((name) => `src/systems/${name}.js`).filter((path) => ran.includes(path));
+      let read = 0;
+      for (const path of paths) {
+        const module = await moduleText(origin, path);
+        if (module.error) { problems.push(module.error); continue; }
+        read++;
+        const hit = module.code.split(/\r?\n/).findIndex((line) => inBody(line));
+        if (hit !== -1) problems.push(`${path} names the camera feed ${AS_CODE} (line ${hit + 1}): the feed is the human Warden's, the AI must not read it`);
+        const bound = module.said.split(/\r?\n/).findIndex((line) => inImport(line));
+        if (bound !== -1) problems.push(`${path} imports the feed module, read ${AS_WORDING} (line ${bound + 1}): the AI must not depend on it`);
+      }
+      if (read < 5) problems.push(`only ${read} AI modules were read, so the source clause read nothing`);
+
+      // 2. The behaviour. A camera hung on a wall, the Shade in its lens just
+      //    outside the trip radius, the Warden far off and out of sight.
+      const dt = CONFIG.time.fixedDt;
+      const C = CONFIG.gadgets.alarmCamera;
+      const R = C.radius;
+      const eye = CONFIG.warden.standHeight * CONFIG.warden.eyeHeightRatio;
+      const torso = CONFIG.shade.crouchHeight * CONFIG.detection.torsoHeightRatio;
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+      h.menu.hide();
+      h.input.clearAll();
+      const { gadgets, shade, warden, wardenAI } = h;
+      const ground = h.map.wardenGround;
+      const flat = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+      let stage = null;
+      for (const node of h.map.waypoints) {
+        for (let i = 0; i < 32 && !stage; i++) {
+          const angle = (i / 32) * Math.PI * 2;
+          const cam = gadgets.findAlarmWall(
+            { x: node.position.x, y: node.position.y + eye, z: node.position.z },
+            { x: Math.sin(angle), y: 0, z: Math.cos(angle) }
+          );
+          if (!cam) continue;
+          const fwd = { x: -Math.sin(cam.yaw), y: 0, z: -Math.cos(cam.yaw) };
+          const cone = Math.cos((C.coneDegrees * Math.PI) / 360);
+          const stands = ground.cellsWithin(cam, R + 3).filter((c) => {
+            const d = flat(c, cam);
+            const target = { x: c.x, y: c.y + torso, z: c.z };
+            return d >= R + 0.5 && d <= R + 2.5 && Math.abs(c.y - (cam.y - eye)) < 3
+              && gadgets._inCone(cam, fwd, target, R + 3, cone) && h.map.collision.lineOfSight(cam, target);
+          });
+          if (!stands.length) continue;
+          const at = stands[0];
+          const target = { x: at.x, y: at.y + torso, z: at.z };
+          const far = ground.cellsWithin(at, 400)
+            .filter((c) => flat(c, at) > CONFIG.ai.viewRange + 5 && !h.map.collision.lineOfSight({ x: c.x, y: c.y + eye, z: c.z }, target))
+            .sort((a, b) => flat(b, at) - flat(a, at));
+          if (far.length) stage = { cam, at, away: far[0] };
+        }
+        if (stage) break;
+      }
+      if (!stage) {
+        notes.push(`no wall in lens of ground ${R + 0.5}-${R + 2.5}m out with a Warden stand beyond ${CONFIG.ai.viewRange + 5}m and out of sight on this map, so the behaviour clause did not stand here`);
+      } else {
+        const placed = gadgets.placeAlarm(stage.cam, stage.cam.yaw);
+        warden.reset({ position: stage.away, yaw: 0 });
+        wardenAI._enter(AI_STATE.PATROL);
+        wardenAI.lastKnown = null;
+        wardenAI.accumulator = 0;
+        // Standing guard: a Warden walking its circuit might wander into sight, and then it is her eyes that are tested, not the feed.
+        wardenAI._pauseTimer = 10;
+        shade.reset({ position: stage.at, yaw: Math.atan2(-(stage.cam.x - stage.at.x), -(stage.cam.z - stage.at.z)) });
+        let fired = false;
+        const off = h.emitter.on('gadget:alarm', () => { fired = true; });
+        let peak = 0;
+        let sawIt = false;
+        let left = null;
+        for (let f = 0; f < Math.round(5 / dt); f++) {
+          h.stepFrames(1);
+          peak = Math.max(peak, wardenAI.accumulator);
+          if (wardenAI.sees) sawIt = true;
+          if (wardenAI.state !== AI_STATE.PATROL) left = left || wardenAI.state;
+        }
+        off();
+        if (!placed) problems.push('the alarm camera could not be hung for the behaviour clause');
+        if (fired) problems.push('the camera tripped, so the Shade was inside its trip radius and the clause is about the wrong thing');
+        if (sawIt) problems.push('the Warden saw the Shade by its own eyes, so the stand was not out of sight');
+        if (left) {
+          problems.push(`the Shade in the lens, ${flat(stage.at, stage.cam).toFixed(1)}m out and ${flat(stage.at, stage.away).toFixed(1)}m from the Warden, took the AI to ${left}, want patrol`);
+        }
+        if (peak > 0) problems.push(`the AI's suspicion rose to ${peak.toFixed(1)} with the Shade only on the feed`);
+        notes.push(`Shade ${flat(stage.at, stage.cam).toFixed(1)}m in the lens, Warden ${flat(stage.at, stage.away).toFixed(1)}m off: ${wardenAI.state}, suspicion peak ${peak.toFixed(1)}`);
+      }
+      h.input.clearAll();
+
+      // 3. The record.
+      const response = await fetch(`${origin}/PLAYTEST.md`);
+      if (!response.ok) {
+        problems.push(`PLAYTEST.md: HTTP ${response.status}`);
+      } else {
+        const text = (await response.text()).replace(/[\s*]+/g, ' ');
+        if (!text.includes('The AI never reads the feed')) problems.push('PLAYTEST.md no longer says "The AI never reads the feed"');
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length ? problems.join('; ') : `${read} AI modules read with comments out, none names the feed; ${notes.join('; ')}; PLAYTEST.md carries the rule`,
       };
     },
   });
