@@ -185,6 +185,35 @@ export function boomClear(collision, pivot, back, rightX, rightZ, cam, desired, 
   return found ? d : 0;
 }
 
+/**
+ * Where the second sweep may start. `raycast` on a box from inside it returns
+ * no hit at all, so a shoulder origin that has run into a wall beside the
+ * body (parallel to it within about `side`) is a sweep that cannot see. The
+ * rays' own cluster is a `collisionRadius` across, so that is the volume that
+ * must be clear, not the point. Walks the shoulder back toward the axis a
+ * quarter radius at a time, the way `boomClear` steps the boom, and the
+ * pivot - the body's own centre, where the first sweep already starts - is
+ * the last resort.
+ *
+ * @returns {number} the shoulder offset to cast from, metres to the right
+ */
+export function boomOrigin(collision, pivot, rightX, rightZ, cam, shoulderAt, probe) {
+  CAMERA_HALF.x = cam.collisionRadius;
+  CAMERA_HALF.y = cam.collisionRadius;
+  CAMERA_HALF.z = cam.collisionRadius;
+  const step = cam.collisionRadius / 4;
+  const sign = shoulderAt < 0 ? -1 : 1;
+  probe.originInside = false;
+  for (let s = Math.abs(shoulderAt); s > 0; s -= step) {
+    CAMERA_AT.x = pivot.x + rightX * s * sign;
+    CAMERA_AT.y = pivot.y;
+    CAMERA_AT.z = pivot.z + rightZ * s * sign;
+    if (collision.isClear(CAMERA_AT, CAMERA_HALF)) return s * sign;
+    probe.originInside = true;
+  }
+  return 0;
+}
+
 export const VISUAL = {
   /**
    * @param {number} wallDt unscaled frame delta, for smoothing only
@@ -491,10 +520,14 @@ export const VISUAL = {
     const direction = { x: backX, y: backY, z: backZ };
     const up = boomUp(direction, rightX, rightZ, this._boomUp || (this._boomUp = { x: 0, y: 0, z: 0 }));
     const reach = cam.back + cam.collisionRadius;
-    const probe = this._boomProbe || (this._boomProbe = { ray1: 0, ray2: 0, hit1: null, hit2: null, pulledBy: 0, casts: 0, clearTests: 0, sweptTo: 0, clearedTo: 0 });
+    const probe = this._boomProbe || (this._boomProbe = { ray1: 0, ray2: 0, hit1: null, hit2: null, pulledBy: 0, casts: 0, clearTests: 0, sweptTo: 0, clearedTo: 0, originInside: false, originMoved: 0, originAsked: 0, originAt: 0, pivot: null, eased: false, easedIn: 0 });
     const axisHit = boomSweep(this.collision, pivot, direction, rightX, rightZ, up, cam.collisionRadius, reach);
     const axisDesired = boomDistance(axisHit, cam);
-    const shoulderAt = cam.side * (axisDesired / cam.back);
+    probe.originAsked = cam.side * (axisDesired / cam.back);
+    const shoulderAt = boomOrigin(this.collision, pivot, rightX, rightZ, cam, probe.originAsked, probe);
+    if (probe.originInside) probe.originMoved++;
+    probe.originAt = shoulderAt;
+    probe.pivot = pivot;
     const shouldered = {
       x: pivot.x + rightX * shoulderAt, y: pivot.y, z: pivot.z + rightZ * shoulderAt
     };
@@ -524,6 +557,20 @@ export const VISUAL = {
       this._cameraDistance += (desired - this._cameraDistance) * Math.min(1, rate * (1 / cam.pullOutSmoothing) * (1 / 60));
     }
 
+    // The cast's shoulder was cut for the distance the sweep settled on; the
+    // rig's is cut for the one it eases to, which on an ease-out is shorter,
+    // and the second sweep ran before that distance existed. So the terminal
+    // test runs again at the shoulder the rig actually takes, and a wall the
+    // eased pose has come up against pulls it in. In the open it is one clear
+    // test and no change.
+    const spent = probe.clearTests;
+    const eased = boomClear(this.collision, pivot, direction, rightX, rightZ, cam, this._cameraDistance, probe);
+    probe.clearTests += spent;
+    probe.eased = eased < this._cameraDistance;
+    if (probe.eased) {
+      probe.easedIn++;
+      this._cameraDistance = eased;
+    }
     const shoulder = cam.side * (this._cameraDistance / cam.back);
     this.cameraRig.position.set(
       pivot.x + backX * this._cameraDistance + rightX * shoulder,

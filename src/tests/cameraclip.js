@@ -49,6 +49,24 @@
  * four compass points, and an oblique wall at an oblique pitch lies between two
  * of them.
  *
+ * **Along the wall (J10).** The same face, run beside instead of into: the Shade
+ * walks parallel to it with the wall on the shoulder side and then the other,
+ * at lateral distances from inside her own body (0.15m, which the physics
+ * pushes out to 0.34) to past the shoulder's reach (0.60m), then presses in,
+ * then strafes off so the boom eases out, then stands. The second sweep's origin
+ * is `side * d / back` (up to 0.45m) off the axis, so inside 0.45m it is inside
+ * the fence, where `raycast` returns nothing. Three things are asserted per frame:
+ * the camera is not inside a box and its own volume is clear (`isClear` at the rig
+ * position, the terminal test), and the cast origin the rig took - read from
+ * `_boomProbe.originAt` - is clear too, or is the pivot. The last is the one the
+ * **break** below turns red: the box test cannot catch a sweep that cannot see.
+ * The pose is proved driven, independent of the fix: the origin the rig *asked*
+ * for must have been inside the wall on some frames, or the clause fails.
+ *
+ * **The break to make for it** is `boomOrigin` taking the first origin
+ * unchecked (`if (collision.isClear(CAMERA_AT, CAMERA_HALF)) return s * sign;`
+ * becoming `if (true) return s * sign;`, agentvisual.js).
+ *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
 
@@ -64,6 +82,13 @@ const EPS = 0.005;
 /** Fixed steps held on S per pose: 2m of walk at walk speed, and the push against the face after. */
 const STEPS = 90;
 const WORLD = new THREE.Vector3();
+/** The camera's volume less a hair: the rig's own test is strict, and a world matrix is not bit-for-bit the position it was set from. */
+const HALF = { x: CAM.collisionRadius - 1e-4, y: CAM.collisionRadius - 1e-4, z: CAM.collisionRadius - 1e-4 };
+const ORIGIN = { x: 0, y: 0, z: 0 };
+/** Lateral distances from the fence to the body centre, metres: inside the body, at it, inside the reach, past it. */
+const LATERALS = [0.15, 0.25, 0.34, 0.40, 0.45, 0.52, 0.60];
+/** Legs of the run along the wall: parallel, pressed in, strafing off (the boom eases out), standing. */
+const LEGS = [{ steps: 40, keys: [] }, { steps: 20, keys: ['in'] }, { steps: 40, keys: ['away'] }, { steps: 30, keys: ['stop'] }];
 
 /**
  * Signed distance from a point to a box, metres: positive outside (the gap to
@@ -158,12 +183,83 @@ export function register(debugTools) {
             }
           }
         }
+        // -- Along the wall, wall on the right (the shoulder side) and on the left.
+        const along = { frames: 0, asked: 0, moved: 0, boxOnly: 0, blind: 0, eased: 0, atPivot: 0, worst: Infinity };
+        const collision = h.map.collision;
+        for (const side of [1, -1]) {
+          // Yaw puts the right vector at the wall (side 1) or away from it; `in` is the key that strafes toward it.
+          const yaw = wall.yaw + side * Math.PI / 2;
+          const keyIn = side === 1 ? 'KeyD' : 'KeyA';
+          const keyAway = side === 1 ? 'KeyA' : 'KeyD';
+          for (const lateral of LATERALS) {
+            shade.reset({ position: { x: wall.x + nx * (lateral - 0.8), y: ground, z: wall.z + nz * (lateral - 0.8) }, yaw });
+            h.stepFrames(2);
+            h.input.clearAll();
+            const label = `wall on the ${side === 1 ? 'right' : 'left'} at ${lateral.toFixed(2)}m`;
+            const movedBefore = shade._boomProbe ? shade._boomProbe.originMoved : 0;
+            let bad = false;
+            let frame = 0;
+            for (const leg of LEGS) {
+              h.input.clearAll();
+              if (!leg.keys.includes('stop')) h.input.heldCodes.add('KeyW');
+              if (leg.keys.includes('in')) h.input.heldCodes.add(keyIn);
+              if (leg.keys.includes('away')) h.input.heldCodes.add(keyAway);
+              for (let i = 0; i < leg.steps && !bad; i++, frame++) {
+                h.stepFrames(1);
+                h.input.clearEdges();
+                shade.updateVisual(DT);
+                shade.cameraRig.updateWorldMatrix(true, false);
+                shade.cameraRig.getWorldPosition(WORLD);
+                const probe = shade._boomProbe;
+                along.frames++;
+                const rightX = Math.cos(shade.yaw);
+                const rightZ = -Math.sin(shade.yaw);
+                const piv = probe.pivot;
+                ORIGIN.x = piv.x + rightX * probe.originAsked;
+                ORIGIN.y = piv.y;
+                ORIGIN.z = piv.z + rightZ * probe.originAsked;
+                if (!collision.isClear(ORIGIN, HALF)) along.asked++;
+                // The pull-in the rays did not ask for: the box test alone, or the closing test at the rig's own shoulder.
+                if (probe.clearedTo < probe.sweptTo - 1e-9 || probe.eased) {
+                  along.boxOnly++;
+                  if (!probe.pulledBy) along.blind++;
+                }
+                if (probe.eased) along.eased++;
+                const { box, gap } = nearest(boxes, WORLD);
+                if (gap < along.worst) along.worst = gap;
+                const atZero = shade._cameraDistance <= 0;
+                if (atZero) along.atPivot++;
+                const where = `${label}, frame ${frame}, camera (${WORLD.x.toFixed(2)}, ${WORLD.y.toFixed(2)}, ${WORLD.z.toFixed(2)}), boom ${shade._cameraDistance.toFixed(2)}m`;
+                if (gap <= 0) {
+                  problems.push(`the camera was inside ${box.tag || 'a box'} by ${(-gap).toFixed(3)}m: ${where}`);
+                  bad = true;
+                } else if (!atZero && !collision.isClear(WORLD, HALF)) {
+                  problems.push(`the camera's volume overlapped ${box.tag || 'a box'} (${gap.toFixed(3)}m off), want clear: ${where}`);
+                  bad = true;
+                }
+                if (probe.originAt !== 0) {
+                  ORIGIN.x = piv.x + rightX * probe.originAt;
+                  ORIGIN.z = piv.z + rightZ * probe.originAt;
+                  if (!collision.isClear(ORIGIN, HALF)) {
+                    problems.push(`the second sweep was cast from inside the world, ${Math.abs(probe.originAt).toFixed(2)}m off the axis: ${where}`);
+                    bad = true;
+                  }
+                }
+              }
+            }
+            along.moved += shade._boomProbe.originMoved - movedBefore;
+          }
+        }
+        // A clause that never reached the pose proves nothing: some frames must have asked from inside the fence.
+        if (along.asked === 0) problems.push('no frame along the wall asked for a shoulder origin inside it: the pose was never reached');
+
         // Readings first: the suite cuts a detail at 400 characters.
         const lead = `offset ${offsetWon}, shoulder ${shoulderWon}, worst ${worst.toFixed(3)}m, d0 ${atPivot}`;
+        const beside = `along ${along.frames}f: origin inside ${along.asked}, moved back ${along.moved}, box test alone ${along.boxOnly} (${along.blind} rays blind, ${along.eased} closing), worst ${along.worst.toFixed(3)}m, d0 ${along.atPivot}`;
         return {
           pass: problems.length === 0,
           detail: problems.length === 0
-            ? `${lead}; ${frames}f ${poses.length}p on ${tag}, ${BOOM_CASTS_PER_FRAME} casts + up to ${mostTests} tests, ${pulledIn} pulled in by the box test`
+            ? `${lead}; ${beside}; ${frames}f ${poses.length}p on ${tag}, ${BOOM_CASTS_PER_FRAME} casts + up to ${mostTests} tests, ${pulledIn} pulled in by the box test`
             : `${lead}; ${problems.length} bad, first: ${problems[0]}`,
         };
       } finally {
