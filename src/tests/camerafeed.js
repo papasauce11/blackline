@@ -251,6 +251,12 @@ export function register(debugTools) {
         const afterThrow = snapshot(h);
         if (!thrown) problems.push('(b) the render this check made fail did not reach the feed, so the restore was not tried');
         // The mask is post.js's to put back and a throw skips that line, so it is not asked of a throw.
+        // It IS this check's to put back: post.render sets the camera to layer 0 for the scene pass and
+        // only restores the standing mask after the overlay, so the throw leaves the one camera blind to
+        // `render.overlayLayer`. The post-OFF path draws the world with whatever mask the camera carries,
+        // so the feedback quad - the hit marker - then draws in no later check, and the two runs of a map
+        // share one page: run 1 passed and run 2 read "the hit marker changed nothing" (H110).
+        h.camera.layers.mask = beforeThrow.mask;
         const driftedThrow = moved(beforeThrow, afterThrow, { mask: false });
         if (driftedThrow.length) problems.push(`(b) after a feed render that threw the one camera has moved ${driftedThrow.join(', ')}`);
         notes.push(`(b) the camera on ${before.parent === h.scene ? 'the scene' : 'its rig'} came back across a frame${thrown ? ' and across a throw' : ''}`);
