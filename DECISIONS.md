@@ -2870,6 +2870,40 @@ routine; if it were not proven by 15:30, `--stall` 360 was the named stopgap.
 
 ## Blocking — waiting on Josh
 
+### D94 — J3's ragdoll: how much does a body react to the shot that killed it?
+Key feel (D84: *"how a hit lands"*), reached in block order on 2026-11-20's
+02:00 run and skipped rather than guessed. J3 gives the ragdoll a flail from
+the hit's own direction, a settle, no jitter afterwards, and a death cam that
+frames the body. **The settle and the no-jitter are not yours** - they are a
+check measuring that the physics comes to rest, and the lead builds them
+whichever way you answer. What is yours is **how hard the body is thrown**,
+because that is the last thing a player sees of a kill.
+
+1. **Thrown**: the shot visibly knocks the body - a strong impulse along the
+   bullet's line, limbs flung, about a second and a half of motion before it
+   settles. Reads as violent; at the top end a body can slide or spin.
+2. **Weight**: a moderate impulse, the limbs following rather than flying,
+   settled in under a second. Reads as a person dropping, not a prop.
+3. **Dead weight**: almost no impulse - the body collapses where it stood and
+   the hit direction only tips which way it falls.
+4. **Thrown by the weapon, not by the rule**: the impulse scales with what
+   killed her, so a rifle round throws the body and a knife or a taser drops
+   it where it stood. More to build, and the one option where two kills do not
+   look alike.
+
+Recommendation: **2**. It is the only one of the three flat answers that
+cannot look silly - 1 slides bodies into walls on a bad angle and 3 wastes
+the hit direction J3 exists to use - and it leaves 4 available later as a
+tuning pass rather than a rebuild. But this is a look-and-feel call and the
+options genuinely differ, which is why it is here and not in Provisional.
+
+**Where you can feel it:** nowhere yet - J3 is unbuilt, and that is the point
+of asking first. Once it is built it is the live site, `papasauce11.github.io/blackline`:
+be seen by the Warden and let it shoot you. Say a number and the run after
+builds it; say nothing and J3 stays blocked and the queue moves past it.
+
+decided:
+
 ### D89 — J2's hit-stop and shake: how punchy?
 Key feel (D84), asked in Josh's session 2026-11-19 before Block J is reached.
 J2 puts a short wall-clock stop on the instant a knife or a finisher lands and

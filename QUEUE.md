@@ -1127,7 +1127,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **J2 (S)** **blocked: D89** (key feel, D84) — Hit-stop and shake. 70ms of wall-clock stop on a knife or
   finisher; shake on a grenade by distance; both under a setting.
   *done-when:* the fixed step count is unchanged by hit-stop in a check.
-- [ ] **J3 (M)** Ragdoll polish. Limb flail from the hit direction, a
+- [ ] **J3 (M)** **blocked: D94** (key feel, D84) — Ragdoll polish. Limb flail from the hit direction, a
   settle, no jitter, the death cam framing the body. *done-when:* a check
   measures settle time and zero post-settle motion.
 - [ ] **J4 (S)** An event feed. Planted, defusing, alarm tripped, reinsert,
