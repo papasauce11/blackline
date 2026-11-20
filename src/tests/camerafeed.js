@@ -46,7 +46,8 @@
  */
 
 import * as THREE from 'three';
-import { CONFIG, DEFAULT_BINDINGS } from '../config.js';
+import { CONFIG, DEFAULT_BINDINGS, SETTINGS } from '../config.js';
+import { postEnabled } from '../quality.js';
 import { gatherHudState } from '../hudstate.js';
 import { createLens, difference, scaledCount } from './pixels.js';
 
@@ -67,6 +68,8 @@ const DARK_MAX = 12;
 const FLAT = 2;
 /** Pixels of the panel's edge left out of every reading: the frame lies there. */
 const INSET = 4;
+/** The quality level clause (e) forces, because it is about the post path and `low` has none (D60). */
+const POST_LEVEL = 'medium';
 /** Frames of each kind the budget is read over, and the slop on a pixel count in the Shade's case. */
 const FRAMES = 8;
 const SLOP = 12;
@@ -270,38 +273,63 @@ export function register(debugTools) {
         // that matters: the scene pass throwing with post's offscreen target bound,
         // and the next thing to draw landing in it. The only target that is neither
         // null nor the feed's 256x144 is that one.
-        const sceneRender = h.renderer.render;
-        let sceneThrown = false;
-        h.renderer.render = function patched(...args) {
-          const target = h.renderer.getRenderTarget();
-          if (target && !(target.width === F.width && target.height === F.height)) {
-            sceneThrown = true;
-            throw new Error('camerafeed check: a scene pass that fails');
+        //
+        // The post path has to be the one that runs, and on this machine it is
+        // not the one that would: the suite pins no quality, `auto` on
+        // SwiftShader measures a slow frame and `low` draws no post at all
+        // (D60), so `post.render` would take the straight-to-canvas branch and
+        // this clause would read a target that was never bound. So the level is
+        // forced the way tests/post.js forces the row - `SETTINGS` and nothing
+        // else, which is a read for `postEnabled()` and costs no apply - and
+        // `postEnabled()` is asserted afterwards, because a clause that cannot
+        // run must say so rather than pass on nothing.
+        const wasQuality = SETTINGS.quality;
+        const wasPost = SETTINGS.post;
+        SETTINGS.quality = POST_LEVEL;
+        SETTINGS.post = true;
+        if (!postEnabled()) {
+          problems.push(`(e) the post is off at quality "${SETTINGS.quality}" with the row on, so the scene pass this clause is about never runs`);
+        }
+        try {
+          const sceneRender = h.renderer.render;
+          let sceneThrown = false;
+          h.renderer.render = function patched(...args) {
+            const target = h.renderer.getRenderTarget();
+            if (target && !(target.width === F.width && target.height === F.height)) {
+              sceneThrown = true;
+              throw new Error('camerafeed check: a scene pass that fails');
+            }
+            return sceneRender.apply(this, args);
+          };
+          const beforeScene = snapshot(h);
+          try {
+            h.post.render(h.scene, h.camera);
+          } catch (error) {
+            // expected: the flag below is what says it was the scene pass
+          } finally {
+            h.renderer.render = sceneRender; // by assignment, as (b) does
           }
-          return sceneRender.apply(this, args);
-        };
-        const beforeScene = snapshot(h);
-        try {
-          h.post.render(h.scene, h.camera);
-        } catch (error) {
-          // expected: the flag below is what says it was the scene pass
+          const afterScene = snapshot(h);
+          if (!sceneThrown) problems.push('(e) the render this check made fail never met the scene target, so the restore was not tried');
+          if (afterScene.target !== null) problems.push('(e) after a throw in the scene pass the renderer is still bound to an offscreen target');
+          const driftedScene = moved(beforeScene, afterScene);
+          if (driftedScene.length) problems.push(`(e) after a scene pass that threw the one camera or renderer has moved ${driftedScene.join(', ')}`);
+          let cleanFrame = true;
+          try {
+            h.post.render(h.scene, h.camera);
+          } catch (error) {
+            cleanFrame = false;
+            problems.push(`(e) the frame after the throw threw too: ${error.message}`);
+          }
+          if (cleanFrame && h.renderer.getRenderTarget() !== null) problems.push('(e) the frame after the throw ended bound to an offscreen target');
+          notes.push(`(e) a throw in the scene pass at quality "${POST_LEVEL}"${sceneThrown ? '' : ' (never reached)'} left the target ${afterScene.target === null ? 'null' : 'bound'}, the mask ${afterScene.mask === beforeScene.mask ? 'back' : 'moved'}, and the next frame ${cleanFrame ? 'drew clean' : 'threw'}`);
         } finally {
-          h.renderer.render = sceneRender; // by assignment, as (b) does
+          // The level goes back before (a) reads a pixel: (a), (c) and (d) are
+          // readings of the frame this machine actually draws, and a clause that
+          // left the post forced on would be measuring somebody else's picture.
+          SETTINGS.quality = wasQuality;
+          SETTINGS.post = wasPost;
         }
-        const afterScene = snapshot(h);
-        if (!sceneThrown) problems.push('(e) the render this check made fail never met the scene target, so the restore was not tried');
-        if (afterScene.target !== null) problems.push('(e) after a throw in the scene pass the renderer is still bound to an offscreen target');
-        const driftedScene = moved(beforeScene, afterScene);
-        if (driftedScene.length) problems.push(`(e) after a scene pass that threw the one camera or renderer has moved ${driftedScene.join(', ')}`);
-        let cleanFrame = true;
-        try {
-          h.post.render(h.scene, h.camera);
-        } catch (error) {
-          cleanFrame = false;
-          problems.push(`(e) the frame after the throw threw too: ${error.message}`);
-        }
-        if (cleanFrame && h.renderer.getRenderTarget() !== null) problems.push('(e) the frame after the throw ended bound to an offscreen target');
-        notes.push(`(e) a throw in the scene pass${sceneThrown ? '' : ' (never reached)'} left the target ${afterScene.target === null ? 'null' : 'bound'}, the mask ${afterScene.mask === beforeScene.mask ? 'back' : 'moved'}, and the next frame ${cleanFrame ? 'drew clean' : 'threw'}`);
 
         // (a) the picture, through a lens read back with the rest of the canvas.
         lens = createLens(h);
