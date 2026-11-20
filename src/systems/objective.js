@@ -314,6 +314,14 @@ export class Objective {
       return;
     }
 
+    // An attempt is a run of progress that starts from nothing. The event is
+    // raised as progress leaves 0 and not before, so a Warden who is pulled off
+    // and kneels again inside the retain window is still on the same attempt
+    // (Section 10.1: interrupting has to be worth doing) and raises nothing;
+    // only a decay that reaches the 0 floor ends it, and the next kneel is new.
+    if (round.defuseProgress === 0) {
+      this.emitter.emit('objective:defuse-start', { site: round.site, at: round.chargeAt });
+    }
     round.defuseProgress += dt;
     round.defuseRetain = R.defuseRetainTime;
     if (round.defuseProgress >= R.defuseHoldTime) {
