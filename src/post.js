@@ -309,6 +309,12 @@ export function createPost(renderer) {
         post.passes = 3 + 2 * PP.blurPasses;
       } finally {
         camera.layers.mask = mask;
+        // A throw between `setRenderTarget(scene)` and the composite pass leaves the
+        // offscreen target bound for whoever draws next. The happy path already ends
+        // on null (the composite pass sets it), so the read is free and the write
+        // never happens there - which is what keeps the frame's call count inside its
+        // budget (M10 left the target alone for exactly that; the guard has both).
+        if (renderer.getRenderTarget() !== null) renderer.setRenderTarget(null);
       }
     },
     /** The targets follow the drawing buffer. */

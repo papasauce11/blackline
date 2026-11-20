@@ -19,6 +19,9 @@
  *         the HUD's frame says so;
  *     (d) the Shade never sees it: the same camera standing under the Shade's
  *         frame draws nothing and renders nothing.
+ *     (e) a throw that is not the feed's - the scene pass itself, with post's
+ *         offscreen target bound - leaves the renderer on the canvas and the
+ *         camera's layer mask where it was, and the next frame draws clean.
  *
  *   the-alarm-feed-adds-no-more-than-its-budget-to-a-frame
  *     the same pose drawn with the feed up and with it held off (a panel over
@@ -261,6 +264,44 @@ export function register(debugTools) {
         const driftedThrow = moved(beforeThrow, afterThrow);
         if (driftedThrow.length) problems.push(`(b) after a feed render that threw the one camera has moved ${driftedThrow.join(', ')}`);
         notes.push(`(b) the camera on ${before.parent === h.scene ? 'the scene' : 'its rig'} came back across a frame${thrown ? ' and across a throw' : ''}`);
+
+        // (e) a throw that is not the feed's. (b) throws inside the feed's own render,
+        // where the feed puts the target back itself, so it could never see the one
+        // that matters: the scene pass throwing with post's offscreen target bound,
+        // and the next thing to draw landing in it. The only target that is neither
+        // null nor the feed's 256x144 is that one.
+        const sceneRender = h.renderer.render;
+        let sceneThrown = false;
+        h.renderer.render = function patched(...args) {
+          const target = h.renderer.getRenderTarget();
+          if (target && !(target.width === F.width && target.height === F.height)) {
+            sceneThrown = true;
+            throw new Error('camerafeed check: a scene pass that fails');
+          }
+          return sceneRender.apply(this, args);
+        };
+        const beforeScene = snapshot(h);
+        try {
+          h.post.render(h.scene, h.camera);
+        } catch (error) {
+          // expected: the flag below is what says it was the scene pass
+        } finally {
+          h.renderer.render = sceneRender; // by assignment, as (b) does
+        }
+        const afterScene = snapshot(h);
+        if (!sceneThrown) problems.push('(e) the render this check made fail never met the scene target, so the restore was not tried');
+        if (afterScene.target !== null) problems.push('(e) after a throw in the scene pass the renderer is still bound to an offscreen target');
+        const driftedScene = moved(beforeScene, afterScene);
+        if (driftedScene.length) problems.push(`(e) after a scene pass that threw the one camera or renderer has moved ${driftedScene.join(', ')}`);
+        let cleanFrame = true;
+        try {
+          h.post.render(h.scene, h.camera);
+        } catch (error) {
+          cleanFrame = false;
+          problems.push(`(e) the frame after the throw threw too: ${error.message}`);
+        }
+        if (cleanFrame && h.renderer.getRenderTarget() !== null) problems.push('(e) the frame after the throw ended bound to an offscreen target');
+        notes.push(`(e) a throw in the scene pass${sceneThrown ? '' : ' (never reached)'} left the target ${afterScene.target === null ? 'null' : 'bound'}, the mask ${afterScene.mask === beforeScene.mask ? 'back' : 'moved'}, and the next frame ${cleanFrame ? 'drew clean' : 'threw'}`);
 
         // (a) the picture, through a lens read back with the rest of the canvas.
         lens = createLens(h);
