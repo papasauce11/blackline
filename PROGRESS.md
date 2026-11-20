@@ -22648,3 +22648,198 @@ disproved "a stuck re-path lays a different route" assertion dropped, and they
 are **red on today's game**. Landing a red check breaks the base, so they sit on
 `k12-check-wip` (`38d8da4`) beside `3672cc0`'s earlier copy on `wt-k12`. K16
 takes them whole and turns them green; that is K16's break, already written.
+
+## M11 — The render target comes back when a pass throws (2026-11-20, the 17:00 run)
+
+M10 put the one camera's layer mask, `renderer.autoClear` and `world.background`
+back in a `finally` and **deliberately left the render target alone**, with the
+reason written down: `post.render` sets the target to `scene`, runs the passes
+and ends on `null`, which is a *sequence* and not a save/restore, so an
+unconditional `setRenderTarget(null)` in the `finally` would add a call on every
+happy-path frame — and the frame's call count is held to a budget
+(`the-alarm-feed-adds-no-more-than-its-budget-to-a-frame`, 0.75). So a throw in
+the scene render or any post pass left the offscreen target bound until the next
+frame set it.
+
+The guard has both: `if (renderer.getRenderTarget() !== null) renderer.setRenderTarget(null);`.
+On the happy path the composite pass has already set it to null, so the read
+answers null and the write never happens; `getRenderTarget` is
+`return _currentRenderTarget` in three 0.180.0 (checked in the build the import
+map pins, not assumed), so `renderer.info.render.calls` does not move. The two
+non-post paths are untouched on purpose — and reading `night.render` while in
+there turned up **H120**: it restores its target *and* the camera's layer mask
+on its last line with no `try`/`finally` at all, so it is H115 again on the path
+nobody looked at, and `post.render` cannot cover it because it `return`s before
+its own `try`.
+
+Clause (e) of the feed check is the reading. Clause (b) already induces a throw,
+but **inside the feed's own render**, where the feed's own code restores the
+target — which is exactly why (b)'s snapshot never caught this. (e) patches
+`renderer.render` to throw when the bound target is non-null and *not* the feed's
+256x144, which on this frame is only post's `scene` target, then asserts the
+throw reached the scene pass, that `getRenderTarget()` is null after it, that the
+mask came back too (so the new restore did not displace M10's), and that the next
+frame still draws clean.
+
+**The review sent one thing back, and the first reason I gave for it was
+wrong.** I had the clause force a quality level on the reading that the suite
+pins none, `auto` on SwiftShader lands on `low`, and `low` draws **no post at
+all** (D60), so the post path would never run and `sceneThrown` would be false.
+The last three of those are true and the first is not: **H10 already pins
+`?quality=medium`**, in `scripts/headless.mjs` and `scripts/suite.mjs` both, so
+every suite run is already on the post path and the clause would have run as
+built. I checked it only after the break run printed `?quality=medium` in its
+own summary, and the comment in the check said the wrong thing until then.
+
+The forcing stays, for the reason that survives the correction: **the pin is
+beatable.** `--query quality=low` wins over it by design - that is how a reading
+at another level is taken - and on exactly that run an unforced clause (e) would
+read a target no frame ever bound and report a pass. So it forces
+`SETTINGS.quality` and `SETTINGS.post` the way `tests/post.js` forces the row,
+asserts `postEnabled()` afterwards so a clause that cannot run says so rather
+than passing quietly, and puts both back in a `finally` before (a) reads a
+pixel. That assertion is the part that earns its keep.
+
+Proved in a 44-id subset on both maps, the run's own censuses included: plant
+**44 / 0**, yard **43 / 0** with 1 not for that map, `flaky` empty, `skipped`
+empty, 0 console errors. The subset names 44 ids (24 census, 20 job) and 44 ran
+on the plant — counted against the list, because a census that silently does not
+run is what that subset shape exists to prevent.
+
+## J13 — A defuse raises one event when it begins (2026-11-20, the 17:00 run)
+
+`objective.js` raised `defuseProgress`, a field the HUD reads each frame, and
+emitted nothing when a defuse began. J4 found it: of J4's five feed lines, the
+defusing one was the only one with nothing to wire to, because systems talk
+through the Emitter (Section 3.1) and a field cannot be a feed line without the
+feed polling it.
+
+`objective:defuse-start` is emitted as `defuseProgress` leaves 0, with the site
+and the charge position, following `objective:planted`'s shape. **The rule, and
+it is the whole design: an attempt is a run of progress that starts from
+nothing.** A Warden pulled off the charge and kneeling again *inside* the retain
+window is still on the same attempt — that is what the retain window means
+(Section 10.1: interrupting a defuse has to be worth doing) — and raises nothing.
+Only a decay that reaches the 0 floor ends the attempt, and the next kneel is a
+new one. Nothing else about the defuse moved: no new field on `round`, and no
+change to the arithmetic, the retain, the decay, the hold time or the end
+condition.
+
+The check is a new module, `src/tests/defusestart.js`, rather than a clause in
+`src/tests/objective.js` — that file is 575 lines of a 600 cap and this is its
+own subject. The cost of a new file under `src/tests/` is four source censuses
+(H52 paid a seventy-minute verify to find that out), which is why the census set
+is in every proof now; it was, and all 24 ran. Four clauses: 120 frames of
+kneeling raise **exactly one** event while progress climbs past a second; the
+payload's site and position match `round.site` and `round.chargeAt` to the
+centimetre; a real interruption — the Warden moved to a spawn the check asserts
+is out of reach — raises **no** event while progress decays, and a second one
+when it kneels again from 0; and an interruption *inside* `defuseRetainTime`
+raises **no** second event, which is the clause the rule rests on and carries it
+in its comment.
+
+Proved in the same 44-id subset as M11, on both maps: plant 44 / 0, yard 43 / 0
+with 1 not for that map, `flaky` and `skipped` empty, 0 console errors. The
+registry census ran, which is what holds the two lines in `tests/index.js`
+together — an import without a call is a check that silently vanishes.
+
+## J10 — The boom's shoulder sweep starts in clear air (2026-11-20, the 17:00 run)
+
+J1 built the boom's collision and found this without driving it: the second
+sweep starts at `pivot + right * side * (d / back)`, and when the Shade runs
+parallel to a wall within about 0.45m that origin is **inside the box**, where
+three's `raycast` returns no hit at all. `boomClear`'s box test still caught the
+camera, so it was never a clip — it was a sweep that could not see, in a pose no
+check drove.
+
+`boomOrigin` tests the origin with the same `collision.isClear` `boomClear` uses
+— at the rays' own radius rather than as a point, because their cluster is 0.22m
+across — and walks it back toward the axis a quarter radius at a time, the pivot
+(where the first sweep already starts) last. No new config number: the step is
+`boomClear`'s own.
+
+The entry's second fault was the ordering, and the build had to read the code to
+answer it: **the cast cannot use the smoothed distance, because the smoothed
+distance is derived from the cast.** So instead the terminal test runs *again*
+after the smoothing, at the shoulder the rig actually takes, and clamps there.
+In the open that is one extra `isClear` and no change.
+
+**The numbers say the fix moved nothing it should not have.** J1's four read
+exactly as they did: offset ray **582**, shoulder pass **172**, worst clearance
+**0.220m**, `d0` **0**, and **233** pulled in by the box test over the same 720
+frames and 8 poses. The new clause drives 1820 frames — seven laterals from
+0.15m to 0.60m, on each shoulder, walking parallel, pressing in, easing off,
+standing — and reads: **origin inside 576**, moved back **572**, box test alone
+**572** of which **572 rays blind**, worst 0.177m. That is the fault, measured:
+in 572 of 1820 frames the rays saw nothing at all and the box test was the only
+thing between the camera and the fence. The clause also fails if no frame ever
+asked for an origin inside the wall, so the pose is proved driven rather than
+assumed.
+
+**Two honest gaps, both queued rather than papered over.** `closing` read **0**:
+the post-smoothing clamp never fired in 1820 frames, because a straight-line
+ease between two clear positions along a straight fence never clips — so half
+the fix is built and unexercised, which is **J14**. And `d0` read **4** along the
+wall where J1's poses had none: the boom jammed to the pivot on four frames at
+the laterals inside her own body. The clause does not assert world clearance at
+`d0` on purpose (the camera is then inside the Shade, not inside the world),
+which is exactly **J11**'s subject, and this is the first measured instance of
+it.
+
+Proved in a 60-check subset on both maps, the censuses included: plant **59 / 1**,
+yard **54 / 1** with 5 not for that map, exit **0**, `flaky` and `skipped` empty,
+0 console errors. The one failure a map is the bench-only sweep (H11), benched.
+
+## K14 — The deck ring walks off the deck, and it was the flood (2026-11-20, the 17:00 run)
+
+K11 reproduced it and left it: a Warden on the plant's west deck at
+(-29.25, 6, -18.25), sent to the hall's stair foot, walks the ring and goes off
+the edge. The brief named three possible causes and told its builder to measure
+first. **It was none of them as stated, and the measurement is the job.**
+
+Every one of the 172 route points was on a `wardenGround` cell. Sampling the
+lines between consecutive points every 5% found **no gap** — the planner's
+segment test is not the cause. The follower was not overshooting a point. The
+Warden was following a legal line over ground that was real and marginal:
+`standableFloors` counts a cell as ground when *any sliver* of the body's
+footprint overlaps a top face, so the flood admits cells whose **own centre is
+over the void**. The route ran 24 metres down x = -27.25 and along z = -19.75,
+both inside `HALL_VOID` (x -27.6..-8.6, z -20..5.6); the body walked all of it
+without falling, the line wandered about 0.1m, the sliver went, and `feetY`
+dropped at frame 527 at **(-26.89, 5.66, 5.18)** — on the **south** run, not near
+(-11, -19.8) where K11 put it. By frame 561 it was on the hall floor. Raycasts
+straight down confirm the void under both runs.
+
+The fix is in the planner, not the flood: `route()` runs the breadth-first
+search over **firm** cells first when a margin is asked for — `_firm`, which is
+`groundUnder` at the cell's own centre, cached by cell id — and falls back to the
+old search over every flooded cell if there is no firm route. So **nothing is
+loosened**: every route that existed still exists, the flood, the edges and
+`wardenGround` are untouched, and a call with no margin is unchanged. After it,
+the route runs at x = -27.75 and z = 5.75 / -20.25 on the real deck, the stair at
+z = -20.25 inside its declared -22.1..-20.1, and the Warden arrives.
+
+That cleaning of `route()` is also what made the change small: the BFS came out
+into `_search(startId, goalId, firmOnly)` and `route()` is now the composition
+of a search, a firmness question and the string-pull. It left the file at **578
+of 600**, and since K16 is queued to put a swept clearance test in the same
+file, **H122** names that seam and K16 waits on it.
+
+**K14 and K15 are one cause but not one bug.** K15's z -19.75 stair cells are
+the same family — admitted on a sliver, centre over the void — and the route no
+longer walks them, but the flood still carries them. K15's entry now says so and
+what is left of it: the reading of the declaration against the ground, which
+`_firm` already computes per cell.
+
+Clause 4 of `the-warden-never-leaves-its-ground` walks the ring deliberately
+instead of leaving it to the soak. On the plant: **1813 frames over 177 route
+points**, the lowest deck `feetY` 6.00m against its 6m, arrived. The soak's own
+three phases read 4200 steps with 0 off the ground and 128 airborne frames, all
+within a metre over it — a stair walked down. On the yard the clause says there
+is no `stair-hall-foot` node and so no deck ring to walk, rather than passing
+quietly; no equivalent raised walk was found there.
+
+Proved in the same 60-check subset as J10, which is the whole nav and
+plant-census set because a change to `route()` moves every Warden leg on both
+maps: plant 59 / 1, yard 54 / 1 with 5 not for that map, exit 0, `flaky` and
+`skipped` empty, 0 console errors, the bench-only sweep the one failure a map.

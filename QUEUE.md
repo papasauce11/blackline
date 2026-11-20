@@ -1083,6 +1083,18 @@ the end of this list, never ahead of a game-facing job.
   site and every check import is unchanged in behaviour, the cluster reading
   names the new sizes, and no number moves (H56 is the worked example of a
   split that changed no call site; H75 of one that changed five).
+- [ ] **H122 (S)** `src/mapground.js` is 578 lines of the 600 cap after K14
+  added `_search`, `_firm` and the firm-cells cache — 22 left, and **K16 is
+  queued to put a swept body-clearance test in the same file**, which will not
+  fit. This one is not a guess at a seam: K14 already cut along it. `route()`
+  is now a planner that composes three things — the breadth-first search over
+  edges, the firmness question about a cell, and the string-pull — and the
+  first two are pure queries of the flood and the collision world that know
+  nothing about a route. *done-when:* the search and the cell predicates are
+  their own module, `mapground.js` imports them, `route()` reads as the
+  composition it is, the nav and plant-census check sets are unmoved, and the
+  cluster reading names the new sizes. Do it **before** K16, and K16 names it
+  as its prerequisite.
 
 ## Block K — the Warden as an opponent
 
@@ -1153,12 +1165,7 @@ K4, K5, K7.
   written as (d) and (e) and held on `k12-check-wip` (`38d8da4`) because they
   are red on today's game. When K16 lands, mark this `[x]` under it.
 - [x] **K13 (S)** A leg to a stair node arrives under the stair — done 2026-11-20, under Done. `floored` on every ground-laid point of `_pathTo` and the floor condition in `_followRoute` (`src/systems/ainav.js`), `CONFIG.ai.waypointArriveRise` 0.5 (PROVISIONAL), clause (c) and `stairNodes()` on `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`. `bf0460b`.
-- [ ] **K14 (S)** The deck ring walks off the deck. K11's reproduction: a
-  Warden on the plant's west deck at (-29.25, 6, -18.25) sent to the hall's
-  stair foot walks the ring and goes off the deck edge near (-11, -19.8). The
-  Warden never climbs (its ground has no climb), but nothing says it may not
-  fall. *done-when:* a route on the deck stays on the deck to the stair, and a
-  check walks the ring and holds the Warden's y.
+- [x] **K14 (S)** The deck ring walks off the deck — done 2026-11-20, under Done. **Measured, and it was none of the three guesses.** Every route point was on a `wardenGround` cell and no segment crossed a gap: `standableFloors` counts a cell as ground when *any sliver* of the footprint overlaps a top face, so the flood admits cells whose **centre is over the void** — the hall void's rim at x -27.25 and z -19.75, both inside `HALL_VOID`. The Warden walked 24m of them, the line wandered 0.1m, the sliver went, and it fell at (-26.89, 5.66, 5.18) on the **south** run, not near (-11, -19.8) where K11 put it. `route()` in `src/mapground.js` now runs the BFS over **firm** cells first when `margin > 0` (`_firm`, `groundUnder` at the cell's own centre, cached) and falls back to the old search over every flooded cell, so nothing is loosened and every route that existed still exists; the flood, the edges and `wardenGround` are untouched. Clause 4 of `the-warden-never-leaves-its-ground` walks the ring. `612ae81`.
 - [ ] **K15 (S)** The Warden's ground has cells beyond the stair's declared
   width. K13's measurement: the route from (-26.25, -19.25) to the plant's hall
   stair head runs along z -19.75 and climbs 0.3, 0.6 ... 6.0, but `plant.js`
@@ -1173,7 +1180,23 @@ K4, K5, K7.
   stair's declared cross range on either map, or the declared range is what is
   wrong and moves, with a check that reads the two against each other and names
   the stair.
-- [ ] **K16 (M)** A route that clears a body, not just a floor. K12's two
+  **What K14 settled, 2026-11-20 (the 17:00 run): the cause is the flood, and
+  the route no longer walks these cells — but the ground still carries them.**
+  `standableFloors` in `groundprobe.js` counts a cell as ground when *any
+  sliver* of the body's footprint overlaps a top face, so the flood admits
+  cells whose own centre is over the void; the z -19.75 stair cells and the
+  hall void's rim at x -27.25 are the same family, both inside `HALL_VOID`.
+  They are genuinely standable, which is why nothing caught them. K14's fix
+  plans over **firm** cells (centre with deck under it) and so stopped routing
+  through them, but it changed neither the flood nor the declaration, so this
+  job is still open and is now exactly what its done-when says: the reading of
+  the declaration against the ground. **It is no longer a freeze or a fall** —
+  K13 made the arrival honest and K14 took the route off them — so what is left
+  is whether a cell the Warden will never be routed onto, but could be shoved
+  onto, should exist at all. Measure before changing the flood: K14's `_firm`
+  already computes the answer per cell and caches it, so the cheap version of
+  this check reads `_firm` against each stair's declared cross range.
+- [ ] **K16 (M)** **prerequisite: H122** (`mapground.js` is at 578 of 600 and this job adds to it) — A route that clears a body, not just a floor. K12's two
   measurements (D96) say the same thing from both ends: `_segmentOnGround` asks
   whether there is **ground under the line** and a margin either side, so a
   doorway's continuous floor passes at any margin, and the straightener pulls a
@@ -1211,21 +1234,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [x] **M6 (S)** What the feed means — done 2026-11-20, under Done. `the-alarm-feed-is-the-human-wardens-to-notice-and-the-ai-never-reads-it` in `src/tests/detection.js`, reading `codeOf` and `uncommented` from `sourcetext.js`; the rule in `PLAYTEST.md`. Nothing under `src/systems/` changed, which is the job. `e2299ec`.
 - [x] **M7 (S)** The camera seen — done 2026-11-04, under Done. The lens's own `PointLight` on the effects root (never in the hiding group, so the scene's light count never moves), `CONFIG.gadgets.alarmCamera.lensLight` 2 / 4 / 2 (provisional), `a-placed-alarm-camera-is-found-from-six-metres-by-its-lens-light`.
 - [x] **M10 (S)** post.js puts the camera’s layer mask back even when a frame throws — done 2026-11-20, under Done. The mask, `renderer.autoClear` and `world.background` restored in a `finally` in `src/post.js`; clause (b) of the camera-feed check drops its own restore and its `mask` exemption, and `moved()` loses its one-caller option. `90ef1a6`.
-- [ ] **M11 (S)** A throw leaves the render target bound. M10 put the one
-  camera's layer mask, `renderer.autoClear` and `world.background` back in a
-  `finally`, and deliberately left the render target alone: `post.render` sets
-  it to `scene`, runs the passes and ends on `null`, which is a sequence and not
-  a save/restore, so restoring it in the `finally` would add a
-  `setRenderTarget(null)` on the happy path and the frame's call count is held
-  to a budget (`the-alarm-feed-adds-no-more-than-its-budget-to-a-frame`, 0.75).
-  So after a throw in the scene pass or the post passes the offscreen target
-  stays bound until the next frame sets it. Clause (b)'s snapshot does not catch
-  it, because the feed's own code restores the target on its throw path.
-  *done-when:* a throw in the scene pass leaves `renderer.getRenderTarget()`
-  null, the budget check's call count is unchanged (the number is in
-  PROGRESS.md), and the camera-feed check reads the target on a throw it induces
-  somewhere other than the feed.
-
+- [x] **M11 (S)** A throw leaves the render target bound — done 2026-11-20, under Done. The conditional restore in `post.render`’s `finally` (`if (renderer.getRenderTarget() !== null)`), which costs no call on the happy path because the composite pass already ended on null; clause (e) of the feed check, which induces the throw in the **scene** pass rather than the feed’s and forces a quality level that draws post - not because the suite leaves it unpinned (H10 pins `?quality=medium`, which I had wrong at first) but because `--query quality=low` beats that pin and `low` draws no post at all (D60), so an unforced clause would pass on a target no frame bound. Found **H120**: `night.render` restores neither its target nor the camera’s mask on a throw. `ffc247d`, `2842cd8`.
 ## Block J — feel and juice
 
 - [x] **J1 (S)** Camera collision — done 2026-11-19, under Done. The clamp is `min(max(minDistance, hit - collisionRadius), hit - CONFIG.render.near)`, because `minDistance` alone put the camera **0.21m inside a wall** on the very pose the job names; the sweep is five rays (centre plus four at `collisionRadius`) run twice, the second from the shoulder-shifted pivot; and `boomClear` steps the distance down by `collisionRadius / 4` until `collision.isClear` holds at the full rig position, which is the terminal test a sphere-cast really is. `src/entities/agentvisual.js`, `src/tests/cameraclip.js`, `the-third-person-boom-never-puts-the-camera-inside-the-world`. Measured over 720 frames: an offset ray won **582**, the shoulder pass **172**, the box test pulled in **233**, worst clearance **0.220m**, none jammed to 0. `33622b7`, `5cfb3af`.
@@ -1275,19 +1284,23 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **J9 (S)** **blocked: D90** (key feel, D84) — Sprint FOV kick and the crouch camera's easing, under H9's
   toggles. *done-when:* a check reads the FOV over a sprint.
 
-- [ ] **J10 (S)** The boom's shoulder origin inside a wall. J1 found it and
-  did not drive it: the second sweep starts at `pivot + right * side *
-  (d / back)`, and when the Shade runs parallel to a wall within about 0.45m
-  that origin is **inside the box**, where `raycast` returns no hit at all, so
-  the sweep is blind there. `boomClear`'s box test catches the camera, so this
-  is not a clip today - it is a sweep that cannot see, and a pose no check
-  drives. Related: the shoulder actually used scales with the smoothed
-  `_cameraDistance`, which during an ease-out is smaller than the one the cast
-  used, so a wall on the left can be nearer to the camera than to the cast
-  origin. *done-when:* a check runs the Shade along a wall at several
-  distances inside the shoulder's reach, including ease-out frames, the camera
-  never enters geometry, and the detail reports how often the box test was the
-  only thing standing between the camera and the wall.
+- [x] **J10 (S)** The boom's shoulder origin inside a wall — done 2026-11-20, under Done. `boomOrigin` in `src/entities/agentvisual.js` tests the shoulder origin with the same `collision.isClear` that `boomClear` uses — at the rays' own radius, not as a point, since their cluster is 0.22m across — and walks it back toward the axis a quarter radius at a time, the pivot last. And the ordering fault the entry named: `_cameraDistance` is derived *from* the sweeps, so the cast cannot use it; instead the terminal test runs **again** after the smoothing, at the shoulder the rig actually takes, which is one extra `isClear` in the open and no change there. The new clause runs the Shade along the face at seven laterals (0.15 to 0.60m) on each side, pressing in and then easing off, and fails if no frame ever asked for an origin inside the wall — so the pose is proved driven rather than assumed. `19075fd`. Left **H121**: the file is 582 of 600, and the boom's five pure geometry functions are the seam.
+- [ ] **J14 (S)** J10's closing clear test is built and exercised by nothing.
+  J10 found that the cast's shoulder is cut for the distance the sweep settled
+  on while the rig's is cut for the one it eases to, and fixed it by running the
+  terminal test again after the smoothing, at the shoulder the rig actually
+  takes. The clause that proves the *origin* half reads `closing` **0** over
+  1820 frames: the clamp never fired, because a straight-line ease between two
+  clear positions along a straight fence never clips. So a live code path in
+  the camera has no check behind it, which is the shape HANDOFF's own lesson is
+  about — before believing a check on a set, ask whether it would notice the
+  set being cut in half. *done-when:* a pose is found or staged where the eased
+  distance is **not** clear although the swept one was — a wall that converges
+  on the boom as the Shade turns away from it, an inside corner, or the
+  oblique face J12's `findTallFaces` will hand over — `closing` reads above 0,
+  and removing the second `boomClear` call turns the clause red. Measure
+  first: if no such pose exists in either map's geometry, that is the finding,
+  and the honest end is to say so in the check's header and take the call out.
 - [ ] **J11 (S)** The body seen from inside when the boom is jammed. J1's near-
   plane clamp puts the camera about **0.24m** from the body centre when the
   Shade is pressed flat to a wall - inside her own **0.34m** capsule. That is
@@ -1299,6 +1312,14 @@ provisional; the rule for "thin" is mechanical, never a tag.
   in `CONFIG.shade.camera` and a pixel check reads the frame with and without
   it. The look of the fix (a hard hide or a fade) is a styling detail to
   recommend and record under Provisional, not to ask Josh about.
+  **J10 measured the first instance, 2026-11-20 (the 17:00 run).** Its
+  along-the-wall clause reads `d0` **4** over 1820 frames — the boom jammed to
+  the pivot on four of them, at the laterals inside her own 0.34m body — where
+  J1's eight poses had none. So the pose this job is about is reachable by
+  walking, not only by pressing flat into a corner, and J10's clause deliberately
+  does not assert world clearance at `d0` (the camera is inside the Shade there,
+  not inside the world). Stage from J10's run: wall on either shoulder, lateral
+  0.15m, and photograph the four frames.
 - [ ] **J12 (S)** The clip check tests one fence twice, not two maps.
   `cameraclip.js` takes its face from `scuff.js`'s `findTallFace`, which
   returns only the **first** tall face, and on both maps that is the shared
@@ -1308,15 +1329,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
   beside `findTallFace` returns every qualifying face (leaving `scuff.js`'s own
   callers alone), `cameraclip.js` drives several faces per map, and its detail
   names them so the two maps can be told apart in the record.
-- [ ] **J13 (S)** Defusing raises no event, so no feed can carry it. J4 found
-  it: `src/systems/objective.js` raises `defuseProgress`, a field read each
-  frame, and emits nothing when a defuse begins - so the one line of J4's five
-  that nothing could be wired to is the one the queue names second. A field
-  cannot be a feed line without the feed polling it, and systems talk through
-  the Emitter. *done-when:* `objective:defuse-start` is emitted exactly once as
-  `defuseProgress` leaves 0, and once more per attempt after an interruption, a
-  check holds that it fires once and not per frame, and nothing else about the
-  defuse changes. Prerequisite for J4's defusing line.
+- [x] **J13 (S)** Defusing raises no event, so no feed can carry it — done 2026-11-20, under Done. `objective:defuse-start` emitted as `defuseProgress` leaves 0, with `round.site` and `round.chargeAt`, in `src/systems/objective.js`; the rule is that **an attempt is a run of progress that starts from nothing**, so a resume inside `defuseRetainTime` is the same attempt and raises nothing. New module `src/tests/defusestart.js`, `a-defuse-raises-one-event-when-it-begins-and-not-once-a-frame`, four clauses. J4’s defusing line is unblocked. `71517cc`.
 ## Block I — audio, ambience only
 
 Josh (D50): no music. The map's own sound carries it.

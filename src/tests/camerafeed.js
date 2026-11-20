@@ -274,15 +274,17 @@ export function register(debugTools) {
         // and the next thing to draw landing in it. The only target that is neither
         // null nor the feed's 256x144 is that one.
         //
-        // The post path has to be the one that runs, and on this machine it is
-        // not the one that would: the suite pins no quality, `auto` on
-        // SwiftShader measures a slow frame and `low` draws no post at all
-        // (D60), so `post.render` would take the straight-to-canvas branch and
-        // this clause would read a target that was never bound. So the level is
-        // forced the way tests/post.js forces the row - `SETTINGS` and nothing
-        // else, which is a read for `postEnabled()` and costs no apply - and
-        // `postEnabled()` is asserted afterwards, because a clause that cannot
-        // run must say so rather than pass on nothing.
+        // The post path has to be the one that runs, and what decides that is
+        // not this clause's to assume. `low` draws no post at all (D60), and
+        // auto's probe picks `low` under software WebGL every time; the suite
+        // is only ever on the post path because H10 pins `?quality=medium` in
+        // `scripts/headless.mjs`, **and `--query quality=low` wins over that
+        // pin**. So an unforced clause would quietly read a target no frame
+        // ever bound on exactly the run someone took to look at `low`. The
+        // level is forced the way tests/post.js forces the row - `SETTINGS`
+        // and nothing else, which is a read for `postEnabled()` and costs no
+        // apply - and `postEnabled()` is asserted afterwards, because a clause
+        // that cannot run must say so rather than pass on nothing.
         const wasQuality = SETTINGS.quality;
         const wasPost = SETTINGS.post;
         SETTINGS.quality = POST_LEVEL;
