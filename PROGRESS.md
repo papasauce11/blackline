@@ -22140,3 +22140,186 @@ which is how it travels while badly off-axis — tightened **after a stuck only*
 since a global change moves every AI walk and the whole ai/nav set with it. The
 real fix, a route that respects body-height clearance and not only ground
 presence, is a bigger job to split out if the steering does not hold.
+
+## M5 — The alarm camera's live feed (2026-11-19, the 17:00 run)
+
+A second, low-resolution render of the world from the placed camera's lens,
+shown as a picture-in-picture on the Warden's frame while the camera stands and
+dark once the Shade's taser has killed it. `src/camerafeed.js` (new, 251 lines),
+`CONFIG.gadgets.alarmCamera.cameraFeed`, `setFeed`/`feed` on `src/post.js`,
+`cameraFeed` on `src/hudstate.js`, the frame and label in `src/ui/hud.js`, built
+in `src/boot.js`, and `src/tests/camerafeed.js` (new) with two checks.
+
+**The one hard constraint, and how it was met.** Section 15's risk register
+allows exactly one camera object — `createCamera()` throws on a second and
+`tests/freeroam.js` counts them in the scene graph — and a feed needs a
+viewpoint at the lens. The answer is `thumbnails.js`'s: **borrow the one camera
+and give it back.** `update()` saves parent, local position, rotation, field of
+view, aspect, planes, layer mask, the renderer's target, `autoClear` and the
+shadow-update flag; places the camera at the lens; renders into a 256x144
+target; and restores every one of them in a `finally`, so a throw mid-render
+cannot leave the player looking at a wall. The check holds that as its most
+important clause and drives a render that **does** throw, deliberately, to prove
+the restore.
+
+Composed as M3's silhouettes are — a quad over the finished frame from
+`post.js`'s `silhouettes` hook, so all three draw paths carry it and a pixel
+check can read it back with the rest of the canvas. `ui/hud.js` owns only the
+border and the label ("CAM", or "CAM - NO SIGNAL" when dead). **No shadows, no
+post**: the scene goes straight to the target, and the shadow pass is skipped by
+holding `shadowMap.autoUpdate` off rather than `shadowMap.enabled`, because
+`enabled` is part of three's program cache key and flipping it twice a frame
+would swap every lit material's program twice a frame.
+
+**The spec said this was forbidden.** Section 9.2's table says in bold
+*"Renders no live camera feed. It is a proximity alarm, not a second
+viewport"* — and Josh asked for the feed by name in **D50**, which Section 19
+already admits under amendment 20.34. The contract disagreed with itself; the
+later, owner's decision wins, and appended **20.36** records it. What 9.2 was
+really protecting is untouched: one camera object, ever, and `freeroam.js` still
+counts exactly one with a camera placed. Three comments that asserted there was
+no feed — in `effects.js`, `gadgets.js` and `freeroam.js`'s camera-counting
+clause — now say what is still true of their own file and point at
+`camerafeed.js`.
+
+**Two bugs the checks found, and one of them would have shipped.**
+
+1. **The gate never opened.** `boot.js` passes `match` as a getter function —
+   its own `@param` says `{() => object} root.match the current match record,
+   read live`, and line 194 shows the idiom, `() => (match() ? match().role :
+   ...)`. The feed's gate read `match.role` **on the function**, which is
+   `undefined` for ever, so `state` was always `none`. **A real player would
+   never have seen the feed.** The check caught it because it asked the game the
+   question rather than asking the module.
+2. **A check that poisoned its own page.** Clause (b) patches
+   `renderer.render` to make a feed render throw, then restored it with
+   `delete`. three assigns `render` as an **own** property in the
+   `WebGLRenderer` constructor, so the delete left nothing on the prototype and
+   every later `post.render` in that page died with *"renderer.render is not a
+   function"*. Both checks threw before reaching a clause, on both maps, and the
+   first break proof could not be read at all. Restored by assignment now, with
+   a comment saying why.
+
+**How it was proved.** The break — `update()` returning before it renders — red
+on both maps on clause (a)'s own words, *"the feed carried no picture: its panel
+spans 1.1 luma over 41374 pixels, want at least 6"*, and the budget check red on
+*"the feed added 0 draw calls, so the frame drew no picture"*. Restored, then
+green on both maps: **(a) panel spread 61.6 luma, mean 14.6, max 228 on the
+plant and 72.8 / 30.5 / 255 on the yard**, against a floor of 6; **(b) the
+camera came back across a frame and across a throw**; **(c) taser hit, renders
+stopped at 3, panel brightest 5.1, spread 0.0**; **(d) the Shade sees 0 px
+differ** in the panel with and without a camera standing. Final run exit 0, 40
+checks a map, `flaky` empty, 0 console errors.
+
+**The budget, measured rather than guessed.** The done-when asked for a measured
+frame budget. A wall clock cannot price a draw on this page (H36, H41 — a queued
+frame submits in milliseconds and lands in hundreds), so the check counts
+`renderer.info` draw calls and triangles, the currency
+`each-quality-preset-changes-what-a-frame-costs` already spends, and takes no
+clock — which also keeps it out of `timedrenders.js`'s census by construction.
+The feed costs **81 calls and 1,392 triangles of a 203-call, 4,080-triangle
+frame** on the plant and **88 and 1,498 of 172 and 3,598** on the yard. The
+shipped `budgetShare` was 1 — the feed allowed to cost as much as the whole rest
+of the frame, which those numbers show is nonsense — and it is **0.75** now,
+with the four measured ratios as its parent and the median-and-ceiling
+arithmetic demoted to secondary. The yard sits at 68% of the tightened call
+budget, which is the tightest reading and worth watching.
+
+`camerafeed.js` was caught by three censuses the day it was written — the breath,
+position and reset censuses — exactly as TRAPS.md warns, and declared in all
+three: `none`/`camera`, `none`/`relative` at one frame, and one exposed
+Shade reset held by a live comparison rather than a mark.
+
+**Left**: **M6**, what the feed means (the AI still trips on proximity; a
+PLAYTEST line), is next in Block M. The panel's corner, size and opacity are
+look numbers marked PROVISIONAL under D82/D55 and are Josh's to overrule.
+
+## J1 — Camera collision: the boom keeps its own radius of air (2026-11-19, the 17:00 run)
+
+`CONFIG.shade.camera` has declared `collisionRadius` 0.22, `minDistance` 0.55
+and `pullOutSmoothing` since the redesign, and `_updateCamera` already cast
+**one** ray back along the boom and eased out on a hit. J1 is the sphere-cast
+that was promised and the floor that was wrong.
+
+**What the job turned out to be about.** Two findings, in order, and the second
+overturned the first.
+
+The builder refused to start and said why: pressed flat to a wall, the pivot is
+the body's centre, so the hit is at the Shade's own radius of 0.34m, and
+`desired = max(minDistance, hit - collisionRadius)` = `max(0.55, 0.12)` = 0.55 —
+**the camera 0.21m inside the wall, on exactly the pose the job names.** The
+floor, not the ray count, was putting the camera in the world, and no number of
+rays could move it. So the clamp became
+`min(max(minDistance, hit - collisionRadius), hit - CONFIG.render.near)`:
+`minDistance` stays the floor except where it would put the camera at or behind
+the surface, and the bound there is the **near plane**, because that is what the
+picture actually cares about — no world surface inside it — and it gives the
+epsilon a parent instead of a literal.
+
+Then the proof overturned the lead's own reading. The first green run was red at
+one pose, *"the camera sat 0.163m off site-fence, want 0.22"*, **identical to the
+break's reading and identical on both maps**. The lead read that as a surface
+lateral to the camera that backward rays cannot see. The builder worked the
+arithmetic and showed otherwise: the hit is ~0.71m, so `clear` is 0.49 — **below
+the 0.55 floor** — and `front` is 0.61, so the clamp lands on `minDistance` with
+0.71 − 0.55 = 0.16m of air, which is the 0.163m measured. The surface is along
+the boom, the rays report it correctly, and `minDistance` is a floor the sweep
+**cannot see past**. The builder's reading was right and the lead's was wrong.
+
+**So the fix is a real terminal test, not more rays.** `boomClear` takes the
+distance the sweeps asked for and steps it down by `collisionRadius / 4` until
+`collision.isClear(point, {r, r, r})` holds at the **full rig position, shoulder
+included** — the project's own box query, which `findWall` and `mapclimb.js`
+already use, and which is what a sphere-cast's terminal test actually is. A clear
+cube of half-extent `r` implies a Euclidean gap of at least `r`, so the clause
+holds exactly. The iteration is capped at `BOOM_CLEAR_STEPS` 48, eight more than
+the 40 a 2.2m boom needs.
+
+The sweep itself is a five-ray approximation — the centre plus four offset by
+`collisionRadius` perpendicular to the boom, nearest hit wins — run **twice**,
+the second pass from the shoulder-shifted pivot at the first pass's distance,
+because the rig sits `cam.side` to the right of the axis and a wall beside the
+body is one the axis never sees. Ten casts a frame, once per frame.
+
+**Were the five rays worth it?** The builder said it could not show they were,
+and expected the counts might be zero. **The measurement says they are**: of 720
+frames driven, an offset ray won **582** and the shoulder pass beat the axis pass
+**172**, and the box test pulled the camera in on **233**. Both mechanisms do
+real work. No simplification queued.
+
+**The check.** `src/tests/cameraclip.js` (new), id
+`the-third-person-boom-never-puts-the-camera-inside-the-world`: eight poses —
+five yaws, `pitchMax`, `pitchMin` and half `pitchMax` — backing the Shade into a
+tall face with **S** held through real key codes, and every frame it reads the
+rig's **world** position and requires it outside every collision box and at
+least `collisionRadius` − 0.005 clear of the nearest one. Proved by the break
+**`boomClear` returning `desired` unchanged** — the pull-in disabled — red on both
+maps on the clearance clause, *"the camera sat 0.163m off site-fence, want
+0.22"*; then green, **worst clearance 0.220m, no frame at distance 0**.
+
+**One clause was removed and this says why.** An earlier version failed when no
+frame was won by an offset ray. That asserted the implementation, not anything a
+player sees, and with `boomClear` doing the work it would have gone red for a
+one-ray boom just as clear of the world — a clause that blocks its own
+simplification. It is a reading now, not an assertion, and nothing is loosened
+by it: the floor the check stands on, a radius of real air on **every** frame
+(the `minDistance` exemption dropped), is strictly harder than what that clause
+demanded.
+
+**A limitation on the record rather than hidden.** `findTallFace` is
+`scuff.js`'s helper and returns only the **first** tall face, and on both maps
+that is the shared perimeter `site-fence` — declared at `plant.js:143` and
+`yard.js:195` — which is why the detail reads identically on the plant and the
+yard. **This check currently tests one shared structure twice, not two maps.**
+Widening it is queued as its own job rather than bolted on here.
+
+`cameraclip.js` joined the breath and position censuses the day it was written
+and is declared in both, `none`/`camera` and `none`/`relative` at one frame,
+the position row naming two parts unmeasured rather than claiming them.
+
+**Left**, both queued: the shoulder-pass ray origin lands **inside** a box when
+the Shade runs parallel to a wall within about 0.45m, where `raycast` returns no
+hit — the box test catches the camera there but no pose drives it; and the boom
+jammed flat now clamps to about 0.24m from the body centre, **inside the Shade's
+own 0.34m capsule**, which is not world geometry and so is outside this check by
+design, but is something eyes must judge.

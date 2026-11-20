@@ -196,6 +196,69 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D91 — The alarm camera's feed borrows the one camera, and spec 9.2's ban on a feed is withdrawn
+Taken by the lead under D84 (not personality, not styling, not key feel: an
+engineering route and a contradiction in the contract). M5, 2026-11-19, the
+17:00 run.
+
+- **It borrows the one camera rather than making a second.** The risk register
+  allows exactly one camera object, `createCamera()` throws on a second, and a
+  check counts them in the scene graph - and a feed needs a viewpoint at the
+  lens. `thumbnails.js` already had the answer: borrow the one camera, render,
+  and restore parent, position, rotation, field of view, aspect, planes and
+  layer mask in a `finally`. The alternative was relaxing the one-camera rule,
+  which is a rule several checks and a risk-register line rest on. Override:
+  only by deciding the rule itself should go, which is a bigger conversation.
+- **Spec 9.2's "Renders no live camera feed. It is a proximity alarm, not a
+  second viewport" is withdrawn** by appended amendment 20.36. It had to be:
+  Josh asked for the feed by name in D50 and Section 19 already admitted it
+  under 20.34, so the contract contradicted itself and the later, owner's
+  decision wins. Nothing was deleted from 9.2 - this routine may only append
+  to Section 20 - so 9.2's table still reads the old way and 20.36 is what
+  corrects it. Not really a decision so much as bookkeeping on one of Josh's.
+- **The feed costs draw calls, not milliseconds, in the check.** No wall clock
+  on this page prices a draw (H36, H41), so the budget is counted in
+  `renderer.info` calls and triangles. Measured at 81 calls / 1,392 triangles
+  of a 203 / 4,080 frame on the plant and 88 / 1,498 of 172 / 3,598 on the
+  yard, and `budgetShare` is **0.75** off those numbers rather than the 1 it
+  shipped as. Override: any share; the four readings are in PROGRESS.md.
+- **Look, and therefore Josh's to overrule** - sent as a picture, not asked:
+  the panel top-left at 2%/3% in, 22% of the width, opaque, 256x144, a 70
+  degree lens, `deadColor` 0x050506, the label "CAM" and "CAM - NO SIGNAL".
+  All marked PROVISIONAL in config under D82/D55.
+
+### D92 — The camera's boom: the near plane is the floor's floor, and a box test is the sphere-cast
+Taken by the lead under D84 (a fix making the camera do what
+`collisionRadius` and `minDistance` already meant; not among the key-feel
+things - speed, jump, climb, weight, weapon handling, recoil, aim - that are
+Josh's). J1, 2026-11-19, the 17:00 run.
+
+- **`minDistance` stops winning when it would put the camera behind the
+  surface.** Pressed flat to a wall the hit is at the body's own 0.34m radius
+  and `max(minDistance, hit - collisionRadius)` is 0.55, which is 0.21m inside
+  the wall - on exactly the pose the job existed for. The clamp now also bounds
+  the distance by `hit - CONFIG.render.near`. The bound is the **near plane**
+  on purpose rather than an invented epsilon: "the camera never enters
+  geometry" means, in the only terms the picture has, that no world surface is
+  inside the near plane. Override: a larger explicit standoff, at the cost of
+  the camera sitting further inside the body when jammed.
+- **The sphere-cast is five rays plus a box test**, not a real sphere-cast:
+  `physicsquery.js` has none and a new solver is not worth it here. Five rays
+  twice (axis, then shoulder-shifted) choose a distance, and `collision.isClear`
+  - the project's own box query - steps it in until the camera's own volume is
+  clear. Measured over 720 frames: an offset ray won 582, the shoulder pass
+  172, the box test pulled in 233. All three earn their place, which was an
+  open question until it was measured. Override: cut to one ray plus the box
+  test, at the cost of the camera pulling in later than it needs to.
+- **One clause became a reading rather than an assertion.** The check used to
+  fail when no frame was won by an offset ray. That asserted the implementation
+  and would have gone red for a one-ray boom just as clear of the world. It is
+  reported now, not asserted - and the clause that replaced it as the check's
+  floor, a radius of real air on every frame with no `minDistance` exemption,
+  is strictly harder than the one removed. Recorded here because "never
+  weaken a check" is a standing rule and this needs to be seen to be an
+  exception that strengthens it, not an erosion of it.
+
 ### D88 — The x-ray as built: twenty metres, white-hot, one lens with night vision, and a tutorial step
 Taken by the lead under D84 (none of it personality or key feel; the colour
 is a styling detail with a default the lead can defend, so Josh was sent the

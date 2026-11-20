@@ -1093,11 +1093,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [x] **M9 (S)** A wall that does not start on its room's floor — done 2026-11-19, under Done. `spansItsRoom` in `src/mapxray.js` takes a body's height (`CONFIG.shade.standHeight`) as its floor band; clause 1c of `the-xray-sees-through-a-duct-a-crate-and-a-container-and-never-through-a-wall`.
 - [x] **M3 (M)** The x-ray, drawn — done 2026-11-19, under Done. `src/xray.js`, the silhouette pass in `src/post.js`, `xray` on X, the HUD `XR` tag, `CONFIG.shade.xray` range / color / opacity / chargeSize and `render.xrayLayer`, `the-shades-xray-sees-the-warden-through-a-crate-and-never-through-a-wall`.
 - [x] **M4 (S)** Vision-mode bookkeeping — done 2026-11-19, under Done. `ACTION_LABELS` on the controls page, `lensLine` in `src/ui/briefing.js`, the tutorial's `lens` step, the grouped-row padding 6px to 5px, `the-two-vision-modes-are-on-the-card-the-briefing-and-the-tutorial-and-follow-a-rebind`; spec 20.35; D88.
-- [ ] **M5 (M)** The alarm camera's live feed. A second low-res render — no
-  shadows, no post — into a texture, picture-in-picture on the Warden's HUD
-  while a camera stands; dark when the taser kills it. *done-when:* a pixel
-  check reads the feed; the frame budget with a feed up is measured and
-  within the ceiling.
+- [x] **M5 (M)** The alarm camera's live feed — done 2026-11-19, under Done. `src/camerafeed.js` borrows the one camera as `thumbnails.js` does (Section 15: no second camera, and `createCamera()` throws on one), renders the lens into a 256x144 target with no shadows and no post, and lays it over the finished frame from `post.js`'s `silhouettes` hook as M3's x-ray does; `cameraFeed` on `hudstate.js` and the frame and label in `ui/hud.js`; `CONFIG.gadgets.alarmCamera.cameraFeed` (PROVISIONAL, D82/D55). `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` and `the-alarm-feed-adds-no-more-than-its-budget-to-a-frame`. Spec 9.2 forbade a feed and **20.36** withdraws that line (Josh asked for it in D50; Section 19 already admitted it under 20.34). **Two bugs the checks found**: the gate read `match.role` on a getter function, so a real player would never have seen the feed; and the check restored a patched `renderer.render` with `delete`, which three leaves nothing behind, poisoning the page. Budget tightened from 1 to **0.75** off the measurement (81 calls / 1,392 triangles of 203 / 4,080 on the plant; 88 / 1,498 of 172 / 3,598 on the yard). `8378340`, `2a0d636`, `9c0f3e7`, `4c00256`, `161a48a`.
 - [ ] **M6 (S)** What the feed means. Seeing the Shade on the feed is the
   human Warden's to notice; the AI trips on proximity as before. *done-when:*
   the AI checks unchanged; `PLAYTEST.md` says so.
@@ -1105,9 +1101,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
 
 ## Block J — feel and juice
 
-- [ ] **J1 (S)** Camera collision. The third-person boom sphere-casts to the
-  wall and eases back. *done-when:* a check backs the Shade into a wall and
-  the camera never enters geometry.
+- [x] **J1 (S)** Camera collision — done 2026-11-19, under Done. The clamp is `min(max(minDistance, hit - collisionRadius), hit - CONFIG.render.near)`, because `minDistance` alone put the camera **0.21m inside a wall** on the very pose the job names; the sweep is five rays (centre plus four at `collisionRadius`) run twice, the second from the shoulder-shifted pivot; and `boomClear` steps the distance down by `collisionRadius / 4` until `collision.isClear` holds at the full rig position, which is the terminal test a sphere-cast really is. `src/entities/agentvisual.js`, `src/tests/cameraclip.js`, `the-third-person-boom-never-puts-the-camera-inside-the-world`. Measured over 720 frames: an offset ray won **582**, the shoulder pass **172**, the box test pulled in **233**, worst clearance **0.220m**, none jammed to 0. `33622b7`, `5cfb3af`.
 - [ ] **J2 (S)** **blocked: D89** (key feel, D84) — Hit-stop and shake. 70ms of wall-clock stop on a knife or
   finisher; shake on a grenade by distance; both under a setting.
   *done-when:* the fixed step count is unchanged by hit-stop in a check.
@@ -1131,6 +1125,39 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **J9 (S)** **blocked: D90** (key feel, D84) — Sprint FOV kick and the crouch camera's easing, under H9's
   toggles. *done-when:* a check reads the FOV over a sprint.
 
+- [ ] **J10 (S)** The boom's shoulder origin inside a wall. J1 found it and
+  did not drive it: the second sweep starts at `pivot + right * side *
+  (d / back)`, and when the Shade runs parallel to a wall within about 0.45m
+  that origin is **inside the box**, where `raycast` returns no hit at all, so
+  the sweep is blind there. `boomClear`'s box test catches the camera, so this
+  is not a clip today - it is a sweep that cannot see, and a pose no check
+  drives. Related: the shoulder actually used scales with the smoothed
+  `_cameraDistance`, which during an ease-out is smaller than the one the cast
+  used, so a wall on the left can be nearer to the camera than to the cast
+  origin. *done-when:* a check runs the Shade along a wall at several
+  distances inside the shoulder's reach, including ease-out frames, the camera
+  never enters geometry, and the detail reports how often the box test was the
+  only thing standing between the camera and the wall.
+- [ ] **J11 (S)** The body seen from inside when the boom is jammed. J1's near-
+  plane clamp puts the camera about **0.24m** from the body centre when the
+  Shade is pressed flat to a wall - inside her own **0.34m** capsule. That is
+  not world geometry, so `cameraclip.js` is silent on it by design and J1 left
+  it alone deliberately. What a player sees there is unknown: backfaces cull,
+  so the body may simply vanish, or the inside of the torso may fill the frame.
+  **Look before building.** *done-when:* the jammed pose is photographed on
+  both maps; if it reads badly, the body fades or hides below a boom distance
+  in `CONFIG.shade.camera` and a pixel check reads the frame with and without
+  it. The look of the fix (a hard hide or a fade) is a styling detail to
+  recommend and record under Provisional, not to ask Josh about.
+- [ ] **J12 (S)** The clip check tests one fence twice, not two maps.
+  `cameraclip.js` takes its face from `scuff.js`'s `findTallFace`, which
+  returns only the **first** tall face, and on both maps that is the shared
+  perimeter `site-fence` (`plant.js:143`, `yard.js:195`) - which is why J1's
+  detail reads identically on the plant and the yard, to the centimetre. The
+  check's header says so rather than hiding it. *done-when:* a `findTallFaces`
+  beside `findTallFace` returns every qualifying face (leaving `scuff.js`'s own
+  callers alone), `cameraclip.js` drives several faces per map, and its detail
+  names them so the two maps can be told apart in the record.
 ## Block I — audio, ambience only
 
 Josh (D50): no music. The map's own sound carries it.

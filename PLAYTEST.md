@@ -95,6 +95,60 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The alarm camera has a picture now (M5, 2026-11-19)
+
+Play the **Warden**, place your camera (gadget 3) on a wall, and look at the
+top-left of your HUD: a small panel, bordered and labelled **CAM**, showing
+what the lens sees, live. Walk away from it and watch the panel rather than
+the room - that is the point of it. Then have the Shade taser the camera: the
+panel goes near-black and the label reads **CAM - NO SIGNAL**, and the game
+stops rendering it rather than drawing you a black rectangle every frame.
+
+What the checks already prove: that the panel carries a real picture (its
+brightness spreads 61.6 of 255 on the plant and 72.8 on the yard, against a
+floor of 6), that it goes dark and **stops** when the camera dies, that the
+Shade never sees the panel at all, that it costs 81 draw calls of a 203-call
+frame on the plant and 88 of 172 on the yard, and - the one that matters most -
+that the one camera the game owns is **exactly** where it was after a frame
+that drew the feed, and after one whose render deliberately threw mid-borrow.
+There is only ever one camera in this game and the feed borrows it.
+
+**What is left for you**, and all of it is look rather than rule: whether the
+panel is in the right corner, the right size (22% of the width) and opaque
+rather than translucent; whether 70 degrees is the right field of view for a
+wall camera; and whether a feed makes the Warden's job better or just busier.
+Those numbers are marked PROVISIONAL and are yours to overrule. **Note the
+spec said this was forbidden** - Section 9.2 read "renders no live camera
+feed" - and amendment 20.36 withdraws that line, because you asked for the
+feed by name in D50 and Section 19 already admitted it.
+
+### The camera stops going through walls (J1, 2026-11-19)
+
+Play the **Shade** in third person and back yourself into a wall, a fence, a
+door frame, a pipe - then look up and down while you are pressed against it.
+The camera should pull in and keep a little air behind it, and never show you
+the inside of the world.
+
+It used to. Pressed flat to a wall the camera sat **0.21m inside it**, because
+the rule that stops the camera coming closer than 0.55m to your body won
+against the rule that keeps it out of geometry. Now the boom sweeps with five
+rays instead of one (twice - once down the middle, once from where your
+shoulder offset actually puts the camera), and then the camera's own volume is
+box-tested and pulled in until it is genuinely clear.
+
+What the checks prove: over 720 frames of backing into a face at eight
+different yaws and pitches, the camera is never inside a collision box and
+never has less than its own radius of air - worst reading 0.220m against a
+0.215m bar. The box test is what saves it on 233 of those frames.
+
+**What is left for you, and it is a real question**: when you are pressed
+*flat* against a wall the camera now sits about 0.24m from the centre of your
+body, which is **inside your own body**. Backfaces may simply cull and the
+Shade vanish, or you may find yourself looking at the inside of her chest. No
+check can judge that - the body is not world geometry - so please jam yourself
+into a corner and tell me what you see. It is queued as J11 and the fix, if it
+needs one, is to fade or hide the body at that range.
+
 ### The Warden gives up, and is quicker the second time (K5, 2026-11-04)
 
 Break line of sight and hide. The Warden sweeps the hiding spots and the tops
