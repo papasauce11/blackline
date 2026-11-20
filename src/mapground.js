@@ -78,6 +78,8 @@ export class WardenGround {
      * @type {Map<number, number>}
      */
     this.edges = new Map();
+    /** `_firm()`'s answers, by `cellId()`. */
+    this._firmCells = new Map();
     /**
      * What the flood was derived from, kept so `route()` can ask the same
      * physics of a pulled-straight segment that the flood asked of an edge.
@@ -192,8 +194,47 @@ export class WardenGround {
     const startId = this.cellId(start.i, start.j, start.k);
     const goalId = this.cellId(goal.i, goal.j, goal.k);
 
-    // Breadth-first. Parents by id; the queue is ids; nothing allocated per
-    // visited cell beyond the two maps.
+    // Firm cells first (K14): with a margin asked for, the cheapest route over
+    // cells whose centre has deck under it, and only if there is none the one
+    // over every cell the flood proved. A cell can be ground on a sliver of its
+    // footprint, the centre beyond the edge - the hall void's rim, the stair's
+    // side - and a line of them is a ledge a body walks off at the first nudge.
+    const parent = (margin > 0 && this._search(startId, goalId, true)) || this._search(startId, goalId, false);
+    if (!parent) return null;
+
+    // Unwind into foot positions, start first.
+    const cells = [];
+    for (let id = goalId; id !== -1; id = parent.get(id)) {
+      const k = id % 4;
+      const key = (id - k) / 4;
+      const i = key % this.nx;
+      const j = (key - i) / this.nx;
+      cells.push({ x: this.centreX(i), y: this.columns.get(key)[k], z: this.centreZ(j) });
+    }
+    cells.reverse();
+    // The start is the caller's point, not the cell centre under it - it is
+    // where the body already is. The end stays a cell centre: a spot the
+    // Shade could stand on 0.4m from a wall is one a wider Warden cannot, and
+    // the centre is at most a third of a metre from the goal, inside every
+    // arrival radius that reads it.
+    cells[0] = { x: from.x, y: start.y, z: from.z };
+    const pulled = this._pullStraight(cells, maxLeg, margin);
+    // A snapped goal still finishes at the thing itself. The AI decides it
+    // has arrived by its distance to the charge, not to the cell beside it,
+    // so the last leg is the short walk at the crate the solver stops it at,
+    // exactly as it was before any of this was planned.
+    if (snapped) pulled.push({ x: to.x, y: goal.y, z: to.z });
+    return pulled;
+  }
+
+  /**
+   * Breadth-first over the proven edges: parents by id, the queue is ids,
+   * nothing allocated per visited cell beyond the two maps. `firmOnly` walks
+   * only cells whose own centre has deck under it (the goal's is always
+   * allowed: it is where the caller asked to be). Null if the goal is not
+   * reached.
+   */
+  _search(startId, goalId, firmOnly) {
     const parent = new Map([[startId, -1]]);
     const queue = [startId];
     let head = 0;
@@ -219,6 +260,7 @@ export class WardenGround {
           if (Math.abs(floors[nk] - y) > (W.stepHeight + STEP_SLACK) * 2) continue;
           const nid = this.cellId(ni, nj, nk);
           if (parent.has(nid)) continue;
+          if (firmOnly && nid !== goalId && !this._firm(ni, nj, nk, floors[nk])) continue;
           parent.set(nid, id);
           if (nid === goalId) {
             found = true;
@@ -229,31 +271,19 @@ export class WardenGround {
         if (found) break;
       }
     }
-    if (!found) return null;
+    return found ? parent : null;
+  }
 
-    // Unwind into foot positions, start first.
-    const cells = [];
-    for (let id = goalId; id !== -1; id = parent.get(id)) {
-      const k = id % 4;
-      const key = (id - k) / 4;
-      const i = key % this.nx;
-      const j = (key - i) / this.nx;
-      cells.push({ x: this.centreX(i), y: this.columns.get(key)[k], z: this.centreZ(j) });
+  /** Is there a top face under this cell's centre, within a step of its floor? Cached: the flood's footprint test is looser by design. */
+  _firm(i, j, k, y) {
+    if (!this.collision) return true;
+    const id = this.cellId(i, j, k);
+    let firm = this._firmCells.get(id);
+    if (firm === undefined) {
+      firm = groundUnder(this.collision, this.centreX(i), this.centreZ(j), y, this.step);
+      this._firmCells.set(id, firm);
     }
-    cells.reverse();
-    // The start is the caller's point, not the cell centre under it - it is
-    // where the body already is. The end stays a cell centre: a spot the
-    // Shade could stand on 0.4m from a wall is one a wider Warden cannot, and
-    // the centre is at most a third of a metre from the goal, inside every
-    // arrival radius that reads it.
-    cells[0] = { x: from.x, y: start.y, z: from.z };
-    const pulled = this._pullStraight(cells, maxLeg, margin);
-    // A snapped goal still finishes at the thing itself. The AI decides it
-    // has arrived by its distance to the charge, not to the cell beside it,
-    // so the last leg is the short walk at the crate the solver stops it at,
-    // exactly as it was before any of this was planned.
-    if (snapped) pulled.push({ x: to.x, y: goal.y, z: to.z });
-    return pulled;
+    return firm;
   }
 
   /** String-pull a cell path: keep a point only where the line has to bend. */
