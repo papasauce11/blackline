@@ -22374,3 +22374,186 @@ the two trees is the restore line, which sits after the assertions it follows.
 - `the-third-person-boom-never-puts-the-camera-inside-the-world`: offset 582,
   shoulder 172, **worst 0.220m**, d0 0; 720 frames, 8 poses on `site-fence`, 10
   casts plus up to 4 box tests, 233 pulled in by the box test.
+
+## K13 — A route point is reached in y as well as x and z (2026-11-20, the 02:00 run)
+
+K11 found this and passed it. Its sweep walked the plant's leg from
+(-26.25, -19.25) to the hall stair's head, the body finished at the head's x
+and z **six metres below it**, and nothing was red: the leg did not freeze, and
+`walkLeg`'s floor band was `SAME_FLOOR = 1`, a storey's worth of tolerance that
+only ever had to catch a body on the wrong *floor*, never one under a stair.
+
+**What was wrong.** `_followRoute` decided a route point was reached on flat
+distance alone — `Math.hypot(dx, dz) <= A.waypointArriveRadius` — so a point at
+the top of a stair counted as reached from the floor beneath it. The route was
+never the problem: measured through `probe`, it runs along z -19.75, the stair's
+edge cell, and its points climb 0.3, 0.6 … 5.4 and then 6.0 from x -18.75. The
+follower walked the flat ground under them and ticked each one off as it passed
+beneath. At t=2.98s it counted (-18.75, 6.0, -19.75) reached while standing at
+feet y 0.001, and it ran `_routeIndex` to the end of the route 0.56m flat from
+the node and 6.0m under it.
+
+**The fix.** `_pathTo` marks every point it lays over ground the Warden can walk
+`floored: true` — the direct route, `_leadTo`'s points, the graph nodes and the
+planned tail — and `_followRoute` asks a floored point for the feet as well as
+the flat: `Math.abs(this.warden.feetY - target.y) <= A.waypointArriveRise`, a
+new `CONFIG.ai` number at **0.5**, PROVISIONAL, a little over the Warden's 0.35
+`stepHeight` so a body mid-stride on a step is on the point's floor. Near but
+off the floor, the follower keeps steering at the point, and that is what walks
+the body up the steps; the stuck detector is the backstop if it genuinely
+cannot.
+
+**The one point deliberately left unmarked** is the straight-line goal at the
+end of `_pathTo` — the fallback for a goal that is not on the Warden's ground.
+A charge on a vent lip is only ever reached from beneath it, and a defuse that
+waited for its y would never begin, which is Block A's whole rule. That
+exception is the reason this job is three lines of condition and not one.
+
+**Measured, before and after, not argued.** Before: the body held y 0.001 for
+the entire leg. After: y 4.2 at 2s, and (-16.65, **6.00**, -20.62) at 4s, for a
+node at 6.0. Every one of the 74 stair legs the new clause walks on the plant
+finishes inside the band.
+
+**What it was proved with.** `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`
+keeps its id and gains clause (c): the measured stand to `stair-hall-head`, plus
+every eighth sweep stand to each stair node standing above the map's lowest
+floor, each asked for `ARRIVE` flat and `A.waypointArriveRise + 0.15` in y.
+`walkLeg`'s arrival drops from a storey to that band and now returns the y it
+finished at, so the detail reports it. `stairNodes()` finds the nodes by tag and
+height rather than by a list. The **yard has no stair waypoint** and clause (c)
+says `no stair node on this map` rather than inventing a stand — the same way
+clause (a) already handled it.
+
+Proved in a 63-id subset over both maps at `--runs 1` (K13, M10 and M6's checks,
+every check of every module the three touched, and the census set): plant **63
+passed / 0 failed** (233,053ms), yard **54 passed / 0 failed / 9 not for this
+map** (144,011ms), `flaky` empty, 0 console errors. All 63 ids matched, which is
+the reading that says the census's 24 prefixes actually ran. The break —
+`const onFloor = true;` in place of the condition, the flat-only test — reds
+clause (c) on the plant with *"from (-26.25, -19.25) to the stair node
+stair-hall-head (y 6.0) the Warden timeout after 9.8s at (-19.6, -16.2, feet
+0.0), stuck re-paths 0"*, and leaves the yard green on `no stair node on this
+map`, which is the clause reporting its own absence rather than passing
+vacuously.
+
+**Found and left.** The route climbs cells at z -19.75 while `plant.js` declares
+that stair's `crossMax` at -20.1, so the flood gave the Warden climbing cells a
+third of a metre outside the stair the map says is there. That is what put the
+body under the stair in the first place; K13 makes the leg *arrive*, and the
+disagreement between the ground and the map is **K15**.
+
+## M10 — The one camera's layer mask comes back even when a frame throws (2026-11-20, the 02:00 run)
+
+H115 cost the previous batch a second eighty-minute verify, and the fix it got
+was a line in the check. This is the fix in the render path.
+
+`post.render` saved the one camera's layer mask, set the camera to layer 0 for
+the scene pass, and put the mask back **on the line after `overlay()`** — so a
+throw anywhere between those two points skipped the restore and left the one
+camera blind to `render.overlayLayer`. Because the two runs of a map share one
+page, that is a defect with a delay on it: run 1 passed and run 2 read *"the hit
+marker changed nothing"*, eleven checks later.
+
+Reading the frame for everything it borrows turned up **three** things, not one:
+the layer mask, and inside `overlay()` both `renderer.autoClear` and
+`world.background`. All three now go back in a `finally`. The render target is
+the one thing deliberately left alone: `post.render` *sequences* it — `scene`,
+the passes, then `null` — rather than saving and restoring it, so a `finally`
+there would add a `setRenderTarget(null)` on the happy path, and the frame's
+calls are held to a budget (`the-alarm-feed-adds-no-more-than-its-budget-to-a-frame`,
+tightened to 0.75 by M5 off a real measurement). The call count is unchanged:
+every restore in the `finally` is one the old code ran unconditionally. What a
+throw still leaves bound is **M11**.
+
+With the render path honest, the check stops doing the render path's job.
+Clause (b) of `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back`
+drops its own `h.camera.layers.mask = beforeThrow.mask` restore and its
+`{ mask: false }` exemption, so `moved(beforeThrow, afterThrow)` now compares the
+mask like everything else and the clause asserts that *the game* put it back.
+`moved()`'s option parameter had one caller and is gone with it.
+
+Proved in the 63-id subset above: plant 63/0, yard 54/0, `flaky` empty. The
+break — the mask's restore taken out of the `finally` and put back on the line
+after `overlay()`, the exact shape of H115 — reds clause (b) on **both** maps
+with *"(b) after a feed render that threw the one camera has moved its layer
+mask"*. Both of `overlay()`'s restores are still asserted by nothing, because
+the throw the clause induces happens inside `silhouettes`, before `overlay()`
+runs: that is **H117**.
+
+## M6 — The feed is the human Warden's to notice (2026-11-20, the 02:00 run)
+
+M5 put a live feed from the alarm camera on the Warden's HUD. M6 pins what it
+means: the feed is **information for a human only**, and the AI Warden finds the
+Shade exactly as it did before the feed existed. Nothing under `src/systems/`
+changed — that is the job's content, not an omission — and the value is a check
+that bites the day someone wires the feed into the AI.
+
+`the-alarm-feed-is-the-human-wardens-to-notice-and-the-ai-never-reads-it`, in
+`tests/detection.js`'s existing `register()` rather than a new module, because a
+new file under `src/tests/` is a new row in four source censuses and H52 paid a
+seventy-minute verify to find that out. Four clauses: the nine AI modules read
+through `codeOf` name nothing of the feed; a narrower read through `uncommented`
+catches an *import* of the feed module; the Shade standing in a placed camera's
+lens at 8.5–10.5m — on the feed, outside the 8m proximity trip — with the Warden
+over 30m away and out of line of sight leaves the AI in PATROL with `ai.sees`
+never true and suspicion at 0; and `PLAYTEST.md` carries the sentence, so the
+rule cannot be dropped from Josh's own document without the suite saying so.
+
+**Review sent the first build back, and this is the interesting part.** Clause
+(a) had written its own reader, and its first replace was `sourcetext.js`'s
+`uncommented()` **character for character**. `readernames.js` holds that nothing
+under `src/tests/` spells either reader by hand — a third hand-rolled reader is
+precisely the drift H68 and H95 were written against. It reads the owned readers
+now, and the choice of *which* is H62's question answered rather than defaulted:
+the body clause asks what a module **does**, so it reads `codeOf` and says
+`AS_CODE`; the import clause needs the string a path lives in, which `codeOf`
+blanks, so it reads `uncommented` and says `AS_WORDING`. Both criteria go through
+`readerProblems()`, and the import line is a `sees` for the weak reader and an
+`ignores` for the strong one — which is sourcetext.js's own way of proving the
+two are not interchangeable rather than assuming it.
+
+`codeOf` blanking an import path is not a hole: an import whose binding is never
+used is not the AI reading the feed, and every real use survives it. What *is* a
+hole is that the clause names nine modules, so a tenth AI module is outside it —
+**H118**.
+
+Proved in the 63-id subset above: green on both maps, so the clause stands on
+the plant and the yard rather than on one. Two breaks, each from a copy and
+restored from it: `cameraFeed: null` added to `src/systems/aiperception.js` reds
+clause (a) on **both** maps with *"src/systems/aiperception.js names the camera
+feed in code (line 18): the feed is the human Warden's, the AI must not read
+it"*; and changing the sentence in `PLAYTEST.md` reds clause (c).
+
+## J4 — Built, and not merged: there was already a feed (2026-11-20, the 02:00 run)
+
+J4 asks for *"an event feed. Planted, defusing, alarm tripped, reinsert, the
+round's outcome — timed lines top-right."* The brief I wrote sent its builder to
+M5's pattern: a field on `hudstate.js`, a panel in `ui/hud.js`, numbers in
+`config.js`. It built exactly that, correctly, with the timing off the fixed
+step and no timer anywhere, a check with staging for all four events that have
+one — and then reported what **the brief had missed**.
+
+`ui/hud.js` already carries `#bl-feed { right: 26px; top: 70px }`, commented
+*"Section 13: a kill feed of at most four lines, each living 5s"*, and
+`wiring.js` already pushes to it on a plant (`charge armed at X`), on an alarm
+(`ALARM - shade detected`) and at round end. **Three of J4's five lines were
+already on screen.** The new panel would have printed them again in capitals,
+80px below, in different words. The builder saw the collision, moved its own
+panel to top 150px so the two would not overprint, and queued the question
+rather than shipping it quietly. That is the right instinct and it is why this
+entry exists instead of a merge.
+
+**D95: one feed, and it is the one Section 13 already specifies.** The fold is
+*less* code than what was built — three events are wired already, so J4 reduces
+to the ones that are missing, the outcome's own sentence from `sayOutcome` so the
+feed and the end screen cannot drift, and a wording pass. J4 is `[~]` with a
+resume note naming the worktree commit `b63428c`, which keeps its value as the
+worked example of the check's staging (a plant driven with `KeyE` in site A's
+room, an alarm by standing in a placed camera's cone, a reinsert through a lethal
+`combat.applyDamage`, a round end via `round.timeRemaining = 0.1`) — the
+expensive part, and reusable whole. **None of it has run in a browser**, so the
+resume note says to treat the staging as a draft.
+
+It also found the one line of the five that nothing can carry: **defusing raises
+no event at all** — `objective.js` has only the `defuseProgress` field, and a
+field cannot feed a feed without polling it. That is **J13**.

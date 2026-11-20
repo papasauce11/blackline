@@ -196,6 +196,47 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D95 — One feed, and it is Section 13's; J4's five events go onto it rather than beside it
+Taken by the lead under D84 (not personality, not styling, not key feel: which
+of two viable builds a job takes, and a duplicate a player would have seen).
+2026-11-20, the 02:00 run, before J4 was merged.
+
+- **What happened.** J4 is queued as *"An event feed. Planted, defusing, alarm
+  tripped, reinsert, the round's outcome - timed lines top-right"*, and the
+  brief I wrote sent its builder to M5's pattern: a field on `hudstate.js` and
+  a new panel in `ui/hud.js`. It built exactly that, correctly, and then told
+  me what the brief had missed - **`ui/hud.js` already has one.**
+  `#bl-feed { right: 26px; top: 70px }`, commented *"Section 13: a kill feed of
+  at most four lines, each living 5s"*, and `wiring.js` already pushes to it on
+  a plant (`charge armed at X`), on an alarm (`ALARM - shade detected`) and at
+  round end. Three of J4's five lines were already on screen, and the new panel
+  would have printed them again in capitals, 80px below, in different words.
+  The builder saw it, moved its own panel down to top 150px so the two would
+  not overprint, and queued the question rather than shipping a collision
+  silently. That is the right instinct and the reason this entry exists.
+- **Decided: one feed, the one Section 13 already specifies.** J4's five events
+  go onto `hud.feed`; `#bl-events` and the `eventFeed` field on `hudstate.js`
+  come out. The reasons, in order: Section 13 is the contract and it describes
+  *a* feed of four timed lines, so a second one is a contradiction nobody asked
+  for; a player reading two stacks that say the same thing twice learns to read
+  neither; and the fold is **less** code than what was built, not more - three
+  of the five events are already wired, so J4 reduces to adding the ones that
+  are missing, settling the wording, and the check that reads each line on its
+  own event.
+- **What this costs.** The built commit is mostly superseded: `b63428c` in the
+  worktree keeps its value as a worked example of the event wiring and of the
+  check's staging (how to drive a plant, an alarm, a reinsert and a round end
+  from a check), and J4's resume note names it for that. The `hold`/`fade`/
+  `maxLines` numbers it put in `config.js` are worth keeping only if Section
+  13's existing 5s and four lines are wrong, which nothing says they are.
+- **Rejected: keep both.** Two feeds could be given different jobs - kills on
+  one, objectives on the other - and that is a real design, but it is a design
+  for a game with more going on than this one, and it doubles the thing a
+  player has to look at to learn the round state. If the single feed ever gets
+  crowded, splitting it is a job then, with a measurement behind it.
+- **Override:** keep the second panel, or split the feed by subject. Both are
+  live options; the built commit makes the first one cheap to revisit.
+
 ### D93 — A comment-only diff since the verified commit does not earn a seventy-minute gate
 Taken by the lead under D84 (not personality, not styling, not key feel: a
 verify policy, and the kind P2 was written to price). 2026-11-20, the 02:00

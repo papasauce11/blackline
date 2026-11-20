@@ -1025,6 +1025,23 @@ the end of this list, never ahead of a game-facing job.
   takes a flag that boots the Warden with a placed alarm camera (reusing what
   the camera-feed check already does to get there), the pose list has one frame
   that includes the HUD panel, and `npm run shot` writes it on both maps.
+- [ ] **H117 (S)** The camera-feed check has no reading for `world.background`.
+  M10 moved `overlay()`'s restores of `renderer.autoClear` and
+  `world.background` into a `finally` too, but clause (b)'s `snapshot()` reads
+  the mask, `autoClear` and the target and not the background, and the throw it
+  induces comes from the feed render inside `silhouettes` - before `overlay()`
+  - so the two restores M10 added there are asserted by nothing. *done-when:*
+  `snapshot()` reads `world.background`, and a throw induced inside the overlay
+  draw itself reds the clause when either of `overlay()`'s restores is taken
+  out of its `finally`.
+- [ ] **H118 (S)** M6's source clause reads nine modules by name. It lists
+  `ai`, `ainav`, `aiperception`, `aihearing`, `aisearch`, `aialarm`, `aipatrol`,
+  `aistate` and `detection` under `src/systems/`, so a tenth AI module written
+  tomorrow is outside it and may read the feed with the check green - the same
+  shape of hole the four source censuses closed by deciding membership from the
+  tree rather than from a list. *done-when:* the clause reads every module under
+  `src/systems/` that ran (`ranModulesUnder`), not a list, the count in its
+  detail is that number, and a module added to the tree joins it with no edit.
 
 ## Block K — the Warden as an opponent
 
@@ -1078,18 +1095,27 @@ K4, K5, K7.
   and with the bug present exactly **1 of 200** fails, so the tolerance is
   right), and clause (d), the measured leg plus a re-path that must differ.
   Cherry-pick the test file alone and build the fix under it.
-- [ ] **K13 (S)** A leg to a stair node arrives under the stair. K11's sweep:
-  from (-26.25, -19.25) on the plant to n10 the route runs along the stair's
-  edge cell (z -19.8) and the body ends at the node's x and z on the floor
-  below. Not a freeze, so K11's check passes it. *done-when:* arrival is
-  checked in y as well as x and z, and the plant's stair legs arrive on the
-  stair.
+- [x] **K13 (S)** A leg to a stair node arrives under the stair — done 2026-11-20, under Done. `floored` on every ground-laid point of `_pathTo` and the floor condition in `_followRoute` (`src/systems/ainav.js`), `CONFIG.ai.waypointArriveRise` 0.5 (PROVISIONAL), clause (c) and `stairNodes()` on `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`. `bf0460b`.
 - [ ] **K14 (S)** The deck ring walks off the deck. K11's reproduction: a
   Warden on the plant's west deck at (-29.25, 6, -18.25) sent to the hall's
   stair foot walks the ring and goes off the deck edge near (-11, -19.8). The
   Warden never climbs (its ground has no climb), but nothing says it may not
   fall. *done-when:* a route on the deck stays on the deck to the stair, and a
   check walks the ring and holds the Warden's y.
+- [ ] **K15 (S)** The Warden's ground has cells beyond the stair's declared
+  width. K13's measurement: the route from (-26.25, -19.25) to the plant's hall
+  stair head runs along z -19.75 and climbs 0.3, 0.6 ... 6.0, but `plant.js`
+  declares that stair's `crossMax` at -20.1 - so the flood gave the Warden
+  climbing cells a third of a metre outside the stair the map says is there.
+  That is why the body walked *under* the stair before K13: the cells existed at
+  stair heights where the stair does not. K13 made the leg arrive by asking
+  arrival for the point's floor, so this is no longer a freeze or a wrong
+  finish - it is a ground that disagrees with the map, and the next job that
+  reads either will meet it. Related: K12's steering lever sits on the same
+  cells. *done-when:* the Warden's ground carries no climbing cell outside its
+  stair's declared cross range on either map, or the declared range is what is
+  wrong and moves, with a check that reads the two against each other and names
+  the stair.
 - [x] **K8 (S)** The per-round aim draw — done 2026-11-19, under Done. `_drawAimError` from the `combat:shot` handler in `src/systems/ai.js`, not the burst refill; `MIN_IN_BURST_SCATTER` 0.77 on `the-widest-cone-kills-at-range-and-not-once-in-a-while`.
 ## Block M — vision
 
@@ -1105,21 +1131,23 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [x] **M3 (M)** The x-ray, drawn — done 2026-11-19, under Done. `src/xray.js`, the silhouette pass in `src/post.js`, `xray` on X, the HUD `XR` tag, `CONFIG.shade.xray` range / color / opacity / chargeSize and `render.xrayLayer`, `the-shades-xray-sees-the-warden-through-a-crate-and-never-through-a-wall`.
 - [x] **M4 (S)** Vision-mode bookkeeping — done 2026-11-19, under Done. `ACTION_LABELS` on the controls page, `lensLine` in `src/ui/briefing.js`, the tutorial's `lens` step, the grouped-row padding 6px to 5px, `the-two-vision-modes-are-on-the-card-the-briefing-and-the-tutorial-and-follow-a-rebind`; spec 20.35; D88.
 - [x] **M5 (M)** The alarm camera's live feed — done 2026-11-19, under Done. `src/camerafeed.js` borrows the one camera as `thumbnails.js` does (Section 15: no second camera, and `createCamera()` throws on one), renders the lens into a 256x144 target with no shadows and no post, and lays it over the finished frame from `post.js`'s `silhouettes` hook as M3's x-ray does; `cameraFeed` on `hudstate.js` and the frame and label in `ui/hud.js`; `CONFIG.gadgets.alarmCamera.cameraFeed` (PROVISIONAL, D82/D55). `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` and `the-alarm-feed-adds-no-more-than-its-budget-to-a-frame`. Spec 9.2 forbade a feed and **20.36** withdraws that line (Josh asked for it in D50; Section 19 already admitted it under 20.34). **Two bugs the checks found**: the gate read `match.role` on a getter function, so a real player would never have seen the feed; and the check restored a patched `renderer.render` with `delete`, which three leaves nothing behind, poisoning the page. Budget tightened from 1 to **0.75** off the measurement (81 calls / 1,392 triangles of 203 / 4,080 on the plant; 88 / 1,498 of 172 / 3,598 on the yard). `8378340`, `2a0d636`, `9c0f3e7`, `4c00256`, `161a48a`.
-- [ ] **M6 (S)** What the feed means. Seeing the Shade on the feed is the
-  human Warden's to notice; the AI trips on proximity as before. *done-when:*
-  the AI checks unchanged; `PLAYTEST.md` says so.
+- [x] **M6 (S)** What the feed means — done 2026-11-20, under Done. `the-alarm-feed-is-the-human-wardens-to-notice-and-the-ai-never-reads-it` in `src/tests/detection.js`, reading `codeOf` and `uncommented` from `sourcetext.js`; the rule in `PLAYTEST.md`. Nothing under `src/systems/` changed, which is the job. `e2299ec`.
 - [x] **M7 (S)** The camera seen — done 2026-11-04, under Done. The lens's own `PointLight` on the effects root (never in the hiding group, so the scene's light count never moves), `CONFIG.gadgets.alarmCamera.lensLight` 2 / 4 / 2 (provisional), `a-placed-alarm-camera-is-found-from-six-metres-by-its-lens-light`.
-- [ ] **M10 (S)** post.js puts the camera's layer mask back even when a frame
-  throws. `post.render` saves the standing mask, sets the camera to layer 0 for
-  the scene pass, and restores the mask on the line after `overlay()` - so any
-  throw between those two points leaves the one camera blind to
-  `render.overlayLayer`, and nothing draws the feedback quad again. M5's check
-  induced exactly that throw and cost this batch a second 80-minute verify
-  (H115); the check now puts the mask back itself, which is correct hygiene but
-  leaves the render path as it was. *done-when:* `post.render` restores the mask
-  (and anything else it borrows for the frame) in a `finally`, the camera-feed
-  check's clause (b) drops its own restore and stops exempting the mask from
-  `moved()` on the throw path, and the frame's call count is unchanged.
+- [x] **M10 (S)** post.js puts the camera’s layer mask back even when a frame throws — done 2026-11-20, under Done. The mask, `renderer.autoClear` and `world.background` restored in a `finally` in `src/post.js`; clause (b) of the camera-feed check drops its own restore and its `mask` exemption, and `moved()` loses its one-caller option. `90ef1a6`.
+- [ ] **M11 (S)** A throw leaves the render target bound. M10 put the one
+  camera's layer mask, `renderer.autoClear` and `world.background` back in a
+  `finally`, and deliberately left the render target alone: `post.render` sets
+  it to `scene`, runs the passes and ends on `null`, which is a sequence and not
+  a save/restore, so restoring it in the `finally` would add a
+  `setRenderTarget(null)` on the happy path and the frame's call count is held
+  to a budget (`the-alarm-feed-adds-no-more-than-its-budget-to-a-frame`, 0.75).
+  So after a throw in the scene pass or the post passes the offscreen target
+  stays bound until the next frame sets it. Clause (b)'s snapshot does not catch
+  it, because the feed's own code restores the target on its throw path.
+  *done-when:* a throw in the scene pass leaves `renderer.getRenderTarget()`
+  null, the budget check's call count is unchanged (the number is in
+  PROGRESS.md), and the camera-feed check reads the target on a throw it induces
+  somewhere other than the feed.
 
 ## Block J — feel and juice
 
@@ -1130,9 +1158,32 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **J3 (M)** **blocked: D94** (key feel, D84) — Ragdoll polish. Limb flail from the hit direction, a
   settle, no jitter, the death cam framing the body. *done-when:* a check
   measures settle time and zero post-settle motion.
-- [ ] **J4 (S)** An event feed. Planted, defusing, alarm tripped, reinsert,
+- [~] **J4 (S)** An event feed. Planted, defusing, alarm tripped, reinsert,
   the round's outcome — timed lines top-right. *done-when:* a check reads
   each line on its event.
+  **Redesigned mid-build 2026-11-20 (D95): one feed, and it is the one that
+  already exists.** The brief sent the builder to M5's pattern - a field on
+  `hudstate.js` and a new `#bl-events` panel - and it built that faithfully
+  (worktree `agent-acfe5c35fd6af242b`, commit `b63428c`, **not merged**). Then
+  it reported what the brief had missed: `ui/hud.js` already carries
+  `#bl-feed { right: 26px; top: 70px }`, *"Section 13: a kill feed of at most
+  four lines, each living 5s"*, and `wiring.js` already pushes to it on a plant,
+  on an alarm and at round end. Three of J4's five lines were on screen
+  already, and a second panel would have printed them again in capitals.
+  *resume from:* fold onto `hud.feed`, do not add a panel. Three events are
+  wired; what is missing is **reinsert**, the **round outcome's own sentence**
+  (`sayOutcome(outcome, reason)` from the end screen, so the feed and the screen
+  cannot drift), and one wording pass so a line reads the same way whoever
+  pushed it. **Defusing has no event at all** - `objective.js` raises only the
+  `defuseProgress` field - so either leave that line out or take H117 first.
+  `b63428c` is worth reading before you start: its event wiring is right, and
+  its check's staging (driving a plant with `KeyE` in site A's room, an alarm
+  by standing in a placed camera's cone, a reinsert through a lethal
+  `combat.applyDamage` and a round end via `round.timeRemaining = 0.1`) is
+  reusable whole, and was the expensive part. **None of it has run in the
+  browser**, so treat the staging as a draft and expect the first suite run to
+  find something. Keep the check in `src/tests/feedback.js` (`plantrule.js` at
+  532 and `objective.js` at 575 would cross 600).
 - [ ] **J5 (M)** The killing shot, replayed. On death, two seconds from the
   Warden's eye via the input log (H13), then the ragdoll; skippable.
   *done-when:* a check dies and reads the replay's frames.
@@ -1180,6 +1231,15 @@ provisional; the rule for "thin" is mechanical, never a tag.
   beside `findTallFace` returns every qualifying face (leaving `scuff.js`'s own
   callers alone), `cameraclip.js` drives several faces per map, and its detail
   names them so the two maps can be told apart in the record.
+- [ ] **J13 (S)** Defusing raises no event, so no feed can carry it. J4 found
+  it: `src/systems/objective.js` raises `defuseProgress`, a field read each
+  frame, and emits nothing when a defuse begins - so the one line of J4's five
+  that nothing could be wired to is the one the queue names second. A field
+  cannot be a feed line without the feed polling it, and systems talk through
+  the Emitter. *done-when:* `objective:defuse-start` is emitted exactly once as
+  `defuseProgress` leaves 0, and once more per attempt after an interruption, a
+  check holds that it fires once and not per frame, and nothing else about the
+  defuse changes. Prerequisite for J4's defusing line.
 ## Block I — audio, ambience only
 
 Josh (D50): no music. The map's own sound carries it.
@@ -1255,6 +1315,36 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **K13** A route point is reached in y as well as x and z. `_followRoute` called a
+  point reached on flat distance alone, so the plant’s leg from (-26.25, -19.25) to
+  the hall stair’s head ran along the stair’s edge cell and ticked off each climbing
+  point as it passed *beneath* it, ending 0.56m flat from the node and **6.0m under**
+  it — no freeze, so K11’s check passed it on a `SAME_FLOOR` band of a whole storey.
+  `_pathTo` now marks every point it lays over walkable ground `floored` and the
+  follower asks those for the feet too (`ai.waypointArriveRise` 0.5, PROVISIONAL); the
+  straight-line goal off the ground is left unmarked, because a charge on a vent lip is
+  only ever reached from beneath and Block A rests on that. Measured through probe: y
+  0.001 the whole leg before, y 6.00 after, and 74 of 74 plant stair legs inside the
+  band. The yard has no stair waypoint and clause (c) says so. By a builder, reviewed
+  and proved by the lead — `bf0460b`, 2026-11-20.
+- **M10** The one camera’s layer mask comes back even when a frame throws. H115’s real
+  fix: `post.render` restored the mask on the line after `overlay()`, so a throw
+  anywhere in the frame left the one camera blind to `render.overlayLayer` for every
+  later check on the shared page. The mask, `renderer.autoClear` and `world.background`
+  all go back in a `finally` now, with the frame’s call count unchanged — the render
+  target is deliberately left alone, since `post.render` sequences it rather than
+  saving it and a `finally` there would add a bind the budget counts (M11). Clause (b)
+  of the camera-feed check drops the restore it was doing on the render path’s behalf.
+  By a builder, reviewed and proved by the lead — `90ef1a6`, 2026-11-20.
+- **M6** The feed is the human Warden’s to notice. M5 gave the Warden a live feed; this
+  pins that only a human reads it. Nothing under `src/systems/` changed — that is the
+  content — and the value is the check: the nine AI modules read through `codeOf` name
+  nothing of the feed, a narrower `uncommented` read catches an import of it, a Shade
+  on the feed but outside the 8m trip with the Warden 30m off and blind leaves the AI
+  in PATROL at suspicion 0, and `PLAYTEST.md` carries the sentence. Review sent the
+  first build back for spelling `sourcetext.js`’s `uncommented` by hand, which
+  `readernames.js` reds for (H68, H95). By a builder, reviewed and proved by the lead
+  — `e2299ec`, 2026-11-20.
 - **H114** The settle clause after K11. Batch five's verify was red on
   `quiesce-says-what-it-does-about-the-ai` on both maps in all four runs: K11
   skips a patrol's first route node when it lies behind the Warden, so the
