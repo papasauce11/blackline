@@ -210,6 +210,12 @@ const POSED = [
     proof: 'camera',
     note: 'drives whole frames with the Warden standing and the Shade at its spawn, and reads two things off them: the one camera\'s world pose and fov across a frame, and the spread of luma in the feed\'s panel. The first is the camera, which a breath does not move (the `camera` proof, held above: a whole breath moves it under 1e-4m) - and the clause compares the camera with its own earlier read, so there is no phase to cross. The second reads a picture rendered from a wall fixture\'s lens, where the Warden does not breathe and a Shade at its spawn is at most a few pixels of a panel the clause asks only to be above a spread of 6: 61.6 on the plant and 72.8 on the yard, an order of magnitude clear. **Unmeasured across breath phases** - nothing here sweeps the cycle - and the clause does not rest on it: eight centimetres of torso on a body that is a fraction of the panel cannot cross a floor ten times under the reading',
   },
+  {
+    module: 'cameraclip.js',
+    reach: 'none',
+    proof: 'camera',
+    note: 'backs the Shade into a face and reads the camera rig\'s world position against the collision boxes, every frame, after `updateVisual`. Neither phase reaches it for the reason camerasettings.js and feel.js do: the pivot is `_smoothPosition.y - half.y + cam.up + _dip + bob` and `pose.lift` is not in it, and the boom is cast from that pivot and the rig placed from it, so the gait and the breath move limbs and a torso the clearance clause never reads. The one thing the gait could reach is `bob`, which is off unless SETTINGS.headBob and which the cast pivot carries too',
+  },
 ];
 
 /**

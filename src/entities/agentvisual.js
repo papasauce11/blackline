@@ -74,6 +74,14 @@ export const BOOM_RAYS = 5;
 /** Two sweeps a frame (axis, then shoulder): what the camera costs the box set. */
 export const BOOM_CASTS_PER_FRAME = 2 * BOOM_RAYS;
 const BOOM_ORIGIN = { x: 0, y: 0, z: 0 };
+/**
+ * Most `isClear` tests `boomClear` may spend a frame: a quarter radius a step
+ * from the longest boom (2.2m) is 40, and eight to spare. Past the cap the
+ * answer is 0 - the pivot, which is the body's own centre in clear air.
+ */
+export const BOOM_CLEAR_STEPS = 48;
+const CAMERA_AT = { x: 0, y: 0, z: 0 };
+const CAMERA_HALF = { x: 0, y: 0, z: 0 };
 
 /**
  * The boom's second axis: the cross of its direction and the horizontal right
@@ -138,6 +146,43 @@ export function boomDistance(hit, cam) {
   const clear = hit.distance - cam.collisionRadius;
   const front = hit.distance - CONFIG.render.near;
   return Math.min(Math.max(cam.minDistance, clear), Math.max(0, front));
+}
+
+/**
+ * The sphere-cast's terminal test (Section 6.1): from where the rays left the
+ * boom, pull in until the camera's own volume is clear. The rays only look
+ * along the boom, so a surface that is beside where the camera ends up - the
+ * thin fence the floor of `minDistance` lets the camera sit 0.16m off - is
+ * invisible to all of them; a box test at the real rig position is not. That
+ * position carries the shoulder (`side * d / back`), because the shoulder is
+ * where the camera is, and it is stepped a quarter radius at a time from
+ * `desired` toward the pivot: the first clear distance wins.
+ *
+ * @returns {number} the boom distance; `probe.clearTests` is the tests spent
+ */
+export function boomClear(collision, pivot, back, rightX, rightZ, cam, desired, probe) {
+  const r = cam.collisionRadius;
+  CAMERA_HALF.x = r;
+  CAMERA_HALF.y = r;
+  CAMERA_HALF.z = r;
+  const step = r / 4;
+  let tests = 0;
+  let d = desired;
+  let found = false;
+  while (d > 0 && tests < BOOM_CLEAR_STEPS) {
+    const shoulder = cam.side * (d / cam.back);
+    CAMERA_AT.x = pivot.x + back.x * d + rightX * shoulder;
+    CAMERA_AT.y = pivot.y + back.y * d;
+    CAMERA_AT.z = pivot.z + back.z * d + rightZ * shoulder;
+    tests++;
+    if (collision.isClear(CAMERA_AT, CAMERA_HALF)) {
+      found = true;
+      break;
+    }
+    d -= step;
+  }
+  probe.clearTests = tests;
+  return found ? d : 0;
 }
 
 export const VISUAL = {
@@ -446,7 +491,7 @@ export const VISUAL = {
     const direction = { x: backX, y: backY, z: backZ };
     const up = boomUp(direction, rightX, rightZ, this._boomUp || (this._boomUp = { x: 0, y: 0, z: 0 }));
     const reach = cam.back + cam.collisionRadius;
-    const probe = this._boomProbe || (this._boomProbe = { ray1: 0, ray2: 0, hit1: null, hit2: null, pulledBy: 0, casts: 0 });
+    const probe = this._boomProbe || (this._boomProbe = { ray1: 0, ray2: 0, hit1: null, hit2: null, pulledBy: 0, casts: 0, clearTests: 0, sweptTo: 0, clearedTo: 0 });
     const axisHit = boomSweep(this.collision, pivot, direction, rightX, rightZ, up, cam.collisionRadius, reach);
     const axisDesired = boomDistance(axisHit, cam);
     const shoulderAt = cam.side * (axisDesired / cam.back);
@@ -455,7 +500,9 @@ export const VISUAL = {
     };
     const shoulderHit = boomSweep(this.collision, shouldered, direction, rightX, rightZ, up, cam.collisionRadius, reach);
     const hit = shoulderHit && (!axisHit || shoulderHit.distance < axisHit.distance) ? shoulderHit : axisHit;
-    const desired = boomDistance(hit, cam);
+    const swept = boomDistance(hit, cam);
+    // The rays look along the boom; the camera's own box looks everywhere.
+    const desired = boomClear(this.collision, pivot, direction, rightX, rightZ, cam, swept, probe);
     // What a check reads: which ray won each pass, and whether the shoulder
     // pass was the nearer (the frames the single axis would have clipped).
     probe.hit1 = axisHit;
@@ -464,6 +511,8 @@ export const VISUAL = {
     probe.ray2 = shoulderHit ? shoulderHit.ray : -1;
     probe.pulledBy = hit === shoulderHit && shoulderHit ? 2 : (hit ? 1 : 0);
     probe.casts = BOOM_CASTS_PER_FRAME;
+    probe.sweptTo = swept;
+    probe.clearedTo = desired;
 
     // Snap in immediately, ease out. A camera that lerps into a wall clips.
     if (desired < this._cameraDistance) {

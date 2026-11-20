@@ -236,6 +236,14 @@ export const CENSUS = [
     control: /camera\.getWorldQuaternion\(/,
     note: 'reads the one camera\'s world position and world rotation before and after a frame that drew the alarm feed, and asserts they are identical - the camera against **itself** across a draw, with `updateVisual` nowhere between the two reads (the frame is `post.render`, which draws and never advances the chase), so whatever gap the chase has open it has open on both sides and the difference is the borrow alone. No drawn body\'s position is read at all: the Warden and the Shade are placed by `reset()`, which snaps, and the panel is read in screen space',
   },
+  {
+    module: 'cameraclip.js',
+    reach: 'none',
+    proof: 'relative',
+    frames: '1',
+    reads: /shade\.cameraRig\.getWorldPosition\(WORLD\)/,
+    note: 'reads the camera rig\'s world position against fixed collision boxes after every `updateVisual`, the rig being placed from `_smoothPosition`, which is the chase itself. The clause is about air between the camera and a box, and the chase moves the pivot the boom is cast and box-tested from and the rig written from together, in one frame: wherever the chase has got, `boomClear` has tested the camera\'s own volume at that pivot, so a lag changes where in the world the camera is tested and not whether it is clear. That is by construction and it is **not measured here** - no 86cm gap is opened under this check the way feel.js\'s proof opens one. Two things are not covered and are declared unmeasured: the boom eases OUT over frames, so an in-between distance was tested against an earlier frame\'s pivot, not this one\'s (the check\'s EPS absorbs a centimetre of it, nothing is measured); and every pose is stepped with `stepFrames` and `updateVisual(DT)` so the chase runs at the fixed step rather than at a render frame\'s wall dt',
+  },
 ];
 
 /** The reasons a read is out of reach of the chase, each held by the census. */
