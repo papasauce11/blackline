@@ -132,6 +132,7 @@ import { register as registerPatrolLeg } from './patrolleg.js';
 import { register as registerCameraFeed } from './camerafeed.js';
 import { register as registerCameraClip } from './cameraclip.js';
 import { register as registerStairGround } from './stairground.js';
+import { register as registerGroundSearch } from './groundsearch.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -362,4 +363,6 @@ export function registerAutoTests(debugTools) {
   registerCameraClip(debugTools);
   // K15: a climbing cell outside its stair's declared width is never firm; it reads the map against the Warden's ground and drives nothing.
   registerStairGround(debugTools);
+  // H122: the ground search and its cell predicates are their own module; it reads the map against the Warden's ground, drives nothing, and greps mapground.js for the loops it shed.
+  registerGroundSearch(debugTools);
 }
