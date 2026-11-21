@@ -64,10 +64,19 @@ export function wireMatchEvents(s) {
     console.warn(`[deathcam] wall-clock guard fired after ${event.after.toFixed(2)}s — forced the reinsert`);
   });
   emitter.on('objective:planted', (event) => hud.push(`charge armed at ${event.site}`));
+  // J4: the Warden's kneel. One line per attempt, not per frame - the event is
+  // raised as progress leaves 0, so a resume inside the retain window says nothing.
+  emitter.on('objective:defuse-start', (event) => hud.push(`defusing at ${event.site}`));
+  // The countdown running out and the death camera's guard forcing it both end
+  // in a reinsert, and the guard raises its own event straight after: a second
+  // line for the second thing, so the player can tell they were moved by the
+  // game and did not wait the countdown out.
+  emitter.on('objective:reinsert', (event) => hud.push(`reinserted - ${event.lives} left`));
+  emitter.on('objective:reinsert-forced', () => hud.push('reinsert forced'));
   // Section 9.2: the siren, the HUD ping, and the Shade marked for 2s. The
   // marking itself lives on gadgets; this is the ping.
   emitter.on('gadget:alarm', () => hud.push('ALARM - shade detected'));
-  emitter.on('gadget:alarm-destroyed', (event) => hud.push(`alarm camera destroyed (${event.by})`));
+  emitter.on('gadget:alarm-destroyed', (event) => hud.push(`alarm camera destroyed - ${event.by}`));
   emitter.on('combat:takedown', () => hud.push('takedown'));
   emitter.on('combat:knife-hit', (event) => hud.push(`knife hit - warden ${Math.round(event.remaining)}`));
   // Section 10.2: the Shade's death takes a life, ragdolls the body and hands
