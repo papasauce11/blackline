@@ -22981,3 +22981,69 @@ checks ran" without a `Get-CimInstance` check (D99).
 *shoved* onto should exist at all is still a fair question. It is no longer a
 freeze (K13) or a fall (K14), so it is not urgent — and the check now makes any
 change to the flood visible the moment it moves a count.
+
+## J4 — The feed that was already there (2026-11-21, the 02:00 run)
+
+The job's second attempt, and D95's redesign held: **there is one feed and it
+already exists.** `ui/hud.js` carries `#bl-feed` and Section 13's four-line,
+five-second kill feed, `wiring.js` already pushed to it on a plant, on an alarm
+and at round end, and the first attempt's second panel (`b63428c`, never
+merged) would have printed three of the five lines a second time in capitals.
+This folds onto `hud.push`.
+
+What was actually missing, and is now wired in `wiring.js` — the one place
+systems' events meet (Section 3.1), so `objective.js` still never calls the HUD:
+`objective:defuse-start` as `defusing at <site>`, one line per *attempt* rather
+than per frame, because J13's event is raised as progress leaves 0 and a resume
+inside the retain window raises nothing; `objective:reinsert` as
+`reinserted - <lives> left`; and `objective:reinsert-forced` as its **own** line
+above it, so a player can tell they were moved by the game rather than having
+waited the countdown out.
+
+**Two of the queue entry's claims were stale, and this run confirmed both.**
+Defusing does have an event — J13 landed it the run before — and the round
+outcome's sentence was already composed from `sayOutcome(outcome, reason)` in
+`wiring.js`, which is exactly what keeps the feed and the end screen from
+drifting. So the entry's "what is missing" list was two thirds done before the
+job started. One wording pass brought `alarm camera destroyed (by)` into the
+feed's dash voice — no check reads that line, grepped — and Section 9.2's
+shouted `ALARM - shade detected` is deliberately left shouting.
+
+`each-feed-line-appears-on-its-own-event-and-nothing-elses` in
+`src/tests/feedback.js` (505 lines; `plantrule.js` at 532 and `objective.js` at
+575 would have crossed 600). Six events, each staged the way a player meets it:
+the plant through `KeyE` held in the site room, the alarm by standing in a
+placed camera's cone, the defuse by a Warden at the charge, a reinsert through a
+lethal `combat.applyDamage`, a forced one through `forceReinsert`, and the round
+end on the clock. The feed is emptied first and the event is **counted as it
+goes by**, so a line is tied to its own event and not merely to the words; and
+before each stage a quiet stretch of two steps must add nothing.
+
+**That quiet clause earned its keep on the first run.** It reddened:
+*"defusing: [defusing at A] arrived with nothing staged; the staging raised 0
+events, wanted 1"*. The Warden was stood on the planted charge **before** the
+quiet steps, so the attempt began during them — the event fired there, once,
+correctly — and the real staging then counted zero. The fault was the staging's
+ordering, not the game's, and a looser check would have passed it and proved
+nothing. The quiet stretch now runs before the Warden is placed. It is also a
+small live proof of J13's rule: one event per attempt, and the attempt spent
+early left none to count.
+
+**Proved** on both maps over a 38-prefix subset (the new check, `feedback.js`'s
+three C3 pixel checks, the objective / round-end / reinsert / defuse / alarm
+checks whose events the new wires touch, and the 24-entry census set): plant
+**38 of 38**, yard **36 of 38** with 2 not for this map, 0 red, `flaky` /
+`skipped` / `skipsWithheld` all empty, 0 console errors. The green detail is the
+job in one line, and identical on both maps: `charge armed at A / ALARM - shade
+detected / defusing at A / reinserted - 2 left / reinsert forced / round 1 to
+the warden - the clock ran out with no plant`. The **break** — deleting the
+`objective:defuse-start` push — reds that clause alone (*"wanted [defusing at
+A], the feed reads []"*) on both maps and leaves J13's event check and all three
+pixel checks green, which is the right shape: the event still fires, only the
+line is gone. Restored from a copy and reparsed.
+
+The yard staged every event too, so the check runs on both maps rather than
+needing a plant-only exemption. `b63428c`'s staging was the expensive part and
+was reused whole where it was right; what it got wrong was reading a
+second-panel API that no longer exists, and demoting its alarm and round-end
+clauses to notes when staging failed — both are hard failures now.

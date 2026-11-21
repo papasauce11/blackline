@@ -1255,32 +1255,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **J3 (M)** **blocked: D94** (key feel, D84) — Ragdoll polish. Limb flail from the hit direction, a
   settle, no jitter, the death cam framing the body. *done-when:* a check
   measures settle time and zero post-settle motion.
-- [~] **J4 (S)** An event feed. Planted, defusing, alarm tripped, reinsert,
-  the round's outcome — timed lines top-right. *done-when:* a check reads
-  each line on its event.
-  **Redesigned mid-build 2026-11-20 (D95): one feed, and it is the one that
-  already exists.** The brief sent the builder to M5's pattern - a field on
-  `hudstate.js` and a new `#bl-events` panel - and it built that faithfully
-  (worktree `agent-acfe5c35fd6af242b`, commit `b63428c`, **not merged**). Then
-  it reported what the brief had missed: `ui/hud.js` already carries
-  `#bl-feed { right: 26px; top: 70px }`, *"Section 13: a kill feed of at most
-  four lines, each living 5s"*, and `wiring.js` already pushes to it on a plant,
-  on an alarm and at round end. Three of J4's five lines were on screen
-  already, and a second panel would have printed them again in capitals.
-  *resume from:* fold onto `hud.feed`, do not add a panel. Three events are
-  wired; what is missing is **reinsert**, the **round outcome's own sentence**
-  (`sayOutcome(outcome, reason)` from the end screen, so the feed and the screen
-  cannot drift), and one wording pass so a line reads the same way whoever
-  pushed it. **Defusing has no event at all** - `objective.js` raises only the
-  `defuseProgress` field - so either leave that line out or take H117 first.
-  `b63428c` is worth reading before you start: its event wiring is right, and
-  its check's staging (driving a plant with `KeyE` in site A's room, an alarm
-  by standing in a placed camera's cone, a reinsert through a lethal
-  `combat.applyDamage` and a round end via `round.timeRemaining = 0.1`) is
-  reusable whole, and was the expensive part. **None of it has run in the
-  browser**, so treat the staging as a draft and expect the first suite run to
-  find something. Keep the check in `src/tests/feedback.js` (`plantrule.js` at
-  532 and `objective.js` at 575 would cross 600).
+- [x] **J4 (S)** An event feed — done 2026-11-21, under Done. Folded onto `hud.feed` per D95; no second panel. `objective:defuse-start` (J13's) as `defusing at <site>`, one line per attempt; `objective:reinsert` as `reinserted - <lives> left`; `objective:reinsert-forced` as its own line above it. **Two of this entry's claims were stale**: defusing already had its event, and the round outcome's sentence was already composed from `sayOutcome` in `wiring.js`. `each-feed-line-appears-on-its-own-event-and-nothing-elses` in `src/tests/feedback.js`, six events each staged and counted as it goes by, with a quiet stretch before each — **and the quiet clause caught the staging's own fault on the first run** (the Warden was on the charge before the quiet steps, so the attempt began there and spent the event the clause was counting). `4c8ee5a`.
 - [ ] **J5 (M)** The killing shot, replayed. On death, two seconds from the
   Warden's eye via the input log (H13), then the ragdoll; skippable.
   *done-when:* a check dies and reads the replay's frames.
@@ -1415,6 +1390,24 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **J4** An event feed, folded onto the one that already existed. D95 settled the shape before the
+  build: `ui/hud.js` already carries `#bl-feed` and Section 13's four-line, five-second feed, and
+  `wiring.js` already pushed to it on a plant, an alarm and a round end — so the first attempt's
+  second panel (`b63428c`, never merged) would have reprinted three of the five lines in capitals.
+  Wired in `wiring.js`, which is where systems' events meet (Section 3.1) so `objective.js` never
+  calls the HUD: `objective:defuse-start` as `defusing at <site>` (one line per *attempt* — J13's
+  event is raised as progress leaves 0, so a resume inside the retain window says nothing),
+  `objective:reinsert` as `reinserted - <lives> left`, and `objective:reinsert-forced` as its own
+  line above it so the player can tell they were moved by the game. The wording pass brought
+  `alarm camera destroyed (by)` into the dash voice; Section 9.2's shouted ALARM ping is left
+  shouting. `each-feed-line-appears-on-its-own-event-and-nothing-elses` in `src/tests/feedback.js`
+  stages six events the way a player meets them, empties the feed first, and counts each event as it
+  goes by, so a line is tied to its own event and not merely to the words. Green on both maps,
+  identical detail: `charge armed at A / ALARM - shade detected / defusing at A / reinserted - 2
+  left / reinsert forced / round 1 to the warden - the clock ran out with no plant`. The break
+  (deleting the defuse-start push) reds that clause alone and leaves J13's event check green.
+  `4c8ee5a`.
 
 - **K15** The Warden's ground carries climbing cells outside the stair's declared width, and the
   honest reading is the firmness invariant. K13 measured the symptom (the route to the plant's hall
