@@ -984,9 +984,15 @@ the end of this list, never ahead of a game-facing job.
   earned and the other lost every reading after its first line. 400 is a cap
   nothing announces. *done-when:* the cap is found and either raised past the
   longest detail the suite produces or made to announce itself (`...
-  [truncated, N chars]`), a check asserts a detail longer than the old cap
-  survives the round trip, and the entry says what the cap was and where it
   lived.
+  **The eighth batch’s verify (2026-11-20) paid for this.** The two detail
+  strings cut at 400 were exactly the two carrying the batch’s new
+  measurements: the HUD’s ended mid-word at `... 0 px differ in the panel with
+  and withou` and the Warden’s at `... 177 route points, lowest`, so the lowest
+  the feet reached on the deck - the whole point of K14’s clause - is **not in
+  the verify record**, and had to be read off the subset proof instead. The cap
+  does not only lose a red’s reading; it loses a green’s evidence, which is the
+  thing a verify exists to write down.
 - [ ] **H111 (S)** `suite.mjs --help` starts a seventy-minute run. It does not
   implement `--help` and does not refuse an unknown flag: it ignores it and
   falls through to the default, which is both maps twice. A runner on
@@ -1003,13 +1009,17 @@ the end of this list, never ahead of a game-facing job.
   both, since `every-runner-reads-one-command-line-and-a-flag-given-twice-is-kept`
   already walks every `.mjs` the commands reach and knows what each declares;
   and TRAPS.md gets the line that any invocation of the suite is a real run.
-- [ ] **H111 (S)** The main page may not fit a 720px window. H18's frame of
+- [ ] **H123 (S)** The main page may not fit a 720px window. H18's frame of
   it (2026-11-19) has the title at the top edge and the build stamp at the
   bottom edge; `every-main-menu-row-is-reachable-and-actionable-from-the-keyboard`
   measures the settings page (518px) and the controls page (703px), not the
   main one, which carries two cards, the role row, five buttons and the map
   label. *done-when:* the check measures the main page too, on both maps, and
   it fits 720px with nothing dropped - or the entry says why it may scroll.
+  *Queued as a second **H111** on 2026-11-19 (PROGRESS: “A finding, queued as
+  H111”) while H111 was already the `--help` job; renumbered H123 on 2026-11-20
+  when the collision was noticed. Nothing else referenced it, and the older
+  PROGRESS line is left as written.*
 
 - [ ] **H112 (S)** K4's check may not need its PATROL pause any more. It held
   the Warden in a pause so its route started where it was placed, stepping

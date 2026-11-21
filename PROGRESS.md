@@ -22843,3 +22843,66 @@ Proved in the same 60-check subset as J10, which is the whole nav and
 plant-census set because a change to `route()` moves every Warden leg on both
 maps: plant 59 / 1, yard 54 / 1 with 5 not for that map, exit 0, `flaky` and
 `skipped` empty, 0 console errors, the bench-only sweep the one failure a map.
+
+
+## The verify — the eighth batch is green (2026-11-20, the 17:00 run)
+
+The full two-run suite at `ba02260`, no `--subset`, no `--runs` and no `--map`:
+**exit 0, GATEOK**. Plant **266 passed / 1 failed / 10 not for this map**
+(1,282,383ms and 1,314,471ms), yard **248 / 1 / 28** (972,581ms and 967,298ms),
+about 79 minutes in all. `red` **empty**, `flaky` **empty**, `skipped`
+**empty**, `skipsWithheld` empty, `expectedRed` and `unexpectedGreen` empty,
+`consoleErrors.count` **0**. Pair spreads **2%** (plant, 32,088ms) and **1%**
+(yard, 5,283ms) - the tightest pair this suite has read, with pipeline-wait
+spreads of 1,576ms and 11,630ms (F16). Ceiling 15 modules within 50 of 600,
+`tests/difficulty.js` still **at 600 with 0 left** (H113), of 233 loaded.
+Throttle 4/8 cores, 9 processes pinned, 45s cooldown.
+
+Two commits landed after the stamp (`c011965`, `22a6b75`) and both are
+documents: `git diff ba02260..HEAD -- src scripts tests` is empty, so this
+reading holds on the tip as well as on the commit it names.
+
+**The counts moved by exactly the one new id.** 265 -> 266 on the plant, 247 ->
+248 on the yard, 232 -> 233 modules: that is `tests/defusestart.js` and nothing
+else. M11, J10 and K14 all landed inside checks that already had ids, so their
+proof exists only in `--details` and the summary could not show it even if it
+were red. The same arithmetic is the reason the summary is not evidence for a
+batch: three of four jobs are invisible in it by construction.
+
+**All four checks pass in all four runs**, read out of `--details`:
+`the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back`
+carries M11 (*a throw in the scene pass at quality "medium" left the target
+null, the mask back, and the next frame drew clean*),
+`a-defuse-raises-one-event-when-it-begins-and-not-once-a-frame` is J13 (*1 event
+in 120 frames while progress went 0 to 2.00s, a second only after 9.0s out of
+reach had decayed it to 0, none for a 2s interruption inside the 5s retain
+window*), `the-third-person-boom-never-puts-the-camera-inside-the-world` is J10
+with J1’s four numbers unmoved and the new ones beside them (*origin inside 576,
+moved back 572, box test alone 572, worst 0.177m, d0 4*), and
+`the-warden-never-leaves-its-ground` is K14 (*4200 steps, 0 off; the deck ring
+1813 frames over 177 route points*).
+
+**Both runs of a map answered in the same words**, which is the shape this
+verify was for: H115 showed as a second-run drop and nothing here drops. The
+single difference between the two runs of either map is the HUD’s `renders
+stopped at 4` on a first run against `at 18` on a second - a count of the
+feed’s own renders on a page the second run reaches warmer, not a verdict on
+anything.
+
+The one failure in each run is the benched GPU sweep,
+`the-frame-budget-holds-everywhere-not-just-at-site-a` (H11): a single-sample
+worst viewpoint on SwiftShader against an 8.33ms ceiling - plant `site C@2`
+25.70ms and `deck-mid@0` 822.00ms, yard `site-a@1` 122.10ms and `store-east@3`
+862.90ms. It is on the suite’s own `benched` list, which is why the gate is
+green; its real reading is `npm run bench` on a GPU, last 2026-10-09
+(`76c6e50`), OK, 12 readings - **six weeks ago now**, and the gap is worth a
+glance before the next batch leans on it.
+
+**H110 cost this verify its two best numbers.** The detail strings are cut at
+400 characters, and the two that got cut are exactly the two carrying this
+batch’s newest measurements: the HUD’s ends mid-word at *0 px differ in the
+panel with and withou*, and the Warden’s at *177 route points, lowest* - so the
+lowest the feet ever got on the deck, which is the whole point of K14’s clause,
+is **not in the verify record at all** and had to be read off the subset proof
+instead. H110 was a tidiness job when it was written. It is now the difference
+between a record that proves a thing and one that mentions it.
