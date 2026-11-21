@@ -196,6 +196,48 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D101 — A refactor that freezes the base is reverted, and the job it blocked is parked
+Taken by the lead under D84 (a policy call about this run's own work: not
+personality, not styling, not key feel, and not high-priority enough for the
+PM, because D100 had already settled the question this one applies). The 17:00
+run, 2026-11-21.
+
+- **H122 is reverted, not held.** Its own check passed on both maps and the
+  move was faithful, and the same run then measured
+  `a-climb-beyond-reach-bumps-poses-and-sounds` on the yard passing in
+  14,968ms without it and freezing for 240s with it, twice, including with the
+  check running alone. The alternative was to keep the refactor and raise
+  `--stall`, which D100 refused on purpose and which would have bought a
+  green verify by moving the instrument rather than fixing the thing it
+  measures. Reverting costs nothing a player sees - H122 exists only to make
+  room for K16 - while leaving it costs the base its verify, and a base that
+  cannot verify stops every job behind it. Override: keep H122 and take H125
+  first instead, at the cost of a branch nobody can verify in between.
+- **The bisection, not the hunch, is what decided it.** The same command on
+  four trees: passes before H122, stalls with H122 alone, stalls with H122 plus
+  the two Block J jobs, stalls with the check alone on the yard. That last run
+  is what clears J6 and J8, and it is why neither is blamed for a stall that
+  looked at first like J6's, since J6 adds a listener on the very event the
+  check drives.
+- **It is indicated, not convicted, and the record says so.** One run per tree,
+  on a check D100 already wrote down as intermittent. H122 is requeued behind
+  **H125** with the instruction to measure three times a tree, which is the
+  discipline D100 asked for and which this run did not have the hour to spend.
+- **J6 is parked rather than merged unproved.** Its own check calls the search
+  that does not finish on the yard, so it cannot be proved on both maps until
+  H125 lands, and P2 wants both. It follows J12's precedent: built, measured,
+  parked on its worktree branch with an exact resume note, not on the branch.
+  Override: merge it on the plant's proof alone and let the batch verify catch
+  the yard, which is how the eighth batch got three jobs no summary could see.
+- **What this says about proofs generally, and the reason H125 exists.** A
+  job's proof subset is chosen from what the job *touches*, so it cannot see
+  what the job *costs* somewhere else. Five checks call `findTallFace`,
+  each paying a search that is already near the watchdog on the yard, and
+  because the freeze is synchronous one slow helper takes the whole run with it.
+  H125 caches it so a refactor stops being able to trip it.
+**decided:**
+
+
 ### D100 — J12 is parked on a stall, and `--stall` is not the way past it
 Taken by the lead under D84. Parking a job is listed in PLAN.md as the PM's call;
 taken here by the lead on D96's precedent (the lead parked K12 the same way) and

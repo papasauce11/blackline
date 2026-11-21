@@ -993,7 +993,11 @@ the end of this list, never ahead of a game-facing job.
   the verify record**, and had to be read off the subset proof instead. The cap
   does not only lose a red’s reading; it loses a green’s evidence, which is the
   thing a verify exists to write down.
-- [ ] **H111 (S)** `suite.mjs --help` starts a seventy-minute run. It does not
+- [ ] **H111 (S)** `suite.mjs --help` starts a seventy-minute run.
+  **Confirmed by accident, 2026-11-21, the 17:00 run**:
+  `node scripts/suite.mjs --help`, run to read the flag list, launched a
+  real run that had to be killed after two minutes - the trap is live and it
+  costs a lead's attention mid-run, not only a reader's patience. It does not
   implement `--help` and does not refuse an unknown flag: it ignores it and
   falls through to the default, which is both maps twice. A runner on
   2026-11-04 ran `node scripts/suite.mjs --help` to look up the flags, started
@@ -1120,7 +1124,29 @@ the end of this list, never ahead of a game-facing job.
   site and every check import is unchanged in behaviour, the cluster reading
   names the new sizes, and no number moves (H56 is the worked example of a
   split that changed no call site; H75 of one that changed five).
-- [x] **H122 (S)** The ground search and its cell predicates are their own module - done 2026-11-21, under Done. `src/groundsearch.js`; `mapground.js` 578 -> 479; `the-ground-search-and-its-cell-predicates-are-their-own-module` in `src/tests/groundsearch.js`.
+- [ ] **H122 (S)** `src/mapground.js` is 578 of the 600 cap after K14 added
+  `_search`, `_firm` and the firm-cells cache - 22 left, and **K16 is
+  queued to put a swept body-clearance test in the same file**, which will not
+  fit. `route()` composes a breadth-first search over edges, a firmness
+  question about a cell, and the string-pull; the first two are pure queries
+  that know nothing about a route. **Built and reverted once, 2026-11-21**
+  (`c263495`, reverted by `f6e6657`): the move was faithful and its
+  four clauses passed on both maps, and then
+  `a-climb-beyond-reach-bumps-poses-and-sounds` on the **yard** stopped
+  finishing - passes in **14,968ms** at `489f4c9`, stalls at the
+  watchdog's **240s** with H122 and nothing else, and stalls alone on the yard
+  too. **What H122 does to it is not identified**: the moved bodies are verbatim
+  but for `this` -> `g`, the flood keeps its own
+  `CUT_EPSILON`, and no dangling reference survives. Retake it **after
+  H125**, which makes that search cheap enough to stop being a tripwire, and
+  **measure the check three times a tree** before and after (D100's discipline;
+  one run a tree is what left this indicated rather than settled). *done-when:*
+  the search and the cell predicates are their own module, `mapground.js`
+  imports them, `route()` reads as the composition it is, the nav and
+  plant-census check sets are unmoved,
+  **`a-climb-beyond-reach-bumps-poses-and-sounds` passes on the yard three
+  times running with the new module in the tree**, and the cluster reading names
+  the new sizes. Do it **before** K16, and K16 names it as its prerequisite.
 
 - [ ] **H124 (S)** TRAPS.md does not warn that the suite's dirty-tree line is
   benign, and does not say that bash cannot see a Windows process. This run
@@ -1139,6 +1165,29 @@ the end of this list, never ahead of a game-facing job.
   -Filter "Name='node.exe'"` as the only way to ask whether a
   suite is alive, with bash `ps` named as the wrong one — and
   `traps-md-holds-the-traps-and-handoff-points-at-it` is green.
+
+- [ ] **H125 (S)** `findTallFace` is a tripwire, not a helper. It walks
+  every solid box times four faces and calls `shade.reset()` plus
+  `stepFrames(3)` at each candidate - up to about 1,580 stepped frames,
+  synchronous, no await - and returns at the first match, so its cost is how far
+  down the box list a map's first qualifying face sits. **Five checks call it**
+  (`a-climb-beyond-reach-bumps-poses-and-sounds` and
+  `a-scuff-is-a-noise-the-warden-in-the-room-hears` in `scuff.js`,
+  `the-third-person-boom-never-puts-the-camera-inside-the-world`,
+  `a-vault-carries-the-speed-you-brought-to-it` in `feel.js`, and
+  J6's `dustlight.js` when it lands), each paying the whole search again.
+  On the **yard** it is close enough to the watchdog's 240s that unrelated work
+  tips it over: it cost D100 two stalls and J12's proof, and it cost H122 this
+  run - the same check passes in **14,968ms** on one tree and freezes for 240s
+  on the next, which is a measurement no clause in the suite makes. Because the
+  freeze is synchronous it kills the whole run, so one slow helper can take a
+  verify with it. *done-when:* the search is computed once per (map, minRise)
+  and cached on the harness, every existing caller reads the cache, a check
+  holds that a second call does no stepping (a counter on `stepFrames`, or
+  the measured duration of the second call under a stated fraction of the
+  first), `a-climb-beyond-reach-bumps-poses-and-sounds` passes on the yard
+  three times running, and its duration is recorded in HANDOFF so the next drift
+  is visible. **H122 waits on this.**
 
 ## Block K — the Warden as an opponent
 
@@ -1263,14 +1312,34 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **J5 (M)** The killing shot, replayed. On death, two seconds from the
   Warden's eye via the input log (H13), then the ragdoll; skippable.
   *done-when:* a check dies and reads the replay's frames.
-- [ ] **J6 (S)** Dust and light. Landing dust by fall height, a muzzle
-  flash light (unshadowed, one frame), sparks on a metal hand-plant, the
-  scuff's puff. *done-when:* pixel checks; particle caps hold.
+- [~] **J6 (S)** **blocked: H125** - Dust and light. Landing dust by fall
+  height, a muzzle flash light (unshadowed, one frame), sparks on a metal
+  hand-plant, the scuff's puff. *done-when:* pixel checks; particle caps hold.
+  **Built, measured, parked, not merged** (2026-11-21, the 17:00 run): the code
+  is `6a41dfa` on `worktree-agent-a0c48990823a53651`.
+  `src/systems/dust.js` (206) holds a fixed 96-mote pool and the flash,
+  owned and stepped by `effects.js` (512 -> 531), every draw off
+  `lookRng`; new `shade:land` (with the fall height) and
+  `shade:grab` (with the surface) events; `CollisionBox.surface`
+  carries the finish `mapbake` writes, so a hand on metal sparks and one
+  on concrete does not. All six clauses passed by probe on both maps - dust 0
+  motes at a 0.21m step, 10 at 1.01m, 28 at 3.01m; the scuff puff 3.7cm from
+  `scuffedAt`; the flash 60cd on the shot's frame, 0 the next,
+  `castShadow` false; muzzle luma 26.16 lit against 17.89 suppressed; 6
+  sparks on `paint` and 0 on `concrete`; caps 96/96 and 120/120 over
+  200 landings, drained in 0.78s. **Why parked:** its check calls
+  `findTallFace`, the search H125 fixes, which does not finish on the
+  yard, so J6 cannot be proved on both maps until H125 lands. **Resume:**
+  cherry-pick `6a41dfa`, then prove it. Two disclosures to carry into the
+  record: clause (e)'s concrete half is the same real grab with
+  `box.surface` relabelled, because no hangable concrete ledge exists on
+  either map; and clause (f)'s 200-in-a-row stress emits `shade:land` /
+  `combat:shot` / `combat:impact` on the emitter rather than driving
+  200 real falls. The Warden's landings still raise no dust - only the Shade
+  emits `shade:land`.
 - [ ] **J7 (S)** Reactions. The Warden flinches on damage and staggers on a
   taser; the Shade flinches in third person. *done-when:* pose checks.
-- [ ] **J8 (S)** Idle life. Breathing sway; the Warden's head turns before
-  its body; the Shade's hood moves in the yard's wind. *done-when:* a check
-  sees motion at rest and none in a menu.
+- [x] **J8 (S)** Idle life - done 2026-11-21, under Done. `src/entities/idlemotion.js`; breath on the arm groups and wind as a hood yaw, because `breathcensus.js` forbids the chest and the torso tilt; `a-body-at-rest-is-never-still-and-one-in-a-menu-always-is` in `src/tests/idlelife.js`.
 - [ ] **J9 (S)** **blocked: D90** (key feel, D84) — Sprint FOV kick and the crouch camera's easing, under H9's
   toggles. *done-when:* a check reads the FOV over a sprint.
 
@@ -1431,7 +1500,8 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
-- **H122** The planner keeps the composing, the module keeps the questions. `mapground.js` was 578 of 600 after K14 and K16 is queued to put a swept body-clearance test in it, so the three things `route()` composes came apart along the seam K14 had already cut: `src/groundsearch.js` (143) takes `searchEdges`, `firmAt`, `pullStraight` and `segmentOnGround`, each handed the `WardenGround` and reading it, with `NEIGHBOURS` exported back for the flood. `mapground.js` falls to **479** and `route()` reads as the composition it is; the bodies are verbatim apart from `this` becoming `g`. `_firm` and `_segmentOnGround` stay as one-line delegations because K15's `stairground.js` and K11's `canWalk` name them, and the firm-cells cache stays the ground's one cache. `the-ground-search-and-its-cell-predicates-are-their-own-module` in `src/tests/groundsearch.js` (150) holds the four things a move could have broken: the chain the search lands on against the one `route()` lands on (plant 24 over 857, yard 24 over 602), `firmAt` against `_firm` with the cache size read between them (plant 463/451/0, yard 334/334/0), `segmentOnGround` against `canWalk` on 47 lines a map with a yes and a no among them (plant 28/19/0, yard 33/14/0), and the import of all four names with neither loop left behind. Proof 37 of 37 prefixes, plant 36/0/1, yard 35/0/2, red and flaky empty; break `return null;` in `searchEdges`, red on clause (a) alone on both maps. `c263495`.
+- **J8** Idle life, and the one body the census would not let breathe. Breathing sway on both figures, the Warden's head leading its body into a turn, the Shade's hood in the yard's wind, and all three still behind a menu. The brief's chest-and-torso design was refused by `tests/breathcensus.js` - it asserts the Shade's torso `rotation.x` does not move over a breath and that the Warden's chest does not rise - so the breath is the two arm groups' `position.y` (+-2cm at the shoulder) and the wind is a hood **yaw**, not a roll, since the hood is merged into the torso and splitting it out would be a 13th draw call against `figure.js`'s cap of 12. `src/entities/idlemotion.js` (157) is new because `agentvisual.js` was at 582 and H121 is queued to split it; it took **two** lines. Pure function of wall time and speed, zeroed off the ground and while stunned, gated by `setIdleLife(live, windy)` from `main.js` with `windy` an `outdoor` flag in the map registry beside `night`. Proof 44/44 on both maps, red and flaky empty, 0 console errors: *+-0.0200m, 3 peaks, 3 troughs* on both figures against a 0.005m floor, *0.0596 rad* of hood on the yard and *0.0000* on the plant, and nine zeroes on every one of the four behind a pause menu. Break: the breath term times zero, clause (a) red on both maps. Left **H110** a second piece of evidence - the 400-character cap cuts both detail strings mid-sentence, so the neck-lead and sprint-fade numbers never reach a reader. `6db73eb`.
+
 
 - **J4** An event feed, folded onto the one that already existed. D95 settled the shape before the
   build: `ui/hud.js` already carries `#bl-feed` and Section 13's four-line, five-second feed, and

@@ -23239,3 +23239,127 @@ check reads module text through `moduleText` from `moduletexts.js`, the
 shared reader, so it spells no second source reader - but it is a new module
 under `src/tests/`, so the four source-reading censuses have a new row in
 them and the run's verify is where that is read.
+
+## H122, reverted - the proof was green and the base was not (2026-11-21, the 17:00 run)
+
+H122 landed, was proved on both maps, was recorded, stamped and pushed, and is
+reverted in the same run. The entry above it stands as written: the move was
+faithful and its four clauses passed. What follows is what the proof could not
+see, and it is the more useful half.
+
+**How it surfaced.** The combined proof of J6 and J8 crashed - exit 2, the
+suite heartbeat still for 241s on the **yard**, the check in flight
+`a-climb-beyond-reach-bumps-poses-and-sounds`, 5 of 56 done. That is the
+signature D100 wrote down twice for J12 and concluded was not the job's. J6
+adds a `shade:scuff` listener, so it touches that very path and could not
+be waved through on D100, and the stall was bisected instead.
+
+**Five readings, one check, one map, the same command each time:**
+
+| tree | what is in it | result |
+|---|---|---|
+| `489f4c9` | before this run | **passes, 14,968ms**, exit 0 |
+| `dc5b378` | H122 only | **stalls**, heartbeat still 240s, exit 2 |
+| `67a21e0` | H122 + J8 + J6 | **stalls**, 241s, exit 2 |
+| `67a21e0`, the check **alone** on the yard | - | **stalls**, 241s, exit 2 |
+| `f6e6657` | the revert | **passes, 1,464ms**, exit 0 |
+
+The last row is the one that rules out a neighbour: the check stalls with
+nothing else in the run. The first rules out the machine and the hour. So
+**J6 and J8 are cleared and H122 is the cause**: three trees without it pass,
+two with it stall. The last row is the one that turns an indication into a
+finding - it came in after the revert, on the 44-check proof J8 was landed by,
+and it is the only one of the five that was not looking for the stall.
+
+**Where the time goes, and what is still unknown.** `findTallFace`
+(`src/tests/scuff.js`) walks every solid box times four faces and, at each
+candidate, calls `shade.reset()` and `stepFrames(3)` - up to about
+1,580 stepped frames, synchronous, with no await, which is exactly why the
+symptom is a frozen heartbeat and not a slow check. It returns at the first
+match, so its cost is how far down the box list the yard's first qualifying
+face sits, and anything that moves that or makes a frame dearer moves the whole
+search. **What H122 does to it is not identified.** The moved bodies are
+verbatim apart from `this` becoming `g`; the flood keeps its own
+`CUT_EPSILON` and never used the constant that moved; and the new module
+leaves no dangling reference to the two imports it took away, so there is no
+ReferenceError hiding behind a passing `node --check`. That is the open
+question, requeued with these numbers.
+
+**Why reverted rather than held.** H122 is a pure refactor whose only purpose
+is to make room for K16, so reverting it costs nothing a player sees, while
+leaving it in costs the base its verify - and a base that cannot verify stops
+every job behind it. `f6e6657`.
+
+**The honest caveat.** One run per tree, on a check D100 already recorded as
+intermittent, so the mechanism is still unexplained even though the attribution
+is now firm. The requeued job measures
+three times a tree before it moves anything, which is the discipline D100's own
+resume procedure asks for and which this run did not have the hour to spend.
+
+**What the run should have caught earlier.** H122's own check proves the move
+is faithful and says nothing about what the move costs. Four of this suite's
+checks call `findTallFace` and J6's new one makes five, so a refactor
+under `src/` can freeze a quarter of the yard's run while every clause
+about it passes. H125 is the fix: cache the search per map and minRise, so it is
+paid once a run rather than five times, and so its cost stops being a tripwire
+that fires on unrelated work.
+
+## J8 - Idle life, and the one body the census would not let breathe (2026-11-21, the 17:00 run)
+
+Breathing sway on both figures, the Warden's head turning before its body, the
+Shade's hood moving in the yard's wind, and all three still behind a menu.
+
+**The design the brief asked for was refused by a check, and that was right.**
+The brief said move the chest and the torso. `tests/breathcensus.js`
+asserts that the Shade's torso `rotation.x` does not move over a breath
+and that the Warden's chest `position.y` does not - *the Warden does not
+breathe* - and holds the 8m hood at 28px at every phase. So the breath is the
+two **arm groups'** `position.y` instead (shoulders rising and falling
++-2cm, which nothing else writes after build), and the wind is a hood **yaw**
+on the torso's `rotation.y` rather than a roll, because the hood is merged
+into the torso and splitting it out would be a 13th draw call against
+`figure.js`'s cap of 12 - and a yaw leaves the hood's face-on width alone
+where a roll would not. The builder found all of this by reading the checks
+before writing, which is the way round that costs nothing.
+
+**Where it lives.** `src/entities/idlemotion.js` (157), new, because
+`agentvisual.js` was at 582 of 600 and H121 is already queued to split it;
+it gained **two** lines. The motion is a pure function of wall time and speed -
+no accumulated state, no draw, nothing on the fixed step - and it is zeroed
+while the Shade is off the ground or the Warden is stunned, so the hang and
+glove-height checks still read built heights. `main.js` calls
+`setIdleLife(live, windy)` once a render frame, `live` being none of
+paused / menu / briefing / scoreboard and `windy` being
+`isOutdoorMap(map.id)` - a registry flag beside `night` in
+`maps/index.js`, not a map id tested somewhere else, so a second outdoor
+map is one line.
+
+**Proved** on both maps, 44 checks a map, **44 passed / 0 failed**, exit 0,
+`red` and `flaky` empty, **0** console errors (plant 211,511ms,
+yard 149,639ms). The subset was the new check, the blast radius of a job that
+rewrites a body's yaw and an arm's height - the three mesh-yaw readers
+(`deathcam.js`, `presentation.js`), the arm readers
+(`hang.js` x3, `alarmseen.js`, `animation.js` x2), the two
+figure checks, the hood-at-every-phase check, the boom and the two map-registry
+checks - and the 24-entry census, since a new module under `src/tests/`
+is a new row in four of them. The new check reads, on the plant: *at rest over
+600 frames the Shade's shoulder rides +-0.0200m (3 peaks, 3 troughs) and the
+Warden's +-0.0200m (3, 3), floor 0.005m; plant (indoor): the hood turns to
+0.0000 rad, want 0; behind the pause menu over 600 frames the Shade's shoulder
+moved 0.000000000m, the Warden's 0.000000000m, the hood 0.000000000 rad, the
+neck 0.000000000 rad*. On the yard the same, with *the hood turns to 0.0596 rad
+over 600 frames at rest, floor 0.01*. 600 frames and not 120 because the breath
+period is 3.4s and a third of a cycle cannot reach a maximum twice; a frame
+here is a step and two `updateVisual` calls, not a draw, so the whole
+check costs 136ms on the plant and 130ms on the yard.
+
+**The break**: the breath term multiplied by zero in `idlemotion.js`,
+from a copy and restored from it.
+
+**Two things the run noticed and did not fix.** The stored detail is capped at
+**400 characters** and both maps' strings end mid-sentence, so the neck-lead and
+sprint-fade clauses report numbers no reader ever sees - that is **H110**,
+already queued, and this is a second job's worth of evidence for it. And the
+prose in `breathcensus.js` and `xraydraw.js` saying *the Warden does
+not breathe* is now loosely stale, though no assertion in it is; it was left
+alone rather than edited on the way past.
