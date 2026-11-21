@@ -23047,3 +23047,63 @@ needing a plant-only exemption. `b63428c`'s staging was the expensive part and
 was reused whole where it was right; what it got wrong was reading a
 second-panel API that no longer exists, and demoting its alarm and round-end
 clauses to notes when staging failed — both are hard failures now.
+
+## J12 — Built, measured, nearly proved, and parked on a stall (2026-11-21, the 02:00 run)
+
+**Not merged.** The work is right as far as anything could tell, and it is held
+on `worktree-agent-afe57841f604f012b` at **`c018015`**.
+
+`cameraclip.js` took its wall from `scuff.js`'s `findTallFace`, which returns
+only the **first** qualifying tall face, and on both maps that is the shared
+perimeter `site-fence` — which is why J1's detail read identically on the plant
+and the yard to the centimetre. J12 adds `findTallFaces` beside it (every
+qualifying face, sorted by tag then min x then min z, so the order is the
+geometry's own and not the collision list's), re-expresses `findTallFace`
+through a shared private `faceOf` **without re-sorting it**, so its answer is
+unchanged for all four of its callers, and drives three faces per map through
+every existing clause at the thresholds they already had.
+
+**It worked, and the two maps finally read differently** — the whole point of
+the job. The first proof was green on both maps but for one red (below), with
+the clip check passing at three distinct tags each:
+
+- plant: `site-fence`, `bay-south-wall-0`, `stair-corridor-step-11`
+- yard: `site-fence`, `mast-bay-a`, `stair-walkway-step-14`
+
+and J1's four readings surviving the widening at full step counts: offset 1706,
+shoulder 515, worst **0.220m**, box test 731, `d0` 0 on the plant.
+
+**A real red, fixed by declaring rather than loosening.** `registry.js` is
+H70's seam census: a module that registers checks and exports machinery its own
+checks never touch must carry a declared row saying why. `findTallFaces` is
+reached by `cameraclip.js` alone, so it needed one — the census's own header is
+explicit that this is *"Not a ban"* and that what the shape may not be is
+*unlooked at*. `findTallFace` needs no row (scuff.js's own two checks still use
+it) and nor does `pickFaces` (the check that exports it also calls it). The row
+was written and went back with the revert, because the census asserts the other
+direction too: a declared row whose export is no longer handed out must be
+dropped.
+
+**Why it is parked: the proof stalled twice and I will not raise `--stall` to
+make it pass.** Three samples of `a-climb-beyond-reach-bumps-poses-and-sounds`
+on the **yard**, with J12 in the tree: **PASS**, then two consecutive
+`GATEFAIL=2` watchdog timeouts — *"the suite heartbeat stood still for 241s on
+map yard, run 1; the check in flight was a-climb-beyond-reach-bumps-poses-and-
+sounds (1/31, phase running)"*. The only tree difference between the green run
+and the two stalls is the inert `registry.js` data row, which cannot touch that
+check's runtime, so **the stall is not attributable to J12** — but neither can
+J12 be called proved on a reading that failed two of three times. No orphaned
+suite or headless Chrome was alive for either stall. The watchdog's own message
+invites `--stall`, and in a scheduled run that invitation is a trap: a flaky
+stall in the check that drives the Shade into a wall is the thing worth
+knowing, and a raised timeout hides it.
+
+**A free measurement for J14, which is the better half of this entry.** J10's
+closing-clear clause read `closing` **0** over 1,820 frames, and J14 exists
+because a live camera path therefore had no check behind it — its done-when
+says to measure first, and that if no such pose exists in either map's geometry
+*"that is the finding, and the honest end is to say so in the check's header and
+take the call out"*. On the widened face set the **yard reads `closing` 1**. So
+such a pose **does** exist, J14 is a real job rather than a deletion, and the
+face that found it is one of the two new tags — `mast-bay-a` or
+`stair-walkway-step-14`. J14 should start from there rather than from scratch.

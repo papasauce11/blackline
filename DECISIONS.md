@@ -196,6 +196,72 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D100 — J12 is parked on a stall, and `--stall` is not the way past it
+Taken by the lead under D84. Parking a job is listed in PLAN.md as the PM's call;
+taken here by the lead on D96's precedent (the lead parked K12 the same way) and
+because D79 says a run never halts - the PM option is noted, not used. 2026-11-21,
+the 02:00 run.
+
+- **The build is right as far as anything could tell, and it is not merged.** It is
+  held on `worktree-agent-afe57841f604f012b` at `c018015`. J12 widened
+  `cameraclip.js` from the one shared `site-fence` to three tall faces a map, and it
+  worked: the plant reads `site-fence` / `bay-south-wall-0` / `stair-corridor-step-11`
+  and the yard `site-fence` / `mast-bay-a` / `stair-walkway-step-14`, so the two maps
+  no longer read identically to the centimetre - which was the job's whole purpose -
+  and J1's four readings survive at full step counts (offset 1706, shoulder 515, worst
+  0.220m, box test 731).
+- **Why it is parked.** `a-climb-beyond-reach-bumps-poses-and-sounds` on the **yard**
+  went **PASS**, then stalled **twice**: `GATEFAIL=2`, *"the suite heartbeat stood
+  still for 241s on map yard, run 1; the check in flight was
+  a-climb-beyond-reach-bumps-poses-and-sounds (1/31, phase running)"*. The only tree
+  difference between the green run and the two stalls is an inert data row in
+  `registry.js`, which cannot touch that check's runtime - so **the stall is not
+  attributable to J12**. But a job cannot be called proved on a reading that failed
+  two of three times, and P2 says the suite's word is the proof.
+- **`--stall` was refused deliberately.** The watchdog's own message says *"Raise
+  --stall if the run was merely slow"*, and in a scheduled run that is a trap: a flaky
+  stall in the check that drives the Shade into a wall is exactly the thing worth
+  knowing, and a raised timeout hides it rather than answering it. No orphaned suite
+  or headless Chrome was alive for either stall, so load is not a settled explanation
+  either.
+- **The options, and why this one.** (1) Raise `--stall` and merge - rejected, above.
+  (2) Merge on the one green run and let the batch verify decide - rejected, it puts a
+  known-unstable reading into a 75-minute verify and makes any red there ambiguous
+  between J12 and the base. (3) Park J12 with the findings recorded and verify the two
+  jobs that are genuinely proved, which is this. (4) Spend the rest of the run
+  bisecting the stall - rejected under D79; it is its own job, and the queue note says
+  how to start it (run the subset three times on a tree **without** J12 first, which
+  separates a base flake from something the widened face set does).
+- **What the attempt bought anyway, and it is the better half:** J14's measurement.
+  J10's closing-clear clause read `closing` **0** over 1,820 frames, and J14's
+  done-when said that if no such pose exists in either map's geometry, the honest end
+  is to say so and take the call out. On the widened face set the yard reads `closing`
+  **1** - so the pose **does** exist, J14 resolves to its first branch and is a real
+  job rather than a deletion. Recorded on J14.
+- Also known and recorded: J12 needs a `SHARED_FROM_A_CHECK` row in
+  `src/tests/registry.js` declaring `findTallFaces`, because H70's seam census reds
+  without it. That is a declaration and not a loosening - the census header says in so
+  many words that the shape is *"Not a ban"* and only may not be *unlooked at*.
+
+### D98 — J12's frame budget was my instruction, and it was the wrong one
+Taken by the lead under D84 (not personality, not styling, not key feel: a check's
+sampling). 2026-11-21, the 02:00 run.
+
+- J12's brief told its builder to keep the widened camera-clip check *"within roughly
+  what the check drives today"*. The builder honoured it the only way available: it cut
+  `STEPS` from 90 to 60 and J10's along-wall legs from 40/20/40/30 to 20/12/20/12 - and
+  still landed at 1.6x, because three faces do not fit in one face's budget.
+- **Withdrawn on review.** 14 laterals x 130 steps is the 1,820 frames J10's `d0 4`
+  reading was measured over; 64 steps a lateral is a different experiment wearing the
+  same clause, and J1's four recorded numbers would quietly stop being comparable with
+  the record. The cost of not cutting is about 7,600 frames against a run of roughly
+  2,100 seconds for 266 checks - this check is not where the suite's time goes.
+- Full counts restored, three faces, and J1's four readings (offset, shoulder, worst
+  clearance, box-test pull-ins) now lead the detail so the 400-character cut cannot eat
+  the fourth. **The lesson is the brief's, not the builder's:** a budget stated in a
+  brief will be met by whatever lever the builder has, and here the only lever was the
+  sampling two earlier jobs had measured their numbers on.
+
 ### D97 — K15: the flood stands, the declaration stands, and what lands is the firmness invariant
 Taken by the lead under D84 (not personality, not styling, not key feel: which of
 two viable designs a job takes, and a rule the Warden's ground rests on).

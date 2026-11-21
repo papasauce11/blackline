@@ -1287,6 +1287,14 @@ provisional; the rule for "thin" is mechanical, never a tag.
   and removing the second `boomClear` call turns the clause red. Measure
   first: if no such pose exists in either map's geometry, that is the finding,
   and the honest end is to say so in the check's header and take the call out.
+  **Measured, 2026-11-21 (the 02:00 run), and the answer is yes: such a pose exists.** J12's
+  widened face set (three tall faces a map instead of the one shared `site-fence`) read `closing`
+  **1** on the **yard**, where J10's single-fence run read 0 over 1,820 frames. So this job's
+  done-when resolves to its first branch, not its second: the eased distance **is** unclear on a
+  frame where the swept one was clear, the clause can be made to bite, and the honest end is not
+  to take the call out. The face that found it is one of the yard's two new tags, `mast-bay-a` or
+  `stair-walkway-step-14`. **J12 is the prerequisite** - it is parked on a stall (D100) and holds
+  `findTallFaces` on `c018015`; this job starts from that reading rather than from scratch.
 - [ ] **J11 (S)** The body seen from inside when the boom is jammed. J1's near-
   plane clamp puts the camera about **0.24m** from the body centre when the
   Shade is pressed flat to a wall - inside her own **0.34m** capsule. That is
@@ -1315,6 +1323,34 @@ provisional; the rule for "thin" is mechanical, never a tag.
   beside `findTallFace` returns every qualifying face (leaving `scuff.js`'s own
   callers alone), `cameraclip.js` drives several faces per map, and its detail
   names them so the two maps can be told apart in the record.
+  **Built, measured, nearly proved, and parked on a stall 2026-11-21 (the 02:00 run);
+  held on `worktree-agent-afe57841f604f012b` at `c018015`, not merged.** The build is
+  right as far as anything could tell: `findTallFaces` beside `findTallFace` (every
+  qualifying face, sorted by tag then min x then min z so the order is the geometry's own),
+  `findTallFace` re-expressed through a shared private `faceOf` **without re-sorting**, so its
+  answer is unchanged for all four callers, and three faces driven per map through every
+  existing clause at the thresholds they already had. **And it did the job: the two maps
+  finally read differently** - plant `site-fence` / `bay-south-wall-0` /
+  `stair-corridor-step-11`, yard `site-fence` / `mast-bay-a` / `stair-walkway-step-14` - with
+  J1's four readings surviving at full step counts (offset 1706, shoulder 515, worst 0.220m,
+  box test 731).
+  *Two things it needs, both known:* (1) a `SHARED_FROM_A_CHECK` row in `src/tests/registry.js`
+  declaring `findTallFaces` as machinery `cameraclip.js` alone reaches for - H70's seam census
+  reds without it, and it is a declaration, not a loosening (`findTallFace` needs none, since
+  scuff.js's own checks use it; nor does `pickFaces`, since its own check calls it). The row was
+  written and went back with the revert, because the census asserts the other direction too.
+  (2) **the reason it is parked:** `a-climb-beyond-reach-bumps-poses-and-sounds` on the **yard**
+  went PASS, then stalled twice - `GATEFAIL=2`, *"the suite heartbeat stood still for 241s on map
+  yard, run 1; the check in flight was a-climb-beyond-reach-bumps-poses-and-sounds (1/31, phase
+  running)"*. The only tree difference between the green run and the stalls is that inert data
+  row, so **the stall is not attributable to J12** - but J12 cannot be called proved on a reading
+  that failed two of three. Do **not** raise `--stall` to get past it: a flaky stall in the check
+  that drives the Shade into a wall is the finding, and a raised timeout hides it. No orphaned
+  suite or headless Chrome was alive for either stall. D100.
+  *resume from:* cherry-pick `c018015`, add the registry row, and run the J12 subset three times
+  on the yard before anything else - if the stall repeats on a tree **without** J12, it is a base
+  flake and belongs in its own hygiene job; if it only ever stalls with J12 in, the widened face
+  set is doing something to that check and the three faces are the thing to bisect.
 - [x] **J13 (S)** Defusing raises no event, so no feed can carry it — done 2026-11-20, under Done. `objective:defuse-start` emitted as `defuseProgress` leaves 0, with `round.site` and `round.chargeAt`, in `src/systems/objective.js`; the rule is that **an attempt is a run of progress that starts from nothing**, so a resume inside `defuseRetainTime` is the same attempt and raises nothing. New module `src/tests/defusestart.js`, `a-defuse-raises-one-event-when-it-begins-and-not-once-a-frame`, four clauses. J4’s defusing line is unblocked. `71517cc`.
 ## Block I — audio, ambience only
 
