@@ -31,22 +31,24 @@
  * spawns are on it; from the hall floor no route climbed either staircase,
  * which A8 found the moment it tried to plan one.
  *
- * Layering (Section 3.1): imports config, mapbake, groundprobe.js (the
- * column probes the flood and the planner share, split out in B5c) and
- * groundsearch.js (the search, the firmness test and the line walk `route()`
- * composes, split out in H122). It needs nothing from GameMap but the collision world and the spawn list.
+ * Layering (Section 3.1): imports config, mapbake and groundprobe.js (the
+ * column probes the flood and the planner share, split out in B5c). It
+ * needs nothing from GameMap but the collision world and the spawn list.
  */
 
 import { CONFIG } from './config.js';
 import { CUT_EPSILON } from './mapbake.js';
-import { SKIN, walkable, standableFloors } from './groundprobe.js';
-import { NEIGHBOURS, searchEdges, firmAt, pullStraight, segmentOnGround } from './groundsearch.js';
+import { SKIN, WALK_SUBSTEPS, walkable, groundUnder, standableFloors } from './groundprobe.js';
 
 const M = CONFIG.map;
 const W = CONFIG.warden;
 
 /** Handed to `someCellWithin`'s test, one object for every cell it visits. */
 const CELL = { x: 0, y: 0, z: 0 };
+/** The four walkable directions, in bit order for `edges`. */
+const NEIGHBOURS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+/** `route()` re-derives the flood's step test; this is the flood's epsilon. */
+const STEP_SLACK = CUT_EPSILON;
 
 /**
  * The Warden's reachable ground, as a column grid over the site footprint.
@@ -197,7 +199,7 @@ export class WardenGround {
     // over every cell the flood proved. A cell can be ground on a sliver of its
     // footprint, the centre beyond the edge - the hall void's rim, the stair's
     // side - and a line of them is a ledge a body walks off at the first nudge.
-    const parent = (margin > 0 && searchEdges(this, startId, goalId, true)) || searchEdges(this, startId, goalId, false);
+    const parent = (margin > 0 && this._search(startId, goalId, true)) || this._search(startId, goalId, false);
     if (!parent) return null;
 
     // Unwind into foot positions, start first.
@@ -216,7 +218,7 @@ export class WardenGround {
     // the centre is at most a third of a metre from the goal, inside every
     // arrival radius that reads it.
     cells[0] = { x: from.x, y: start.y, z: from.z };
-    const pulled = pullStraight(this, cells, maxLeg, margin);
+    const pulled = this._pullStraight(cells, maxLeg, margin);
     // A snapped goal still finishes at the thing itself. The AI decides it
     // has arrived by its distance to the charge, not to the cell beside it,
     // so the last leg is the short walk at the crate the solver stops it at,
@@ -225,9 +227,84 @@ export class WardenGround {
     return pulled;
   }
 
-  /** Firm under its own centre? `firmAt()` in groundsearch.js; kept by name for the tests and `canWalk`. */
+  /**
+   * Breadth-first over the proven edges: parents by id, the queue is ids,
+   * nothing allocated per visited cell beyond the two maps. `firmOnly` walks
+   * only cells whose own centre has deck under it (the goal's is always
+   * allowed: it is where the caller asked to be). Null if the goal is not
+   * reached.
+   */
+  _search(startId, goalId, firmOnly) {
+    const parent = new Map([[startId, -1]]);
+    const queue = [startId];
+    let head = 0;
+    let found = startId === goalId;
+    while (head < queue.length && !found) {
+      const id = queue[head++];
+      const mask = this.edges.get(id) || 0;
+      if (!mask) continue;
+      const k = id % 4;
+      const key = (id - k) / 4;
+      const i = key % this.nx;
+      const j = (key - i) / this.nx;
+      const y = this.columns.get(key)[k];
+      for (let n = 0; n < NEIGHBOURS.length; n++) {
+        if (!(mask & (1 << n))) continue;
+        const ni = i + NEIGHBOURS[n][0];
+        const nj = j + NEIGHBOURS[n][1];
+        const floors = this.columns.get(this.key(ni, nj));
+        if (!floors) continue;
+        // The edge bit says one of the neighbour's floors is within reach -
+        // a step, or two on a staircase; find which, the way the flood did.
+        for (let nk = 0; nk < floors.length; nk++) {
+          if (Math.abs(floors[nk] - y) > (W.stepHeight + STEP_SLACK) * 2) continue;
+          const nid = this.cellId(ni, nj, nk);
+          if (parent.has(nid)) continue;
+          if (firmOnly && nid !== goalId && !this._firm(ni, nj, nk, floors[nk])) continue;
+          parent.set(nid, id);
+          if (nid === goalId) {
+            found = true;
+            break;
+          }
+          queue.push(nid);
+        }
+        if (found) break;
+      }
+    }
+    return found ? parent : null;
+  }
+
+  /** Is there a top face under this cell's centre, within a step of its floor? Cached: the flood's footprint test is looser by design. */
   _firm(i, j, k, y) {
-    return firmAt(this, i, j, k, y);
+    if (!this.collision) return true;
+    const id = this.cellId(i, j, k);
+    let firm = this._firmCells.get(id);
+    if (firm === undefined) {
+      firm = groundUnder(this.collision, this.centreX(i), this.centreZ(j), y, this.step);
+      this._firmCells.set(id, firm);
+    }
+    return firm;
+  }
+
+  /** String-pull a cell path: keep a point only where the line has to bend. */
+  _pullStraight(cells, maxLeg, margin) {
+    const out = [cells[0]];
+    let at = 0;
+    while (at < cells.length - 1) {
+      let far = at + 1;
+      for (let probe = cells.length - 1; probe > at + 1; probe--) {
+        // Length first: it is a subtraction, and it rules out most probes
+        // before the sampled walk along the segment has to run.
+        if (Math.hypot(cells[probe].x - cells[at].x, cells[probe].z - cells[at].z) <= maxLeg
+          && this._segmentOnGround(cells[at], cells[probe], margin)) {
+          far = probe;
+          break;
+        }
+      }
+      out.push(cells[far]);
+      at = far;
+    }
+    return out;
   }
 
   /** Can a standing body walk the straight line `a` to `b`, with ground `margin` either side? The AI asks it of a first leg (K11). */
@@ -235,9 +312,31 @@ export class WardenGround {
     return this._segmentOnGround(a, b, margin);
   }
 
-  /** `segmentOnGround()` in groundsearch.js; kept by name for the tests and `canWalk`. */
+  /**
+   * Can a standing body walk this line, resting on whatever is under it -
+   * and, `margin` metres to either side of it, is there still something to
+   * rest on? See `route()` for why the second question is asked.
+   */
   _segmentOnGround(a, b, margin = 0) {
-    return segmentOnGround(this, a, b, margin);
+    if (!this.collision) return false;
+    const length = Math.hypot(b.x - a.x, b.z - a.z);
+    const substeps = Math.max(1, Math.ceil(length / (this.cell / WALK_SUBSTEPS)));
+    if (!walkable(this.collision, a.x, a.z, a.y, b.x, b.z, b.y, this.half, this.step, substeps)) return false;
+    if (!(margin > 0) || length < 1e-6) return true;
+    // The two lines beside it. A body there has strayed, not stepped, so it
+    // is held to the line's own height and not to a tread's: the ground it
+    // finds has to be within a step of where the line is at that point.
+    const nx = -(b.z - a.z) / length * margin;
+    const nz = (b.x - a.x) / length * margin;
+    for (let s = 0; s <= substeps; s++) {
+      const t = s / substeps;
+      const x = a.x + (b.x - a.x) * t;
+      const z = a.z + (b.z - a.z) * t;
+      const y = a.y + (b.y - a.y) * t;
+      if (!groundUnder(this.collision, x + nx, z + nz, y, this.step)) return false;
+      if (!groundUnder(this.collision, x - nx, z - nz, y, this.step)) return false;
+    }
+    return true;
   }
 
   key(i, j) {
