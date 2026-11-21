@@ -23107,3 +23107,60 @@ take the call out"*. On the widened face set the **yard reads `closing` 1**. So
 such a pose **does** exist, J14 is a real job rather than a deletion, and the
 face that found it is one of the two new tags — `mast-bay-a` or
 `stair-walkway-step-14`. J14 should start from there rather than from scratch.
+
+## The verify - the ninth batch is green (2026-11-21, the 02:00 run)
+
+The full two-run suite at `37b8e9f`, no `--subset`: **exit 0, GATEOK**, 03:16
+to 04:33, **77 minutes**. Plant **268 passed / 1 failed / 10 not for this map**
+(1,275,716ms and 1,276,940ms), yard **250 / 1 / 28** (954,606ms and 965,954ms).
+`red` **empty**, `flaky` **empty**, `skipped` **empty**, `skipsWithheld` empty,
+`expectedRed` and `unexpectedGreen` empty, `consoleErrors.count` **0**. Pair
+spreads **0%** (plant, 1,224ms) and **1%** (yard, 11,348ms), pipeline-wait
+spreads 3,449ms and 6,728ms (F16) - tighter again than the eighth batch's
+reading. Ceiling 15 modules within 50 of 600, `tests/difficulty.js` still **at
+600 with 0 left** (H113), of **234** loaded. Throttle 4/8 cores, 9 processes
+pinned, 45s cooldown.
+
+**The counts moved by exactly the one new id, and the one new module.** 266 ->
+268 on the plant and 248 -> 250 on the yard is **two** ids, not one: K15's
+`stairground.js` and J4's second check inside `feedback.js`, which is the
+module count moving 233 -> **234** for the first of them alone. Both jobs are
+visible in the summary this time, which the eighth batch's three invisible jobs
+are the argument for never relying on.
+
+**Both new checks pass in all four runs**, and the verify reads them in the
+same words the subset proofs did - which is the thing being checked, because a
+measurement that moves between a proof and a verify was never a measurement:
+
+- `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` (K15) -
+  plant *climbing/outside/firm: stair-hall [-22.1, -20.1] 70/14/0;
+  stair-corridor [3, 5] 74/18/0; 32 outside in all*, yard *stair-walkway [-6,
+  -4] 36/0/0; 0 outside in all (not required to be non-zero here)*. Identical
+  on both runs of both maps, to the digit.
+- `each-feed-line-appears-on-its-own-event-and-nothing-elses` (J4) - *on site
+  A, one line each and nothing between: charge armed at A / ALARM - shade
+  detected / defusing at A / reinserted - 2 left / reinsert forced / round 1 to
+  the warden - the clock ran out with no plant*. Six lines, six events, nothing
+  in between, and it fits inside H110's 400-character cut with room to spare.
+
+The one failure in each run is the benched GPU sweep,
+`the-frame-budget-holds-everywhere-not-just-at-site-a` (H11): a single-sample
+worst viewpoint on SwiftShader against an 8.33ms ceiling - plant
+`stair-corridor-head@1` 788.20ms and `corridor-n@0` 742.00ms, yard
+`store-east@1` 690.00ms and `store-east@3` 477.60ms. It is on the suite's own
+`benched` list, which is why the gate is green; its real reading is `npm run
+bench` on a GPU, last 2026-10-09 (`76c6e50`), OK, 12 readings - **six weeks
+ago**, and the eighth batch's entry already called the gap worth a glance. It
+is a week wider now and nobody has glanced.
+
+The H79 drift list is **35** checks on the plant and **38** on the yard, a
+reading and not a verdict, and its widest entries are the same clocks the
+eighth batch's were (`no-nan-after-sustained-stepping` 11.17 -> 3825.53 is a
+timer, not a change in the game). Neither new check appears on it.
+
+**What this verify does not cover: J12.** It was reverted before the HANDOFF
+commit, so the stall that parked it is not in these four runs and these four
+runs say nothing about it. `a-climb-beyond-reach-bumps-poses-and-sounds` passed
+here on both maps, twice each, on the tree *without* J12 - which is the first
+half of the resume procedure D100 names, and it came free: a base flake is now
+less likely, so the widened face set is where J12's next attempt should look.
