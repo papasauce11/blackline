@@ -423,40 +423,74 @@ export function tallFaceSearchStats() {
  * resets the Shade before it reads anything of it.
  */
 export function findTallFace(h, minRise) {
+  return memo(h, 'one', minRise, () => searchTallFace(h, minRise));
+}
+
+/**
+ * Every face `findTallFace()` would accept, not just the first (J12): the
+ * camera check ran on whichever came first, and on both maps that is the
+ * shared `site-fence`. Sorted by tag, then the box's min x, then min z, so the
+ * order is the geometry's own and not the collision list's. Kept on the
+ * harness beside `findTallFace()`'s answer (H125), and the same array comes
+ * back each time: a caller reads it, it does not reorder it.
+ */
+export function findTallFaces(h, minRise) {
+  return memo(h, 'all', minRise, () => {
+    searched.searches++;
+    const faces = [];
+    for (const box of h.map.collision.boxes) {
+      const face = faceOf(h, box, minRise);
+      if (face) faces.push(face);
+    }
+    const tagOf = (f) => f.box.tag || '';
+    return faces.sort((a, b) => (tagOf(a) < tagOf(b) ? -1 : tagOf(a) > tagOf(b) ? 1 : 0)
+      || a.box.min.x - b.box.min.x || a.box.min.z - b.box.min.z);
+  });
+}
+
+/** One cache for both searches: per map, per question, per `minRise`; a `null` is kept too. */
+function memo(h, kind, minRise, search) {
   let cache = h._tallFaceCache;
   if (!cache || cache.map !== h.map) cache = h._tallFaceCache = { map: h.map, entries: new Map() };
-  const key = minRise.toFixed(4);
+  const key = kind === 'one' ? minRise.toFixed(4) : `${kind}:${minRise.toFixed(4)}`;
   if (cache.entries.has(key)) return cache.entries.get(key);
-  const found = searchTallFace(h, minRise);
+  const found = search();
   cache.entries.set(key, found);
   return found;
 }
 
 function searchTallFace(h, minRise) {
   searched.searches++;
+  for (const box of h.map.collision.boxes) {
+    const face = faceOf(h, box, minRise);
+    if (face) return face;
+  }
+  return null;
+}
+
+/** One box's answer to `findTallFace()`'s question: a standing spot and yaw, or null. */
+function faceOf(h, box, minRise) {
   const ground = CONFIG.map.groundY;
   const shade = h.shade;
-  for (const box of h.map.collision.boxes) {
-    if (!box.solid) continue;
-    if (Math.abs(box.min.y - ground) > 0.05) continue;
-    if (box.max.y - ground < minRise) continue;
-    const cx = (box.min.x + box.max.x) / 2;
-    const cz = (box.min.z + box.max.z) / 2;
-    for (const [nx, nz] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
-      const x = nx === 0 ? cx : (nx < 0 ? box.min.x : box.max.x) + nx * 0.8;
-      const z = nz === 0 ? cz : (nz < 0 ? box.min.z : box.max.z) + nz * 0.8;
-      const yaw = Math.atan2(nx, nz);
-      shade.reset({ position: { x, y: ground, z }, yaw });
-      h.stepFrames(3);
-      searched.steppedFrames += 3;
-      if (!shade.grounded || Math.abs(shade.feetY - ground) > 0.05) continue;
-      shade.grounded = false;
-      const ledge = shade._probeLedge(S.mantleReach);
-      const face = shade._faceAhead;
-      shade.grounded = true;
-      if (ledge || !face || face.box !== box) continue;
-      return { box, x, z, yaw };
-    }
+  if (!box.solid) return null;
+  if (Math.abs(box.min.y - ground) > 0.05) return null;
+  if (box.max.y - ground < minRise) return null;
+  const cx = (box.min.x + box.max.x) / 2;
+  const cz = (box.min.z + box.max.z) / 2;
+  for (const [nx, nz] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+    const x = nx === 0 ? cx : (nx < 0 ? box.min.x : box.max.x) + nx * 0.8;
+    const z = nz === 0 ? cz : (nz < 0 ? box.min.z : box.max.z) + nz * 0.8;
+    const yaw = Math.atan2(nx, nz);
+    shade.reset({ position: { x, y: ground, z }, yaw });
+    h.stepFrames(3);
+    searched.steppedFrames += 3;
+    if (!shade.grounded || Math.abs(shade.feetY - ground) > 0.05) continue;
+    shade.grounded = false;
+    const ledge = shade._probeLedge(S.mantleReach);
+    const face = shade._faceAhead;
+    shade.grounded = true;
+    if (ledge || !face || face.box !== box) continue;
+    return { box, x, z, yaw };
   }
   return null;
 }
