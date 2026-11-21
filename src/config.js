@@ -1854,6 +1854,70 @@ export const CONFIG = {
     detonationSparks: 18,
     /** Section 17 assertion: active effects must return to 0 within 10s. */
     idleAssertionWindow: 10,
+
+    /**
+     * Dust (J6): the mark a landing and a failed climb leave on the air. One
+     * fixed pool and one draw call, like the sparks; **`lookRng` draws only**
+     * (H27), so a puff can never move what the Warden does next.
+     */
+    dust: {
+      /** Cap on live motes for the whole game. A 4m landing is 36 and three of those stacked is the most a player makes in a lifetime of the pool. */
+      poolSize: 96,
+      /** Seconds a mote lives. Long enough to be seen settle, short enough that the 10s idle assertion is never close. */
+      lifetime: 0.8,
+      /**
+       * Metres of fall under which a landing leaves nothing. Above the 0.35m
+       * `stepHeight` so a kerb or a stair never smokes, below `softFall`
+       * (1.2m) so a hop off a crate still lifts a faint puff - the landing
+       * weight and the dust begin to say something at about the same place.
+       */
+      minFall: 0.5,
+      /** Motes at the floor height, and at `shade.landing.hardFall` and past it; the count is a straight line between. A scuff is the floor's puff. */
+      countMin: 6,
+      countMax: 36,
+      /** Outward speed in m/s of the same two ends: a puff that sits against the boots, and a ring that spreads about a body's width. */
+      spreadMin: 0.8,
+      spreadMax: 2.6,
+      /** Upward speed in m/s a mote starts with, scaled up to half again by the fall. Dust lifts; it does not fly. */
+      rise: 0.5,
+      /** Metres from the contact point a mote starts at. A few centimetres, so a scuff's puff reads as the hands' and not as the wall's. */
+      spawnRadius: 0.03,
+      /** Velocity kept each fixed step, so the ring spreads fast and hangs. Air, not a thrown thing. */
+      drag: 0.96,
+      /** World size of one mote in metres at full scale; it grows in over `growTime` and shrinks out over the last `fadeTime`. */
+      size: 0.5,
+      growTime: 0.1,
+      fadeTime: 0.4,
+      /** Dim tan. A mote is unlit - a point sprite takes no light - so in a dark hall it shows exactly as bright as its colour, and a pale one is a lantern; this is the floor's own shade, thrown up. */
+      color: 0x55524a,
+      opacity: 0.6,
+    },
+
+    /**
+     * The muzzle flash (J6): one point light that lives in the scene and is
+     * switched, never added and removed - three recompiles every lit material
+     * when the light count changes. It casts no shadow (Section 4.1: only the
+     * key does) and is lit for the one frame the shot is drawn in.
+     */
+    muzzleFlash: {
+      /** Candela. A fixture is 26 at 18m; this is a fixture's worth gone in a frame, so it lights a wall at 3m and the floor under the gun and means nothing past them. */
+      intensity: 60,
+      /** Metres to nothing: a room's width, the length of a firing lane's first bay. */
+      distance: 9,
+      decay: 2,
+      /** Hot white-orange: it is flame, and the Warden's orange is the colour the game already uses for what is dangerous. */
+      color: 0xffc27a,
+      /** Metres along the aim, and down, from the eye to the muzzle of a rifle held at the shoulder. */
+      forward: 0.7,
+      drop: 0.14,
+      /** The most fixed steps the flash outlives a frame that never starts. A frame clears it; this is for the steps a harness runs without one, so a flash is never left lit in a picture it was not drawn for. */
+      maxSteps: 3,
+    },
+
+    /** Sparks a hand-plant throws on a metal surface (J6): the burst of a placed charge's detonation, a third of it - a palm on a rail, not a blast. */
+    metalSparks: 6,
+    /** The finishes (`map.finishes`, E4) that are metal. Concrete, wet asphalt and glass are the rest, and they do not spark. */
+    metalFinishes: ['paint', 'corrugated'],
   },
 
   // -------------------------------------------------------------------------

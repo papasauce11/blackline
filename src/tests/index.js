@@ -133,6 +133,7 @@ import { register as registerCameraFeed } from './camerafeed.js';
 import { register as registerCameraClip } from './cameraclip.js';
 import { register as registerStairGround } from './stairground.js';
 import { register as registerIdleLife } from './idlelife.js';
+import { register as registerDustLight } from './dustlight.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -365,4 +366,6 @@ export function registerAutoTests(debugTools) {
   registerStairGround(debugTools);
   // J8: both figures breathe at rest, the Warden's head leads its body, the yard's wind moves the hood and the plant's air does not, and a menu stills all of it; it drives frames of its own and ends in a fresh match.
   registerIdleLife(debugTools);
+  // J6: dust by fall height, a scuff's puff, one unshadowed frame of muzzle flash, sparks on metal and the pool caps; it steps and photographs through the lens, draws a frame of its own and ends in a fresh match.
+  registerDustLight(debugTools);
 }

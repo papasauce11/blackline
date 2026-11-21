@@ -38,6 +38,7 @@
 import * as THREE from 'three';
 import { CONFIG, lookRng } from '../config.js';
 import { qualityParticles } from '../quality.js';
+import { Dust } from './dust.js';
 
 const E = CONFIG.effects;
 const GA = CONFIG.gadgets;
@@ -60,6 +61,9 @@ export class Effects {
     this._buildParticles();
     this._buildSmoke();
     this._buildAlarmFixture();
+    // J6: the dust and the flash. Built here so the one `root` holds every
+    // effect, and stepped, reset and counted below with the rest.
+    this.dust = new Dust({ root: this.root });
     this.ragdolls = [];
 
     this._unsubscribe = [];
@@ -80,6 +84,19 @@ export class Effects {
     // grow and recoil climb; neither is readable without seeing the impacts.
     on('combat:impact', (event) => this.sparks(event.at, E.impactSparks));
 
+    // J6. The landing and the scuff are the Shade's own events and a hand-plant
+    // is the grab's: each carries where, and this decides what it looks like.
+    on('shade:land', (event) => this.dust.landing(event, event.fall));
+    on('shade:scuff', (event) => this.dust.scuff(event));
+    // A palm on a rail throws sparks; on concrete it does not. The surface is
+    // the box's finish (E4), named by the grab so this never reaches for a map.
+    on('shade:grab', (event) => {
+      if (E.metalFinishes.includes(event.surface)) this.sparks(event, E.metalSparks);
+    });
+    // The flash is lit by the shot and put out by the next frame (dust.js).
+    on('combat:shot', (event) => this.dust.muzzleFlash(event.origin, event.direction));
+    on('frame:begin', () => this.dust.endFrame());
+
     // Section 9.2's alarm camera. Gadgets owns what it does; this owns what it
     // looks like, because gadgets has no scene and must not acquire one.
     on('gadget:alarm-placed', (event) => this.showAlarm(event.at));
@@ -98,6 +115,7 @@ export class Effects {
     for (let i = 0; i < this.footprints.length; i++) this.footprints[i].life = 0;
     for (let i = 0; i < this.particles.length; i++) this.particles[i].life = 0;
     for (let i = 0; i < this.smoke.length; i++) this.smoke[i].life = 0;
+    this.dust.reset();
     for (const ragdoll of this.ragdolls) ragdoll.mesh.rotation.set(0, 0, 0);
     this.ragdolls.length = 0;
     // Section 9.2 allows one alarm camera per round, so a new round starts
@@ -236,7 +254,7 @@ export class Effects {
     for (const slot of this.footprints) if (slot.life > 0) count++;
     for (const slot of this.particles) if (slot.life > 0) count++;
     for (const slot of this.smoke) if (slot.life > 0) count++;
-    return count;
+    return count + this.dust.activeCount;
   }
 
   get pooledSprites() {
@@ -404,6 +422,7 @@ export class Effects {
 
   step(dt) {
     this._stepAlarmFixture(dt);
+    this.dust.step(dt);
 
     let dirty = false;
     for (const slot of this.footprints) {

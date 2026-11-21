@@ -50,12 +50,18 @@ export function createMaterialCache(gradientMap, finishes = null) {
     const finish = finishes ? finishes.of(color) : null;
     return finish ? { gradientMap: finish.ramp, map: finish.grime } : { gradientMap };
   };
+  // The finish a material wears, for whatever needs to know what a surface is
+  // made of (J6: a hand on metal sparks) without reading a texture back.
+  const named = (material, color) => {
+    material.userData.finish = finishes ? finishes.of(color).name : '';
+    return material;
+  };
   return {
     toon(color, lit = false) {
       const key = lit ? `${color}:lit` : color;
       let material = cache.get(key);
       if (!material) {
-        material = noKeyLightFromBehind(new THREE.MeshToonMaterial({ color, ...dressing(color), vertexColors: true }));
+        material = named(noKeyLightFromBehind(new THREE.MeshToonMaterial({ color, ...dressing(color), vertexColors: true })), color);
         if (lit) {
           material.emissive.set(color);
           material.emissiveIntensity = M.routeLighting.emissive;
@@ -74,10 +80,10 @@ export function createMaterialCache(gradientMap, finishes = null) {
       const key = `${color}:glass`;
       let material = cache.get(key);
       if (!material) {
-        material = noKeyLightFromBehind(new THREE.MeshToonMaterial({
+        material = named(noKeyLightFromBehind(new THREE.MeshToonMaterial({
           color, ...dressing(color), vertexColors: true,
           transparent: true, opacity: M.glassOpacity, depthWrite: false, side: THREE.DoubleSide,
-        }));
+        })), color);
         cache.set(key, material);
       }
       return material;

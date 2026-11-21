@@ -34,6 +34,7 @@ export class CollisionBox {
    * @param {boolean} [flags.glass] glazing (D3): solid to a body, a shot and
    *   a knife, and nothing to a line of sight - `blocksSight` false
    * @param {string}  [flags.tag] human label, used by the debug overlay
+   * @param {string}  [flags.surface] the finish it is drawn in, from `mapbake`
    */
   constructor(min, max, flags = {}) {
     this.id = nextBoxId++;
@@ -47,6 +48,8 @@ export class CollisionBox {
     /** Glazing: what the walkway's checks look for a shot to stop at. */
     this.glass = flags.glass === true;
     this.tag = flags.tag || '';
+    /** The material finish it is drawn in (E4; 'paint', 'concrete', ...), or '' on a map drawn flat: what a hand on it should sound and spark like. */
+    this.surface = flags.surface || '';
     /** Set by the map derivation: what move this ledge calls for. */
     this.reachMove = null;
   }

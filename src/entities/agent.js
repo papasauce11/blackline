@@ -503,6 +503,11 @@ export class Shade {
     this._climbArmed = false;
     this.landedFallHeight = drop > 0 ? drop : 0;
     this.velocity.y = 0;
+    // For the dust (J6): where the feet came down and how far. Every landing,
+    // however small; what is worth a puff is the effects' to say.
+    if (this.emitter && drop > 0) {
+      this.emitter.emit('shade:land', { x: this.position.x, y: this.feetY, z: this.position.z, fall: drop });
+    }
 
     // Landing weight (B8). Nothing below `softFall`, everything from
     // `hardFall`, a ramp between: the horizontal speed is cut by that much of

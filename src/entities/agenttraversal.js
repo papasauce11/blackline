@@ -361,6 +361,13 @@ export const TRAVERSAL = {
     };
     if (!this._commitMove(SHADE_STATE.GRAB, centre, S.hangGrabDuration, this.height)) return false;
     this._hangLedge = ledge;
+    // The hands on the lip (J6): where, and what it is made of, so a rail
+    // throws sparks and a slab does not. The box carries its finish (E4).
+    if (this.emitter) {
+      this.emitter.emit('shade:grab', {
+        x: ledge.hitX, y: ledge.topY, z: ledge.hitZ, surface: ledge.box ? ledge.box.surface : '', tag: ledge.box ? ledge.box.tag : '',
+      });
+    }
     return true;
   },
 

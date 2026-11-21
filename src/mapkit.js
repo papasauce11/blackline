@@ -199,6 +199,7 @@ export class GameMap {
         blocksSight: spec.blocksSight !== false && !spec.glass,
         glass: spec.glass === true,
         tag: spec.tag,
+        surface: material.userData.finish || '',
       }
     );
     box.mesh = mesh;
