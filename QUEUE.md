@@ -1047,6 +1047,21 @@ the end of this list, never ahead of a game-facing job.
   takes a flag that boots the Warden with a placed alarm camera (reusing what
   the camera-feed check already does to get there), the pose list has one frame
   that includes the HUD panel, and `npm run shot` writes it on both maps.
+  **Second job hidden, and the done-when is aimed at the wrong half of the
+  problem.** 2026-11-21 (the 02:00 run): J4 put the event feed on `hud.feed`,
+  and the run shipped frames with a caption saying the job is not in them -
+  word for word what this entry already says M5 cost. But the role gate is not
+  the whole of it: the HUD is **DOM** (`src/ui/hud.js` writes `#bl-events` with
+  `innerHTML`), and every frame `shot.mjs` writes comes from
+  `renderer.domElement.toDataURL()` inside `look.js`, which reads the WebGL
+  canvas and nothing layered over it. **So a new pose in `look.js` cannot
+  satisfy this job**, whichever role boots: no `toDataURL` of the canvas will
+  ever contain a HUD panel. The driver is `playwright-core` (`headless.mjs`
+  imports `chromium`), so `page.screenshot()` is right there and does capture
+  the DOM over the canvas. *Amended done-when:* `shot.mjs` grows a frame taken
+  with `page.screenshot()` rather than a pose, booting the Warden with a placed
+  alarm camera as before, and `npm run shot` writes it on both maps - the role
+  flag is still needed, it is just not sufficient.
 - [ ] **H117 (S)** The camera-feed check has no reading for `world.background`.
   M10 moved `overlay()`'s restores of `renderer.autoClear` and
   `world.background` into a `finally` too, but clause (b)'s `snapshot()` reads
