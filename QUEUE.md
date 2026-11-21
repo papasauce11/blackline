@@ -1120,18 +1120,7 @@ the end of this list, never ahead of a game-facing job.
   site and every check import is unchanged in behaviour, the cluster reading
   names the new sizes, and no number moves (H56 is the worked example of a
   split that changed no call site; H75 of one that changed five).
-- [ ] **H122 (S)** `src/mapground.js` is 578 lines of the 600 cap after K14
-  added `_search`, `_firm` and the firm-cells cache — 22 left, and **K16 is
-  queued to put a swept body-clearance test in the same file**, which will not
-  fit. This one is not a guess at a seam: K14 already cut along it. `route()`
-  is now a planner that composes three things — the breadth-first search over
-  edges, the firmness question about a cell, and the string-pull — and the
-  first two are pure queries of the flood and the collision world that know
-  nothing about a route. *done-when:* the search and the cell predicates are
-  their own module, `mapground.js` imports them, `route()` reads as the
-  composition it is, the nav and plant-census check sets are unmoved, and the
-  cluster reading names the new sizes. Do it **before** K16, and K16 names it
-  as its prerequisite.
+- [x] **H122 (S)** The ground search and its cell predicates are their own module - done 2026-11-21, under Done. `src/groundsearch.js`; `mapground.js` 578 -> 479; `the-ground-search-and-its-cell-predicates-are-their-own-module` in `src/tests/groundsearch.js`.
 
 - [ ] **H124 (S)** TRAPS.md does not warn that the suite's dirty-tree line is
   benign, and does not say that bash cannot see a Windows process. This run
@@ -1441,6 +1430,8 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **H122** The planner keeps the composing, the module keeps the questions. `mapground.js` was 578 of 600 after K14 and K16 is queued to put a swept body-clearance test in it, so the three things `route()` composes came apart along the seam K14 had already cut: `src/groundsearch.js` (143) takes `searchEdges`, `firmAt`, `pullStraight` and `segmentOnGround`, each handed the `WardenGround` and reading it, with `NEIGHBOURS` exported back for the flood. `mapground.js` falls to **479** and `route()` reads as the composition it is; the bodies are verbatim apart from `this` becoming `g`. `_firm` and `_segmentOnGround` stay as one-line delegations because K15's `stairground.js` and K11's `canWalk` name them, and the firm-cells cache stays the ground's one cache. `the-ground-search-and-its-cell-predicates-are-their-own-module` in `src/tests/groundsearch.js` (150) holds the four things a move could have broken: the chain the search lands on against the one `route()` lands on (plant 24 over 857, yard 24 over 602), `firmAt` against `_firm` with the cache size read between them (plant 463/451/0, yard 334/334/0), `segmentOnGround` against `canWalk` on 47 lines a map with a yes and a no among them (plant 28/19/0, yard 33/14/0), and the import of all four names with neither loop left behind. Proof 37 of 37 prefixes, plant 36/0/1, yard 35/0/2, red and flaky empty; break `return null;` in `searchEdges`, red on clause (a) alone on both maps. `c263495`.
 
 - **J4** An event feed, folded onto the one that already existed. D95 settled the shape before the
   build: `ui/hud.js` already carries `#bl-feed` and Section 13's four-line, five-second feed, and

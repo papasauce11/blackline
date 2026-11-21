@@ -23164,3 +23164,78 @@ runs say nothing about it. `a-climb-beyond-reach-bumps-poses-and-sounds` passed
 here on both maps, twice each, on the tree *without* J12 - which is the first
 half of the resume procedure D100 names, and it came free: a base flake is now
 less likely, so the widened face set is where J12's next attempt should look.
+
+## H122 - The planner keeps the composing, the module keeps the questions (2026-11-21, the 17:00 run)
+
+Taken first because K16 names it: `src/mapground.js` stood at **578 of its
+600 lines** after K14, and K16 is queued to put a swept body-clearance test in
+the same file. It would not have fit. This was the one split in the cluster
+that needed no guess at a seam, because K14 had already cut it - `route()`
+became a planner that composes a breadth-first search over the proven edges,
+the question of whether a cell has deck under its own centre, and a
+string-pull, and the first two are pure queries of the flood and the collision
+world that know what a cell is and nothing about a route.
+
+**What moved.** `src/groundsearch.js` (143) now holds `searchEdges`,
+`firmAt`, `pullStraight` and `segmentOnGround`, each handed the
+`WardenGround` as its first argument and reading it: `edges`, `columns`,
+`nx`, `collision`, `step`, `half`, `cell`, the firm-cells cache and
+the four index helpers. `NEIGHBOURS` and `STEP_SLACK` moved with them, and
+`NEIGHBOURS` is exported back because the flood in `deriveWardenGround`
+uses it too. `mapground.js` fell **578 -> 479** and `route()` reads as the
+composition it is. The bodies are verbatim apart from `this` becoming `g`:
+no bound, no epsilon and no comment's claim differs, because a move that
+changes behaviour is not a move.
+
+**What stayed.** `_firm` and `_segmentOnGround` are still methods, now
+one-line delegations - K15's `stairground.js` names the first and K11's
+`canWalk` the second - and the cache stays the ground's, which is the thing a
+split like this gets wrong by quietly growing a second one. `_search` and
+`_pullStraight` are gone from the class; a grep of `src/` found nothing
+else that named them, and `ai.js`'s `_searchSpots` and `_searchHold` are
+unrelated.
+
+**How it was proved.** `the-ground-search-and-its-cell-predicates-are-their-own-module`
+in the new `src/tests/groundsearch.js` (150), four clauses on the four things
+a move could have broken, one each:
+
+- the search lands on the chain the planner lands on - plant *24-cell chain
+  over 857 reached, route() 24*, yard *24 over 602, route() 24*. It takes the
+  furthest cell within 8m of the first Warden spawn that the flood connects to
+  it, and asks `route()` for the same pair at `maxLeg` 0, where no leg is
+  pulled and the answer is one point per cell of the chain.
+- `firmAt` agrees with `_firm` and grows no cache of its own - plant *463
+  cells within 6m, 451 firm, 0 disagree, 15,859 cached*, yard *334, 334, 0,
+  5,589*. The cache size is read between the two calls, so a second cache
+  would show as a disagreement.
+- `segmentOnGround` agrees with `canWalk` on 47 staged lines a map, with
+  both a yes and a no among them - plant *28 clear, 19 refused, 0 differ*,
+  yard *33, 14, 0*. A clause that only ever saw agreement on yeses would not
+  have been a clause.
+- `mapground.js` imports all four names and its own source carries neither
+  loop any more - *imports 4/4, breadth-first loop gone, substep walk gone*,
+  read through `moduleText` with comments out for the code questions and
+  strings kept for the import path.
+
+The subset was the new check, the twelve nav / route / plant-census checks that
+read the Warden's ground, and the 24-entry census set: **37 id prefixes, 37
+distinct ids in the details file**, plant 36 passed / 0 failed / 1 not for this
+map (142,292ms), yard 35 / 0 / 2 (97,099ms), `red` and `flaky` empty, 0
+console errors. The nav and plant-census sets are unmoved, which is what the
+done-when asked.
+
+**The break.** `searchEdges`'s body replaced with `return null;` from a
+copy and restored from it, byte-identical after (md5 `499e7d0b`). Red on both
+maps on clause (a)'s own words - *"searchEdges found no cell within 8m of the
+spawn that the flood connects to it (869 candidates)"* on the plant, *(496
+candidates)* on the yard - while (b), (c) and (d) still printed their numbers
+unchanged. That is the shape a break should have: the clause it is for goes
+red, the clauses it is not for do not, and nothing masks it.
+
+**Left.** The ceiling reading is now **14 modules within 50 of 600** of **236**
+loaded (the two new modules), with `tests/difficulty.js` still at 600 and 0
+left (H113). `mapground.js` is out of the band and K16 has its room. The new
+check reads module text through `moduleText` from `moduletexts.js`, the
+shared reader, so it spells no second source reader - but it is a new module
+under `src/tests/`, so the four source-reading censuses have a new row in
+them and the run's verify is where that is read.
