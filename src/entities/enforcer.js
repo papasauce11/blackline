@@ -18,6 +18,7 @@ import { CONFIG, SETTINGS } from '../config.js';
 import { applyGravity } from '../physics.js';
 import { buildWardenMesh, buildGroundBlob, WARDEN_FIGURE } from './wardenmesh.js';
 import { blendFactor, createPoseTarget, easePose, headBobLift, positionSmoothing, restPose } from './pose.js';
+import { idleLife, neckTurn } from './idlemotion.js';
 
 const W = CONFIG.warden;
 /** The carry (E2): where the arms rest, and the rifle with them. */
@@ -355,7 +356,8 @@ export class Warden {
 
     const feet = this._smoothPosition.y - this.half.y;
     this.mesh.position.set(this._smoothPosition.x, feet, this._smoothPosition.z);
-    this.mesh.rotation.y = this.yaw;
+    // The body comes round to the facing after the head (J8); a menu draws it square.
+    this.mesh.rotation.y = neckTurn(this, wallDt);
 
     this._animate(wallDt);
     this._updateGroundBlob(feet);
@@ -381,6 +383,7 @@ export class Warden {
     // eased toward it.
     const parts = this.mesh.userData.parts;
     this._posture(this._pose, wallDt);
+    idleLife(this, wallDt, this.state === WARDEN_STATE.GROUND, false);
     easePose(parts.chest, parts, this._pose, blendFactor(wallDt));
   }
 

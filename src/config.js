@@ -2221,6 +2221,54 @@ export const CONFIG = {
       hemisphereIntensity: 5,
     },
   },
+
+  /**
+   * Idle life (J8): what a body does when nothing is asked of it. Presentation
+   * only - it runs on the wall clock inside `updateVisual`, writes the two
+   * arm groups' height and one group's yaw, and nothing the simulation reads -
+   * and is still wherever no round is on screen (a menu, the briefing, a
+   * pause). `entities/idlemotion.js` is the one reader.
+   */
+  idle: {
+    /**
+     * The breath: the shoulders rise this far (metres) above their built height
+     * and fall as far below it, once a `period` of seconds. 2cm is what the
+     * Warden's broad shoulders need to read at ten metres and is the most the
+     * Shade's narrow ones carry before the arm looks to be shrugging; the
+     * period is slow enough to read as lungs and not as a twitch - a rested
+     * adult takes about four - and short enough that a few seconds of watching
+     * a stopped body sees it come round twice. The Shade's own torso lift
+     * (`POSE.breath`, 7s) is older and is left as it is: tests hold its
+     * numbers, and the two together are a slow rise and a quicker shrug.
+     */
+    breath: { rise: 0.02, period: 3.4 },
+    /**
+     * Speed (m/s) at which the sway has gone to nothing, falling linearly from
+     * full at a standstill. Under a walk (3.5 and 3.0) on purpose: a body
+     * that is walking has a gait to read and a sway on top of it only
+     * muddies the stride, and a crouch-walk (1.6) is already past it.
+     */
+    fadeSpeed: 1.2,
+    /**
+     * The neck: the head is on the new facing at once and the body comes round
+     * to it with this time constant (s), so the helmet leads by about a third
+     * of a second's worth of turn. `clamp` is the most the head may be off the
+     * body (rad, about 52 degrees): a flick past it drags the body along
+     * behind the head rather than twisting the neck round.
+     */
+    neck: { tau: 0.16, clamp: 0.9 },
+    /**
+     * The yard's wind on the Shade's hood: the hood turns this far about the
+     * vertical (rad, about 3.4 degrees, which swings the rim of its opening
+     * 1.3cm) once a `period` of seconds, with a faster gust (`gust`, a share
+     * of the amplitude, at `gustRate` times the rate) on top so it never reads
+     * as a pendulum. A yaw and not a roll because it is the one motion that
+     * leaves the hood's width face-on alone, and `breathcensus.js` holds that
+     * width. Only where the registry says the map is `outdoor`; the plant is
+     * a closed building.
+     */
+    wind: { yaw: 0.06, period: 2.6, gust: 0.35, gustRate: 2.7 },
+  },
 };
 
 // ---------------------------------------------------------------------------

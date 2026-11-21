@@ -133,6 +133,7 @@ import { register as registerCameraFeed } from './camerafeed.js';
 import { register as registerCameraClip } from './cameraclip.js';
 import { register as registerStairGround } from './stairground.js';
 import { register as registerGroundSearch } from './groundsearch.js';
+import { register as registerIdleLife } from './idlelife.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -365,4 +366,6 @@ export function registerAutoTests(debugTools) {
   registerStairGround(debugTools);
   // H122: the ground search and its cell predicates are their own module; it reads the map against the Warden's ground, drives nothing, and greps mapground.js for the loops it shed.
   registerGroundSearch(debugTools);
+  // J8: both figures breathe at rest, the Warden's head leads its body, the yard's wind moves the hood and the plant's air does not, and a menu stills all of it; it drives frames of its own and ends in a fresh match.
+  registerIdleLife(debugTools);
 }

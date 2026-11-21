@@ -27,7 +27,8 @@ import * as THREE from 'three';
 import { CONFIG, SETTINGS, rng, deriveSeed, debugRequested } from './config.js';
 import { Emitter } from './emitter.js';
 import { bootWorld } from './boot.js';
-import { bootMapId, mapUrl } from './maps/index.js';
+import { bootMapId, isOutdoorMap, mapUrl } from './maps/index.js';
+import { setIdleLife } from './entities/idlemotion.js';
 import { loadSettings } from './settingsstore.js';
 import { pinQuality, sampleQualityFrame, syncQuality } from './quality.js';
 import { FrameLoop } from './loop.js';
@@ -399,6 +400,8 @@ function renderFrame(wallDelta) {
 
   const alpha = accumulator / plan.dt;
   if (owner === 'freefly') freefly.apply(camera);
+  // J8: the idle motion is for a round on screen, and the wind for the open air.
+  setIdleLife(!(paused || menu.open || briefing.open || scoreboard.open), isOutdoorMap(map.id));
   shade.updateVisual(wallDelta);
   warden.updateVisual(wallDelta);
   // On the wall clock, after the bodies have moved: the death camera frames the

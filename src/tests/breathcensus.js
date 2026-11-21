@@ -216,6 +216,11 @@ const POSED = [
     proof: 'camera',
     note: 'backs the Shade into a face and reads the camera rig\'s world position against the collision boxes, every frame, after `updateVisual`. Neither phase reaches it for the reason camerasettings.js and feel.js do: the pivot is `_smoothPosition.y - half.y + cam.up + _dip + bob` and `pose.lift` is not in it, and the boom is cast from that pivot and the rig placed from it, so the gait and the breath move limbs and a torso the clearance clause never reads. The one thing the gait could reach is `bob`, which is off unless SETTINGS.headBob and which the cast pivot carries too',
   },
+  {
+    module: 'idlelife.js',
+    reach: 'measured',
+    note: 'reads shoulder HEIGHTS and a torso YAW, differenced against a run of its own: the breath it measures is `idlemotion.js`\'s (J8), written on the two arm groups\' position.y and the torso\'s rotation.y precisely so that neither this census\'s torso-rotation.x proof nor its Warden-chest-height proof is disturbed. It reads no pixel and no camera, its thinnest clause is the breath floor at rest and its sprint clause is a difference of two runs, so the carried breath and gait phases cancel in it. Its margins are in its detail line'
+  },
 ];
 
 /**

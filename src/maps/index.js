@@ -39,12 +39,13 @@ const MAP_QUERY = /(?:^|[?&])map=([a-z0-9-]+)(?:&|$)/i;
  * In the order the menu offers them. `night` marks a map lit by pools with
  * dark between them (K3): the one the Warden's torch exists on. The flag is
  * the registry's and not a map id tested somewhere else, so a second night
- * map is a line here.
- * @type {{id: string, name: string, night?: boolean, build: (options: object) => object}[]}
+ * map is a line here. `outdoor` is the same kind of flag for the open air
+ * (J8): the wind that moves the Shade's hood.
+ * @type {{id: string, name: string, night?: boolean, outdoor?: boolean, build: (options: object) => object}[]}
  */
 const REGISTRY = [
   { id: 'plant', name: 'Meridian Substation', build: buildPlantMap },
-  { id: 'yard', name: 'Container Yard', night: true, build: buildYardMap },
+  { id: 'yard', name: 'Container Yard', night: true, outdoor: true, build: buildYardMap },
 ];
 
 /** Every registered id, in menu order. */
@@ -66,6 +67,12 @@ export function mapEntry(id) {
 export function isNightMap(id) {
   const entry = mapEntry(id);
   return !!(entry && entry.night);
+}
+
+/** Is this a map under the open sky (J8)? False for an id the registry does not know. */
+export function isOutdoorMap(id) {
+  const entry = mapEntry(id);
+  return !!(entry && entry.outdoor);
 }
 
 /**

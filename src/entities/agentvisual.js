@@ -12,6 +12,7 @@
 import { CONFIG } from '../config.js';
 import { SHADE_STATE } from './agentstate.js';
 import { blendFactor, easePose, headBobLift, positionSmoothing, restPose } from './pose.js';
+import { hoodYaw, idleLife } from './idlemotion.js';
 
 const S = CONFIG.shade;
 /** The knife lives in combat config; the arc that draws it reads the same
@@ -266,6 +267,7 @@ export const VISUAL = {
     // eased toward it; the two timed tells below are written over the top.
     const pose = this._pose;
     this._posture(pose, wallDt);
+    idleLife(this, wallDt, this.state === SHADE_STATE.GROUND, true);
     easePose(parts.torso, parts, pose, blendFactor(wallDt));
 
     // The hands-up slap (B2): both arms thrown straight up against the face,
@@ -290,7 +292,7 @@ export const VISUAL = {
       parts.armR.rotation.z = -0.5 * Math.sin(t * Math.PI);
       parts.torso.rotation.y = -0.35 * Math.sin(t * Math.PI);
     } else {
-      parts.torso.rotation.y = 0;
+      parts.torso.rotation.y = hoodYaw(this);
     }
   },
 
