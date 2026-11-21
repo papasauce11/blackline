@@ -1118,6 +1118,24 @@ the end of this list, never ahead of a game-facing job.
   cluster reading names the new sizes. Do it **before** K16, and K16 names it
   as its prerequisite.
 
+- [ ] **H124 (S)** TRAPS.md does not warn that the suite's dirty-tree line is
+  benign, and does not say that bash cannot see a Windows process. This run
+  lost its first proof to both. `suite: version.json: the working tree is
+  dirty` is printed on **every** mid-job proof — `stampVersion` writes only
+  from a clean tree, so a run started mid-job leaves the file alone rather than
+  dirtying the tree it is judging (the comment at `const stamp =
+  stampVersion(ROOT)` in `scripts/suite.mjs` says so) — and it was reported
+  back as a refusal while the run was still launching Chrome, which prints
+  nothing for minutes. Then the lead checked the process with bash `ps -p
+  <pid>`, which in Git Bash sees only its own tree and not a Windows process,
+  concluded the run had died, and started a second suite; exit 3 caught it.
+  `.claude/agents/blackline-runner.md` is fixed (D99), but the trap belongs in
+  the file every run reads. *done-when:* TRAPS.md names both — the benign
+  stderr line with the reason it is benign, and `Get-CimInstance Win32_Process
+  -Filter "Name='node.exe'"` as the only way to ask whether a
+  suite is alive, with bash `ps` named as the wrong one — and
+  `traps-md-holds-the-traps-and-handoff-points-at-it` is green.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.
@@ -1188,36 +1206,7 @@ K4, K5, K7.
   are red on today's game. When K16 lands, mark this `[x]` under it.
 - [x] **K13 (S)** A leg to a stair node arrives under the stair — done 2026-11-20, under Done. `floored` on every ground-laid point of `_pathTo` and the floor condition in `_followRoute` (`src/systems/ainav.js`), `CONFIG.ai.waypointArriveRise` 0.5 (PROVISIONAL), clause (c) and `stairNodes()` on `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`. `bf0460b`.
 - [x] **K14 (S)** The deck ring walks off the deck — done 2026-11-20, under Done. **Measured, and it was none of the three guesses.** Every route point was on a `wardenGround` cell and no segment crossed a gap: `standableFloors` counts a cell as ground when *any sliver* of the footprint overlaps a top face, so the flood admits cells whose **centre is over the void** — the hall void's rim at x -27.25 and z -19.75, both inside `HALL_VOID`. The Warden walked 24m of them, the line wandered 0.1m, the sliver went, and it fell at (-26.89, 5.66, 5.18) on the **south** run, not near (-11, -19.8) where K11 put it. `route()` in `src/mapground.js` now runs the BFS over **firm** cells first when `margin > 0` (`_firm`, `groundUnder` at the cell's own centre, cached) and falls back to the old search over every flooded cell, so nothing is loosened and every route that existed still exists; the flood, the edges and `wardenGround` are untouched. Clause 4 of `the-warden-never-leaves-its-ground` walks the ring. `612ae81`.
-- [ ] **K15 (S)** The Warden's ground has cells beyond the stair's declared
-  width. K13's measurement: the route from (-26.25, -19.25) to the plant's hall
-  stair head runs along z -19.75 and climbs 0.3, 0.6 ... 6.0, but `plant.js`
-  declares that stair's `crossMax` at -20.1 - so the flood gave the Warden
-  climbing cells a third of a metre outside the stair the map says is there.
-  That is why the body walked *under* the stair before K13: the cells existed at
-  stair heights where the stair does not. K13 made the leg arrive by asking
-  arrival for the point's floor, so this is no longer a freeze or a wrong
-  finish - it is a ground that disagrees with the map, and the next job that
-  reads either will meet it. Related: K12's steering lever sits on the same
-  cells. *done-when:* the Warden's ground carries no climbing cell outside its
-  stair's declared cross range on either map, or the declared range is what is
-  wrong and moves, with a check that reads the two against each other and names
-  the stair.
-  **What K14 settled, 2026-11-20 (the 17:00 run): the cause is the flood, and
-  the route no longer walks these cells — but the ground still carries them.**
-  `standableFloors` in `groundprobe.js` counts a cell as ground when *any
-  sliver* of the body's footprint overlaps a top face, so the flood admits
-  cells whose own centre is over the void; the z -19.75 stair cells and the
-  hall void's rim at x -27.25 are the same family, both inside `HALL_VOID`.
-  They are genuinely standable, which is why nothing caught them. K14's fix
-  plans over **firm** cells (centre with deck under it) and so stopped routing
-  through them, but it changed neither the flood nor the declaration, so this
-  job is still open and is now exactly what its done-when says: the reading of
-  the declaration against the ground. **It is no longer a freeze or a fall** —
-  K13 made the arrival honest and K14 took the route off them — so what is left
-  is whether a cell the Warden will never be routed onto, but could be shoved
-  onto, should exist at all. Measure before changing the flood: K14's `_firm`
-  already computes the answer per cell and caches it, so the cheap version of
-  this check reads `_firm` against each stair's declared cross range.
+- [x] **K15 (S)** The Warden's ground has cells beyond the stair's declared width — done 2026-11-21, under Done. **Measured, and it was neither branch of the done-when.** The flood stands (a sliver-overlap cell is genuinely standable, and `groundprobe.js` says a stricter footprint test would shrink every walkable surface by a radius) and the declaration stands (the stair really is 2m wide). What landed is the invariant nothing held: **a climbing cell outside its stair's declared cross range is never firm**. climbing/outside/**firm** per stair — plant `stair-hall` 70/14/**0**, plant `stair-corridor` 74/18/**0**, yard `stair-walkway` 36/0/**0**. New module `src/tests/stairground.js`, `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`, three clauses. **It is both of the plant's stairs, not the hall alone.** D97. `94fe047`.
 - [ ] **K16 (M)** **prerequisite: H122** (`mapground.js` is at 578 of 600 and this job adds to it) — A route that clears a body, not just a floor. K12's two
   measurements (D96) say the same thing from both ends: `_segmentOnGround` asks
   whether there is **ground under the line** and a margin either side, so a
@@ -1426,6 +1415,25 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 ---
 
 ## Done
+
+- **K15** The Warden's ground carries climbing cells outside the stair's declared width, and the
+  honest reading is the firmness invariant. K13 measured the symptom (the route to the plant's hall
+  stair head ran along z -19.75 against a declared `crossMax` of -20.1) and K14 settled the cause:
+  `standableFloors()` admits a cell when *any sliver* of the footprint overlaps a top face. The
+  done-when offered two branches and **both are wrong**. The flood is right as written —
+  `groundprobe.js`'s own header says the swept solver rests on any face it overlaps, so half a body
+  over a deck edge is standing and a stricter test would shrink every walkable surface by a radius —
+  and the declaration is right too, since the stair is 2m wide and widening it would widen the
+  computed stairwell with it. So what landed is the invariant that is true and that nothing held:
+  **a cell outside the declared range is never firm**, because a cell whose centre has a tread under
+  it is inside the declared stair and one outside exists only by the sliver. `_firm` (K14) is that
+  question, and K14's planner already refuses non-firm cells, so this pins the ground it leans on.
+  Measured as climbing/outside/**firm**: plant `stair-hall` 70/14/**0**, plant `stair-corridor`
+  74/18/**0**, yard `stair-walkway` 36/0/**0** — **both** plant stairs carry the family, which the
+  queue entry did not know. `src/tests/stairground.js`,
+  `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`, three clauses; the break
+  (firmness forced true) reds (b) on the plant at 14/14 and 18/18 and leaves the yard green,
+  correctly. D97. `94fe047`.
 
 - **K13** A route point is reached in y as well as x and z. `_followRoute` called a
   point reached on flat distance alone, so the plant’s leg from (-26.25, -19.25) to

@@ -196,6 +196,98 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D97 — K15: the flood stands, the declaration stands, and what lands is the firmness invariant
+Taken by the lead under D84 (not personality, not styling, not key feel: which of
+two viable designs a job takes, and a rule the Warden's ground rests on).
+2026-11-21, the 02:00 run.
+
+- **What K15 asks for.** The Warden's ground carries climbing cells outside the
+  cross range the map declares for the stair they are on: the plant's
+  `stair-hall` declares `[-22.1, -20.1]` and the flood gave it cells at z
+  **-19.75**, a third of a metre outside. Its done-when offered two branches —
+  the ground carries no such cell, **or** the declared range is what is wrong
+  and moves — with a check that reads the two against each other and names the
+  stair.
+- **Neither branch is right, and the code says why.** K14 settled the cause:
+  `standableFloors()` counts a cell as ground when **any sliver** of the body's
+  footprint overlaps a top face. Those cells are genuinely standable — a body
+  half on the tread and half over the void — which is why nothing caught them,
+  and `groundprobe.js`'s own header says the footprint test matches the solver
+  on purpose, because a stricter one *"would shrink every walkable surface by a
+  radius all round"*. So narrowing the flood is contraindicated by the code's
+  own documented reasoning, and K14 left it alone for exactly that reason. Nor
+  is the declaration wrong: the stair really is 2m wide, and widening it would
+  widen the computed stairwell with it.
+- **What is true, and what nothing held, is the firmness invariant.** A cell
+  whose own centre has a tread under it lies inside the declared stair; a cell
+  outside the declaration exists only because a sliver overlapped, and is
+  therefore never **firm**. `_firm` (K14, `groundUnder` at the cell's own
+  centre) is exactly that question, and K14's route planner already refuses
+  non-firm cells when `margin > 0` — so this pins the ground that fix leans on.
+- **Measured before building**, on both maps, as climbing cells / outside the
+  declared range by centre / **firm**:
+  - plant `stair-hall` `[-22.1, -20.1]`: **70 / 14 / 0**
+  - plant `stair-corridor` `[3, 5]`: **74 / 18 / 0**
+  - yard `stair-walkway` `[-6, -4]`: **36 / 0 / 0**
+
+  The third number is **0 everywhere**, so the invariant holds on today's game
+  and nothing has to move. The brief told the builder to stop and report rather
+  than write round a firm cell found outside a range; none was found.
+- **A finding the queue entry did not have.** K15 named only the hall stair.
+  The plant's `stair-corridor` carries **18** outside-range climbing cells too,
+  so the sliver family sits on **both** of the plant's stairs. The yard is
+  clean, and its clause reports the count rather than requiring it to be
+  non-zero — a vacuous invariant stated as vacuous.
+- **The options, and why this one.** (1) Narrow the flood so no such cell
+  exists — rejected, it shrinks every walkable surface on both maps and
+  `groundprobe.js` says so in its own header. (2) Move the declared range out to
+  cover the cells — rejected, a stair's declared width is a fact about the level,
+  not a dial to make a reading agree, and it would move the stairwell too.
+  (3) Assert the firmness invariant and leave both alone, which is this.
+  (4) Delete the cells by hand — rejected, nothing in the map pipeline authors
+  ground cells individually.
+- **What is left open.** Whether a cell the Warden will never be routed onto but
+  could be *shoved* onto should exist at all is still a fair question. It is no
+  longer a freeze (K13) or a fall (K14), so it is not urgent, and the check now
+  makes any change to the flood visible the moment it moves a count.
+
+### D99 — A benign stderr line cost this run its first proof, so the runner's role file names it
+Taken by the lead under D84 (not personality, not styling, not key feel: a
+tooling fix). 2026-11-21, the 02:00 run. D98 is J12's, recorded with that job.
+
+- **What happened.** The first K15 proof was reported back as *"the suite did
+  not run any checks"* on the strength of one line: `suite: version.json: the
+  working tree is dirty`. That line is **expected on every mid-job proof** —
+  `scripts/suite.mjs` stamps the build on startup, `stampVersion` writes only
+  from a clean tree, and a run started mid-job deliberately leaves the file
+  alone rather than dirtying the tree it is judging. The suite was still
+  launching Chrome, which prints nothing for minutes; it went on to pass **31 of
+  31** on the plant.
+- **Three faults, compounding.** (1) The runner read the output file while the
+  run was in flight and called the silence a result. (2) It wrote the redirect
+  path as `C:\Users\...` inside Git Bash, where the backslashes are escape
+  sequences, so the `&& echo GATEOK` branch was lost and it had no completion
+  marker to wait on. (3) **The lead's, and the worst of the three:** I checked
+  the process with bash `ps -p 8960`, which in Git Bash sees only its own tree
+  and not a Windows process, concluded the run had died, and started a second
+  suite. The suite's own guard refused it with exit 3, which is the only reason
+  I caught it — and that guard is H45's, earning its keep.
+- **Fixed in `.claude/agents/blackline-runner.md`**: forward-slash paths are
+  required; both benign signals (the dirty-tree stamp, and a long silence while
+  Chrome starts) are named as not-failures; and "no checks ran" may not be
+  reported off the output file alone — the process is checked with
+  `Get-CimInstance Win32_Process` first, where alive means keep waiting and
+  gone-without-a-marker is a death, which are different reports.
+- **Also discarded on the way:** a draft decision to batch the run's three
+  proofs into one subset run, on the reading that a subset costs about 25
+  minutes. That reading was a misread clock during the same diagnosis — the K15
+  proof took about **four** minutes (plant 125,106ms, yard 82,167ms), which is
+  what the role file already said. Per-job proofs are cheap and step 5 of the
+  protocol stands unchanged. Recorded here so the next run does not re-reason
+  its way to a batch it does not need.
+- Queued as **H124** for the same two warnings in TRAPS.md, where the lead's
+  half of the mistake belongs.
+
 ### D96 — K12's two levers are both measured dead, so the job splits and K16 is the fix
 Taken by the lead under D84 (not personality, not styling, not key feel: a bug's
 cause, and whether a job is split). 2026-11-20, the 17:00 run. The split was

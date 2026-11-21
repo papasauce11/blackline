@@ -22906,3 +22906,78 @@ lowest the feet ever got on the deck, which is the whole point of K14’s clause
 is **not in the verify record at all** and had to be read off the subset proof
 instead. H110 was a tidiness job when it was written. It is now the difference
 between a record that proves a thing and one that mentions it.
+
+## K15 — The ground disagreed with the stair, and the honest fix was neither side (2026-11-21, the 02:00 run)
+
+K13 left a measurement behind: the plant's hall stair declares `crossMax -20.1`
+and the route to its head ran along z **-19.75**, climbing 0.3, 0.6 ... 6.0 — so
+the Warden's ground carried climbing cells a third of a metre outside the stair
+the map says is there. K15's done-when offered two branches: the ground carries
+no such cell, **or** the declared range is what is wrong and moves.
+
+**Measured first, and it is neither.** K14 had already settled the cause —
+`standableFloors()` counts a cell as ground when *any sliver* of the body's
+footprint overlaps a top face — and `groundprobe.js` says in its own header why
+that is right rather than sloppy: the swept solver rests on any face it
+overlaps, so half a body over a deck edge *is* standing, and a stricter
+footprint test "would shrink every walkable surface by a radius all round".
+Those cells are genuinely standable. And the declaration is not wrong either:
+the stair really is 2m wide, and widening it would widen the computed stairwell
+with it. So the flood stands, the declaration stands (D97), and what landed is
+the invariant that is actually true and that nothing held — **a climbing cell
+outside its stair's declared cross range is never firm**. A cell whose own
+centre has a tread under it lies inside the declared stair; a cell outside it
+exists only because a sliver overlapped. `_firm` (K14) is exactly that
+question, and K14's planner already refuses non-firm cells, so this pins the
+ground that fix leans on.
+
+The reading, per stair per map, as climbing cells / outside the declared range
+by centre / **firm**: plant `stair-hall` `[-22.1, -20.1]` **70 / 14 / 0**,
+plant `stair-corridor` `[3, 5]` **74 / 18 / 0**, yard `stair-walkway`
+`[-6, -4]` **36 / 0 / 0**. The third number is **0 everywhere**. The brief told
+the builder to stop and report rather than write round a firm cell found outside
+a range; none was found.
+
+**What the queue entry did not have: it is both of the plant's stairs, not the
+hall alone.** `stair-corridor` carries 18 outside-range climbing cells of its
+own, so the sliver family sits on every stair the plant has. The yard is clean,
+and clause (c) reports its count rather than requiring it to be non-zero —
+a vacuous invariant stated as vacuous.
+
+New module `src/tests/stairground.js` (89 lines),
+`a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`, three
+clauses: (a) every declared staircase is found with climbing cells on it, so a
+reading that missed a stair cannot pass (b) for nothing; (b) the invariant, zero
+tolerance, naming the stair and the offending centres; (c) on the plant the set
+(b) tests is non-empty. The centre-against-range comparison is in a named local
+with the reason beside it: `_firm` asks about a cell's centre, so the declared
+range is held against the centre too — against the footprint it would call every
+edge cell a failure, which is the wrong question, since the overhanging half
+cell *is* the flood's sliver, by design. It reads the map against the ground and
+drives nothing.
+
+**Proved** on both maps, `--runs 1 --map plant --map yard` over a 31-prefix
+subset (the new check, the five navigation checks and `the-warden-never-leaves-
+its-ground` that read the same ground, and the 24-entry census set, because a
+new module under `src/tests/` is a new row in four source-reading censuses):
+plant **31 of 31** passed (125,106ms), yard **27 of 31** with 4 not for this map
+(82,167ms), 0 red, `flaky` / `skipped` / `skipsWithheld` all empty, 0 console
+errors, no other runner. The **break** — the firmness answer replaced with
+`true`, so every outside cell counts as firm — reds clause (b) on the plant and
+nothing else, naming both stairs at **14/14** and **18/18**, and leaves the yard
+green, which is the correct reading there. Restored from a copy and reparsed.
+
+**Found, and queued as H124:** this run lost its first proof to a benign line.
+`suite: version.json: the working tree is dirty` is what the suite prints on
+*every* mid-job proof — the stamp writes only from a clean tree and a run
+mid-job leaves the file alone on purpose — and it was read back as a refusal
+while the run was still launching Chrome. My own half was worse: I checked the
+process with bash `ps -p`, which cannot see a Windows process outside its own
+tree, decided the run had died, and started a second suite. Exit 3 caught it.
+The runner's role file now names both benign lines and forbids reporting "no
+checks ran" without a `Get-CimInstance` check (D99).
+
+**Left open.** Whether a cell the Warden will never be routed onto but could be
+*shoved* onto should exist at all is still a fair question. It is no longer a
+freeze (K13) or a fall (K14), so it is not urgent — and the check now makes any
+change to the flood visible the moment it moves a count.
