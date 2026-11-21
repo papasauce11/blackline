@@ -131,6 +131,7 @@ import { register as registerAiGiveUp } from './aigiveup.js';
 import { register as registerPatrolLeg } from './patrolleg.js';
 import { register as registerCameraFeed } from './camerafeed.js';
 import { register as registerCameraClip } from './cameraclip.js';
+import { register as registerStairGround } from './stairground.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -359,4 +360,6 @@ export function registerAutoTests(debugTools) {
   registerCameraFeed(debugTools);
   // J1: the third-person boom sphere-cast; it steps the Shade into a wall and updates the visual, draws no frame, ends in a fresh match.
   registerCameraClip(debugTools);
+  // K15: a climbing cell outside its stair's declared width is never firm; it reads the map against the Warden's ground and drives nothing.
+  registerStairGround(debugTools);
 }
