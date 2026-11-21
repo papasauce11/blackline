@@ -84,8 +84,8 @@ const DT = CONFIG.time.fixedDt;
 /** Metres of slack on a clearance: float noise and the ease, not the 0.057 the minDistance floor loses at the fence. */
 const EPS = 0.005;
 /** Fixed steps held on S per pose: 2m of walk at walk speed, and the push against the face after. */
-const STEPS = 60;
-/** Faces driven per map: bounded so the frames stay near what one fence cost. The walk to the face is 2m at 3.5m/s, 34 steps, so 60 still presses in. */
+const STEPS = 90;
+/** Faces driven per map, at most, each at the full step counts J1 and J10 measured their readings on. */
 const FACES = 3;
 const WORLD = new THREE.Vector3();
 /** The camera's volume less a hair: the rig's own test is strict, and a world matrix is not bit-for-bit the position it was set from. */
@@ -94,7 +94,7 @@ const ORIGIN = { x: 0, y: 0, z: 0 };
 /** Lateral distances from the fence to the body centre, metres: inside the body, at it, inside the reach, past it. */
 const LATERALS = [0.15, 0.25, 0.34, 0.40, 0.45, 0.52, 0.60];
 /** Legs of the run along the wall: parallel, pressed in, strafing off (the boom eases out), standing. */
-const LEGS = [{ steps: 20, keys: [] }, { steps: 12, keys: ['in'] }, { steps: 20, keys: ['away'] }, { steps: 12, keys: ['stop'] }];
+const LEGS = [{ steps: 40, keys: [] }, { steps: 20, keys: ['in'] }, { steps: 40, keys: ['away'] }, { steps: 30, keys: ['stop'] }];
 
 /**
  * Signed distance from a point to a box, metres: positive outside (the gap to
@@ -157,6 +157,9 @@ export function register(debugTools) {
         if (new Set(walls.map((w) => w.box.tag || '')).size < 2) problems.push(`only ${walls.length} face${walls.length === 1 ? '' : 's'} driven (${walls.map((w) => w.box.tag || 'untagged').join(', ')}), want at least two different tags`);
         const total = { frames: 0, offsetWon: 0, shoulderWon: 0, worst: Infinity, pulledIn: 0, atPivot: 0, mostTests: 0, along: 0, alongAsked: 0, alongMoved: 0, alongBoxOnly: 0, alongBlind: 0, alongEased: 0, alongAtPivot: 0, alongWorst: Infinity };
         const named = [];
+        const poses = [];
+        for (const turn of [0, 0.5, -0.5, 1.0, -1.0]) poses.push({ turn, pitch: 0 });
+        poses.push({ turn: 0, pitch: CAM.pitchMax }, { turn: 0, pitch: CAM.pitchMin }, { turn: 0, pitch: CAM.pitchMax * 0.5 });
         for (const wall of walls) {
           const tag = wall.box.tag || 'untagged';
           // Face the other way: the boom (behind the Shade) then points at the wall.
@@ -164,10 +167,6 @@ export function register(debugTools) {
           const nx = Math.sin(wall.yaw);
           const nz = Math.cos(wall.yaw);
           const ground = CONFIG.map.groundY;
-
-          const poses = [];
-          for (const turn of [0, 0.5, -0.5, 1.0, -1.0]) poses.push({ turn, pitch: 0 });
-          poses.push({ turn: 0, pitch: CAM.pitchMax }, { turn: 0, pitch: CAM.pitchMin }, { turn: 0, pitch: CAM.pitchMax * 0.5 });
 
           let frames = 0;
           let offsetWon = 0;
@@ -293,12 +292,12 @@ export function register(debugTools) {
 
         // Readings first: the suite cuts a detail at 400 characters.
         const faces = `${walls.length} faces, worst head-on/along: ${named.join(', ')}`;
-        const lead = `offset ${total.offsetWon}, shoulder ${total.shoulderWon}, worst ${total.worst.toFixed(3)}m, d0 ${total.atPivot}`;
+        const lead = `offset ${total.offsetWon}, shoulder ${total.shoulderWon}, worst ${total.worst.toFixed(3)}m, box test ${total.pulledIn}, d0 ${total.atPivot}`;
         const beside = `along ${total.along}f: origin inside ${total.alongAsked}, moved back ${total.alongMoved}, box test alone ${total.alongBoxOnly} (${total.alongBlind} rays blind, ${total.alongEased} closing), worst ${total.alongWorst.toFixed(3)}m, d0 ${total.alongAtPivot}`;
         return {
           pass: problems.length === 0,
           detail: problems.length === 0
-            ? `${faces}; ${lead}; ${beside}; ${total.frames}f ${poses.length}p, ${BOOM_CASTS_PER_FRAME} casts + up to ${total.mostTests} tests, ${total.pulledIn} pulled in by the box test`
+            ? `${lead}; ${faces}; ${beside}; ${total.frames}f ${poses.length}p, ${BOOM_CASTS_PER_FRAME} casts + up to ${total.mostTests} tests`
             : `${faces}; ${lead}; ${problems.length} bad, first: ${problems[0]}`,
         };
       } finally {
