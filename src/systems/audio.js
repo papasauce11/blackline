@@ -134,9 +134,10 @@ export class AudioSystem {
    *
    * @param {string} name a Section 14 builder
    * @param {number} seconds how long to render
+   * @param {string} [surface] the floor class a footstep recipe sounds (I2); none is concrete
    * @returns {Promise<AudioBuffer|null>}
    */
-  async renderOffline(name, seconds) {
+  async renderOffline(name, seconds, surface) {
     const Ctor = typeof OfflineAudioContext !== 'undefined' ? OfflineAudioContext : null;
     if (!Ctor || !AudioSystem.BUILDERS[name]) return null;
 
@@ -179,7 +180,7 @@ export class AudioSystem {
 
     let rendered = null;
     try {
-      AudioSystem.BUILDERS[name].call(this, { x: 0, y: 0, z: 0 });
+      AudioSystem.BUILDERS[name].call(this, { x: 0, y: 0, z: 0, surface });
       rendered = await offline.startRendering();
     } finally {
       this.context = live.context;
@@ -400,45 +401,47 @@ export class AudioSystem {
   }
 
   /** Shared shape: a noise burst through a filter with an envelope. */
-  _noiseBurst(position, { bus = 'sfx', filterType, frequency, duration, gain, sweepTo }) {
+  _noiseBurst(position, { bus = 'sfx', filterType, frequency, duration, gain, sweepTo, delay = 0 }) {
     const context = this.context;
+    const at = context.currentTime + delay;
     const source = this._noiseSource();
     const filter = context.createBiquadFilter();
     filter.type = filterType;
     filter.frequency.value = frequency;
     if (sweepTo !== undefined) {
-      filter.frequency.setValueAtTime(frequency, context.currentTime);
-      filter.frequency.exponentialRampToValueAtTime(Math.max(20, sweepTo), context.currentTime + duration);
+      filter.frequency.setValueAtTime(frequency, at);
+      filter.frequency.exponentialRampToValueAtTime(Math.max(20, sweepTo), at + duration);
     }
     const envelope = context.createGain();
-    envelope.gain.setValueAtTime(gain, context.currentTime);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
+    envelope.gain.setValueAtTime(gain, at);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, at + duration);
 
     const destination = this._destination(bus, position);
     source.connect(filter).connect(envelope).connect(destination);
     if (!this._track(source, [filter, envelope, destination])) return false;
-    source.start();
-    source.stop(context.currentTime + duration);
+    source.start(at);
+    source.stop(at + duration);
     return true;
   }
 
-  _tone(position, { bus = 'sfx', type = 'sine', frequency, duration, gain, sweepTo }) {
+  _tone(position, { bus = 'sfx', type = 'sine', frequency, duration, gain, sweepTo, delay = 0 }) {
     const context = this.context;
+    const at = context.currentTime + delay;
     const osc = context.createOscillator();
     osc.type = type;
-    osc.frequency.setValueAtTime(frequency, context.currentTime);
+    osc.frequency.setValueAtTime(frequency, at);
     if (sweepTo !== undefined) {
-      osc.frequency.exponentialRampToValueAtTime(Math.max(20, sweepTo), context.currentTime + duration);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20, sweepTo), at + duration);
     }
     const envelope = context.createGain();
-    envelope.gain.setValueAtTime(gain, context.currentTime);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
+    envelope.gain.setValueAtTime(gain, at);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, at + duration);
 
     const destination = this._destination(bus, position);
     osc.connect(envelope).connect(destination);
     if (!this._track(osc, [envelope, destination])) return false;
-    osc.start();
-    osc.stop(context.currentTime + duration);
+    osc.start(at);
+    osc.stop(at + duration);
     return true;
   }
 }

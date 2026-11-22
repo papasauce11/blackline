@@ -28,6 +28,7 @@ import { register as registerShade } from './shade.js';
 import { register as registerMovement } from './movement.js';
 import { register as registerClimbPress } from './climbpress.js';
 import { register as registerScuff } from './scuff.js';
+import { register as registerFootsteps } from './footsteps.js';
 import { register as registerFeel } from './feel.js';
 import { register as registerHang } from './hang.js';
 import { register as registerGrabSlide } from './grabslide.js';
@@ -158,6 +159,8 @@ export function registerAutoTests(debugTools) {
   // other climb check reaches a ledge with (H70).
   registerClimbPress(debugTools);
   registerScuff(debugTools);
+  // I2: the floor under a foot - its class on the noise event, its radius, its sound.
+  registerFootsteps(debugTools);
   registerFeel(debugTools);
   registerHang(debugTools);
   registerGrabSlide(debugTools);

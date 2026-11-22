@@ -31,6 +31,37 @@
 import { CONFIG } from '../config.js';
 
 const A = CONFIG.audio;
+const FS = CONFIG.footsteps.sounds;
+
+/**
+ * What the floor adds to a step (I2), on top of the step's own recipe: nothing
+ * for concrete, which is today's step to the sample, and one layer or a few
+ * for the rest. `position.surface` is the class on the noise event; a sound
+ * played with none (the tests' own, a position that is only a place) is
+ * concrete. Layers share the step's panner position and so its place in the room.
+ */
+function underFoot(position) {
+  switch (position && position.surface) {
+    case 'metal':
+      this._tone(position, { type: 'sine', frequency: FS.metal.ringFreq, duration: FS.metal.ringDuration, gain: FS.metal.ringGain });
+      break;
+    case 'grate':
+      for (let i = 0; i < FS.grate.clicks; i++) {
+        this._noiseBurst(position, {
+          filterType: 'bandpass', frequency: FS.grate.clickBand, duration: FS.grate.clickDuration,
+          gain: FS.grate.clickGain, delay: i * FS.grate.clickSpacing,
+        });
+      }
+      break;
+    case 'wet':
+      this._noiseBurst(position, {
+        filterType: 'lowpass', frequency: FS.wet.splashLowpass, duration: FS.wet.splashDuration, gain: FS.wet.splashGain,
+      });
+      break;
+    default:
+      break;
+  }
+}
 
 /**
  * One entry per row of the Section 14 table. A plain object rather than
@@ -41,9 +72,11 @@ const A = CONFIG.audio;
 export const SOUND_BUILDERS = {
   shadeFootstep(position) {
     const c = A.shadeFootstep;
-    return this._noiseBurst(position, {
+    const step = this._noiseBurst(position, {
       filterType: 'highpass', frequency: c.highpass, duration: c.duration, gain: c.gain,
     });
+    underFoot.call(this, position);
+    return step;
   },
 
   wardenFootstep(position) {
@@ -55,6 +88,7 @@ export const SOUND_BUILDERS = {
     this._tone(position, {
       type: 'square', frequency: c.clickFreq, duration: 0.02, gain: c.clickGain,
     });
+    underFoot.call(this, position);
     return body;
   },
 

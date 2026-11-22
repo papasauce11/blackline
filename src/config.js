@@ -877,6 +877,43 @@ export const CONFIG = {
   },
 
   // -------------------------------------------------------------------------
+  // Footsteps underfoot (I2; Section 7.2, Section 14)
+  // -------------------------------------------------------------------------
+  /**
+   * What a foot lands on changes how it sounds and how far it carries. The
+   * class is read off the finish `mapbake` wrote on the box under the feet
+   * (E4, E5; `CollisionBox.surface`), at each step either actor takes.
+   */
+  footsteps: {
+    /** The class a finish is, where it is not the fallback. Painted and corrugated plate ring; wet asphalt splashes; glass is a pane and a floor of it is not a surface anyone walks. */
+    materials: { paint: 'metal', corrugated: 'metal', wet: 'wet' },
+    /** What a finish this table does not name - or a map drawn flat, with no finish at all - sounds like. Today's step, so nothing that never named a finish moves. */
+    fallback: 'concrete',
+    /**
+     * The multiple of the Shade's footstep radius a class carries to the
+     * Warden (PROVISIONAL, the lead's: to be played, not derived). A wet step
+     * is a little more than a dry one; a grate rattles into the room under it;
+     * a plate is a drum. Concrete is 1.0 so the floor the radii were tuned on
+     * is the floor they still are. The Warden's own steps are not scaled: the
+     * Shade already hears her coming, and a louder Warden is not this job.
+     */
+    noiseScale: { concrete: 1.0, wet: 1.1, grate: 1.3, metal: 1.5 },
+    /**
+     * What each class adds to the step's own recipe (audiosounds.js), which
+     * concrete leaves exactly as it was. Numbers in the style of `audio`'s
+     * rows: a frequency, a duration, a gain, and a line on why.
+     */
+    sounds: {
+      /** A plate takes the thud and answers it: a sine partial well above the thud, ringing for a fifth of a second where the thud lasts a few hundredths. */
+      metal: { ringFreq: 1650, ringDuration: 0.22, ringGain: 0.07 },
+      /** A grate is bars over a void: three bright ticks a few ms apart, each too short to be a note, over the step's own tick. */
+      grate: { clicks: 3, clickSpacing: 0.014, clickBand: 3200, clickDuration: 0.012, clickGain: 0.09 },
+      /** Wet is the thud under a low-passed hiss that outlasts it by a hundred ms: water pushed out from under a sole. */
+      wet: { splashLowpass: 1400, splashDuration: 0.16, splashGain: 0.1 },
+    },
+  },
+
+  // -------------------------------------------------------------------------
   // Combat (Section 8)
   // -------------------------------------------------------------------------
   combat: {

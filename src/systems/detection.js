@@ -22,6 +22,7 @@
 
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
+import { surfaceUnder } from './footsurface.js';
 
 const D = CONFIG.detection;
 const N = CONFIG.noise;
@@ -45,7 +46,7 @@ export class NoiseField {
     /** @type {object[]} */
     this.pool = [];
     for (let i = 0; i < N.maxEvents; i++) {
-      this.pool.push({ x: 0, y: 0, z: 0, radius: 0, type: '', source: '', age: 0, active: false, seq: 0 });
+      this.pool.push({ x: 0, y: 0, z: 0, radius: 0, type: '', source: '', surface: '', age: 0, active: false, seq: 0 });
     }
     this.emitted = 0;
     this.dropped = 0;
@@ -54,9 +55,11 @@ export class NoiseField {
   /**
    * Emit a noise event. A zero radius is silence — a crouch-walking Shade and a
    * Shade in a vent make no event at all, rather than an event nobody can hear.
+   * `surface` is the class of floor a footstep landed on (I2), and '' for a
+   * noise that has none: audio sounds it and nothing else reads it.
    * @returns {object|null} the pooled event, or null if silent
    */
-  emit(x, y, z, radius, type, source) {
+  emit(x, y, z, radius, type, source, surface = '') {
     if (!(radius > 0)) return null;
 
     let slot = null;
@@ -82,6 +85,7 @@ export class NoiseField {
     slot.radius = radius;
     slot.type = type;
     slot.source = source;
+    slot.surface = surface;
     slot.age = 0;
     slot.active = true;
     this.emitted++;
@@ -465,7 +469,13 @@ export class Detection {
       : band === 'crouch' ? N.radii.shadeCrouchWalk
         : band === 'sprint' ? N.radii.shadeSprint
           : N.radii.shadeWalk;
-    this.noise.emit(shade.position.x, shade.feetY, shade.position.z, radius, 'footstep', 'shade');
+    // A plate rings further than a slab (I2). Scaled after the silences are
+    // chosen, so a crouch or a vent is still no event at all, whatever the floor.
+    const surface = surfaceUnder(this.collision, shade);
+    this.noise.emit(
+      shade.position.x, shade.feetY, shade.position.z,
+      radius * CONFIG.footsteps.noiseScale[surface], 'footstep', 'shade', surface
+    );
   }
 
   _emitWardenNoise(warden) {
@@ -480,7 +490,8 @@ export class Detection {
 
     this.noise.emit(
       warden.position.x, warden.feetY, warden.position.z,
-      sprinting ? N.radii.wardenSprint : N.radii.wardenWalk, 'footstep', 'warden'
+      sprinting ? N.radii.wardenSprint : N.radii.wardenWalk, 'footstep', 'warden',
+      surfaceUnder(this.collision, warden)
     );
   }
 }

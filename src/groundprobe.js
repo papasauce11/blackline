@@ -14,6 +14,8 @@
  * - `groundUnder()`: is there any top face under this one point within a
  *   step of a height - support only, what a body that has strayed off a
  *   planned line finds under its centre.
+ * - `boxUnder()`: the same question answered with the box rather than yes -
+ *   what a footstep reads the finish of (I2).
  *
  * Layering (Section 3.1): imports nothing. The collision world is handed
  * in, and the body's dimensions with it.
@@ -73,6 +75,31 @@ export function groundUnder(collision, x, z, y, step) {
     if (Math.abs(box.max.y - y) <= step) return true;
   }
   return false;
+}
+
+/**
+ * The solid whose top face the feet at (x, y, z) rest on: the same point and
+ * the same band as `groundUnder()`, answered with the box. Where two tops are
+ * in the band (a crate on a slab, a seam between two floors) it is the one
+ * nearest the sole, since that is the one the foot meets; on a tie the first
+ * the query hands back, which is the same box every time on a given map.
+ * Null when there is nothing under the point, which is a fall and not a step.
+ */
+export function boxUnder(collision, x, z, y, step) {
+  const candidates = collision.query({ x, y: y - step, z }, { x, y: y + step, z });
+  let best = null;
+  let bestGap = Infinity;
+  for (let i = 0; i < candidates.length; i++) {
+    const box = candidates[i];
+    if (!box.solid) continue;
+    if (box.max.x < x || box.min.x > x || box.max.z < z || box.min.z > z) continue;
+    const gap = Math.abs(box.max.y - y);
+    if (gap <= step && gap < bestGap) {
+      best = box;
+      bestGap = gap;
+    }
+  }
+  return best;
 }
 
 /**
