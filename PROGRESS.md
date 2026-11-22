@@ -23385,6 +23385,7 @@ yard in 372ms and 349ms - six hundred times under the 241s stall, and a quarter
 of the 1,464ms the single-check reading gave it after the revert. So the revert is
 confirmed by the whole suite and not just by the one check in isolation, and
 H125 now has the number it has to protect.
+
 ## H125 - The search was six frames, and the stall was the cold page (2026-11-22, the 02:00 run)
 
 `findTallFace` is memoised. The old body moved unchanged to `searchTallFace`
@@ -23489,3 +23490,41 @@ grab. And clause (f)'s 200-in-a-row stress emits `shade:land`, `combat:shot`
 and `combat:impact` on the emitter rather than driving 200 real falls, so it
 bounds the pool and not the physics. The Warden's landings still raise no dust:
 only the Shade emits `shade:land`.
+## The eleventh batch is green, and the stall's suspect keeps its alibi (2026-11-22, the 02:00 run)
+
+`d2ecb57`. The full two-run suite over H125 and J6: plant 271 / 1 / 10
+(1,342,556ms, 1,349,864ms), yard 253 / 1 / 28 (1,019,490ms, 995,478ms), exit 0.
+`red`, `flaky`, `skipped`, `skipsWithheld`, `expectedRed` and `unexpectedGreen`
+all empty, 0 console errors, pair spreads 1% (7,308ms) on the plant and 2%
+(24,012ms) on the yard, ceiling 15 within 50 of 600 with `tests/difficulty.js`
+still at 600, of 238 modules loaded - two more than the tenth batch, which is
+`dust.js` and `dustlight.js`. The one failure a map is the benched H11 sweep,
+one sample and not a median on SwiftShader; its real reading is now seven weeks
+old. 81 minutes end to end for 78 of runs.
+
+Both new checks hold on all four runs. J6's
+`a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see` reads the same six
+clauses on every run - 0 motes at 0.21m, 10 at 1.01m, 28 at 3.01m against a
+0.5m floor; a scuff's 6 motes landing 3.6-3.9cm from the hands; 6 sparks off
+paint and corrugated and 0 off concrete; the muzzle flash +8.25 to +8.43 luma
+with 60 cd on the frame of the shot and 0 on the next, `castShadow` false and
+the point-light count unmoved; and the pool capping at 96/96 under 200 in a row.
+Fall-height, spark and cap readings are identical digit for digit across the
+four runs; only the luma and the scuff's centimetre wobble, which is what a
+rendered frame and a seeded look-stream draw are allowed to do.
+
+H125's `the-tall-face-search-runs-once-a-map-and-every-later-caller-reads-the-cache`
+costs **1-2ms** and prints the memo working across checks, not just inside its
+own: on the first run of a map it finds 4.1m already warm from an earlier
+check and searches 4.3m and 2.5m at 6 frames each, and on the second run of the
+same page all three are warm and it steps 0 frames in 0 searches. That is the
+cache being shared by the four callers rather than merely being correct in
+isolation, and it is the reading the counters were added to make legible.
+
+**And the number H125 exists to watch did not move.**
+`a-climb-beyond-reach-bumps-poses-and-sounds` ran the yard in 369ms and 352ms,
+against 372ms and 349ms on the tenth batch - unchanged inside the noise, with
+the memo in place. So the cache bought no time on a full verify, exactly as
+H125's own measurement predicted: a search of 6 stepped frames was never the
+240 seconds. The stall's cause is still unfound, H122's revert and J12 stay
+parked on it, and H126 is the job that has to take the curve.
