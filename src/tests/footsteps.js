@@ -20,7 +20,7 @@
  *      compared with every other by the RMS of the difference. The margin is
  *      derived from the recipes (below), not measured: a quarter of what the
  *      thinner layer should carry. Concrete's step is the pre-I2 recipe to the
- *      sample - rebuilt here from `CONFIG.audio` and rendered through the same
+ *      sample (to within the render's own jitter, measured by rendering it again) - rebuilt here from `CONFIG.audio` and rendered through the same
  *      graph - so nothing that never stood on a plate moved.
  *
  * **What a map lacks is said, not invented.** Neither map has a grate: no
@@ -64,6 +64,18 @@ const CHAIN = A.busGain.sfx * A.masterGain;
 const SHARE = 0.25;
 /** The ring is read as gone below this, as the scuff check reads a slap. */
 const AUDIBLE = 0.002;
+/** Renders of the pre-I2 recipe taken to measure the render's own jitter (the panner is not bit-stable between renders). */
+const REPEATS = 4;
+/** Concrete may sit this many jitters from the pre-I2 recipe: twice what the recipe differs from itself. */
+const JITTER_BAR = 2;
+/**
+ * And never a bar below this, because the jitter is itself a sample: a probe
+ * read it 0 on one pair of renders and 1.8e-4 on another, so four renders can
+ * all land quiet and make twice nothing. A step is 0.035 at its peak and the
+ * thinnest layer a recipe can lose or gain is a few hundredths, so 1e-3 is
+ * still thirty times under a real difference.
+ */
+const JITTER_FLOOR = 1e-3;
 
 const classOf = (finish) => F.materials[finish] || F.fallback;
 
@@ -263,6 +275,7 @@ export function register(debugTools) {
       // -- (c): the sound, rendered. ----------------------------------------
       const audio = h.audio;
       let audioReading = '';
+      let jitterReading = '';
       if (!audio.unlock()) problems.push('no AudioContext available');
       else if (typeof OfflineAudioContext === 'undefined') problems.push('no OfflineAudioContext in this browser');
       else {
@@ -288,10 +301,20 @@ export function register(debugTools) {
           },
         };
         const before = {};
+        // The render's own jitter, measured on the pre-I2 recipe alone: the
+        // same graph rendered `REPEATS` times with identical arguments. The
+        // panner is not bit-stable from one render to the next (a probe read
+        // 6e-5 between two identical renders, 1e-6 between two others), so
+        // exact zero was a bar the instrument itself fails.
+        const repeats = { shade: [], warden: [] };
         try {
           Object.assign(table, legacy);
-          before.shade = await render('i2LegacyShadeFootstep');
-          before.warden = await render('i2LegacyWardenFootstep');
+          for (let i = 0; i < REPEATS; i++) {
+            repeats.shade.push(await render('i2LegacyShadeFootstep'));
+            repeats.warden.push(await render('i2LegacyWardenFootstep'));
+          }
+          before.shade = repeats.shade[0];
+          before.warden = repeats.warden[0];
         } finally {
           for (const name of Object.keys(legacy)) delete table[name];
         }
@@ -310,13 +333,25 @@ export function register(debugTools) {
         if (missing.length) {
           problems.push(`rendered nothing: ${missing.join(', ')}`);
         } else {
-          // Concrete is the step it always was, with the class named or not.
+          // Concrete is the step it always was, with the class named or not:
+          // no further from the pre-I2 recipe than twice what two renders of
+          // that recipe differ by, and the same path whether named or not.
+          const jitters = [];
           for (const who of ['shade', 'warden']) {
+            let jitter = 0;
+            for (let i = 0; i < repeats[who].length; i++) {
+              for (let j = i + 1; j < repeats[who].length; j++) jitter = Math.max(jitter, maxAbsDifference(repeats[who][i], repeats[who][j]));
+            }
+            const bar = Math.max(JITTER_BAR * jitter, JITTER_FLOOR);
             const named = maxAbsDifference(samples[who].concrete, before[who]);
             const bare = maxAbsDifference(unnamed[who], before[who]);
-            if (named !== 0) problems.push(`the ${who}'s concrete step differs from the pre-I2 recipe by up to ${named.toExponential(2)}`);
-            if (bare !== 0) problems.push(`the ${who}'s step with no surface named differs from the pre-I2 recipe by up to ${bare.toExponential(2)}`);
+            const same = maxAbsDifference(unnamed[who], samples[who].concrete);
+            jitters.push(`${who} jitter ${jitter.toExponential(2)} (concrete ${named.toExponential(2)}, bare ${bare.toExponential(2)}, concrete/bare ${same.toExponential(2)})`);
+            if (!(named <= bar)) problems.push(`the ${who}'s concrete step differs from the pre-I2 recipe by up to ${named.toExponential(2)}, over the bar of ${bar.toExponential(2)} (${JITTER_BAR}x the render's own jitter of ${jitter.toExponential(2)}, floor ${JITTER_FLOOR})`);
+            if (!(bare <= bar)) problems.push(`the ${who}'s step with no surface named differs from the pre-I2 recipe by up to ${bare.toExponential(2)}, over the bar of ${bar.toExponential(2)} (${JITTER_BAR}x the render's own jitter of ${jitter.toExponential(2)}, floor ${JITTER_FLOOR})`);
+            if (!(same <= bar)) problems.push(`the ${who}'s named-concrete and unnamed steps differ by up to ${same.toExponential(2)}, over the bar of ${bar.toExponential(2)} (jitter ${jitter.toExponential(2)}): they are not one path`);
           }
+          jitterReading = jitters.join('; ');
 
           // Every pair differs by a margin read off the recipes.
           const predicted = predictedLayers();
@@ -351,14 +386,14 @@ export function register(debugTools) {
             const peak = peakOf(samples.shade[cls]);
             if (peak > 1.0) problems.push(`the Shade's ${cls} step clips at ${peak.toFixed(2)}`);
           }
-          audioReading = `rendered RMS differences ${rows.join(', ')}; metal rings ${metalLast.toFixed(3)}s against concrete's ${concreteLast.toFixed(3)}s`;
+          audioReading = `${jitterReading}; rendered RMS differences ${rows.join(', ')}; metal rings ${metalLast.toFixed(3)}s against concrete's ${concreteLast.toFixed(3)}s`;
         }
       }
 
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `walked ${[...present].join(', ')}${lacks.length ? ` (this map has no ${lacks.join(' or ')}: nothing was invented)` : ''}: ${readings.join('; ')}; ratios match the scales to 1e-9; concrete is the pre-I2 step to the sample; ${audioReading}`
+          ? `walked ${[...present].join(', ')}${lacks.length ? ` (this map has no ${lacks.join(' or ')}: nothing was invented)` : ''}: ${readings.join('; ')}; ratios match the scales to 1e-9; concrete is the pre-I2 step within the render's own jitter; ${audioReading}`
           : problems.join('; '),
       };
     },
