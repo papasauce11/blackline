@@ -23363,3 +23363,25 @@ already queued, and this is a second job's worth of evidence for it. And the
 prose in `breathcensus.js` and `xraydraw.js` saying *the Warden does
 not breathe* is now loosely stale, though no assertion in it is; it was left
 alone rather than edited on the way past.
+
+## The tenth batch verifies, and the reverted job leaves its number behind
+
+2026-11-21, the 17:00 run, `9af89a6`. The full two-run suite over J8 and the
+H122 revert: plant 269 / 1 / 10 (1,335,488ms, 1,326,129ms), yard 251 / 1 / 28
+(973,748ms, 974,879ms), exit 0. `red`, `flaky`, `skipped`, `skipsWithheld`,
+`expectedRed` and `unexpectedGreen` all empty, 0 console errors, pair spreads
+1% (9,359ms) on the plant and 0% (1,131ms) on the yard, ceiling 15 within 50
+of 600 with `tests/difficulty.js` still at 600, of 236 modules loaded. The one
+failure a map is the benched H11 sweep, one sample and not a median on
+SwiftShader; its real reading is still six weeks old.
+
+Two numbers in it are worth keeping. The new check,
+`a-body-at-rest-is-never-still-and-one-in-a-menu-always-is`, passed on all four
+runs and read the two maps apart as it was built to: the hood turns 0.0000 rad
+over 600 frames on the plant and 0.0600 and 0.0596 rad on the yard, with the
+menu stilling all four readings to nine zeroes every time. And
+`a-climb-beyond-reach-bumps-poses-and-sounds`, the check H122 froze, ran the
+yard in 372ms and 349ms - six hundred times under the 241s stall, and a quarter
+of the 1,464ms the single-check reading gave it after the revert. So the revert is
+confirmed by the whole suite and not just by the one check in isolation, and
+H125 now has the number it has to protect.
