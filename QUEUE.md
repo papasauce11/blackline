@@ -1330,7 +1330,10 @@ provisional; the rule for "thin" is mechanical, never a tag.
   200 landings, drained in 0.78s. **Why parked:** its check calls
   `findTallFace`, the search H125 fixes, which does not finish on the
   yard, so J6 cannot be proved on both maps until H125 lands. **Resume:**
-  cherry-pick `6a41dfa`, then prove it. Two disclosures to carry into the
+  cherry-pick `6a41dfa`, then prove it. **Read D102 first** - the dust's
+  colour and weight are Josh's styling call, open since the 17:00 run; if he
+  has answered, set it in `config.js` in the same pass, and if he has not,
+  merge as built. Two disclosures to carry into the
   record: clause (e)'s concrete half is the same real grab with
   `box.surface` relabelled, because no hangable concrete ledge exists on
   either map; and clause (f)'s 200-in-a-row stress emits `shade:land` /

@@ -3159,6 +3159,46 @@ routine; if it were not proven by 15:30, `--stall` 360 was the named stopgap.
 
 ## Blocking — waiting on Josh
 
+### D102 — J6's dust: how heavy is a mote?
+Styling (D84), and the first thing in Block J you can look at rather than
+imagine: the two frames sent at 2026-11-21 17:00 are a landing with the dust
+on and the same landing with it off. **The dust itself is not yours** - a
+landing over 0.5m lifts a puff, 6 motes at the floor and 36 at a hard fall,
+and a check measures that. What is yours is **how much of the room it takes**,
+because a mote is unlit: a point sprite takes no light, so in a dark hall it
+shows exactly as bright as its own colour and nothing dims it.
+
+It is built as a dim tan, `0x55524a`, at **0.6** opacity and **0.5m** a mote,
+which is the floor's own shade thrown up. In the frame it reads to the lead a
+touch milky and bright for dust in a dark room, and that is a look and not a
+fault, so it is here.
+
+1. **Fine as is**: the puff is meant to be seen; a landing you can miss is a
+   landing that taught the player nothing.
+2. **Darker**: the same cloud, a deeper shade (about `0x3b3934`). The puff
+   keeps its size and stops glowing in a dark hall - it reads as kicked grit
+   rather than as smoke lit from inside.
+3. **Thinner**: the same shade at about 0.35 opacity and 0.35m a mote. The
+   cloud thins instead of darkening, so it still catches the key light where
+   there is one and all but disappears where there is not.
+4. **Both, and smaller on a short fall**: darker and thinner together, with
+   the count and the spread already scaling by fall height doing the rest. The
+   most faithful to real dust and the easiest to lose entirely on the plant,
+   where the floors are dark.
+
+Recommendation: **2**. The brightness is the part that reads wrong, and only
+2 fixes that without spending the puff's legibility - 3 trades a dark-room
+problem for a lit-room one, and 4 risks an effect nobody ever sees on the map
+it matters most. Any of the four is a config change and a re-measure, not a
+rebuild.
+
+**Where you can feel it:** the two frames from the 17:00 run, and nowhere
+live yet - J6 is built and **parked unmerged** behind H125 (D101), so it
+reaches the site when H125 lands. Say a word - *fine as is*, *darker*,
+*thinner*, *both* - and the run that merges J6 sets it. Say nothing and J6
+merges as built, because the dust is not worth holding a job for.
+
+decided:
 ### D94 — J3's ragdoll: how much does a body react to the shot that killed it?
 Key feel (D84: *"how a hit lands"*), reached in block order on 2026-11-20's
 02:00 run and skipped rather than guessed. J3 gives the ragdoll a flail from
