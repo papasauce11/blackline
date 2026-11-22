@@ -1463,6 +1463,27 @@ provisional; the rule for "thin" is mechanical, never a tag.
   `insideBody` is 0 and the minimum horizontal distance never drops under 0.34m,
   walking never puts the camera in the capsule at all, and the finding is that
   this job's premise needs re-measuring rather than a fade built on it.
+  **MEASURED, both maps, 2026-11-22 (the 02:00 run), and the rule resolves to
+  the finding branch: no fade is to be built.** The corrected probe ran on the
+  current tree (H125 and J6 in) and the two maps agree to the decimal:
+  `insideBody` **82** frames of 130 a side, `minD` **0**, `horiz` **0** - the
+  camera sits exactly on the Shade's own axis, inside the capsule, with its
+  height between her feet and her head - and `maxCover` **0** on the plant and
+  **0.0002** on the yard, about 184 pixels of a 1280x720 buffer, with
+  `maxSwingAdjacentJammed` **0** on both. So the answer to "what does a player
+  see there" is **nothing**: backfaces cull and the body does not render from
+  inside, steadily, with no flicker between adjacent frames. Two corrections to
+  this entry's own numbers while we are here: the staging reaches the jam from
+  the first sampled frame (she is placed 0.15m off a tall face, so the boom is
+  in the wall before she moves - it is not the post-reset ease-out), and
+  `c2cRange` is **0.475 to 0.61**, so J1's 0.24m is never reproduced by this
+  walk and presumably belongs to a lower pivot such as a crouch. *resume from:*
+  build only the check - a new module that walks the Shade to the jam on both
+  maps and pins the body's pixel share under a cap just above 0.0002, with the
+  frames in `j11out` as the record's picture. **Expect it to owe four census
+  rows the day it lands** (H52, and J6 paid it again this run). No
+  `CONFIG.shade.camera.bodyFade`, no `bodyfade.js`, no seam in
+  `agentvisual.js`: there is nothing to fade.
 - [ ] **J12 (S)** The clip check tests one fence twice, not two maps.
   `cameraclip.js` takes its face from `scuff.js`'s `findTallFace`, which
   returns only the **first** tall face, and on both maps that is the shared
