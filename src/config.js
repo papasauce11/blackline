@@ -891,13 +891,16 @@ export const CONFIG = {
     fallback: 'concrete',
     /**
      * The multiple of the Shade's footstep radius a class carries to the
-     * Warden (PROVISIONAL, the lead's: to be played, not derived). A wet step
-     * is a little more than a dry one; a grate rattles into the room under it;
-     * a plate is a drum. Concrete is 1.0 so the floor the radii were tuned on
-     * is the floor they still are. The Warden's own steps are not scaled: the
-     * Shade already hears her coming, and a louder Warden is not this job.
+     * Warden (PROVISIONAL, the lead's: to be played, not derived). A grate
+     * rattles into the room under it; a plate is a drum. Concrete is 1.0 so the
+     * floor the radii were tuned on is the floor they still are, and **wet is
+     * 1.0 too**: the yard's whole ground is wet, so anything above 1 would make
+     * every step on that map louder, which is a rebalance of the yard and not
+     * what I2 asked for - a wet step sounds different and carries no further.
+     * The Warden's own steps are not scaled: the Shade already hears her
+     * coming, and a louder Warden is not this job.
      */
-    noiseScale: { concrete: 1.0, wet: 1.1, grate: 1.3, metal: 1.5 },
+    noiseScale: { concrete: 1.0, wet: 1.0, grate: 1.3, metal: 1.5 },
     /**
      * What each class adds to the step's own recipe (audiosounds.js), which
      * concrete leaves exactly as it was. Numbers in the style of `audio`'s
