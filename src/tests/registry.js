@@ -74,6 +74,11 @@ const SHARED_FROM_A_CHECK = [
     name: 'POSE_EYE_NAMES',
     why: 'the six candidate eye names, used by poseeye.js alone, and beside the chooseEye whose candidates they name',
   },
+  {
+    file: 'scuff.js',
+    name: 'findTallFaces',
+    why: 'every ground-level face findTallFace would accept, used by cameraclip.js alone (J12), and beside the findTallFace and the one cache on the harness (H125) it shares its search with',
+  },
 ];
 
 /** An export, at the line start, which is where an export is and a literal is not. */
