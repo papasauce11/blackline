@@ -1864,6 +1864,83 @@ export const CONFIG = {
   },
 
   // -------------------------------------------------------------------------
+  // Ambience (I1; D50: no music, the map's own sound carries it). One looping
+  // bed per map, synthesised once from a private seeded generator (never the
+  // simulation's streams - tests/rngdraws.js holds that count) and played
+  // through the audio system's ambience bus. Every number is a first guess for
+  // Josh to hear on the live site (D84), with its one-line why beside it.
+  // -------------------------------------------------------------------------
+  ambience: {
+    /** Long enough that a drip or a gust is not a metronome, short enough to build in one click's idle. */
+    loopSeconds: 12,
+    /** The generator's seed; each bed adds its own salt so two maps are not the same noise. */
+    seed: 0x414d4231, // "AMB1"
+    /** Headroom of the bed's own level under the ambience bus, which the mixer (I4) will own. */
+    bedGain: 1.0,
+    /** Seconds for the bed to settle on a new room's level; the filter's time constant is a third of it. */
+    easeSeconds: 1.0,
+    /**
+     * Louder in bigger rooms: log volume (m^3) from `smallVolume` to
+     * `largeVolume` maps floor -> 1; outdoors and unroomed space count as larger
+     * than the largest. 500 is the plant's offices, 4500 its Turbine Hall.
+     */
+    roomGain: {
+      floor: 0.3,
+      smallVolume: 500,
+      largeVolume: 4500,
+      /** The least a map's smallest room and its largest (outdoors, on the yard) may differ by; the yard's bays are the tightest case. */
+      minRatio: 1.15,
+    },
+    beds: {
+      plant: {
+        salt: 0x504c4e54, // "PLNT"
+        hum: {
+          /** Twice the mains, as a transformer's core sings; 60 x 12s is a whole number of cycles. */
+          fundamental: 60,
+          /** Relative amplitude of partials 1..4: the second is strong in a real core, so it is here. */
+          harmonics: [1, 0.55, 0.3, 0.15],
+          /** The second partial has a near neighbour this far off it, and the two beat at this rate. */
+          beatHz: 0.5,
+          gain: 0.12,
+        },
+        drips: {
+          count: 6, gain: 0.22,
+          /** Seconds of ring-out kept; a drip's tail past the loop's end wraps into its start. */
+          ring: 0.12, decay: 0.012,
+          lowHz: 1500, highHz: 3200, q: 6,
+          /** One drip lands this long before the loop's end so its tail always crosses the seam. */
+          seamLead: 0.004,
+        },
+        vent: {
+          /** Ducting is a low roar, not a hiss. */
+          centre: 420, q: 0.7, gain: 0.07,
+          /** A swell of this depth, this many whole times per loop. */
+          depth: 0.45, swellCycles: 3,
+        },
+      },
+      yard: {
+        salt: 0x59415244, // "YARD"
+        wind: {
+          /** Two low-passes at this corner; the energy test reads it back. */
+          cutoff: 320, q: 0.707, gain: 0.1,
+          /** The wind never drops below this fraction of its level, and gusts ride on top. */
+          base: 0.45,
+          gusts: 4, gustMin: 2.0, gustMax: 4.5, gustHeight: 0.45,
+        },
+        horn: {
+          /** A far ship's horn, a rare one: starts this fraction of the way round, so it is the one that crosses the seam. */
+          at: 0.93, freq: 98, harmonics: [1, 0.55, 0.3, 0.15], gain: 0.1,
+          attack: 0.4, hold: 1.3, release: 1.1,
+        },
+        clanks: {
+          /** Soft metal on metal, a long way off. Inharmonic partials are what make it metal. */
+          count: 2, gain: 0.05, decay: 0.35, partials: [830, 1290, 2010],
+        },
+      },
+    },
+  },
+
+  // -------------------------------------------------------------------------
   // Effects and pools (Section 15)
   // -------------------------------------------------------------------------
   effects: {

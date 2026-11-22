@@ -94,6 +94,7 @@ import { register as registerResetCensus } from './resetcensus.js';
 import { register as registerSettleCircuit } from './settlecircuit.js';
 import { register as registerGrabWorld } from './grabworld.js';
 import { register as registerAudioContext } from './audiocontext.js';
+import { register as registerAmbience } from './ambience.js';
 import { register as registerSolverQuery } from './solverquery.js';
 import { register as registerAutoPick } from './autopick.js';
 import { register as registerPerformance } from './performance.js';
@@ -268,6 +269,9 @@ export function registerAutoTests(debugTools) {
   // device's constructor, and an offline render gives the live context back
   // (H32).
   registerAudioContext(debugTools);
+  // I1: each map's ambience bed, rendered offline: audible, seamless, seeded,
+  // in character, and louder in a bigger room.
+  registerAmbience(debugTools);
   // And the same shape one layer down: the swept solver's read-only queries
   // live in physicsquery.js, the world answers them from there, and both
   // halves write the one scratch set physicsscratch.js owns (H56).

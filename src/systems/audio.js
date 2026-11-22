@@ -21,6 +21,7 @@
 import { CONFIG, mulberry32 } from '../config.js';
 import { openDeviceJournal } from './audiodevice.js';
 import { SOUND_BUILDERS } from './audiosounds.js';
+import { Ambience } from './ambience.js';
 
 const A = CONFIG.audio;
 /** Seed of the offline render's noise texture, so a rendered sound is the same samples every time. */
@@ -34,10 +35,14 @@ export class AudioSystem {
    * @param {object} options
    * @param {object} options.emitter
    * @param {object} [options.listener] object with a `position` to spatialise from
+   * @param {object} [options.map] the map the bed is for (I1): its id and its rooms
    */
-  constructor({ emitter, listener }) {
+  constructor({ emitter, listener, map }) {
     this.emitter = emitter;
     this.listener = listener || null;
+    this.map = map || null;
+    /** The map's looping bed (I1), started with the graph; not a voice, so `reset()` leaves it playing. */
+    this.ambience = null;
 
     this.context = null;
     /** The device's own account of itself, opened with the context (H35). */
@@ -101,6 +106,11 @@ export class AudioSystem {
     // and change every downstream draw.
     for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
     this._noiseBuffer = buffer;
+
+    if (this.map) {
+      this.ambience = new Ambience({ audio: this, mapId: this.map.id, rooms: this.map.rooms, listener: this.listener });
+      this.ambience.start();
+    }
 
     if (this.context.state === 'suspended') this.context.resume();
     return context;
@@ -210,6 +220,8 @@ export class AudioSystem {
     for (const off of this._unsubscribe) off();
     this._unsubscribe.length = 0;
     this.reset();
+    if (this.ambience) this.ambience.stop();
+    this.ambience = null;
     // Said before the close, so the journal can tell a `closed` state the game
     // asked for from one the device entered on its own (H35).
     if (this.device) this.device.closing();
@@ -283,6 +295,7 @@ export class AudioSystem {
     // - `main.js` drives this on the wall delta. What a mark can prove, and
     // why a gap between two of them proves nothing, is systems/audiodevice.js.
     if (this.device) this.device.sample();
+    if (this.ambience) this.ambience.step();
 
     // Section 14: a low sine pad that fades in as the accumulator rises above
     // 50. It is the one sound that is not spatialised, because it is telling

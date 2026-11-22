@@ -185,7 +185,7 @@ export async function bootWorld({
   });
   // Section 14. Listens on the emitter and is unlocked by the first gesture,
   // because a context built before one starts suspended (Section 15).
-  const audio = createAudio({ emitter, listener: shade });
+  const audio = createAudio({ emitter, listener: shade, map });
   const effects = createEffects({ scene, emitter });
   // C3: the hit marker, the damage direction and the health vignette, drawn
   // in the frame over the scene for whichever actor the human is driving.
