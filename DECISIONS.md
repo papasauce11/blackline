@@ -3198,7 +3198,11 @@ reaches the site when H125 lands. Say a word - *fine as is*, *darker*,
 *thinner*, *both* - and the run that merges J6 sets it. Say nothing and J6
 merges as built, because the dust is not worth holding a job for.
 
-decided:
+decided: option 1, as built - Josh, 2026-11-22 ("Fine as is (1)"), on the
+two live landing frames from the 02:00 run rather than the 17:00 pair. The
+dust stays `0x55524a` at 0.6 opacity and 0.5m a mote, which is what J6
+merged with, so nothing changes and nothing is re-measured. The lead's
+milky reading is overruled and the entry is closed.
 ### D94 — J3's ragdoll: how much does a body react to the shot that killed it?
 Key feel (D84: *"how a hit lands"*), reached in block order on 2026-11-20's
 02:00 run and skipped rather than guessed. J3 gives the ragdoll a flail from
