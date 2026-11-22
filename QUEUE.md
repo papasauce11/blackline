@@ -1357,7 +1357,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **J5 (M)** The killing shot, replayed. On death, two seconds from the
   Warden's eye via the input log (H13), then the ragdoll; skippable.
   *done-when:* a check dies and reads the replay's frames.
-- [~] **J6 (S)** **blocked: H125** - Dust and light. Landing dust by fall
+- [x] **J6 (S)** Dust and light - done 2026-11-22, under Done (`69629a8`, census declarations in `ed10100`). `src/systems/dust.js`, the flash and the 96-mote pool stepped by `effects.js`, `CollisionBox.surface` from `mapbake`, `shade:land` / `shade:grab`, and `a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see`. Merged as built: **D102 is still unanswered**, so the dust is the dim tan at 0.6 and 0.5m. Its proof found what its probe could not - two census declarations (see PROGRESS). OLD ENTRY: Landing dust by fall
   height, a muzzle flash light (unshadowed, one frame), sparks on a metal
   hand-plant, the scuff's puff. *done-when:* pixel checks; particle caps hold.
   **Built, measured, parked, not merged** (2026-11-21, the 17:00 run): the code
@@ -1435,6 +1435,34 @@ provisional; the rule for "thin" is mechanical, never a tag.
   does not assert world clearance at `d0` (the camera is inside the Shade there,
   not inside the world). Stage from J10's run: wall on either shoulder, lateral
   0.15m, and photograph the four frames.
+  **Staged and part-measured, 2026-11-22 (the 02:00 run), no code written.** The
+  probe is written and corrected and waits in the scratchpad as
+  `j11-measure.js`, run one map at a time with
+  `npm run probe -- --map <plant|yard> --out <dir> <that file>`; it stages J10's
+  walk through `heldCodes` (wall on each shoulder, lateral 0.15m, 40 steps in, 20
+  pressing, 40 off, 30 standing), renders each near frame with the Shade's mesh
+  shown and hidden, and counts the difference, so it catches the BackSide outline
+  hull as well as the toon body. **One real reading came off a first draft on the
+  plant**, and it is a caution rather than an answer: 260 frames, 116 sampled, 78
+  frames under a 0.3m boom, and `maxCover` **0** on every one of them - the body
+  contributed not a single changed pixel. But `cam2centre` sat at **0.475** on all
+  78, and the `d` sequence ran 0, 0.001, 0.002, 0.004, 0.007 from frame 0: those
+  are the frames just after each `shade.reset`, where the boom **eases out from
+  the pivot**, not frames a wall pushed in. So a low boom distance alone is not
+  the pose. **Two corrections are already in the staged probe**: 90 unsampled
+  frames after each reset so the boom finishes easing, and a pose criterion that
+  is the capsule itself - horizontal distance to the body axis under
+  `CONFIG.shade.radius` with the camera's height between feet and head - rather
+  than any distance to the centre. The reason that matters, and it corrects this
+  entry's own premise: the boom pivot sits about 0.475m **above** the capsule
+  centre, so a camera on the axis at the pivot is inside the body while still
+  reading 0.475 to the centre, and J1's 0.24m is a 3D distance from some other
+  pose. The probe now reports both. *resume from:* run the two probe commands
+  (the instrument is exclusive - nothing else may be on the machine), then take
+  the decision rule in this entry. **A third branch is now live**: if
+  `insideBody` is 0 and the minimum horizontal distance never drops under 0.34m,
+  walking never puts the camera in the capsule at all, and the finding is that
+  this job's premise needs re-measuring rather than a fade built on it.
 - [ ] **J12 (S)** The clip check tests one fence twice, not two maps.
   `cameraclip.js` takes its face from `scuff.js`'s `findTallFace`, which
   returns only the **first** tall face, and on both maps that is the shared

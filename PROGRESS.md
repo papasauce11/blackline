@@ -23441,3 +23441,51 @@ curve properly, and H122's guilt or innocence is judged on that, not on this.
 Every `while` in the step path was read on the way past and they all advance
 (`mapground.js`'s three among them); `_pullStraight` is quadratic with a sampled
 walk inside and is the one cost in there worth a clock.
+## J6 - Dust, a flash and sparks, and the two censuses a new module owes (2026-11-22, the 02:00 run)
+
+Merged from where the 17:00 run parked it. `6a41dfa` cherry-picked onto
+`610a627`; the one conflict was `tests/index.js`, where J8's registration had
+taken the line J6's wanted, and both are kept with J8's first. D102 - how heavy
+a mote is - is still unanswered, so the dust merges exactly as built: a dim tan
+`0x55524a` at 0.6 opacity, 0.5m a mote. The park's reason is gone: its check
+calls `findTallFace`, which H125 memoised an hour earlier in this run.
+
+`systems/dust.js` (206) holds a fixed 96-mote pool and the muzzle flash, owned
+and stepped by `effects.js` (531), every draw off `lookRng`; `shade:land`
+carries the fall height and `shade:grab` the surface, and `CollisionBox.surface`
+carries the finish `mapbake` writes, so a hand on metal sparks and one on
+concrete does not.
+
+`a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see` is green on both maps
+and reads them apart: dust 0 motes at a 0.21m step, 10 at 1.01m and 28 at 3.01m
+against a 0.5m floor; the scuff's puff 6 motes with the nearest 3.5cm (plant)
+and 3.6cm (yard) from the hands at y=3.80; a hand-plant on `hall-container`'s
+paint threw 6 sparks against concrete's 0, and on the yard `ring-west-0`'s
+corrugated did the same; the flash 60cd on the frame of the shot and 0 on the
+next, `castShadow` false, with the scene's point lights 14 before and after on
+the plant and 7 on the yard; muzzle luma +8.28 lit against suppressed on the
+plant and +8.38 on the yard; and the caps held 96/96 over 200 landings. The
+break is one config number - `dust.minFall` 0.5 to 0 - and it reds the clause
+it is for, on both maps: *"a 0.21m step down made 8 motes, want none under
+0m"*.
+
+**What the proof found that a probe could not.** The 17:00 run measured all six
+clauses with `npm run probe` and called them passed, which they were - but a
+probe runs no census, and the first real proof came back with two reds, both
+declarations a new module owes rather than faults in it: `dust.js` drew three
+values from `lookRng` and sat in no row of `rngdraws.js`, and `dustlight.js`
+renders a frame and was in neither of `breathcensus.js`'s two lists. Fixed in
+`ed10100` as three rows and one `DRAWN` entry, and both censuses are green on
+both maps after it. This is H52's lesson arriving a third time, and the cheap
+reading of it is that **a job measured by probe is not a job proved**: the
+clauses were right and the module's paperwork was missing, and only the suite
+asks for the paperwork.
+
+Two disclosures the queue entry asked be carried here, both still true. Clause
+(e)'s concrete half is the same real grab with `box.surface` relabelled,
+because no hangable concrete ledge exists on either map - so the clause proves
+that the finish decides the sparks and not that a concrete ledge exists to
+grab. And clause (f)'s 200-in-a-row stress emits `shade:land`, `combat:shot`
+and `combat:impact` on the emitter rather than driving 200 real falls, so it
+bounds the pool and not the physics. The Warden's landings still raise no dust:
+only the Shade emits `shade:land`.
