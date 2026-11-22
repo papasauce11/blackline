@@ -23562,3 +23562,96 @@ Scheduled audit, read-only, HEAD `87cf11b`. The window is `git log --since="8 da
 **Tree.** `git status --short` shows `version.json` modified: the suite's own stamp of HEAD over the committed `a0efa7d`, left alone. Nothing else.
 
 **Recommendation.** Keep the desktop app open: the routine fired 6 of 14 times this week and not at all in the two weeks before, and the six runs that did fire landed 24 jobs. One line each under D89, D90, D94 and D102 unblocks J2, J3 and J9 and sets J6's dust; then `npm run bench`.
+
+## J7 — Reactions (2026-11-22, Josh's session)
+
+**Built** by a Sonnet builder in its own worktree, on J8's pattern: `reactEase`
+replaces `easePose` at both bodies, subtracting last frame's offsets, easing
+the pose alone and adding the new ones - without that the ease swallows a
+quarter-second jolt. It writes the head's pitch and roll and both arm groups on
+both bodies, and the Warden's chest pitch for the stagger only:
+`breathcensus.js` holds the Shade's torso pitch and the Warden's chest height,
+not its chest pitch, so a reaction never touches what the census holds.
+Triggers in `wiring.js`: `combat:damage`, the one event with a target and a
+source (knife, round, frag), and `gadget:taser` with `hit: 'warden'` for the
+stagger - a direct `warden.stun()` raises no event, which is why `animation.js`
+and `warden.js` see no stagger. Cleared on `match:init`, `combat:respawn` and
+`objective:reinsert`.
+
+**Two deviations from the brief, both right.** The stagger is held against the
+carry the chest started from, not against the stunned pose: the sag is 0.2
+forward and an ease from zero never passes it, so "beyond the stunned value"
+would have passed with no stagger at all. And the Shade's wound is
+`combat.applyDamage` with the Warden's position as its source, since no input
+makes the Warden fire at a Shade the human drives under `ai: false` -
+`feedback.js` uses the same entry. Her "first person" half is the Warden's
+camera: the Shade has no first-person view.
+
+**Proved** in a 35-check subset - its check, the death-camera, feedback,
+animation and idle-life checks it could disturb, and the 24-entry census - from
+its own worktree with J5 absent: plant 35 / 0, yard 34 / 0 / 1. The check read
+*"a knife hit swung the Warden's head 0.180 and arms 0.150/0.150 rad away
+within 3 frames ... and 1.1e-16 rad is left at 0.5s; a taser rocked the chest
+to 0.152 rad against a carry of 0.000 ... into a stunned pose of -0.200 that it
+is 2.0e-10 rad off at 0.6s; a round moved the Shade's head 0.150 and arms
+0.100"* on both maps. **Break**: `step()` returning before it advances, every
+offset held at zero - red on both maps on (a), (b) and (c), *"the Warden's head
+is 0.000 rad away from the Shade, want at least 0.090 ... the chest reached
+-0.088 against a carry of 0.000"*. The thinnest margin is the stagger, 0.152
+against its 0.1 floor, and the census row's placeholder now says so.
+
+**The look is a default** (D84): the numbers are in `CONFIG.reactions` with a
+line each, and PLAYTEST.md asks Josh whether they read right.
+
+## J5 - The killing shot, replayed, built and parked (2026-11-22, Josh's session)
+
+**Built** by a Sonnet builder in its own worktree from the lead's design: not a
+re-simulation - "via the input log" would mean replaying the whole match to
+reach two seconds before a death - but the drawn poses recorded and played
+back. `src/systems/killcam.js` keeps, for every drawn frame, each node of both
+bodies (position, quaternion, scale - the Shade's crouch is a scale - and
+visibility) and the Warden's eye from his own camera rig, with his yaw and
+pitch; preallocated rings, nothing allocated a frame. The death camera gained a
+first phase: `begin` replays when four or more frames are held, the ragdoll and
+the orbit move to the replay's end, the Warden's mesh is hidden while the
+camera is in his head, and the guard still comes first. Jump or fire skips; one
+HUD line names the key from the live binding; his `combat:shot` flashes are
+redrawn through `dust.muzzleFlash`, which is light only.
+
+**Why it is parked (D103).** The first proof, J5 and J7 together, froze the
+suite for 241s at `death-camera-watches-the-killer`; with the weekly audit due
+at 10:07 the branch was put back to `87cf11b` before it fired. The re-run after
+the audit froze for 240s at `the-death-camera-frames-the-killer`. Then the same
+subset from each job's worktree: J7 alone green on both maps, J5 alone frozen
+at the framing check again, and the base, from a third worktree, green. With
+only the three death-camera checks J5 passes, so the trigger needs something an
+earlier check leaves on the page. Nothing in J5 was found that runs in those
+checks; the bisection is the next run's.
+
+**Two things this run used that were new.** The suite run from a worktree, with
+the main checkout's `node_modules` linked in, which proved and attributed two
+jobs without moving the branch (TRAPS); and the order of the morning - the
+audit's suite hour is a fixed window on Sundays, and a build session that
+starts beside it gets its builders' time and loses its proofs until it ends.
+
+## The twelfth batch - J7 alone - is green (2026-11-22, Josh's session)
+
+Full two-run verify at `f4baab1`, about 90 minutes: plant **272 / 1 / 10**
+(1,509,103ms, 1,479,780ms), yard **254 / 1 / 28** (1,075,751ms, 1,081,693ms),
+pair spreads 2% (29,323ms) and 1% (5,942ms), `red`, `flaky`, `skipped`,
+`expectedRed` and `unexpectedGreen` empty, 0 console errors, ceiling 15 within
+50 of 600 with `tests/difficulty.js` at 600, 0 left (H113), of 240 loaded. The
+one failure a map is the bench-only sweep (H11), benched: 847.10ms and 866.20ms
+on the plant, 625.10ms and 869.00ms on the yard, single samples on SwiftShader.
+
+**One more check on each map, and that is the right number**: J7 added
+`a-hit-body-flinches-a-tased-warden-staggers-and-no-camera-moves` and changed
+no other check's count. The yard's climb check read 426ms and 386ms (the
+plant's 760ms and 410ms) at a verify's width. Josh closed D102 from another
+session mid-verify (`0b420c5`, DECISIONS.md only), so the verified code is the
+code at HEAD.
+
+**J5 is not in it** (D103): built, parked on its worktree, and the stall it
+causes is the next run's to bisect. **Pruned** (H109's rule): J7's worktree and
+branch, its commit found on `phases-14-45` first. J5's stays, since its code
+lives only there.

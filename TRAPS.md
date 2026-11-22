@@ -1213,3 +1213,15 @@ each map — a fixed check order plus a shared page, never a flake. **A check th
 deliberately damages the game puts it back**, even where the damage is something
 the game itself would restore in a frame that completed, and even where the
 clause rightly declines to *assert* that value.
+
+**A worktree has no `node_modules`, and the suite can run from one anyway.** To
+prove or attribute a job without landing it, link the main checkout's
+`node_modules` into the worktree (`mklink /J <worktree>\node_modules
+<main>\node_modules`) and run `node scripts/suite.mjs` from the worktree: it
+serves that tree's `src/`, and the one-suite-at-a-time rule still holds across
+the machine. 2026-11-22 put J5 and J7 on separate trees this way and ran a base
+control from a third, and the branch never moved (D103). **Take the link out
+with `rmdir` before any `git worktree remove --force`**, so a forced remove has
+no junction to walk into, and expect `version.json` stamped in the worktree -
+which is why that remove wants `--force`. `node_modules` holds only
+`playwright-core`; three is in the repo.

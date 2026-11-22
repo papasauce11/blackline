@@ -1233,6 +1233,11 @@ the end of this list, never ahead of a game-facing job.
   stall**; and if it is not the cause, the remaining suspect is named with its
   own reading. H122, J12 and J6's parks are re-judged on the answer, not before
   it.
+  **2026-11-22, a stall that is a job's** (D103): J5's 35-check subset froze at
+  the death-camera framing check three runs in three, while its three-check
+  subset passed and the same 35 passed on the base and with J7 - the opposite
+  of the narrow-run shape above, and one that moves with a commit, so it can be
+  bisected.
 
 ## Block K — the Warden as an opponent
 
@@ -1357,6 +1362,18 @@ provisional; the rule for "thin" is mechanical, never a tag.
 - [ ] **J5 (M)** The killing shot, replayed. On death, two seconds from the
   Warden's eye via the input log (H13), then the ragdoll; skippable.
   *done-when:* a check dies and reads the replay's frames.
+  **Built, parked, not merged** (2026-11-22, Josh's session, D103): the code is
+  `1f1fbc8` and `8ff03cf` on `worktree-agent-ab07ca53aaf635a3e`. A recorder,
+  `src/systems/killcam.js` (193), keeps each drawn frame's node transforms for
+  both bodies and the Warden's eye; the death camera (`deathcam.js` 214 to 320)
+  plays the last two seconds from his eye before the ragdoll, skippable on jump
+  or fire, his flashes redrawn, and one HUD line names the skip key. **Why
+  parked:** with it, the 35-check proof subset in D103 stands still for 240s at
+  `the-death-camera-frames-the-killer` (8 of 35) on the plant, three runs in
+  three; without it the same subset passes on the base and with J7. Its own
+  check and break have never run. **Resume:** cherry-pick both, reproduce from
+  the worktree (TRAPS: the suite runs from one with `node_modules` linked), and
+  bisect the 35 by halves, three runs a tree.
 - [x] **J6 (S)** Dust and light - done 2026-11-22, under Done (`69629a8`, census declarations in `ed10100`). `src/systems/dust.js`, the flash and the 96-mote pool stepped by `effects.js`, `CollisionBox.surface` from `mapbake`, `shade:land` / `shade:grab`, and `a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see`. Merged as built: **D102 is still unanswered**, so the dust is the dim tan at 0.6 and 0.5m. Its proof found what its probe could not - two census declarations (see PROGRESS). OLD ENTRY: Landing dust by fall
   height, a muzzle flash light (unshadowed, one frame), sparks on a metal
   hand-plant, the scuff's puff. *done-when:* pixel checks; particle caps hold.
@@ -1385,8 +1402,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
   `combat:shot` / `combat:impact` on the emitter rather than driving
   200 real falls. The Warden's landings still raise no dust - only the Shade
   emits `shade:land`.
-- [ ] **J7 (S)** Reactions. The Warden flinches on damage and staggers on a
-  taser; the Shade flinches in third person. *done-when:* pose checks.
+- [x] **J7 (S)** Reactions — done 2026-11-22, under Done. `src/entities/reactions.js` (`reactEase` at both bodies' pose ease), `CONFIG.reactions`, the `combat:damage` / `gadget:taser` listeners in `wiring.js`, `a-hit-body-flinches-a-tased-warden-staggers-and-no-camera-moves`.
 - [x] **J8 (S)** Idle life - done 2026-11-21, under Done. `src/entities/idlemotion.js`; breath on the arm groups and wind as a hood yaw, because `breathcensus.js` forbids the chest and the torso tilt; `a-body-at-rest-is-never-still-and-one-in-a-menu-always-is` in `src/tests/idlelife.js`.
 - [ ] **J9 (S)** **blocked: D90** (key feel, D84) — Sprint FOV kick and the crouch camera's easing, under H9's
   toggles. *done-when:* a check reads the FOV over a sprint.
@@ -1597,6 +1613,13 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **J7** Reactions. A hit body is drawn flinching away from what hit it - the
+  Warden 0.18 rad at the head and 0.15 at the arms over 0.25s, the Shade 0.15
+  and 0.10 over 0.2s - and a tased Warden's chest rocks back before it sags
+  into the stunned pose instead of snapping to it. Presentation only, on the
+  wall clock, held still behind a menu, and no camera moves: a shake is J2's,
+  and D89 is Josh's. The amplitudes are the lead's default under D84. Built by
+  a Sonnet builder in a worktree - `f4baab1`, 2026-11-22, Josh's session.
 - **J8** Idle life, and the one body the census would not let breathe. Breathing sway on both figures, the Warden's head leading its body into a turn, the Shade's hood in the yard's wind, and all three still behind a menu. The brief's chest-and-torso design was refused by `tests/breathcensus.js` - it asserts the Shade's torso `rotation.x` does not move over a breath and that the Warden's chest does not rise - so the breath is the two arm groups' `position.y` (+-2cm at the shoulder) and the wind is a hood **yaw**, not a roll, since the hood is merged into the torso and splitting it out would be a 13th draw call against `figure.js`'s cap of 12. `src/entities/idlemotion.js` (157) is new because `agentvisual.js` was at 582 and H121 is queued to split it; it took **two** lines. Pure function of wall time and speed, zeroed off the ground and while stunned, gated by `setIdleLife(live, windy)` from `main.js` with `windy` an `outdoor` flag in the map registry beside `night`. Proof 44/44 on both maps, red and flaky empty, 0 console errors: *+-0.0200m, 3 peaks, 3 troughs* on both figures against a 0.005m floor, *0.0596 rad* of hood on the yard and *0.0000* on the plant, and nine zeroes on every one of the four behind a pause menu. Break: the breath term times zero, clause (a) red on both maps. Left **H110** a second piece of evidence - the 400-character cap cuts both detail strings mid-sentence, so the neck-lead and sprint-fade numbers never reach a reader. `6db73eb`.
 
 

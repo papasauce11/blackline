@@ -95,6 +95,25 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### A hit lands on the body now (J7, 2026-11-22)
+
+When the Warden is knifed or caught by a frag, his head and arms jerk away
+from where it came from and settle in a quarter of a second. Tase him and he
+rocks back before he sags into the stun, where before he just snapped to the
+slumped pose. The Shade flinches the same way in third person when a round
+hits her. Nothing moves the camera - a screen shake is a separate question
+(J2), still yours.
+
+**What the checks prove.** A real knife hit and a real taser shot on both
+maps, the head and arms read off the drawn body within three frames and back
+to nothing by half a second; the camera held to a billionth of a metre through
+her flinch.
+
+**What is left for you.** The size is a guess: 0.18 radians at his head is
+about ten degrees. **What to look for:** whether a knife hit reads as a hit
+or as a twitch, and whether the stagger is too theatrical. Say "bigger",
+"smaller" or "fine" and it is one number each.
+
 ### The Warden stops walking off the deck (K14, 2026-11-20)
 
 Send the Warden across the plant’s west deck to the stairs and it used to

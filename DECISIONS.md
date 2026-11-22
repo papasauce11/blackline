@@ -196,6 +196,31 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D103 — J5 is parked on a stall it causes, and J7 lands without it
+Taken by the lead under D84 (this run's own work; D100 and D101 settle the
+policy). Josh's session, 2026-11-22.
+
+- **J5 freezes the suite, three runs in three.** The proof subset - its check,
+  J7's, `death-camera-watches-the-killer`, `death-camera-guard-always-returns-control`,
+  `the-death-camera-frames-the-killer`, the three feedback pixel checks, the
+  two animation checks, idle life, the end screen and the 24-entry census -
+  stood still for 240s on the plant at the framing check (8 of 35) with J5
+  alone, and at `death-camera-watches-the-killer` (5 of 36) and the framing
+  check (8 of 36) with J5 and J7 together. Without J5 it passed: on the base
+  `1f8ac75` (34 and 33) and with J7 alone (35 and 34), each run from its own
+  worktree so the branch never moved. With only the three death-camera checks,
+  J5 passed, the framing check in 24s - so something an earlier check leaves on
+  the shared page is half of it.
+- **Indicated, not explained.** By the code the replay never engages in those
+  eight checks: each opens a match, which clears the recorder, and none draws
+  four frames before a death. What J5 changes everywhere is a recorder written
+  on every drawn frame and the death camera's begin reordered. Next is the
+  bisection of the 35 by halves at J5's commit, three runs a tree, which is
+  D100's discipline.
+- **J7 lands alone** rather than waiting: its proof is green on both maps with
+  J5 absent and its break red. Override: merge J5 and raise `--stall`, which
+  D100 refused.
+
 ### D101 — A refactor that freezes the base is reverted, and the job it blocked is parked
 Taken by the lead under D84 (a policy call about this run's own work: not
 personality, not styling, not key feel, and not high-priority enough for the
