@@ -129,6 +129,12 @@ const SPENDERS = [
   { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about x', feeds: 'spinX' },
   { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about y', feeds: 'spinY' },
   { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about z', feeds: 'spinZ' },
+  // J6's dust, beside the sparks and the smoke it is the sibling of: a mote is
+  // a mark on the air and nothing reads it back, so all three belong on the
+  // look stream by the same argument H27 makes for a footprint's yaw.
+  { file: 'src/systems/dust.js', stream: 'lookRng', method: 'next', when: 'a mote leaves: its angle around the contact point', feeds: 'angle' },
+  { file: 'src/systems/dust.js', stream: 'lookRng', method: 'next', when: 'a mote leaves: how much of the spread it takes', feeds: 'speed' },
+  { file: 'src/systems/dust.js', stream: 'lookRng', method: 'range', when: 'a mote leaves: its upward speed, lifted by the fall', feeds: 'slot.vy' },
 ];
 
 /** The two files this census does not read, and why, as data. */

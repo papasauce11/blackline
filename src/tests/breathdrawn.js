@@ -105,6 +105,12 @@ export const DRAWN = [
     note: 'all three clauses are differences between two grabs with only the feedback quad toggled - the vignette, the hit marker, the damage arc - so the body in the frame is the same body at the same pose in both and cancels exactly',
   },
   {
+    module: 'dustlight.js',
+    reach: 'none',
+    proof: 'onepose',
+    note: 'J6. Its one pixel reading is the muzzle flash measured against itself - the same frame of the same shot with the light switched on and suppressed, +8.28 luma on the plant and +8.38 on the yard - so the body in both grabs is the same body at the same pose and the breath cancels exactly, as the three in feedback.js do. Its other five clauses count motes, sparks, point lights and pool occupancy, and read no pixel of a body at all',
+  },
+  {
     module: 'sitetint.js',
     reach: 'none',
     proof: 'hidden',
