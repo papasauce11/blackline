@@ -17,8 +17,9 @@ import * as THREE from 'three';
 import { CONFIG, SETTINGS } from '../config.js';
 import { applyGravity } from '../physics.js';
 import { buildWardenMesh, buildGroundBlob, WARDEN_FIGURE } from './wardenmesh.js';
-import { blendFactor, createPoseTarget, easePose, headBobLift, positionSmoothing, restPose } from './pose.js';
+import { blendFactor, createPoseTarget, headBobLift, positionSmoothing, restPose } from './pose.js';
 import { idleLife, neckTurn } from './idlemotion.js';
+import { reactEase } from './reactions.js';
 
 const W = CONFIG.warden;
 /** The carry (E2): where the arms rest, and the rifle with them. */
@@ -384,7 +385,7 @@ export class Warden {
     const parts = this.mesh.userData.parts;
     this._posture(this._pose, wallDt);
     idleLife(this, wallDt, this.state === WARDEN_STATE.GROUND, false);
-    easePose(parts.chest, parts, this._pose, blendFactor(wallDt));
+    reactEase(this, parts.chest, parts, this._pose, blendFactor(wallDt), wallDt);
   }
 
   /**

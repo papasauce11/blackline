@@ -237,6 +237,14 @@ export const CENSUS = [
     note: 'reads the one camera\'s world position and world rotation before and after a frame that drew the alarm feed, and asserts they are identical - the camera against **itself** across a draw, with `updateVisual` nowhere between the two reads (the frame is `post.render`, which draws and never advances the chase), so whatever gap the chase has open it has open on both sides and the difference is the borrow alone. No drawn body\'s position is read at all: the Warden and the Shade are placed by `reset()`, which snaps, and the panel is read in screen space',
   },
   {
+    module: 'reactions.js',
+    reach: 'held',
+    how: 'waits',
+    frames: 'until two frames agree, at most 240',
+    reads: /h\.camera\.getWorldPosition\(/,
+    note: 'J7. Reads the one camera\'s world position and rotation across the frames of a flinch against its own reading from before the blow, and asserts they are identical to 1e-9. It does not hold a count against the law as `hang.js` does: it waits on the condition itself, drawing frames until two successive reads of the camera agree to 1e-12 (the chase\'s own tail is 0.857^n, so under 240 frames), and reports a camera that never stops easing as a problem rather than reading a baseline off it. **The wait is the control**: an unmoved camera read before the chase has closed would be red for the wrong reason, and a read after it, against itself, is red only for a blow that moved it',
+  },
+  {
     module: 'cameraclip.js',
     reach: 'none',
     proof: 'relative',

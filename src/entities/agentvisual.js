@@ -11,8 +11,9 @@
 
 import { CONFIG } from '../config.js';
 import { SHADE_STATE } from './agentstate.js';
-import { blendFactor, easePose, headBobLift, positionSmoothing, restPose } from './pose.js';
+import { blendFactor, headBobLift, positionSmoothing, restPose } from './pose.js';
 import { hoodYaw, idleLife } from './idlemotion.js';
+import { reactEase } from './reactions.js';
 
 const S = CONFIG.shade;
 /** The knife lives in combat config; the arc that draws it reads the same
@@ -268,7 +269,7 @@ export const VISUAL = {
     const pose = this._pose;
     this._posture(pose, wallDt);
     idleLife(this, wallDt, this.state === SHADE_STATE.GROUND, true);
-    easePose(parts.torso, parts, pose, blendFactor(wallDt));
+    reactEase(this, parts.torso, parts, pose, blendFactor(wallDt), wallDt);
 
     // The hands-up slap (B2): both arms thrown straight up against the face,
     // then dropped over the pose time. Overrides whatever the state posed.

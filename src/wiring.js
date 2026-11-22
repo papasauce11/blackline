@@ -9,6 +9,7 @@
 
 import { sayOutcome } from './ui/scoreboard.js';
 import { contextRestored } from './quality.js';
+import { clearReactions, flinch, stagger } from './entities/reactions.js';
 
 /**
  * @param {object} s the built systems and actors, by name
@@ -79,6 +80,25 @@ export function wireMatchEvents(s) {
   emitter.on('gadget:alarm-destroyed', (event) => hud.push(`alarm camera destroyed - ${event.by}`));
   emitter.on('combat:takedown', () => hud.push('takedown'));
   emitter.on('combat:knife-hit', (event) => hud.push(`knife hit - warden ${Math.round(event.remaining)}`));
+  // J7: a body is drawn flinching from what hit it. Combat says who was hit and
+  // from where (`at` is the attacker's position, or none for a blow with no
+  // source); the Shade and the Warden are told apart by the target. A taser
+  // does no damage and so raises no `combat:damage`: its own event is the
+  // stagger, and a stun is only ever a taser's. Nothing here reaches a camera.
+  emitter.on('combat:damage', (event) => {
+    if (event.target === 'warden') flinch(warden, event.at);
+    else if (event.target === 'shade') flinch(shade, event.at);
+  });
+  emitter.on('gadget:taser', (event) => {
+    if (event.hit === 'warden') stagger(warden);
+  });
+  // A new round or a respawn starts on a body that is not mid-reaction.
+  for (const name of ['match:init', 'combat:respawn', 'objective:reinsert']) {
+    emitter.on(name, () => {
+      clearReactions(shade);
+      clearReactions(warden);
+    });
+  }
   // Section 10.2: the Shade's death takes a life, ragdolls the body and hands
   // the camera to a free-look view of the killer for the countdown.
   emitter.on('combat:death', (event) => {

@@ -2333,6 +2333,41 @@ export const CONFIG = {
      */
     wind: { yaw: 0.06, period: 2.6, gust: 0.35, gustRate: 2.7 },
   },
+
+  /**
+   * Reactions (J7): how a body is drawn when it is hit. Presentation only, on
+   * the wall clock inside `updateVisual`, and still behind a menu: it writes
+   * the head, the arm groups and (a stagger only) the Warden's chest, and
+   * nothing the simulation or either camera reads - a screen shake is a
+   * different job. `entities/reactions.js` is the one reader. Every number is
+   * a look, the lead's default until a picture says otherwise.
+   */
+  reactions: {
+    /**
+     * The Warden's flinch from damage, radians at full strength, decaying to
+     * nothing over `time` seconds. The head moves most because it is what
+     * reads at ten metres; the arms carry the rifle, so a smaller swing is
+     * enough to jolt it. A quarter of a second is long enough to see and
+     * short enough that the second knife hit of a two-hit kill lands on a
+     * body that has finished the first.
+     */
+    flinch: { head: 0.18, arms: 0.15, time: 0.25 },
+    /**
+     * The stagger on a taser: the chest rocks back `lean` radians, peaking at
+     * `peak` seconds and gone by `time`, over the stunned pose it is easing
+     * into. The stun used to be a pose change and nothing else; a body that
+     * has just been shocked goes back before it sags, and 0.35 is enough to
+     * cross the sag's own 0.2 forward and show a lean the other way.
+     */
+    stagger: { lean: 0.35, peak: 0.12, time: 0.45 },
+    /**
+     * The Shade's flinch from a round or a frag: smaller than the Warden's,
+     * because her body is slighter and the third-person camera frames it
+     * small, and a shorter 0.2s so a burst reads as a run of jolts and not
+     * one long wobble. A second hit restarts it rather than adding.
+     */
+    shade: { head: 0.15, arms: 0.10, time: 0.2 },
+  },
 };
 
 // ---------------------------------------------------------------------------

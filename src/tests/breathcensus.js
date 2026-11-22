@@ -221,6 +221,12 @@ const POSED = [
     reach: 'measured',
     note: 'reads shoulder HEIGHTS and a torso YAW, differenced against a run of its own: the breath it measures is `idlemotion.js`\'s (J8), written on the two arm groups\' position.y and the torso\'s rotation.y precisely so that neither this census\'s torso-rotation.x proof nor its Warden-chest-height proof is disturbed. It reads no pixel and no camera, its thinnest clause is the breath floor at rest and its sprint clause is a difference of two runs, so the carried breath and gait phases cancel in it. Its margins are in its detail line'
   },
+  {
+    module: 'reactions.js',
+    reach: 'none',
+    proof: 'rotations',
+    note: 'J7. Reads the head, arm and chest ROTATIONS of a body standing still, each as its own difference from the reading just before a blow, and the one camera against its own reading from before the blow: a breath moves arm heights and a torso lift and no rotation (the `rotations` proof, held above), the gait moves nothing in a body that does not walk, and the baseline is taken after the body has rested and held to 1e-9 over five frames before it is believed. The Warden\'s chest PITCH is written by a stagger, which this census\'s Warden proof does not touch - it holds the chest\'s HEIGHT - and the Shade\'s torso pitch is not written by a reaction at all. Its bars are fractions of `CONFIG.reactions`, 0.5 of an amplitude and 0.1 rad of lean, against readings that should sit near 0.85 of one; **UNMEASURED - the lead measures the thinnest margin with the probe once the suite is idle*',
+  },
 ];
 
 /**
