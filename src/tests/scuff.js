@@ -289,6 +289,67 @@ export function register(debugTools) {
       };
     },
   });
+
+  debugTools.registerAutoTest({
+    id: 'the-tall-face-search-runs-once-a-map-and-every-later-caller-reads-the-cache',
+    spec: 'H125; D100',
+    name: 'findTallFace steps its candidates once per (map, minRise): the second call for any of the three live minRise values steps no frames and returns the same face',
+    run: (h) => {
+      const problems = [];
+      h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
+      h.menu.hide();
+      const fullReach = S.reach.standing + S.reach.jumpBonus;
+      // The three values the live callers ask for. Whichever check ran first
+      // for each has already paid, so every clause reads the counters as
+      // deltas and holds whether the cache is warm or cold.
+      const rises = [fullReach + 0.3, fullReach + 0.5, 2.5];
+      // No clock here on purpose. The stepped-frame counter is exact and
+      // reads the same on every machine, where a wall-clock ratio taken
+      // under software GL is the kind of verdict this suite declines (H11,
+      // D74) - and taking one would enrol this module in
+      // `timedrenders.js`'s census for a courtesy number. The duration that
+      // matters is the one the suite already reports for
+      // `a-climb-beyond-reach-bumps-poses-and-sounds`.
+      const rows = [];
+      try {
+        for (const r of rises) {
+          const s0 = tallFaceSearchStats();
+          const first = findTallFace(h, r);
+          const s1 = tallFaceSearchStats();
+          const second = findTallFace(h, r);
+          const s2 = tallFaceSearchStats();
+          const frames = s1.steppedFrames - s0.steppedFrames;
+          rows.push(`${r.toFixed(1)}m ${frames}f in ${s1.searches - s0.searches} search(es)${frames === 0 ? ' (already warm)' : ''}`);
+          // (a) the clause the job exists for.
+          if (s2.searches !== s1.searches || s2.steppedFrames !== s1.steppedFrames) {
+            problems.push(`the second call for ${r.toFixed(1)}m searched again (${s2.searches - s1.searches} searches, ${s2.steppedFrames - s1.steppedFrames} frames)`);
+          }
+          // (b) the cached answer is the same answer, to the centimetre and better.
+          if (first === null || second === null) {
+            if (first !== second) problems.push(`the ${r.toFixed(1)}m calls disagree on whether a face exists`);
+          } else {
+            if (first.box !== second.box) problems.push(`the ${r.toFixed(1)}m calls returned different boxes`);
+            for (const k of ['x', 'z', 'yaw']) {
+              if (Math.abs(first[k] - second[k]) > 1e-9) problems.push(`the ${r.toFixed(1)}m calls differ in ${k}`);
+            }
+          }
+        }
+        // (c) every live minRise is its own entry.
+        const cache = h._tallFaceCache;
+        if (!cache || cache.map !== h.map) problems.push('the cache is not held on the harness against this map');
+        else if (cache.entries.size < rises.length) problems.push(`${cache.entries.size} cached minRise keys are live, want ${rises.length}`);
+      } finally {
+        h.input.clearAll();
+        h.shade.reset(h.map.shadeSpawns[0]);
+      }
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `second call steps 0 frames, same face, for each of: ${rows.join('; ')}`
+          : `${problems.join('; ')} [${rows.join('; ')}]`,
+      };
+    },
+  });
 }
 
 /** Press Space for one step, the way a tap arrives: held and pressed together, then released. */
@@ -338,12 +399,41 @@ function driveUntilScuff(h, spot) {
 }
 
 /**
+ * Searches made and frames stepped inside them, since the page loaded. A
+ * check reads them as deltas: only a real search counts, never a cache hit.
+ */
+const searched = { searches: 0, steppedFrames: 0 };
+export function tallFaceSearchStats() {
+  return { searches: searched.searches, steppedFrames: searched.steppedFrames };
+}
+
+/**
  * A solid box standing on the ground at least `minRise` tall, with a spot
  * 0.8m off one of its faces where the Shade stands and its own probe reports
  * that face - and no ledge - ahead. The probe is the arbiter, as in
  * `findGroundLedge()`.
+ *
+ * The search is up to ~1,580 stepped frames, and five checks asked for it,
+ * so on the yard it ran close enough to the watchdog's stall limit that
+ * unrelated work tipped it over (H125). It is made once per (map, minRise)
+ * and kept on the harness, so it dies with the page; a `null` is kept too.
+ * The answer is geometry and the same object every time. Where the Shade
+ * stands afterwards is not part of it: a search leaves it reset at the face
+ * it found and a cache hit leaves it where the caller had it, so a caller
+ * resets the Shade before it reads anything of it.
  */
 export function findTallFace(h, minRise) {
+  let cache = h._tallFaceCache;
+  if (!cache || cache.map !== h.map) cache = h._tallFaceCache = { map: h.map, entries: new Map() };
+  const key = minRise.toFixed(4);
+  if (cache.entries.has(key)) return cache.entries.get(key);
+  const found = searchTallFace(h, minRise);
+  cache.entries.set(key, found);
+  return found;
+}
+
+function searchTallFace(h, minRise) {
+  searched.searches++;
   const ground = CONFIG.map.groundY;
   const shade = h.shade;
   for (const box of h.map.collision.boxes) {
@@ -358,6 +448,7 @@ export function findTallFace(h, minRise) {
       const yaw = Math.atan2(nx, nz);
       shade.reset({ position: { x, y: ground, z }, yaw });
       h.stepFrames(3);
+      searched.steppedFrames += 3;
       if (!shade.grounded || Math.abs(shade.feetY - ground) > 0.05) continue;
       shade.grounded = false;
       const ledge = shade._probeLedge(S.mantleReach);
