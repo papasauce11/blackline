@@ -23385,3 +23385,59 @@ yard in 372ms and 349ms - six hundred times under the 241s stall, and a quarter
 of the 1,464ms the single-check reading gave it after the revert. So the revert is
 confirmed by the whole suite and not just by the one check in isolation, and
 H125 now has the number it has to protect.
+## H125 - The search was six frames, and the stall was the cold page (2026-11-22, the 02:00 run)
+
+`findTallFace` is memoised. The old body moved unchanged to `searchTallFace`
+and the export became a wrapper over `h._tallFaceCache` - `{ map, entries }`,
+keyed by `minRise.toFixed(4)`, rebuilt when `h.map` is not the map the entries
+were found on, storing a `null` result too so a map with no qualifying face
+does not search twice. Nothing else changed: the iteration order is untouched,
+the answer is the same object, and **no call site was edited**, which is the
+point of putting the memo inside the helper rather than at the five callers.
+`tallFaceSearchStats()` exports the two counters the new check reads as deltas.
+Each of the four live call sites was read first and every one resets the Shade
+before it reads anything of it, so the cached path leaving the Shade where the
+caller had it is safe; the helper's header now says so, because that invariant
+is the one a future caller could break.
+
+`the-tall-face-search-runs-once-a-map-and-every-later-caller-reads-the-cache`
+holds three clauses: the second call for a `minRise` changes neither counter,
+it returns the same box and the same x/z/yaw to 1e-9, and the three live values
+are three live keys held against the current map. The break is one line -
+`cache.entries.set(key, found)` deleted - and it reds clause (a) on all three
+keys at once: *"the second call for 4.1m searched again (1 searches, 6 frames)
+... 0 cached minRise keys are live, want 3"*. Proof: 32 passed / 0 failed on
+each map over the job's check, the four callers' eight checks and the 24-entry
+census set; the break red on the plant; restored and green; and the yard three
+times running, 3/3, 14,685ms / 1,542ms / 1,343ms.
+
+**And the job's own premise is wrong, which is the finding.** The queue entry
+said the search walks up to ~1,580 stepped frames and that this is what tipped
+the yard over the 241s watchdog. The counter says the search costs **6 stepped
+frames** - two candidates deep - for all three live `minRise` values on both
+maps, because the first qualifying face sits near the front of the box list.
+Six frames cannot be worth 240 seconds, so the cache is correct, cheap and
+**not a fix for the stall**.
+
+What the stall is, measured three ways on one tree: the same check, the same
+map, the same intact cache, read **438ms as one of 32 checks and 16,849ms as
+one of 2**. Broken-cache control: 15,971ms, indistinguishable from the intact
+16,849ms, so the cache is not the variable - the **subset width** is. The yard
+says it again inside one process: 14,685ms on the first run, then 1,542ms and
+1,343ms. And the renderer's own accounting closes it - on the yard's cold run
+the pipeline tail was **78ms** with the cost inside the check, and on the two
+warm runs the tail was **13,569ms and 13,588ms** with the check down at 1.5s.
+The same ~13.5s of shader and pipeline build under SwiftShader, billed to the
+check when the page is cold and to the tail when it is not.
+
+That explains every reading in this file that looked inconsistent: 14,968ms and
+1,464ms came from single-check subsets, 372ms and 349ms from a full verify. So
+**a narrow subset is not evidence about a stall**, and the three parks that rest
+on one - H122's revert, J12 and J6 - rest on a cause nobody has found yet. They
+are left parked on purpose: the finding re-frames the question, it does not
+answer it, and un-reverting H122 on a measurement that still does not reach 240s
+would be trading one bad attribution for another. **H126** is queued to take the
+curve properly, and H122's guilt or innocence is judged on that, not on this.
+Every `while` in the step path was read on the way past and they all advance
+(`mapground.js`'s three among them); `_pullStraight` is quadratic with a sampled
+walk inside and is the one cost in there worth a clock.

@@ -994,6 +994,16 @@ the end of this list, never ahead of a game-facing job.
   does not only lose a red’s reading; it loses a green’s evidence, which is the
   thing a verify exists to write down.
 - [ ] **H111 (S)** `suite.mjs --help` starts a seventy-minute run.
+  **It has now bitten three runs. Third time, 2026-11-22, the 02:00 run**: a
+  runner agent sent to prove H125 ran `node scripts/suite.mjs --help` first, to
+  read the flag list, and started a full verify writing to `/dev/null`; it
+  reported the mistake rather than hiding it, and the lead stopped the tree
+  (node 13388 and its headless Chrome child) - but the chain behind it then
+  started the real subset on its own, so the cost was about seven minutes and
+  one wasted Chrome launch. **The pattern is now the finding**: every victim so
+  far was an agent reaching for a usage line that does not exist, which is the
+  one thing the fix below removes. It is the cheapest unfixed trap in the file
+  and it has cost three of the last twelve runs.
   **Confirmed by accident, 2026-11-21, the 17:00 run**:
   `node scripts/suite.mjs --help`, run to read the flag list, launched a
   real run that had to be killed after two minutes - the trap is live and it
@@ -1166,7 +1176,7 @@ the end of this list, never ahead of a game-facing job.
   suite is alive, with bash `ps` named as the wrong one — and
   `traps-md-holds-the-traps-and-handoff-points-at-it` is green.
 
-- [ ] **H125 (S)** `findTallFace` is a tripwire, not a helper. It walks
+- [x] **H125 (S)** `findTallFace` is a tripwire, not a helper - done 2026-11-22, under Done (`c041486`). The memo is inside the helper, so no call site changed; `tallFaceSearchStats()` and `the-tall-face-search-runs-once-a-map-and-every-later-caller-reads-the-cache` in `src/tests/scuff.js`. **The search costs 6 stepped frames, not ~1,580, so the cache is not the stall's fix** - H126 is what this job's measurements queued. The original entry follows. It walks
   every solid box times four faces and calls `shade.reset()` plus
   `stepFrames(3)` at each candidate - up to about 1,580 stepped frames,
   synchronous, no await - and returns at the first match, so its cost is how far
@@ -1188,6 +1198,41 @@ the end of this list, never ahead of a game-facing job.
   first), `a-climb-beyond-reach-bumps-poses-and-sounds` passes on the yard
   three times running, and its duration is recorded in HANDOFF so the next drift
   is visible. **H122 waits on this.**
+
+- [ ] **H126 (M)** The yard stall is not the search, and the climb check's
+  cost is the page's warmth. H125 cached `findTallFace` and **measured what the
+  search actually costs: 6 stepped frames**, two candidates deep, on both maps -
+  not the ~1,580 its own queue entry assumed. So the cache saves six frames a
+  caller and **cannot be what tipped the yard over the 241s watchdog**, which
+  means H122's revert, J12's park and J6's park all rest on a cause that is
+  still unfound. What the same run did measure, on one tree and one map, is a
+  **38x spread in `a-climb-beyond-reach-bumps-poses-and-sounds` by subset
+  width alone**: 438ms as one of 32 checks, against **16,849ms** as one of 2
+  with the cache intact and **15,971ms** as one of 2 with the cache
+  deliberately broken - so the cache is not the variable and the subset width
+  is. The yard repeats it inside one process (14,685ms, then 1,542ms and
+  1,343ms), and the renderer's own accounting closes it: pipeline tail **78ms**
+  on the cold run with the cost inside the check, **13,569ms and 13,588ms** on
+  the two warm ones with the check down at 1.5s - the same shader and pipeline
+  build, billed to the check when the page is cold and to the tail when it is
+  not. That matches every reading in the record -
+  14,968ms and 1,464ms from single-check subsets, 372ms and 349ms from a full
+  verify - so the check's duration is dominated by **first-render cost on a cold
+  page** (shader and pipeline build under SwiftShader), not by anything in the
+  check. The 240s stalls were all narrow runs, so the honest reading is that
+  they are the far tail of this same cost and not a hang in the job that was
+  blamed. Every `while` in the step path advances (`mapground.js`'s three were
+  read and are sound), but `_pullStraight` is quadratic with a sampled walk
+  inside and is the one cost worth timing. *done-when:* the climb check's
+  duration is read on the yard at three subset widths (2, ~32 and a full run),
+  cold and warm, so the curve is a table and not an anecdote; the first-render
+  share is separated from the check's own work by a reading taken after a warm-up
+  render rather than before it; if warmth is confirmed as the cause, the finding
+  is written where the next reader of a stall will meet it (TRAPS.md, and the
+  stall paragraph in HANDOFF) and **a narrow subset stops being evidence of a
+  stall**; and if it is not the cause, the remaining suspect is named with its
+  own reading. H122, J12 and J6's parks are re-judged on the answer, not before
+  it.
 
 ## Block K — the Warden as an opponent
 
