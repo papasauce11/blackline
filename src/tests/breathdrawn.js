@@ -111,6 +111,12 @@ export const DRAWN = [
     note: 'J6. Its one pixel reading is the muzzle flash measured against itself - the same frame of the same shot with the light switched on and suppressed, +8.28 luma on the plant and +8.38 on the yard - so the body in both grabs is the same body at the same pose and the breath cancels exactly, as the three in feedback.js do. Its other five clauses count motes, sparks, point lights and pool occupancy, and read no pixel of a body at all',
   },
   {
+    module: 'impactfeel.js',
+    reach: 'none',
+    proof: 'nobody',
+    note: 'J2. Counts the fixed steps each frame ran and reads the one camera local position and roll: no framebuffer, and no part of a posed body',
+  },
+  {
     module: 'sitetint.js',
     reach: 'none',
     proof: 'hidden',

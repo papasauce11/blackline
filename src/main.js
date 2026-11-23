@@ -24,7 +24,7 @@
  */
 
 import * as THREE from 'three';
-import { CONFIG, SETTINGS, rng, deriveSeed, debugRequested } from './config.js';
+import { CONFIG, SETTINGS, rng, lookRng, deriveSeed, debugRequested } from './config.js';
 import { Emitter } from './emitter.js';
 import { bootWorld } from './boot.js';
 import { bootMapId, isOutdoorMap, mapUrl } from './maps/index.js';
@@ -33,6 +33,7 @@ import { loadSettings } from './settingsstore.js';
 import { pinQuality, sampleQualityFrame, syncQuality } from './quality.js';
 import { FrameLoop } from './loop.js';
 import { computeStepPlan } from './timestep.js';
+import { createImpact } from './systems/impact.js';
 import { resolveMatchOptions, createMatchState, bootMatchOptions } from './matchstate.js';
 import { createCamera } from './view.js';
 import { readShadeIntent, idleShadeIntent, readWardenIntent } from './intents.js';
@@ -65,6 +66,7 @@ import { createWardenIntent } from './entities/enforcer.js';
 /** @type {import('./systems/gadgets.js').Gadgets} */ let gadgets = null;
 /** @type {import('./systems/objective.js').Objective} */ let objective = null;
 /** @type {import('./systems/effects.js').Effects} */ let effects = null;
+/** @type {ReturnType<createImpact>} */ let impact = null;
 /** @type {import('./systems/deathcam.js').DeathCam} */ let deathCam = null;
 /** @type {import('./systems/feedback.js').Feedback} */ let feedback = null;
 /** @type {import('./ui/hud.js').Hud} */ let hud = null;
@@ -160,6 +162,7 @@ export function initMatch(options = {}) {
     gadgets.setUnlimited(match.mode === 'freeroam');
   }
   if (effects) effects.reset();
+  if (impact) impact.reset();
   // A match must never start on the previous one's death camera (Section 15).
   if (deathCam) deathCam.reset();
   if (objective && opts.objective !== false) objective.resetRound(opts.round);
@@ -251,6 +254,7 @@ async function bootstrap() {
     briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport, crashGuard, replays,
   } = built);
 
+  impact = createImpact({ emitter, camera, rng: lookRng });
   setTimeScale(1);
   debugState.stepsPerFrame = 0;
   return null;
@@ -379,6 +383,11 @@ function renderFrame(wallDelta) {
   // seen, and the death cam would lose it the same way.
   const dead = deathCam && deathCam.active;
   const cinematic = (combat && combat.inFinisher) || dead;
+  // J2: the shake comes off the camera BEFORE a cinematic or free-fly writes
+  // that transform itself this frame. The finisher's orbit is set inside the
+  // step below and the death camera's framing just after it, so a clear placed
+  // after them would zero the pose they had just taken.
+  if (cinematic || owner === 'freefly') impact.clear(camera);
   if (!cinematic) cameraOwner.set(owner);
   cameraOwner.look({ human: owner, dead, cinematic, input, deathCam, freefly });
   emitter.emit('frame:begin', { wallDelta, input });
@@ -387,7 +396,7 @@ function renderFrame(wallDelta) {
   // must not quietly fill while the menu is up, or resuming replays the pause.
   // The briefing holds the round the same way.
   const held = paused || briefing.open;
-  const plan = computeStepPlan(accumulator, held ? 0 : wallDelta, clock.timeScale);
+  const plan = computeStepPlan(accumulator, impact.step(held ? 0 : wallDelta), clock.timeScale);
   accumulator = plan.accumulator;
   for (let i = 0; i < plan.steps; i++) {
     fixedStep(plan.dt);
@@ -412,6 +421,7 @@ function renderFrame(wallDelta) {
   // 6.2's ADS narrowing inside it for the Warden (H9). Not while a cinematic
   // has the camera — the FOV is the finisher's and the death camera's then.
   if (!cinematic) cameraOwner.applyFov(owner);
+  if (!cinematic && owner !== 'freefly') impact.apply(camera);
 
   // The Warden-ground overlay's marker follows the human's actor. Nothing
   // while hidden, which is always outside the F4 panel.
@@ -471,6 +481,7 @@ const harness = createHarness({
   gadgets: () => gadgets,
   objective: () => objective,
   effects: () => effects,
+  impact: () => impact,
   deathCam: () => deathCam,
   feedback: () => feedback,
   hud: () => hud,

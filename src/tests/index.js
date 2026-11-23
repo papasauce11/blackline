@@ -137,6 +137,7 @@ import { register as registerStairGround } from './stairground.js';
 import { register as registerIdleLife } from './idlelife.js';
 import { register as registerReactions } from './reactions.js';
 import { register as registerDustLight } from './dustlight.js';
+import { register as registerImpactFeel } from './impactfeel.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -378,4 +379,6 @@ export function registerAutoTests(debugTools) {
   registerReactions(debugTools);
   // J6: dust by fall height, a scuff's puff, one unshadowed frame of muzzle flash, sparks on metal and the pool caps; it steps and photographs through the lens, draws a frame of its own and ends in a fresh match.
   registerDustLight(debugTools);
+  // J2: a hit-stop holds the picture and costs the simulation no step, a frag shakes the camera by its distance, both sit under a setting and a pause freezes a stop; it drives frames of its own and ends in a fresh match.
+  registerImpactFeel(debugTools);
 }

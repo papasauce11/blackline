@@ -2287,6 +2287,14 @@ export const CONFIG = {
        * amplitudes are `CONFIG.shade.camera.bob` and the Warden's.
        */
       headBob: false,
+      /**
+       * Hit-stop and screen shake (J2, D89 - "subtle"): the picture holds for
+       * a beat on a knife or a finisher, and the camera shivers on a grenade
+       * a few metres off. Both on by default, both cheap to turn off; the
+       * sizes are `CONFIG.impact`.
+       */
+      hitStop: true,
+      screenShake: true,
       masterVolume: 0.7,
       matchLength: 5,
       difficulty: 'medium',
@@ -2452,6 +2460,36 @@ export const CONFIG = {
   },
 
   /**
+   * Impact (J2): the picture holding for a beat on a blow and the camera
+   * shivering on a blast. **These numbers are D89's "subtle", Josh's call of
+   * 2026-11-22**, and `a-hit-stops-the-picture-without-costing-the-simulation-
+   * a-step` holds them to it: a later tune that makes either heavy is a red
+   * check and not a drift. `systems/impact.js` is the one reader.
+   *
+   * The hit-stop is **wall clock and it is banked, never dropped**: while it
+   * runs the planner is fed nothing, and the time withheld is fed back on the
+   * frames after, so the fixed step count across the window is exactly what it
+   * would have been without it. The picture stops; the world loses nothing.
+   */
+  impact: {
+    /** Seconds of wall clock the picture holds on a knife hit or a finisher's commit. */
+    hitStopSeconds: 0.04,
+    /**
+     * A frag's shake, by the distance from the camera to the blast: full at
+     * `shakeNearMetres`, nothing at `shakeFarMetres` and beyond, linear
+     * between. A grenade across the yard is a sound, not a shiver.
+     */
+    shakeNearMetres: 2,
+    shakeFarMetres: 8,
+    /** The shake at full strength: metres on the camera's own position, degrees of roll. */
+    shakeMetres: 0.012,
+    shakeRollDegrees: 0.4,
+    /** How long it takes to die away, and how fast it oscillates meanwhile. */
+    shakeSeconds: 0.25,
+    shakeHz: 18,
+  },
+
+  /**
    * Reactions (J7): how a body is drawn when it is hit. Presentation only, on
    * the wall clock inside `updateVisual`, and still behind a menu: it writes
    * the head, the arm groups and (a stagger only) the Warden's chest, and
@@ -2552,7 +2590,7 @@ export const BINDING_GROUPS = [
  * every row does what it did (D55).
  */
 export const SETTINGS_GROUPS = [
-  ['look', ['bl-sens', 'bl-sensy', 'bl-fov-shade', 'bl-fov-warden', 'bl-bob', 'bl-inv', 'bl-post', 'bl-quality']],
+  ['look', ['bl-sens', 'bl-sensy', 'bl-fov-shade', 'bl-fov-warden', 'bl-bob', 'bl-stop', 'bl-shake', 'bl-inv', 'bl-post', 'bl-quality']],
   ['audio', ['bl-vol']],
   ['match', ['bl-len', 'bl-diff', 'bl-brief']],
   ['system', ['bl-dbg', 'bl-reset']],

@@ -65,6 +65,8 @@ export const MENU_PAGES = {
       'bl-fov-warden': ['field of view, warden', slider('bl-fov-warden', CONFIG.settings.fovMin,
         CONFIG.settings.fovMax, 1, SETTINGS.fovWarden)],
       'bl-bob': ['head-bob', value('bl-bob', SETTINGS.headBob ? 'on' : 'off')],
+      'bl-stop': ['hit-stop', value('bl-stop', SETTINGS.hitStop ? 'on' : 'off')],
+      'bl-shake': ['screen shake', value('bl-shake', SETTINGS.screenShake ? 'on' : 'off')],
       'bl-inv': ['invert Y', value('bl-inv', SETTINGS.invertY ? 'on' : 'off')],
       'bl-post': ['post-processing', value('bl-post', postLabel())],
       'bl-quality': ['quality', value('bl-quality', qualityLabel())],
@@ -123,6 +125,19 @@ export const MENU_PAGES = {
     bob.onclick = () => {
       SETTINGS.headBob = !SETTINGS.headBob;
       bob.textContent = SETTINGS.headBob ? 'on' : 'off';
+      this._changed();
+    };
+    // J2 (D89): the two beats of impact, each a switch like the bob.
+    const stop = this.root.querySelector('#bl-stop');
+    stop.onclick = () => {
+      SETTINGS.hitStop = !SETTINGS.hitStop;
+      stop.textContent = SETTINGS.hitStop ? 'on' : 'off';
+      this._changed();
+    };
+    const shake = this.root.querySelector('#bl-shake');
+    shake.onclick = () => {
+      SETTINGS.screenShake = !SETTINGS.screenShake;
+      shake.textContent = SETTINGS.screenShake ? 'on' : 'off';
       this._changed();
     };
     const vol = this.root.querySelector('#bl-vol');
@@ -233,6 +248,8 @@ export const MENU_PAGES = {
       'bl-fov-shade': this._slider(fovShade, () => { SETTINGS.fovShade = parseFloat(fovShade.value); this._changed(); }),
       'bl-fov-warden': this._slider(fovWarden, () => { SETTINGS.fovWarden = parseFloat(fovWarden.value); this._changed(); }),
       'bl-bob': bob,
+      'bl-stop': stop,
+      'bl-shake': shake,
       'bl-inv': inv,
       'bl-post': postRow,
       'bl-quality': quality,
