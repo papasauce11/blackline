@@ -1491,8 +1491,46 @@ provisional; the rule for "thin" is mechanical, never a tag.
   emits `shade:land`.
 - [x] **J7 (S)** Reactions — done 2026-11-22, under Done. `src/entities/reactions.js` (`reactEase` at both bodies' pose ease), `CONFIG.reactions`, the `combat:damage` / `gadget:taser` listeners in `wiring.js`, `a-hit-body-flinches-a-tased-warden-staggers-and-no-camera-moves`.
 - [x] **J8 (S)** Idle life - done 2026-11-21, under Done. `src/entities/idlemotion.js`; breath on the arm groups and wind as a hood yaw, because `breathcensus.js` forbids the chest and the torso tilt; `a-body-at-rest-is-never-still-and-one-in-a-menu-always-is` in `src/tests/idlelife.js`.
-- [ ] **J9 (S)** Sprint FOV kick of **about 4 degrees** eased over a quarter second (D90, Josh 2026-11-22) and the crouch camera's easing, under H9's
+- [~] **J9 (S)** Sprint FOV kick of **about 4 degrees** eased over a quarter second (D90, Josh 2026-11-22) and the crouch camera's easing, under H9's
   toggles. *done-when:* a check reads the FOV over a sprint.
+  **Built, parked, not merged, never run by the suite** (2026-11-23, the 02:00
+  run): the code is `8c91a9b` on `worktree-agent-af38d0ada73bf6c8b`, cut from
+  `phases-14-45` at `5ffc018`. `src/cameraowner.js` 133 -> 170 holds the kick as
+  a 0..1 state walked on the wall delta it takes off `frame:begin` (so `main.js`
+  is untouched), zeroed in `set()` and `forget()`, scaled by `1 - adsBlend` and
+  off while `warden.ads`; `render.sprintFovKick: 4`, `render.sprintFovEase:
+  0.25`, `settings.defaults.sprintFovKick: true`; `src/tests/sprintfov.js` (306)
+  holds `the-sprint-kick-widens-the-lens-by-four-degrees-and-gives-it-back`,
+  clauses (a) to (h); census rows in `breathdrawn.js` and `settingsstore.js`.
+  Probe on the plant: `+4.00 settled, peak +4.00 over 80; 55% at half the ease,
+  100% at the end; back to exactly 80 0.23s after the sprint stopped; 60Hz and
+  30Hz agree to 0.62 degrees at 0.25s; exactly rest the whole way with the
+  setting off; a handover mid-kick leaves exactly its own rest; the Warden's aim
+  from a sprint settles at 52`.
+  **Why parked:** the run's one suite was spent on J2's and J3's proof and this
+  job's hour was gone (D79), so **no clause of it and none of its censuses have
+  been run on the yard, and its break has never been run at all** - the builder
+  predicted clause (c) would red and did not try it. A predicted break is not a
+  proof.
+  **Two deviations to carry into the record, both the builder's and both sound:**
+  the brief asked for a time-constant ease and it used a fixed-duration
+  smoothstep instead, because a time constant never reaches *exactly* `restFov`
+  and H9's contract and clause (d) require that it does; and `applyFov`'s guard
+  is now `Math.abs(camera.fov - fov) > 0.01 || (kick === 0 && camera.fov !==
+  fov)`, because the old 0.01 guard stranded the lens a hair off rest as the
+  kick ran out. The second touches a constant H9's own checks read, so
+  `each-role-draws-with-the-field-of-view-its-setting-asks-for` is part of the
+  proof and not optional.
+  **Resume:** cherry-pick `8c91a9b`, which conflicts with this run's J2 and J3 in
+  `src/config.js`, `src/tests/index.js` and `src/tests/breathdrawn.js` - all
+  three append-only, so each conflict is "keep both". Then prove on both maps
+  with the census set, and **run the break**. The menu row for `sprintFovKick`
+  is still **owed** in `src/ui/menupages.js` (one pair of lines on the `bl-bob`
+  pattern, and an id in `SETTINGS_GROUPS`'s `look` group, which J2 has already
+  edited); `tests/menu.js` requires every row to sit under a group.
+  **The crouch half of this entry is dropped and is now J16** - the camera does
+  not merely fail to ease, it pops the wrong way, which is a bug and not a
+  missing feature.
 
 - [x] **J10 (S)** The boom's shoulder origin inside a wall — done 2026-11-20, under Done. `boomOrigin` in `src/entities/agentvisual.js` tests the shoulder origin with the same `collision.isClear` that `boomClear` uses — at the rays' own radius, not as a point, since their cluster is 0.22m across — and walks it back toward the axis a quarter radius at a time, the pivot last. And the ordering fault the entry named: `_cameraDistance` is derived *from* the sweeps, so the cast cannot use it; instead the terminal test runs **again** after the smoothing, at the shoulder the rig actually takes, which is one extra `isClear` in the open and no change there. The new clause runs the Shade along the face at seven laterals (0.15 to 0.60m) on each side, pressing in and then easing off, and fails if no frame ever asked for an origin inside the wall — so the pose is proved driven rather than assumed. `19075fd`. Left **H121**: the file is 582 of 600, and the boom's five pure geometry functions are the seam.
 - [ ] **J14 (S)** J10's closing clear test is built and exercised by nothing.
@@ -1534,6 +1572,28 @@ provisional; the rule for "thin" is mechanical, never a tag.
   D91 did, rather than a Blocking question. *done-when:* a check reads the
   settled body inside the frame and `the-death-camera-frames-the-killer` still
   passes unedited.
+- [ ] **J16 (S)** **prerequisite: H121** (`agentvisual.js` is 585 of the 600 cap
+  and this job adds to it) - The crouch camera pops **up** before it settles.
+  Split out of J9 by the lead, 2026-11-23, when J9 was told to find out whether
+  the crouch camera already eased and not to guess: it does not lower on a
+  crouch at all, and on the commit frame it jumps about **0.4m upward** and then
+  eases back to the same standing height. The third-person pivot is
+  `_smoothPosition.y - half.y + cam.up + _dip + bob`
+  (`src/entities/agentvisual.js` ~508); `_resize` (`src/entities/agent.js` ~533)
+  drops `half.y` and `position.y` on the same frame, but `_smoothPosition` lags
+  behind through `positionSmoothing`, so subtracting the new, smaller half-height
+  from a position that has not caught up lifts the eye. Measured by probe: rig y
+  **2.007 falling to 1.668 over about 30 frames**. Standing up pops it down the
+  same way. J9 dropped its crouch clause rather than encode the pop as correct,
+  which is why there is no check on it yet. The fix is to ease the eye height
+  itself - a smoothed half-height in the pivot - so the two terms move together.
+  This is a fix that makes the move do what it already meant to, so it is the
+  lead's and not Josh's; what the *settled* crouch height should be is a feel
+  question only if someone wants it changed, and nobody has asked. *done-when:* a
+  check drives a crouch and a stand on both maps and reads the camera's world
+  height monotonic to its new rest - no frame above the standing height on the
+  way down and none below the crouched one on the way up - and it reds on today's
+  code; `the-camera-dips-on-a-climb-and-comes-back` still passes unedited.
 - [ ] **J11 (S)** The body seen from inside when the boom is jammed. J1's near-
   plane clamp puts the camera about **0.24m** from the body centre when the
   Shade is pressed flat to a wall - inside her own **0.34m** capsule. That is
