@@ -1238,6 +1238,39 @@ the end of this list, never ahead of a game-facing job.
   subset passed and the same 35 passed on the base and with J7 - the opposite
   of the narrow-run shape above, and one that moves with a commit, so it can be
   bisected.
+- [ ] **H127 (S)** `ragdoll-is-lite-and-freezes` reads the wrong axis for a tumble,
+  and J3 grew a behaviour to satisfy it. Its "it never tumbled" clause drops a
+  ragdoll with a hit along +X and asserts `mesh.rotation.x` moves. That was a
+  fair proxy while the ragdoll was an undirected damped tumble on three spin
+  axes; it is the wrong axis now the tumble follows the hit, because a body
+  tipped by a blow along +X goes over about **Z**. J3 (2026-11-23) resolved it
+  without touching the check, which is the rule - it gave the body a small roll
+  about the hit's line (`CONFIG.effects.ragdollRoll`, 1.5 rad/s, signed by the
+  twist draw), which is physically fair for a blow that does not land through
+  the centre of mass and does read well. But the roll is now partly **load
+  bearing for a clause that is measuring the wrong thing**, which is the shape
+  HANDOFF's own lesson is about. *done-when:* the clause reads rotation about
+  the axis the hit implies (or the rotation's total angle) rather than
+  `rotation.x` specifically; it still reds on a body that does not tumble at
+  all; and `CONFIG.effects.ragdollRoll` set to 0 leaves it **green**, so the
+  roll is a styling number again and not a check's crutch.
+- [ ] **H128 (S)** `src/main.js` is **592** of the 600 cap after J2's wiring -
+  eight lines, and the next job that needs a line in the frame cannot have one.
+  It is the fourth module at the wall after `src/tests/difficulty.js` (600,
+  H113), `combat.js` (593, H104) and `agentvisual.js` (585, H121). Split it the
+  way F3 split the others, by what the caller needs: `renderFrame`'s body is the
+  obvious seam, and the harness-exposed object is a second. *done-when:* no
+  module but `config.js` is within twenty of 600, and the ceiling line of a full
+  run says so.
+- [ ] **H129 (S)** Two config keys must stay equal and nothing holds them equal.
+  J3 kept `CONFIG.effects.ragdollDuration` (0.9) as the hard cap the older
+  checks read - `ragdoll-is-lite-and-freezes` and the `visual.js` drift check
+  wait on it - and added `ragdollSettleSeconds` (0.9) for the settle the motion
+  actually reaches. They are deliberately the same number, and the config
+  comment says so, but a reader who tunes one has silently broken the other:
+  the body would stop being stepped before or after the cap the checks expect.
+  *done-when:* one is derived from the other, or a clause asserts they are equal
+  and reds when they are not.
 
 ## Block K — the Warden as an opponent
 
