@@ -1121,7 +1121,18 @@ the end of this list, never ahead of a game-facing job.
   `post.render`, the night-vision check induces a throw on that path and reads
   both, and the frame's call count is unmoved (the target restore is
   conditional, as M11's is, or it costs a call on the happy path).
-- [ ] **H121 (S)** `src/entities/agentvisual.js` is 582 lines of the 600 cap,
+- [~] **H121 (S)** **BUILT, REVIEWED, NOT LANDED** - `7796512` on
+  `worktree-agent-a8aa3da285569f5a9` (2026-11-23 17:00; held by P6 branch 7,
+  H131). `src/entities/boomgeometry.js` (164) holds the five functions moved
+  **verbatim** - checked line for line, nothing lost, the only new text a
+  header and a `CONFIG` import - and `agentvisual.js` is **445**, re-exporting
+  all eight names so no call site and no check import changed. A new shape
+  clause in `tests/registry.js` reds if any of the five moves back. Never run.
+  *Resume:* `git cherry-pick 7796512`, prove with the census set and the camera
+  and boom checks, run the break. **D105** records why it was taken although
+  K14's split froze a quarter of a run: if a verify stalls on a camera or boom
+  check, **this is the first suspect and the first revert**.
+  `src/entities/agentvisual.js` is 582 lines of the 600 cap,
   18 left, after J10 added `boomOrigin` and the closing clear test. It was 535.
   That makes it the second of the cluster behind `src/tests/audiodevice.js`
   (597), and the next job to touch the boom will meet the ceiling rather than
@@ -1289,6 +1300,29 @@ the end of this list, never ahead of a game-facing job.
   sites still pass unedited; and `TRAPS.md` names it in one line. The breaking
   edit is removing any one of the three `h.effects.reset()` calls.
   **Do not raise `--stall` or `--stall-wait`** (D100, P3).
+
+- [ ] **H131 (M)** The suite cannot finish a **warm-up** on this machine, and
+  until it can, nothing else in this file can be proved. 2026-11-23 17:00: the
+  full gate froze 240s at 275/277 in `running`, then two narrow runs froze 241s
+  in `warm-up` at the **same frame, 57/60, phase `warming`**, before a single
+  check started (~5 minutes each). The 17:12 gate **did** reach 275/277, so the
+  tree is not the variable - something degraded during the run. Readings taken:
+  **56% CPU and 3.3GB free of 12GB** with nothing of the suite's running, beside
+  Josh's browser (11 `chrome.exe`) and **another project's dev servers**
+  (RicochetRoyale, ~12 node processes and five vite servers); **no orphaned
+  headless Chrome existed**, so this is not a leak from a killed run. The
+  standing hypothesis is that **a SwiftShader pipeline/shader build no longer
+  fits inside the watchdog's 241s** on this machine - H125's "billed to whatever
+  is cold", now billed to the warm-up's own tail - and that the 11-22 audit's
+  "49 minutes beside another project's tests" was the same contention, cheaper.
+  *done-when:* a warm-up completes on the plant twice in a row from a cold
+  start, and the reading that explains the difference is named - the memory or
+  core contention measured with the other project's servers up and then down,
+  or, if it is not contention, what frame 57 builds that frames 1-56 do not.
+  Note it in TRAPS.md either way. **Do not raise `--stall` or `--stall-wait`**
+  (D100, P3) and do not kill Josh's browser or another project's processes; if
+  the cure is "close the other project's servers", that is a line in TRAPS.md
+  and a sentence to Josh, not a thing this job does by force.
 
 ## Block K — the Warden as an opponent
 
@@ -1580,7 +1614,16 @@ provisional; the rule for "thin" is mechanical, never a tag.
   missing feature.
 
 - [x] **J10 (S)** The boom's shoulder origin inside a wall — done 2026-11-20, under Done. `boomOrigin` in `src/entities/agentvisual.js` tests the shoulder origin with the same `collision.isClear` that `boomClear` uses — at the rays' own radius, not as a point, since their cluster is 0.22m across — and walks it back toward the axis a quarter radius at a time, the pivot last. And the ordering fault the entry named: `_cameraDistance` is derived *from* the sweeps, so the cast cannot use it; instead the terminal test runs **again** after the smoothing, at the shoulder the rig actually takes, which is one extra `isClear` in the open and no change there. The new clause runs the Shade along the face at seven laterals (0.15 to 0.60m) on each side, pressing in and then easing off, and fails if no frame ever asked for an origin inside the wall — so the pose is proved driven rather than assumed. `19075fd`. Left **H121**: the file is 582 of 600, and the boom's five pure geometry functions are the seam.
-- [ ] **J14 (S)** J10's closing clear test is built and exercised by nothing.
+- [~] **J14 (S)** **BUILT, REVIEWED, NOT LANDED** - a 48-line patch at
+  `scratchpad/j14.patch`, uncommitted on `worktree-agent-a596f14b14ed2ce8b`
+  (2026-11-23 17:00; held by P6 branch 7 because the base cannot finish a
+  warm-up, H131). It adds `CLOSING_FLOOR = { yard: 1, plant: 0 }` and one
+  clause on `total.alongEased`, with the plant's 0 documented as a measured
+  absence; the break (cutting the second `boomClear` at `agentvisual.js:570`)
+  is confirmed by reading - `probe.eased` is set nowhere else - but **never
+  run**. *Resume:* `git apply` the patch, prove on both maps with the census
+  set, run the break.
+  J10's closing clear test is built and exercised by nothing.
   J10 found that the cast's shoulder is cut for the distance the sweep settled
   on while the rig's is cut for the one it eases to, and fixed it by running the
   terminal test again after the smoothing, at the shoulder the rig actually
@@ -1619,7 +1662,21 @@ provisional; the rule for "thin" is mechanical, never a tag.
   D91 did, rather than a Blocking question. *done-when:* a check reads the
   settled body inside the frame and `the-death-camera-frames-the-killer` still
   passes unedited.
-- [ ] **J16 (S)** **prerequisite: H121** (`agentvisual.js` is 585 of the 600 cap
+- [~] **J16 (S)** **BUILT, REVIEWED, NOT LANDED** - `cb100e4` over its own
+  H121 pick `abc8d2d` on `worktree-agent-ad8865a0968bf0d87` (2026-11-23 17:00;
+  held by P6 branch 7, H131). The pivot now reads `_smoothPosition.y -
+  this._smoothHalfY`, eased on the position's own `positionSmoothing` so the
+  two terms' lag cancels; `agentvisual.js` 453, config untouched.
+  `src/tests/crouchcam.js` (141) drives a crouch and a stand on both maps.
+  **The brief was wrong and the builder was right to refuse it:** the eye is
+  the feet plus a fixed 1.4m and `_resize` keeps the feet planted, so the two
+  rests are **equal** - a clause demanding they differ could never pass. It
+  asserts equality within 0.005m plus a half-height that really moved 0.40m,
+  which cannot pass on a Shade that never crouched. Never run.
+  *Resume:* cherry-pick after H121, **rename the check** - its id still says
+  `the-camera-lowers-onto-a-crouch-without-popping-up-first` and the camera
+  does not lower - then prove and run the break. Left **J17** and **J18**.
+  **prerequisite: H121** (`agentvisual.js` is 585 of the 600 cap
   and this job adds to it) - The crouch camera pops **up** before it settles.
   Split out of J9 by the lead, 2026-11-23, when J9 was told to find out whether
   the crouch camera already eased and not to guess: it does not lower on a
@@ -1641,6 +1698,33 @@ provisional; the rule for "thin" is mechanical, never a tag.
   height monotonic to its new rest - no frame above the standing height on the
   way down and none below the crouched one on the way up - and it reds on today's
   code; `the-camera-dips-on-a-climb-and-comes-back` still passes unedited.
+- [ ] **J17 (S)** The drawn body may pop on a crouch the way the camera did.
+  Found by J16's builder, 2026-11-23, and **not measured**: J16 smoothed the
+  half-height in the *camera pivot*, but the mesh's own feet line in
+  `src/entities/agentvisual.js` still reads `_smoothPosition.y - this.half.y`
+  raw. `_resize` drops `half.y` and `position.y` on the same frame while
+  `_smoothPosition` lags through `positionSmoothing`, which is exactly the
+  subtraction that lifted the eye 0.4m - so the drawn body's feet should float
+  the same way, for the same reason. J16 did not touch it because the brief said
+  the pivot only, and because a visible body is a different subject from a
+  camera. *done-when:* the pop is measured first on both maps (a probe on the
+  mesh's world y through a crouch and a stand); if it is real, the same smoothed
+  half-height is used in the feet line and a check reads the mesh's feet
+  monotonic to their rest; if it is not real, say so in this entry with the
+  reading and close it. **Prerequisite: J16 must be landed** - it edits the line
+  beside it.
+
+- [ ] **J18 (S)** **blocked: D107** - What height the camera settles at on a
+  crouch. J16 proved the camera no longer pops; it also exposed that the eye
+  does not lower on a crouch **at all** (the pivot is the feet plus a fixed
+  1.4m, and `_resize` keeps the feet planted, so standing at 1.85m and crouching
+  at 1.05m read the same world height). Whether it should lower is **key feel
+  and Josh's** (D84), asked as D107 with three options and a recommendation of
+  about 0.15-0.2m. *done-when:* D107 is answered; if it is option 1 this entry
+  closes with no code; otherwise the crouch offset is eased on the same smoothed
+  half-height J16 added, under a config key, and J16's check is extended to read
+  the new rest rather than equality.
+
 - [ ] **J11 (S)** The body seen from inside when the boom is jammed. J1's near-
   plane clamp puts the camera about **0.24m** from the body centre when the
   Shade is pressed flat to a wall - inside her own **0.34m** capsule. That is
@@ -1717,7 +1801,18 @@ Josh (D50): no music. The map's own sound carries it.
 
 - [x] **I1 (M)** Ambience beds — done 2026-11-22, under Done. `src/systems/ambience.js` (the synthesis, `renderBedOffline`, the room gain, the live bed), its start in `audio.js`'s `unlock()`, `CONFIG.ambience`, `each-map-has-a-bed-that-loops-without-a-seam-and-swells-in-big-rooms`.
 - [x] **I2 (S)** Footstep materials — done 2026-11-22, under Done. `src/systems/footsurface.js`, `boxUnder` in `src/groundprobe.js`, the class layers in `audiosounds.js`, the `surface` on `detection.js`'s noise events, `CONFIG.footsteps`, `a-step-sounds-like-the-floor-under-it-and-metal-carries-further`.
-- [ ] **I3 (S)** Room acoustics. A delay sized by the room's volume;
+- [~] **I3 (S)** **BUILT, REVIEWED, NOT LANDED** - `012760a` on
+  `worktree-agent-ae12bef3bf4553f07` (2026-11-23 17:00; held by P6 branch 7,
+  H131). `src/systems/roomverb.js` (143) is a parallel send off `buses.sfx`
+  into the master, the dry path untouched; the tail is `tailForVolume` off
+  I1's own `volumeAt`, feedback `10^(-3*delay/tail)`; outdoors is feedback 0
+  and one slap. `src/tests/roomverb.js` (294) measures the tail offline from
+  an impulse rather than asserting the formula. **Nothing was run**, so every
+  threshold is derived and not fitted. **D106** records the deliberate 4s
+  bounded main-thread spin in clause (d). *Resume:* cherry-pick, prove with
+  the census set and the audio checks, run the break, then tighten the floors
+  to what the first green run measures.
+  Room acoustics. A delay sized by the room's volume;
   outdoors dry with a slap off the ring. *done-when:* the tail length per
   room in a check.
 - [ ] **I4 (S)** The mixer. Master, effects, ambience, voice; persists (H7);

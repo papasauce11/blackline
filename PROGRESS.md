@@ -23837,3 +23837,77 @@ is the full suite and it verifies this batch before anything else; a green gate 
 the subset. **By PLAN.md a problem tried twice and failed is the PM's**, and that call is owed before a
 third attempt - I did not make it only because the budget had run out, and a PM report with no one left
 to record it is a report thrown away.
+
+## P6 - The red was in J2's own check, and then the base stopped warming up (2026-11-23, the 17:00 run)
+
+**Nothing game-facing landed, and four finished jobs are deliberately sitting in
+worktrees.** What this run actually produced is a diagnosis that three verifies
+had failed to get, and a second, larger problem it uncovered underneath.
+
+**What was built.** Four jobs, each briefed, built by a Sonnet builder in its own
+worktree under the gate, and reviewed by me: **H121** (`7796512`, the boom's five
+pure geometry functions moved verbatim to `src/entities/boomgeometry.js`,
+`agentvisual.js` 585 -> 445, every name re-exported so no call site moved),
+**J16** (`cb100e4`, the crouch camera's 0.4m upward pop cured by smoothing the
+half-height in the pivot), **I3** (`012760a`, room acoustics - a parallel send
+off `buses.sfx`, the tail sized by I1's own `volumeAt`, dry with one slap
+outdoors, measured offline), and **J14** (a 48-line patch, the `closing` clause's
+per-map floor). **None is landed and none has been through the suite**, so none
+is recorded done; QUEUE.md carries each as `[~]` with an exact resume line.
+
+**How the red was found - by reading, not by the suite.** The `effects-drain-when-
+idle` red and the first two stalls are **J2's own check**. `tests/impactfeel.js`'s
+`peakAt` emits a synthetic `gadget:detonate`; for `type: 'smoke'` `effects.js`
+hears it and calls `smokeBurst`, a real 100-sprite cloud with **no gadget object
+behind it**, so `h.gadgets.effects.count + h.gadgets.projectiles.length` stays 0
+and the drain assertion is right to call it a leak - and the check then renders 80
+frames from 2m inside that cloud. `tests/audio.js` already carries this exact cure
+with a note explaining it, and `tests/quality.js` after it; **this was the third
+occurrence**. The fingerprint confirms it: `idleFor` in `tests/assertions.js` is
+never reset by `initMatch`, so the number it prints is the whole run's idle sim
+time (211s in the full suite, 70.0s and 17.7s in the two subsets, which is why it
+looked like it moved), and `peakAt`'s 80 frames at 4ms sample the assertion three
+times about 0.1s apart - the observed 211.0 / 211.1 / 211.2. Fixed in `105b93a`,
+one line: `if (type !== 'frag') h.effects.reset();`. **Both runs after the fix
+logged zero `effects-drain-when-idle` lines.**
+
+**Two theories died, one of them mine.** HANDOFF's standing suspicion was that the
+proof *subset* was saturating the pool and that a narrow proof had been running on
+a page the full suite never has. **The full suite reproduced the assert**, so the
+subset was never the variable; H130 is re-scoped from proving that to a structural
+guard against a fourth occurrence. And my own first theory - that J2's step planner
+stopped the clock the effects age against - was **wrong**: the hit-stop only
+withholds and repays wall delta (a 40ms stop over 16.67ms frames banks and repays
+exactly), and nothing in `systems/impact.js` can keep a sprite alive. J3's
+`effects.js` diff is ragdoll only. **J2 (D89) and J3 (D94) stay landed, no revert
+and no bisect.** That call is **P6**, the PM's, called after the third failure as
+PLAN.md requires.
+
+**Then the base stopped warming up, which is the bigger finding.** The two narrow
+runs P6 authorised (a hard cap of 2) both died exit 2 with the heartbeat frozen
+**241s in `warm-up` at the same frame, 57/60, phase `warming`** - before a single
+check started, ~5 minutes each. The same frame twice argues against random
+contention, but the 17:12 gate **did** reach check 275/277, so the tree is not the
+variable either: something degraded during the run. Measured with nothing of the
+suite's running: **56% CPU, 3.3GB free of 12GB**, beside Josh's browser (11
+processes) and another project's dev servers (~12 node, five vite). **No orphaned
+headless Chrome existed** - I checked before blaming one, and killed nothing of
+Josh's. The hypothesis is that a SwiftShader pipeline build no longer fits inside
+the watchdog's 241s here - H125's "billed to whatever is cold", now billed to the
+warm-up's own tail, and the 11-22 audit's "49 minutes beside another project's
+tests" as the same contention more cheaply. **H131** is the job, and it blocks
+everything: a suite that cannot warm up can prove nothing. `--stall` stays
+unraised (D100, P3).
+
+**What was left.** P6 branch 7 says that if the narrow run still stalls, land
+nothing more, leave the four in their worktrees and come back to the PM with the
+per-clause wall times. I followed the first three and **did not make the second PM
+call**: no clause ever ran, so the wall times it asked for do not exist, and branch
+7's other instructions are unambiguous - paying a second Fable call to be told what
+P6 already wrote would buy nothing. That call is queued as the next run's second
+action, after H131. **J9 stays parked** (`8c91a9b`) and P6 puts its resume first
+next run, on a green base. New jobs from the run: **H131**, **J17** (the drawn body
+may pop like the camera did - found by J16's builder, unmeasured) and **J18**
+(blocked on **D107**). **D105** and **D106** record the two lead calls worth
+keeping: H121's split taken although K14's froze a quarter of a run, and I3's
+deliberate 4s bounded main-thread spin.
