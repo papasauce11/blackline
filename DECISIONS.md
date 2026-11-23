@@ -3279,7 +3279,13 @@ of asking first. Once it is built it is the live site, `papasauce11.github.io/bl
 be seen by the Warden and let it shoot you. Say a number and the run after
 builds it; say nothing and J3 stays blocked and the queue moves past it.
 
-decided:
+decided: realistic - Josh, 2026-11-22, in his own word rather than a number,
+read as option 2, weight: a moderate impulse along the hit's line, the limbs
+following rather than flying, settled in under a second - a person dropping,
+not a prop. A real round carries too little momentum to throw a body, which
+rules out 1, and 3 throws away the hit direction J3 exists to use. J3 is
+unblocked at that; once it is built, too light or too heavy is one impulse
+number, and 4 stays open as a tuning pass.
 
 ### D89 — J2's hit-stop and shake: how punchy?
 Key feel (D84), asked in Josh's session 2026-11-19 before Block J is reached.
@@ -3294,7 +3300,11 @@ that turns them off.
 Recommendation: **1**, the queue's own numbers - the setting is the way out
 for anyone who does not want it. Josh feels it on the live site once built.
 
-decided:
+decided: option 2, subtle - Josh, 2026-11-22 ("now much", read as *not
+much*, next to the same words for D90). A 40ms wall-clock stop when a knife
+or a finisher lands, and a light shake on a grenade only within a few metres,
+harder the closer, both under the setting that turns them off. The lead's
+punchy recommendation is overruled; J2 is unblocked at these numbers.
 
 ### D90 — J9's sprint camera: how much wider?
 Key feel (D84), asked with D89. J9 widens the camera's field of view a little
@@ -3307,7 +3317,10 @@ instead of snapping it, both under H9's toggles.
 
 Recommendation: **1**. Felt on the live site once built.
 
-decided:
+decided: option 2, barely - Josh, 2026-11-22 ("not much"). About 4 degrees
+wider while the Shade sprints, eased in over a quarter second, and the crouch
+camera eased rather than snapped, both under H9's toggles. The lead's
+recommendation of 8 is overruled; J9 is unblocked at 4.
 
 ### D77 — Should a module that has been split once carry a tighter ceiling than 600?
 600 is the only line, so every module creeps to 599. `movement.js` has sat at

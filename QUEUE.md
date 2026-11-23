@@ -1352,10 +1352,12 @@ provisional; the rule for "thin" is mechanical, never a tag.
 ## Block J — feel and juice
 
 - [x] **J1 (S)** Camera collision — done 2026-11-19, under Done. The clamp is `min(max(minDistance, hit - collisionRadius), hit - CONFIG.render.near)`, because `minDistance` alone put the camera **0.21m inside a wall** on the very pose the job names; the sweep is five rays (centre plus four at `collisionRadius`) run twice, the second from the shoulder-shifted pivot; and `boomClear` steps the distance down by `collisionRadius / 4` until `collision.isClear` holds at the full rig position, which is the terminal test a sphere-cast really is. `src/entities/agentvisual.js`, `src/tests/cameraclip.js`, `the-third-person-boom-never-puts-the-camera-inside-the-world`. Measured over 720 frames: an offset ray won **582**, the shoulder pass **172**, the box test pulled in **233**, worst clearance **0.220m**, none jammed to 0. `33622b7`, `5cfb3af`.
-- [ ] **J2 (S)** **blocked: D89** (key feel, D84) — Hit-stop and shake. 70ms of wall-clock stop on a knife or
-  finisher; shake on a grenade by distance; both under a setting.
+- [ ] **J2 (S)** Hit-stop and shake, **subtle** (D89, Josh 2026-11-22). 40ms of wall-clock stop on a knife or
+  finisher; a light shake on a grenade within a few metres only, harder the
+  closer; both under a setting.
   *done-when:* the fixed step count is unchanged by hit-stop in a check.
-- [ ] **J3 (M)** **blocked: D94** (key feel, D84) — Ragdoll polish. Limb flail from the hit direction, a
+- [ ] **J3 (M)** Ragdoll polish, **realistic** (D94, Josh 2026-11-22: a moderate impulse along the hit's
+  line, the limbs following rather than flying, settled in under a second). Limb flail from the hit direction, a
   settle, no jitter, the death cam framing the body. *done-when:* a check
   measures settle time and zero post-settle motion.
 - [x] **J4 (S)** An event feed — done 2026-11-21, under Done. Folded onto `hud.feed` per D95; no second panel. `objective:defuse-start` (J13's) as `defusing at <site>`, one line per attempt; `objective:reinsert` as `reinserted - <lives> left`; `objective:reinsert-forced` as its own line above it. **Two of this entry's claims were stale**: defusing already had its event, and the round outcome's sentence was already composed from `sayOutcome` in `wiring.js`. `each-feed-line-appears-on-its-own-event-and-nothing-elses` in `src/tests/feedback.js`, six events each staged and counted as it goes by, with a quiet stretch before each — **and the quiet clause caught the staging's own fault on the first run** (the Warden was on the charge before the quiet steps, so the attempt began there and spent the event the clause was counting). `4c8ee5a`.
@@ -1411,7 +1413,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
   emits `shade:land`.
 - [x] **J7 (S)** Reactions — done 2026-11-22, under Done. `src/entities/reactions.js` (`reactEase` at both bodies' pose ease), `CONFIG.reactions`, the `combat:damage` / `gadget:taser` listeners in `wiring.js`, `a-hit-body-flinches-a-tased-warden-staggers-and-no-camera-moves`.
 - [x] **J8 (S)** Idle life - done 2026-11-21, under Done. `src/entities/idlemotion.js`; breath on the arm groups and wind as a hood yaw, because `breathcensus.js` forbids the chest and the torso tilt; `a-body-at-rest-is-never-still-and-one-in-a-menu-always-is` in `src/tests/idlelife.js`.
-- [ ] **J9 (S)** **blocked: D90** (key feel, D84) — Sprint FOV kick and the crouch camera's easing, under H9's
+- [ ] **J9 (S)** Sprint FOV kick of **about 4 degrees** eased over a quarter second (D90, Josh 2026-11-22) and the crouch camera's easing, under H9's
   toggles. *done-when:* a check reads the FOV over a sprint.
 
 - [x] **J10 (S)** The boom's shoulder origin inside a wall — done 2026-11-20, under Done. `boomOrigin` in `src/entities/agentvisual.js` tests the shoulder origin with the same `collision.isClear` that `boomClear` uses — at the rays' own radius, not as a point, since their cluster is 0.22m across — and walks it back toward the axis a quarter radius at a time, the pivot last. And the ordering fault the entry named: `_cameraDistance` is derived *from* the sweeps, so the cast cannot use it; instead the terminal test runs **again** after the smoothing, at the shoulder the rig actually takes, which is one extra `isClear` in the open and no change there. The new clause runs the Shade along the face at seven laterals (0.15 to 0.60m) on each side, pressing in and then easing off, and fails if no frame ever asked for an origin inside the wall — so the pose is proved driven rather than assumed. `19075fd`. Left **H121**: the file is 582 of 600, and the boom's five pure geometry functions are the seam.
