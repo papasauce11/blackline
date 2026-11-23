@@ -95,6 +95,23 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The maps have a sound, and so does the floor (I1, I2, 2026-11-22)
+
+Turn the sound up. The plant hums - a transformer under everything, a drip
+now and then, the ventilation breathing - and the yard has wind that gusts,
+a ship's horn far off and the odd clank. Both get louder as the room gets
+bigger: quiet in the offices, full in the turbine hall or out on the yard.
+No music, as you asked.
+
+Your footsteps now sound like what you stand on: a dull thud on concrete, a
+ring on metal (the plant's painted gantries, the yard's containers), a splash
+on the yard's wet ground. **Metal carries:** walking on it, the Warden hears
+you from 6m instead of 4, so a gantry is a place to crouch.
+
+**What to listen for.** Whether the bed is too loud or too busy under play,
+whether the hum gets tiresome, and whether metal steps make the gantries feel
+dangerous in a good way or just annoying. Each is one number.
+
 ### A hit lands on the body now (J7, 2026-11-22)
 
 When the Warden is knifed or caught by a frag, his head and arms jerk away

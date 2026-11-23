@@ -1374,6 +1374,13 @@ provisional; the rule for "thin" is mechanical, never a tag.
   check and break have never run. **Resume:** cherry-pick both, reproduce from
   the worktree (TRAPS: the suite runs from one with `node_modules` linked), and
   bisect the 35 by halves, three runs a tree.
+  **2026-11-22 evening:** four of four wide runs at J5 froze - one at check 0
+  of 35, before any other check had run, so it is not state an earlier check
+  leaves; five narrow runs passed, among them the exact eight checks that
+  preceded the first freeze. The same-shaped 43-check proof of J12, I2 and I1,
+  without J5, ran clean under the same machine load. What differs is the
+  subset's membership, so the next bisection removes halves of the 35 rather
+  than of what precedes the freeze.
 - [x] **J6 (S)** Dust and light - done 2026-11-22, under Done (`69629a8`, census declarations in `ed10100`). `src/systems/dust.js`, the flash and the 96-mote pool stepped by `effects.js`, `CollisionBox.surface` from `mapbake`, `shade:land` / `shade:grab`, and `a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see`. Merged as built: **D102 is still unanswered**, so the dust is the dim tan at 0.6 and 0.5m. Its proof found what its probe could not - two census declarations (see PROGRESS). OLD ENTRY: Landing dust by fall
   height, a muzzle flash light (unshadowed, one frame), sparks on a metal
   hand-plant, the scuff's puff. *done-when:* pixel checks; particle caps hold.
@@ -1432,6 +1439,9 @@ provisional; the rule for "thin" is mechanical, never a tag.
   to take the call out. The face that found it is one of the yard's two new tags, `mast-bay-a` or
   `stair-walkway-step-14`. **J12 is the prerequisite** - it is parked on a stall (D100) and holds
   `findTallFaces` on `c018015`; this job starts from that reading rather than from scratch.
+  **J12 landed 2026-11-22** (`789fcbb`): the yard's widened set read *"box test
+  alone 1170 (1117 rays blind, 1 closing)"* in its proof, so the pose exists
+  on today's branch and this job is unblocked.
 - [ ] **J11 (S)** The body seen from inside when the boom is jammed. J1's near-
   plane clamp puts the camera about **0.24m** from the body centre when the
   Shade is pressed flat to a wall - inside her own **0.34m** capsule. That is
@@ -1500,57 +1510,14 @@ provisional; the rule for "thin" is mechanical, never a tag.
   rows the day it lands** (H52, and J6 paid it again this run). No
   `CONFIG.shade.camera.bodyFade`, no `bodyfade.js`, no seam in
   `agentvisual.js`: there is nothing to fade.
-- [ ] **J12 (S)** The clip check tests one fence twice, not two maps.
-  `cameraclip.js` takes its face from `scuff.js`'s `findTallFace`, which
-  returns only the **first** tall face, and on both maps that is the shared
-  perimeter `site-fence` (`plant.js:143`, `yard.js:195`) - which is why J1's
-  detail reads identically on the plant and the yard, to the centimetre. The
-  check's header says so rather than hiding it. *done-when:* a `findTallFaces`
-  beside `findTallFace` returns every qualifying face (leaving `scuff.js`'s own
-  callers alone), `cameraclip.js` drives several faces per map, and its detail
-  names them so the two maps can be told apart in the record.
-  **Built, measured, nearly proved, and parked on a stall 2026-11-21 (the 02:00 run);
-  held on `worktree-agent-afe57841f604f012b` at `c018015`, not merged.** The build is
-  right as far as anything could tell: `findTallFaces` beside `findTallFace` (every
-  qualifying face, sorted by tag then min x then min z so the order is the geometry's own),
-  `findTallFace` re-expressed through a shared private `faceOf` **without re-sorting**, so its
-  answer is unchanged for all four callers, and three faces driven per map through every
-  existing clause at the thresholds they already had. **And it did the job: the two maps
-  finally read differently** - plant `site-fence` / `bay-south-wall-0` /
-  `stair-corridor-step-11`, yard `site-fence` / `mast-bay-a` / `stair-walkway-step-14` - with
-  J1's four readings surviving at full step counts (offset 1706, shoulder 515, worst 0.220m,
-  box test 731).
-  *Two things it needs, both known:* (1) a `SHARED_FROM_A_CHECK` row in `src/tests/registry.js`
-  declaring `findTallFaces` as machinery `cameraclip.js` alone reaches for - H70's seam census
-  reds without it, and it is a declaration, not a loosening (`findTallFace` needs none, since
-  scuff.js's own checks use it; nor does `pickFaces`, since its own check calls it). The row was
-  written and went back with the revert, because the census asserts the other direction too.
-  (2) **the reason it is parked:** `a-climb-beyond-reach-bumps-poses-and-sounds` on the **yard**
-  went PASS, then stalled twice - `GATEFAIL=2`, *"the suite heartbeat stood still for 241s on map
-  yard, run 1; the check in flight was a-climb-beyond-reach-bumps-poses-and-sounds (1/31, phase
-  running)"*. The only tree difference between the green run and the stalls is that inert data
-  row, so **the stall is not attributable to J12** - but J12 cannot be called proved on a reading
-  that failed two of three. Do **not** raise `--stall` to get past it: a flaky stall in the check
-  that drives the Shade into a wall is the finding, and a raised timeout hides it. No orphaned
-  suite or headless Chrome was alive for either stall. D100.
-  *resume from:* cherry-pick `c018015`, add the registry row, and run the J12 subset three times
-  on the yard before anything else - if the stall repeats on a tree **without** J12, it is a base
-  flake and belongs in its own hygiene job; if it only ever stalls with J12 in, the widened face
-  set is doing something to that check and the three faces are the thing to bisect.
+- [x] **J12 (S)** The clip check drives three faces a map — done 2026-11-22, under Done. `findTallFaces` in `src/tests/scuff.js` (through H125's cache), `pickFaces` and the three-face loop in `src/tests/cameraclip.js`, the `SHARED_FROM_A_CHECK` row in `registry.js`.
 - [x] **J13 (S)** Defusing raises no event, so no feed can carry it — done 2026-11-20, under Done. `objective:defuse-start` emitted as `defuseProgress` leaves 0, with `round.site` and `round.chargeAt`, in `src/systems/objective.js`; the rule is that **an attempt is a run of progress that starts from nothing**, so a resume inside `defuseRetainTime` is the same attempt and raises nothing. New module `src/tests/defusestart.js`, `a-defuse-raises-one-event-when-it-begins-and-not-once-a-frame`, four clauses. J4’s defusing line is unblocked. `71517cc`.
 ## Block I — audio, ambience only
 
 Josh (D50): no music. The map's own sound carries it.
 
-- [ ] **I1 (M)** Ambience beds. The plant: transformer hum, drips,
-  ventilation; the yard: wind, a distant port, rain on steel when D9's
-  night wants it. Synthesised, seeded, looping without a seam; louder in
-  bigger rooms. *done-when:* `renderOffline` proves each bed and the seam.
-- [ ] **I2 (S)** Footstep materials. Concrete, metal, grate, wet from the
-  finish under the feet (E4/E5); and a metal footstep is louder to the Warden
-  too (moved from K2: nothing reads the surface under a foot yet, and this is
-  the job that makes it). *done-when:* a check walks each and compares the
-  samples, and a metal step's noise radius is larger than concrete's.
+- [x] **I1 (M)** Ambience beds — done 2026-11-22, under Done. `src/systems/ambience.js` (the synthesis, `renderBedOffline`, the room gain, the live bed), its start in `audio.js`'s `unlock()`, `CONFIG.ambience`, `each-map-has-a-bed-that-loops-without-a-seam-and-swells-in-big-rooms`.
+- [x] **I2 (S)** Footstep materials — done 2026-11-22, under Done. `src/systems/footsurface.js`, `boxUnder` in `src/groundprobe.js`, the class layers in `audiosounds.js`, the `surface` on `detection.js`'s noise events, `CONFIG.footsteps`, `a-step-sounds-like-the-floor-under-it-and-metal-carries-further`.
 - [ ] **I3 (S)** Room acoustics. A delay sized by the room's volume;
   outdoors dry with a slap off the ring. *done-when:* the tail length per
   room in a check.
@@ -1613,6 +1580,31 @@ ends with a gallery Josh looks at (`npm run shot -- --pose all`).
 
 ## Done
 
+- **I1** Ambience beds. Each map plays a synthesised, seeded 12s bed that loops
+  without a seam: the plant a 60Hz transformer hum with a slow beat, sparse
+  drips and a swelling ventilation band; the yard wind with seeded gusts, a far
+  port horn and two soft clanks. Every periodic part completes whole cycles in
+  the loop and every event wraps across the end. The bed follows the room: 0.34
+  in the plant's offices to 0.99 in the turbine hall, 0.84 in a yard bay to 1.0
+  outdoors. No rain - D9 does not ask for it. No music (D50). Built by a Sonnet
+  builder in a worktree - `2e21502`, 2026-11-22.
+- **I2** Footstep materials. A step reads the finish of the box under the foot
+  - `paint` and `corrugated` are metal, `wet` is wet, everything else concrete
+  - and sounds like it: concrete as before, metal with a ringing partial, grate
+  with a rattle, wet with a splash, for both bodies. The Shade's step carries
+  1.5 times as far on metal and 1.3 on a grate (D104); wet carries no further,
+  since the yard's whole ground is wet. Neither map has a grate yet; the plant
+  has no wet and the yard no concrete. Built by a Sonnet builder in a worktree
+  - `c978adb`, `a888e6e`, `2cc1d86`, 2026-11-22.
+- **J12** The clip check drives three tall faces a map. `cameraclip.js` drove
+  only `findTallFace`'s first hit, the shared perimeter `site-fence`, so the
+  plant and the yard read identically to the centimetre; it now drives three -
+  the plant's `site-fence`, `bay-south-wall-0` and `stair-corridor-step-11`,
+  the yard's `site-fence`, `mast-bay-a` and `stair-walkway-step-14` - and J1's
+  four readings hold at full step counts (plant offset 1706, shoulder 515,
+  worst 0.220m, box test 731; yard 1692, 505, 0.220m, 687). Built 2026-11-21
+  and parked on a stall (D100); rebased onto H125's cache and landed 2026-11-22
+  - `789fcbb`, `71078a2`, `d6bc52c`.
 - **J7** Reactions. A hit body is drawn flinching away from what hit it - the
   Warden 0.18 rad at the head and 0.15 at the arms over 0.25s, the Shade 0.15
   and 0.10 over 0.2s - and a tased Warden's chest rocks back before it sags

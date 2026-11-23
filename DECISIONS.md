@@ -196,6 +196,20 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D104 — I2's footstep scales: metal and grate carry, wet does not
+Taken by the lead under D84 (a tuning number, not feel: the Warden's hearing
+is unchanged except where the floor is metal). Josh's session, 2026-11-22.
+
+- **concrete 1.0, wet 1.0, grate 1.3, metal 1.5** times the Shade's footstep
+  radius. A walking step on a painted gantry or a container top carries 6m
+  instead of 4.
+- **Wet is 1.0, changed at landing** from the builder's 1.1, which was my
+  own provisional number: the yard's whole ground is `wet`, so anything above
+  1 rebalances the map rather than adding a material. A wet step sounds
+  different and carries no further.
+- **Grate exists on neither map yet**; its scale and recipe wait for one.
+  Override: each is one number in `CONFIG.footsteps.noiseScale`.
+
 ### D103 — J5 is parked on a stall it causes, and J7 lands without it
 Taken by the lead under D84 (this run's own work; D100 and D101 settle the
 policy). Josh's session, 2026-11-22.
@@ -220,6 +234,11 @@ policy). Josh's session, 2026-11-22.
 - **J7 lands alone** rather than waiting: its proof is green on both maps with
   J5 absent and its break red. Override: merge J5 and raise `--stall`, which
   D100 refused.
+
+**Evening, 2026-11-22:** the wide set froze at J5 four times in four, once at
+check 0 of 35, and passed in every narrow form tried; the same-shaped proof of
+J12, I2 and I1 without J5 ran clean. Still parked; the next bisection is by
+membership (QUEUE.md under J5).
 
 ### D101 — A refactor that freezes the base is reverted, and the job it blocked is parked
 Taken by the lead under D84 (a policy call about this run's own work: not

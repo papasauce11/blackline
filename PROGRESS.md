@@ -23655,3 +23655,97 @@ code at HEAD.
 causes is the next run's to bisect. **Pruned** (H109's rule): J7's worktree and
 branch, its commit found on `phases-14-45` first. J5's stays, since its code
 lives only there.
+
+## J12 — The clip check drives three faces a map (2026-11-22, Josh's session, evening)
+
+**Rebased** by a Sonnet builder from `ebe539e` and `c018015` (parked on
+`worktree-agent-afe57841f604f012b`, D100) onto `62ef6b4`. One conflict, in
+`scuff.js`, where H125 had made `findTallFace` a memo over `searchTallFace` and
+J12 had pulled the per-box probe into `faceOf`: both survive - `findTallFace`
+and `findTallFaces` share one `memo` on the harness, keyed as H125 keyed it,
+and `faceOf` still counts its stepped frames into H125's stats, so
+`the-tall-face-search-runs-once-a-map-and-every-later-caller-reads-the-cache`
+counts J12's search too. The `SHARED_FROM_A_CHECK` row D100 said it owed is in
+`registry.js`.
+
+**The stall it was parked on did not recur.** The proof was a 43-check subset
+on both maps - its check, the climb, scuff, dust and feel checks that call the
+search, I1's and I2's, and the census - and every one passed, the climb check
+among them. The yard's widened set reads *"box test alone 1170 (1117 rays
+blind, 1 closing)"*: the one closing frame J14 needs. **Break**:
+`pickFaces(...).slice(0, 1)` - red on both maps, *"only 1 face driven
+(site-fence), want at least two different tags"*.
+
+## I2 — Footstep materials (2026-11-22, Josh's session, evening)
+
+**Built** by a Sonnet builder: `boxUnder` beside `groundUnder` in
+`groundprobe.js` (the same query and band, returning the box nearest the sole),
+`footsurface.js` classifying its finish from `CONFIG.footsteps.materials`, the
+class carried on the noise event and the audio event, and each class a layer
+over today's recipe in `audiosounds.js` (a `delay` option on two helpers gives
+the grate its three clicks; at zero it is today's call).
+
+**Changed at landing:** the builder's wet scale was 1.1, my provisional number;
+the yard's whole ground is `wet`, so it would have made every step on that map
+10% louder to the Warden. It is 1.0 (D104).
+
+**The first browser run found the check's one wrong bar.** Concrete was to
+match the pre-I2 recipe exactly, and read up to 5.3e-4 off; a control rendering
+the pre-I2 recipe four times with identical arguments read up to 1.8e-4 between
+its own renders, and 0 on some pairs, so the offline render is not
+bit-deterministic while the recipe matches to 1.8e-11. The bar is now twice the
+measured jitter, never below 1e-3 (a thirtieth of a real layer), and named
+concrete is held against an unnamed step on the same bar.
+
+**Proved** on both maps with the hearing, detection and replay checks it could
+move: the plant walked concrete (4.00m) and a painted gantry (6.00m), the yard
+wet ground (4.00m) and a corrugated ring (6.00m), both replays still ending
+where they were recorded. **Break**: the classification returning the fallback
+for every finish - red on both maps, *'a step on gantry-hall (finish "paint")
+carried the surface "concrete", want "metal" ... a metal step carried 4m, want
+6'*.
+
+## I1 — Ambience beds (2026-11-22, Josh's session, evening)
+
+**Built** by a Sonnet builder: `ambience.js` synthesises the bed once, at the
+first gesture (`unlock()`), from a private generator so it spends neither of
+the game's streams, writes events modulo the length and runs filtered noise
+twice round the loop keeping the second pass, so filter state is continuous
+across the seam. Room gain maps log room volume (footprint times height, 500 to
+4500 cubic metres) onto 0.3 to 1, eased over a second; anywhere in no declared
+room counts as larger than the largest.
+
+**Proved** on both maps: *"plant rms 0.122, seam 0.0015 of 0.0515, peak 59.97Hz
+(hum 60Hz), partials >= 20dB over the floor; yard rms 0.078, seam 0.0034 of
+0.0089, 99.8% of the energy below 640Hz"*, the plant's rooms 2.95x apart and
+the yard's bay to outdoors 1.18x. **Break**: events truncated at the buffer end
+instead of wrapped - red on both maps, *"the step across the seam is 0.09186,
+past the 99.9th percentile of the loop's own steps (0.05148)"*. Two thin
+places, said so: the plant's seam reading leans on one drip placed 4ms before
+the end, and the yard's bay-to-outdoors ratio, 1.18, sits just over its 1.15
+floor.
+
+**Josh listens to it** (D84): the loudness and the character are defaults,
+PLAYTEST.md asks.
+
+## The thirteenth batch - J12, I2 and I1 - is green (2026-11-22, Josh's session, evening)
+
+Full two-run verify at `2cc1d86`, about 90 minutes: plant **274 / 1 / 10**
+(1,482,807ms, 1,546,576ms), yard **256 / 1 / 28** (1,141,543ms, 1,097,123ms),
+pair spreads 4% (63,769ms) and 4% (44,420ms), `red`, `flaky`, `skipped`,
+`expectedRed` and `unexpectedGreen` empty, 0 console errors, ceiling 15 within
+50 of 600 with `tests/difficulty.js` at 600, 0 left (H113), of 244 loaded. The
+one failure a map is the bench-only sweep (H11), benched: 612.50ms and 897.80ms
+on the plant, 439.60ms and 896.70ms on the yard, single samples on SwiftShader.
+
+**Two checks more on each map**, I1's and I2's; J12 widened a check under its
+own id. The yard's climb check read 644ms and 417ms (the plant's 717ms and
+423ms) at a verify's width.
+
+**How the session ran.** The 17:00 scheduled run was due as it started, and its
+prompt stands down only for a dirty tree with no WIP note - a session whose
+builders work in worktrees keeps the tree clean - so an untracked
+`HUMAN-SESSION.txt` gave it that signal and was deleted at the end. J5's stall
+took the first half hour (QUEUE.md under J5); a process in another session
+spinning one core since 10:08 was found and reported, not killed. **Pruned**:
+the I1, I2 and J12 worktrees and branches, and J12's old one; J5's stays.
