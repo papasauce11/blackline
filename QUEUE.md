@@ -1311,10 +1311,18 @@ the end of this list, never ahead of a game-facing job.
   Josh's browser (11 `chrome.exe`) and **another project's dev servers**
   (RicochetRoyale, ~12 node processes and five vite servers); **no orphaned
   headless Chrome existed**, so this is not a leak from a killed run. The
-  standing hypothesis is that **a SwiftShader pipeline/shader build no longer
+  standing hypothesis was that **a SwiftShader pipeline/shader build no longer
   fits inside the watchdog's 241s** on this machine - H125's "billed to whatever
   is cold", now billed to the warm-up's own tail - and that the 11-22 audit's
   "49 minutes beside another project's tests" was the same contention, cheaper.
+  **That hypothesis is already half dead, and this is the job's best lead:**
+  `npm run shot` ran **clean minutes later on the same machine, the same Chrome
+  and the same software WebGL** - 10 frames, **61,248ms plant, 43,768ms yard**.
+  So the machine can render, and quickly; it is the **suite's** warm-up path
+  specifically that dies. **Start by diffing what `scripts/suite.mjs` does
+  before its first warmed frame against what `scripts/shot.mjs` does** - the
+  quality sampling and pinning, the harness wait, the assertion registration -
+  rather than by measuring contention.
   *done-when:* a warm-up completes on the plant twice in a row from a cold
   start, and the reading that explains the difference is named - the memory or
   core contention measured with the other project's servers up and then down,
