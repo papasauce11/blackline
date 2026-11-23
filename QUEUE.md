@@ -1271,6 +1271,26 @@ the end of this list, never ahead of a game-facing job.
   the body would stop being stepped before or after the cap the checks expect.
   *done-when:* one is derived from the other, or a clause asserts they are equal
   and reds when they are not.
+- [ ] **H130 (M)** A proof subset that saturates the smoke pool, and the stall
+  that may follow it. Both of the 02:00 run's proof attempts on 2026-11-23 died
+  exit 2 on a frozen heartbeat in `pipeline-wait` (61/63 and 62/62, different
+  freeze points, ~26 minutes each), and both raised
+  `effects-drain-when-idle: 100 smoke sprites still alive` on the plant - the
+  second at 346s, **long before** the freeze, so it is a real signal and not an
+  artifact. 100 is the sprite pool's cap. Neither J2 nor J3 touches the smoke
+  path. The hypothesis is that a subset which runs the smoke and gadget checks
+  **without** whatever normally drains or resets them leaves 100 sprites drawn
+  every frame, and that a heavy page is what turns a `pipeline-wait` into a
+  601s stall - H125's "billed to whatever is cold", with the cost on the page
+  rather than the shader cache. If that is right, **every narrow proof in this
+  project has been running on a page the full suite never has**, which is a
+  bigger finding than one run's two crashes, and it is the other half of H126.
+  *done-when:* the assertion is reproduced from a subset and shown absent from
+  the full suite on the same tree; what leaves the pool saturated is named (the
+  check that fills it and the one that would have drained it); and either the
+  drain is made independent of check order or TRAPS.md names the smoke checks
+  as ones a subset must carry a drain for. **Do not raise `--stall` or
+  `--stall-wait` to get past it** (D100, P3).
 
 ## Block K — the Warden as an opponent
 
@@ -1385,11 +1405,40 @@ provisional; the rule for "thin" is mechanical, never a tag.
 ## Block J — feel and juice
 
 - [x] **J1 (S)** Camera collision — done 2026-11-19, under Done. The clamp is `min(max(minDistance, hit - collisionRadius), hit - CONFIG.render.near)`, because `minDistance` alone put the camera **0.21m inside a wall** on the very pose the job names; the sweep is five rays (centre plus four at `collisionRadius`) run twice, the second from the shoulder-shifted pivot; and `boomClear` steps the distance down by `collisionRadius / 4` until `collision.isClear` holds at the full rig position, which is the terminal test a sphere-cast really is. `src/entities/agentvisual.js`, `src/tests/cameraclip.js`, `the-third-person-boom-never-puts-the-camera-inside-the-world`. Measured over 720 frames: an offset ray won **582**, the shoulder pass **172**, the box test pulled in **233**, worst clearance **0.220m**, none jammed to 0. `33622b7`, `5cfb3af`.
-- [ ] **J2 (S)** Hit-stop and shake, **subtle** (D89, Josh 2026-11-22). 40ms of wall-clock stop on a knife or
+- [~] **J2 (S)** **LANDED BUT UNPROVED** - `21ae6b1`, pushed 2026-11-23 (the 02:00
+  run). The code is complete and reviewed; **no clause of it has ever been run
+  by the suite** (two proof attempts, two `pipeline-wait` crashes - see HANDOFF's
+  UNVERIFIED BATCH). *Resume:* the next run's gate verifies it; if green, record
+  it and run the break (delete the debt and its repayment in `impact.js`, clause
+  (a) must red). `src/systems/impact.js` (160), `main.js` 581 -> 592, the
+  `CONFIG.impact` block, two settings with their menu rows, and
+  `src/tests/impactfeel.js` (260) holding
+  `a-hit-stops-the-picture-without-costing-the-simulation-a-step`, clauses (a)
+  to (h). Two faults the lead fixed in review, both recorded in the commit: the
+  shake was cleared AFTER the cinematics wrote the camera, zeroing the pose they
+  had just taken, and the check's cinematic clause asserted a zero that was only
+  true because of it. Hit-stop and shake, **subtle** (D89, Josh 2026-11-22). 40ms of wall-clock stop on a knife or
   finisher; a light shake on a grenade within a few metres only, harder the
   closer; both under a setting.
   *done-when:* the fixed step count is unchanged by hit-stop in a check.
-- [ ] **J3 (M)** Ragdoll polish, **realistic** (D94, Josh 2026-11-22: a moderate impulse along the hit's
+- [~] **J3 (M)** **LANDED BUT UNPROVED** - `6284d19`, pushed 2026-11-23 (the 02:00
+  run), cherry-picked from `worktree-agent-aa7413db90aa9e556`. The code is
+  complete and the builder's probe reads green on both maps, but **the suite has
+  never run it** (see HANDOFF's UNVERIFIED BATCH). *Resume:* the next run's gate
+  verifies it; if green, record it and run the break (in `effects.js`, replace
+  the settle guard `if (doll.life > 0 && moved >= E.ragdollSettleFloor) continue;`
+  with a bare `continue;` - clause (e) reds on the jitter, and
+  `ragdoll-is-lite-and-freezes` reds too). Probe numbers to record: travel 0.42m
+  from a unit hit, within 5 degrees of the hit's line over the first 0.2s, tip
+  about 55 degrees, arms about 30, torso fastest at step 1 and limbs peaking at
+  step 6, **settle 0.88s**, and 60 steps after it move exactly nothing.
+  `src/systems/ragdolllimbs.js` (142) is new, `effects.js` stays 531, and
+  `src/tests/ragdollsettle.js` (200) holds the check. **Disclosures:** its check
+  drives `effects.ragdoll()` and `effects.step()` directly rather than through
+  `input.heldCodes`, as `presentation.js` does, because it must choose the hit's
+  direction - so the real path is covered only by `death-camera-watches-the-killer`;
+  and `ragdollRoll` exists partly to satisfy a clause measuring the wrong axis
+  (H127). Ragdoll polish, **realistic** (D94, Josh 2026-11-22: a moderate impulse along the hit's
   line, the limbs following rather than flying, settled in under a second). Limb flail from the hit direction, a
   settle, no jitter. *done-when:* a check
   measures settle time and zero post-settle motion.

@@ -23749,3 +23749,91 @@ builders work in worktrees keeps the tree clean - so an untracked
 took the first half hour (QUEUE.md under J5); a process in another session
 spinning one core since 10:08 was found and reported, not killed. **Pruned**:
 the I1, I2 and J12 worktrees and branches, and J12's old one; J5's stays.
+
+## J2 - A knife holds the picture, and the simulation is paid back (2026-11-23, the 02:00 run)
+
+D89, Josh 2026-11-22: **subtle**. 40ms of wall clock on a knife hit or a finisher's commit, and a light
+shake on a frag inside a few metres, harder the closer; both under a setting. `src/systems/impact.js`
+(160) is new, `main.js` went 581 to 592, `CONFIG.impact` holds the sizes, `src/ui/menupages.js` carries
+two rows under the `look` group of `SETTINGS_GROUPS`, and `src/tests/impactfeel.js` (260) holds
+`a-hit-stops-the-picture-without-costing-the-simulation-a-step` in eight clauses.
+
+**What the job is really about is the banking.** The game rests on a fixed step and a seeded rng, so a
+stop that ate simulation time would make the picture lie about the world and make one seed play out two
+ways with the setting flipped. While the stop runs the planner is fed nothing and the withheld wall time
+goes to a debt; when the stop ends the debt is handed back on the frames after, never more than
+`maxFrameDelta` to a frame. The fixed steps run across the window are exactly the steps that would have
+run without it, which is the done-when read as a number rather than hoped at. A pause is the other path
+that feeds the planner nothing and it must bank nothing, so a zero delta freezes the stop where it
+stood - that is clause (h), and `pause-stops-the-world-without-banking-time` is in the subset for it.
+
+**Two faults found in review, not by the builder, and both instructive.** The shake was taken off the
+camera *after* the cinematics had written that transform for the frame - the finisher's orbit is set
+inside the fixed step and the death camera's framing just after it - so the clear was zeroing the pose
+they had just taken. It now comes off before anything writes it. And the check's cinematic clause
+asserted the camera reads exactly zero on a cinematic frame, **which passed only because of that
+fault**: a clause demanding zero could hold only while the shake was wiping the finisher's orbit. It now
+runs the same cinematic frame twice, shaken and clean, and requires them bit-identical - a reading that
+is true whichever way the code goes, and one that would have caught the fault instead of pinning it.
+This is HANDOFF's own lesson in a new costume: before believing a clause, ask what would have to be true
+for it to pass for the wrong reason.
+
+**Not proved.** Two attempts, two crashes, neither of them this job's. See the batch note below.
+
+## J3 - The ragdoll falls along the hit and then is still (2026-11-23, the 02:00 run)
+
+D94, Josh 2026-11-22: **realistic** - a moderate impulse along the hit's line, the limbs following rather
+than flying, settled in under a second. Built by a builder in its own worktree, cherry-picked as
+`6284d19`. `src/systems/ragdolllimbs.js` (142) is new because the limb maths would have taken
+`effects.js` to 633; `effects.js` stays 531. `src/tests/ragdollsettle.js` (200) holds
+`a-ragdoll-follows-the-hit-settles-under-a-second-and-then-does-not-move`, seven clauses, both bodies,
+three hit lines each, the hits passed at nine times the unit vector so the impulse can only follow the
+direction and not its length.
+
+Measured by probe, the same on every case: travel **0.42m** from a unit hit, the first 0.2s within **5
+degrees** of the hit's line, the tip about **55 degrees** with the arms peaking near 30, the torso's
+fastest step at step 1 and the limbs peaking at step 6 - so the limbs really do trail - and the settle
+at **0.88s**, after which 60 steps move exactly nothing. Settling is a snap to rest and then the record
+stops being stepped, which is what makes "zero post-settle motion" exactly zero rather than a tolerance.
+
+**Three disclosures.** The check drives `effects.ragdoll()` and `effects.step()` directly rather than
+through `input.heldCodes`, as `presentation.js` does, because it has to choose the hit's direction; the
+real path is covered only by `death-camera-watches-the-killer`. `ragdollDuration` was kept at the same
+0.9 as the new `ragdollSettleSeconds` because three existing readers wait on it, and nothing holds the
+two equal (H129). And `ragdoll-is-lite-and-freezes` asserts `rotation.x` moves for a hit along +X, which
+is the wrong axis now the tumble follows the hit - a body hit along +X goes over about Z. The builder
+resolved it the way the rule demands, by changing the game and not the check, giving the body a small
+roll about the hit's line; but that roll is now partly load-bearing for a clause measuring the wrong
+thing, so H127's done-when is that setting the roll to zero leaves the clause green.
+
+**Not proved.** See below. The death-cam half of the entry was split out as J15 by P5 before any of this.
+
+## The fourteenth batch is unverified, and the suite crashed twice (2026-11-23, the 02:00 run)
+
+J2 `21ae6b1` and J3 `6284d19` are pushed and **have never been through the suite**. Two proof attempts,
+two crashes, both exit 2 on a frozen heartbeat in phase `pipeline-wait`: the first at
+`every-check-that-times-a-draw...: after` (61 of 63, heartbeat still 605s), the second at
+"after the last check" (62 of 62, still 601s). **Different freeze points, about 26 minutes each.**
+
+Both runs also raised `effects-drain-when-idle: 100 smoke sprites still alive` on the plant. I read the
+first as an artifact of the frozen page, because that assertion accrues its idle window per poll rather
+than per fixed step and its samples sat inside the stall. **The second run refutes that** - it fired at
+346s, 366s and 405s, with the freeze not beginning until about 960s - so it is a real signal, and I was
+wrong about the first. The correction matters, because the two readings point in different directions.
+
+What the evidence does say is that it belongs to neither job. J2's diff is the step planner, a new
+module and the menu; J3's `effects.js` diff is 32 lines, every one of them ragdoll, its only smoke
+mention a comment. With no knife hit or takedown in flight `impact.step` returns its input untouched, so
+J2 cannot starve the planner, and its largest possible debt is 40ms and not 17.7s. 100 is the sprite
+pool's cap. The standing suspicion is therefore **the subset itself**: it runs the smoke and gadget
+checks without whatever normally drains or resets them, and a page carrying 100 sprites every frame is a
+heavy thing to ask a `pipeline-wait` to finish behind - H125's "billed to whatever is cold", with the
+cost on the page rather than on the shader cache. If that is right, every narrow proof in this project
+has been running on a page the full suite never has, which is a larger finding than two crashes and is
+the other half of H126. It is queued as **H130**.
+
+`--stall` and `--stall-wait` were not raised, which D100 and P3 refused in writing. The next run's gate
+is the full suite and it verifies this batch before anything else; a green gate on the full set indicts
+the subset. **By PLAN.md a problem tried twice and failed is the PM's**, and that call is owed before a
+third attempt - I did not make it only because the budget had run out, and a PM report with no one left
+to record it is a report thrown away.
