@@ -1622,14 +1622,14 @@ provisional; the rule for "thin" is mechanical, never a tag.
   missing feature.
 
 - [x] **J10 (S)** The boom's shoulder origin inside a wall — done 2026-11-20, under Done. `boomOrigin` in `src/entities/agentvisual.js` tests the shoulder origin with the same `collision.isClear` that `boomClear` uses — at the rays' own radius, not as a point, since their cluster is 0.22m across — and walks it back toward the axis a quarter radius at a time, the pivot last. And the ordering fault the entry named: `_cameraDistance` is derived *from* the sweeps, so the cast cannot use it; instead the terminal test runs **again** after the smoothing, at the shoulder the rig actually takes, which is one extra `isClear` in the open and no change there. The new clause runs the Shade along the face at seven laterals (0.15 to 0.60m) on each side, pressing in and then easing off, and fails if no frame ever asked for an origin inside the wall — so the pose is proved driven rather than assumed. `19075fd`. Left **H121**: the file is 582 of 600, and the boom's five pure geometry functions are the seam.
-- [~] **J14 (S)** **BUILT, REVIEWED, NOT LANDED** - a 48-line patch at
-  `scratchpad/j14.patch`, uncommitted on `worktree-agent-a596f14b14ed2ce8b`
+- [~] **J14 (S)** **BUILT, REVIEWED, NOT LANDED** - `d9f7dd3` on
+  `worktree-agent-a596f14b14ed2ce8b`
   (2026-11-23 17:00; held by P6 branch 7 because the base cannot finish a
   warm-up, H131). It adds `CLOSING_FLOOR = { yard: 1, plant: 0 }` and one
   clause on `total.alongEased`, with the plant's 0 documented as a measured
   absence; the break (cutting the second `boomClear` at `agentvisual.js:570`)
   is confirmed by reading - `probe.eased` is set nowhere else - but **never
-  run**. *Resume:* `git apply` the patch, prove on both maps with the census
+  run**. *Resume:* `git cherry-pick d9f7dd3`, prove on both maps with the census
   set, run the break.
   J10's closing clear test is built and exercised by nothing.
   J10 found that the cast's shoulder is cut for the distance the sweep settled
