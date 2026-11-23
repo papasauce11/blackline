@@ -196,6 +196,39 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D105 — H121's split taken although the last split froze a quarter of a run
+Taken by the lead under D84 (a seam in the source, not anything a player sees).
+`agentvisual.js` was **585** of the 600 cap and J16 needed room in it, so H121
+moved the boom's five pure geometry functions to `src/entities/boomgeometry.js`
+and re-exported every name, leaving 445. **The reason to hesitate** is K14: a
+faithful split of `mapground.js` with four green clauses made the yard's climb
+check stall for 240s and was reverted (H122), and D77's open question is that
+nothing measures what a split *costs*. H126 exists to take that curve properly
+and has not run yet.
+Taken anyway, because this split is narrower than K14's: five **pure** functions
+of the collision world, moved verbatim line for line (checked by comparing every
+removed line against the new file — nothing was lost and the only new text is a
+header and a `CONFIG` import), with every call site and every check import
+unchanged behind the re-export. If the run's verify stalls on a camera or boom
+check, **H121 is the first suspect and the first revert**, and that is written
+into the run's PROGRESS entry so the next lead does not have to rediscover it.
+
+### D106 — I3's acoustics check blocks the main thread for up to 4s on purpose
+Taken by the lead under D84 (a check's method). Clause (d) of
+`a-room-holds-its-sound-and-outdoors-only-slaps-it-back` proves the verb is
+really wired by reading the live `AudioParam`s after the ease, which needs the
+audio clock to actually advance; `requestAnimationFrame` never fires in the
+suite, so there is no callback to wait on. It spins:
+`while (context.currentTime < from + easeSeconds * 1.5 && performance.now() -
+began < waitSeconds * 1000)`.
+**A synchronous spin is exactly the shape of this project's stalls**, which is
+why it is written down. Accepted because it is **doubly** bounded — by the clock
+target and by a 4s wall-clock cap — which is two orders of magnitude under the
+watchdog's 241s, and because it reds with its own message rather than hanging if
+the context is suspended. The alternative, reading the scheduled target instead
+of the live value, asserts the implementation instead of measuring it. If the
+verify stalls in the audio set, this is the first suspect.
+
 ### D104 — I2's footstep scales: metal and grate carry, wet does not
 Taken by the lead under D84 (a tuning number, not feel: the Warden's hearing
 is unchanged except where the floor is metal). Josh's session, 2026-11-22.
@@ -3244,8 +3277,67 @@ checks. J15's done-when keeps `the-death-camera-frames-the-killer` unedited.
 Neither call needs anything from Josh: D94 (realistic) is his and is untouched,
 and what is in the death camera's frame is a rule, not personality, styling or
 feel.
+### P6 — The J2/J3 red and the stalls are J2's own check, not the game (2026-11-23)
+The `effects-drain-when-idle` red and the 240s frozen heartbeats on the J2/J3
+batch are attributed, **by reading and not by bisection**, to J2's own check.
+`src/tests/impactfeel.js`'s `peakAt` emits a synthetic `gadget:detonate`, and
+for `type: 'smoke'` `effects.js` hears it and calls `smokeBurst`: a real
+100-sprite cloud with **no gadget object behind it**, so the drain assertion is
+right to call it a leak — and the check then renders 80 frames from 2m inside
+that cloud, which under SwiftShader is what a frozen heartbeat looks like from
+outside. `tests/audio.js` already documents this trap and cures it with one
+line, `tests/quality.js` after it; **this is its third occurrence**.
+**The fingerprint fits.** `idleFor` in `tests/assertions.js` is never reset by
+`initMatch`, so it carries the whole run's idle sim time — 211s in the full
+suite, 70.0s and 17.7s in the two subsets — and `peakAt`'s 80 frames at 4ms
+sample the assertion three times about 0.1s apart, which is the observed
+211.0 / 211.1 / 211.2.
+**Retired:** HANDOFF's standing theory that the proof *subset* was saturating
+the pool. The full suite reproduced the assert, so the subset is exonerated and
+**H130 is re-scoped** from that theory to a structural guard against the trap.
+**Not implicated:** J2 (D89) and J3 (D94) stay landed — no revert, no bisect.
+Nothing in `systems/impact.js` can keep a sprite alive (the hit-stop only
+withholds and repays wall delta, and a 40ms stop over 16.67ms frames banks and
+repays exactly), and J3's `effects.js` diff is ragdoll only. The lead's own
+theory, that J2's step planner stopped the clock the effects age against, was
+**wrong**, and is recorded here as wrong.
+**The fix** is one line in the check — `if (type !== 'frag') h.effects.reset();`
+after the emit, `105b93a`. It weakens nothing: impact's own handler has already
+run on the emit, so the shake is decided before the cloud is cleared.
+**Verify policy for this run (Q2 = b):** fix the base first, then land the four
+held jobs, then **one** full two-run verify over the lot. That second verify is
+a one-off for this run under P2, because the first wrote no summary at all. A
+second stall inside `impactfeel` returns to the PM with nothing further landed.
+**J9's resume does not start this run**; it goes first in the next, on a green
+base. `--stall` stays unraised (D100).
 
 ## Blocking — waiting on Josh
+
+### D107 — Should the third-person camera lower when the Shade crouches?
+**Key feel (D84), and nothing is waiting on it** — J16 is landed either way, so
+answer this whenever you like.
+J16 fixed a real bug: the camera used to jump about **0.4m upward** on the frame
+a crouch commits and then ease back down. That is gone. But fixing it exposed
+what the camera does the rest of the time, which is a choice nobody has made.
+**Today the eye does not lower at all.** The pivot is the Shade's feet plus a
+fixed 1.4m, and `_resize` keeps the feet planted, so the camera sits at the same
+world height standing (1.85m tall) or crouched (1.05m). The body drops under it;
+the view does not move.
+**Where to feel it:** the live site, https://papasauce11.github.io/blackline/ —
+crouch and stand in third person and watch the horizon rather than the body.
+
+1. **Leave it.** The view is a camera on a boom, not a head: a steady horizon
+   through a crouch is calmer to aim over and never clips the ceiling of a vent.
+2. **Lower it with her**, the full 0.4m, eased. The crouch *feels* like getting
+   small — the world grows, cover rises in frame, and sneaking reads as sneaking.
+   It costs the steady horizon and wants a second look at vent interiors.
+3. **Lower it part way**, about 0.15-0.2m. A hint of getting small that keeps
+   most of the horizon. The usual compromise, and the usual nobody's-favourite.
+
+**Recommendation: 3.** Enough that a crouch registers in the view, little enough
+that it never fights the aim or the vent roof. But this is yours, and 1 is a
+perfectly defensible game.
+`decided:`
 
 ### D102 — J6's dust: how heavy is a mote?
 Styling (D84), and the first thing in Block J you can look at rather than

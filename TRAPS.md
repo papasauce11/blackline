@@ -1225,3 +1225,19 @@ with `rmdir` before any `git worktree remove --force`**, so a forced remove has
 no junction to walk into, and expect `version.json` stamped in the worktree -
 which is why that remove wants `--force`. `node_modules` holds only
 `playwright-core`; three is in the repo.
+
+**A synthetic `gadget:detonate` is half an event, and for `type: 'smoke'` the
+other half is a real cloud.** `effects.js` hears the emit and calls
+`smokeBurst`: 100 sprites with **no gadget object behind them**, so
+`h.gadgets.effects.count + h.gadgets.projectiles.length` stays 0 and
+`effects-drain-when-idle` rightly calls them a leak - and `idleFor` in
+`tests/assertions.js` is never reset by `initMatch`, so the number it names is
+the whole run's idle sim time and tells you nothing about when the cloud was
+made. **Reset the effects after any non-frag emit**: `h.effects.reset()`, one
+line. `tests/audio.js` paid for this first and documents it, `tests/quality.js`
+second, and `tests/impactfeel.js` third (P6, 2026-11-23) - where it also cost
+**three verifies**, because the check then renders 80 frames from 2m inside the
+cloud and a camera buried in 100 full-screen transparent sprites under
+SwiftShader is what a 240s frozen heartbeat looks like from outside. The lesson
+twice over: **a subset is not indicted until the full suite has been tried**,
+and a trap cured by a comment in three files will happen a fourth time (H130).

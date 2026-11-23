@@ -1271,26 +1271,24 @@ the end of this list, never ahead of a game-facing job.
   the body would stop being stepped before or after the cap the checks expect.
   *done-when:* one is derived from the other, or a clause asserts they are equal
   and reds when they are not.
-- [ ] **H130 (M)** A proof subset that saturates the smoke pool, and the stall
-  that may follow it. Both of the 02:00 run's proof attempts on 2026-11-23 died
-  exit 2 on a frozen heartbeat in `pipeline-wait` (61/63 and 62/62, different
-  freeze points, ~26 minutes each), and both raised
-  `effects-drain-when-idle: 100 smoke sprites still alive` on the plant - the
-  second at 346s, **long before** the freeze, so it is a real signal and not an
-  artifact. 100 is the sprite pool's cap. Neither J2 nor J3 touches the smoke
-  path. The hypothesis is that a subset which runs the smoke and gadget checks
-  **without** whatever normally drains or resets them leaves 100 sprites drawn
-  every frame, and that a heavy page is what turns a `pipeline-wait` into a
-  601s stall - H125's "billed to whatever is cold", with the cost on the page
-  rather than the shader cache. If that is right, **every narrow proof in this
-  project has been running on a page the full suite never has**, which is a
-  bigger finding than one run's two crashes, and it is the other half of H126.
-  *done-when:* the assertion is reproduced from a subset and shown absent from
-  the full suite on the same tree; what leaves the pool saturated is named (the
-  check that fills it and the one that would have drained it); and either the
-  drain is made independent of check order or TRAPS.md names the smoke checks
-  as ones a subset must carry a drain for. **Do not raise `--stall` or
-  `--stall-wait` to get past it** (D100, P3).
+- [ ] **H130 (S)** A guard so a synthetic detonation cannot leave a real cloud.
+  **Re-scoped by P6, 2026-11-23**; the entry it replaces blamed the proof
+  *subset*, and that theory is dead - the **full suite** reproduced
+  `effects-drain-when-idle: 100 smoke sprites still alive` (211.0s on the plant,
+  at 275/277 in `running`), so the subset was never the variable. The cause was
+  found by reading: `tests/impactfeel.js`'s `peakAt` emits a synthetic
+  `gadget:detonate`, and for `type: 'smoke'` `effects.js` calls `smokeBurst` -
+  a real 100-sprite cloud with **no gadget object behind it**, which the drain
+  assertion is right to call a leak, and which the check then renders 80 frames
+  from 2m inside. `105b93a` cured that one site with `h.effects.reset()`; this
+  job stops the **fourth** site happening. `tests/audio.js` and `tests/quality.js`
+  are the first two occurrences and both carry the same hand-written cure.
+  *done-when:* a check or the runner fails any check that **ends** with
+  `effects.pooledSprites > 0` and no live gadget, naming the check that left
+  them, so the trap is structural and not three comments; the three existing
+  sites still pass unedited; and `TRAPS.md` names it in one line. The breaking
+  edit is removing any one of the three `h.effects.reset()` calls.
+  **Do not raise `--stall` or `--stall-wait`** (D100, P3).
 
 ## Block K — the Warden as an opponent
 
