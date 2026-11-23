@@ -1358,10 +1358,19 @@ provisional; the rule for "thin" is mechanical, never a tag.
   *done-when:* the fixed step count is unchanged by hit-stop in a check.
 - [ ] **J3 (M)** Ragdoll polish, **realistic** (D94, Josh 2026-11-22: a moderate impulse along the hit's
   line, the limbs following rather than flying, settled in under a second). Limb flail from the hit direction, a
-  settle, no jitter, the death cam framing the body. *done-when:* a check
+  settle, no jitter. *done-when:* a check
   measures settle time and zero post-settle motion.
+  **Split by P5** (2026-11-23): the clause "the death cam framing the body" has
+  left this entry and is **J15**, blocked on J5. Both would edit
+  `src/systems/deathcam.js`, J5 has already rewritten 122 lines of it, and the
+  check J5 freezes on is the death camera's own framing check - a J3 edit there
+  would make the next red unattributable between the two jobs. J3 is recorded
+  against the entry as it now reads, which is what its done-when always was.
+  Its proof still runs the three death-camera checks, so a ragdoll change that
+  moves the camera's target is caught here rather than at J15.
 - [x] **J4 (S)** An event feed — done 2026-11-21, under Done. Folded onto `hud.feed` per D95; no second panel. `objective:defuse-start` (J13's) as `defusing at <site>`, one line per attempt; `objective:reinsert` as `reinserted - <lives> left`; `objective:reinsert-forced` as its own line above it. **Two of this entry's claims were stale**: defusing already had its event, and the round outcome's sentence was already composed from `sayOutcome` in `wiring.js`. `each-feed-line-appears-on-its-own-event-and-nothing-elses` in `src/tests/feedback.js`, six events each staged and counted as it goes by, with a quiet stretch before each — **and the quiet clause caught the staging's own fault on the first run** (the Warden was on the charge before the quiet steps, so the attempt began there and spent the event the clause was counting). `4c8ee5a`.
-- [ ] **J5 (M)** The killing shot, replayed. On death, two seconds from the
+- [ ] **J5 (M)** **blocked: D103, P4** (the stall it causes; resumes as **J5a**, a diagnosis
+  run of its own — P4, 2026-11-23) — The killing shot, replayed. On death, two seconds from the
   Warden's eye via the input log (H13), then the ragdoll; skippable.
   *done-when:* a check dies and reads the replay's frames.
   **Built, parked, not merged** (2026-11-22, Josh's session, D103): the code is
@@ -1383,6 +1392,42 @@ provisional; the rule for "thin" is mechanical, never a tag.
   without J5, ran clean under the same machine load. What differs is the
   subset's membership, so the next bisection removes halves of the 35 rather
   than of what precedes the freeze.
+  **P4, 2026-11-23, changes the method and the shape:** the membership bisection
+  of the 35 is the expensive design and probably does not converge - about five
+  levels times three runs times up to two halves is 15 to 30 wide runs, each
+  paying up to 240s of stall, on a stall five narrow forms have already failed
+  to show. D103 names only two things J5 changes everywhere, so the cause is
+  split in two instead, which is six runs. J5 therefore does not resume as
+  itself: it resumes as J5a below, and the fix is J5b.
+- [ ] **J5a (S)** Why J5 freezes the suite: bisect the diff, not the subset.
+  Split from J5 by **P4** (2026-11-23). **A diagnosis run of its own** - nothing
+  lands, so there is no verify and P2's gate skip still holds for the run after
+  it. Work from J5's own commit `8ff03cf` on `worktree-agent-ab07ca53aaf635a3e`,
+  **not rebased** onto J3 or anything else: a rebase changes the reproduction.
+  One wide run of D103's 35-check subset on the plant to confirm it still
+  freezes today. Then two trees, three wide runs each: **(i)** `killcam.js`'s
+  per-frame record made a no-op with the death camera's reorder kept, and
+  **(ii)** the recorder kept with the death camera's `begin` put back in base
+  order. The point is to learn which of the two D103 names is the cause, since
+  those are the only things J5 changes on every frame. Optional on the first
+  wide run, and the lead's to design or drop: capture where the page stands
+  when the heartbeat stops (`scripts/watchdog.mjs` has no stack or pause capture
+  today) - a CDP pause that cannot land means the thread is inside a GL call,
+  which is P3's class of fault and points at the pipeline rather than at J5's
+  logic. `--stall` stays unraised (D100, P3). Stop at about an hour (D79) and
+  record the table whatever it says. *done-when:* PROGRESS.md carries the table
+  - the confirm run and three runs on each of the two trees - and names which
+  of the two halves freezes, or says both do, or says neither does.
+- [ ] **J5b (S/M)** **prerequisite: J5a** - The killing shot, landed. The fix
+  J5a names, then J5's own check and its break (neither has ever run), then the
+  rebase onto whatever the branch has become, then the merge. Split from J5 by
+  **P4** (2026-11-23). The membership bisection of the 35 is taken up again only
+  if J5a's two trees both freeze or both pass. *done-when:* J5's own done-when -
+  a check dies and reads the replay's frames - with the proof subset green on
+  both maps and the break red.
+  **P4's cap:** if J5a and one follow-up run have not named a cause, the question
+  goes back to the PM, because it becomes redesign (a cheaper recorder) or
+  abandon, and that is the PM's call and not the lead's.
 - [x] **J6 (S)** Dust and light - done 2026-11-22, under Done (`69629a8`, census declarations in `ed10100`). `src/systems/dust.js`, the flash and the 96-mote pool stepped by `effects.js`, `CollisionBox.surface` from `mapbake`, `shade:land` / `shade:grab`, and `a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see`. Merged as built: **D102 is still unanswered**, so the dust is the dim tan at 0.6 and 0.5m. Its proof found what its probe could not - two census declarations (see PROGRESS). OLD ENTRY: Landing dust by fall
   height, a muzzle flash light (unshadowed, one frame), sparks on a metal
   hand-plant, the scuff's puff. *done-when:* pixel checks; particle caps hold.
@@ -1444,6 +1489,18 @@ provisional; the rule for "thin" is mechanical, never a tag.
   **J12 landed 2026-11-22** (`789fcbb`): the yard's widened set read *"box test
   alone 1170 (1117 rays blind, 1 closing)"* in its proof, so the pose exists
   on today's branch and this job is unblocked.
+- [ ] **J15 (S)** **blocked: J5 (P4)** - The death camera frames the body as well
+  as the killer, after the realistic ragdoll (D94) settles. **Split from J3 by
+  P5** (2026-11-23): both edit `src/systems/deathcam.js`, J5 has already
+  rewritten 122 lines of it, and J5 changes what plays before the ragdoll - the
+  replay from the Warden's eye - so what "framing the body" should mean is only
+  decidable once that sequence exists. If J5 is abandoned under P4's cap, this
+  unblocks on that decision instead. Its design is the lead's when it is taken;
+  if the choice between framings turns out to be a matter of look rather than of
+  what is in frame, the default is taken and the picture sent to Josh, as D88 and
+  D91 did, rather than a Blocking question. *done-when:* a check reads the
+  settled body inside the frame and `the-death-camera-frames-the-killer` still
+  passes unedited.
 - [ ] **J11 (S)** The body seen from inside when the boom is jammed. J1's near-
   plane clamp puts the camera about **0.24m** from the body centre when the
   Shade is pressed flat to a wall - inside her own **0.34m** capsule. That is

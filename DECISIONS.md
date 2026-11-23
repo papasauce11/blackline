@@ -3201,6 +3201,50 @@ stopwatch. K3 stays live. H102 is hygiene taken by P1's first clause (the
 pinned gate is red and this is its fix), done in the session before the 17:09
 routine; if it were not proven by 15:30, `--stall` 360 was the named stopgap.
 
+### P4 — J5 waits a run; a failed proof is the lead's to hold, and its stall is bisected by diff (2026-11-23)
+The 02:00 run takes **J2**, **J9** and **J3** (unblocked by D89, D90, D94) and
+not **J5**, whose remaining work is suite time alone and cannot share the one
+suite with three proofs and a verify. J5 gets `blocked: D103, P4` and resumes as
+**J5a**, a diagnosis run of its own of about an hour with no verify, since
+nothing lands: at `8ff03cf`, unrebased, one wide run to confirm, then three wide
+runs on each of two trees - the recorder a no-op, and the death camera's `begin`
+back in base order - which is **6** runs against the **15 to 30** a membership
+bisection of the 35 would cost, on a stall five narrow forms have already failed
+to show. **J5b** is the fix, J5's own check and break, the rebase and the merge.
+D79 is not stretched: the work is split to fit it.
+**Rule:** keeping a build that failed its proof off the branch is P2's
+consequence and **the lead's without a call**, provided the queue entry carries
+`blocked: <decision> - <resume condition>` in the same commit. Parking a job
+that *could* proceed, abandoning one, and the order a parked job re-enters at
+are the PM's. D100, D101 and D103 were of the first kind and **stand**; the
+audit's flag is closed by this line, and the real defect was that none of them
+wrote a `blocked:` line, which left P1 and the decision disagreeing.
+Two diagnosis runs without a cause returns J5 to the PM - the question becomes
+redesign (a cheaper recorder) or abandon.
+**Refused:** raising `--stall`; an exemption from D79 for suite waits inside a
+run. **On the order it was asked in:** the three builders started 02:14 and the
+call came after, which the PM ratified rather than undid, because it is what it
+would have ordered.
+**Order from here:** this run J2, J9, J3 and the verify; **J5a** the next
+routine run once this batch is verified; then J14, H126, H122, K16 as HANDOFF
+has them, with **J5b** first once J5a names a cause.
+
+### P5 — J3 is split: the death camera's framing of the body is J15, behind J5 (2026-11-23)
+J3's clause "the death cam framing the body" is taken out of its entry and
+queued as **J15**, blocked on J5, because both would edit
+`src/systems/deathcam.js`, J5 already rewrote 122 lines of it, and the check J5
+freezes on is the death camera's own framing check - a J3 edit there would make
+the next red unattributable between them. J3 is recorded `[x]` against its
+**edited** entry (the ragdoll, its settle and its check), which its done-when
+already was; nothing is recorded done that the entry does not cover, and `[~]`
+would leave a proved, landed ragdoll looking unfinished for as long as J5 takes.
+Splitting a job is the PM's, so the edit to the entry **is** this call, which is
+what makes the `[x]` honest. J3's proof still runs the three death-camera
+checks. J15's done-when keeps `the-death-camera-frames-the-killer` unedited.
+Neither call needs anything from Josh: D94 (realistic) is his and is untouched,
+and what is in the death camera's frame is a rule, not personality, styling or
+feel.
+
 ## Blocking — waiting on Josh
 
 ### D102 — J6's dust: how heavy is a mote?
