@@ -139,6 +139,7 @@ import { register as registerIdleLife } from './idlelife.js';
 import { register as registerReactions } from './reactions.js';
 import { register as registerDustLight } from './dustlight.js';
 import { register as registerImpactFeel } from './impactfeel.js';
+import { register as registerSprintFov } from './sprintfov.js';
 
 /** @param {import('../ui/debug.js').DebugTools} debugTools */
 export function registerAutoTests(debugTools) {
@@ -384,4 +385,6 @@ export function registerAutoTests(debugTools) {
   registerImpactFeel(debugTools);
   // J3: a ragdoll falls along the hit, its limbs trail the tip, it is at rest inside a second and then writes exactly nothing, and a reinsert clears it; it steps effects directly on both bodies and restores them, so it ends in the state it began.
   registerRagdollSettle(debugTools);
+  // J9 (D90): the sprint's FOV kick - four degrees over a quarter second, given back exactly, on the wall clock, under the Warden's aim and its setting; it draws frames of its own and ends in a fresh match.
+  registerSprintFov(debugTools);
 }

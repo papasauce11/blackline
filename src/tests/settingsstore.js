@@ -56,6 +56,8 @@ function changedValues() {
     fovShade: defaults.fovShade + 12,
     fovWarden: defaults.fovWarden - 8,
     headBob: !defaults.headBob,
+    // D90's: flipped, so a round trip that dropped it would come back as the default.
+    sprintFovKick: !defaults.sprintFovKick,
     masterVolume: 0.25,
     matchLength: lengths.find((n) => n !== defaults.matchLength),
     difficulty: difficulties.find((name) => name !== defaults.difficulty),

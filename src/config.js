@@ -263,6 +263,17 @@ export const CONFIG = {
   // -------------------------------------------------------------------------
   render: {
     fov: 70,
+    /**
+     * The sprint kick (D90, Josh 2026-11-22: "about 4 degrees, eased over a
+     * quarter second"): a body at a sprint widens the lens this many degrees
+     * and gives them back, on top of the role's resting FOV (H9) and never on
+     * top of an aim. `the-sprint-kick-widens-the-lens-by-four-degrees-and-gives-it-back`
+     * holds it to 3..5, so a later tune cannot make it a lurch. Under
+     * `SETTINGS.sprintFovKick`.
+     */
+    sprintFovKick: 4,
+    /** Seconds the kick takes to come in, and to go out (D90). Wall clock, so a slow frame does not stretch it. */
+    sprintFovEase: 0.25,
     near: 0.1,
     far: 160,
     /** Capped so integrated graphics are not asked to draw a 4K buffer. */
@@ -2301,6 +2312,8 @@ export const CONFIG = {
        */
       fovShade: 70,
       fovWarden: 70,
+      /** The sprint's FOV kick (D90), `CONFIG.render.sprintFovKick` degrees: the feel Josh asked for, so on. */
+      sprintFovKick: true,
       /**
        * Head-bob (H9): the camera riding with the stride. Off by default
        * (D59) - it is the option players most often want off, and off is
@@ -2611,7 +2624,7 @@ export const BINDING_GROUPS = [
  * every row does what it did (D55).
  */
 export const SETTINGS_GROUPS = [
-  ['look', ['bl-sens', 'bl-sensy', 'bl-fov-shade', 'bl-fov-warden', 'bl-bob', 'bl-stop', 'bl-shake', 'bl-inv', 'bl-post', 'bl-quality']],
+  ['look', ['bl-sens', 'bl-sensy', 'bl-fov-shade', 'bl-fov-warden', 'bl-bob', 'bl-sprint-fov', 'bl-stop', 'bl-shake', 'bl-inv', 'bl-post', 'bl-quality']],
   ['audio', ['bl-vol']],
   ['match', ['bl-len', 'bl-diff', 'bl-brief']],
   ['system', ['bl-dbg', 'bl-reset']],

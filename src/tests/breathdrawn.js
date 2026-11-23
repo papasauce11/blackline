@@ -159,6 +159,12 @@ export const DRAWN = [
     note: 'asserts that every debug key does nothing with the gate down, which is an absence and has no body in it',
   },
   {
+    module: 'sprintfov.js',
+    reach: 'none',
+    proof: 'nobody',
+    note: 'J9. Reads the one camera\'s field of view over a sprint, a handover and an aim, off `camera.fov` and the projection matrix: no framebuffer and no part of a posed body',
+  },
+  {
     module: 'fuzz.js',
     reach: 'none',
     proof: 'onebit',

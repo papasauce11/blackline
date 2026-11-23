@@ -65,6 +65,7 @@ export const MENU_PAGES = {
       'bl-fov-warden': ['field of view, warden', slider('bl-fov-warden', CONFIG.settings.fovMin,
         CONFIG.settings.fovMax, 1, SETTINGS.fovWarden)],
       'bl-bob': ['head-bob', value('bl-bob', SETTINGS.headBob ? 'on' : 'off')],
+      'bl-sprint-fov': ['sprint fov kick', value('bl-sprint-fov', SETTINGS.sprintFovKick ? 'on' : 'off')],
       'bl-stop': ['hit-stop', value('bl-stop', SETTINGS.hitStop ? 'on' : 'off')],
       'bl-shake': ['screen shake', value('bl-shake', SETTINGS.screenShake ? 'on' : 'off')],
       'bl-inv': ['invert Y', value('bl-inv', SETTINGS.invertY ? 'on' : 'off')],
@@ -125,6 +126,13 @@ export const MENU_PAGES = {
     bob.onclick = () => {
       SETTINGS.headBob = !SETTINGS.headBob;
       bob.textContent = SETTINGS.headBob ? 'on' : 'off';
+      this._changed();
+    };
+    // J9 (D90): the sprint's lens kick, a switch like the bob.
+    const sprintFov = this.root.querySelector('#bl-sprint-fov');
+    sprintFov.onclick = () => {
+      SETTINGS.sprintFovKick = !SETTINGS.sprintFovKick;
+      sprintFov.textContent = SETTINGS.sprintFovKick ? 'on' : 'off';
       this._changed();
     };
     // J2 (D89): the two beats of impact, each a switch like the bob.
@@ -248,6 +256,7 @@ export const MENU_PAGES = {
       'bl-fov-shade': this._slider(fovShade, () => { SETTINGS.fovShade = parseFloat(fovShade.value); this._changed(); }),
       'bl-fov-warden': this._slider(fovWarden, () => { SETTINGS.fovWarden = parseFloat(fovWarden.value); this._changed(); }),
       'bl-bob': bob,
+      'bl-sprint-fov': sprintFov,
       'bl-stop': stop,
       'bl-shake': shake,
       'bl-inv': inv,
