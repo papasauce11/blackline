@@ -1,7 +1,7 @@
 /**
  * BLACKLINE — systems/effects.js
  *
- * Footprints, particles, smoke and ragdoll-lite (Section 15's performance and
+ * Footprints, particles, smoke and the ragdoll (Section 15's performance and
  * leak rows, and the Section 9.1 smoke render).
  *
  * Layering (Section 3.1): imports config. The scene and the emitter are handed
@@ -39,6 +39,7 @@ import * as THREE from 'three';
 import { CONFIG, lookRng } from '../config.js';
 import { qualityParticles } from '../quality.js';
 import { Dust } from './dust.js';
+import { startRagdoll, stepRagdoll, restLimbs } from './ragdolllimbs.js';
 
 const E = CONFIG.effects;
 const GA = CONFIG.gadgets;
@@ -64,6 +65,8 @@ export class Effects {
     // J6: the dust and the flash. Built here so the one `root` holds every
     // effect, and stepped, reset and counted below with the rest.
     this.dust = new Dust({ root: this.root });
+    /** Bodies that came to rest: mesh -> the limbs to put back, kept so a reinsert can still stand them up. */
+    this._settled = new Map();
     this.ragdolls = [];
 
     this._unsubscribe = [];
@@ -116,7 +119,12 @@ export class Effects {
     for (let i = 0; i < this.particles.length; i++) this.particles[i].life = 0;
     for (let i = 0; i < this.smoke.length; i++) this.smoke[i].life = 0;
     this.dust.reset();
-    for (const ragdoll of this.ragdolls) ragdoll.mesh.rotation.set(0, 0, 0);
+    for (const ragdoll of this.ragdolls) {
+      ragdoll.mesh.rotation.set(0, 0, 0);
+      restLimbs(ragdoll.limbs);
+    }
+    for (const limbs of this._settled.values()) restLimbs(limbs);
+    this._settled.clear();
     this.ragdolls.length = 0;
     // Section 9.2 allows one alarm camera per round, so a new round starts
     // with none placed rather than with the last one still on the wall.
@@ -239,8 +247,17 @@ export class Effects {
    * @returns {boolean} whether a ragdoll was actually holding that mesh
    */
   clearRagdoll(mesh) {
+    // A body that has settled is no longer a record but is still on its side,
+    // and a reinsert has to stand it up as surely as one still tumbling.
+    const settled = this._settled.get(mesh);
+    if (settled) {
+      restLimbs(settled);
+      this._settled.delete(mesh);
+      mesh.rotation.set(0, 0, 0);
+    }
     for (let i = this.ragdolls.length - 1; i >= 0; i--) {
       if (this.ragdolls[i].mesh !== mesh) continue;
+      restLimbs(this.ragdolls[i].limbs);
       this.ragdolls.splice(i, 1);
       mesh.rotation.set(0, 0, 0);
       return true;
@@ -397,21 +414,13 @@ export class Effects {
   }
 
   /**
-   * Ragdoll-lite (Section 15). Not a solver: one impulse, a damped tumble on
-   * the whole mesh, frozen after 2s. The controller is expected to be disabled
-   * by the caller before this runs.
+   * Ragdoll (Section 15, D94 realistic). The motion is `ragdolllimbs.js`; this
+   * owns the list, the settle and the reinsert. The controller is expected to
+   * be disabled by the caller before this runs.
    */
   ragdoll(mesh, direction) {
-    const record = {
-      mesh,
-      life: E.ragdollDuration,
-      vx: (direction.x || 0) * E.ragdollImpulse,
-      vy: E.ragdollImpulse * 0.5,
-      vz: (direction.z || 0) * E.ragdollImpulse,
-      spinX: lookRng.unit() * 6,
-      spinY: lookRng.unit() * 6,
-      spinZ: lookRng.unit() * 6,
-    };
+    this._settled.delete(mesh);
+    const record = startRagdoll(mesh, direction);
     this.ragdolls.push(record);
     return record;
   }
@@ -454,23 +463,14 @@ export class Effects {
     for (let i = this.ragdolls.length - 1; i >= 0; i--) {
       const doll = this.ragdolls[i];
       doll.life -= dt;
-      if (doll.life <= 0) {
-        // Freeze, do not delete: the body stays where it fell.
-        this.ragdolls.splice(i, 1);
-        continue;
-      }
-      doll.vy += E.ragdollGravity * dt;
-      doll.vx *= E.ragdollLinearDamping;
-      doll.vz *= E.ragdollLinearDamping;
-      doll.mesh.position.x += doll.vx * dt;
-      doll.mesh.position.y = Math.max(0, doll.mesh.position.y + doll.vy * dt);
-      doll.mesh.position.z += doll.vz * dt;
-      doll.spinX *= E.ragdollAngularDamping;
-      doll.spinY *= E.ragdollAngularDamping;
-      doll.spinZ *= E.ragdollAngularDamping;
-      doll.mesh.rotation.x += doll.spinX * dt;
-      doll.mesh.rotation.y += doll.spinY * dt;
-      doll.mesh.rotation.z += doll.spinZ * dt;
+      const moved = stepRagdoll(doll, dt);
+      if (doll.life > 0 && moved >= E.ragdollSettleFloor) continue;
+      // At rest: snap the limbs home and stop stepping the record, so a body
+      // that has settled writes nothing - not a decaying 1e-4, which is the
+      // jitter. The body stays where it fell; the mesh is not levelled.
+      restLimbs(doll.limbs);
+      this._settled.set(doll.mesh, doll.limbs);
+      this.ragdolls.splice(i, 1);
     }
   }
 

@@ -126,15 +126,16 @@ const SPENDERS = [
   { file: 'src/systems/effects.js', stream: 'lookRng', method: 'range', when: 'a smoke puff drifts: the vertical axis of it', feeds: 'slot.vy' },
   { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a smoke puff drifts: the third axis of it', feeds: 'slot.vz' },
   { file: 'src/systems/effects.js', stream: 'lookRng', method: 'range', when: 'a smoke puff is drawn: how big the sprite is', feeds: 'slot.size' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about x', feeds: 'spinX' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about y', feeds: 'spinY' },
-  { file: 'src/systems/effects.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its spin about z', feeds: 'spinZ' },
   // J6's dust, beside the sparks and the smoke it is the sibling of: a mote is
   // a mark on the air and nothing reads it back, so all three belong on the
   // look stream by the same argument H27 makes for a footprint's yaw.
   { file: 'src/systems/dust.js', stream: 'lookRng', method: 'next', when: 'a mote leaves: its angle around the contact point', feeds: 'angle' },
   { file: 'src/systems/dust.js', stream: 'lookRng', method: 'next', when: 'a mote leaves: how much of the spread it takes', feeds: 'speed' },
   { file: 'src/systems/dust.js', stream: 'lookRng', method: 'range', when: 'a mote leaves: its upward speed, lifted by the fall', feeds: 'slot.vy' },
+  // J3's ragdoll: the one draw a hit's line does not decide. The heading is
+  // only drawn when the caller gave no direction at all.
+  { file: 'src/systems/ragdolllimbs.js', stream: 'lookRng', method: 'next', when: 'a ragdoll is started with no direction: the heading it falls along', feeds: 'heading' },
+  { file: 'src/systems/ragdolllimbs.js', stream: 'lookRng', method: 'unit', when: 'a ragdoll tumbles: its twist about the spine', feeds: 'twist' },
 ];
 
 /** The two files this census does not read, and why, as data. */

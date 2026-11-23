@@ -1952,12 +1952,33 @@ export const CONFIG = {
     footprintFadeTime: 6,
     footprintSize: 0.16,
     footprintLift: 0.012,
-    /** Ragdoll-lite: single impulse, damped tumble, freeze after 2s. */
-    ragdollDuration: 2,
-    ragdollImpulse: 5.5,
-    ragdollAngularDamping: 0.94,
-    ragdollLinearDamping: 0.985,
+    /**
+     * Ragdoll, realistic (D94): a moderate impulse along the hit's line, the
+     * limbs trailing the tumble rather than flying, settled inside a second.
+     * `ragdollDuration` is the hard cap the older checks read and is the same
+     * number as `ragdollSettleSeconds`; the motion is tuned to reach the floor
+     * just inside it, so the cap is a backstop and not what stops the body.
+     */
+    ragdollDuration: 0.9,
+    ragdollSettleSeconds: 0.9,
+    ragdollImpulse: 2.5,
+    /** Upward part of the launch, m/s: a stumble, not a throw. */
+    ragdollLift: 1.2,
+    /** Tip-over speed about the axis across the hit, rad/s, and the random twist about the spine. */
+    ragdollTumble: 7,
+    ragdollTwist: 1.2,
+    /** Roll about the hit's line as the body goes over, rad/s, signed by the twist. */
+    ragdollRoll: 1.5,
+    ragdollAngularDamping: 0.89,
+    ragdollLinearDamping: 0.91,
     ragdollGravity: -18,
+    /** Per-step motion (m or rad) under which the body is at rest: snapped and no longer stepped. */
+    ragdollSettleFloor: 0.0006,
+    /** Limbs trail the tumble: fraction of the gap closed a step, damping a step, lean per rad/s, and the cap. */
+    ragdollLimbLag: 0.15,
+    ragdollLimbDamping: 0.96,
+    ragdollLimbGain: 0.17,
+    ragdollLimbMaxDegrees: 35,
     /** Grounding blob under each actor (Section 4.1). */
     groundBlobRadius: 0.45,
     groundBlobMaxHeight: 3.0,

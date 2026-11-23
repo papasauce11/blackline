@@ -203,6 +203,14 @@ export const CENSUS = [
     note: 'drives a ragdoll with `effects.step(dt)` alone and reads the Warden\'s mesh position for the floor it sank to and for the freeze. Nothing in that check advances the chase, so the controller never writes the transform the ragdoll owns',
   },
   {
+    module: 'ragdollsettle.js',
+    reach: 'none',
+    proof: 'frozen',
+    frames: '-',
+    reads: /final\[0\] - start\[0\]/,
+    note: 'J3. Drives a ragdoll with `effects.step(dt)` alone, on both bodies, and reads the mesh position every step for the direction of the fall, its travel and the exact zero after it settles. Nothing in that check advances the chase, so the controller never writes the transform the ragdoll owns, and the quantity read is the own output of the ragdoll and not a place the capsule has sent the body to',
+  },
+  {
     module: 'visual.js',
     reach: 'none',
     proof: 'ragdoll',

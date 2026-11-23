@@ -98,6 +98,7 @@ import { register as registerAmbience } from './ambience.js';
 import { register as registerSolverQuery } from './solverquery.js';
 import { register as registerAutoPick } from './autopick.js';
 import { register as registerPerformance } from './performance.js';
+import { register as registerRagdollSettle } from './ragdollsettle.js';
 import { register as registerDoneDef } from './donedef.js';
 import { register as registerRequestBuffer } from './requestbuffer.js';
 import { register as registerSoak } from './soak.js';
@@ -381,4 +382,6 @@ export function registerAutoTests(debugTools) {
   registerDustLight(debugTools);
   // J2: a hit-stop holds the picture and costs the simulation no step, a frag shakes the camera by its distance, both sit under a setting and a pause freezes a stop; it drives frames of its own and ends in a fresh match.
   registerImpactFeel(debugTools);
+  // J3: a ragdoll falls along the hit, its limbs trail the tip, it is at rest inside a second and then writes exactly nothing, and a reinsert clears it; it steps effects directly on both bodies and restores them, so it ends in the state it began.
+  registerRagdollSettle(debugTools);
 }
