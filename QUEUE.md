@@ -1722,16 +1722,45 @@ provisional; the rule for "thin" is mechanical, never a tag.
   reading and close it. **Prerequisite: J16 must be landed** - it edits the line
   beside it.
 
-- [ ] **J18 (S)** **blocked: D107** - What height the camera settles at on a
-  crouch. J16 proved the camera no longer pops; it also exposed that the eye
-  does not lower on a crouch **at all** (the pivot is the feet plus a fixed
-  1.4m, and `_resize` keeps the feet planted, so standing at 1.85m and crouching
-  at 1.05m read the same world height). Whether it should lower is **key feel
-  and Josh's** (D84), asked as D107 with three options and a recommendation of
-  about 0.15-0.2m. *done-when:* D107 is answered; if it is option 1 this entry
-  closes with no code; otherwise the crouch offset is eased on the same smoothed
-  half-height J16 added, under a config key, and J16's check is extended to read
-  the new rest rather than equality.
+- [ ] **J18 (S)** **prerequisite: J16 must be landed** (it edits the pivot line
+  J16 adds) - The crouch lowers the eye part way. **D107 answered by Josh,
+  2026-11-23: option 3, lower it part way**, about 0.15-0.2m, eased, keeping
+  most of the horizon.
+  **Why it is needed:** J16 stopped the camera popping 0.4m upward on a crouch,
+  and in doing so showed that the eye does not move at all - the pivot is the
+  feet plus a fixed `cam.up` of 1.4m and `_resize` keeps the feet planted, so
+  standing (1.85m) and crouched (1.05m) read the same world height.
+  **The design, decided by the lead on Josh's answer - build this, do not
+  redesign it:**
+  1. `CONFIG.shade.camera.crouchDrop`, **0.18m** (the middle of his range), with
+     a comment naming D107 so a later tune is a decision and not a drift.
+  2. In `src/entities/agentvisual.js`, the pivot J16 leaves as
+     `_smoothPosition.y - this._smoothHalfY + cam.up + _dip + bob` gains one
+     term: **minus `crouchDrop * crouchFraction`**, where `crouchFraction` is
+     `(standHalfY - this._smoothHalfY) / (standHalfY - crouchHalfY)` clamped to
+     0..1 - 0 standing, 1 fully crouched.
+  3. **It eases for free and cannot pop.** `_smoothHalfY` is already the
+     smoothed term J16 added, so the drop moves with it on the same
+     `positionSmoothing` and inherits J16's monotonicity by construction. Do
+     **not** add a second smoother, a second time constant or a config ease.
+  4. Derive `standHalfY` and `crouchHalfY` from `CONFIG`'s `standHeight` and
+     `crouchHeight` halves, not from literals, so the two cannot drift apart
+     (H129 is the sibling finding).
+  *done-when:* J16's `crouchcam` check is **extended, not replaced**: its
+  equal-rests clause becomes "the crouched rest sits exactly `crouchDrop` below
+  the standing rest, within 0.005m", and its (a) and (b) clauses become
+  monotonic to the new rest rather than flat - no frame above the standing rest
+  on the way down, none below the crouched rest on the way up - on both maps.
+  The half-height must still be shown to have really moved 0.40m, so the clause
+  cannot pass on a Shade that never crouched. **The break:** `crouchDrop: 0`
+  reds the rests-differ clause; putting the raw `half.y` back in the pivot reds
+  the monotonic clauses.
+  **A note on J16's check id.** J16 lands owing a rename, because
+  `the-camera-lowers-onto-a-crouch-without-popping-up-first` claims a lowering
+  that does not happen yet - but **this job makes that claim true again**. So
+  rename it once, to something true in both states
+  (`the-camera-settles-onto-a-crouch-without-popping-up-first`), rather than
+  renaming it twice in two runs.
 
 - [ ] **J11 (S)** The body seen from inside when the boom is jammed. J1's near-
   plane clamp puts the camera about **0.24m** from the body centre when the

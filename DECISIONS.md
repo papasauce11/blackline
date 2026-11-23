@@ -3313,7 +3313,7 @@ base. `--stall` stays unraised (D100).
 
 ## Blocking — waiting on Josh
 
-### D107 — Should the third-person camera lower when the Shade crouches?
+### D107 — Should the third-person camera lower when the Shade crouches? **ANSWERED**
 **Key feel (D84), and nothing is waiting on it** — J16 is landed either way, so
 answer this whenever you like.
 J16 fixed a real bug: the camera used to jump about **0.4m upward** on the frame
@@ -3337,7 +3337,12 @@ crouch and stand in third person and watch the horizon rather than the body.
 **Recommendation: 3.** Enough that a crouch registers in the view, little enough
 that it never fights the aim or the vent roof. But this is yours, and 1 is a
 perfectly defensible game.
-`decided:`
+`decided:` **3 - lower it part way** (Josh, 2026-11-23). About 0.15-0.2m of
+eye drop at a full crouch, eased, keeping most of the horizon. **J18** is
+unblocked and carries the build; it takes **0.18m** as the number, the middle
+of the range, under a config key so it is one line to retune after he has
+felt it. Nothing else about the crouch changes: the settle is still the feet
+plus `cam.up`, now less the drop.
 
 ### D102 — J6's dust: how heavy is a mote?
 Styling (D84), and the first thing in Block J you can look at rather than
