@@ -105,6 +105,14 @@ function peakAt(h, distance, type = 'frag') {
   h.renderFrame(FOUR_MS);
   const eye = eyeOf(h);
   h.emitter.emit('gadget:detonate', { type, at: { x: eye.x + distance, y: eye.y, z: eye.z } });
+  // The emit above is half an event: `effects.js` hears it and a `smoke`
+  // detonation spawns a real 100-sprite cloud with no gadget behind it, which
+  // `effects-drain-when-idle` rightly calls a leak - and which this check then
+  // renders 80 frames of, from 2m inside it. `tests/audio.js` carries the same
+  // note and the same one-line cure (P6, 2026-11-23: the third occurrence).
+  // The shake is already decided - impact's own handler ran on the emit - so
+  // clearing the cloud here cannot weaken a clause.
+  if (type !== 'frag') h.effects.reset();
   let metres = 0;
   let roll = 0;
   for (let i = 0; i < 80; i++) {
