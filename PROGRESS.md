@@ -24157,3 +24157,26 @@ all four without re-doing tonight's reading. **Next run: H134 first, then the
 canary, then the stages - now readable even when one dies.** And the request to
 Josh stands and is the whole cure: the suite cannot finish while RicochetRoyale's
 dev servers are up.
+
+**H134 as built, and the brief it refused.** The brief said to flush where a
+check's result is pushed in `suite.mjs`. There is no such place: a map's run is
+**one `page.evaluate`** that holds every result in the page until it returns,
+so a killed run throws before `runs.push` and that flush would have saved
+nothing. The builder said so and built the missing link instead - the page
+publishes its live results as `state.suiteSettled` (behind `if (top)`, so a
+check that itself drives `runChecks` cannot replace the outer run's list, and
+nulled before the warm-up so run 2 cannot read run 1's), the watchdog's own 5s
+poll reads what settled since the last poll, and `suite.mjs` rewrites the file
+with the finished maps plus the partial one. `shapeResult` moved into
+`details.mjs` and **its source is handed to both ends**, so a carried-out entry
+and a finished one are one shape and a complete run's file is byte-identical;
+`detaildrift.mjs` and `suitereport.mjs` needed no change. That is the second
+brief in two runs a builder was right to refuse (J16's was the first), and both
+refusals were correct on a reading of the code the brief had not done.
+Four review notes ride with it into its proof: the heartbeat probe now shapes
+results across the CDP boundary every five seconds, so **the first gate must be
+read for whether the watchdog became more trigger-happy, and if stalls worsen
+this is the first revert**; `new Function` at both ends works but a shared pure
+module would be cleaner; `autosuite.js` is now 575 and in the ceiling cluster;
+and the flush lags the last check by up to 5s and does nothing under
+`--stall 0`, so a kill keeps nearly all of a run's verdicts rather than all.

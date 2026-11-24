@@ -1372,8 +1372,9 @@ the end of this list, never ahead of a game-facing job.
   render call's name from two halves, or the file re-enrols itself in the pose
   census (the red H131 paid for).
 
-- [~] **H134 (S)** **BUILT INTO A WORKTREE, NOT LANDED** (2026-11-24, the 17:00
-  run; P12 capped the run at two voids so nothing could land). **Take this
+- [~] **H134 (S)** **BUILT, REVIEWED, NOT LANDED** - `39006da` on
+  `worktree-agent-a75e75ace04ffb112` (2026-11-24, the 17:00 run; P12 capped the
+  run at two voids so nothing could land). **Take this
   before attempting another gate.** A killed run loses every verdict it had
   already earned, and tonight it did that three times: the full verify died at
   check **272 of 279** (plant), a stage at **269 of 279** (plant) and a stage at
@@ -1401,9 +1402,44 @@ the end of this list, never ahead of a game-facing job.
   naming every finished check and its verdict; the finished file is unchanged in
   shape, so `detaildrift.mjs` and `suitereport.mjs` read it untouched; and
   moving the flush back out of the loop reds the shape clause.
-  *Resume:* cherry-pick the worktree commit, review the diff against
-  `detaildrift.mjs` and `suitereport.mjs`, prove on the census set plus
-  `every-runner-reads-one-command-line` and the new id, and run the break.
+  **The brief was wrong and the builder was right to refuse it.** There is no
+  per-check loop in `suite.mjs`: a map's run is **one `page.evaluate`** holding
+  every result in the page until it returns, so a kill throws before
+  `runs.push` and flushing "where a result is pushed" would have saved nothing.
+  *What was built instead:* `autosuite.js` publishes the live results array as
+  `state.suiteSettled` (guarded by `if (top)`, so a check that itself drives
+  `runChecks` cannot replace the outer run's list, and nulled before the
+  warm-up so run 2 cannot read run 1's); the **watchdog's own 5s poll** reads
+  what has settled since the last poll and calls `onSettled`; `suite.mjs`
+  rewrites the file with the finished maps plus the partial one. `shapeResult`
+  moved to `details.mjs` and its **source is handed to both ends**, so a
+  carried-out entry and a finished one are one shape and a complete run's file
+  is byte-identical - `detaildrift.mjs` and `suitereport.mjs` needed no change.
+  Check `a-killed-run-keeps-the-verdicts-it-already-earned`; break: in
+  `suite.mjs`, on the line starting `{ shapeSource: shapeResult.toString(),
+  onSettled: settled => flushDetails(`, replace `flushDetails(` with `void (`.
+  **Reviewed 2026-11-24, four things to carry into the proof.** (1) **The
+  heartbeat probe now does more work per poll** - it slices and shapes the new
+  results across the CDP boundary every 5s. It is a few hundred bytes in the
+  normal case, but on *this* machine the whole complaint is stalls, so the
+  first gate must be read for whether the watchdog became more trigger-happy;
+  if stalls get worse rather than better, **revert this first**. (2) It uses
+  `new Function('return ' + src)()` at both ends. It works (the served page has
+  no CSP, and the check proves the built function matches the module's) but a
+  shared pure module under `src/` importable by node and the page would be
+  cleaner - a follow-up, not a blocker. (3) `src/ui/autosuite.js` is **575** and
+  in the ceiling cluster; `scripts/suite.mjs` is **562** (HANDOFF's 526 was
+  stale). (4) The flush rides the poll, so it **lags the last check by up to 5s**
+  and does nothing under `--stall 0`; a kill therefore keeps nearly all, not
+  quite all. `writeDetails` reaches `fs` through
+  `process.getBuiltinModule('node:fs')` so the page can import the module -
+  that needs a recent node (local is v24.15).
+  **Unproven by the suite**: the builder ran the check's `run()` in node
+  against the real sources with stubs, passing unmutated and red under both
+  breaks, which is evidence and not proof.
+  *Resume:* `git cherry-pick 39006da`, prove on the census set plus
+  `every-runner-reads-one-command-line` and the new id, run the break, and read
+  the next gate's stall behaviour against the three deaths of 2026-11-24.
 
 ## Block K — the Warden as an opponent
 
