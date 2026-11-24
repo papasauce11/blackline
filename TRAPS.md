@@ -1278,3 +1278,30 @@ Josh closing the other project's servers, which is this line and a sentence to
 him, not something a run does by force. And **`--stall`/`--stall-wait` stay
 where they are** (D100, P3): a budget raised to cover a machine this loaded
 stops being evidence about anything.
+
+**A healthy canary does not predict a completable verify, and the fourth stall
+site is why** (2026-11-24, the 17:00 run). P8 made the census canary the opening
+move on the theory that a subset which finishes cheaply says the machine can
+finish a run. It cannot, and one night killed the theory: the canary came back
+**green in 4m51s** - 24 of 24 on both maps, nothing red, nothing flaky, 0
+console errors, the default pin - and the full two-run verify it licensed
+**died 28m40s later**, exit 2, with the heartbeat frozen 240s in phase
+`running` at check **272 of 279** on the plant's first run, the check in flight
+`a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`. That is a
+**fourth** stall site after the final drain, the mid-run audio check and
+warm-up frame 57, in a third phase, and **272 checks had already passed when
+it froze**. So the deaths do not belong to a site, a check or a phase: they are
+**late**, after twenty-five to thirty minutes of accumulated work, and they
+take whatever is in flight. The predictor is the **length of one invocation**,
+not the health of a short one, which is exactly what a five-minute canary
+cannot measure. Read it as a floor and never as a forecast: a green canary says
+the suite starts, not that it ends. On the same machine, same hour: 8 cores,
+**2.69GB free of 12GB** at the start and 3.41GB once the dead run let go, the
+other project still holding 13 node processes and four or five vite servers,
+and the gate running about **35% slower per run** than a healthy one (28m40s
+for most of one run of four, against roughly 21 minutes a run). Warm-up that
+night was **56,985ms** on the plant (frame 1 11ms, slowest frame 29 at
+16,181ms) and 30,877ms on the yard - *dearer* than the 36,870ms H131 measured
+the night before, on the same commit, which is the load moving and not the
+code. **Subsets finish; long invocations do not.** Four full verifies have now
+failed in three nights at four sites.
