@@ -417,6 +417,10 @@ export class AutoSuite {
     // run around it to report (F10).
     const total = tests.length;
     let pipelineWaitMs = 0;
+    // H134: published as they settle, so a watcher can keep what a run earned
+    // if it is killed before it returns. The outer run's alone: a check that
+    // drives `runChecks` must not replace the list the run around it is filling.
+    if (top) this.state.suiteSettled = results;
 
     for (const test of tests) {
       this.beat({ total, done: results.length, inFlight: test.id, phase: 'running' });

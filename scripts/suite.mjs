@@ -108,6 +108,8 @@ import { createGuard, otherRunners } from './watchdog.mjs';
 // The verdict and the printing (H10): the half of this file with no Chrome in it.
 import { judge, summary } from './suitereport.mjs';
 import { stampVersion, VERSION_FILE } from './version.mjs';
+// H134: what --details holds, and the one place it is written.
+import { shapeResult, writeDetails } from './details.mjs';
 // The command line, shared with headless.mjs and the three runners (H58).
 import { parseArgs, listArg, scalarArg } from './args.mjs';
 
@@ -283,6 +285,22 @@ function serve() {
  */
 const guard = createGuard({ stallMs: STALL_MS, waitStallMs: WAIT_STALL_MS });
 
+/**
+ * Rewrite --details with what has settled. Never fatal: a locked file or a
+ * full disk costs the file and not the run, and the heartbeat is read in the
+ * same loop that calls this (H134).
+ */
+let detailsWarned = false;
+function flushDetails(runs) {
+  if (!DETAILS) return;
+  try {
+    writeDetails(DETAILS, runs);
+  } catch (err) {
+    if (!detailsWarned) process.stderr.write(`suite: could not write ${DETAILS}: ${err && err.message}; carrying on\n`);
+    detailsWarned = true;
+  }
+}
+
 /** What the page said before a crash, so a module that failed to load names itself. */
 const bootErrors = [];
 
@@ -421,8 +439,12 @@ async function main() {
         const t0 = Date.now();
         at.run = i + 1;
         at.since = t0;
-        const r = await guard.withDeadline(page, page.evaluate(async ([subsetSource, regression]) => {
+        const r = await guard.withDeadline(page, page.evaluate(async ([subsetSource, regression, shapeSource]) => {
           const h = window.BLACKLINE;
+          const shape = new Function('return ' + shapeSource)();
+          // The last run's settled list is not this one's: the watchdog reads it
+          // from the first poll, through the warm-up (H134).
+          h.debugState.suiteSettled = null;
           // The warm-up beats and yields too, so the deadline's first gap is
           // one frame and not all sixty.
           // H131: what each of the sixty costs, on the beat and on the run. A
@@ -497,33 +519,15 @@ async function main() {
             // right answer (F4); a check that drives frames does so through
             // h.renderFrame, which this does not count.
             loopFrames: h.loop.frames - loopFramesBefore,
-            results: res.results.map(x => ({
-              id: x.id, pass: !!x.pass, detail: String(x.detail ?? '').slice(0, 400),
-              // H91: how long the line was before the cut above (CONFIG.debug.
-              // detailBudget, held equal by runnerguard.js), so a cut is visible.
-              detailLength: String(x.detail ?? '').length,
-              // What --details quotes, and the evidence the stall budget
-              // rests on: the slowest single check is the longest gap
-              // between two beats (F10).
-              ms: Math.round(x.ms),
-              // A check may hand the runner numbers beside its verdict, and
-              // one does: the source ceiling's cluster, which the summary
-              // prints per run so a passing check's finding reaches a reader
-              // with no flag (H63). Spread only where it exists, so the other
-              // two-hundred-odd results do not each gain a null in --details.
-              ...(x.ceiling ? { ceiling: x.ceiling } : {}),
-              // H91: a census's names, kept out of its detail line so the
-              // readings are what the cut leaves.
-              ...(Array.isArray(x.roster) ? { roster: x.roster } : {}),
-              // H77: what this check took from the simulation's shared stream,
-              // and how much of it was taken under a live AI. The runner's
-              // number and not the check's (`_runOne` writes it after the
-              // spread). Carried only where something was drawn, so the
-              // hundred-odd checks that touch no match stay one line each.
-              ...(x.draws && x.draws.total ? { draws: x.draws } : {}),
-            })),
+            // H134: shaped by details.mjs, whose source the page was handed, so
+            // a finished entry and one the watchdog carried out are one shape.
+            results: res.results.map(shape),
           };
-        }, [SUBSET ? SUBSET.source : null, REGRESSION]), `map ${mapId}, run ${i + 1}`);
+        }, [SUBSET ? SUBSET.source : null, REGRESSION, shapeResult.toString()]),
+          `map ${mapId}, run ${i + 1}`,
+          // H134: each time the poll finds checks settled, the file is rewritten
+          // with them, so a run that is killed keeps the verdicts it earned.
+          { shapeSource: shapeResult.toString(), onSettled: settled => flushDetails([...runs, { map: mapId, results: settled }]) });
         r.ms = Date.now() - t0;
         runs.push(r);
       }
@@ -542,9 +546,7 @@ async function main() {
     await guard.teardown();
   }
 
-  if (DETAILS) {
-    fs.writeFileSync(DETAILS, JSON.stringify(runs.map(r => ({ map: r.map, results: r.results })), null, 2) + '\n');
-  }
+  flushDetails(runs);
   process.stdout.write(JSON.stringify(report, null, 2) + '\n');
   process.stderr.write(summary(report));
   process.exit(report.ok ? 0 : 1);

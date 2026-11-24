@@ -120,6 +120,7 @@ import { register as registerPauseMenu } from './pausemenu.js';
 import { register as registerReplays } from './replays.js';
 import { register as registerRunnerGuard } from './runnerguard.js';
 import { register as registerDetailDrift } from './detaildrift.js';
+import { register as registerDetailFlush } from './detailflush.js';
 import { register as registerTimedRenders } from './timedrenders.js';
 import { register as registerAudioDevice } from './audiodevice.js';
 import { register as registerTorch } from './torch.js';
@@ -320,6 +321,8 @@ export function registerAutoTests(debugTools) {
   // H79: and which readings moved between the two runs of a map without
   // moving a verdict, which `flaky` cannot see.
   registerDetailDrift(debugTools);
+  // H134: and that a run killed late still hands over the verdicts it had.
+  registerDetailFlush(debugTools);
   // And the census of the clocks themselves: which checks time a render, and
   // which of them put a verdict on a number this renderer cannot measure
   // (H36, H41). After fuzz.js and pipelinewait.js, so its own two drains

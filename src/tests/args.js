@@ -168,6 +168,7 @@ const FLAGS = [
   // list did not say so.
   { runner: '/scripts/args.mjs', repeat: [], scalar: [] },
   { runner: '/scripts/detaildrift.mjs', repeat: [], scalar: [] },
+  { runner: '/scripts/details.mjs', repeat: [], scalar: [] },
   { runner: '/scripts/headless.mjs', repeat: [], scalar: [] },
   { runner: '/scripts/suitereport.mjs', repeat: [], scalar: [] },
   { runner: '/scripts/version.mjs', repeat: [], scalar: [] },

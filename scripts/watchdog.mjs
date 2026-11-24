@@ -126,14 +126,26 @@ export function createGuard({ stallMs, waitStallMs = stallMs, heartbeatMs = 5000
    * answers null and counts as a beat that has not moved - rather than
    * hanging this watcher the way it hung the run.
    *
+   * And, when asked, the checks settled since `from` (H134): the page holds
+   * a run's results until the run returns, so a run killed here would
+   * otherwise take every verdict it had earned with it. Shaped in the page,
+   * by the source the runner hands over, so what comes out is what a
+   * finished run would have returned.
+   *
+   * @param {object} page
+   * @param {number} [from] how many settled checks the caller already has
+   * @param {string|null} [shapeSource] details.mjs's `shapeResult`, as source
    * @returns {Promise<object|null>}
    */
-  function readBeat(page) {
-    const ask = page.evaluate(() => {
+  function readBeat(page, from = 0, shapeSource = null) {
+    const ask = page.evaluate(([skip, src]) => {
       const s = window.BLACKLINE && window.BLACKLINE.debugState;
       const p = s && s.suiteProgress;
-      return p ? { seq: p.seq, done: p.done, total: p.total, inFlight: p.inFlight, last: p.last, phase: p.phase, frameMs: p.frameMs, warmMs: p.warmMs } : null;
-    }).catch(() => null);
+      if (!p) return null;
+      const beat = { seq: p.seq, done: p.done, total: p.total, inFlight: p.inFlight, last: p.last, phase: p.phase, frameMs: p.frameMs, warmMs: p.warmMs };
+      if (src && Array.isArray(s.suiteSettled)) beat.settled = s.suiteSettled.slice(skip).map(new Function('return ' + src)());
+      return beat;
+    }, [from, shapeSource]).catch(() => null);
     return Promise.race([ask, sleep(heartbeatMs).then(() => null)]);
   }
 
@@ -146,9 +158,12 @@ export function createGuard({ stallMs, waitStallMs = stallMs, heartbeatMs = 5000
    * @param {object} page the Playwright page the run is driving
    * @param {Promise} work the run's own `page.evaluate`
    * @param {string} where map and run number, for the message
+   * @param {{shapeSource: string, onSettled: (results: object[]) => void}} [carry]
+   *   H134: called with every check the run has settled so far, each time the
+   *   poll finds more. A throw in it is the caller's loss and not the run's.
    * @returns {Promise} whatever `work` returned
    */
-  async function withDeadline(page, work, where) {
+  async function withDeadline(page, work, where, carry = null) {
     if (!stallMs) return work;
     let settled = false;
     const done = work.then(v => { settled = true; return v; }, e => { settled = true; throw e; });
@@ -159,11 +174,20 @@ export function createGuard({ stallMs, waitStallMs = stallMs, heartbeatMs = 5000
       let seq = null;
       let movedAt = Date.now();
       let seen = null;
+      const have = [];
       while (!settled) {
         await sleep(heartbeatMs);
         if (settled) return null;
-        const beat = await readBeat(page);
+        const beat = await readBeat(page, have.length, carry && carry.shapeSource);
         if (settled) return null;
+        if (beat && beat.settled) {
+          const fresh = beat.settled;
+          delete beat.settled;
+          if (fresh.length) {
+            have.push(...fresh);
+            try { carry.onSettled(have); } catch { /* the file is the caller's; the run is not */ }
+          }
+        }
         if (beat && beat.seq !== seq) { seq = beat.seq; seen = beat; movedAt = Date.now(); continue; }
         const still = Date.now() - movedAt;
         // Two budgets, because two things are being told apart (D48). A check
