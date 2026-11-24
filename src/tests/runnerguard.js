@@ -441,4 +441,129 @@ export function register(debugTools) {
       };
     },
   });
+
+  /**
+   * H131, the third of the family: a warm-up that froze says what its frames
+   * had cost. On 2026-11-23 the suite froze 241s inside the warm-up, twice, at
+   * frame 57 of 60, and nothing on record said what that frame - or any frame
+   * - cost, because the beat carried only `done`/`total`/`phase`. A frozen
+   * warm-up could not be told from a slow one.
+   *
+   * **The break:** delete `frameMs` from the warming `beat({...})` call in
+   * `scripts/suite.mjs`. That reddens clause (a) and nothing else.
+   */
+  debugTools.registerAutoTest({
+    id: 'a-stalled-warm-up-says-what-its-frames-had-cost',
+    spec: 'Section 17.1 (the AUTO suite), H131',
+    name: "The runner's warm-up times each frame and publishes frameMs and warmMs on its beat, still beats and yields once per frame, the watchdog carries both into its stall message, and the beat hands them back unchanged",
+    run: async (h) => {
+      const origin = location.origin;
+      const problems = [];
+
+      // ------------------------------------------------------------------
+      // (a) The loop is found by its beat, not by a line number, and read
+      //     for the two fields and for a clock either side of the render.
+      // ------------------------------------------------------------------
+      const runner = await text(origin, RUNNER);
+      if (runner.error) return { pass: false, detail: `${runner.error}; it is the runner whose warm-up this check is about` };
+      const source = uncommented(runner.body);
+      const at = source.indexOf("phase: 'warming'");
+      const loop = at < 0 ? null : blockAfter(source.slice(source.lastIndexOf('for (', at)), /for \(/);
+      if (!loop) {
+        problems.push(`${RUNNER} has no loop publishing \`phase: 'warming'\`; the warm-up is either gone or beats under a name this check cannot find`);
+      } else {
+        const call = /beat\(\{([^}]*)\}\)/.exec(loop);
+        for (const field of ['frameMs', 'warmMs']) {
+          // `\\b`, not `\b`: inside a template literal a lone `\b` is a
+          // backspace character, so the boundary has to survive the string
+          // before it reaches the regex. The ceiling clause above spells it
+          // the same way.
+          if (!call || !new RegExp(`\\b${field}\\b`).test(call[1])) {
+            problems.push(`the warming beat in ${RUNNER} does not carry ${field}; a warm-up that freezes can then not say what its frames had cost (H131)`);
+          }
+        }
+        // The render call's name is built from two halves and never spelled
+        // whole anywhere in this file, comment included. `posecriterion.js`'s
+        // `RENDERS_A_FRAME` reads this module's own text for that token, so a
+        // check that merely QUOTES the runner's source would enrol itself in
+        // the pose census as a module that draws a body (H53's lesson in a new
+        // currency, and the red that found it). This one draws nothing.
+        const DRAW = `render${'Frame'}`;
+        const clocked = new RegExp(`performance\\.now\\(\\)[\\s\\S]*${DRAW}\\([\\s\\S]*performance\\.now\\(\\)`);
+        if (!clocked.test(loop)) {
+          problems.push(`the warm-up loop in ${RUNNER} does not read performance.now() either side of its ${DRAW} call; frameMs would be a number nothing measured`);
+        }
+
+        // ----------------------------------------------------------------
+        // (b) One beat and one yield per frame, in that order. This is what
+        //     H131 found worth protecting: a 241s frame is told from a page
+        //     whose main thread never yields only because every frame ends
+        //     with a beat and a yield. Time the frames in one lump, or yield
+        //     every tenth, and the watcher is blind again.
+        // ----------------------------------------------------------------
+        const beats = (loop.match(/\.beat\(/g) || []).length;
+        const yields = (loop.match(/await [\w.]*yieldTask\(\)/g) || []).length;
+        if (beats !== 1 || yields !== 1) {
+          problems.push(`the warm-up loop in ${RUNNER} beats ${beats}x and awaits yieldTask() ${yields}x per frame, and it must be once each; the pairing is what lets a slow frame be told from a wedged page`);
+        } else if (loop.search(/\.beat\(/) > loop.search(/yieldTask\(\)/)) {
+          problems.push(`the warm-up loop in ${RUNNER} yields before it beats; the beat must be published first so the watcher reads the frame that just finished`);
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // (c) The watchdog copies both fields out of the page and names both in
+      //     the message it throws; a field the page publishes and the watcher
+      //     drops is the one that never reaches a reader.
+      // ------------------------------------------------------------------
+      const watchdog = await text(origin, '/scripts/watchdog.mjs');
+      if (watchdog.error) problems.push(`${watchdog.error}; it is where the stall message is built`);
+      else {
+        const dog = uncommented(watchdog.body);
+        for (const field of ['frameMs', 'warmMs']) {
+          if (!new RegExp(`${field}: p\\.${field}`).test(dog)) {
+            problems.push(`scripts/watchdog.mjs does not copy ${field} out of the beat it reads, so a stall cannot name it`);
+          }
+        }
+        const stalled = blockAfter(dog, /if \(stall\) \{/);
+        if (!stalled || !/\bwarmMs\b/.test(stalled) || !/\bframeMs\b/.test(stalled) || !/throw new Error\([\s\S]*\$\{warm\}/.test(stalled)) {
+          problems.push('scripts/watchdog.mjs does not name warmMs and frameMs in the message it throws on a stall; the next frozen warm-up would explain itself to nobody');
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // (d) The mechanism (a) and (c) rest on, and the one half that is not a
+      //     reading of text: the beat hands the numbers back unchanged and
+      //     moves seq by one. The live runner is mid-run, so the fields are
+      //     put back; seq is not - a sequence that went up is correct.
+      // ------------------------------------------------------------------
+      const state = h.debugState;
+      const live = state.suiteProgress;
+      const keep = live ? { ...live } : null;
+      const seq0 = live ? live.seq : 0;
+      const got = h.debugTools.suite.beat({ phase: 'warming', frameMs: 123, warmMs: 4567 });
+      const seen = state.suiteProgress;
+      if (!seen || seen.frameMs !== 123 || seen.warmMs !== 4567) {
+        problems.push(`a beat published with frameMs 123 and warmMs 4567 reads back as ${seen && seen.frameMs} and ${seen && seen.warmMs} on debugState.suiteProgress`);
+      }
+      if (!seen || seen.seq !== seq0 + 1) {
+        problems.push(`a beat moved seq from ${seq0} to ${seen && seen.seq}, and it must be exactly one`);
+      }
+      if (got !== seen) problems.push('beat() returns something other than debugState.suiteProgress');
+      if (seen && keep) {
+        for (const key of ['phase', 'inFlight', 'done', 'total', 'last', 'frameMs', 'warmMs']) {
+          if (key in keep) seen[key] = keep[key];
+          else delete seen[key];
+        }
+      } else if (seen) {
+        for (const key of ['phase', 'frameMs', 'warmMs']) delete seen[key];
+      }
+
+      return {
+        pass: problems.length === 0,
+        detail: problems.length === 0
+          ? `the warming beat carries frameMs and warmMs from a clock around the render call, beats and yields once per frame in that order, the watchdog copies and names both, and the beat hands 123/4567 back with seq +1`
+          : problems.join('; '),
+      };
+    },
+  });
 }

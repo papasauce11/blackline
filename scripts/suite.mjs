@@ -424,13 +424,31 @@ async function main() {
         const r = await guard.withDeadline(page, page.evaluate(async ([subsetSource, regression]) => {
           const h = window.BLACKLINE;
           // The warm-up beats and yields too, so the deadline's first gap is
-          // one frame and not all sixty: the first draw of a cold map
-          // compiles shaders for tens of seconds (F5).
+          // one frame and not all sixty.
+          // H131: what each of the sixty costs, on the beat and on the run. A
+          // frozen warm-up (2026-11-23: 241s at frame 57, twice) was
+          // indistinguishable from a slow one because nothing said what any
+          // frame had cost. One beat and one yield per frame, as before.
+          // And the first thing it measured retired what stood here: that "the
+          // first draw of a cold map compiles shaders for tens of seconds"
+          // (F5). It does not. Frame 1 costs 9-10ms on both maps; the expense
+          // is late and lumpy, single frames of 8-9.6s in the second half,
+          // 37,344ms over the plant's sixty and 20,693ms over the yard's. So
+          // the gap this loop opens for the deadline is real, but it is not
+          // the cold first frame it was written for.
+          const warmFrames = [];
+          let warmMs = 0;
           for (let k = 0; k < 60; k++) {
+            const t = performance.now();
             h.renderFrame(1 / 60);
-            h.debugTools.suite.beat({ total: 60, done: k + 1, inFlight: 'warm-up', phase: 'warming' });
+            const frameMs = Math.round(performance.now() - t);
+            warmFrames.push(frameMs);
+            warmMs += frameMs;
+            h.debugTools.suite.beat({ total: 60, done: k + 1, inFlight: 'warm-up', phase: 'warming', frameMs, warmMs });
             await h.debugTools.suite.yieldTask();
           }
+          let dearest = 0;
+          for (let k = 1; k < warmFrames.length; k++) if (warmFrames[k] > warmFrames[dearest]) dearest = k;
           const loopFramesBefore = h.loop.frames;
           // runAutoTests takes `subset` as an array of registered checks.
           const opts = {};
@@ -461,6 +479,16 @@ async function main() {
             // synchronised first (F11, D48). A third of a headless run, and
             // until now it appeared only as one check's ms.
             pipelineWaitMs: Math.round(res.pipelineWaitMs || 0),
+            // H131: the warm-up's own curve. The first frame is the cold
+            // draw (shader compiles, F5) and the rest are what a cliff
+            // would show up in, so both halves are named, not only the sum.
+            warmUp: {
+              ms: warmMs,
+              frames: warmFrames,
+              firstMs: warmFrames[0],
+              restMs: warmMs - warmFrames[0],
+              slowest: { index: dearest + 1, ms: warmFrames[dearest] },
+            },
             // H10: what this page is drawing, and what auto's probe picked
             // whatever the pin applied.
             quality: h.debugState.quality ?? null,

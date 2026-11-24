@@ -132,7 +132,7 @@ export function createGuard({ stallMs, waitStallMs = stallMs, heartbeatMs = 5000
     const ask = page.evaluate(() => {
       const s = window.BLACKLINE && window.BLACKLINE.debugState;
       const p = s && s.suiteProgress;
-      return p ? { seq: p.seq, done: p.done, total: p.total, inFlight: p.inFlight, last: p.last, phase: p.phase } : null;
+      return p ? { seq: p.seq, done: p.done, total: p.total, inFlight: p.inFlight, last: p.last, phase: p.phase, frameMs: p.frameMs, warmMs: p.warmMs } : null;
     }).catch(() => null);
     return Promise.race([ask, sleep(heartbeatMs).then(() => null)]);
   }
@@ -184,9 +184,14 @@ export function createGuard({ stallMs, waitStallMs = stallMs, heartbeatMs = 5000
       const at = b
         ? `the check in flight was "${b.inFlight || b.last || '?'}" (${b.done}/${b.total}, phase ${b.phase})`
         : 'the page never published a heartbeat at all';
+      // H131: a warm-up that froze says what it had cost up to the freeze.
+      // Only while the beat still says `warming`: the fields stay merged on
+      // every later beat, and a check that froze did not freeze a warm-up.
+      const warm = b && b.phase === 'warming' && typeof b.warmMs === 'number' && typeof b.frameMs === 'number'
+        ? `; the warm-up had spent ${b.warmMs}ms and the last frame it finished cost ${b.frameMs}ms` : '';
       const which = stall.budget === waitStallMs && waitStallMs !== stallMs ? '--stall-wait' : '--stall';
       throw new Error(`run timed out: the suite heartbeat stood still for ${Math.round(stall.still / 1000)}s`
-        + ` on ${where}; ${at}. Raise ${which} if the run was merely slow.`);
+        + ` on ${where}; ${at}${warm}. Raise ${which} if the run was merely slow.`);
     }
     return done;
   }

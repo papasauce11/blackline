@@ -286,6 +286,7 @@ export function judge(runs, renderer, consoleErrors) {
     runs: runs.map(r => ({
       map: r.map, regression: r.regression, passed: r.passed, failed: r.failed, notForMap: r.notForMap, ms: r.ms,
       pipelineWaitMs: r.pipelineWaitMs,
+      warmUp: r.warmUp,
       // H10: what was drawn, and what auto's probe would have picked if the
       // pin had let it. The gate is pinned to `medium` because the probe picks
       // `low` under software WebGL every time; recording the pick anyway is
@@ -325,6 +326,13 @@ export function summary(r) {
     lines.push(`  run ${i + 1} (${run.map}${run.regression ? ', regression set' : ''}): ${run.passed} passed, ${run.failed} failed`
       + `${run.notForMap ? `, ${run.notForMap} not for this map` : ''}, ${run.ms}ms`
       + `${run.pipelineWaitMs ? ` (${run.pipelineWaitMs}ms of it the renderer's pipeline tail, F11)` : ''}`);
+    // H131: what the warm-up's frames cost, so a slow one reads as slow. An
+    // older report has no such field and prints no such line.
+    if (run.warmUp) {
+      const w = run.warmUp;
+      lines.push(`  warm-up: ${w.frames.length} frames in ${w.ms}ms - frame 1 ${w.firstMs}ms,`
+        + ` the other ${w.frames.length - 1} ${w.restMs}ms, slowest frame ${w.slowest.index} at ${w.slowest.ms}ms`);
+    }
     if (run.contextLosses) {
       lines.push(`    GL CONTEXT LOST ${run.contextLosses}x during run ${i + 1}; re-ran after restore: ${run.rerun.join(', ') || 'nothing'}`);
     }

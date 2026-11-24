@@ -40,9 +40,15 @@ const DEG = Math.PI / 180;
 const EPS = 1e-9;
 
 /**
- * @param {{emitter: import('../emitter.js').Emitter, camera: import('three').Camera, rng: {next: () => number}}} options
+ * The stream is the LOOK one, and is named for it. `main.js` has always passed
+ * `lookRng` here - a shake's phase is a mark on the picture and nothing reads
+ * it back, which is the argument H27 makes for a footprint's yaw - but the
+ * parameter was called `rng`, so `the-simulations-stream-is-drawn-from-only-by-a-decision`
+ * read the text and reported a simulation draw this module does not make.
+ *
+ * @param {{emitter: import('../emitter.js').Emitter, camera: import('three').Camera, lookRng: {next: () => number}}} options
  */
-export function createImpact({ emitter, camera, rng }) {
+export function createImpact({ emitter, camera, lookRng }) {
   let stopLeft = 0;
   let debt = 0;
 
@@ -84,7 +90,12 @@ export function createImpact({ emitter, camera, rng }) {
       if (next < strength * (1 - age / I.shakeSeconds)) return;
       strength = next;
       age = 0;
-      for (let i = 0; i < 3; i++) phase[i] = rng.next() * TAU;
+      for (let i = 0; i < 3; i++) {
+        // Named rather than inlined so the draw census can read what the draw
+        // feeds, as every other declared draw in the tree is written.
+        const angle = lookRng.next() * TAU;
+        phase[i] = angle;
+      }
     },
 
     /**

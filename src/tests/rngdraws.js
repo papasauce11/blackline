@@ -132,6 +132,12 @@ const SPENDERS = [
   { file: 'src/systems/dust.js', stream: 'lookRng', method: 'next', when: 'a mote leaves: its angle around the contact point', feeds: 'angle' },
   { file: 'src/systems/dust.js', stream: 'lookRng', method: 'next', when: 'a mote leaves: how much of the spread it takes', feeds: 'speed' },
   { file: 'src/systems/dust.js', stream: 'lookRng', method: 'range', when: 'a mote leaves: its upward speed, lifted by the fall', feeds: 'slot.vy' },
+  // J2's shake (D89), owed since J2 landed and found by this census the first
+  // time it ran over that job: three phases the camera's offset is read off,
+  // one per axis. A shake is a mark on the picture and nothing reads a phase
+  // back, so the look stream - the same argument H27 makes for a footprint's
+  // yaw, and what `main.js` has always passed in.
+  { file: 'src/systems/impact.js', stream: 'lookRng', method: 'next', when: 'a blow shakes the picture: the phase one of its three axes starts at', feeds: 'angle' },
   // J3's ragdoll: the one draw a hit's line does not decide. The heading is
   // only drawn when the caller gave no direction at all.
   { file: 'src/systems/ragdolllimbs.js', stream: 'lookRng', method: 'next', when: 'a ragdoll is started with no direction: the heading it falls along', feeds: 'heading' },

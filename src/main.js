@@ -254,7 +254,7 @@ async function bootstrap() {
     briefing, cameraOwner, thumbnails, tutorial, tutorialPanel, bugReport, crashGuard, replays,
   } = built);
 
-  impact = createImpact({ emitter, camera, rng: lookRng });
+  impact = createImpact({ emitter, camera, lookRng });
   setTimeScale(1);
   debugState.stepsPerFrame = 0;
   return null;

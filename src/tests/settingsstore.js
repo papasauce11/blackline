@@ -58,6 +58,12 @@ function changedValues() {
     headBob: !defaults.headBob,
     // D90's: flipped, so a round trip that dropped it would come back as the default.
     sprintFovKick: !defaults.sprintFovKick,
+    // J2's two (D89), both flipped for the same reason, and both owed since J2
+    // landed: they joined `persistedKeys()` by existing and this table was
+    // never told what a changed value of either looks like, so this check
+    // refused at the first of them rather than round-tripping anything.
+    hitStop: !defaults.hitStop,
+    screenShake: !defaults.screenShake,
     masterVolume: 0.25,
     matchLength: lengths.find((n) => n !== defaults.matchLength),
     difficulty: difficulties.find((name) => name !== defaults.difficulty),
