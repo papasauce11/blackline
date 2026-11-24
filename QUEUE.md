@@ -1372,22 +1372,38 @@ the end of this list, never ahead of a game-facing job.
   render call's name from two halves, or the file re-enrols itself in the pose
   census (the red H131 paid for).
 
-- [ ] **H134 (S)** A killed run loses every verdict it had already earned.
-  Tonight's gate died at check **272 of 279** on the plant with the watchdog's
-  240s kill, and because `--details` is written once at the end there is **no
-  file at all**: 272 checks had passed and not one of their verdicts survived,
-  so a stall costs the whole run's evidence and not just the tail. Queued by
-  **P12**, which made staging the gate partly to stop paying this price four
-  times a night. The fix is a flush per check rather than one write at the end -
-  append each verdict (or rewrite the file) as the check finishes, so the file
-  on disk is always a readable account of everything settled so far and names
-  the check that was in flight when the run died. *done-when:* a run killed
-  mid-way leaves a readable partial `--details` file naming every finished
-  check and its verdict plus the one in flight; a check asserts the partial
-  file parses and that its last entry is the last finished check; the full
-  file at the end of a green run is unchanged in shape from today's, so
-  `detaildrift.mjs` and `suitereport.mjs` read it without a change; and the
-  flush does not show in the heartbeat as a stall of its own.
+- [~] **H134 (S)** **BUILT INTO A WORKTREE, NOT LANDED** (2026-11-24, the 17:00
+  run; P12 capped the run at two voids so nothing could land). **Take this
+  before attempting another gate.** A killed run loses every verdict it had
+  already earned, and tonight it did that three times: the full verify died at
+  check **272 of 279** (plant), a stage at **269 of 279** (plant) and a stage at
+  **258 of 261** (yard) - all in phase `running`, all inside the last ten
+  checks, the yard's three from the end - and because `--details` is a single
+  `fs.writeFileSync` at `scripts/suite.mjs:546`, **each kill produced no file at
+  all**. 272, then 269, then 258 passing verdicts, thrown away. On a machine
+  where four of six deaths land in a run's closing stretch, a per-check flush is
+  the difference between a gate that can be read and a gate that cannot: a run
+  that dies three checks from the end becomes a run that reported 258 of 261.
+  *The design, as briefed:* `scripts/details.mjs` holds a pure
+  `detailsPayload(runs)` and a `writeDetails(path, runs)` byte-identical to
+  today's output for a complete run; `suite.mjs` flushes through `writeDetails`
+  after **each check finishes** as well as at the end, as a no-op without
+  `--details` and wrapped so a failed write can neither kill the run nor stall
+  the heartbeat; `src/tests/detailflush.js` proves it in two halves - the
+  behavioural one runs `detailsPayload` on a synthetic *partial* `runs` value
+  and asserts it serialises, parses back, keeps order and ends on the last
+  finished check, and the shape one fetches `suite.mjs` as text and asserts the
+  write goes through `writeDetails` from **inside** the per-check loop. A new
+  `.mjs` under `scripts/` needs its `FLAGS` row or `tests/args.js` reds both
+  maps (H79 paid a verify for that one). Any token quoted in the check is built
+  from two halves so the file does not enrol itself in a census (H131's red).
+  *done-when:* a run killed mid-way leaves a readable partial `--details` file
+  naming every finished check and its verdict; the finished file is unchanged in
+  shape, so `detaildrift.mjs` and `suitereport.mjs` read it untouched; and
+  moving the flush back out of the loop reds the shape clause.
+  *Resume:* cherry-pick the worktree commit, review the diff against
+  `detaildrift.mjs` and `suitereport.mjs`, prove on the census set plus
+  `every-runner-reads-one-command-line` and the new id, and run the break.
 
 ## Block K — the Warden as an opponent
 

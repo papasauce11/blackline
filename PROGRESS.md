@@ -24083,3 +24083,77 @@ sixty frames cost, and every stall says what the warm-up had spent and what its
 last finished frame cost. New jobs: **H132** (the quiet-machine reading and P9's
 A/B, which needs Josh to close those servers) and **H133** (`runnerguard.js` is
 561 lines).
+
+## 2026-11-24, the 17:00 run — the gate dies at the end of a run, three times, and the fourth reading of why
+
+**Nothing landed.** P12 capped the run at two voids and the fifteenth batch is
+still unverified, its heading still up. What the evening bought is a reading
+that unseats three earlier ones and a job that makes the next gate legible.
+
+**The canary said go, and it was wrong to.** The tree was clean at `6f1c55e`,
+the machine measured first and untouched (8 cores, **2.69GB free of 12GB**, the
+other project's **13 node processes and five vite servers** up beside Chrome,
+exactly P11's condition). P8's canary - the 31-check census subset, both maps,
+default pin - came back **green in 4m51s**: 24 of 24 a map, 24 checks a map
+against 24 census prefixes so nothing silently skipped, red, flaky, skipped and
+`otherRunners` all empty, **0** console errors. On P8's own terms that licensed
+the full two-run verify, so the gate was run. **It died at 28m40s** - exit 2,
+heartbeat frozen 240s, phase `running`, check **272 of 279**, plant run 1, in
+flight `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`. No
+summary, no counts, **no details file**. A fourth site after the final drain, the
+mid-run audio check and warm-up frame 57, and a third phase.
+
+**The PM's call, P12, and the correction it carried.** With P8 forbidding any
+smaller gate and P8 being the PM's, the call went up with a recommendation to
+stage the verify. P12 took the staging and **rejected the reasoning**: this
+file had said the deaths come late, from accumulation, and last night's deaths
+at **13/31 and 31/31 inside five-minute runs** say otherwise, so the hazard was
+to be read as **per minute**. Staging was taken not as a cure - tonight's death
+came inside the very unit it stages by, a healthy plant run being about 24.7
+minutes against the 28m40s it reached - but because **a death then costs one
+stage instead of the whole verify, and completed stages are kept**. Four stages,
+`--runs 1 --map <id>`, two a map, default pin; exit 0 counts, exit 2 is void and
+re-runnable, exit 1 is a red never retried away, a check red in one stage and
+green in another is flaky; caps of six invocations, two voids in a row, 01:15.
+P7's close held: the four held jobs land only after the pile's stages are green.
+
+**Both stages voided, and that is the finding.** Stage one, plant: dead at
+**269 of 279**, phase `running`, ~28 minutes. The yard was taken next rather
+than repeating a failure, to bank a stage and learn whether the plant was
+special: dead at **258 of 261**, phase `running`, ~23.5 minutes - **three checks
+from the end**. So three runs in one evening, both maps, **every one dead inside
+its last ten checks**; with last night's 31/31 in `pipeline-wait` *after every
+check had passed*, four of the six deaths on record sit at or within ten checks
+of a finish. **A per-minute hazard does not land four times in six in the last
+4% of a run, and shortening the invocation did not help because every
+invocation has an end and the end is where it dies.** The named check differs
+every time - the stairs-width climb cell, the Warden's HUD feed, the hit-stop -
+so it is the victim and not the cause, and the foreign load is the condition
+under which it bites. That is three mechanisms now dead (the cold warm-up,
+accumulation, the per-minute hazard) and TRAPS.md carries the standing order:
+do not write a fifth without a reading that distinguishes it from the fourth.
+
+**H134, built into a worktree and not landed, is the one thing that pays this
+back.** `--details` is a single `fs.writeFileSync` at `scripts/suite.mjs:546`,
+after everything, so each of the three kills handed over **nothing at all**:
+272, then 269, then 258 verdicts that had already passed, thrown away. Flushed
+per check, a run that dies three from the end is a run that **reported 258 of
+261** - on this machine the difference between a gate that can be read and one
+that cannot. It was taken under P1's first clause (a hygiene job when the gate
+is red and it is the fix) and built in a worktree because P12 let the capped run
+land nothing. `scripts/details.mjs` takes a pure `detailsPayload(runs)` and a
+`writeDetails(path, runs)` byte-identical for a complete run; `suite.mjs`
+flushes through it per check, wrapped so a failed write can neither kill the run
+nor stall the beat; `src/tests/detailflush.js` proves the partial payload
+behaviourally and the per-check call by source shape.
+
+**What the run cost and what it bought.** Four suite invocations (one canary,
+one full gate, two stages), one PM call, one job built and held, and three
+record files corrected. No game-facing work at all, which is the honest cost of
+a gate that cannot finish. The four held jobs - **H121**, **J16**, **J14**,
+**I3** - were each confirmed as clean one-commit deltas ready to cherry-pick,
+with their proof subsets picked, so the next run that gets a green gate can land
+all four without re-doing tonight's reading. **Next run: H134 first, then the
+canary, then the stages - now readable even when one dies.** And the request to
+Josh stands and is the whole cure: the suite cannot finish while RicochetRoyale's
+dev servers are up.

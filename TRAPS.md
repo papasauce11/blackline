@@ -1311,3 +1311,41 @@ night was **56,985ms** on the plant (frame 1 11ms, slowest frame 29 at
 the night before, on the same commit, which is the load moving and not the
 code. **Subsets finish; long invocations do not.** Four full verifies have now
 failed in three nights at four sites.
+
+**The deaths are at the END of a run, and that is the fourth reading of the
+same evidence in two days** (2026-11-24, the 17:00 run, three runs in one
+evening). Two readings have now been wrong. H131's was "the warm-up is cold and
+front-loaded" - dead, frame 1 costs 10ms. Mine was "the deaths are late, from
+accumulation" - dead, P12 killed it with last night's deaths at 13/31 and 31/31
+inside five-minute runs. P12's own was "a per-minute hazard, so a shorter
+invocation is likelier to finish" - and **three stages run under it that same
+evening said otherwise**:
+
+| run | map | died at | phase | elapsed |
+|---|---|---|---|---|
+| full verify | plant | **272 of 279** | `running` | 28m40s |
+| stage | plant | **269 of 279** | `running` | ~28m |
+| stage | yard | **258 of 261** | `running` | ~23.5m |
+
+**Every one died inside its last ten checks, and the yard's died three from the
+end.** Add last night's 31/31 in `pipeline-wait` *after every check had passed*
+and four of the six deaths on record are at or within ten checks of a run's
+finish. A per-minute hazard does not land four times out of six in the last 4%
+of a run, and shortening the invocation did not help **because every invocation
+has an end and the end is where it dies**. So the honest statement is the
+narrow one: **something in the closing stretch of a run stalls the heartbeat for
+240s**, the named check differs each time (`a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`,
+`the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back`,
+`a-hit-stops-the-picture-without-costing-the-simulation-a-step`) and so is
+probably the victim and not the cause, and the foreign load (13 node processes,
+four or five vite servers, 2.69-3.41GB free of 12GB) is the condition under
+which it bites. **Do not write a fifth confident mechanism into this file
+without a reading that distinguishes it from the fourth.**
+
+**And this is why `--details` must flush per check (H134).** The file is one
+`fs.writeFileSync` at the very end (`scripts/suite.mjs:546`), so a tail death
+hands over **nothing**: tonight threw away 272, then 269, then 258 verdicts that
+had already passed. With a per-check flush, a run that dies three checks from
+the end is a run that reported 258 of 261 - which on this machine is the
+difference between a gate that can be read and a gate that cannot. **Take H134
+before attempting another gate.**
