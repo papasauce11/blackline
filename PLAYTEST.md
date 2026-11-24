@@ -95,6 +95,29 @@ window where you can watch it.
 Newest first. Each item says what the checks already prove and what is
 left for you.
 
+### The sprint widens the lens (J9, 2026-11-24)
+
+Sprint in a straight line, as the Shade and then as the Warden, and watch the
+edges of the screen rather than the middle. The lens opens by **4 degrees** over
+a **quarter second** and gives them back over another quarter when you stop -
+that is your own answer to D90 ("not much"), against the 8 degrees the
+recommendation asked for. It eases in and out rather than snapping, and it comes
+back to exactly where it started, so a sprint should read as speed and never as
+a lurch.
+
+It is off while the Warden has his sights up, and it fades out as he raises them
+rather than fighting the aim. It has its own switch in the menu under **look**,
+*sprint fov kick*, on by default.
+
+`the-sprint-kick-widens-the-lens-by-four-degrees-and-gives-it-back` holds the
+size, the ease, the give-back, the 60Hz/30Hz agreement and the switch, so the
+numbers are not what needs your eyes.
+
+**What is left for you:** whether 4 degrees is enough to feel at all - it is
+deliberately subtle and may be invisible in motion - and whether a quarter
+second is the right length, or whether the lens should open faster than it
+closes. Feel it on the live site.
+
 ### The maps have a sound, and so does the floor (I1, I2, 2026-11-22)
 
 Turn the sound up. The plant hums - a transformer under everything, a drip

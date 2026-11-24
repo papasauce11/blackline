@@ -23911,3 +23911,175 @@ may pop like the camera did - found by J16's builder, unmeasured) and **J18**
 (blocked on **D107**). **D105** and **D106** record the two lead calls worth
 keeping: H121's split taken although K14's froze a quarter of a run, and I3's
 deliberate 4s bounded main-thread spin.
+
+## H131 - The warm-up says what its frames cost, and the first frame is not the dear one (2026-11-24, the 02:00 run)
+
+**What was built.** The warm-up was the one stretch of a run that could not be
+read. `scripts/suite.mjs` drives sixty frames before the first check, beating
+and yielding once per frame so a watcher outside the page can tell a slow run
+from a hung one - but the beat carried only `done`, `total`, `inFlight` and
+`phase`, so when the 2026-11-23 runs froze 241s at **frame 57 of 60**, twice,
+nothing on record said what that frame, or any frame, had cost. H131 makes the
+warm-up self-describing: `performance.now()` either side of each
+`h.renderFrame(1 / 60)`, `frameMs` and `warmMs` published on the same beat,
+the sixty numbers returned on the run as `warmUp` (`ms`, `frames`, `firstMs`,
+`restMs`, `slowest`), a `warm-up:` line printed per run by
+`scripts/suitereport.mjs`, and both numbers carried out of the page by
+`scripts/watchdog.mjs`'s `readBeat` and named in the message it throws - but
+only while the beat still says `warming`, because the fields stay merged on
+every later beat and a check that froze did not freeze a warm-up.
+`a-stalled-warm-up-says-what-its-frames-had-cost` holds the arrangement in the
+four places it can be taken back out: three by reading the runner's and the
+watchdog's source, and one by driving `beat()` itself and reading 123/4567 back
+off `debugState.suiteProgress` with `seq` advanced by one - restoring the live
+beat's own fields afterwards, since the runner is mid-run while the check runs.
+`--stall` and `--stall-wait` are untouched (D100, P3).
+
+**What it found, which is the job.** The instrument's first reading **kills the
+hypothesis this file has carried since F5** and that `suite.mjs` stated in a
+comment: *"the first draw of a cold map compiles shaders for tens of seconds"*.
+It does not. The plant's **frame 1 costs 9ms** and the other 59 cost
+**37,335ms**, with the dearest single frame **44 at 9,624ms**; the yard reads
+9ms, 20,684ms, and frame **40 at 9,038ms**. The expense is **late and lumpy**,
+not cold and front-loaded - which is why "frame 57" was never a clue. The
+comment is corrected in the same commit rather than left to mislead a fourth
+run.
+
+And the stall is **not one thing**. Five attempts tonight on one tree ended
+four ways: 1 check at the default **4/8** pin completed (77,200ms, pipeline
+tail **1ms**); 31 checks at 4/8 died with the heartbeat stood still **601s in
+`pipeline-wait` at 31/31**, after every check had passed, inside the final
+drain; 31 checks **unpinned** completed both maps; 31 checks unpinned twenty
+minutes later died **241s in `running` at 13/31** on
+`one-module-owns-the-audio-device-and-an-offline-render-gives-it-back`; and a
+5-check run unpinned completed clean. On the two that completed, the **pipeline
+tail was 430,744ms of 496,577ms (87%) on the plant and 286,268ms of 329,094ms
+(87%) on the yard**, against the 78ms-to-13,569ms H125 measured. The machine
+carried 8 logical cores, **2.6GB free of 12GB**, and another project's **13
+node processes and five vite dev servers**, beside Josh's Chrome; no orphaned
+headless Chrome existed and nothing of his was touched.
+
+**How it was proved.** `--runs 1 --map plant --map yard`, unpinned, over the
+two jobs' checks and the 24-entry census set - 31 checks a map, counted against
+the list: **28 passed, 3 failed** both maps, every red real (below). With the
+three fixed, the five checks that moved - the two new ones and the three reds -
+ran **5/5 green on both maps** (`a-stalled-warm-up` 14ms plant, 9ms yard;
+`the-sprint-kick` 4,098ms and 2,135ms; the three fixes 11,736/833ms, 1/2ms and
+12,598/19,128ms), 0 flaky, 0 console errors. `--cores 8` was carried for a
+verdict and not a timing, per P9, and the core count is written beside every
+number above. The break - deleting `frameMs` from the warming beat - was run
+against the two new checks on both maps and is in the batch note below.
+
+**What it found, and what it cost.** The 31-check proof reddened three checks,
+and **two of them are holes J2 left when it landed unverified on 11-23**:
+`a-setting-changed-now-is-the-setting-a-reload-reads` had no changed value for
+`hitStop` or `screenShake`, so it refused at the first of them and round-tripped
+nothing - a check that has been reporting a hole rather than a pass since J2
+landed; and `impact.js` drew its shake phase through a parameter named `rng`
+while `main.js` has always passed `lookRng`, so
+`the-simulations-stream-is-drawn-from-only-by-a-decision` read a simulation draw
+the module does not make. Both are fixed here, the second by renaming the
+parameter to what the wiring passes and naming the drawn angle so the census can
+read what it feeds, plus its `SPENDERS` row. The third red was **H131's own**:
+the new check quoted the token `renderFrame` in code, and `posecriterion.js`
+reads this module's own text for that token, so the check enrolled
+`runnerguard.js` in the pose census as a module that draws a body. It draws
+nothing; the token is now built from two halves and never spelled whole in the
+file. That is **H53's lesson in a new currency** - a check that quotes a source
+joins the censuses that read sources - and it is the third census enrolment this
+project has paid for.
+
+**What was left.** `src/tests/runnerguard.js` is **561 lines**, up from 444, so
+it joins the within-50-of-600 cluster and takes it from 15 to 16: a split is
+queued as hygiene. H131's unmet half - the reading taken on a quiet machine, and
+the pin's A/B - is a new job under P10, and it needs Josh to close the other
+project's servers first. The run took no full verify: the base has failed to
+finish one three times in two nights, so **P8** makes a canary the opening move
+of every run and P7 lands this batch unverified.
+
+## J9 - The sprint widens the lens by four degrees (2026-11-24, the 02:00 run)
+
+**Resumed and landed.** Built on 2026-11-23 and parked unproved when its hour
+ran out, `8c91a9b` sat on a worktree with no clause of it run on the yard and
+its break never attempted. Cherry-picked here as **`419c188`**: the three
+conflicts P6's note predicted were one, `src/tests/index.js`, both halves plain
+appends kept whole, and `src/config.js` and `src/tests/breathdrawn.js` merged
+clean. The owed piece is now in: `sprintFovKick` has a menu row, `bl-sprint-fov`
+("sprint fov kick"), on the `bl-bob` pattern in all three places
+`src/ui/menupages.js` names a switch, with its id appended to
+`SETTINGS_GROUPS`'s `look` group beside J2's - `tests/menu.js` requires every
+row to sit under a group, so the group entry was not optional.
+
+**What it does.** The lens opens **4 degrees** over a **quarter second** of wall
+clock while a body sprints and gives them back over another quarter - D90,
+Josh's own call ("not much", option 2) against the recommendation's 8. `kick` is
+a 0..1 state owned by `src/cameraowner.js` and walked on the delta
+`frame:begin` carries, so `main.js` is untouched; it is zeroed in `set()` and
+`forget()` so a sprint's kick is never the next rig's first frame, scaled by
+`1 - adsBlend` and off entirely while the Warden's sights are up, because an
+aim is the sight picture. The previous builder's two deviations stand and were
+right: a **fixed-duration smoothstep** rather than a time constant, since a
+time constant never arrives and H9's contract is that the FOV returns to
+`restFov` *exactly*; and `applyFov`'s guard widened to
+`Math.abs(camera.fov - fov) > 0.01 || (kick === 0 && camera.fov !== fov)`,
+because the old guard alone stranded the lens a hair off rest as the kick ran
+out.
+
+**How it was proved.** `the-sprint-kick-widens-the-lens-by-four-degrees-and-gives-it-back`,
+clauses (a) to (h), **on both maps at last** - 4,098ms on the plant and 2,135ms
+on the yard, green, inside the 31-check run that also carried the census set and
+again in the 5-check run after the fixes. The census set matters here: J9 adds a
+test module, which is a row in four source-reading censuses, and
+`every-check-that-draws-a-body` and `every-check-that-poses-a-body` both ran
+green over it. Its **break has now been run** rather than predicted - the first
+time for this job - and is in the batch note below.
+`each-role-draws-with-the-field-of-view-its-setting-asks-for` was in the proof
+and not optional, since the widened `applyFov` guard touches a constant H9's own
+check reads, and it passed.
+
+**What was left.** Nothing of the job. `PLAYTEST.md` has it under "The sprint
+widens the lens", asking Josh the one thing no check can judge: whether 4
+degrees is enough to feel at all, and whether the lens should open faster than
+it closes.
+
+## The fifteenth batch is unverified, and the stall has three sites (2026-11-24, the 02:00 run)
+
+**Pushed, not verified** (P7): **J2** `21ae6b1`, **J3** `6284d19`, the smoke fix
+`105b93a` (all three carried over from 11-23), **H131** `5da95f1` and **J9**
+`419c188`. Nothing is known to be red. Every check these jobs touch is green on
+both maps, and **both breaks were run** - the first time either job has had one:
+deleting `frameMs` from the warming beat reddened
+`a-stalled-warm-up-says-what-its-frames-had-cost` on **its own clause (a)** and
+nothing else, both maps, *"the warming beat in /scripts/suite.mjs does not carry
+frameMs"*; multiplying `sprintFovEase`'s step by 20 reddened
+`the-sprint-kick-widens-the-lens-by-four-degrees-and-gives-it-back` on **its own
+clause (c)**, both maps, *"half way through the ease the lens had come 100% of
+the kick, want 10..90% - it is a snap or a stall, not an ease"*, with the other
+seven clauses unmoved exactly as the builder predicted. Both files were then
+**restored from the copies they were broken from and are byte-identical to the
+commit the green run read**, which `git diff` holds.
+
+**Why there is no verify.** A full two-run verify has not completed on this
+machine in two nights, and tonight's five attempts are why: **four outcomes and
+three stall sites** on one tree, listed in H131's entry above. P8 answers it for
+every future run - a **canary** first, the 31-check census subset at the default
+pin, healthy being no exit 2 inside 8 minutes for both maps; if healthy the gate
+is the full verify and nothing lands before it is green, and if not the run is
+**load-bound** and lands nothing. Two load-bound runs in a row return to the PM.
+**P9** keeps the pin at 4 of 8 for every gate and verify and makes `--cores 8` a
+proof tool for a verdict rather than a timing, with the core count written beside
+the result - which is the footing every green above stands on. **P11** makes the
+other project's load a stated precondition cured by asking: with RicochetRoyale's
+13 node processes and five vite dev servers up and **2.6GB free of 12GB**, the
+suite stalls at any site, and no run may kill, throttle or reprioritise any of
+it. The four jobs built and held in worktrees - **H121**, **J16**, **J14**,
+**I3** - stay there until a verify is green, and then land one at a time.
+
+**What the run cost and what it bought.** Two jobs, five suite attempts, one PM
+call of five answers (P7-P11), and three defects found that no run had seen: two
+holes J2 left when it landed unverified, and one of H131's own making. The
+instrument is the lasting part: every run from here prints what its warm-up's
+sixty frames cost, and every stall says what the warm-up had spent and what its
+last finished frame cost. New jobs: **H132** (the quiet-machine reading and P9's
+A/B, which needs Josh to close those servers) and **H133** (`runnerguard.js` is
+561 lines).

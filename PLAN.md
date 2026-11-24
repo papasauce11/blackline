@@ -81,10 +81,18 @@ up to three, suspended by D79 while the four tiers are tested.)
 1. ORIENT   read HANDOFF.md, QUEUE.md, PLAN.md, git log -8; DECISIONS.md by
             grep for the ids the picked job names, not whole (P2's lever on
             the usage limit).
-2. GATE     skip it when the tree is clean and nothing since the last
+2. CANARY   before any other use of the suite, every run (P8): the 31-check
+            census subset, both maps, at the default pin. Healthy is no exit 2
+            inside 8 minutes for both maps together. Not healthy means the run
+            is LOAD-BOUND - no full suite, nothing lands, at most two jobs
+            built into worktrees on their own subsets, the canary's warm-up
+            line, tail share, free memory and foreign process count recorded,
+            stop. Two load-bound runs in a row return to the PM.
+   GATE     skip it when the tree is clean and nothing since the last
             verified commit touches src, scripts, tests, index.html or
-            package*.json (P2). Otherwise the full two-run suite, which then
-            stands as the previous batch's verify. Red: STOP, write what
+            package*.json (P2). Otherwise the full two-run suite at the
+            default pin (P9: --cores 8 is a proof tool, never the gate), which
+            then stands as the previous batch's verify. Red: STOP, write what
             broke to HANDOFF.md, commit, push, end.
 3. PICK     the first unblocked job in QUEUE.md, game-facing blocks first
             (P1): a hygiene job only when the gate is red and it is the fix,

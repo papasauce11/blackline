@@ -1301,7 +1301,7 @@ the end of this list, never ahead of a game-facing job.
   edit is removing any one of the three `h.effects.reset()` calls.
   **Do not raise `--stall` or `--stall-wait`** (D100, P3).
 
-- [ ] **H131 (M)** The suite cannot finish a **warm-up** on this machine, and
+- [x] **H131 (M)** The suite cannot finish a **warm-up** on this machine, and
   until it can, nothing else in this file can be proved. 2026-11-23 17:00: the
   full gate froze 240s at 275/277 in `running`, then two narrow runs froze 241s
   in `warm-up` at the **same frame, 57/60, phase `warming`**, before a single
@@ -1331,6 +1331,46 @@ the end of this list, never ahead of a game-facing job.
   (D100, P3) and do not kill Josh's browser or another project's processes; if
   the cure is "close the other project's servers", that is a line in TRAPS.md
   and a sentence to Josh, not a thing this job does by force.
+
+  **Done 2026-11-24** (`5da95f1`, the 02:00 run). Closed by **P10** on what it
+  found rather than on its original done-when, which asked for one reading and
+  turned out to have three. The deliverable is the instrument: `frameMs` and
+  `warmMs` on the warming beat from a clock around each render, the sixty
+  numbers on the run as `warmUp`, a `warm-up:` line per run, and both numbers
+  in the watchdog's stall message - held by
+  `a-stalled-warm-up-says-what-its-frames-had-cost` in `runnerguard.js`. Its
+  first reading **retired the F5 claim** this entry rested on: the plant's frame
+  1 costs 9ms and its dearest is **frame 44 at 9,624ms** of 37,344ms over the
+  sixty; the yard reads 9ms and frame 40 at 9,038ms. Five attempts tonight gave
+  four outcomes - 601s stalled in `pipeline-wait` at 31/31 pinned, a complete
+  31-check run unpinned, 241s stalled in `running` at 13/31 unpinned on an audio
+  check, and two clean runs - so the stall has **no single site** and the
+  pipeline tail is now **87% of a run**. The explanation on a quiet machine is
+  **H132**. Three reds found, two of them J2's, all fixed in the same commit.
+
+- [ ] **H132 (S)** H131's unmet half: the same readings on a **quiet** machine,
+  which is the only way to tell the load from the tree. Tonight's base carried
+  another project's 13 node processes and five vite dev servers with 2.6GB free
+  of 12GB, and this job cannot and must not change that (P11) - it needs Josh to
+  have closed them. *done-when:* P8's canary is run **twice at the default pin**
+  with those servers down; its `warm-up:` line, pipeline-tail share and free
+  memory are set beside tonight's (36,870ms, 87%, 2.6GB) in `TRAPS.md`; P8's
+  8-minute health line is replaced by the measured figure; and **P9's A/B** is
+  taken in the same sitting - the canary back to back at `--cores 4` and
+  `--cores 8`, two runs each, which is the only thing that may reopen the pin's
+  default. Do not raise `--stall` or `--stall-wait` (D100, P3) and kill nothing
+  of Josh's or another project's.
+
+- [ ] **H133 (S)** `src/tests/runnerguard.js` is **561 lines**, up from 444 when
+  H131's check landed, so it is inside the 50-line band of the 600 ceiling and
+  took that cluster from 15 to 16. It now holds three unrelated rules about the
+  runner - the refusal to run beside another runner (H45), the summary's source
+  ceiling (H63), and the warm-up's frame costs (H131) - and the seam is between
+  them. *done-when:* the module is under about 400 lines with every clause and
+  id unchanged, the move verified verbatim, and the runner's `ceiling:` line
+  read after the split. Note that the warm-up clause must keep building the
+  render call's name from two halves, or the file re-enrols itself in the pose
+  census (the red H131 paid for).
 
 ## Block K — the Warden as an opponent
 
@@ -1580,7 +1620,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
   emits `shade:land`.
 - [x] **J7 (S)** Reactions — done 2026-11-22, under Done. `src/entities/reactions.js` (`reactEase` at both bodies' pose ease), `CONFIG.reactions`, the `combat:damage` / `gadget:taser` listeners in `wiring.js`, `a-hit-body-flinches-a-tased-warden-staggers-and-no-camera-moves`.
 - [x] **J8 (S)** Idle life - done 2026-11-21, under Done. `src/entities/idlemotion.js`; breath on the arm groups and wind as a hood yaw, because `breathcensus.js` forbids the chest and the torso tilt; `a-body-at-rest-is-never-still-and-one-in-a-menu-always-is` in `src/tests/idlelife.js`.
-- [~] **J9 (S)** Sprint FOV kick of **about 4 degrees** eased over a quarter second (D90, Josh 2026-11-22) and the crouch camera's easing, under H9's
+- [x] **J9 (S)** Sprint FOV kick of **about 4 degrees** eased over a quarter second (D90, Josh 2026-11-22) and the crouch camera's easing, under H9's
   toggles. *done-when:* a check reads the FOV over a sprint.
   **Built, parked, not merged, never run by the suite** (2026-11-23, the 02:00
   run): the code is `8c91a9b` on `worktree-agent-af38d0ada73bf6c8b`, cut from
@@ -1620,6 +1660,17 @@ provisional; the rule for "thin" is mechanical, never a tag.
   **The crouch half of this entry is dropped and is now J16** - the camera does
   not merely fail to ease, it pops the wrong way, which is a bug and not a
   missing feature.
+
+  **Done 2026-11-24** (`419c188`, the 02:00 run). Cherry-picked off its
+  worktree, one conflict (`src/tests/index.js`, both halves kept), and the owed
+  menu row added: `bl-sprint-fov` ("sprint fov kick") on the `bl-bob` pattern in
+  all three places `menupages.js` names a switch, with its id appended to
+  `SETTINGS_GROUPS`'s `look` group. Proved on **both maps at last** -
+  `the-sprint-kick-widens-the-lens-by-four-degrees-and-gives-it-back` green at
+  4,098ms on the plant and 2,135ms on the yard, with the 24-entry census set and
+  `each-role-draws-with-the-field-of-view-its-setting-asks-for`, and **its break
+  run** rather than predicted. `PLAYTEST.md` asks Josh whether 4 degrees is
+  enough to feel.
 
 - [x] **J10 (S)** The boom's shoulder origin inside a wall — done 2026-11-20, under Done. `boomOrigin` in `src/entities/agentvisual.js` tests the shoulder origin with the same `collision.isClear` that `boomClear` uses — at the rays' own radius, not as a point, since their cluster is 0.22m across — and walks it back toward the axis a quarter radius at a time, the pivot last. And the ordering fault the entry named: `_cameraDistance` is derived *from* the sweeps, so the cast cannot use it; instead the terminal test runs **again** after the smoothing, at the shoulder the rig actually takes, which is one extra `isClear` in the open and no change there. The new clause runs the Shade along the face at seven laterals (0.15 to 0.60m) on each side, pressing in and then easing off, and fails if no frame ever asked for an origin inside the wall — so the pose is proved driven rather than assumed. `19075fd`. Left **H121**: the file is 582 of 600, and the boom's five pure geometry functions are the seam.
 - [~] **J14 (S)** **BUILT, REVIEWED, NOT LANDED** - `d9f7dd3` on

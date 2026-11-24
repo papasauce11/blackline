@@ -3311,6 +3311,76 @@ second stall inside `impactfeel` returns to the PM with nothing further landed.
 **J9's resume does not start this run**; it goes first in the next, on a green
 base. `--stall` stays unraised (D100).
 
+### P7 — The H131/J9 batch lands unverified, and the pile is then closed (2026-11-24)
+H131, J9 (`419c188`) and the three fixes the proof found are committed and
+pushed under a `## UNVERIFIED BATCH` heading, on the five-check run's outcome:
+**exit 0** with both breaks red on their own clause and both restores green
+lands all of it; **exit 2** (a stall, which is the base and not a red) lands
+H131 and the three fixes anyway, because two of them repair holes J2 left on
+the branch and holding them keeps it knowingly red, while J9 stays at `419c188`
+with its break the first line of the next run; **exit 1** lands nothing that is
+red — a red sprint check means `git revert 419c188` and a red fix goes back to
+a patch. No retry tonight; the 03:46 line holds (D79). The batch is then
+**closed at five jobs** (J2, J3, `105b93a`, H131, J9): H121, J16, J14 and I3
+stay in their worktrees and nothing game-facing lands on top until a full
+verify completes. Both new checks passed on both maps in the one 31-check run
+that completed, with the 24-entry census set, and the next run needs the
+instrument on the branch to read the machine at all.
+
+### P8 — No verify is attempted on a machine that cannot finish one; a canary decides (2026-11-24)
+Every run opens with a **canary** before any other use of the suite: the
+31-check census subset, both maps, at the default pin. **Healthy** means it ends
+without exit 2 inside **8 minutes of wall** for the two maps together — tonight
+that same subset took 943s at 8/8 under load, and 11-22's rate puts it under
+five minutes. If healthy, the gate is the **full two-run verify at the default
+pin**; it stands as the verify for the whole unverified pile, nothing lands
+before it is green, and the four held jobs then land one at a time under P2 with
+one closing verify. If not healthy, the run is **load-bound**: it runs no full
+suite, lands nothing, may build at most two jobs into worktrees on their own
+subsets, and records the canary's `warm-up:` line, tail share, free memory and
+foreign process count in `PROGRESS.md` before stopping. **Two load-bound runs in
+a row return to the PM.** No smaller gate stands in for the verify and no staged
+or single-run verify counts. `--stall` and `--stall-wait` stay where they are
+(D100, P3). A full verify has now failed three times in two nights, and an
+85-minute attempt that dies at minute 40 costs the whole run and proves nothing.
+
+### P9 — The pin stays; `--cores 8` is a proof tool, not the gate (2026-11-24)
+The gate and every verify keep the **default pin, 4 of 8** (H41). `--cores 8` is
+one completion and one 241s stall in two runs, so it is not a cure, and every
+timing on record was read under the pin. It is allowed for a **job's proof
+subset** when what is wanted is a verdict and not a timing, and the core count
+is written beside the result — which is the footing tonight's greens stand on.
+The default is reopened only by the A/B in P10: the canary back to back at 4 and
+at 8 on a quiet machine, two runs each.
+
+### P10 — H131 closes as the instrument; the explanation is a new, smaller job (2026-11-24)
+H131 is **done** on what it found: the per-frame warm-up timing, the watchdog's
+message and the `warm-up:` report line exist and work; the warm-up completed on
+the plant four times in five; and the standing hypothesis is dead — frame 1
+costs 9-10ms, not tens of seconds, the cost is late and lumpy (frame 44 at
+9,624ms on the plant, frame 40 at 9,038ms on the yard), and `suite.mjs`'s F5
+comment is corrected in the same commit. "The reading that explains the
+difference" turned out **not to be one reading**: there are three stall sites —
+the final drain, a mid-run audio check, and warm-up frame 57. Its unmet half
+becomes a new **(S)** job, queued as **H132**. *done-when:* the canary is run
+twice at the default pin with the other project's servers **down**, and its
+warm-up, tail share and free memory are set beside tonight's (36,870ms, 87%,
+2.6GB) in `TRAPS.md`; P8's 8-minute line is replaced by the measured figure; and
+P9's A/B is taken in the same sitting. It needs Josh to have closed those
+servers and does nothing by force. Hygiene, taken by P1's first clause because
+the gate is down.
+
+### P11 — The other project's load is a stated precondition, cured by asking (2026-11-24)
+Confirmed as the whole of the action: one `TRAPS.md` entry saying that with
+RicochetRoyale's 13 node processes and five vite servers up and 2.6GB free of
+12GB the suite stalls at any site, that it is not one check's fault, and that
+P8's canary is how a run finds out; and one sentence to Josh in the run's
+report — *"the suite cannot finish while RicochetRoyale's dev servers are up;
+close them before the 17:00 and 02:00 runs and the held jobs land."* **No run
+kills, throttles or reprioritises another project's processes or Josh's
+browser**, and no script refuses to start on their presence: the canary measures
+the effect rather than policing the cause. A request, not a Blocking question.
+
 ## Blocking — waiting on Josh
 
 ### D107 — Should the third-person camera lower when the Shade crouches? **ANSWERED**

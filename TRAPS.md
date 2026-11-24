@@ -1241,3 +1241,40 @@ cloud and a camera buried in 100 full-screen transparent sprites under
 SwiftShader is what a 240s frozen heartbeat looks like from outside. The lesson
 twice over: **a subset is not indicted until the full suite has been tried**,
 and a trap cured by a comment in three files will happen a fourth time (H130).
+
+**A stall is not one thing, and the warm-up's first frame is not the expensive
+one** (H131, 2026-11-24). Three runs of one tree on one evening ended three
+ways: a 31-check subset at the default **4 of 8 cores** died with the heartbeat
+stood still **601s in `phase: pipeline-wait` at 31/31** - after every check had
+passed, inside the final drain; the same subset **unpinned** (`--cores 8`)
+**completed** both maps; and the same subset unpinned again, twenty minutes
+later, died **241s in `running` at 13/31** on
+`one-module-owns-the-audio-device-and-an-offline-render-gives-it-back`. On
+2026-11-23 the same tree froze twice inside the **warm-up**, at frame 57 of 60.
+Five attempts, four stall sites, one complete run with the same flags as a
+crash. **So no single run tells you whether the base is sound**, and the shape
+of the failure names nothing: the drain, a mid-run audio check and a warm-up
+frame are all the same renderer running out of a budget it used to fit inside.
+
+The instrument that made this readable is the `warm-up:` line
+`scripts/suitereport.mjs` now prints per run, from `frameMs`/`warmMs` on the
+beat, and the same two numbers in the watchdog's stall message. Its first
+reading **kills `suite.mjs`'s own comment** that "the first draw of a cold map
+compiles shaders for tens of seconds (F5)": the plant's **frame 1 costs 10ms**
+and the other 59 cost **36,860ms**, with the dearest single frame **44, at
+9,453ms**; the yard reads 9ms, 20,584ms and frame 38 at 8,078ms. The expense is
+**late and lumpy**, not cold and front-loaded - which is why "frame 57" was
+never a clue, and why a stall can land anywhere. On the same runs the **pipeline
+tail was 434,012ms of 556,562ms (78%) on the plant and 291,204ms of 386,798ms
+(75%) on the yard**, against the 78ms-to-13,569ms H125 measured six weeks of
+commits ago. Read the `warm-up:` line and the tail together before blaming a
+check.
+
+**The background, measured and not guessed:** 8 logical cores, 12GB with
+**2.6GB free**, and another project (RicochetRoyale) holding **13 node
+processes and five vite dev servers** up, beside Josh's Chrome. No orphaned
+headless Chrome existed. **Do not kill any of it** - the cure, if it is one, is
+Josh closing the other project's servers, which is this line and a sentence to
+him, not something a run does by force. And **`--stall`/`--stall-wait` stay
+where they are** (D100, P3): a budget raised to cover a machine this loaded
+stops being evidence about anything.
