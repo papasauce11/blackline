@@ -3381,6 +3381,48 @@ kills, throttles or reprioritises another project's processes or Josh's
 browser**, and no script refuses to start on their presence: the canary measures
 the effect rather than policing the cause. A request, not a Blocking question.
 
+### P12 — The verify is staged while the foreign load is up; P8's last clause is amended (2026-11-24)
+A healthy canary did not predict a completable verify. The canary came back
+green in **4m51s** (24 of 24 both maps, nothing red or flaky, 0 console errors,
+default pin) and the full two-run verify it licensed **died at 28m40s**: exit 2,
+heartbeat frozen 240s, check **272 of 279**, plant run 1, phase `running`, in
+flight `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` - the
+**fourth site in three nights**, in a third phase. So P8's last clause is
+amended: while RicochetRoyale's servers are up, the gate after the canary is
+**four stages**, `--runs 1 --map <id>`, two per map, at the default pin, with
+`--stall`/`--stall-wait` untouched and each stage writing its own `--details`.
+**Exit 0 counts; exit 2 is void and may be re-run; exit 1 is a red and is never
+retried away; a check red in one stage and green in another is flaky and is
+recorded flaky; every stage needs 0 console errors.** Caps: **six invocations a
+run, two voids in a row, or 01:15 on the clock** - and the tree stays frozen
+while a stage runs. Stages taken at an **identical tree count across
+consecutive runs** (stamp commits aside), so the next run finishes what is
+missing rather than restarting. The union of four green stages stands as the
+batch's verify and is written **"staged, P12"** beside its numbers.
+**The known loss is the second run on a warm page**, which is why this is not
+standing policy: the first run that finds those servers down runs the full
+two-run verify per P8, and **one completed full verify retires staging**.
+**Staging is not a cure and was not taken as one** - tonight's death was inside
+the very unit it stages by, and a healthy plant run is about 24.7 min against
+the 28m40s it reached. It is taken because **a death then costs one stage
+instead of the whole verify, and completed stages are kept**. The hazard is read
+as **per minute**, not per site and not proven to be accumulation: last night's
+deaths at 13/31 and 31/31 came inside five-minute runs.
+**P7's close holds.** The four held jobs do **not** land on their own proofs
+over the current pile: they land only once the five-job pile's four stages are
+green, and then one at a time on their proof subsets as a **new** unverified
+batch, whose staged verify is the next run's gate. Nine unattributed jobs on a
+machine that cannot finish a run is a worse bisect than five.
+A run that hits a cap is **load-bound**: it lands nothing and records the stages
+completed and each death (site, phase, minute, check n/N). A second load-bound
+run in a row does **not** return to the PM on these facts - the standing answer
+is to hold, land nothing, build at most two jobs into worktrees, and lead the
+report with P11's request. Return to the PM only if **stages die with the
+servers down**, or **a stage's red cannot be attributed**.
+Queued by this call: **H134** - the runner flushes each check's verdict to the
+`--details` file as it finishes, so a watchdog kill keeps what passed. Tonight's
+kill lost 272 verdicts.
+
 ## Blocking — waiting on Josh
 
 ### D107 — Should the third-person camera lower when the Shade crouches? **ANSWERED**

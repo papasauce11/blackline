@@ -1372,6 +1372,23 @@ the end of this list, never ahead of a game-facing job.
   render call's name from two halves, or the file re-enrols itself in the pose
   census (the red H131 paid for).
 
+- [ ] **H134 (S)** A killed run loses every verdict it had already earned.
+  Tonight's gate died at check **272 of 279** on the plant with the watchdog's
+  240s kill, and because `--details` is written once at the end there is **no
+  file at all**: 272 checks had passed and not one of their verdicts survived,
+  so a stall costs the whole run's evidence and not just the tail. Queued by
+  **P12**, which made staging the gate partly to stop paying this price four
+  times a night. The fix is a flush per check rather than one write at the end -
+  append each verdict (or rewrite the file) as the check finishes, so the file
+  on disk is always a readable account of everything settled so far and names
+  the check that was in flight when the run died. *done-when:* a run killed
+  mid-way leaves a readable partial `--details` file naming every finished
+  check and its verdict plus the one in flight; a check asserts the partial
+  file parses and that its last entry is the last finished check; the full
+  file at the end of a green run is unchanged in shape from today's, so
+  `detaildrift.mjs` and `suitereport.mjs` read it without a change; and the
+  flush does not show in the heartbeat as a stall of its own.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.

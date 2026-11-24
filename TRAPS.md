@@ -1290,12 +1290,18 @@ console errors, the default pin - and the full two-run verify it licensed
 `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`. That is a
 **fourth** stall site after the final drain, the mid-run audio check and
 warm-up frame 57, in a third phase, and **272 checks had already passed when
-it froze**. So the deaths do not belong to a site, a check or a phase: they are
-**late**, after twenty-five to thirty minutes of accumulated work, and they
-take whatever is in flight. The predictor is the **length of one invocation**,
-not the health of a short one, which is exactly what a five-minute canary
-cannot measure. Read it as a floor and never as a forecast: a green canary says
-the suite starts, not that it ends. On the same machine, same hour: 8 cores,
+it froze**. So the deaths do not belong to a site, a check or a phase: they
+take whatever is in flight. **But they are not accumulation either, and P12
+corrected that reading the night it was written**: last night's two deaths came
+at **13/31 and at 31/31 inside five-minute runs**, and tonight's came inside
+*one map-run* (a healthy plant run is about **24.7 min** - 1,482,807ms on
+11-22 - against the 28m40s this one reached), which is the very unit a staged
+verify is built from. Read it as a **per-minute hazard**: a longer invocation
+is likelier to die because it is exposed longer, not because it has piled
+anything up, and no stage length is known to be safe. A green canary says the
+suite starts, not that it ends - a floor and never a forecast. **And a killed
+run leaves no `--details` file at all**: tonight's kill lost **272 verdicts**
+that had already passed, which is what H134 is queued to fix. On the same machine, same hour: 8 cores,
 **2.69GB free of 12GB** at the start and 3.41GB once the dead run let go, the
 other project still holding 13 node processes and four or five vite servers,
 and the gate running about **35% slower per run** than a healthy one (28m40s
