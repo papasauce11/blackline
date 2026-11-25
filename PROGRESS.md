@@ -24342,3 +24342,134 @@ RicochetRoyale's dev servers are up.** Next run: **H136 first** - it is small,
 its mechanism is settled, and it is what makes the next kill legible - then
 H137's count, then P12's stages. The four held jobs (**H121**, **J16**,
 **J14**, **I3**) stay in their worktrees.
+
+## H136 - The carrier a killed run writes from, and the one call that took it over (2026-11-25, the 17:00 run)
+
+H134 landed this morning and its first two full-length kills proved it worked
+and showed exactly where it stopped. Both `--details` files ended on the
+**identical six ids in the same order**, the last of them
+`the-state-machines-survive-each-other`, the final check in `fuzz.js` - and
+`registerPipelineWait` is the very next module in `tests/index.js`. Identical on
+both maps is what rules load out: this was ordering, not pressure, and the
+mechanism needed no suite run to find.
+
+`_runChecks` published the live results array behind `if (top)`, and `top` was
+the wrong thing to ask. `src/tests/pipelinewait.js:158` hands it `true` **by
+hand**, on purpose, because what a *top-level* run does at its tail is its whole
+subject - so it passed the depth counter unseen and replaced
+`state.suiteSettled` with its own one-element array. Every watchdog poll after
+that sliced from index 234 of a length of 1, got an empty list, and carried
+nothing out for the rest of the run. So a dead run's file was an account of
+everything up to `pipelinewait.js` and nothing after it, about eleven minutes
+short of the kill, and the measured figures are **234 of ~269** and **214 of
+~258** - not the "nearly all" H134's own entry claimed, which is corrected in
+place in this commit along with its QUEUE line.
+
+The fix is an explicit `publish` parameter on `_runChecks`, **defaulted to
+false**, that only the public `runChecks` sets and only at depth 1. A direct call
+stays top-level in every other respect - it still pays the tail drain, still
+beats its own total - and simply does not own the carrier. `pipelinewait.js` is
+untouched: its direct call is deliberate and is the only way a check can test a
+top-level tail. `autosuite.js` 575 to 576.
+
+**The new clause is driven, not read, and that is the point of it.** H134's
+three clauses hold the kill path by reading source, because the page has no
+processes and cannot kill a run. This one half it *can* exercise with no process
+at all: clause 4 takes the carrier by identity, drives the direct
+`_runChecks([t], true)` and a nested `runChecks`, and holds that neither replaces
+it nor appends into it. Identity rather than length, because in a one-check
+subset the outer `results` array is still empty when the check runs and a length
+would prove nothing. A source clause holds the third parameter at `false` so the
+flag cannot be quietly re-defaulted. `detailflush.js` 173 to 225.
+
+**The proof** (P13's two invocations, shared with H137 - see DECISIONS D109).
+The break - `if (publish)` back to `if (top)`, one line, applied from a copy and
+restored from it - came back **exit 1, 2 of 2 red on both maps**, and
+`a-killed-run-keeps-the-verdicts-it-already-earned` named the mechanism in its
+own words: *"a direct `_runChecks([t], true)` took the carrier over while it ran,
+so every later watchdog poll slices a one-element array and the rest of the run
+is lost"*, then the same for after it returned. The green run, over the restored
+tree, was **exit 0, 29 of 29 on both maps** (plant 138,515ms, yard 99,077ms),
+`red`, `flaky`, `skipped`, `expectedRed` and `unexpectedGreen` all empty, **0**
+console errors, and the check's own detail ends *"a direct run keeps the outer
+carrier by identity, and the flag defaults to false"*. The census set ran inside
+it, 24 of the 29, and `the-pipeline-wait-is-the-runs-number-and-not-a-checks` -
+the one check whose own behaviour this change touches - passed on both maps.
+
+**Two things the proof found about proofs.** First, the break's own evidence was
+**cut mid-word at 400 characters** - the stored detail ends *"so the rest of
+t"* - so the source clause's verdict was not readable from the details file at
+all. That is a third piece of evidence for **H110**, which is already queued.
+Second, the subset named `a-staged-hang-never-returns` and it ran **nothing**:
+that check is registered only inside `if (stagedHangRequested())`, under
+`?hang=1`, which no gate passes. An offline scan of `src/tests/` for ids cannot
+see conditional registration, which is why the count is read off the runner's
+report and not off the regex - TRAPS.md's rule, and it worked. **H138** is
+queued to make the runner say so. The cost was that heartbeat's real check,
+`the-suite-heartbeat-advances-and-names-the-check-in-flight`, did not run in the
+proof; the four stages run it, and the depth path it drives is unchanged by
+construction, `top` having become `(top, top)`.
+
+**Left.** The carrier is now owned by exactly one writer per map run, but
+nothing *measures* that a dead run's file reaches the check it died on - the
+done-when asks for "within five of the counter it died on, measured on a real
+kill", and that reading can only come from a kill. If one of this run's four
+stages dies, read its file's last id and its count against the watchdog's
+message: that is the measurement, and it is free.
+
+## H137 - Twelve deaths, five ids, and a claim cut back to what the record holds (2026-11-25, the 17:00 run)
+
+H137 was queued to count, not to explain, and the counting moved the ground
+twice.
+
+TRAPS.md had held since 2026-11-24 that the check in flight at a stall differs
+at every death, named **three** ids over **eight** deaths, and concluded the
+check is "probably the victim and not the cause". Both deaths of 2026-11-25
+landed on checks already on that list, which is what raised the job. The
+archaeology - over the HANDOFF.md, PROGRESS.md, QUEUE.md and DECISIONS.md of
+every run that first wrote a death down - found the sentence wrong in **both**
+directions. There are **twelve** heartbeat kills on record from 2026-11-23, not
+eight: four were never counted, including a full gate at 275 of 277 on the
+hit-stop check, two `pipeline-wait` kills at 61 of 63 and 62 of 62, and two
+warm-up kills at frame 57 of 60. And they name **five** ids, not three - the
+audio-device check and the draw-timing check are the two nobody had listed.
+
+They are now one table, oldest first, a row per kill with its date, run, map,
+`died at`, phase, elapsed and in-flight id. **Six of the twelve rows carry the
+word `unrecorded`** where the record genuinely never said, and that is the
+honest half of the job: two warm-up deaths came before any check began, two were
+in `pipeline-wait` at or after the last check so no check was in flight, and the
+two 11-24 stages are unattributed because that night's own text names the HUD
+feed and the hit-stop for its three deaths *together* and never says which died
+on which. A cell is never a guess. Kills the record laid to a job's own code (K3,
+J12, J5, H122) are excluded, and the ledger says so.
+
+**What the count supports, and nothing more.** Strictly, one id repeats - the
+hit-stop, twice. On the loose reading, if the two unattributed stages are the HUD
+feed and the hit-stop as that night's prose implies, the hit-stop is three and
+the HUD feed two. TRAPS.md now states both readings and then says the thing that
+matters: **what the ledger cannot say is whether the victim set is small, because
+half its rows are `unrecorded`**. The standing guard is kept and re-pointed - a
+repeating victim set is **not** a fifth mechanism and must not be read as one -
+and the fourth reading, that something in the closing stretch of a run stalls the
+heartbeat for 240s, survives with its number rewritten: **nine of twelve** are at
+or within ten checks of a run's finish, the three exceptions being the 13 of 31
+and the two warm-up frames. The old table's figures were cut out of the three
+closing paragraphs rather than duplicated; TRAPS.md 1370 to 1395 lines, net +25.
+
+**The ledger is held by a check**, which is what stops a death being dropped the
+next time the file is tidied: `traps-md-holds-the-traps-and-handoff-points-at-it`
+gains a floor of twelve ISO-dated rows and a clause that every row carries an
+`n of N` and either a backticked id or the word `unrecorded`. `donedef.js` 582 to
+**590** of the 600 cap, in eight lines - the second-nearest module to the cap now
+after `difficulty.js`, which is at 600 with nothing left.
+
+**The proof.** The break - one ledger row deleted - came back **exit 1** with the
+floor clause red on both maps in its own words, *"TRAPS.md ledgers 11 deaths and
+the floor is 12; a death is counted here and never dropped"*. The green run was
+**exit 0, 29 of 29 on both maps**, nothing red or flaky, 0 console errors, and
+the check's detail reads *"TRAPS.md holds 134 traps and 12 ledgered deaths in
+1395 lines, HANDOFF.md is 399 of 400 and points at it"*.
+
+**Left.** Three of the twelve rows rest on prose rather than on a `--details`
+file, and `399 of 400` is how much room HANDOFF.md has left.

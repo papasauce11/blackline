@@ -1428,7 +1428,7 @@ the end of this list, never ahead of a game-facing job.
   shape is spelled once in a module both ends import, and `detailflush.js`'s
   clause that the two agree is kept rather than deleted.
 
-- [ ] **H136 (S)** H134's carrier dies at `pipelinewait.js` and takes the rest of
+- [x] **H136 (S)** H134's carrier dies at `pipelinewait.js` and takes the rest of
   a killed run's verdicts with it. **This is a defect in H134, found by reading
   after its first two full-length kills, and the mechanism is settled - no suite
   run is needed to diagnose it.** `autosuite.js`'s `_runChecks` publishes the
@@ -1471,8 +1471,29 @@ the end of this list, never ahead of a game-facing job.
   are 234 of ~269 and 214 of ~258. **This is a question about the carrier, not
   about the stall** - do not read it as a fifth stall mechanism (TRAPS.md).
   Raised by the lead, 2026-11-25, from the two stages' own files.
+  *Done 2026-11-25 (the 17:00 run), `54a28e0`.* `_runChecks(tests, top, publish = false)`,
+  set only by the public `runChecks` and only at depth 1, so a direct
+  `_runChecks(tests, true)` stays top-level in every other respect - it still pays
+  the tail drain and still beats its own total - and simply does not own the
+  carrier. `pipelinewait.js` untouched. `autosuite.js` 575 to 576;
+  `detailflush.js` 173 to 225. The clause is **driven, not read**, which is the
+  one half of H134 the page can exercise with no process: it takes the carrier by
+  identity, drives both the direct call and a nested `runChecks`, and holds that
+  neither replaces it nor appends into it - identity rather than length, because
+  in a one-check subset the outer `results` is still empty. A source clause holds
+  the third parameter at `false`. Proof under D109: the break (`if (publish)` to
+  `if (top)`) **exit 1, 2 of 2 red on both maps**, naming the mechanism in its own
+  words; the green run **exit 0, 29 of 29 on both maps**, red/flaky/skipped/
+  expectedRed/unexpectedGreen all empty, 0 console errors, census set inside it,
+  and `the-pipeline-wait-is-the-runs-number-and-not-a-checks` green on both maps.
+  H134's QUEUE line and its two PROGRESS.md sentences are corrected in place.
+  **Left:** the done-when's "within five of the counter it died on, measured on a
+  real kill" can only come from a kill - read it off the next stage that dies.
+  Found: the break's own detail was **cut mid-word at 400 characters**, a third
+  piece of evidence for H110; and the subset named a check registered only under
+  `?hang=1`, so it ran nothing - **H138**.
 
-- [ ] **H137 (S)** "The named check differs each time" is false, and the victim
+- [x] **H137 (S)** "The named check differs each time" is false, and the victim
   set is small and repeating. `TRAPS.md` has held since 2026-11-24 that the
   check in flight at a stall differs at every death, naming three -
   `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`,
@@ -1495,6 +1516,52 @@ the end of this list, never ahead of a game-facing job.
   tonight's reading, since three of the eight are known only from prose. Since
   H134 the dead runs' own `--details` files survive, so future deaths can be
   counted from evidence rather than memory. Raised by the lead, 2026-11-25.
+  *Done 2026-11-25 (the 17:00 run), `5efde1e` (built as `2e1f1f6` in its own
+  worktree).* The count moved the ground twice: there are **twelve** heartbeat
+  kills on record from 2026-11-23, not eight - four were never counted, among
+  them a full gate at 275 of 277 on the hit-stop - and they name **five** ids, not
+  three. One ledger table now holds every one, oldest first, with date, run, map,
+  `died at`, phase, elapsed and in-flight id; **six of the twelve rows carry
+  `unrecorded`** where the record genuinely never said, and a cell is never a
+  guess. Strictly one id repeats (the hit-stop, twice); on the loose reading the
+  hit-stop is three and the HUD feed two, and TRAPS.md states both and then says
+  what the ledger **cannot** say - whether the victim set is small, half its rows
+  being `unrecorded`. The fourth reading survives with its number rewritten,
+  **nine of twelve** at or within ten checks of a finish, and the standing guard
+  against a fifth mechanism is kept. Kills laid to a job's own code (K3, J12, J5,
+  H122) are excluded and the ledger says so. TRAPS.md 1370 to 1395, net +25, the
+  old five-row table and the scattered figures folded in rather than duplicated.
+  `traps-md-holds-the-traps-and-handoff-points-at-it` gains a floor of twelve
+  ISO-dated rows and a clause that each carries an `n of N` and an id or
+  `unrecorded`; `donedef.js` 582 to **590** of 600 in eight lines. Proof under
+  D109: the break (one row deleted) **exit 1**, floor clause red on both maps;
+  the green run **exit 0, 29 of 29 on both maps**, nothing red or flaky, 0 console
+  errors. **Left:** three of the twelve rows rest on prose, not on a
+  `--details` file.
+- [ ] **H138 (S)** A `--subset` alternative that matches no registered check
+  runs nothing and says nothing. The green proof of 2026-11-25 asked for thirty
+  checks and ran **twenty-nine** on each map. The missing one was
+  `a-staged-hang-never-returns`, which is registered only inside
+  `if (stagedHangRequested())` in `src/tests/heartbeat.js` - under `?hang=1`,
+  which no gate passes - so the alternative was dead and the run was silent about
+  it. It was caught only by counting the checks in the runner's report against
+  the subset, which is TRAPS.md's rule and worked; but the rule is a habit and
+  the next reader may not have it. The same shape is how a census subset silently
+  runs 18 of 42 (2026-11-03), and that is the expensive version: a proof that
+  looks green and covered nothing.
+  *The fix:* after a run resolves its subset, the runner knows both the regex's
+  alternatives and the ids that matched. Print the alternatives that matched
+  **no** registered check, by name, on the summary - one line, beside
+  `throttle:` - and say how many checks the subset asked for against how many it
+  found. Do not make it red: an alternative may be legitimately absent, as this
+  one is, and a gate that refuses to run over a conditionally-registered check
+  would be worse than the silence. Splitting the regex on `|` at the top level is
+  enough; a subset that is one regex with no alternation reports itself.
+  *done-when:* a run whose subset names an id no registered check matches prints
+  that id on its summary with the asked-for and found counts; an extended check
+  in `src/tests/args.js` or `src/tests/runnerguard.js` holds the line's presence
+  and its numbers by reading the runner's source the way the ceiling line is
+  held, with its own break. Raised by the lead, 2026-11-25, from H136's own proof.
 
 ## Block K — the Warden as an opponent
 

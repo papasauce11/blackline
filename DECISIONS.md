@@ -3182,6 +3182,50 @@ to P12's allowance, and on a night when the servers are **down** a builder
 beside a verify is fine - that was the normal shape of every run before
 2026-11-22. It applies while the gate is staged and the load is up.
 **Provisional, 2026-11-25, the lead's call. Override any time.**
+### D109 — Two jobs share P13's two proof invocations, and the green one is also the canary (2026-11-25)
+
+P13 gives a job's own proof **two** suite invocations beside P12's six gate
+ones, each a narrow subset of ten minutes or less, and says there is no third.
+P2 asks every job for four things: its new check, a break red on the clause it
+is for and green again, the checks of every module it touched, and the census
+set. Two jobs in one run against two invocations does not divide: a break alone
+is two runs (red, then green), so two jobs read literally would need four or
+six, and P13 forbids the third.
+
+Read as a **time** cap rather than a per-job count, it divides cleanly, and that
+is how this run took it. **Invocation one, the break:** both jobs' breaks applied
+at once - `if (publish)` back to `if (top)` in `autosuite.js`, and one row
+deleted from TRAPS.md's ledger - with the subset the two extended checks alone.
+**Invocation two, the green:** both breaks restored from copies, and the subset
+the two checks plus every touched module's checks plus the census set. Each ran
+well under ten minutes (2 checks a map, then 29). Attribution across the two jobs
+is not at risk because they redden **different check ids in different files**:
+H136's clause names the carrier, H137's names the ledger's row count, and a red
+in either says which job owns it without being asked.
+
+**And the green invocation doubles as P12's canary**, because it is a strict
+superset of the census set - all 24 of them - on both maps at the same default
+pin, so running the canary separately would be paying five minutes to learn
+something already known. That saves one of P12's six gate invocations for a void
+or a re-run, which on four nights of deaths is the scarce thing.
+
+**One further consequence, taken the same way:** one `Record H136 and H137`
+commit rather than two, since both jobs rest on the one shared proof and two
+record commits would need two stamps, the second naming the first.
+
+**Options considered:** take one job this run and leave the other (rejected -
+H136 is what makes the next kill legible and H137 is what makes the next death
+countable, and both were wanted before the stages); ask the PM to widen P13
+(rejected - it is a reading of P13, not a change to it, and the PM is expensive
+and rare on purpose); run the breaks separately and skip a break (rejected - a
+check whose break was never run is not proved, which is the one thing P2 will not
+trade). **What this does not say:** it is not licence to batch unrelated jobs into
+one proof. It rests on the two jobs touching disjoint files and reddening
+distinct ids, and on both subsets fitting the ten-minute line. Two jobs that
+could redden the same check get their own invocations or wait for the next run.
+
+**Provisional, 2026-11-25, the lead's call. Override any time.**
+
 ## PM calls — the project manager's decisions (Fable, since 2026-11-03)
 
 Josh, 2026-11-03, made himself the sponsor and gave the next-highest
