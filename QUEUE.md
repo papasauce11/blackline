@@ -1487,8 +1487,14 @@ the end of this list, never ahead of a game-facing job.
   expectedRed/unexpectedGreen all empty, 0 console errors, census set inside it,
   and `the-pipeline-wait-is-the-runs-number-and-not-a-checks` green on both maps.
   H134's QUEUE line and its two PROGRESS.md sentences are corrected in place.
-  **Left:** the done-when's "within five of the counter it died on, measured on a
-  real kill" can only come from a kill - read it off the next stage that dies.
+  **The done-when's last clause is measured, twice, within ninety minutes of
+  landing** - "within five of the counter it died on, measured on a real kill",
+  and both kills came in nought off. Stage 1 died at 273 of 280 and its file held
+  **273**, ending on `the-third-person-boom-never-puts-the-camera-inside-the-world`;
+  the retry died at 270 of 280 and its file held **270**, ending on
+  `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`. Both times the
+  in-flight check was correctly absent, where the two kills before H136 stopped at
+  the end of `fuzz.js` with 234 of ~269 and 214 of ~258. Nothing left open.
   Found: the break's own detail was **cut mid-word at 400 characters**, a third
   piece of evidence for H110; and the subset named a check registered only under
   `?hang=1`, so it ran nothing - **H138**.

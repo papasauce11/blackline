@@ -78,7 +78,7 @@ const HANDOFF_LINE_LIMIT = 400;
  * titles is the shape D47 rejected when it turned option 3 down.
  */
 const TRAPS_FLOOR = 25;
-const DEATHS_FLOOR = 13;
+const DEATHS_FLOOR = 14;
 
 /**
  * Section 18's checklist carries "`Math.random()` appears nowhere in `src/`";

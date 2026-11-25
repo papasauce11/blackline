@@ -1339,6 +1339,7 @@ dropped (`traps-md-holds-the-traps-and-handoff-points-at-it` holds the rows).
 | 2026-11-25 | 02:00 stage | plant | 270 of 280 | `running` | 28m16s | `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` |
 | 2026-11-25 | 02:00 stage | yard | 259 of 262 | `running` | ~24m | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
 | 2026-11-25 | 17:00 stage 1 | plant | 273 of 280 | `running` | ~27m | `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` |
+| 2026-11-25 | 17:00 stage 1 retry | plant | 270 of 280 | `running` | ~28m | `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` |
 
 The 02:00 pair of 11-23 were read by P6 as J2's own smoke cloud (fixed in
 `105b93a`) and stay, because the gate kept dying after it; the first one's id is
@@ -1347,15 +1348,15 @@ that prefix. The 11-24 17:00 stages are `unrecorded` because the record names th
 HUD feed and the hit-stop for them *together* and never says which died on which.
 Kills laid to a job's own code (K3, J12, J5, H122; D100, D103) are not here.
 
-**The count, per check:** `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` **2** (11-24 and 11-25); `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` **1**; `a-hit-stops-the-picture-without-costing-the-simulation-a-step` **2**
+**The count, per check:** `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` **2** (11-24 and 11-25); `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` **2** (11-25 twice); `a-hit-stops-the-picture-without-costing-the-simulation-a-step` **2**
 (11-23 and 11-25); `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` **1**; `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` **1**; and **6 `unrecorded`** - two warm-up
 deaths before any check began, two in `pipeline-wait` at or after the last check
-(62 of 62, 31 of 31), and the two unattributed 11-24 stages. **Thirteen deaths,
-seven of them naming a check**, the thirteenth being the 17:00 stage of 11-25,
-which is the first death on record whose `--details` file reached the check in
-flight (H136, below). **Ten of the thirteen are at or within ten checks of a
+(62 of 62, 31 of 31), and the two unattributed 11-24 stages. **Fourteen deaths,
+eight of them naming a check**, the last two being the 17:00 stage of 11-25 and
+its retry - the first two on record whose `--details` files reached the check in
+flight (H136, below). **Eleven of the fourteen are at or within ten checks of a
 run's finish**; the three that are not are the 13 of 31 and the two warm-up
-frames. A per-minute hazard does not land ten times in thirteen at the very end,
+frames. A per-minute hazard does not land eleven times in fourteen at the very end,
 and shortening the invocation did not help **because every invocation has an end
 and the end is where it dies**. So the honest statement is the narrow one:
 **something in the closing stretch of a run stalls the heartbeat for 240s**, and
@@ -1392,7 +1393,7 @@ carrier with a one-element array. Every later poll then slices from index 234 of
 a length of 1 and carries nothing. **So a dead run's file is an account of
 everything up to `pipelinewait.js` and nothing after it** - about eleven minutes
 short of the kill - and a reader who takes its last id for the run's last
-settled check is wrong by thirty-odd checks. **H136 landed on 2026-11-25 (`54a28e0`) and the stage that died an hour later measured it**: the watchdog named 273 of 280 and the file held **273** results, ending on `the-third-person-boom-never-puts-the-camera-inside-the-world` with the in-flight check not yet written - nought off the counter it died on, against a done-when asking for five. Read a dead run's file as what it says it is again. `pipelinewait.js` was not the thing to change, and
+settled check is wrong by thirty-odd checks. **H136 landed on 2026-11-25 (`54a28e0`) and the two stages that died after it measured it twice**: the watchdog named 273 of 280 and the file held **273**, ending on `the-third-person-boom-never-puts-the-camera-inside-the-world`; the retry named 270 of 280 and the file held **270**, ending on `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`. Both times the in-flight check was correctly absent and both times the count was **nought** off the counter the run died on, against a done-when asking for within five. Read a dead run's file as what it says it is again. `pipelinewait.js` was not the thing to change, and
 `pipelinewait.js` is not the thing to change: its direct call is deliberate and
 is the only way it can test a top-level tail.
 before attempting another gate.**

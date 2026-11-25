@@ -24473,3 +24473,77 @@ the check's detail reads *"TRAPS.md holds 134 traps and 12 ledgered deaths in
 
 **Left.** Three of the twelve rows rest on prose rather than on a `--details`
 file, and `399 of 400` is how much room HANDOFF.md has left.
+
+## 2026-11-25, the 17:00 run — H136 and H137 land, and the two deaths that follow measure H136 twice
+
+**Two jobs landed and proved, the staged verify reached two stages, and both
+died.** The run is **load-bound** by P13's cap - two voids in a row - and stopped
+there rather than spending a third stage. Nothing more was landed. What it bought
+is not the verify: it is that the two deaths were **legible**, which is the thing
+H136 was taken first to buy, and they paid for it inside ninety minutes.
+
+**H136** (`54a28e0`) gave `_runChecks` an explicit `publish` flag, defaulted to
+false and set only by the public `runChecks` at depth 1, so `pipelinewait.js`'s
+deliberate direct `_runChecks([tail], true)` no longer takes the details carrier
+over. **H137** (`5efde1e`) counted the deaths and found twelve on record rather
+than eight, naming five check ids rather than three, and put them in one TRAPS.md
+ledger that a check now holds. Both have their own entries above. Both were
+proved on one shared pair of invocations under **D109**: a break run carrying both
+breaks (**exit 1, 2 of 2 red on both maps**, each on the clause it was aimed at)
+and a green run carrying both jobs, every touched module's checks and the whole
+census set (**exit 0, 29 of 29 on both maps**, every list empty, **0** console
+errors). That green run doubled as P12's canary, being a strict superset of the
+census set at the same pin.
+
+**The two stages, and the measurement.** Stage 1 (plant) died at **273 of 280**,
+phase `running`, the beat still for 240s, in flight
+`a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`, about 27
+minutes in. Its `--details` file held **273** results, ending on
+`the-third-person-boom-never-puts-the-camera-inside-the-world`, with the in-flight
+check correctly absent. The retry died at **270 of 280**, same phase, same 240s,
+in flight `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back`,
+about 28 minutes in, and its file held **270**, ending on
+`a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`. **Both counts are
+nought off the counter the run died on**, against a done-when that asked for
+within five - where the two kills before H136 stopped at the end of `fuzz.js`
+with 234 of ~269 and 214 of ~258. H136's last open clause is closed, and it was
+closed by the very deaths that stopped the run.
+
+**A mid-run edit, verified by a stage.** The thirteenth death was written into
+H137's ledger between the two stages and `DEATHS_FLOOR` followed it from 12 to 13
+(`782c512`), because a floor that lags the count makes a dropped row invisible,
+which is the one thing the ledger exists to prevent. Stage 2 then ran
+`traps-md-holds-the-traps-and-handoff-points-at-it` against it and it passed:
+*"TRAPS.md holds 134 traps and 13 ledgered deaths in 1398 lines, HANDOFF.md is 399
+of 400 and points at it"*. The fourteenth death is now in the ledger too and the
+floor is **14** - that last bump is the one thing in this batch no run has
+verified, and it is held offline only (14 rows against a floor of 14, 0 thin
+rows). The next gate verifies it.
+
+**The victim count moves again and must not be read as a mechanism.** Both of
+tonight's deaths landed on ids already in the ledger: the climbing cell is now at
+**2** and the Warden's HUD feed at **2**. Fourteen deaths name eight checks.
+**Eleven of the fourteen are at or within ten checks of a run's finish**, which is
+the fourth reading unmoved and sharpened, not a fifth. TRAPS.md still forbids a
+fifth without a reading that distinguishes it from the fourth, and a repeating
+victim set is still not one - half the ledger's rows are `unrecorded`.
+
+**The standing red, a third time.** `the-frame-budget-holds-everywhere-not-just-at-site-a`
+was red in stage 2's details file - *"the worst viewpoint (`hall-door@2`) costs
+231.40ms on 1 sample, NOT a median"* against an 8.33ms ceiling. **Not a verdict**:
+the stage voided, and the detail says itself it is one sample and not a median,
+which is what a machine with 3.1GB free of 12GB produces. It is the same reading
+as 11-25's `deck-south@2` at 903.10ms. Do not act on it until a gate completes.
+
+**What the run cost and what it bought.** Four suite invocations - a break, a
+green doubling as the canary, and two stages, both void - two jobs landed, proved
+and pushed, one follow-up queued (**H138**), two record files corrected, one
+standing reading unseated and one job's last clause measured. 23 minutes of
+builder-and-lead work inside D79's hour, the stages outside it. No PM call: a
+load-bound run does not return to the PM on these facts. **The request to Josh is
+unchanged and is still the whole cure: the suite cannot finish a run while
+RicochetRoyale's dev servers are up** - 13 node processes and four or five vite
+servers, 3.1GB free of 12GB, measured again tonight. Next run: **P12's four
+stages** over the nine-commit batch, then the four held jobs (**H121**, **J16**,
+**J14**, **I3**) one at a time. They stay in their worktrees, and nothing is
+pruned until a verify is green.
