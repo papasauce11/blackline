@@ -24180,6 +24180,7 @@ this is the first revert**; `new Function` at both ends works but a shared pure
 module would be cleaner; `autosuite.js` is now 575 and in the ceiling cluster;
 and the flush lags the last check by up to 5s and does nothing under
 `--stall 0`, so a kill keeps nearly all of a run's verdicts rather than all.
+**[Corrected by H136, 2026-11-25: it does not. `pipelinewait.js:158`'s direct `_runChecks([tail], true)` takes the carrier over, so a dead run's file stops at the end of `fuzz.js` and the two kills that measured it left 234 of ~269 and 214 of ~258 - about eleven minutes short of the kill.]**
 
 ## H134 - A killed run keeps the verdicts it already earned, and three clauses that did not follow the shape (2026-11-25, the 02:00 run)
 
@@ -24254,7 +24255,7 @@ third time. The ceiling cluster is **16 modules within 50 of 600, nearest
 
 **Left.** The flush rides the poll, so it lags the last check by up to 5s and
 does nothing under `--stall 0`: a kill keeps nearly all of a run's verdicts,
-not quite all. The `new Function('return ' + src)()` at both ends works and the
+not quite all. **[Corrected by H136, 2026-11-25: it does not. `pipelinewait.js:158`'s direct `_runChecks([tail], true)` takes the carrier over, so a dead run's file stops at the end of `fuzz.js` and the two kills that measured it left 234 of ~269 and 214 of ~258 - about eleven minutes short of the kill.]** The `new Function('return ' + src)()` at both ends works and the
 check proves the built function matches the module's, but a shared pure module
 under `src/` importable by node and the page would be cleaner - a follow-up,
 not a blocker.

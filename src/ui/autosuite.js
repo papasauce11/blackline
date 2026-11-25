@@ -398,7 +398,7 @@ export class AutoSuite {
     // does the check that holds this arrangement).
     const top = (this._depth = (this._depth || 0) + 1) === 1;
     try {
-      return await this._runChecks(tests, top);
+      return await this._runChecks(tests, top, top);
     } finally {
       this._depth--;
       SETTINGS.debug = gateWasUp;
@@ -406,7 +406,7 @@ export class AutoSuite {
     }
   }
 
-  async _runChecks(tests, top = true) {
+  async _runChecks(tests, top = true, publish = false) {
     const gl = this.harness.renderer && this.harness.renderer.getContext();
     const lost = () => !!(gl && gl.isContextLost()) || !!this.state.contextLost;
     const results = [];
@@ -418,9 +418,10 @@ export class AutoSuite {
     const total = tests.length;
     let pipelineWaitMs = 0;
     // H134: published as they settle, so a watcher can keep what a run earned
-    // if it is killed before it returns. The outer run's alone: a check that
-    // drives `runChecks` must not replace the list the run around it is filling.
-    if (top) this.state.suiteSettled = results;
+    // if it is killed before it returns. The outer run's alone (H136): `top`
+    // cannot say so, because a check that calls this directly with it true
+    // (the tail check) passes the depth counter unseen, so only `runChecks` sets `publish`.
+    if (publish) this.state.suiteSettled = results;
 
     for (const test of tests) {
       this.beat({ total, done: results.length, inFlight: test.id, phase: 'running' });

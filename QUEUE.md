@@ -1413,6 +1413,7 @@ the end of this list, never ahead of a game-facing job.
   the page would be cleaner (a follow-up, not a blocker); and the flush rides
   the 5s poll, so it lags the last check by up to 5s and does nothing under
   `--stall 0` - a kill keeps nearly all of a run's verdicts, not quite all.
+  **[Corrected by H136, 2026-11-25: it does not. `pipelinewait.js:158`'s direct `_runChecks([tail], true)` takes the carrier over, so a dead run's file stops at the end of `fuzz.js` and the two kills that measured it left 234 of ~269 and 214 of ~258 - about eleven minutes short of the kill.]**
 
 - [ ] **H135 (S)** `shapeResult` is handed across two boundaries as source.
   H134 needed one shape for a result in the page, in the watchdog and in the

@@ -47,6 +47,8 @@ const FLUSH = 'flush' + 'Details';
 const HANDOVER = 'on' + 'Settled';
 const PUBLISHED = 'suite' + 'Settled';
 const RAW_WRITE = 'writeFile' + 'Sync';
+const RUN_CHECKS = '_run' + 'Checks';
+const PUBLISH = 'pub' + 'lish';
 
 async function text(origin, rel) {
   const response = await fetch(`${origin}${rel}`);
@@ -72,7 +74,7 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'a-killed-run-keeps-the-verdicts-it-already-earned',
     spec: 'Section 17.1 / H134',
-    run: async () => {
+    run: async (h) => {
       const problems = [];
 
       // 1. A run that stops part way. Two maps; the second has settled three of its five.
@@ -160,12 +162,62 @@ export function register(debugTools) {
         problems.push(`${PAGE} does not publish the checks it has settled on state.${PUBLISHED}`);
       }
 
+      // 4. A run called directly must not take the carrier over (H136). Driven,
+      // because the page can exercise this half with no process: `_runChecks` is
+      // handed `top` true by hand, the way `pipelinewait.js` does, which the depth
+      // counter cannot see. Read by identity, since in a one-check subset the outer
+      // `results` is still empty and a length proves nothing. The break that reddens
+      // this clause is `if (publish)` back to `if (top)` in the run's carrier line.
+      const suite = h.debugTools.suite;
+      const carrier = h.debugState[PUBLISHED];
+      if (!Array.isArray(carrier)) {
+        problems.push(`the page published nothing on state.${PUBLISHED} for the run this check is inside, so a kill would carry nothing out`);
+      } else {
+        const seenIn = {};
+        const probe = (id) => ({
+          id,
+          spec: 'H136',
+          run: () => {
+            seenIn[id] = h.debugState[PUBLISHED];
+            return { pass: true, detail: 'entered' };
+          },
+        });
+        const direct = 'inline-a-direct-run-must-not-claim-the-carrier';
+        const nested = 'inline-a-run-inside-a-check-must-not-claim-the-carrier';
+        await suite[RUN_CHECKS]([probe(direct)], true);
+        if (seenIn[direct] !== carrier) {
+          problems.push(`a direct ${RUN_CHECKS}([t], true) took the carrier over while it ran, so every later watchdog poll slices a one-element array and the rest of the run is lost (H136)`);
+        }
+        if (h.debugState[PUBLISHED] !== carrier) {
+          problems.push(`a direct ${RUN_CHECKS}([t], true) left the carrier replaced after it returned, so every later watchdog poll slices a one-element array and the rest of the run is lost (H136)`);
+        }
+        await suite.runChecks([probe(nested)]);
+        if (seenIn[nested] !== carrier || h.debugState[PUBLISHED] !== carrier) {
+          problems.push(`a runChecks inside a check replaced the carrier, so the rest of the run is lost to a watcher (H136)`);
+        }
+        if (carrier.some(r => r.id === direct || r.id === nested)) problems.push('a nested run appended its results into the outer run carrier');
+      }
+
+      // 4, continued. And the flag cannot be quietly re-defaulted: the third parameter is false, and the assignment follows it.
+      if (!page.error) {
+        const said = uncommented(page.body);
+        const sig = new RegExp(`${RUN_CHECKS}\\(([^)]*)\\)\\s*\\{`).exec(said);
+        const third = sig && sig[1].split(',')[2];
+        if (!third || !new RegExp(`^\\s*${PUBLISH}\\s*=\\s*false\\s*$`).test(third)) {
+          problems.push(`${PAGE}'s ${RUN_CHECKS} does not default its third parameter, ${PUBLISH}, to false, so a direct call is a publisher again (H136)`);
+        }
+        if (!new RegExp(`if \\(${PUBLISH}\\)\\s*this\\.state\\.${PUBLISHED}\\s*=`).test(said)) {
+          problems.push(`${PAGE} does not guard the carrier assignment with ${PUBLISH}, so the depth counter alone decides who owns it (H136)`);
+        }
+      }
+
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? 'a run cut after 8 of its checks serialises, parses back with every entry in order ending on y3, and a complete run '
-            + 'is the shape it was; the shaper survives being handed over as source; the page publishes what has settled, '
-            + `the watchdog's loop hands it out, and ${RUNNER} writes it through ${WRITE} from inside the per-run loop and after it`
+          ? 'a run cut after 8 checks parses back in order ending on y3, and a complete run is the shape it was; '
+            + 'the shaper survives hand-over as source; the page publishes what has settled, '
+            + `the watchdog's loop hands it out, and ${RUNNER} writes it through ${WRITE} from inside the per-run loop and after it; `
+            + 'a direct run keeps the outer carrier by identity, and the flag defaults to false'
           : problems.join('; '),
       };
     },
