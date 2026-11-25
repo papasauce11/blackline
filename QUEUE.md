@@ -1361,9 +1361,13 @@ the end of this list, never ahead of a game-facing job.
   default. Do not raise `--stall` or `--stall-wait` (D100, P3) and kill nothing
   of Josh's or another project's.
 
-- [ ] **H133 (S)** `src/tests/runnerguard.js` is **561 lines**, up from 444 when
-  H131's check landed, so it is inside the 50-line band of the 600 ceiling and
-  took that cluster from 15 to 16. It now holds three unrelated rules about the
+- [ ] **H133 (S)** `src/tests/runnerguard.js` is **590 lines**, up from 444 when
+  H131's check landed and 561 before H134, so it is inside the 50-line band of
+  the 600 ceiling and took that cluster from 15 to 16. **H134 first came back
+  from it at 601 - one over the cap - and had to be rewritten tighter to land at
+  590, which leaves ten lines of headroom for the next job that touches it. It
+  is now the nearest module to the cap after `src/tests/difficulty.js` (600, 0
+  left), and the third job in a row to add to it.**
   runner - the refusal to run beside another runner (H45), the summary's source
   ceiling (H63), and the warm-up's frame costs (H131) - and the seam is between
   them. *done-when:* the module is under about 400 lines with every clause and
@@ -1372,74 +1376,56 @@ the end of this list, never ahead of a game-facing job.
   render call's name from two halves, or the file re-enrols itself in the pose
   census (the red H131 paid for).
 
-- [~] **H134 (S)** **BUILT, REVIEWED, NOT LANDED** - `39006da` on
-  `worktree-agent-a75e75ace04ffb112` (2026-11-24, the 17:00 run; P12 capped the
-  run at two voids so nothing could land). **Take this
-  before attempting another gate.** A killed run loses every verdict it had
-  already earned, and tonight it did that three times: the full verify died at
-  check **272 of 279** (plant), a stage at **269 of 279** (plant) and a stage at
-  **258 of 261** (yard) - all in phase `running`, all inside the last ten
-  checks, the yard's three from the end - and because `--details` is a single
-  `fs.writeFileSync` at `scripts/suite.mjs:546`, **each kill produced no file at
-  all**. 272, then 269, then 258 passing verdicts, thrown away. On a machine
-  where four of six deaths land in a run's closing stretch, a per-check flush is
-  the difference between a gate that can be read and a gate that cannot: a run
-  that dies three checks from the end becomes a run that reported 258 of 261.
-  *The design, as briefed:* `scripts/details.mjs` holds a pure
-  `detailsPayload(runs)` and a `writeDetails(path, runs)` byte-identical to
-  today's output for a complete run; `suite.mjs` flushes through `writeDetails`
-  after **each check finishes** as well as at the end, as a no-op without
-  `--details` and wrapped so a failed write can neither kill the run nor stall
-  the heartbeat; `src/tests/detailflush.js` proves it in two halves - the
-  behavioural one runs `detailsPayload` on a synthetic *partial* `runs` value
-  and asserts it serialises, parses back, keeps order and ends on the last
-  finished check, and the shape one fetches `suite.mjs` as text and asserts the
-  write goes through `writeDetails` from **inside** the per-check loop. A new
-  `.mjs` under `scripts/` needs its `FLAGS` row or `tests/args.js` reds both
-  maps (H79 paid a verify for that one). Any token quoted in the check is built
-  from two halves so the file does not enrol itself in a census (H131's red).
-  *done-when:* a run killed mid-way leaves a readable partial `--details` file
-  naming every finished check and its verdict; the finished file is unchanged in
-  shape, so `detaildrift.mjs` and `suitereport.mjs` read it untouched; and
-  moving the flush back out of the loop reds the shape clause.
-  **The brief was wrong and the builder was right to refuse it.** There is no
-  per-check loop in `suite.mjs`: a map's run is **one `page.evaluate`** holding
-  every result in the page until it returns, so a kill throws before
-  `runs.push` and flushing "where a result is pushed" would have saved nothing.
-  *What was built instead:* `autosuite.js` publishes the live results array as
-  `state.suiteSettled` (guarded by `if (top)`, so a check that itself drives
-  `runChecks` cannot replace the outer run's list, and nulled before the
-  warm-up so run 2 cannot read run 1's); the **watchdog's own 5s poll** reads
-  what has settled since the last poll and calls `onSettled`; `suite.mjs`
-  rewrites the file with the finished maps plus the partial one. `shapeResult`
-  moved to `details.mjs` and its **source is handed to both ends**, so a
-  carried-out entry and a finished one are one shape and a complete run's file
-  is byte-identical - `detaildrift.mjs` and `suitereport.mjs` needed no change.
-  Check `a-killed-run-keeps-the-verdicts-it-already-earned`; break: in
-  `suite.mjs`, on the line starting `{ shapeSource: shapeResult.toString(),
-  onSettled: settled => flushDetails(`, replace `flushDetails(` with `void (`.
-  **Reviewed 2026-11-24, four things to carry into the proof.** (1) **The
-  heartbeat probe now does more work per poll** - it slices and shapes the new
-  results across the CDP boundary every 5s. It is a few hundred bytes in the
-  normal case, but on *this* machine the whole complaint is stalls, so the
-  first gate must be read for whether the watchdog became more trigger-happy;
-  if stalls get worse rather than better, **revert this first**. (2) It uses
-  `new Function('return ' + src)()` at both ends. It works (the served page has
-  no CSP, and the check proves the built function matches the module's) but a
-  shared pure module under `src/` importable by node and the page would be
-  cleaner - a follow-up, not a blocker. (3) `src/ui/autosuite.js` is **575** and
-  in the ceiling cluster; `scripts/suite.mjs` is **562** (HANDOFF's 526 was
-  stale). (4) The flush rides the poll, so it **lags the last check by up to 5s**
-  and does nothing under `--stall 0`; a kill therefore keeps nearly all, not
-  quite all. `writeDetails` reaches `fs` through
-  `process.getBuiltinModule('node:fs')` so the page can import the module -
-  that needs a recent node (local is v24.15).
-  **Unproven by the suite**: the builder ran the check's `run()` in node
-  against the real sources with stubs, passing unmutated and red under both
-  breaks, which is evidence and not proof.
-  *Resume:* `git cherry-pick 39006da`, prove on the census set plus
-  `every-runner-reads-one-command-line` and the new id, run the break, and read
-  the next gate's stall behaviour against the three deaths of 2026-11-24.
+- [x] **H134 (S)** A killed run keeps the verdicts it already earned.
+  Done 2026-11-25 (the 02:00 run), built 2026-11-24 as `39006da` and landed as
+  `464471d`, its three holes fixed in `1fefb00`. `--details` was one
+  `fs.writeFileSync` after everything, so each of the 17:00 run's three kills
+  handed over nothing - 272, 269 and 258 earned verdicts thrown away. Now the
+  page publishes its live results as `state.suiteSettled`, the watchdog's own
+  5s poll carries out what settled since the last poll, and `suite.mjs`
+  rewrites the file through `scripts/details.mjs`'s `writeDetails` from inside
+  the hand-over and once more after the last map. `shapeResult` moved into
+  `details.mjs` and its source is handed to both ends, so a carried-out entry
+  and a finished one are one shape and a complete run's file is byte-identical
+  (`detaildrift.mjs` and `suitereport.mjs` needed no change). Check
+  `a-killed-run-keeps-the-verdicts-it-already-earned`; the break
+  (`flushDetails(` to `void (` in the `onSettled` hand-over) reds its
+  hand-over clause alone on both maps, and nothing else.
+  **What the proof found, and it is the whole lesson of the job:** moving a
+  shape out of a file leaves every clause that read it reading the wrong file.
+  The canary came back **exit 1 with three reds on each map**, all of them
+  H134's own and all source-reading: `detailflush.js` bound `uncommented` - the
+  reader that keeps strings - to a name saying `code` (H68); and the H91 detail
+  cut and the `ceiling` carry were both still read out of `suite.mjs`. The
+  first was a rename to `said`; the other two were re-pointed at
+  `/scripts/details.mjs` on H114's footing - same regex, same CONFIG number,
+  read where the cut is now made - and the runner's half of the carry is now
+  held as well, by name: `res.results.map(shape)` and `shapeResult.toString()`,
+  because the clause as first written passed for any mapper while its message
+  said "through the shaper" (P13 caught that).
+  *Left:* **H133 is more urgent than it was.** `src/tests/runnerguard.js` is
+  **590** of the 600 cap, from 444 at H70 and 561 before this job, and it first
+  came back from this work at **601** - one over - and had to be rewritten
+  tighter to land. It is now the nearest module to the cap after
+  `src/tests/difficulty.js` at 600. Also left: the `new Function('return ' +
+  src)()` at both ends works, and the check proves the built function matches
+  the module's, but a shared pure module under `src/` importable by node and
+  the page would be cleaner (a follow-up, not a blocker); and the flush rides
+  the 5s poll, so it lags the last check by up to 5s and does nothing under
+  `--stall 0` - a kill keeps nearly all of a run's verdicts, not quite all.
+
+- [ ] **H135 (S)** `shapeResult` is handed across two boundaries as source.
+  H134 needed one shape for a result in the page, in the watchdog and in the
+  runner, and got it by handing `shapeResult.toString()` to both ends and
+  rebuilding it with `new Function('return ' + src)()`. It works - the served
+  page has no CSP, and `detailflush.js` proves the rebuilt function answers
+  exactly as the module's own - but a pure module under `src/` that node and
+  the page can both import would say the same thing without an eval, and the
+  precedent exists: `detaildrift.mjs` is imported by the page as it stands.
+  Raised by the lead reviewing H134, 2026-11-24, as a follow-up and not a
+  blocker. *done-when:* no `new Function` remains on the `--details` path, the
+  shape is spelled once in a module both ends import, and `detailflush.js`'s
+  clause that the two agree is kept rather than deleted.
 
 ## Block K — the Warden as an opponent
 

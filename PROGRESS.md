@@ -24180,3 +24180,81 @@ this is the first revert**; `new Function` at both ends works but a shared pure
 module would be cleaner; `autosuite.js` is now 575 and in the ceiling cluster;
 and the flush lags the last check by up to 5s and does nothing under
 `--stall 0`, so a kill keeps nearly all of a run's verdicts rather than all.
+
+## H134 - A killed run keeps the verdicts it already earned, and three clauses that did not follow the shape (2026-11-25, the 02:00 run)
+
+**Built 2026-11-24 in a worktree, landed tonight as `464471d`, its three holes
+fixed in `1fefb00`.** The 17:00 run queued it first because the gate had become
+unreadable: `--details` was a single `fs.writeFileSync` after everything, so
+each of that evening's three kills handed over **nothing** - 272, then 269,
+then 258 verdicts that had already passed, thrown away three checks from the
+finish. What is on disk now is an account of everything settled so far.
+
+**What it does.** The page publishes its live results array as
+`state.suiteSettled` (behind `if (top)`, so a check that itself drives
+`runChecks` cannot replace the outer run's list, and nulled before the warm-up
+so run 2 cannot read run 1's); the watchdog's own 5s poll reads what settled
+since the last poll and calls `onSettled`; `suite.mjs` rewrites the file
+through `scripts/details.mjs`'s `writeDetails`, from inside the hand-over and
+once more after the last map, wrapped so a locked file costs the file and not
+the run and a no-op without `--details`. `shapeResult` moved into
+`details.mjs` and **its source is handed to both ends**, so a carried-out
+entry and a finished one are one shape and a complete run's file is
+byte-identical - `detaildrift.mjs` and `suitereport.mjs` needed no change.
+
+**The proof, and what it found.** The canary under P8 was folded into H134's
+green proof to save the cap, and it came back **exit 1**: plant 22 passed / 3
+red, yard the same, 25 of 25 a map, nothing flaky or skipped, 0 console
+errors, **and no stall at any site**. All three reds were H134's own, and all
+three were source-reading checks - which is the lesson of this job, and it is
+the mirror of the trap TRAPS.md already carries. That entry says a new module
+is a new row in four censuses. This is the other direction: **moving a shape
+out of a file leaves every clause that read it reading the wrong file.**
+`detailflush.js` bound `uncommented` - the reader that keeps strings - to a
+name saying `code`, which H68 forbids because the name is the only
+documentation a reader has; renamed to `said`, the vocabulary `args.js`,
+`positioncensus.js` and `solverquery.js` already use. The H91 detail cut and
+the `ceiling` carry were both still read out of `suite.mjs`, and H134 had moved
+both into `details.mjs`; both clauses were re-pointed there on H114's footing -
+same regex, same CONFIG number, read where the cut is now made - and the
+runner's half of the carry is now held as well, **by name**:
+`res.results.map(shape)` and `shapeResult.toString()`.
+
+**P13 caught the fix.** The runner's half as first written tested
+`/results:\s*res\.results\.map\(/`, which passes for *any* mapper while its own
+message says "through the shaper" - the exact defect the clause exists to
+catch, written into the clause. Tightened before the re-proof rather than after
+a wasted invocation. The re-proof: **exit 0, 27 of 27 on both maps**, 0 red, 0
+flaky, 0 skipped, 0 console errors, 0 drifted, the 24-entry census set plus the
+new id, the warm-up check and the drift check, counted against 27 prefixes. The
+break - `flushDetails(` to `void (` in the `onSettled` hand-over - reds the
+hand-over clause **alone** on both maps, detail line and nothing else.
+
+**And the cap bit.** `runnerguard.js` came back from this work at **601
+lines**, one over the 600 cap the census holds, so the re-proof would have
+reddened on the fix itself. It was reverted and the same assertions rewritten
+tighter - a four-line doc comment instead of seven, a flat `else if` chain
+instead of a nested block, the long pushes one per line as the rest of the file
+writes them - landing at **590**, ten under, not a clause weaker. The file has
+gone 444 at H70, 561, 601, 590 across three jobs. **H133 splits it, and it is
+more urgent than its queue position says.**
+
+**What the night's three runs say about the stall, read together.** H134's own
+review note asked whether the 5s poll, now shaping results across the CDP
+boundary, made the watchdog more trigger-happy. Three invocations tonight -
+seven minutes, three minutes, seven minutes - and **not one stall at any
+site**, where the 17:00 run died three times. That is a floor and not a
+forecast (H125: a narrow subset is not evidence about a stall), and no run
+tonight has yet gone past eight minutes, which is where every death has been.
+The load is unchanged and still P11's: **13 node processes, 3.0GB free of
+12GB**, and the warm-up reads 55,471ms on the plant with frame 1 at 11ms and
+the slowest frame 29 at 15,986ms - late and lumpy, H131's finding holding a
+third time. The ceiling cluster is **16 modules within 50 of 600, nearest
+`src/tests/difficulty.js` at 600 with 0 left, of 250 loaded**.
+
+**Left.** The flush rides the poll, so it lags the last check by up to 5s and
+does nothing under `--stall 0`: a kill keeps nearly all of a run's verdicts,
+not quite all. The `new Function('return ' + src)()` at both ends works and the
+check proves the built function matches the module's, but a shared pure module
+under `src/` importable by node and the page would be cleaner - a follow-up,
+not a blocker.

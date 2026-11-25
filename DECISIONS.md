@@ -4146,3 +4146,33 @@ touch, is wall; and a box is shell only if it lies *along* the boundary (its
 extent inward no greater than its extent along it), so the grade vents' sheet
 is see-through. The duct risk is settled by M2's check naming its ducts. M8
 builds it; M3 follows.
+
+### P13 — P12's six counts the gate; a job's proof is counted beside it, two a run (2026-11-25)
+P12's cap of six invocations counts **gate invocations**: the canary and the
+stages, voids and re-runs among them. It was sized as one canary, four stages
+and one void re-run, against the hazard of burning a night on 25-minute
+stages, and it was written with no job proof in view. A **job's own proof
+under P2** - its break and its green re-proof - is counted on a separate
+ledger of **two invocations a run**, each a narrow subset of **ten minutes of
+wall or less** at the default pin (P9's `--cores 8` allowance for a verdict
+stands). Tonight H134's canary came back exit 1 in about seven minutes with no
+stall at any site and three reds, all source-reading checks reading the place
+H134 moved its subject from; they are the job's reds and were fixed by
+renaming one binding (H68) and re-pointing two clauses at
+`scripts/details.mjs`, with the runner's half of the carry now held as well.
+That re-pointing is a faithful repair on H114's footing: same regex, same
+number, read where the cut is now made. The green re-proof is a superset of the
+canary and stands as the canary of record for the tree the stages run on. H134
+is committed before the first stage and joins the fifteenth batch as its sixth
+item, verified by the same four stages. The clock cap is read as **run start
+plus 3h20m, no stage begun in its last thirty minutes** - 05:30 and 05:00 for
+the 02:00 run - since 01:15 was the evening run's line.
+**What this does not license.** No third proof invocation: a job whose
+re-proof is red goes back to its worktree as a patch and the stages run
+without it. No proof wider than its own ids, the census set and the modules it
+touched, and no stage or canary relabelled as a proof to slip the six. A void
+proof is a void: it counts toward two in a row and its one re-run comes off the
+gate's six. A proof subset is not evidence about a stall (H125) and is never
+read as a stage. P7's close is unmoved - H134 enters the pile as the gate's
+instrument by P12's own queueing, and H121, J16, J14 and I3 still wait for four
+green stages. Nothing here touches the pin, `--stall`, `--stall-wait`, or P11.
