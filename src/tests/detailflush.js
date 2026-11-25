@@ -130,30 +130,30 @@ export function register(debugTools) {
         if (got.error) problems.push(`${got.error} - this clause reads ${name}`);
       }
       if (!runner.error) {
-        const code = uncommented(runner.body);
-        if (!new RegExp(`import \\{[^}]*\\b${WRITE}\\b[^}]*\\} from '\\./details\\.mjs'`).test(code)) {
+        const said = uncommented(runner.body);
+        if (!new RegExp(`import \\{[^}]*\\b${WRITE}\\b[^}]*\\} from '\\./details\\.mjs'`).test(said)) {
           problems.push(`${RUNNER} does not import ${WRITE} from ./details.mjs`);
         }
-        if (new RegExp(`${RAW_WRITE}\\(\\s*DETAILS`).test(code)) problems.push(`${RUNNER} writes --details itself again, around ${WRITE}`);
-        const helper = new RegExp(`function ${FLUSH}\\b`).exec(code);
-        const helperBody = helper && bodyAfter(code, helper.index + helper[0].length);
+        if (new RegExp(`${RAW_WRITE}\\(\\s*DETAILS`).test(said)) problems.push(`${RUNNER} writes --details itself again, around ${WRITE}`);
+        const helper = new RegExp(`function ${FLUSH}\\b`).exec(said);
+        const helperBody = helper && bodyAfter(said, helper.index + helper[0].length);
         if (!helperBody || !helperBody.includes(`${WRITE}(`)) problems.push(`${FLUSH} does not go through ${WRITE}`);
         if (!helperBody || !/try\s*\{/.test(helperBody) || !/catch/.test(helperBody)) problems.push(`${FLUSH} is not wrapped, so a locked file could kill the run`);
         if (!helperBody || !/if \(!DETAILS\) return/.test(helperBody)) problems.push(`${FLUSH} is not a no-op without --details`);
         // Inside the per-check hand-over, which sits between a run's deadline and its push, and also after the last map.
-        const from = code.indexOf('guard.withDeadline(');
-        const to = code.indexOf('runs.push(');
-        const between = from >= 0 && to > from ? code.slice(from, to) : '';
+        const from = said.indexOf('guard.withDeadline(');
+        const to = said.indexOf('runs.push(');
+        const between = from >= 0 && to > from ? said.slice(from, to) : '';
         if (!new RegExp(`${HANDOVER}\\s*:[^\\n]*${FLUSH}\\(`).test(between)) {
           problems.push(`no ${FLUSH}( sits in the ${HANDOVER} hand-over inside the per-run loop, so a run killed before it returns writes nothing`);
         }
-        const after = to > 0 ? code.slice(to) : '';
+        const after = to > 0 ? said.slice(to) : '';
         if (!new RegExp(`${FLUSH}\\(runs\\)`).test(after)) problems.push(`no ${FLUSH}(runs) after the last map, so a finished run's file is not complete`);
       }
       if (!watchdog.error) {
-        const code = uncommented(watchdog.body);
-        const loop = /while \(!settled\)/.exec(code);
-        const body = loop && bodyAfter(code, loop.index);
+        const said = uncommented(watchdog.body);
+        const loop = /while \(!settled\)/.exec(said);
+        const body = loop && bodyAfter(said, loop.index);
         if (!body || !body.includes(`${HANDOVER}(`)) problems.push(`${WATCHDOG}'s poll does not hand settled checks out inside its loop`);
       }
       if (!page.error && !new RegExp(`state\\.${PUBLISHED}\\s*=`).test(uncommented(page.body))) {

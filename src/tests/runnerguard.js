@@ -83,6 +83,14 @@ const SELF = 'the-suite-refuses-to-run-beside-another-suite-and-the-flag-is-the-
 const RUNNER = '/scripts/suite.mjs';
 const BENCH = '/scripts/bench.mjs';
 
+/**
+ * H134 moved the shape of one result out of the runner into this module, whose
+ * source the runner hands the page. Two clauses below follow their subject here
+ * - the detail cut, and the field a check's numbers ride out on - and red if
+ * either goes back: a cut made in two places is a cut held in neither.
+ */
+const SHAPER = '/scripts/details.mjs';
+
 /** The finder both of them call. A refusal that stopped calling it would be a refusal about nothing. */
 const FINDER = 'otherRunners';
 
@@ -302,10 +310,13 @@ export function register(debugTools) {
         problems.push(`TRAPS.md does not name ${FLAG}; its orphan entry is where a reader of this refusal is sent, and it should say what the way past is`);
       }
 
-      // H91: the cut a census is held to is this runner's cut - one number.
-      const cut = /detail: String\(x\.detail \?\? ''\)\.slice\(0, (\d+)\)/.exec(source);
-      if (!cut) problems.push(`${RUNNER} no longer cuts a detail line where this clause reads it, so CONFIG.debug.detailBudget is about a cut nobody makes`);
-      else if (Number(cut[1]) !== CONFIG.debug.detailBudget) problems.push(`${RUNNER} cuts a detail line at ${cut[1]} and CONFIG.debug.detailBudget is ${CONFIG.debug.detailBudget}, so a census held to one is read through the other (H91)`);
+      // H91: the cut a census is held to is one number, made in details.mjs
+      // since H134. The weak reader, because the cut sits in a regex literal.
+      const shaper = await text(origin, SHAPER);
+      const cut = shaper.error ? null : /detail: String\(x\.detail \?\? ''\)\.slice\(0, (\d+)\)/.exec(uncommented(shaper.body));
+      if (shaper.error) problems.push(`${shaper.error}; it makes the cut this clause is about`);
+      else if (!cut) problems.push(`${SHAPER} no longer cuts a detail line where this clause reads it, so CONFIG.debug.detailBudget is about a cut nobody makes`);
+      else if (Number(cut[1]) !== CONFIG.debug.detailBudget) problems.push(`${SHAPER} cuts a detail line at ${cut[1]} and CONFIG.debug.detailBudget is ${CONFIG.debug.detailBudget}, so a census held to one is read through the other (H91)`);
 
       return {
         pass: problems.length === 0,
@@ -396,10 +407,20 @@ export function register(debugTools) {
       //    working with nothing red: the check still measures, the summary
       //    still has its line, and the line never prints.
       // ------------------------------------------------------------------
+      // H134 split this in two - the shaper carries the field, the runner maps
+      // a run's results through it - and either going quiet is the silent stop.
+      const carrier = await text(origin, SHAPER);
+      if (carrier.error) problems.push(`${carrier.error}; it is what carries the field`);
+      else if (!new RegExp(`${CEILING_FIELD}\\b`).test(uncommented(carrier.body))) {
+        problems.push(`${SHAPER} does not carry ${CEILING_FIELD} out of a check's result, so the numbers never reach the summary`);
+      }
       const runner = await text(origin, RUNNER);
-      if (runner.error) problems.push(`${runner.error}; it is what carries the field`);
-      else if (!new RegExp(`${CEILING_FIELD}\\b`).test(uncommented(runner.body))) {
-        problems.push(`${RUNNER} does not carry ${CEILING_FIELD} out of a check's result, so the numbers never reach the summary`);
+      if (runner.error) problems.push(`${runner.error}; it is what maps a run's results through the shaper`);
+      else {
+        // The shaper by name, not any mapper, and the source the page is handed.
+        const said = uncommented(runner.body);
+        if (!/results:\s*res\.results\.map\(shape\)/.test(said)) problems.push(`${RUNNER} does not map a run's results through the shaper it was handed, so a field ${SHAPER} carries still never reaches the summary`);
+        if (!/shapeResult\.toString\(\)/.test(said)) problems.push(`${RUNNER} does not hand ${SHAPER}'s shaper to the page as source, so the mapper it calls shape is some other function`);
       }
 
       // ------------------------------------------------------------------
