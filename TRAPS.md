@@ -1286,12 +1286,9 @@ finish a run. It cannot, and one night killed the theory: the canary came back
 **green in 4m51s** - 24 of 24 on both maps, nothing red, nothing flaky, 0
 console errors, the default pin - and the full two-run verify it licensed
 **died 28m40s later**, exit 2, with the heartbeat frozen 240s in phase
-`running` at check **272 of 279** on the plant's first run, the check in flight
-`a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`. That is a
+`running` (the ledger's row for it). That is a
 **fourth** stall site after the final drain, the mid-run audio check and
-warm-up frame 57, in a third phase, and **272 checks had already passed when
-it froze**. So the deaths do not belong to a site, a check or a phase: they
-take whatever is in flight. **But they are not accumulation either, and P12
+warm-up frame 57, in a third phase, with 272 checks already passed. So the deaths do not belong to one site or one phase. **But they are not accumulation either, and P12
 corrected that reading the night it was written**: last night's two deaths came
 at **13/31 and at 31/31 inside five-minute runs**, and tonight's came inside
 *one map-run* (a healthy plant run is about **24.7 min** - 1,482,807ms on
@@ -1321,33 +1318,61 @@ inside five-minute runs. P12's own was "a per-minute hazard, so a shorter
 invocation is likelier to finish" - and **three stages run under it that same
 evening said otherwise**:
 
-| run | map | died at | phase | elapsed |
-|---|---|---|---|---|
-| full verify | plant | **272 of 279** | `running` | 28m40s |
-| stage | plant | **269 of 279** | `running` | ~28m |
-| stage | yard | **258 of 261** | `running` | ~23.5m |
-| stage, 11-25 | plant | **270 of 280** | `running` | 28m16s |
-| stage, 11-25 | yard | **259 of 262** | `running` | ~24m |
+**The ledger.** Every heartbeat kill on record from 2026-11-23, one row each,
+oldest first, read by H137 out of the HANDOFF.md, PROGRESS.md, QUEUE.md and
+DECISIONS.md of the runs that first wrote them. A cell the record does not hold
+is the word `unrecorded` and never a guess; a death is counted here and never
+dropped (`traps-md-holds-the-traps-and-handoff-points-at-it` holds the rows).
 
-**Every one died inside its last ten checks, and the yard's died three from the
-end.** Add last night's 31/31 in `pipeline-wait` *after every check had passed*
-and **six of the eight deaths on record are at or within ten checks of a run's
-finish**. A per-minute hazard does not land six times out of eight in the last
-4% of a run, and shortening the invocation did not help **because every
-invocation has an end and the end is where it dies**. So the honest statement is
-the narrow one: **something in the closing stretch of a run stalls the heartbeat
-for 240s**, and the foreign load (13 node processes, four or five vite servers,
-2.69-3.41GB free of 12GB) is the condition under which it bites.
-**The check in flight is one of a small repeating set, and NOT a different one
-each time - this file said otherwise until 2026-11-25 and was wrong.** Three ids
-over eight deaths, and both stages of the 02:00 run landed on ones already
-listed: `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`,
-`the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back`
-(twice), `a-hit-stops-the-picture-without-costing-the-simulation-a-step` (twice).
-A repeating victim set is **not** a fifth mechanism and must not be read as one;
-**H137** counts every death from the records and the surviving `--details` files
-before anything is concluded from it. **Do not write a fifth confident mechanism
-into this file without a reading that distinguishes it from the fourth.**
+| date | run | map | died at | phase | elapsed | in flight |
+|---|---|---|---|---|---|---|
+| 2026-11-23 | 02:00 J2/J3 proof, first | unrecorded | 61 of 63 | `pipeline-wait` | ~26m | `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` |
+| 2026-11-23 | 02:00 J2/J3 proof, second | unrecorded | 62 of 62 | `pipeline-wait` | ~26m | unrecorded |
+| 2026-11-23 | 17:00 full gate | unrecorded | 275 of 277 | `running` | unrecorded | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
+| 2026-11-23 | 17:00 narrow, 17:49 | unrecorded | 57 of 60 | `warming` | ~5m | unrecorded |
+| 2026-11-23 | 17:00 narrow, 18:00 | unrecorded | 57 of 60 | `warming` | ~5m | unrecorded |
+| 2026-11-24 | 02:00 subset, pinned 4/8 | unrecorded | 31 of 31 | `pipeline-wait` | under 5m | unrecorded |
+| 2026-11-24 | 02:00 subset, unpinned | unrecorded | 13 of 31 | `running` | under 5m | `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` |
+| 2026-11-24 | 17:00 full verify | plant | 272 of 279 | `running` | 28m40s | `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` |
+| 2026-11-24 | 17:00 stage | plant | 269 of 279 | `running` | ~28m | unrecorded |
+| 2026-11-24 | 17:00 stage | yard | 258 of 261 | `running` | ~23.5m | unrecorded |
+| 2026-11-25 | 02:00 stage | plant | 270 of 280 | `running` | 28m16s | `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` |
+| 2026-11-25 | 02:00 stage | yard | 259 of 262 | `running` | ~24m | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
+
+The 02:00 pair of 11-23 were read by P6 as J2's own smoke cloud (fixed in
+`105b93a`) and stay, because the gate kept dying after it; the first one's id is
+the record's `every-check-that-times-a-draw...: after`, the one id in `src/` with
+that prefix. The 11-24 17:00 stages are `unrecorded` because the record names the
+HUD feed and the hit-stop for them *together* and never says which died on which.
+Kills laid to a job's own code (K3, J12, J5, H122; D100, D103) are not here.
+
+**The count, per check:** `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` **1**; `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` **1**; `a-hit-stops-the-picture-without-costing-the-simulation-a-step` **2**
+(11-23 and 11-25); `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` **1**; `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` **1**; and **6 `unrecorded`** - two warm-up
+deaths before any check began, two in `pipeline-wait` at or after the last check
+(62 of 62, 31 of 31), and the two unattributed 11-24 stages. Twelve deaths, six
+of them naming a check. **Nine of the twelve are at or within ten checks of a
+run's finish**; the three that are not are the 13 of 31 and the two warm-up
+frames. A per-minute hazard does not land nine times in twelve at the very end,
+and shortening the invocation did not help **because every invocation has an end
+and the end is where it dies**. So the honest statement is the narrow one:
+**something in the closing stretch of a run stalls the heartbeat for 240s**, and
+the foreign load (13 node processes, four or five vite servers, 2.69-3.41GB free
+of 12GB) is the condition under which it bites.
+
+**The check in flight repeats - once on the strict count, twice at most on the
+loose one - and this file said "a different one each time" until 2026-11-25 and
+was wrong.** Strictly the hit-stop is named twice and nothing else is. If the two
+unattributed stages are the HUD feed and the hit-stop, as that night's own text
+says by naming three ids for three deaths, then the hit-stop is three, the HUD
+feed two, and the five deaths of 11-24 and 11-25 land on three ids. The earlier
+"three ids over eight deaths" was therefore also wrong in the other direction:
+the record names five ids, not three. **What the ledger cannot say** is whether
+the set is small - half of its rows are `unrecorded`. Two of the repeaters are
+plausibly heavy work and that is all it is: the HUD feed stands up a second
+render target, and `camerafeed.js`'s floors are on HANDOFF.md's
+loose-but-declared list. A repeating victim set is **not** a fifth mechanism and
+must not be read as one. **Do not write a fifth confident mechanism into this
+file without a reading that distinguishes it from the fourth.**
 
 **`--details` flushes as checks settle, and it stops dead at `pipelinewait.js`
 (H134, H136).** Before H134 the file was one `fs.writeFileSync` at the very end,

@@ -78,6 +78,7 @@ const HANDOFF_LINE_LIMIT = 400;
  * titles is the shape D47 rejected when it turned option 3 down.
  */
 const TRAPS_FLOOR = 25;
+const DEATHS_FLOOR = 12;
 
 /**
  * Section 18's checklist carries "`Math.random()` appears nowhere in `src/`";
@@ -561,6 +562,13 @@ export function register(debugTools) {
         problems.push(`TRAPS.md opens ${opened} traps and the floor is ${TRAPS_FLOOR}; a trap is retired by name in PROGRESS.md, never by deletion`);
       }
 
+      // H137: the stall deaths, a row each. Drop one and "the check differs every
+      // time" is unfalsifiable again; blank its last cell and the count lies.
+      const deaths = [...traps.matchAll(/^\| *20\d\d-\d\d-\d\d *\|.*\|$/gm)].map((m) => m[0]);
+      if (deaths.length < DEATHS_FLOOR) problems.push(`TRAPS.md ledgers ${deaths.length} deaths and the floor is ${DEATHS_FLOOR}; a death is counted here and never dropped`);
+      const thin = deaths.filter((r) => !/\d+ of \d+/.test(r) || !/`[a-z0-9-]{12,}`|unrecorded/.test(r.split('|').slice(-2)[0]));
+      if (thin.length) problems.push(`${thin.length} ledger rows lack "n of N" or an in-flight id or "unrecorded"; first: ${thin[0]}`);
+
       const handoff = await (await fetch(`${origin}/HANDOFF.md`)).text();
       const lines = handoff.replace(/\r?\n$/, '').split(/\r?\n/).length;
       if (lines > HANDOFF_LINE_LIMIT) {
@@ -573,7 +581,7 @@ export function register(debugTools) {
       return {
         pass: problems.length === 0,
         detail: problems.length === 0
-          ? `TRAPS.md holds ${opened} traps in ${traps.replace(/\r?\n$/, '').split(/\r?\n/).length} lines, `
+          ? `TRAPS.md holds ${opened} traps and ${deaths.length} ledgered deaths in ${traps.replace(/\r?\n$/, '').split(/\r?\n/).length} lines, `
             + `HANDOFF.md is ${lines} of ${HANDOFF_LINE_LIMIT} and points at it`
           : problems.join('; '),
       };
