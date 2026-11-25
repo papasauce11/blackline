@@ -1326,26 +1326,45 @@ evening said otherwise**:
 | full verify | plant | **272 of 279** | `running` | 28m40s |
 | stage | plant | **269 of 279** | `running` | ~28m |
 | stage | yard | **258 of 261** | `running` | ~23.5m |
+| stage, 11-25 | plant | **270 of 280** | `running` | 28m16s |
+| stage, 11-25 | yard | **259 of 262** | `running` | ~24m |
 
 **Every one died inside its last ten checks, and the yard's died three from the
 end.** Add last night's 31/31 in `pipeline-wait` *after every check had passed*
-and four of the six deaths on record are at or within ten checks of a run's
-finish. A per-minute hazard does not land four times out of six in the last 4%
-of a run, and shortening the invocation did not help **because every invocation
-has an end and the end is where it dies**. So the honest statement is the
-narrow one: **something in the closing stretch of a run stalls the heartbeat for
-240s**, the named check differs each time (`a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`,
-`the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back`,
-`a-hit-stops-the-picture-without-costing-the-simulation-a-step`) and so is
-probably the victim and not the cause, and the foreign load (13 node processes,
-four or five vite servers, 2.69-3.41GB free of 12GB) is the condition under
-which it bites. **Do not write a fifth confident mechanism into this file
-without a reading that distinguishes it from the fourth.**
+and **six of the eight deaths on record are at or within ten checks of a run's
+finish**. A per-minute hazard does not land six times out of eight in the last
+4% of a run, and shortening the invocation did not help **because every
+invocation has an end and the end is where it dies**. So the honest statement is
+the narrow one: **something in the closing stretch of a run stalls the heartbeat
+for 240s**, and the foreign load (13 node processes, four or five vite servers,
+2.69-3.41GB free of 12GB) is the condition under which it bites.
+**The check in flight is one of a small repeating set, and NOT a different one
+each time - this file said otherwise until 2026-11-25 and was wrong.** Three ids
+over eight deaths, and both stages of the 02:00 run landed on ones already
+listed: `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`,
+`the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back`
+(twice), `a-hit-stops-the-picture-without-costing-the-simulation-a-step` (twice).
+A repeating victim set is **not** a fifth mechanism and must not be read as one;
+**H137** counts every death from the records and the surviving `--details` files
+before anything is concluded from it. **Do not write a fifth confident mechanism
+into this file without a reading that distinguishes it from the fourth.**
 
-**And this is why `--details` must flush per check (H134).** The file is one
-`fs.writeFileSync` at the very end (`scripts/suite.mjs:546`), so a tail death
-hands over **nothing**: tonight threw away 272, then 269, then 258 verdicts that
-had already passed. With a per-check flush, a run that dies three checks from
-the end is a run that reported 258 of 261 - which on this machine is the
-difference between a gate that can be read and a gate that cannot. **Take H134
+**`--details` flushes as checks settle, and it stops dead at `pipelinewait.js`
+(H134, H136).** Before H134 the file was one `fs.writeFileSync` at the very end,
+so a tail death handed over **nothing**: the 17:00 run of 2026-11-24 threw away
+272, then 269, then 258 verdicts that had already passed. H134 landed on
+2026-11-25 (`464471d`) and the next two kills left **234** and **214** results on
+disk, which is the whole case for having taken it first. **But both files stop at
+the same place, on both maps**: the last id carried is
+`the-state-machines-survive-each-other`, the final check in `fuzz.js`, and the
+very next module registered is `pipelinewait.js` - whose line 158 calls
+`suite._runChecks([tail], true)` directly, bypassing the depth counter that
+`if (top) this.state.suiteSettled = results` relies on, and so replaces the
+carrier with a one-element array. Every later poll then slices from index 234 of
+a length of 1 and carries nothing. **So a dead run's file is an account of
+everything up to `pipelinewait.js` and nothing after it** - about eleven minutes
+short of the kill - and a reader who takes its last id for the run's last
+settled check is wrong by thirty-odd checks. **H136** is the fix, and
+`pipelinewait.js` is not the thing to change: its direct call is deliberate and
+is the only way it can test a top-level tail.
 before attempting another gate.**

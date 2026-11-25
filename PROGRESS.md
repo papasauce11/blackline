@@ -24258,3 +24258,86 @@ not quite all. The `new Function('return ' + src)()` at both ends works and the
 check proves the built function matches the module's, but a shared pure module
 under `src/` importable by node and the page would be cleaner - a follow-up,
 not a blocker.
+
+## 2026-11-25, the 02:00 run — H134 lands and pays for itself, and its own kills show where its carrier dies
+
+**The run is LOAD-BOUND and landed one job.** P12's two-voids-in-a-row cap was
+hit by 03:34, so nothing further lands and the fifteenth batch is still
+unverified - now six jobs deep with **H134** in it. What the night bought is
+H134 on the branch, the first two readable deaths in four nights, and a
+settled mechanism for the one thing H134 got wrong.
+
+**H134, landed first by HANDOFF's own instruction** (`464471d`, fixes
+`1fefb00`, recorded `84b9681`, stamped `993a964`). Its proof is written up in
+its own entry above. The short of it: the canary under P8 was folded into the
+job's green proof to save P12's cap, came back **exit 1 with three reds a
+map** - all H134's own, all source-reading checks still reading `suite.mjs` for
+a shape the job had moved into `details.mjs` - and the re-proof after the fixes
+was **exit 0, 27 of 27 both maps**, 0 red, 0 flaky, 0 console errors, 0
+drifted. The break reds the hand-over clause alone, both maps. **P13** split
+the ledgers to make that affordable: P12's six counts gate invocations, a job's
+proof gets two beside them, and the clock is run start plus 3h20m.
+
+**Then two stages, and both voided.** Stage 1, plant, 02:41:22 to 03:09:38
+(28m16s): exit 2, heartbeat frozen 240s, phase `running`, check **270 of 280**,
+in flight `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back`.
+Stage 2, the yard, taken next rather than repeating a failure, 03:09 to
+03:33:44: exit 2, frozen 240s, phase `running`, check **259 of 262**, in flight
+`a-hit-stops-the-picture-without-costing-the-simulation-a-step`. Two voids in a
+row is the cap. The machine was P11's condition throughout: 13 node processes,
+**3.0GB free of 12GB**, RicochetRoyale's dev servers up.
+
+**H134 paid for itself on the first kill.** The plant left **234** verdicts on
+disk and the yard **214**, where the 17:00 run's three kills each left
+**nothing at all**. That is the whole case for having taken it first, and it is
+measured rather than argued. It also saved a red that would otherwise have been
+invisible: `the-frame-budget-holds-everywhere-not-just-at-site-a` is red on
+**both** maps, the plant's worst viewpoint `deck-south@2` at **903.10ms** and
+the yard's `store-west-pocket@1` at **1034.80ms**, both against an 8.33ms
+ceiling. **It is not a verdict**: both stages voided, and the detail line says
+itself that it is one sample and not a median, a median wanting
+`?viewpointSamples=9` which only `npm run bench` asks for. On a machine at
+3.0GB free that is what a single sample should look like. **It is the first
+thing to read on the next green gate.**
+
+**And the kills showed where H134's carrier dies, which is a defect in H134.**
+The two files end on the **identical six check ids in the same order** on both
+maps, and both last writes were about **eleven minutes** before their kill -
+not the up-to-5s the design predicts, and the figures I recorded in H134's own
+entry as "nearly all" are really 234 of about 269 and 214 of about 258.
+Identical on both maps is what rules load out: this is ordering. The last id
+carried is `the-state-machines-survive-each-other`, the final check in
+`fuzz.js`, and `registerPipelineWait` is the **very next** module in
+`tests/index.js`. Reading from there settles it without another run:
+`autosuite.js`'s `_runChecks` publishes the live array with
+`if (top) this.state.suiteSettled = results`, and that guard was written
+against a check driving `runChecks`, which is depth-counted - but
+`pipelinewait.js:158` calls `suite._runChecks([tail], true)` **directly**,
+deliberately, because its subject is what a top-level run does at its tail. It
+bypasses the depth counter, hands `top` as true, and **replaces** the carrier
+with a one-element array; every later poll slices from index 234 of a length of
+1 and carries nothing. Eleven minutes is the seven minutes of checks after
+`fuzz.js` plus the watchdog's 240s. Queued as **H136** with the fix and its
+done-when; `pipelinewait.js` must not be changed, since its direct call is the
+only way it can test a top-level tail.
+
+**A standing reading is now false and is queued as H137.** `TRAPS.md` has held
+that the check in flight differs at every death, naming three, and concluded
+the check is "probably the victim and not the cause". **Both of tonight's
+deaths landed on checks already on that list of three** - the Warden's HUD feed
+and the hit-stop. Eight deaths now name three checks, two of them twice. That
+is not a fifth mechanism and was not written as one (TRAPS.md's standing order
+holds), but it is not what the file says either, and the inference resting on
+it is weaker than it reads. H137 counts every death from the records and the
+`--details` files, which since tonight survive their runs.
+
+**What the run cost and what it bought.** Four suite invocations - canary,
+break, re-proof, two stages, five in all - one PM call (P13), one job landed
+and proved, three jobs queued (H135, H136, H137), two record files corrected
+and one standing reading unseated. No game-facing work, which is the honest
+cost of a fourth night on a gate that cannot finish. **The request to Josh is
+unchanged and is still the whole cure: the suite cannot finish a run while
+RicochetRoyale's dev servers are up.** Next run: **H136 first** - it is small,
+its mechanism is settled, and it is what makes the next kill legible - then
+H137's count, then P12's stages. The four held jobs (**H121**, **J16**,
+**J14**, **I3**) stay in their worktrees.

@@ -1427,6 +1427,74 @@ the end of this list, never ahead of a game-facing job.
   shape is spelled once in a module both ends import, and `detailflush.js`'s
   clause that the two agree is kept rather than deleted.
 
+- [ ] **H136 (S)** H134's carrier dies at `pipelinewait.js` and takes the rest of
+  a killed run's verdicts with it. **This is a defect in H134, found by reading
+  after its first two full-length kills, and the mechanism is settled - no suite
+  run is needed to diagnose it.** `autosuite.js`'s `_runChecks` publishes the
+  live results array with `if (top) this.state.suiteSettled = results`, and the
+  `if (top)` guard was written against a check that drives `runChecks`, which is
+  depth-counted. But `src/tests/pipelinewait.js:158` calls
+  `suite._runChecks([tail], true)` **directly**, on purpose, because its whole
+  subject is what a *top-level* run does at its tail - so it bypasses the depth
+  counter and hands `top` as `true`. That nested call **replaces**
+  `state.suiteSettled` with its own one-element array, and from then on the
+  watchdog's poll does `suiteSettled.slice(234)` against a length of 1, gets
+  `[]` every time, and carries nothing out for the remainder of the run.
+  **The evidence, from the two stages of 2026-11-25:** the plant died at check
+  270 of 280 with **234** results on disk, the yard at 259 of 262 with **214**,
+  and both files end on the **identical six ids in the same order** -
+  `the-frame-budget-holds-everywhere-not-just-at-site-a`,
+  `a-whole-match-leaks-nothing`, `random-real-input-never-breaks-anything`,
+  `a-zero-size-viewport-does-not-blind-the-renderer`,
+  `a-lost-gl-context-is-caught-and-the-check-re-run`,
+  `the-state-machines-survive-each-other`. That last is the final check in
+  `fuzz.js`, and `registerPipelineWait` is the **very next** module in
+  `tests/index.js`. Both last writes were about **eleven minutes** before the
+  kill, which is the seven minutes of checks after `fuzz.js` plus the
+  watchdog's 240s. Identical on both maps is what rules load out: this is
+  ordering, not pressure.
+  *The fix, two candidates, the first preferred:* give `_runChecks` an explicit
+  `publish` parameter that only `runChecks` sets, and only at depth 1, so a
+  direct `_runChecks(tests, true)` runs top-level in every other respect and
+  simply does not claim the carrier. Or let the first writer own it -
+  `if (top && !this.state.suiteSettled)` - which works because the runner nulls
+  `suiteSettled` before each map run's warm-up, so each map re-claims it once.
+  Do **not** change `pipelinewait.js`: its direct call is deliberate and is the
+  only way it can test a top-level tail.
+  *done-when:* a killed run leaves a `--details` file whose result count is
+  within five of the counter it died on, measured on a real kill; the clause in
+  `detailflush.js` that holds the page publishing what it has settled is
+  extended to hold that a nested or direct `_runChecks` cannot take the carrier
+  over, with its own break; and H134's PROGRESS.md entry and QUEUE line are
+  corrected, since both say a kill keeps "nearly all" and the measured figures
+  are 234 of ~269 and 214 of ~258. **This is a question about the carrier, not
+  about the stall** - do not read it as a fifth stall mechanism (TRAPS.md).
+  Raised by the lead, 2026-11-25, from the two stages' own files.
+
+- [ ] **H137 (S)** "The named check differs each time" is false, and the victim
+  set is small and repeating. `TRAPS.md` has held since 2026-11-24 that the
+  check in flight at a stall differs at every death, naming three -
+  `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`,
+  `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back`,
+  `a-hit-stops-the-picture-without-costing-the-simulation-a-step` - and
+  concludes the check is "probably the victim and not the cause". **Both deaths
+  of 2026-11-25 landed on checks already on that list of three**: the plant at
+  270 of 280 on the Warden's HUD feed, the yard at 259 of 262 on the hit-stop.
+  So eight deaths now name three checks, two of them twice, and the sentence
+  the inference rests on is not true as written. **This job counts; it does not
+  propose a mechanism** (TRAPS.md forbids a fifth without a reading that
+  distinguishes it from the fourth, and a repeating victim set is not yet one).
+  Note both repeat offenders are plausibly heavy: the HUD feed stands up a
+  second render target, and `camerafeed.js`'s floors are on HANDOFF's
+  loose-but-declared list.
+  *done-when:* every death on record is listed in one place in `TRAPS.md` with
+  its date, map, run, phase, check n/N and in-flight id; the count per check is
+  stated; and the sentence is rewritten to whatever the list supports -
+  including "no check repeats" if the older records turn out to disagree with
+  tonight's reading, since three of the eight are known only from prose. Since
+  H134 the dead runs' own `--details` files survive, so future deaths can be
+  counted from evidence rather than memory. Raised by the lead, 2026-11-25.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.

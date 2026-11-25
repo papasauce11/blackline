@@ -3165,6 +3165,23 @@ number changed to make the sentence true:
   is red on the yard until D4 gives it a night rig.
 **decided:**
 
+
+### D108 — No builder runs beside a stage on a load-bound night (2026-11-25)
+P12 lets a load-bound run build at most two jobs into worktrees. The 02:00 run
+took none, and the reason is P11's own finding: the condition under which the
+suite stalls is **foreign load**, 13 node processes and 3.0GB free of 12GB. A
+builder of ours is more node processes on the same machine, so running one
+beside a stage would be arguing with that finding rather than testing it - and
+if the stage then died, the death could not be attributed to the load we were
+measuring rather than the load we had added. **Options considered:** build two
+jobs in worktrees as P12 allows (rejected: it contaminates the one reading the
+night exists to take); build them after the stages finish (rejected: the stages
+ran to the cap, and a job built with no proof left on the ledger lands nothing
+anyway); build nothing (taken). **What this does not say:** it is not a change
+to P12's allowance, and on a night when the servers are **down** a builder
+beside a verify is fine - that was the normal shape of every run before
+2026-11-22. It applies while the gate is staged and the load is up.
+**Provisional, 2026-11-25, the lead's call. Override any time.**
 ## PM calls — the project manager's decisions (Fable, since 2026-11-03)
 
 Josh, 2026-11-03, made himself the sponsor and gave the next-highest
