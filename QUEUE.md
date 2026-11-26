@@ -1569,6 +1569,53 @@ the end of this list, never ahead of a game-facing job.
   and its numbers by reading the runner's source the way the ceiling line is
   held, with its own break. Raised by the lead, 2026-11-25, from H136's own proof.
 
+- [ ] **H139 (S)** Nothing measures the ~39% of a run that is not inside a
+  check. The two stages of 2026-11-26 died with their `--details` files
+  holding every finished check's own `ms`, and summing them by hand gave
+  **805.1s** of check time on the plant against ~1,409s from launch to the
+  stall, and **658.4s** on the yard against ~1,116s - so about **61%** of each
+  run is accounted for by the checks and the rest is somewhere else, the two
+  maps within a point of each other. That gap is where a **4ms** check held the
+  heartbeat still for 240s (TRAPS.md), and it is the one quantity that would
+  separate "the checks got slower" from "the time between them got slower" on a
+  loaded machine. H131 did exactly this for the warm-up's sixty frames and
+  found three reds the day it landed.
+  *The fix:* the runner already has the wall time and every check's `ms`. Print
+  one `accounted:` line on the summary beside `throttle:` - the sum of check
+  time, the wall, the percentage, and the warm-up's share of the remainder -
+  and write the same three numbers into the `--details` file's run object, so a
+  **killed** run carries them too and the next death is read in a minute rather
+  than by hand. Do not make any of it red; it is a reading, not a verdict (H77).
+  *done-when:* a full run of either map prints `accounted:` with the sum, the
+  wall and the percentage, the same numbers are in the details file's run
+  object, a run killed by the watchdog still has them there, and an extended
+  check holds the line's presence and arithmetic by reading the runner's source
+  the way the `ceiling:` line is held, with its own break. Raised by the lead,
+  2026-11-26, from the two stages' details files.
+
+- [ ] **H140 (S)** `the-frame-budget-holds-everywhere-not-just-at-site-a` reds
+  on a reading it says itself is unsound, and has now done it **five times at
+  four viewpoints**: `hall-door@2` 231.40ms and `deck-south@2` 903.10ms on
+  2026-11-25, `stair-corridor-head@1` **987.40ms** (plant) and
+  `store-west-pocket@1` **457.10ms** (yard) on 2026-11-26. Its own detail reads
+  *"costs 987.40ms on 1 sample, NOT a median - a median wants
+  `?viewpointSamples=9`, which only `npm run bench` asks for, over the 8.33ms
+  ceiling"*. So the check passes a verdict on one sample while naming the
+  sample count it would need, and on a machine with 3.1GB free of 12GB that
+  verdict is noise - four different worst viewpoints in two nights is the proof.
+  It has never been a verdict anyone acted on, and it would red an otherwise
+  green verify, which is the expensive version of this.
+  *The fix is to strengthen it, not relax it:* under the suite, sample the worst
+  viewpoint the nine times it asks for and judge the **median** against the
+  unchanged 8.33ms ceiling. The ceiling does not move. If nine samples cannot be
+  afforded inside a stage's budget, the fallback is **the PM's call** and not a
+  quiet downgrade to a reading - say so in the brief.
+  *done-when:* the check judges a median of nine samples on both maps with
+  `config.js` untouched; a viewpoint made genuinely over budget (a break that
+  slows one site's draw) still reds it, naming the median and the sample count;
+  and the clause says which of the two it did. Raised by the lead, 2026-11-26,
+  from the fifth sighting.
+
 ## Block K — the Warden as an opponent
 
 A third-sized pass (D50). The rule to protect: the Warden stays grounded.

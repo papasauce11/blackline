@@ -24547,3 +24547,101 @@ servers, 3.1GB free of 12GB, measured again tonight. Next run: **P12's four
 stages** over the nine-commit batch, then the four held jobs (**H121**, **J16**,
 **J14**, **I3**) one at a time. They stay in their worktrees, and nothing is
 pruned until a verify is green.
+
+## 2026-11-26, the 02:00 run — a load-bound run that read both maps, and the three things the dead files said
+
+**Nothing landed and nothing was built. The run is load-bound** by P12's cap -
+two voids in a row - and it spent three gate invocations plus one narrow proof.
+What it bought is not the verify. It is that for the first time **both maps were
+read on one tree in one night**, and the two `--details` files they left behind
+answered three questions the record has been arguing about for four nights, one
+of which it answered *no*.
+
+**The canary banked the one open item in the batch.** 24 of 24 census checks on
+both maps at the default pin, every list empty, 0 console errors, plant
+134,070ms and yard 90,331ms, about four minutes in all - and
+`traps-md-holds-the-traps-and-handoff-points-at-it` read `DEATHS_FLOOR` at **14**
+and passed. That bump had been held offline since the 17:00 run of 11-25 and was
+the one thing in the fifteenth batch no run had verified. Taking a canary at all
+was arguable - P12 itself records that a healthy canary did not predict a
+completable verify - and it was taken because it cost four minutes against the
+cap that actually binds, which is two voids and not the six.
+
+**Then both stages died where that same map had died before.** Stage 1, the
+plant, 02:18:21 to 02:46:06: dead at **273 of 280**, phase `running`, the beat
+still for 240s, in flight
+`a-climbing-cell-outside-its-stairs-declared-width-is-never-firm`, about 27.7
+minutes, its file holding **273** rows ending on
+`the-third-person-boom-never-puts-the-camera-inside-the-world`. Stage 2, the
+yard, 02:47:23 to about 03:10:50: dead at **259 of 262**, same phase, same 240s,
+in flight `a-hit-stops-the-picture-without-costing-the-simulation-a-step`, about
+23.5 minutes, **259** rows ending on
+`a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see`. Both nought off the
+counter, the in-flight check absent from both files - H136 holding for the
+fourth and fifth time. **The plant's pair matches 11-25's stage 1 exactly**, n/N,
+in-flight id and last written row alike, and the yard's matches 11-25's 02:00
+yard stage. A death is now reproducible to the check and the index.
+
+**The second stage went to the yard and not back to the plant** (D110). The
+17:00 run of 11-25 had answered that question the other way and bought one map's
+reading twice; six of six plant attempts have died, three of them at 270-273 of
+280. Taking the yard was the only ordering under which a green stage was still
+possible, and when it died too the cap fired either way - but it fired having
+read both maps, which is where the night's value came from.
+
+**Three readings out of the two dead files, which carry each check's own `ms`
+since H134.** Two hold and one is dead:
+- **The plant's victim is a 4ms check.**
+  `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` ran on the
+  yard the same night in **4ms** and passed. TRAPS.md had speculated that the
+  repeating victims were "plausibly heavy work"; that is now wrong for at least
+  one of the three. What stalls the beat for 240s is **not the cost of the check
+  in flight**.
+- **Check time is only about 61% of a run's wall.** The plant's 273 rows sum to
+  **805.1s** against ~1,409s from launch to the stall; the yard's 259 to
+  **658.4s** against ~1,116s. So ~39% of each run - the two maps within a point
+  of each other - goes somewhere other than inside a check, and nothing in the
+  suite measures it. **H139** is queued as the instrument, on H131's footing.
+- **The heavy checks are NOT clustered at the tail, and that reading died before
+  it was written.** It was the first thing the data suggested and it does not
+  survive: the last 40 positions hold **18.6%** of the plant's cost and
+  **17.5%** of the yard's, against 14.7% and 15.4% of the checks - a point or
+  two above even - and the dearest check of each run is early or mid-run (plant
+  #74 at 85.1s, yard #133 at 81.4s). The tail is ordinary.
+
+**None of this is a fifth mechanism and none of it was written as one.** It
+narrows the fourth by one clause and the clause is a negative. TRAPS.md's
+standing prohibition is intact.
+
+**The floor was proved rather than shipped on trust** (D111). `DEATHS_FLOOR` has
+been bumped three nights running and the 14 went out unverified; tonight's two
+deaths take the ledger to **sixteen, naming ten checks**, and the floor to
+**16**. One narrow subset of the seven `donedef.js` checks, counted on P13's
+proof ledger and not the gate's six, came back **exit 0, 7 of 7 on both maps**,
+0 console errors, 75,163ms and 46,666ms, with the clause reading *"TRAPS.md holds
+136 traps and 16 ledgered deaths in 1429 lines, HANDOFF.md is 399 of 400 and
+points at it"*. Three unverified floor bumps in a row would have been the exact
+drift that check exists to catch.
+
+**The standing red is at five sightings over four viewpoints**, and it is now a
+job. `the-frame-budget-holds-everywhere-not-just-at-site-a` was red in both of
+tonight's files - `stair-corridor-head@1` at **987.40ms** on the plant,
+`store-west-pocket@1` at **457.10ms** on the yard - after `hall-door@2` at
+231.40ms and `deck-south@2` at 903.10ms on 11-25. Every one is a single sample
+against an 8.33ms ceiling, inside a voided stage, and the check's own detail says
+it is not a median. Still **not a verdict**. **H140** takes the median of nine
+the check asks for, against the unchanged ceiling - a strengthening, not a
+relaxation, and the brief says so.
+
+**What the run cost and what it bought.** Four suite invocations - a green
+canary, two void stages, one green floor proof - nothing landed, nothing built,
+no builder run (D108), **no PM call** (a load-bound run does not return on these
+facts, and the new readings change the record rather than the course). Two
+decisions recorded (**D110**, **D111**), two jobs queued (**H139**, **H140**),
+one standing speculation corrected and one tempting reading killed on arrival.
+**The request to Josh is unchanged and is still the whole cure: the suite cannot
+finish a run while RicochetRoyale's dev servers are up** - 13 node processes and
+four vite servers, up since 2026-11-17, 3.1GB free of 12GB, measured again
+tonight. Next run: **P12's four stages** over the eight-job batch, then the four
+held jobs (**H121**, **J16**, **J14**, **I3**) one at a time. They stay in their
+worktrees, and nothing is pruned until a verify is green.

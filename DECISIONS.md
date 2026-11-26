@@ -3226,6 +3226,45 @@ could redden the same check get their own invocations or wait for the next run.
 
 **Provisional, 2026-11-25, the lead's call. Override any time.**
 
+### D110 — The second stage went to the yard, not back to the plant (2026-11-26)
+HANDOFF.md said "the plant is where to start and two in a row is the cap", and
+stage 1 duly died at **273 of 280**. The 17:00 run of 11-25 had answered that by
+running the plant **again**, and it died again; both of its invocations bought
+one map's reading twice. P12's own rationale for staging is that "completed
+stages are kept", and in four nights **none** has ever been kept, so the second
+invocation's job is to maximise the chance of banking one. **Options
+considered:** retry the plant (rejected: five of five plant attempts have died,
+three of them at 270-273 of 280, and a sixth would have been the third night
+spent entirely on one map); take the yard (taken: a different map, 24 minutes
+rather than 28, and the only ordering under which a green stage was still
+possible); take a narrower slice of the plant as a "stage" (rejected outright -
+P12 defines a stage as `--runs 1 --map <id>` and TRAPS.md already records that
+shortening an invocation does not help, "because every invocation has an end and
+the end is where it dies"). The yard then died too, at **259 of 262**, so the
+cap fired on two voids either way - but it fired having read **both** maps on
+one tree for the first time, which is what gave the night its three readings.
+**What this does not say:** the stage order is not fixed by this. It is one
+night's sequencing call, and P12's set of four is unchanged.
+**Provisional, 2026-11-26, the lead's call. Override any time.**
+
+### D111 — One narrow proof invocation after the cap, to stop the floor drifting a third night (2026-11-26)
+`DEATHS_FLOOR` has now been bumped three nights running - 12, 13, 14 - and the
+14 went out **unverified** because the night's stages both voided before a check
+could read it. Tonight's two deaths take it to **16**, and shipping that bump
+unverified a second time would mean a floor that has never been read sitting in
+front of the one check whose whole purpose is to stop a ledger row going
+missing. P12's caps exist to stop a night burning on 25-minute stages; a
+four-minute single-check subset is not that. **Options considered:** ship the
+bump unverified again (rejected: three unverified floor bumps in a row is the
+drift the check exists to catch); leave the floor at 14 and let the ledger run
+ahead of it (rejected: a floor that lags the count makes a dropped row
+invisible, which is `782c512`'s own reasoning); spend one invocation on
+`^(traps-md-holds)` after every edit is final (taken), counted on **P13's
+proof ledger as 1 of 2**, not on the gate's six. **What this does not say:** the
+cap is not reopened - no stage, no canary and nothing wider than this one check
+ran after it, and a void here is recorded as a void like any other.
+**Provisional, 2026-11-26, the lead's call. Override any time.**
+
 ## PM calls — the project manager's decisions (Fable, since 2026-11-03)
 
 Josh, 2026-11-03, made himself the sponsor and gave the next-highest

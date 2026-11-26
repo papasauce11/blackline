@@ -1340,6 +1340,8 @@ dropped (`traps-md-holds-the-traps-and-handoff-points-at-it` holds the rows).
 | 2026-11-25 | 02:00 stage | yard | 259 of 262 | `running` | ~24m | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
 | 2026-11-25 | 17:00 stage 1 | plant | 273 of 280 | `running` | ~27m | `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` |
 | 2026-11-25 | 17:00 stage 1 retry | plant | 270 of 280 | `running` | ~28m | `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` |
+| 2026-11-26 | 02:00 stage 1 | plant | 273 of 280 | `running` | ~27.7m | `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` |
+| 2026-11-26 | 02:00 stage 2 | yard | 259 of 262 | `running` | ~23.5m | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
 
 The 02:00 pair of 11-23 were read by P6 as J2's own smoke cloud (fixed in
 `105b93a`) and stay, because the gate kept dying after it; the first one's id is
@@ -1348,15 +1350,15 @@ that prefix. The 11-24 17:00 stages are `unrecorded` because the record names th
 HUD feed and the hit-stop for them *together* and never says which died on which.
 Kills laid to a job's own code (K3, J12, J5, H122; D100, D103) are not here.
 
-**The count, per check:** `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` **2** (11-24 and 11-25); `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` **2** (11-25 twice); `a-hit-stops-the-picture-without-costing-the-simulation-a-step` **2**
-(11-23 and 11-25); `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` **1**; `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` **1**; and **6 `unrecorded`** - two warm-up
+**The count, per check:** `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` **3** (11-24, 11-25 and 11-26); `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` **2** (11-25 twice); `a-hit-stops-the-picture-without-costing-the-simulation-a-step` **3**
+(11-23, 11-25 and 11-26); `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` **1**; `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` **1**; and **6 `unrecorded`** - two warm-up
 deaths before any check began, two in `pipeline-wait` at or after the last check
-(62 of 62, 31 of 31), and the two unattributed 11-24 stages. **Fourteen deaths,
-eight of them naming a check**, the last two being the 17:00 stage of 11-25 and
-its retry - the first two on record whose `--details` files reached the check in
-flight (H136, below). **Eleven of the fourteen are at or within ten checks of a
+(62 of 62, 31 of 31), and the two unattributed 11-24 stages. **Sixteen deaths,
+ten of them naming a check**, the last two being the 02:00 stages of 11-26 -
+the fourth and fifth on record whose `--details` files reached the check in
+flight (H136, below). **Thirteen of the sixteen are at or within ten checks of a
 run's finish**; the three that are not are the 13 of 31 and the two warm-up
-frames. A per-minute hazard does not land eleven times in fourteen at the very end,
+frames. A per-minute hazard does not land thirteen times in sixteen at the very end,
 and shortening the invocation did not help **because every invocation has an end
 and the end is where it dies**. So the honest statement is the narrow one:
 **something in the closing stretch of a run stalls the heartbeat for 240s**, and
@@ -1377,6 +1379,34 @@ render target, and `camerafeed.js`'s floors are on HANDOFF.md's
 loose-but-declared list. A repeating victim set is **not** a fifth mechanism and
 must not be read as one. **Do not write a fifth confident mechanism into this
 file without a reading that distinguishes it from the fourth.**
+
+**What 11-26 added, and what it killed.** Both of that night's stages died
+where the same map had died before - the plant at **273 of 280** on the
+climbing cell with the same last written row,
+`the-third-person-boom-never-puts-the-camera-inside-the-world`, and the yard at
+**259 of 262** on the hit-stop - so a death is reproducible to the check and
+the index, twice over, and the two victims sit five positions apart in the same
+stretch of the registry on both maps. Three readings came out of the
+`--details` files, which carry each check's own `ms` since H134:
+- **The plant's victim is a 4ms check.**
+  `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` ran on the
+  yard the same night in **4ms** and passed. "Plausibly heavy work" is
+  therefore wrong for at least one of the three repeaters: a check costing four
+  milliseconds on one map holds the beat still for 240s on the other. What
+  bites is **not the cost of the check in flight**.
+- **Check time is about 61% of a run's wall.** The plant's 273 rows sum to
+  **805.1s** against ~1,409s from launch to the stall; the yard's 259 to
+  **658.4s** against ~1,116s. So ~39% of each run - the two within a point of
+  each other - is spent somewhere other than inside a check, and that is the
+  stretch in which a 4ms check can go quiet. Nothing measures it: **H139** is
+  the instrument, and until it lands this number is two hand sums.
+- **The heavy checks are NOT clustered at the end, and that reading is dead
+  before anyone writes it.** The last 40 positions hold **18.6%** of the
+  plant's cost and **17.5%** of the yard's, against 14.7% and 15.4% of the
+  checks - a point or two above even. The dearest check of each run is early or
+  mid-run (plant #74 at 85.1s, yard #133 at 81.4s). The tail is ordinary.
+None of this is a fifth mechanism and none of it may be written as one. It
+narrows the fourth by one clause, and the clause is a negative.
 
 **`--details` flushes as checks settle, and since H136 it reaches the check a
 killed run died on** (H134, H136; it stopped dead at `pipelinewait.js` in between). Before H134 the file was one `fs.writeFileSync` at the very end,
