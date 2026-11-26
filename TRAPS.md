@@ -1342,6 +1342,10 @@ dropped (`traps-md-holds-the-traps-and-handoff-points-at-it` holds the rows).
 | 2026-11-25 | 17:00 stage 1 retry | plant | 270 of 280 | `running` | ~28m | `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` |
 | 2026-11-26 | 02:00 stage 1 | plant | 273 of 280 | `running` | ~27.7m | `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` |
 | 2026-11-26 | 02:00 stage 2 | yard | 259 of 262 | `running` | ~23.5m | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
+| 2026-11-26 | 17:00 stage 1 | yard | 259 of 262 | `running` | ~23m | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
+| 2026-11-26 | 17:00 sub-stage `^[a-d]`, P14 | plant | 80 of 87 | `running` | ~4m past the beat | `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node` |
+| 2026-11-26 | 17:00 sub-stage `^[t-z]`, P14 | plant | 79 of 105 | `running` | unrecorded | `the-state-machines-survive-each-other` |
+| 2026-11-26 | 17:00 sub-stage `^[a-d]`, P14 | yard | 79 of 82 | `running` | ~7-8m | `a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see` |
 
 The 02:00 pair of 11-23 were read by P6 as J2's own smoke cloud (fixed in
 `105b93a`) and stay, because the gate kept dying after it; the first one's id is
@@ -1349,6 +1353,15 @@ the record's `every-check-that-times-a-draw...: after`, the one id in `src/` wit
 that prefix. The 11-24 17:00 stages are `unrecorded` because the record names the
 HUD feed and the hit-stop for them *together* and never says which died on which.
 Kills laid to a job's own code (K3, J12, J5, H122; D100, D103) are not here.
+
+The last four are the first deaths taken inside a **P14 sub-stage**, and the
+three in-flight ids are all new to this ledger. **None of that may be read as a
+mechanism**: P14 says in terms that no sub-stage is evidence about the stall, and
+H125 says a narrow subset is not evidence about a stall. They are rows, not a
+reading. What the same run *did* bank is three completed thirds - the first
+completed units of a verify in five nights - and the per-map sums that confirm
+P14's partition against both registries: plant 87+88+105 = **280**, yard
+82+78+102 = **262**.
 
 **The count, per check:** `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` **3** (11-24, 11-25 and 11-26); `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` **2** (11-25 twice); `a-hit-stops-the-picture-without-costing-the-simulation-a-step` **3**
 (11-23, 11-25 and 11-26); `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` **1**; `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` **1**; and **6 `unrecorded`** - two warm-up

@@ -4287,10 +4287,14 @@ stage becomes **three sub-stages**, `--runs 1 --map <id> --subset` of
 **`^[a-d]`, `^[e-s]`, `^[t-z]`**, each with its own `--details`, at the default
 pin, `--stall`/`--stall-wait` untouched, 45s cooldown, no builder beside (D108).
 **The partition is disjoint and exhaustive by construction** — the three
-character classes cannot overlap, and all **287** check ids declared across
-`src/tests/` match one of them, a superset of either map's registry, so the
-`^[^a-z]` remainder the call provided for is **provably unnecessary** and is not
-run. (The call asked for this to be re-derived against the 11-26 273-row and
+character classes cannot overlap; a grep of `src/tests/` finds **287** distinct
+declared ids and every one of them matches; and **both maps' sums came back
+exact** - plant **87+88+105 = 280**, yard **82+78+102 = 262** - so every check
+that runs on a map fell into exactly one third. (The grep is a **floor** on the
+id set, not the whole of it: `the-registry-holds-every-check-its-modules-declare`
+counts **291** declared and **290** registered. The per-map sums are what bind,
+because they count what actually ran.) The `^[^a-z]` remainder the call provided
+for is **provably unnecessary** and is not run. (The call asked for this to be re-derived against the 11-26 273-row and
 259-row files; those are no longer on disk, and enumerating the registry from
 source is the stronger check the row counts were standing in for — a details
 file can only ever show the ids a dead run reached.)

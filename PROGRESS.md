@@ -24645,3 +24645,104 @@ four vite servers, up since 2026-11-17, 3.1GB free of 12GB, measured again
 tonight. Next run: **P12's four stages** over the eight-job batch, then the four
 held jobs (**H121**, **J16**, **J14**, **I3**) one at a time. They stay in their
 worktrees, and nothing is pruned until a verify is green.
+
+## 2026-11-26, the 17:00 run — P14 cuts the stage in three, and three thirds are banked: the first completed units of a verify in five nights
+
+**What was built: a policy, and the measurement that made it safe to take.** The
+run opened the way the last five opened - tree clean at `0d03e67`, the eight-job
+batch still unverified, four more jobs held in worktrees, and RicochetRoyale's
+**13 node processes and four vite dev servers** still up since 11-17 with
+**2.99GB free of 12GB**. So staging held rather than P8's full verify, and the
+assigned work was P12's four stages.
+
+The first stage was a full-map yard run and it died where the yard has died
+twice before: exit 2, **259 of 262**, phase `running`, in flight
+`a-hit-stops-the-picture-without-costing-the-simulation-a-step`, 240s frozen
+beat, ~23m. That is the **third identical reproduction** of that map's death, to
+the check and the index.
+
+At that point the lead did not attempt a seventh identical stage. P12 took the
+stage as the banking unit on an explicit rationale - *"a death then costs one
+stage instead of the whole verify, and completed stages are kept"* - and in five
+nights **nothing had ever been kept**: four full verifies and six stages, ten
+long units, zero banked. Meanwhile **every short invocation since 11-24 had
+finished**: three canaries, D111's 7 of 7, H134's two proofs. That makes the
+banking unit itself the open question, and verify policy is the PM's ground in
+PLAN.md, so it went to the PM with the option already costed rather than as a
+complaint. **P14** came back: three sub-stages a stage, `^[a-d]`, `^[e-s]`,
+`^[t-z]`, the verify still two passes a map, **twelve sub-stages**, the cap
+twelve invocations, load-bound at three voids. Recorded in DECISIONS.md and
+committed as `1b247b8`.
+
+**The call caught a real error in the lead's own homework, and the repair is the
+better check.** The exhaustiveness of the three regexes had been tested against
+a 234-row plant and 214-row yard `--details` file - and those are the *pre-H136
+truncations*, so 46 and 48 ids had never been tested at all. The call asked for a
+re-derivation against the 11-26 273-row and 259-row files; those were no longer
+on disk. So the test was replaced with a stronger one that does not depend on a
+dead run at all: **the three character classes cannot overlap, and a grep of
+`src/tests/` finds 287 distinct declared ids of which every one matches** - where
+a `--details` file can only ever show the ids a dead run reached. That grep is a
+floor and not the whole set, as the proof run's own registry census said in the
+same breath (**291** declared, **290** registered, the difference being
+`a-staged-hang-never-returns`, which registers only under `?hang=1`). The `^[^a-z]` remainder P14 provided for is **provably empty** and was
+never run. Both maps then confirmed it from the other side: **plant 87+88+105 =
+280**, **yard 82+78+102 = 262**, exact.
+
+**How it was proved, and what was banked.** Eight of twelve gate invocations
+went. **Three sub-stages came back exit 0**, each with 0 console errors, every
+report list empty and no `SKIPS WITHHELD` or `BENCH DROPS WITHHELD` line:
+
+- **plant pass 1 `^[e-s]`** - 88 passed, 0 failed, 2 not for this map,
+  652,413ms (281,624ms of it the pipeline tail); warm-up 60 frames in 55,707ms,
+  slowest frame 29 at 14,942ms.
+- **yard pass 1 `^[e-s]`** - 78 passed, 0 failed, 12 not for this map,
+  527,639ms (280,269ms tail); warm-up 30,707ms, slowest frame 55 at 14,119ms.
+- **yard pass 1 `^[t-z]`** - 101 passed, 1 failed and bench-dropped, 10 not for
+  this map, 916,044ms (448,161ms tail); warm-up 30,880ms; rng 36,496 draws over
+  60 checks.
+
+These are the **first completed units of a verify in five nights**, and they
+carry on the frozen tree. **Yard pass 1 is one third short of the first
+completed pass ever** - only `^[a-d]`, 82 checks, is missing, and it is the next
+run's first command.
+
+**What was found.** Two readings that change queued jobs. **The frame-budget
+check is bench-dropped in a completed run**: yard `^[t-z]` printed `suite: OK`
+with it failing (`store-east@3` **384.20ms** on one sample) and the `bench only:`
+line naming it. So the "standing red at five sightings over four viewpoints" was
+always an artifact of **voided stages never reaching the summary that drops it** -
+the gate never counted it - and **H140** must be re-read against that before it
+is built. And the **pipeline tail is 43-53% of a sub-stage's wall** on all three
+banked runs (281,624 of 652,413; 280,269 of 527,639; 448,161 of 916,044),
+printed on the run line, so **H139's premise that nothing measures the other 39%
+of a run is wrong**; the job wants re-scoping to what the tail line does *not*
+cover. A third, smaller: the `ceiling:` line prints only in the third that owns
+`no-source-file-outside-config`, so `^[t-z]` reported `"ceiling": null` - a
+declared loss of sub-staging, now in HANDOFF.
+
+**Four voids, ledgered as deaths 17-20**, with `DEATHS_FLOOR` taken 16 to 20
+against 20 rows: the opening yard stage at 259 of 262; plant `^[a-d]` **80 of
+87** in `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`; plant
+`^[t-z]` **79 of 105** in `the-state-machines-survive-each-other`; yard `^[a-d]`
+**79 of 82** in `a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see`. The
+three sub-stage ids are **new to the ledger**, and none of it is written as a
+mechanism: P14 says in terms that no sub-stage is evidence about the stall, and
+H125 says the same of any narrow subset. They are rows.
+
+**What was left, and one thing the lead got wrong.** P14 makes a run load-bound
+at **three** voids, and the call's own framing counted the opening full-map stage
+as one of them. The cap was therefore reached at invocation 4, and the yard block
+was dispatched anyway - **three invocations past the cap**. They banked two of
+the night's three thirds, which is luck and not authority, and the run is
+recorded load-bound from invocation 4. The next run must count the opening void
+against the three before it dispatches a block. **Nine sub-stages remain**; the
+batch is not verified; **H121**, **J16**, **J14** and **I3** stay in their
+worktrees and nothing is pruned.
+
+**The request to Josh is unchanged and is still the whole cure: the suite cannot
+finish a run while RicochetRoyale's dev servers are up** - 13 node processes and
+four vite servers, up since 2026-11-17, 2.99GB free of 12GB, measured again
+tonight. Every banked third tonight came in **9-15 minutes**; the units that die
+are the long ones. Next run: **yard pass 1 `^[a-d]`** first, then the rest of
+P14's twelve, then the four held jobs one at a time.

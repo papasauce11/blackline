@@ -1569,7 +1569,16 @@ the end of this list, never ahead of a game-facing job.
   and its numbers by reading the runner's source the way the ceiling line is
   held, with its own break. Raised by the lead, 2026-11-25, from H136's own proof.
 
-- [ ] **H139 (S)** Nothing measures the ~39% of a run that is not inside a
+- [ ] **H139 (S)** **RE-SCOPE FIRST (2026-11-26, the 17:00 run): the premise
+  below is wrong as written.** All three sub-stages banked that night printed a
+  pipeline-tail figure on their own run line, and it is **43-53% of the wall**:
+  281,624ms of 652,413ms (plant `^[e-s]`), 280,269 of 527,639 (yard `^[e-s]`),
+  448,161 of 916,044 (yard `^[t-z]`). So the renderer's pipeline tail already
+  measures most of the gap this job was written to measure, and F11 reports it.
+  What is still unmeasured is only the remainder *after* the tail is taken out,
+  which is a much smaller and differently-shaped quantity. Re-state the
+  done-when against that before building anything.
+  Original premise, kept for the record: nothing measures the ~39% of a run that is not inside a
   check. The two stages of 2026-11-26 died with their `--details` files
   holding every finished check's own `ms`, and summing them by hand gave
   **805.1s** of check time on the plant against ~1,409s from launch to the
@@ -1593,7 +1602,20 @@ the end of this list, never ahead of a game-facing job.
   the way the `ceiling:` line is held, with its own break. Raised by the lead,
   2026-11-26, from the two stages' details files.
 
-- [ ] **H140 (S)** `the-frame-budget-holds-everywhere-not-just-at-site-a` reds
+- [ ] **H140 (S)** **RE-READ FIRST (2026-11-26, the 17:00 run): the gate was
+  never counting this.** Yard pass 1 `^[t-z]` is the first *completed* run to
+  reach the check since the sightings began, and it printed **`suite: OK`** with
+  the check failing - `store-east@3` **384.20ms** on one sample - and the
+  `bench only: the-frame-budget-holds-everywhere-not-just-at-site-a (fail here)`
+  line naming it, with `benchDropsWithheld` empty. The bench drop is applied at
+  **summary** time, so every earlier "standing red" sighting was an artifact of a
+  **voided stage dying before the summary that drops it**. The check is loose on
+  its own terms and the job still stands, but it is **not blocking a verify** and
+  must not be written up as a red. A seventh and eighth sighting were taken that
+  night inside voided stages (`hall-door@3` 722.80ms plant, `store-west-south@3`
+  873.30ms yard) and are not verdicts either (P14: a voided stage's flushed rows
+  are not verdicts).
+  Original framing, kept for the record: `the-frame-budget-holds-everywhere-not-just-at-site-a` reds
   on a reading it says itself is unsound, and has now done it **five times at
   four viewpoints**: `hall-door@2` 231.40ms and `deck-south@2` 903.10ms on
   2026-11-25, `stair-corridor-head@1` **987.40ms** (plant) and
