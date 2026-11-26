@@ -4276,3 +4276,50 @@ gate's six. A proof subset is not evidence about a stall (H125) and is never
 read as a stage. P7's close is unmoved - H134 enters the pile as the gate's
 instrument by P12's own queueing, and H121, J16, J14 and I3 still wait for four
 green stages. Nothing here touches the pin, `--stall`, `--stall-wait`, or P11.
+
+### P14 — The stage is sub-divided three ways while the foreign load is up; P12's unit and count cap are amended (2026-11-26)
+Ten long units have died — four full verifies and six stages, **none ever
+kept** — while **every short invocation since 11-24 has finished**: three
+canaries, D111's 7 of 7, and H134's two proofs. P12 made the stage the unit on
+the rationale that "a death then costs one stage instead of the whole verify,
+and completed stages are kept", and in five nights nothing has been kept. So a
+stage becomes **three sub-stages**, `--runs 1 --map <id> --subset` of
+**`^[a-d]`, `^[e-s]`, `^[t-z]`**, each with its own `--details`, at the default
+pin, `--stall`/`--stall-wait` untouched, 45s cooldown, no builder beside (D108).
+**The partition is disjoint and exhaustive by construction** — the three
+character classes cannot overlap, and all **287** check ids declared across
+`src/tests/` match one of them, a superset of either map's registry, so the
+`^[^a-z]` remainder the call provided for is **provably unnecessary** and is not
+run. (The call asked for this to be re-derived against the 11-26 273-row and
+259-row files; those are no longer on disk, and enumerating the registry from
+source is the stronger check the row counts were standing in for — a details
+file can only ever show the ids a dead run reached.)
+**The verify is still two passes per map: twelve sub-stages.** Each needs exit
+0, 0 console errors, every report list empty and no `SKIPS WITHHELD` or
+`BENCH DROPS WITHHELD` line; the three `--details` files of a pass must be
+disjoint by id and sum to that map's full **N** (plant 280, yard 262). Written
+**"sub-staged, P14"** beside its numbers. Sub-stages at an identical tree carry
+across runs, stamp and record commits aside. **A completed full-map stage
+stands as one pass of its map.** Exit 2 is void and its flushed rows are not
+verdicts; exit 1 is a red and is **never retried away** — keep running the other
+sub-stages to collect every red, but the batch is not verified; a check red in
+one pass and green in the other is recorded **flaky**.
+**Caps: twelve gate invocations a run**, replacing P12's six (the canary and any
+full-map stage count one each). Each voided sub-stage gets **one** re-run a run,
+taken only after the others have run. P12's "two voids in a row" is replaced for
+sub-stages by **three voids in a run, or all three thirds of one map voiding in
+sequence**, which makes the run load-bound; banked sub-stages are kept. P13's
+clock (run start plus 3h20m, no stage begun in its last thirty minutes) and its
+separate proof ledger of two are unchanged.
+**Known losses, and it is not a cure.** The union gives up cross-third order and
+state interaction, the warm page, and a meaningful pipeline tail. TRAPS.md's
+ledger says 13 of 16 deaths fall within ten checks of a run's end, so this is
+**not** read as accumulation and **no sub-stage is evidence about the stall**
+(H125). It is taken because a death now costs **11 minutes or less** instead of
+24-28, and a green third is actually banked. One completed full verify on a
+quiet machine still retires all staging, and P11's request remains the cure.
+**Return to the PM** if one sub-stage voids **twice at the same n/N** (the death
+would then be pinned to a unit of eleven minutes or less and the policy should
+change again), a sub-stage dies with the servers down, or a red cannot be
+attributed. P7's close, P9's pin and P11 are unmoved: H121, J16, J14 and I3 wait
+for all twelve. Supersedes D110's rejection of a narrower slice as a stage.
