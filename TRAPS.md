@@ -1346,6 +1346,10 @@ dropped (`traps-md-holds-the-traps-and-handoff-points-at-it` holds the rows).
 | 2026-11-26 | 17:00 sub-stage `^[a-d]`, P14 | plant | 80 of 87 | `running` | ~4m past the beat | `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node` |
 | 2026-11-26 | 17:00 sub-stage `^[t-z]`, P14 | plant | 79 of 105 | `running` | unrecorded | `the-state-machines-survive-each-other` |
 | 2026-11-26 | 17:00 sub-stage `^[a-d]`, P14 | yard | 79 of 82 | `running` | ~7-8m | `a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see` |
+| 2026-11-27 | 02:00 sub-stage `^[a-d]`, P14 | yard | 80 of 82 | `running` | ~9.5m | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
+| 2026-11-27 | 02:00 sub-stage `^[a-d]`, P14 | plant | 80 of 87 | `running` | ~8.8m | `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node` |
+| 2026-11-27 | 02:00 sub-stage `^[t-z]`, P14 | plant | 79 of 105 | `running` | ~9.1m | `the-state-machines-survive-each-other` |
+| 2026-11-27 | 02:00 sixth `^a-[a-l]`, P15 | plant | 30 of 31 | `running` | ~7.5m | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
 
 The 02:00 pair of 11-23 were read by P6 as J2's own smoke cloud (fixed in
 `105b93a`) and stay, because the gate kept dying after it; the first one's id is
@@ -1354,8 +1358,25 @@ that prefix. The 11-24 17:00 stages are `unrecorded` because the record names th
 HUD feed and the hit-stop for them *together* and never says which died on which.
 Kills laid to a job's own code (K3, J12, J5, H122; D100, D103) are not here.
 
-The last four are the first deaths taken inside a **P14 sub-stage**, and the
-three in-flight ids are all new to this ledger. **None of that may be read as a
+The four of 2026-11-27 are the night P14's own unit failed and P15 cut it again.
+Two of them pinned a death **exactly**: plant `^[a-d]` voided at **80 of 87** with
+`a-warden-starting-a-patrol-leg-anywhere-reaches-its-node` in flight, the
+identical n/N and identical id as 11-26, which is the condition P14 named for
+returning to the PM; and plant `^[t-z]` voided at **79 of 105** in
+`the-state-machines-survive-each-other`, also identical to 11-26. The yard's
+`^[a-d]` moved **one check on** - 79 of 82 on 11-26 in
+`a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see`, then 80 of 82 tonight
+with that id **passing** and the next one in flight. The last row is the first
+death inside a **P15 sixth**, a unit of **31 checks and about five minutes**, and
+it stood at **30 of 31** with the same id in flight as the yard's.
+So `a-hit-stops-the-picture-without-costing-the-simulation-a-step` has now been
+the in-flight id at a death on **both maps** and at three unit sizes - 262, 82
+and 31. **None of that may be read as a mechanism** (P14, P15, H125) and it is
+not offered as one: it is a count of rows. The P15 sixths that did *not* void
+banked the plant's **first completed units in seven attempts**.
+
+The four of 2026-11-26 are the first deaths taken inside a **P14 sub-stage**, and
+their three in-flight ids were all new to this ledger when they were written. **None of that may be read as a
 mechanism**: P14 says in terms that no sub-stage is evidence about the stall, and
 H125 says a narrow subset is not evidence about a stall. They are rows, not a
 reading. What the same run *did* bank is three completed thirds - the first
@@ -1363,19 +1384,35 @@ completed units of a verify in five nights - and the per-map sums that confirm
 P14's partition against both registries: plant 87+88+105 = **280**, yard
 82+78+102 = **262**.
 
-**The count, per check:** `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` **3** (11-24, 11-25 and 11-26); `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` **2** (11-25 twice); `a-hit-stops-the-picture-without-costing-the-simulation-a-step` **3**
-(11-23, 11-25 and 11-26); `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` **1**; `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` **1**; and **6 `unrecorded`** - two warm-up
+**The count, per check:** `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` **3** (11-24, 11-25 and 11-26); `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` **2** (11-25 twice); `a-hit-stops-the-picture-without-costing-the-simulation-a-step` **5**
+(11-23, 11-25, 11-26, and **twice on 11-27** - the yard's `^[a-d]` third and the
+plant's `^a-[a-l]` sixth, which is its first appearance on the plant);
+`a-warden-starting-a-patrol-leg-anywhere-reaches-its-node` **2** (11-26 and
+11-27, both at 80 of 87); `the-state-machines-survive-each-other` **2** (11-26
+and 11-27, both at 79 of 105); `a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see` **1**;
+`one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` **1**; `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` **1**; and **6 `unrecorded`** - two warm-up
 deaths before any check began, two in `pipeline-wait` at or after the last check
-(62 of 62, 31 of 31), and the two unattributed 11-24 stages. **Sixteen deaths,
-ten of them naming a check**, the last two being the 02:00 stages of 11-26 -
-the fourth and fifth on record whose `--details` files reached the check in
-flight (H136, below). **Thirteen of the sixteen are at or within ten checks of a
-run's finish**; the three that are not are the 13 of 31 and the two warm-up
-frames. A per-minute hazard does not land thirteen times in sixteen at the very end,
-and shortening the invocation did not help **because every invocation has an end
-and the end is where it dies**. So the honest statement is the narrow one:
+(62 of 62, 31 of 31), and the two unattributed 11-24 stages. **Twenty-four deaths,
+eighteen of them naming a check**, the last four being the 02:00 run of 11-27 -
+three sub-stages and one sixth, every one of whose `--details` files reached the
+check in flight (H136, below). (This paragraph read *"sixteen deaths"* against a
+ledger of twenty rows until 11-27; the 11-26 17:00 run added its four rows and
+left the prose behind. The rows are the record and the count is now taken from
+them.) Two rows died in the **warm-up**, before any check began, so twenty-two
+died inside the check list; **nineteen of those twenty-two are at or within ten
+checks of a run's finish**, and the three that are not are the 13 of 31 and
+**both** `^[t-z]` deaths at 79 of 105. Tonight's four stood at 80 of 82, 80 of
+87, 79 of 105 and 30 of 31.
+A per-minute hazard does not land nineteen times in twenty-two at the very end,
+and shortening the invocation does not move the death **because every invocation
+has an end and the end is where it dies**: P15's sixth is a unit of 31 checks and
+about five minutes, and it still died at 30 of 31. What shortening the invocation
+*did* buy, and this is the one thing five nights of staging has banked, is that a
+unit short enough to finish **does** finish - two of the plant's three sixths came
+back exit 0 on 11-27, its first completed units in seven attempts - so the cost of
+a death fell from 24-28 minutes to about five, while its position did not move. So the honest statement is the narrow one:
 **something in the closing stretch of a run stalls the heartbeat for 240s**, and
-the foreign load (13 node processes, four or five vite servers, 2.69-3.41GB free
+the foreign load (13 node processes, four or five vite servers, 2.11-3.41GB free - 2.11GB on 11-27, the lowest yet
 of 12GB) is the condition under which it bites.
 
 **The check in flight repeats - once on the strict count, twice at most on the

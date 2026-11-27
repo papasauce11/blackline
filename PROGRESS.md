@@ -24746,3 +24746,102 @@ four vite servers, up since 2026-11-17, 2.99GB free of 12GB, measured again
 tonight. Every banked third tonight came in **9-15 minutes**; the units that die
 are the long ones. Next run: **yard pass 1 `^[a-d]`** first, then the rest of
 P14's twelve, then the four held jobs one at a time.
+
+## 2026-11-27, the 02:00 run — P14's unit fails on its own terms, P15 cuts it again, and the plant banks its first completed units in seven attempts
+
+**A verify-only run.** The foreign load was still up and worse than it has ever
+been measured - 13 RicochetRoyale node processes and its vite servers, up since
+2026-11-17, **2.11GB free of 12GB** against 3.1GB on 11-26 and 2.69GB on 11-24 -
+so D108 barred any builder and the night was P14's nine remaining sub-stages over
+the frozen eight-job batch at `1fe3fb4`. Nothing was built and nothing landed.
+Four invocations went to P14's thirds and three to P15's sixths; **two came back
+exit 0** and they are the first units the plant has ever banked.
+
+**The two thirds that pinned P14's own return condition.** Yard `^[a-d]` voided
+at **80 of 82**, `a-hit-stops-the-picture-without-costing-the-simulation-a-step`
+in flight, 80 results all green, last id
+`a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see` - which is the id that
+was *in flight* when the same third died at 79 of 82 on 11-26, so the check that
+killed it last night passed tonight and the next one stalled. Then plant `^[a-d]`
+voided at **80 of 87** with `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node`
+in flight: the **identical n/N and the identical id** as 11-26 17:00. That is
+word for word the condition P14 named for returning to the PM - *"one sub-stage
+voids twice at the same n/N"* - so the PM was called, once, on that trigger.
+
+**P15.** The call retired the `^[a-d]` third and cut it into **three sixths** -
+`^a-[a-l]`, `^a-[^a-l]`, `^(?!a-)[a-d]` - on the ground that all five P14
+sub-stage deaths then on the ledger stood at check **79 or 80** of their
+invocation, so a unit of about thirty ends before that point. It refused
+isolating the two named checks (the remainder is 86 or 81 checks, as long as the
+unit that died, and the yard's own rows show the death simply standing one check
+further on once the first id passed), refused raising `--stall` (D100, P3: a
+ceiling is not moved without a mechanism, and none was offered), and refused
+parking the verify. Caps went to **twenty invocations**, and because `^[a-b]` /
+`^[c-d]` would have been no cut at all - 74 of the 92 ids begin `a` and 61 begin
+`a-` - the cut had to be made on the third character. **The cut was sized before
+an invocation was spent**, as the call required, against the ids actually reached
+in the two voided `--details` files: plant **26 / 27 / 27**, yard **30 / 27 /
+23**, each summing to its file's 80 with nothing unmatched, every piece far under
+the 45 ceiling, so **the boundary was not moved**. `scripts/suite.mjs` builds the
+subset with `new RegExp(subsetSource)` and `re.test(t.id)`, so the lookahead is
+valid in the page; it was single-quoted so the shell left `!` alone.
+
+**What the sixths did.** Plant `^a-[^a-l]`: **29 passed, 0 failed, 1 not for this
+map, 148,607ms**, 26ms of it the pipeline tail, `flaky` empty, no console errors.
+Plant `^(?!a-)[a-d]`: **27 passed, 0 failed, 86,620ms**, 2ms tail, `flaky` empty,
+no console errors. The three files hold **86 ids, 0 of them in more than one
+file** - disjoint, one short of the plant's 87 because the voided piece's 31st
+check was in flight and never recorded. **The plant was 6 of 6 deaths before
+tonight and is now 2 of 3 on the sixths.** And they are *cheap*: 2.5 and 1.4
+minutes of run time, under three minutes of wall each - not the five the call
+estimated, so a full two-pass cover is now **35-45 minutes of wall**, and the
+clock has stopped being the binding constraint. The void cap is.
+
+**The two voids that ended the night, and the cut taken with no call.** Plant
+`^[t-z]` voided at **79 of 105** in `the-state-machines-survive-each-other`,
+again the identical n/N and id as 11-26, which fires P15's *standing* rule: a
+third that voids twice at one tree is cut by the lead and recorded, with no call.
+It needed **four** pieces rather than three, because `the-` carries 62 of the 79
+ids reached and one complement class came to 41, too near 45 to risk with 26 ids
+unreached: `^the-[a-l]` (21), `^the-[m-s]` (24), `^the-[^a-s]` (17),
+`^(?!the-)[t-z]` (17), summing to 79 with nothing unmatched, boundaries taken off
+the fourth-character distribution rather than guessed. The yard's `^[t-z]` is
+**not** cut - it banked at 101/1/10 on 11-26, so it has not failed twice and
+stays whole. Then plant `^a-[a-l]` voided at **30 of 31**, the same
+`a-hit-stops-...` in flight as the yard's. P15 allowed **two further voids** past
+the two that triggered it; those were the two, and **the run is load-bound from
+there**. It was 02:56, the clock had until 05:00, and the pieces cost three
+minutes each - the cap and not the clock stopped this run, and it was obeyed
+rather than argued with, because 11-26's recorded lead error was dispatching
+three invocations past exactly this kind of cap.
+
+**The count that is a count and not a mechanism.**
+`a-hit-stops-the-picture-without-costing-the-simulation-a-step` has now been the
+in-flight id at a death on **both maps** and at **three unit sizes - 262, 82 and
+31**, five rows in all. `a-warden-starting-a-patrol-leg-...` and
+`the-state-machines-survive-each-other` each have two, both at an identical n/N.
+P14, P15 and H125 all say no sub-stage or subset is evidence about the stall, and
+none of this is offered as a reading - it is written in the ledger as rows. The
+ledger is now **24** rows; its prose said *"sixteen deaths"* against twenty rows
+until tonight, the 11-26 run having added its four and left the count behind, and
+that arithmetic is corrected from the rows themselves. `DEATHS_FLOOR` stays at
+**20** deliberately: raising it edits `src/tests/donedef.js`, and changing `src/`
+would void the identical-tree carry that the five banked pieces depend on. It is
+queued as hygiene for after the batch verifies.
+
+**What was left.** The batch is still **eight jobs, pushed and unverified**;
+nothing was built, nothing landed, no check was weakened and `src/` was not
+touched at all. **Pass 1 now holds five banked pieces** - plant `^[e-s]`, yard
+`^[e-s]`, yard `^[t-z]` from 11-26, and plant `^a-[^a-l]`, `^(?!a-)[a-d]` from
+tonight. Still owed on pass 1: plant `^a-[a-l]`, the plant's four `^[t-z]`
+pieces, and the yard's three `^[a-d]` sixths - eight pieces, about half an hour
+of wall. Pass 2 is untouched. **H121**, **J16**, **J14** and **I3** stay in their
+worktrees and nothing is pruned (P7's close does not move; the PM confirmed it).
+
+**The request to Josh is unchanged and is still the whole cure: the suite cannot
+finish a run while RicochetRoyale's dev servers are up** - 13 node processes, up
+since 2026-11-17, **2.11GB free of 12GB and falling**. Every unit that has ever
+voided is a long one or the last check of a short one; every unit short enough to
+finish has finished. Next run: the **yard's three `^[a-d]` sixths** first, then
+plant `^a-[a-l]`, then the plant's four `^[t-z]` pieces, which completes pass 1,
+then pass 2.

@@ -4327,3 +4327,85 @@ would then be pinned to a unit of eleven minutes or less and the policy should
 change again), a sub-stage dies with the servers down, or a red cannot be
 attributed. P7's close, P9's pin and P11 are unmoved: H121, J16, J14 and I3 wait
 for all twelve. Supersedes D110's rejection of a narrower slice as a stage.
+
+### P15 — The `^[a-d]` third is cut in three again, by count and not by name; P14's unit and caps are amended (2026-11-27)
+P14's return condition fired on its own terms: plant `^[a-d]` voided twice at
+**80 of 87** with the same check in flight (11-26 17:00 and 11-27 02:00), and
+yard `^[a-d]` voided at **79 of 82** and then **80 of 82**, the check that was in
+flight the first night passing on the second. Four runs of the `^[a-d]` thirds,
+four deaths, nothing banked; and all five sub-stage deaths on the ledger stood at
+check **79 or 80** of their invocation. So each `^[a-d]` third becomes **three
+sixths**: `^a-[a-l]`, `^a-[^a-l]` and `^(?!a-)[a-d]`, about thirty checks each by
+the declared ids (30 / 31 / 31 of 92, 74 of which begin with `a`, which is why
+`^[a-b]`/`^[c-d]` would have been no cut at all). **Disjoint and exhaustive by
+construction** - the second class is the complement of the first under `a-`, the
+third is the rest of `^[a-d]` - and bound by the sums: the three sixths'
+`--details` files are disjoint by id and sum to **87** on the plant and **82** on
+the yard, inside P14's per-pass sums of 280 and 262. No piece runs above **45
+checks**; the lead may move the letter boundary once to keep that, recording the
+cut, one cut for both maps and both passes. Everything else is P14's: `--runs 1
+--map <id>`, own `--details`, default pin, `--stall`/`--stall-wait` untouched,
+45s cooldown, no builder beside, exit 2 void, exit 1 never retried away, two
+passes per map.
+**The cut was sized before any invocation was spent**, as the call required, against
+the ids actually reached in tonight's two voided `--details` files (a floor, as in
+P14: 80 of 87 on the plant, 80 of 82 on the yard). Plant **26 / 27 / 27**, yard
+**30 / 27 / 23**, each file's three pieces summing to its 80 with **nothing
+unmatched** - so the partition covers what ran, every piece is far under 45, and
+**the boundary was not moved**. `scripts/suite.mjs` builds the subset with
+`new RegExp(subsetSource)` and `re.test(t.id)` (lines 134, 478-479), so the
+lookahead is valid in the page; it is single-quoted on the command line so the
+shell leaves `!` alone.
+**Isolating the named checks was refused** as the unit: it leaves an 86- or
+81-check remainder as long as the unit that died, and the yard's own rows show the
+death standing one check further on once the first id passed. The cut is by
+length, which is the only thing P12 and P14 varied; **no sixth is evidence about
+the stall** (H125) and none of this is a reading of it. **Raising `--stall` was
+refused** (D100, P3): a ceiling is not moved without a mechanism, and none is
+offered. **Parking the verify was refused**: three thirds were banked on 11-26,
+and the cure has been asked for since 11-24 without coming.
+**Caps.** **Twenty gate invocations a run**, replacing P14's twelve, because a
+sixth is about five minutes and the clock is what binds: run start plus 3h20m,
+nothing begun in its last thirty minutes (P13). A voided piece gets one re-run a
+run, after the others. **Three voids in a run** still makes it load-bound; on
+11-27 the two voids that triggered this call are ledgered against the retired
+unit and **two further voids** end that night. Order: pass-1 pieces before
+pass-2, sixths before thirds. **Standing rule, so this does not come back for
+each third:** any other third that voids **twice at one tree** is cut the same
+way by the lead - letter classes with a literal complement, pieces of 45 checks
+or fewer, sums binding - and recorded, with no call.
+**Return to the PM** if a **sixth voids twice** (the death is then inside a unit
+of about five minutes and the standing expectation is to hold on P11 and stop
+staging), if a piece dies with the servers down, if a pass's sums do not come out
+exact, or if a red cannot be attributed. P7's close, P9's pin and P11 are
+unmoved: H121, J16, J14 and I3 wait for two complete covers of each map. One
+completed full verify on a quiet machine still retires all of it.
+
+**Taken under P15's standing rule, 2026-11-27, no call (the lead's record).** The
+plant's `^[t-z]` third voided **twice at one tree** - 79 of 105 in
+`the-state-machines-survive-each-other` on 11-26 and again at the identical n/N
+and id on 11-27 - so P15's standing rule applies and it is cut by the lead. It
+needs **four** pieces, not three, because the `the-` prefix carries 62 of the 79
+ids reached and one complement class came to **41**, too near the 45 ceiling to
+risk with 26 ids still unreached. The cut, sized against the void's own
+`--details` file (a floor, as P15 requires, and the boundary chosen from the
+fourth-character distribution rather than guessed): **`^the-[a-l]`** (21
+reached), **`^the-[m-s]`** (24), **`^the-[^a-s]`** (17) and **`^(?!the-)[t-z]`**
+(17), summing to the 79 reached with **nothing unmatched**. Disjoint and
+exhaustive by construction: `[a-l]` and `[m-s]` partition `[a-s]`, the third
+class is its literal complement, and the fourth takes every id in `[t-z]` that
+does not begin `the-` (an id beginning `the` but not `the-` falls there too).
+**The yard's `^[t-z]` is not cut**: it has not voided twice - it *banked* on
+11-26 at 101/1/10 - and the rule is for a third that fails twice, so it stays
+whole and the two maps' passes use different partitions, which P15's acceptance
+permits because it binds each pass's pieces to be disjoint and to sum to that
+map's N.
+**Measured, and it changes the planning:** a P15 sixth is **not** the five
+minutes the call estimated. The two that completed ran **148,607ms** (29 passed,
+0 failed, 1 not for this map, 26ms pipeline tail) and **86,620ms** (27 passed, 0
+failed, 2ms tail) - **2.5 and 1.4 minutes of run time**, under 3 minutes of wall
+each including Chrome's launch and a 55s warm-up. A *voided* sixth costs ~7.5
+minutes, nearly all of it the watchdog's own 240s. So the twelve-odd pieces a
+full two-pass cover now needs are roughly **35-45 minutes of wall**, not the
+three hours a two-run verify takes, and the clock is no longer the binding
+constraint - **the void cap is**.

@@ -1636,7 +1636,31 @@ the end of this list, never ahead of a game-facing job.
   `config.js` untouched; a viewpoint made genuinely over budget (a break that
   slows one site's draw) still reds it, naming the median and the sample count;
   and the clause says which of the two it did. Raised by the lead, 2026-11-26,
-  from the fifth sighting.
+  from the fifth sighting. **Ninth sighting, 2026-11-27**: plant `^[t-z]`, `site C@3`
+  **779.60ms** - yet another distinct worst viewpoint, the seventh the sightings have
+  named, and inside a *voided* stage, so
+  it is not a verdict either (P14). The re-read above stands unchanged: the check
+  is bench-dropped at summary time and is not blocking a verify.
+
+- [ ] **H141 (S)** `DEATHS_FLOOR` lags the ledger it guards. `src/tests/donedef.js`
+  holds `DEATHS_FLOOR = 20` and `traps-md-holds-the-traps-and-handoff-points-at-it`
+  asserts the ledger carries *at least* that many ISO-dated rows. The ledger reached
+  **24** rows on 2026-11-27 and the floor was deliberately **not** raised that night:
+  the five banked verify pieces carry only at an identical tree (P14, P15), and
+  editing anything under `src/` would have voided them. So the ratchet is four rows
+  slack, which is the one direction it was written to prevent, and the prose beside
+  the ledger had already drifted to "sixteen deaths" against twenty rows before it
+  was corrected from the rows. *The fix:* raise `DEATHS_FLOOR` to the ledger's row
+  count at the time it is taken, and make the drift self-reporting rather than
+  trusting the next lead to remember - have the check print the row count it read
+  beside the floor in its detail line, pass or fail, so a slack ratchet is visible on
+  every green run instead of only when someone greps. One constant and one detail
+  string; `donedef.js` is at **590 of 600** lines, so it must not grow by more than
+  ten. *done-when:* the floor equals the row count, the detail line names both
+  numbers on a green run, and a break that deletes a ledger row still reds it naming
+  the shortfall. **Take it only after the batch verifies** - it edits `src/` and
+  would void the identical-tree carry of every banked piece. Raised by the lead,
+  2026-11-27, from the four rows this run added.
 
 ## Block K — the Warden as an opponent
 
