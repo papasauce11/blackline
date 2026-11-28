@@ -1871,7 +1871,27 @@ provisional; the rule for "thin" is mechanical, never a tag.
   both the new pause clause (*"the match paused itself again on frame 1 after a
   resume that ran no step: the Esc that resumed was still pending"*) and the
   hit-stop half, then restore from the copy. Nothing else is outstanding.
-- [ ] **J2c (M)** `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back`
+- [~] **J2c (M)** `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back`
+  **2026-11-28, Josh's session - the differential ran, and it moved the
+  question** (D115): HEAD 3 of 3 died with the page answering none of the
+  watcher's reads, twice in the shake half at 39 of 41 and once inside the
+  runner's own pipeline drain after the draw-timing check at 37 of 41; the
+  control `2cc1d86` completed 3 of 3 on both maps. The J2-less tree completed 3
+  of 3 as well. The audio-device check settled in under 1.5s every time, so it
+  was the last beat read and not the holder. **The shake half alone is
+  613,151ms**, green, about 1.5s a frame after the first blast in the suite
+  against about 15ms in a probe of the same frames. *Resume:* **The next run,
+  J2c continued:** in the diagnostic copy of the shake half (PROGRESS.md has
+  the method), print `renderer.info.programs.length` and `renderer.info.memory`
+  at each phase mark and run it alone once more, then once at `--cores 8` - a
+  program or memory count that grows per phase, and the core pin, are the two
+  differences between the suite and the probe still unread. Fix what that
+  names, in the suite's path and not the game's unless it is the game's, and
+  give the fix a check: the shake half under H143's 120s on both maps. Then
+  P17's 41-id instrument three times on the fixed tree; if the pipeline-drain
+  death recurs there, read which GL call in `drainPipeline` blocks. Then P8's
+  full two-run verify. The text below is the 02:00 brief and its leads are
+  spent: both are awaits, and every death on HEAD was a held page.
   stalls the page, and it is now cheap to catch. On 2026-11-28 J2b's proof subset
   — 41 checks, not a 280-check verify — was killed by the watchdog at **22 of 41**
   on the plant with that check in flight, phase `running`, about four minutes in,

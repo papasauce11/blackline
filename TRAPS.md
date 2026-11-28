@@ -1360,6 +1360,9 @@ dropped (`traps-md-holds-the-traps-and-handoff-points-at-it` holds the rows).
 | 2026-11-27 | Josh's session, full verify (P12, the servers down) | plant | 273 of 280 | `running` | ~24.9m | `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` |
 | 2026-11-28 | 02:00 J2b proof subset, 41 ids | plant | 22 of 41 | `running` | ~4m | `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` |
 | 2026-11-28 | 02:00 J2b proof subset, that id removed, 40 ids | plant | 36 of 40 | `pipeline-waited` | ~4.5m | `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` |
+| 2026-11-28 | Josh's session, J2c instrument at HEAD, run 1 | plant | 39 of 41 | `running` | ~8.1m | `a-blast-shakes-the-camera-by-its-distance-and-ends-on-exactly-zero` |
+| 2026-11-28 | Josh's session, J2c instrument at HEAD, run 2, in the check's own drain after its timed frame | plant | 37 of 41 | `pipeline-wait` | ~13.4m | `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` |
+| 2026-11-28 | Josh's session, J2c instrument at HEAD, run 3 | plant | 39 of 41 | `running` | ~7.6m | `a-blast-shakes-the-camera-by-its-distance-and-ends-on-exactly-zero` |
 
 **The instrument (P17, 2026-11-28).** The two commands below are the ones that
 died tonight, and J2c runs them **exactly as written** — same check list, same
@@ -1384,6 +1387,22 @@ same night: that audio id **alone**, green in 18,994ms; and the 18-id subset wit
 every late census entry removed, which is where J2b's own checks were finally
 read. A subset that passes once is not evidence (H125 still) — but a subset that
 dies **is**, and that is the one direction this cuts.
+
+**The check a kill names is the last beat the watcher could read (J2c, 2026-11-28).** Since that day the kill line says how many heartbeat reads the page answered
+while the beat stood still. **None** means the main thread was held - a long
+synchronous check, or a GL call waiting on the software renderer - and then
+every read times out, so a check that starts after the held one is never seen
+and the named check may be one or several before it. **All** means an await
+that never settles, and then the named check is the one. Every J2c death on
+HEAD answered none of 24, 60 and 24 reads. So read a `running` row as *at or
+before* the check that held the page, not *the* check - the audio-device check
+named at 22 of 41 by the 02:00 run settled in under 1.5s three times that
+afternoon. **And the shake half of J2's check is a 613-second check** alone on
+the plant (D115), green, and its cost is the suite's: a probe runs the same
+frames at about 15ms each. Before blaming a site, sample the GPU process (the
+suite's Chrome is the one whose command line names
+`playwright_chromiumdev_profile`; its `--type=gpu-process` child): about 70
+CPU-seconds per 20s is the software renderer working, not wedged.
 
 **Read the `in flight` column down the page (2026-11-28).**
 `a-hit-stops-the-picture-without-costing-the-simulation-a-step` is in it **six
@@ -1440,8 +1459,8 @@ plant's `^a-[a-l]` sixth, which is its first appearance on the plant);
 and 11-27, both at 79 of 105); `a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see` **1**;
 `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` **1**; `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` **1**; and **6 `unrecorded`** - two warm-up
 deaths before any check began, two in `pipeline-wait` at or after the last check
-(62 of 62, 31 of 31), and the two unattributed 11-24 stages. **Twenty-five deaths,
-nineteen of them naming a check**, the newest the full verify of 11-27 with the servers down, and the four before it the 02:00 run of 11-27 -
+(62 of 62, 31 of 31), and the two unattributed 11-24 stages. **Thirty deaths,
+twenty-four of them naming a check** (counted off the rows on 2026-11-28, Josh's session - and read the next entry before trusting what any of them names), the full verify of 11-27 with the servers down among them, and the four before it the 02:00 run of 11-27 -
 three sub-stages and one sixth, every one of whose `--details` files reached the
 check in flight (H136, below). (This paragraph read *"sixteen deaths"* against a
 ledger of twenty rows until 11-27; the 11-26 17:00 run added its four rows and

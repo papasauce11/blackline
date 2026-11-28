@@ -3312,6 +3312,78 @@ offered to the PM to ratify as verify policy; it binds every future job and
 verify policy is the PM's ground, not the lead's.
 **Provisional, 2026-11-28, the lead's call. Override any time.**
 
+### D115 — J2c's instrument says whether the page answered, and what it found: the shake half is a 613-second check and the named check is not the one holding the page (2026-11-28)
+P17's differential ran as written - the 41-id command, the default pin, both
+maps, three runs a tree - with one reading added on the node side and applied
+identically to all three trees: **the kill line now says how many of the
+watcher's heartbeat reads the page answered while the beat stood still**
+(`scripts/watchdog.mjs`). Every read is raced against the 5s poll, so a page
+whose main thread is held answers none of them and a page waiting on an await
+that never settles answers all of them. It changes nothing the page runs.
+
+**HEAD `45453ed`, 3 of 3 died, every one with the page answering nothing**: 39
+of 41 with `a-blast-shakes-the-camera-by-its-distance-and-ends-on-exactly-zero`
+in flight (0 of 24 reads, 242s); 37 of 41 in `pipeline-wait` with
+`every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock:
+after` in flight (0 of 60, 601s); 39 of 41, the shake half again (0 of 24,
+240s). Every settled row was green, and the two 11-28 02:00 sites settled in
+all three - the audio-device check in 1,475, 733 and 892ms, the draw-timing
+check in 2,276 and 1,865ms where it was reached. **The control `2cc1d86`, 3 of
+3 completed**, 38 of 38 on both maps each time. **The J2-less tree
+`diag-p16-no-j2`, 3 of 3 completed** too, 38 of 38 on both maps each time,
+under the heaviest foreign load of the day. P17 reads a clean J2-less tree as
+J2's runtime; the lead reads it as J2's *checks*, because that tree lacks both
+and the shake half alone is 613 seconds - offered to the PM to ratify or
+overrule at its next call.
+
+**What it measured.** (1) **The check a kill names is the last beat the watcher
+could read, not the check holding the page.** With the main thread held every
+read times out, so a check that starts after it is never seen; the audio-device
+check was 22 of 41 at 02:00 and settled in under 1.5s three times tonight. (2)
+**J2c's two leads are not the mechanism here**: both are awaits
+(`renderOffline`, `moduleTexts`), and an await leaves the page answering - all
+three deaths answered nothing. (3) **The shake half is a 613-second check.**
+Run alone on the plant from a diagnostic copy that yields a task and beats
+between its phases, it went green in **613,151ms**: the first blast's phase
+24,105ms, then 121,764, 122,798, 113,321, 106,827 and 124,038ms for the next
+five, and 294ms for both cinematic frames. At index 40 of 41 it is a certain
+kill, and D114's split moved the cost without cutting it. (4) **The cost is the
+suite's, not the game's.** `npm run probe` on the same tree, the same 1280x720
+medium buffer, drove the same fresh match and 81 frames of 4ms for no event,
+the shake alone, a frag with audio stubbed, a frag, and no event twice more:
+every one 1.0-1.5s, 450 calls and 12,778 triangles throughout, after a one-time
+53.6s for the first 40 frames of the first match. In the suite the same frames
+cost about 1.5s *each* after the first blast - through phases with no shake
+(far, beyond, `screenShake` off) and one with the effects reset (smoke). So it
+is not the shake, the sparks or the audio; it is something the suite has on
+that the probe does not. A second probe with `SETTINGS.debug` on - the runner
+holds it on for every check - read the same, 0.4-0.8s per 40 frames with a
+blast and without, so debug mode is not it either. (5) **The GPU process is
+busy, not wedged.** Sampled every 20s through HEAD's third run it used about 70
+CPU-seconds per 20s - three and a half of the four pinned cores - from the
+warm-up to the kill, the 240s stall included, and its working set went 284MB to
+632MB as the shake half began; the control's stayed at 280-300MB. (6) **The
+draw-timing death is the other mode**: the page stopped answering inside
+`drainPipeline`, the runner's own fence poll, which is written never to block -
+so a GL call in it blocked on the GPU process for 600s. One HEAD run in three,
+none of six control map-runs.
+
+**Calls, Provisional:** the watcher's reading is committed (it is what
+separated a held page from a hung await on the first try); the diagnostic copy
+of the shake half and the probe are not, and live in PROGRESS.md as method. No
+threshold, clause or flag moved. **Nothing lands**: P17's instrument is not
+clean on HEAD. **The next run, J2c continued:** in the diagnostic copy of the
+shake half (PROGRESS.md has the method), print `renderer.info.programs.length`
+and `renderer.info.memory` at each phase mark and run it alone once more, then
+once at `--cores 8` - a program or memory count that grows per phase, and the
+core pin, are the two differences between the suite and the probe still unread.
+Fix what that names, in the suite's path and not the game's unless it is the
+game's, and give the fix a check: the shake half under H143's 120s on both
+maps. Then P17's 41-id instrument three times on the fixed tree; if the
+pipeline-drain death recurs there, read which GL call in `drainPipeline`
+blocks. Then P8's full two-run verify.
+**Provisional, 2026-11-28, the lead's call. Override any time.**
+
 ## PM calls — the project manager's decisions (Fable, since 2026-11-03)
 
 Josh, 2026-11-03, made himself the sponsor and gave the next-highest

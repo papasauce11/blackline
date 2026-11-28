@@ -174,6 +174,14 @@ export function createGuard({ stallMs, waitStallMs = stallMs, heartbeatMs = 5000
       let seq = null;
       let movedAt = Date.now();
       let seen = null;
+      // J2c: whether the page answered while the beat stood still. Every read
+      // is raced against the poll, so a page whose main thread is held - a long
+      // synchronous check, or a GL call waiting on the software renderer -
+      // answers none of them, and a page waiting on an await that never
+      // settles answers all of them. The kill line says which, because the
+      // check it names is only the last beat this watcher managed to read.
+      let answered = 0;
+      let unanswered = 0;
       const have = [];
       while (!settled) {
         await sleep(heartbeatMs);
@@ -188,7 +196,8 @@ export function createGuard({ stallMs, waitStallMs = stallMs, heartbeatMs = 5000
             try { carry.onSettled(have); } catch { /* the file is the caller's; the run is not */ }
           }
         }
-        if (beat && beat.seq !== seq) { seq = beat.seq; seen = beat; movedAt = Date.now(); continue; }
+        if (beat && beat.seq !== seq) { seq = beat.seq; seen = beat; movedAt = Date.now(); answered = 0; unanswered = 0; continue; }
+        if (beat) answered++; else unanswered++;
         const still = Date.now() - movedAt;
         // Two budgets, because two things are being told apart (D48). A check
         // that has stopped answering is a hang within four minutes. The suite
@@ -197,7 +206,7 @@ export function createGuard({ stallMs, waitStallMs = stallMs, heartbeatMs = 5000
         // it is a wait that can legitimately be 265s and rises with the run.
         // Still bounded: a GL call that never returns is still called hung.
         const budget = seen && seen.phase === 'pipeline-wait' ? waitStallMs : stallMs;
-        if (still >= budget) return { still, beat: seen, budget };
+        if (still >= budget) return { still, beat: seen, budget, answered, unanswered };
       }
       return null;
     })();
@@ -215,7 +224,7 @@ export function createGuard({ stallMs, waitStallMs = stallMs, heartbeatMs = 5000
         ? `; the warm-up had spent ${b.warmMs}ms and the last frame it finished cost ${b.frameMs}ms` : '';
       const which = stall.budget === waitStallMs && waitStallMs !== stallMs ? '--stall-wait' : '--stall';
       throw new Error(`run timed out: the suite heartbeat stood still for ${Math.round(stall.still / 1000)}s`
-        + ` on ${where}; ${at}${warm}. Raise ${which} if the run was merely slow.`);
+        + ` on ${where}; ${at}${warm}; the page answered ${stall.answered} of ${stall.answered + stall.unanswered} heartbeat reads while it stood still. Raise ${which} if the run was merely slow.`);
     }
     return done;
   }

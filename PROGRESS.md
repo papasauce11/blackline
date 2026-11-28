@@ -25139,3 +25139,88 @@ pause bug that would have met every player on a fast monitor. The thing the next
 run must not repeat is the shape of the mistake: five nights were spent
 bisecting *commits* while the project's own ledger was naming a *check*, six
 times, in a column nobody read as a frequency.
+
+## J2c: the differential ran, the named check was never the holder, and the shake half is a 613-second check (2026-11-28, Josh's session)
+
+**The machine.** 3,454MB free and no foreign node process at 09:42, so P8's
+canary first: the 24-check census set, both maps, **24/0 and 24/0**, plant
+142,468ms and yard 103,200ms, 5m17s of wall, exit 0. Then RicochetRoyale's
+Claude session started vitest, tsc and eslint across its worktrees - up to ten
+node processes, free memory down to 1,313MB - through HEAD's first run and the
+start of its second; HEAD's third and the control ran on a quiet machine; and
+two more Playwright browsers of that project's were up during the diagnostic
+runs. No run touched them (P11).
+
+**The instrument, with one reading added.** P17's 41-id command exactly as
+TRAPS.md writes it, three runs a tree, with `scripts/watchdog.mjs` counting the
+heartbeat reads the page answered while the beat stood still - the same patch
+in all three trees, since each tree runs its own runner. **HEAD `45453ed`**:
+run 1 died at **39 of 41**,
+`a-blast-shakes-the-camera-by-its-distance-and-ends-on-exactly-zero` in flight,
+242s still, **0 of 24 reads answered**; run 2 at **37 of 41**,
+`every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock:
+after`, phase `pipeline-wait`, 601s, **0 of 60**; run 3 at **39 of 41**, the
+shake half, 240s, **0 of 24**. Every settled row green (39, 37, 39). The
+audio-device check settled at 1,475, 733 and 892ms; the draw-timing check at
+2,276 and 1,865ms in the runs that reached it; the hit-stop half at 16,231 and
+15,010ms. **The control `2cc1d86`**, 38 checks (the three impact ids do not
+exist there): **38/0 on both maps, three times**, plant 159,839 / 158,227 /
+171,779ms and yard 105,265 / 105,706 / 135,704ms. **The J2-less tree
+`diag-p16-no-j2`** (P17's third leg, run because the control was clean 3 of 3):
+**38/0 on both maps, three times**, plant 228,066 / 232,756 / 197,530ms and
+yard 182,901 / 136,421 / 111,024ms - slower than the control because
+RicochetRoyale's session ran up to nineteen node processes through it, free
+memory down to 739MB. By P17's terms a clean J2-less tree points at J2's
+runtime, but that tree also lacks J2's three checks, and the shake half alone
+explains both of HEAD's shake deaths; the one death before the impact checks
+(run 2's drain) is one in three at HEAD against none in twelve map-runs on the
+two older trees, too thin to convict a runtime by. The lead's reading, offered
+to the PM (D115).
+
+**The GPU process, sampled.** Every 20s through HEAD's third run, CPU seconds
+per process of the suite's Chrome: the `gpu-process` used about **70s per 20s**
+- three and a half of the four pinned cores - from the warm-up to the kill, the
+240s stall included, while the page's renderer used almost none; its working
+set went from 284MB to **632MB** as the shake half began. The control's first
+run held 280-300MB throughout. So a frozen page here is a main thread waiting
+on a software renderer that is working flat out, not a wedged one.
+
+**The shake half alone.** A diagnostic copy in a scratch worktree made it async
+and beat-and-yielded between its phases, so the watcher could see it through.
+Plant, alone: **green in 613,151ms** - the first blast's phase 24,105ms, then
+half 121,764, far 122,798, beyond 113,321, smoke 106,827, quiet 124,038, and
+both cinematic frames 294ms. Five phases of 81 frames at about 1.5s a frame,
+including two with no shake by distance, one with `screenShake` off, and one
+with the effects reset straight after the blast.
+
+**The same frames in a probe** (`npm run probe`, same tree, same 1280x720
+medium buffer, no pin, no suite): a fresh match and 81 frames of 4ms each for
+no event, `impact.shake(1)` alone, a frag with `audio.play` stubbed, a frag,
+and no event twice more - **every one 1.0 to 1.5 seconds**, 450 calls and
+12,778 triangles throughout, after a one-time 53,563ms for the first 40 frames
+of the probe's first match. A blast does not make the game's frames slow;
+something the suite has on does. A second probe with `SETTINGS.debug` on - the
+runner holds it on for every check - read the same, 0.4-0.8s per 40 frames with
+a blast and without, so debug mode is not it either.
+
+**What it means.** The kill line's check is the last beat the watcher could
+read: with the page held, a check started after it is never seen. So the 02:00
+sites were most likely the last readable beats before something later held the
+page - the audio check sat fourteen cheap checks, about a second of work, ahead
+of the draw-timing check and the impact block, and a read lands every five to
+ten seconds - and J2c's two leads, both awaits, are not the mechanism on this
+tree. What holds the page on HEAD is the shake half, 613s alone, and once in
+three the runner's own pipeline drain, which is the 11-23 site. D115 records
+it; nothing lands, P17's instrument is not clean, and the watcher's reading is
+committed.
+
+**Next:** **The next run, J2c continued:** in the diagnostic copy of the shake
+half (PROGRESS.md has the method), print `renderer.info.programs.length` and
+`renderer.info.memory` at each phase mark and run it alone once more, then once
+at `--cores 8` - a program or memory count that grows per phase, and the core
+pin, are the two differences between the suite and the probe still unread. Fix
+what that names, in the suite's path and not the game's unless it is the
+game's, and give the fix a check: the shake half under H143's 120s on both
+maps. Then P17's 41-id instrument three times on the fixed tree; if the
+pipeline-drain death recurs there, read which GL call in `drainPipeline`
+blocks. Then P8's full two-run verify.
