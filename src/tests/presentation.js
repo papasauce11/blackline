@@ -76,6 +76,39 @@ export function register(debugTools) {
       if (!pausedByKey) problems.push('Escape did not pause');
       if (!resumedByKey) problems.push('Escape did not resume');
 
+      // ... and a resume that runs no step does not pause straight back (J2b).
+      // A frame shorter than a fixed step is the case a 144Hz player is in most
+      // of the time, and the Esc edge used to survive such a frame: edges are
+      // cleared only after a step has run or while paused, so the frame that
+      // resumed left the press pending for the next one to read as a second
+      // Escape. Every frame here is 8ms, under the 16.67ms step.
+      try {
+        h.menu.hide();
+        h.setPaused(false);
+        h.input.clearAll();
+        h.input.pressedCodes.add('Escape');
+        h.renderFrame(0.008);
+        if (!h.paused) problems.push('Escape on a sub-step frame did not pause, so the clause below proves nothing');
+        else {
+          h.input.pressedCodes.add('Escape');
+          h.renderFrame(0.008);
+          if (h.paused) problems.push('Escape on a sub-step frame did not resume, so the clause below proves nothing');
+          else {
+            for (let i = 1; i <= 3; i++) {
+              h.renderFrame(0.008);
+              if (h.paused) {
+                problems.push(`the match paused itself again on frame ${i} after a resume that ran no step: the Esc that resumed was still pending`);
+                break;
+              }
+            }
+          }
+        }
+      } finally {
+        h.input.clearAll();
+        h.menu.hide();
+        h.setPaused(false);
+      }
+
       h.input.clearAll();
       h.menu.hide();
       h.setPaused(false);
@@ -86,7 +119,7 @@ export function register(debugTools) {
         detail: problems.length === 0
           ? '20 frames at 1s each while paused advanced the simulation by 0.000s and moved neither actor; '
             + `resuming stepped forward ${caughtUp.toFixed(3)}s rather than replaying the pause; `
-            + 'Escape toggles both ways through the real binding'
+            + 'Escape toggles both ways through the real binding, and a resume on a sub-step frame stays resumed'
           : problems.join('; '),
       };
     },

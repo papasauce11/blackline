@@ -371,7 +371,9 @@ function renderFrame(wallDelta) {
   // one); the press is spent, so the key that starts the round is not a jump.
   if (briefing.open) {
     if (input.pressedCodes.size) briefing.dismiss(input);
-  } else if (input.pressed('pause')) togglePause();
+  // J2b: the edge must not outlive the toggle - a resume frame too short to run
+  // a step would leave the Esc pending for the next frame to pause back on.
+  } else if (input.pressed('pause')) { togglePause(); input.clearEdges(); }
 
   const owner = humanOwner();
   // Section 8.3: the finisher owns the camera while it runs. Reasserting

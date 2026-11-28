@@ -4,15 +4,20 @@
  * AUTO suite (J2, D89 - "subtle"): the picture holds for a beat on a blow and
  * the camera shivers on a blast, and **neither costs the simulation a step**.
  *
- * The property that matters is the first, and it is about the fixed step, not
- * about what is drawn: a hit-stop that ate simulation time would make the
- * picture lie about the world, so `systems/impact.js` withholds the frame's wall
- * time while the stop runs and hands it back on the frames after. This check
- * drives the same frames twice - once with a knife hit landing on frame 3 and
- * once without - and counts the fixed steps each frame ran, which is the
- * done-when read as a number. Every frame is the loop's own (`h.renderFrame`,
- * the function the rAF calls), so `main.js`'s wiring of the planner's feed is
- * held too and not only the module.
+ * There are three checks, and the first two are one idea cut in half: a single
+ * check that renders twelve hundred frames is one the suite's watchdog kills,
+ * and the two halves are the hit-stop and the shake. They share the helpers
+ * below and nothing else.
+ *
+ * **The hit-stop** (`a-hit-stops-...`). The property that matters is about the
+ * fixed step, not about what is drawn: a hit-stop that ate simulation time
+ * would make the picture lie about the world, so `systems/impact.js` withholds
+ * the frame's wall time while the stop runs and hands it back on the frames
+ * after. This check drives the same frames twice - once with a knife hit
+ * landing on frame 3 and once without - and counts the fixed steps each frame
+ * ran, which is the done-when read as a number. Every frame is the loop's own
+ * (`h.renderFrame`, the function the rAF calls), so `main.js`'s wiring of the
+ * planner's feed is held too and not only the module.
  *
  * The pause is driven through Escape, the way a player does it. A pause is
  * the other path that feeds the planner nothing, and the clause for it holds
@@ -20,10 +25,19 @@
  * wall clock behind the menu and not banking the seconds the menu was open -
  * and still costs the simulation nothing once the menu is gone.
  *
- * The shake is read off the one camera's own local transform, which is where
- * `impact.js` writes it and which nothing else writes under the Shade's or the
- * Warden's rig (`cameraowner.set` zeroes it). The camera's place in the world
- * comes from its matrix, so a blast can be put a stated distance from it.
+ * **The shake** (`a-blast-shakes-...`). It is read off the one camera's own
+ * local transform, which is where `impact.js` writes it and which nothing else
+ * writes under the Shade's or the Warden's rig (`cameraowner.set` zeroes it).
+ * The camera's place in the world comes from its matrix, so a blast can be put
+ * a stated distance from it.
+ *
+ * **What a stop leaves behind** (`a-new-match-starts-off-...`, J2b). A match
+ * opened in the middle of a shake starts with the camera on exactly zero, and
+ * the wall time a stop banked is repaid only as fast as the planner can consume
+ * it (clause b). That clause drives `impact.step` and `computeStepPlan`
+ * directly rather than through `input.heldCodes`: what it is about is the
+ * arithmetic between the two modules, and a rendered frame cannot put a 70ms
+ * delta on the clock on purpose. The same disclosure J3's check carries.
  *
  * Registered from tests/index.js. Nothing here imports main.js (Section 3.1).
  */
@@ -130,14 +144,13 @@ export function register(debugTools) {
   debugTools.registerAutoTest({
     id: 'a-hit-stops-the-picture-without-costing-the-simulation-a-step',
     spec: 'J2, D89',
-    name: 'A knife hit holds the picture for a beat of wall clock and the fixed step count is unchanged; a blast shakes the camera by its distance; both sit under a setting and leave nothing behind',
+    name: 'A knife hit holds the picture for a beat of wall clock and the fixed step count is unchanged, across a pause and at any frame length; the stop sits under a setting and leaves nothing behind',
     run: (h) => {
       const problems = [];
-      const was = { hitStop: SETTINGS.hitStop, screenShake: SETTINGS.screenShake };
+      const was = { hitStop: SETTINGS.hitStop };
       let detail = '';
       try {
         SETTINGS.hitStop = true;
-        SETTINGS.screenShake = true;
 
         // (a) The step count is unchanged - the done-when.
         const baseline = run(h, { delta: SIXTEEN_MS, frames: 60 });
@@ -145,8 +158,11 @@ export function register(debugTools) {
         if (stopped.total !== baseline.total) {
           problems.push(`a hit-stop changed the fixed step count: ${stopped.total} steps over 60 frames against ${baseline.total} without it`);
         }
-        const fine = run(h, { delta: FOUR_MS, frames: 200 });
-        const fineStopped = run(h, { delta: FOUR_MS, frames: 200, blowAt: BLOW_FRAME });
+        // The 4ms runs are 100 frames, not 200: the stop is 0.04s and begins at
+        // frame 3, so 0.4s of window holds the whole event with ten times its
+        // length to spare. The cut is what brings this check under the watchdog.
+        const fine = run(h, { delta: FOUR_MS, frames: 100 });
+        const fineStopped = run(h, { delta: FOUR_MS, frames: 100, blowAt: BLOW_FRAME });
         if (fineStopped.total !== fine.total) {
           problems.push(`at a 4ms frame a hit-stop changed the fixed step count: ${fineStopped.total} against ${fine.total}`);
         }
@@ -168,6 +184,56 @@ export function register(debugTools) {
 
         // (d) Subtle, which is Josh's answer to D89.
         if (I.hitStopSeconds > 0.06) problems.push(`hitStopSeconds is ${I.hitStopSeconds}; D89 answered subtle, which is at most 0.06`);
+
+        // (f) Under a setting.
+        SETTINGS.hitStop = false;
+        const off = run(h, { delta: SIXTEEN_MS, frames: 60, blowAt: BLOW_FRAME });
+        if (!same(off.steps, baseline.steps)) problems.push('with hitStop off the per-frame step counts differ from the run with no blow');
+        if (off.spanned !== 0) problems.push(`with hitStop off the stop still ran for ${off.spanned} frames`);
+        SETTINGS.hitStop = true;
+
+        // (h) A pause in the middle of a stop freezes it: nothing ticks, nothing
+        // banks, and the simulation still loses no step.
+        const pausedBase = run(h, { delta: SIXTEEN_MS, frames: 60, pauseAt: 5 });
+        const pausedStop = run(h, { delta: SIXTEEN_MS, frames: 60, blowAt: BLOW_FRAME, pauseAt: 5 });
+        const { before, after } = pausedStop.pause;
+        if (!before || !before.paused) problems.push('Escape did not pause the match mid-stop');
+        else {
+          if (!before.active) problems.push('the stop was already over when the pause opened, so the clause proves nothing');
+          if (pausedStop.pause.steps !== 0) problems.push(`${pausedStop.pause.steps} fixed steps ran behind the pause menu`);
+          if (after.active !== before.active || after.debt !== before.debt) {
+            problems.push(`five paused seconds moved the stop: active ${before.active} -> ${after.active}, debt ${before.debt} -> ${after.debt}`);
+          }
+        }
+        if (pausedStop.total !== pausedBase.total) {
+          problems.push(`a pause mid-stop changed the fixed step count: ${pausedStop.total} against ${pausedBase.total} with the same pause and no blow`);
+        }
+        if (h.impact.debt !== 0 || h.impact.active) problems.push('the stop or its debt outlived the run');
+
+        detail = `${baseline.total} steps with and without a stop at 16ms and ${fine.total} at 4ms; the stop held ${stopped.spanned} frames at 16ms and ${fineStopped.spanned} at 4ms with ${frozen} frame(s) frozen that would have stepped; a pause mid-stop kept ${pausedStop.total} of ${pausedBase.total} steps`;
+      } finally {
+        SETTINGS.hitStop = was.hitStop;
+        h.input.clearAll();
+        h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+        h.menu.hide();
+        h.setPaused(false);
+      }
+      return { pass: problems.length === 0, detail: problems.length === 0 ? detail : problems.join('; ') };
+    },
+  });
+
+  debugTools.registerAutoTest({
+    id: 'a-blast-shakes-the-camera-by-its-distance-and-ends-on-exactly-zero',
+    spec: 'J2, D89',
+    name: 'A blast shakes the camera by its distance and no further than the configured subtle bound; the shake sits under a setting, a cinematic frame mid-shake is untouched by it, and it ends on exactly zero',
+    run: (h) => {
+      const problems = [];
+      const was = { screenShake: SETTINGS.screenShake };
+      let detail = '';
+      try {
+        SETTINGS.screenShake = true;
+
+        // (d) Subtle, which is Josh's answer to D89.
         if (I.shakeMetres > 0.02) problems.push(`shakeMetres is ${I.shakeMetres}; D89 answered subtle, which is at most 0.02`);
         if (I.shakeRollDegrees > 1) problems.push(`shakeRollDegrees is ${I.shakeRollDegrees}; D89 answered subtle, which is at most 1`);
 
@@ -188,12 +254,7 @@ export function register(debugTools) {
           problems.push(`the shake peaked ${near.metres}m and ${near.roll}rad, past its configured ${I.shakeMetres}m and ${I.shakeRollDegrees} degrees`);
         }
 
-        // (f) Both under a setting.
-        SETTINGS.hitStop = false;
-        const off = run(h, { delta: SIXTEEN_MS, frames: 60, blowAt: BLOW_FRAME });
-        if (!same(off.steps, baseline.steps)) problems.push('with hitStop off the per-frame step counts differ from the run with no blow');
-        if (off.spanned !== 0) problems.push(`with hitStop off the stop still ran for ${off.spanned} frames`);
-        SETTINGS.hitStop = true;
+        // (f) Under a setting.
         SETTINGS.screenShake = false;
         const quiet = peakAt(h, I.shakeNearMetres);
         if (quiet.metres !== 0 || quiet.roll !== 0) problems.push(`with screenShake off the camera still moved ${quiet.metres}m, ${quiet.roll}rad`);
@@ -234,26 +295,104 @@ export function register(debugTools) {
           problems.push(`a cinematic frame mid-shake put the camera at (${cineShaken.x}, ${cineShaken.y}, ${cineShaken.z}) rolled ${cineShaken.roll}, where the same frame with no shake put it at (${cineClean.x}, ${cineClean.y}, ${cineClean.z}) rolled ${cineClean.roll}; the cinematic owns that transform and the shake must add nothing to it`);
         }
 
-        // (h) A pause in the middle of a stop freezes it: nothing ticks, nothing
-        // banks, and the simulation still loses no step.
-        const pausedBase = run(h, { delta: SIXTEEN_MS, frames: 60, pauseAt: 5 });
-        const pausedStop = run(h, { delta: SIXTEEN_MS, frames: 60, blowAt: BLOW_FRAME, pauseAt: 5 });
-        const { before, after } = pausedStop.pause;
-        if (!before || !before.paused) problems.push('Escape did not pause the match mid-stop');
-        else {
-          if (!before.active) problems.push('the stop was already over when the pause opened, so the clause proves nothing');
-          if (pausedStop.pause.steps !== 0) problems.push(`${pausedStop.pause.steps} fixed steps ran behind the pause menu`);
-          if (after.active !== before.active || after.debt !== before.debt) {
-            problems.push(`five paused seconds moved the stop: active ${before.active} -> ${after.active}, debt ${before.debt} -> ${after.debt}`);
-          }
-        }
-        if (pausedStop.total !== pausedBase.total) {
-          problems.push(`a pause mid-stop changed the fixed step count: ${pausedStop.total} against ${pausedBase.total} with the same pause and no blow`);
-        }
-        if (h.impact.debt !== 0 || h.impact.active) problems.push('the stop or its debt outlived the run');
+        detail = `shake peaks ${near.metres.toFixed(5)}m near, ${half.metres.toFixed(5)}m at ${mid}m, 0 at ${I.shakeFarMetres}m`;
+      } finally {
+        SETTINGS.screenShake = was.screenShake;
+        h.input.clearAll();
+        h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: true, objective: true });
+        h.menu.hide();
+        h.setPaused(false);
+      }
+      return { pass: problems.length === 0, detail: problems.length === 0 ? detail : problems.join('; ') };
+    },
+  });
 
-        detail = `${baseline.total} steps with and without a stop at 16ms and ${fine.total} at 4ms; the stop held ${stopped.spanned} frames at 16ms and ${fineStopped.spanned} at 4ms with ${frozen} frame(s) frozen that would have stepped; `
-          + `shake peaks ${near.metres.toFixed(5)}m near, ${half.metres.toFixed(5)}m at ${mid}m, 0 at ${I.shakeFarMetres}m; a pause mid-stop kept ${pausedStop.total} of ${pausedBase.total} steps`;
+  debugTools.registerAutoTest({
+    id: 'a-new-match-starts-off-the-shake-and-a-banked-stop-is-never-repaid-into-a-dropped-frame',
+    spec: 'J2b, D89',
+    name: 'A match opened mid-shake starts with the camera on exactly zero, and the wall time a hit-stop banked is handed back only as fast as the planner can consume it, never into a frame whose steps it would cap',
+    run: (h) => {
+      const problems = [];
+      const was = { hitStop: SETTINGS.hitStop, screenShake: SETTINGS.screenShake };
+      let detail = '';
+      try {
+        SETTINGS.hitStop = true;
+        SETTINGS.screenShake = true;
+
+        // (a) A match opened mid-shake starts clean. `reset()` is what
+        // `initMatch` calls, and it used to leave the last shake's offset
+        // written on the camera until some later frame noticed.
+        const shakeOn = (label) => {
+          fresh(h);
+          h.renderFrame(FOUR_MS);
+          const eye = eyeOf(h);
+          h.emitter.emit('gadget:detonate', { type: 'frag', at: { x: eye.x + I.shakeNearMetres, y: eye.y, z: eye.z } });
+          for (let i = 0; i < 3; i++) h.renderFrame(FOUR_MS);
+          const q = { x: h.camera.position.x, y: h.camera.position.y, z: h.camera.position.z, roll: h.camera.rotation.z };
+          if (q.x === 0 && q.y === 0 && q.roll === 0) {
+            problems.push(`the shake was not on the camera before ${label}, so the clause below proves nothing`);
+          }
+          return q;
+        };
+        const readCamera = () => {
+          const p = h.camera.position;
+          return { x: p.x, y: p.y, z: p.z, roll: h.camera.rotation.z };
+        };
+        const clean = (c) => c.x === 0 && c.y === 0 && c.z === 0 && c.roll === 0;
+        // The reading that holds `reset()` itself: called directly, no frame
+        // rendered after it, so nothing else gets a chance to zero the camera.
+        const during = shakeOn('reset()');
+        h.impact.reset();
+        const reset = readCamera();
+        if (!clean(reset)) {
+          problems.push(`impact.reset() left the camera at (${reset.x}, ${reset.y}, ${reset.z}) rolled ${reset.roll}; it must take its own offset off`);
+        }
+        // ... and the game's own route in. This second reading cannot fail
+        // while `combat.js`'s `_restore` (reached from `combat.reset()` in
+        // `initMatch`) zeroes the camera unconditionally, and says nothing about
+        // `reset()` for that reason; it is kept as a guard against that route
+        // changing, since the match must start clean whichever path does it.
+        shakeOn('initMatch');
+        h.initMatch({ mode: 'competitive', role: CONFIG.match.humanRole, ai: false, objective: false });
+        const opened = readCamera();
+        if (!clean(opened)) {
+          problems.push(`a match opened mid-shake started with the camera at (${opened.x}, ${opened.y}, ${opened.z}) rolled ${opened.roll}; it must start on exactly zero`);
+        }
+
+        // (b) The repayment never costs the simulation a step. Where the frame's
+        // own delta is already over the step cap the planner drops it on its own
+        // account and the clause passes it over; the deltas below are not.
+        const rows = [];
+        for (const D of [0.004, 0.0166, 0.033, 0.05, 0.06, 0.07, 0.08]) {
+          h.impact.reset();
+          knife(h);
+          // All but a sliver of the stop, so this frame is the one it ends on
+          // with the whole debt outstanding.
+          let guard = 0;
+          while (h.impact.active && h.impact.debt < I.hitStopSeconds - FOUR_MS - 1e-9 && guard++ < 200) h.impact.step(FOUR_MS);
+          if (guard >= 200) problems.push(`the stop did not drain in 200 frames of 4ms (D ${D})`);
+          if (!(h.impact.debt > 0)) problems.push(`the knife started no stop to bank, so the repayment clause proves nothing (D ${D})`);
+          const fed = h.impact.step(D);
+          const withRepay = h.computeStepPlan(0, fed, 1);
+          const ownOnly = h.computeStepPlan(0, D, 1);
+          if (!ownOnly.dropped && withRepay.dropped) {
+            problems.push(`a ${D}s frame fed ${fed.toFixed(5)}s planned ${withRepay.steps} steps and was dropped, where its own ${D}s plans ${ownOnly.steps} and drops nothing: the repayment destroyed banked time`);
+          }
+          let frames = 0;
+          while (h.impact.debt > 0 && frames++ < 10) {
+            const next = h.impact.step(D);
+            if (!h.computeStepPlan(0, D, 1).dropped && h.computeStepPlan(0, next, 1).dropped) {
+              problems.push(`a ${D}s frame fed ${next.toFixed(5)}s in the repayment's tail and was dropped`);
+            }
+          }
+          if (h.impact.debt !== 0) problems.push(`${D}s frames left ${h.impact.debt.toFixed(5)}s of the stop's debt stranded after ${frames} more frames`);
+          rows.push(`${D}: ${fed.toFixed(4)}s ${withRepay.steps}/${ownOnly.steps}`);
+        }
+        h.impact.reset();
+
+        detail = `mid-shake (camera ${during.x.toFixed(5)}, ${during.y.toFixed(5)}, roll ${during.roll.toFixed(5)}) reset() left (${reset.x}, ${reset.y}, ${reset.z}) roll ${reset.roll}, initMatch (${opened.x}, ${opened.y}, ${opened.z}) roll ${opened.roll}; `
+          + `fed delta and steps with/without the repayment per frame: ${rows.join('; ')}`;
+        if (detail.length > CONFIG.debug.detailBudget) detail = detail.slice(0, CONFIG.debug.detailBudget - 3) + '...';
       } finally {
         SETTINGS.hitStop = was.hitStop;
         SETTINGS.screenShake = was.screenShake;

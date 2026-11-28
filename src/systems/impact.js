@@ -10,9 +10,10 @@
  * picture lie about the world and make the same seed play out differently with
  * the setting on. While the stop runs the planner is handed nothing and the wall
  * time withheld is added to a debt; when the stop ends the debt is handed back
- * on the frames after, never more than `CONFIG.time.maxFrameDelta` to one frame
- * (the planner clamps there, and a clamp inside the planner would drop what
- * this was repaying). The fixed steps run across the whole window are exactly
+ * on the frames after, never more to one frame than the planner can consume:
+ * `maxStepsPerFrame` steps, which is tighter than `maxFrameDelta` (a frame over
+ * the step cap is drained to nothing, and that would drop what this was
+ * repaying). The fixed steps run across the whole window are exactly
  * the steps that would have run without it - the check counts them.
  *
  * **A frame handed no time ticks nothing.** `main.js` feeds `step()` zero while
@@ -33,6 +34,7 @@ import * as THREE from 'three';
 import { CONFIG, SETTINGS } from '../config.js';
 
 const I = CONFIG.impact;
+const T = CONFIG.time;
 const TAU = Math.PI * 2;
 const DEG = Math.PI / 180;
 
@@ -105,7 +107,10 @@ export function createImpact({ emitter, camera, lookRng }) {
      */
     step(wallDelta) {
       if (!(wallDelta > 0)) return 0;
-      age += wallDelta;
+      // Aged only while a shake is live, and clamped at its length: the clamp is
+      // what keeps `offset()`'s spent clause and `shake()`'s guard reading a
+      // settled number, not a float that has drifted for as long as the page lives.
+      if (strength > 0) age = Math.min(age + wallDelta, I.shakeSeconds);
       let feed = wallDelta;
       if (stopLeft > EPS) {
         const held = Math.min(stopLeft, wallDelta);
@@ -115,7 +120,12 @@ export function createImpact({ emitter, camera, lookRng }) {
       }
       if (stopLeft <= EPS && debt > 0) {
         stopLeft = 0;
-        const repaid = Math.min(debt, Math.max(0, CONFIG.time.maxFrameDelta - feed));
+        // `maxFrameDelta` alone was the wrong ceiling: the planner clamps there
+        // and then caps the frame at `maxStepsPerFrame` steps, draining the
+        // accumulator when it is over. The step cap is the binding one, and a
+        // repayment past it is not clamped, it is destroyed.
+        const ceiling = Math.min(T.maxFrameDelta, T.maxStepsPerFrame * T.fixedDt);
+        const repaid = Math.min(debt, Math.max(0, ceiling - feed));
         debt -= repaid;
         feed += repaid;
       }
@@ -142,17 +152,24 @@ export function createImpact({ emitter, camera, lookRng }) {
      */
     clear(target) {
       strength = 0;
+      age = 0;
       if (!dirty) return;
       target.position.set(0, 0, 0);
       target.rotation.z = 0;
       dirty = false;
     },
 
-    /** Forget everything: a new match must not start inside the last one's beat. */
+    /**
+     * Forget everything: a new match must not start inside the last one's beat.
+     * That includes the offset on the camera - `initMatch` calls this, and a
+     * match opened mid-shake would otherwise begin with the last one's
+     * transform written on it until some later frame noticed. Through `clear`,
+     * so it still writes only what this module put there.
+     */
     reset() {
       stopLeft = 0;
       debt = 0;
-      strength = 0;
+      self.clear(camera);
       age = 0;
     },
   };
