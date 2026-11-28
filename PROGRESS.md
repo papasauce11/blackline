@@ -24891,3 +24891,251 @@ found by I5's builder; I7 lands first). **H142** found by I4's builder.
 **D112** asks Josh about I6's round sounds against D50. **A lead error**: `node
 scripts/suite.mjs --help` is not a help flag - it started a full suite, stopped
 in under two minutes, nothing committed (AUTO suite row says so now).
+
+## 2026-11-28, the 02:00 run — J2b: the thing holding the page was J2's own check, the pause it hid was a real bug, and the stall class is now reproducible in four minutes
+
+P8's canary opened the run green and on the fastest reading on record: 24/24 on
+both maps, 132,677ms on the plant and 86,003ms on the yard, **218,680ms for the
+two — 3.6 minutes** against P8's eight-minute line and 11-27's 5m12s, 0 red, 0
+flaky, 0 console errors, 4,408MB free and **not one foreign node process**.
+RicochetRoyale was down again and the machine was as quiet as it has been all
+week. So by P8 the gate was the full two-run verify, and by HANDOFF's next-job
+row the work was **J2b**: find what in J2's wiring holds the page about 25
+minutes into a plant run, fix it, give the fix a check.
+
+### Nothing in `systems/impact.js` can hold a page, and that is now written down
+
+`hitStop` is capped at `CONFIG.impact.hitStopSeconds` (0.04s) and extends a
+running stop rather than adding to it; `computeStepPlan` clamps every delta at
+`maxFrameDelta` 0.25 and then caps the frame at `maxStepsPerFrame` 5, so no feed
+the module can hand it explodes a frame; the three Emitter listeners are
+registered once in `boot` at `main.js:257` and never per match, and `initMatch`
+calls `reset()` on the one instance; the only allocation is one `{x, y, roll}`
+per frame while a shake is live; and with no stop and no shake, `step()` is a
+pure pass-through of the frame's own delta.
+
+The three details files from 11-27 say the same thing from the other end. On the
+plant, total settled check time: the dying batch tree **879,222ms over 273
+checks**, the J2-less tree **992,665ms over 279**, the pre-batch control
+**1,084,442ms over 275**. The dying run was the *fastest of the three*, and no
+check in it was systematically slower than the same check in either comparator —
+the largest ratio over 300ms is `a-defuse-raises-one-event` at 1,613ms against
+57ms, which is noise at that size. It was not degrading. It was killed.
+
+### What was holding the page was the check, not the system
+
+Registration order (`tests/index.js:378-392`) puts the tail at 272 the camera
+boom, 273 the climbing cell, 274 idle life, 275 reactions, 276 the dust marks,
+**277 J2's own check**, 278 the ragdoll, 279 the sprint — and the J2-less tree is
+that list with 277 removed, which is why both trees put the climbing-cell check
+at 273. J2's check blocked the page for about **330 seconds** on the plant, a
+check emits no heartbeat while it runs, and `suite.mjs`'s `--stall` has been
+**240s** since D48. So the 11-27 verify died about **fifty seconds of check time
+short of a check that would have killed it anyway**. No verify of this batch
+could ever have finished, on any night, however quiet the machine.
+
+**And TRAPS.md's own ledger had been saying so for five nights.** Read the `in
+flight` column down the page: `a-hit-stops-the-picture-without-costing-the-simulation-a-step`
+is in it **six times** — 11-23's 17:00 full gate at 275 of 277, the yard at 259
+of 262 on three separate nights (11-25 02:00, 11-26 02:00, 11-26 17:00), 11-27's
+yard sub-stage at 80 of 82 and 11-27's plant sixth at 30 of 31. A quarter of
+every death on record, more than any other id, on both maps, and always last or
+near-last in its subset — which is exactly what a check that costs 330s against a
+240s window looks like from outside. H137 built that ledger to stop a death going
+missing and it worked; what nobody did was read the column as a frequency. The
+bisection spent five nights downstream of it. That note is now written at the
+foot of the ledger so the next lead reads the column before the diff.
+
+### And J2's check was red on HEAD, deterministically
+
+Five readings, five identical texts — three with J2b's files replaced by
+`git show HEAD:<path>` (328,142ms, 334,255ms, 328,849ms) and two on the J2b tree
+— all saying *"a pause mid-stop changed the fixed step count: 55 against 4 with
+the same pause and no blow"*. J2 landed unproved on 11-23 and its own commit
+says so; this is the first time the check has ever been run. 4 is exactly the
+steps frames 0-4 of a 16ms run produce before the pause, so the no-blow run
+never resumed.
+
+**The cause is a game bug the check had been hiding.** `main.js` clears input
+edges only after a fixed step has run, or while paused (`if (held)
+input.clearEdges()`). A frame that resumes and runs **no** fixed step clears
+nothing, so the Esc that resumed is still in `pressedCodes` for the next frame
+to read as a second Esc and pause straight back. At 16ms a lone frame is under
+one 16.67ms step, which is exactly what happened: the no-blow run resumed on
+frame 6, ran zero steps, and paused itself again on frame 7 for the rest of the
+window. The blow run only escaped because the repaid hit-stop debt gave frame 6
+enough time for two steps, which cleared the edge. **A player at 144Hz, on 7ms
+frames, is in that case nearly always.** The builder's first instinct was to
+drive around it — the resume frame doubled to 32ms, both runs green — and that
+was overruled: the assertion was right, so the game got fixed and `run()` went
+back to its original 16ms frames. `main.js` now reads `} else if
+(input.pressed('pause')) { togglePause(); input.clearEdges(); }` — two lines of
+comment and the branch, 592 to **594** of the 600 cap, six left.
+
+### Three real defects in `impact.js`, all about state it left behind
+
+**(a) `reset()` never took the offset off the camera.** What `initMatch` calls
+zeroed `stopLeft`, `debt`, `strength` and `age` but never cleared `dirty` and
+never wrote the camera, against the module's own stated contract that "a new
+match must not start inside the last one's beat" and that "a residue on a camera
+that is only reset on a handover survives a round". It goes through
+`self.clear(camera)` now, so it still writes only what this module put there.
+Only `combat.reset`'s unconditional `_restore` was hiding it on the `initMatch`
+path — which is why the clause that reads the camera after `initMatch` cannot
+fail today and is kept as a guard against that route changing. The builder found
+that and said so instead of reporting a green clause; the clause was vacuous as
+I first briefed it.
+
+**(b) `age` grew for as long as the page lived.** It advanced on every frame with
+a positive delta whether or not a shake was running — dead state that only
+accumulated, leaving `Math.sin(TAU * shakeHz * age + phase)` sampling a float
+that had lost its low bits and `shake()`'s "a stronger one already running is not
+weakened" guard evaluating a large negative number instead of zero. It advances
+only while `strength > 0` now, clamped at `shakeSeconds`, and `clear()` zeroes it.
+
+**(c) The repayment could destroy the time it was handing back.** The ceiling was
+`maxFrameDelta` (0.25) where the binding one is `maxStepsPerFrame * fixedDt`
+(0.0833): the planner caps the frame at five steps and **drains the accumulator**
+past that, so a repayment above the cap was not clamped but dropped — the one
+thing the module exists to prevent, and the header said so while the code did the
+opposite. Measured: a 0.07s frame arriving with the stop's last 4ms still to
+drain was fed 0.106s and planned 6 steps, over the cap, where its own 0.07s plans
+4 and drops nothing. It takes
+`Math.min(T.maxFrameDelta, T.maxStepsPerFrame * T.fixedDt)` now and hands the
+remainder back over the following frames; the header is corrected in the same
+commit.
+
+### The split (D113), and the new check
+
+J2's check is **two checks** now, because one check that renders twelve hundred
+frames is one the watchdog kills.
+`a-hit-stops-the-picture-without-costing-the-simulation-a-step` keeps clauses
+(a), (b), (c), (h), the `hitStopSeconds` line of (d), the `hitStop = false` half
+of (f) and the closing debt assertion; the new
+`a-blast-shakes-the-camera-by-its-distance-and-ends-on-exactly-zero` takes (e) in
+full with all six `peakAt` calls, (g) in full including the cinematic frame
+comparison, the two shake lines of (d) and the `screenShake = false` half of (f).
+Every assertion moved verbatim and no threshold moved. The two 4ms runs went from
+200 frames to 100 — the 0.04s stop starts at frame 3, so 0.4s of window still
+holds the whole event with ten times its length to spare. **330s became about
+47s each**, and most of the saving was not the frames: it was the stuck paused
+run the Esc bug caused.
+
+The new check,
+`a-new-match-starts-off-the-shake-and-a-banked-stop-is-never-repaid-into-a-dropped-frame`,
+holds the two fixes that had no reading. Clause (a) drives a frag at
+`shakeNearMetres`, renders until the offset is really on the camera, calls
+`h.impact.reset()` directly and reads the camera with no frame in between — x, y,
+z and roll all exactly 0 — then does it again through `initMatch` as the
+regression guard, each reading with its own "so the clause below proves nothing"
+guard. Clause (b) is arithmetic over the module and the exposed pure planner: for
+every frame delta the planner would not have dropped on its own, the delta
+`impact.step` hands back after a repayment must be one the planner does not drop
+either, and the debt must reach exactly 0 within ten frames. It runs in **50ms**.
+Its disclosure — that (b) drives `impact.step` and `computeStepPlan` directly
+rather than through `input.heldCodes`, because what it is about is the arithmetic
+between two modules and a rendered frame cannot put a 70ms delta on the clock on
+purpose — is in the module header, as J3's is. And one new clause joins
+`pause-stops-the-world-without-banking-time`: Escape on an 8ms frame pauses,
+Escape on an 8ms frame resumes, and three more 8ms frames with nothing pressed
+stay resumed. That check drove `setPaused` directly and never Escape on a
+sub-step frame, which is why nothing had ever held this.
+
+### The three breaks
+
+- **clause (a)**: delete `self.clear(camera)` from `reset()` (`impact.js:172`) —
+  *"impact.reset() left the camera at (-0.007476137281555165,
+  0.01142065016568441, 0) rolled 0.0050639901369647425; it must take its own
+  offset off"*. The `initMatch` reading stays quiet, as predicted.
+- **clause (b)**: set `const ceiling = T.maxFrameDelta;` (`impact.js:127`) —
+  *"a 0.07s frame fed 0.10600s planned 5 steps and was dropped, where its own
+  0.07s plans 4 and drops nothing: the repayment destroyed banked time; a 0.08s
+  frame fed 0.11600s planned 5 steps and was dropped, where its own 0.08s plans
+  4 and drops nothing: the repayment destroyed banked time"*.
+- **the pause clause**: revert the `main.js` branch — *"the match paused itself
+  again on frame 1 after a resume that ran no step: the Esc that resumed was
+  still pending"*. **That one edit reds both** the new pause clause and the
+  hit-stop half, which is the clearest statement that clause (h) was red for the
+  Esc leak and nothing else.
+
+### The stall class is not one site, is not J2's, and is now cheap
+
+Three suite runs were killed by the watchdog tonight, on that quiet machine, at
+**three different checks**, and this is the run's most useful output:
+
+- the proof subset, **41 checks**, killed at **22 of 41** on the plant with
+  `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` in
+  flight, phase `running`, about four minutes in;
+- that same id **run alone**: green, **18,994ms**, 250 modules scanned, the live
+  context running at 48000Hz and the same object after the offline render. So it
+  stalls only in company;
+- the proof subset with that id removed, **40 checks**, killed at **36 of 40**,
+  phase `pipeline-waited`, all 36 settled rows green, with
+  `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` in
+  flight — **the same check that killed J2's original proof subset on 11-23** at a
+  605s pipeline-wait.
+
+Both are census entries, so every census run and every verify carries them, and
+both are **P10's recorded sites** — "the final drain, a mid-run audio check, and
+warm-up frame 57" — reproduced for the first time in something short enough to
+iterate on. Four minutes, not seventy. The canary ran both ids green twice the
+same night inside the 24-check census set, so what decides it is what runs
+*before* them: the killer was the census set plus the presentation and engine
+blocks, and the one audio check present in the killer and absent from both greens
+is `menu-is-the-audio-gate-and-the-only-entry`, seven checks ahead of the kill.
+Queued as **J2c (M)** with those suspects and two leads from reading
+`src/tests/audiocontext.js`: its clause 3 awaits
+`audio.renderOffline('plantBeep', 0.3)` and the module's own header says a run
+builds seventeen offline contexts, so whether `renderOffline` closes the context
+it made is the first thing to read; and the same check awaits
+`moduleTexts(origin, modules)`, a source census that fetches every module over
+the in-process server. Both are awaits with no timeout, which is why the symptom
+is a frozen heartbeat rather than a red. **H143** queues the guard that should
+have caught all of this: a check that reads the run's own per-check ms and reds
+when any check passes a declared floor, 200s, leaving 40s under `--stall`.
+
+### What this run did not do
+
+**No full two-run verify.** Three attempts tonight say it cannot finish, and a
+fourth would have cost seventy minutes to learn nothing — so the batch stays
+UNVERIFIED and the heading stays up, amended. The `## BROKEN BASE` reading is
+that the base cannot complete a long run, at two named checks, with a four-minute
+reproduction for each. P16's attribution of the stall to J2 is **withdrawn by
+measurement**: the control and the J2-less tree completed because they are
+shorter by one 330-second check, not because J2 was the cause.
+
+### Commits, and what the next run does
+
+**`68e2d9c` — `WIP: J2b`** (`src/main.js`, `src/systems/impact.js`,
+`src/tests/impactfeel.js`, `src/tests/presentation.js`), with the record commit
+after it. It is WIP and not done: the suite has settled the hit-stop half
+(14,293ms, plant) and `pause-stops-the-world-without-banking-time` (127ms,
+plant, with the new sub-step resume clause), and nothing on the yard. The shake
+half and J2b's own new check have no suite verdict on either map, because the
+proof subset was killed three times. The breaks are probe-proved with their red
+text verbatim above and are **not** suite-proved; QUEUE.md's J2b entry carries
+the resume line, and the one `main.js` revert reds both the pause clause and the
+hit-stop half, which is the cleanest statement that clause (h) was red for the
+Esc leak and nothing else.
+
+**P17** (the PM, called tonight on the base rather than on any job) makes
+**J2c** the next run's only job and keeps the gate at P8's full two-run verify,
+with no verify attempted until J2c's instrument passes three consecutive runs on
+a fixed tree. TRAPS.md now holds the two exact commands that died tonight as
+that instrument, and the differential is three runs at HEAD, three at `2cc1d86`
+and three at `diag-p16-no-j2` if the control is clean. It refused a partitioned
+gate — tonight's deaths were the *short* runs, and the checks that stall do it
+only in company, so a partition removes the company that shows the defect — and
+refused landing the seven held jobs on proofs, since seven more commits on a base
+that cannot be verified would make the eventual red unattributable across
+sixteen. `--stall` stays at 240s. **H143** queues the guard: any check over
+**120s** settled on either map becomes a red, half of `--stall`, read from
+`--details`.
+
+**What the night is worth.** It did not verify the batch and it did not finish
+J2b. What it did was turn a seventy-minute question into a four-minute one, name
+the most frequent kill site in the ledger and take it from 330s to 14s, and fix a
+pause bug that would have met every player on a fast monitor. The thing the next
+run must not repeat is the shape of the mistake: five nights were spent
+bisecting *commits* while the project's own ledger was naming a *check*, six
+times, in a column nobody read as a frequency.

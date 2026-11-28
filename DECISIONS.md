@@ -3283,6 +3283,35 @@ cap is not reopened - no stage, no canary and nothing wider than this one check
 ran after it, and a void here is recorded as a void like any other.
 **Provisional, 2026-11-26, the lead's call. Override any time.**
 
+### D114 — J2's check is split in two, because a check that holds the page past the watchdog's silence window is a check no verify can reach (2026-11-28)
+`a-hit-stops-the-picture-without-costing-the-simulation-a-step` blocked the page
+for about **330 seconds** on the plant, and a check emits no heartbeat while it
+runs: `scripts/suite.mjs`'s `--stall` has been **240s** since D48. So every
+suite run that reached it was killed, and registration order
+(`tests/index.js:378-392`) puts it at index **277** of 280 — which is why the
+11-27 verify, dead at 273 with the climbing-cell check in flight, was about
+fifty seconds of check time short of a certain kill it never got to. The batch
+could not have verified on any night. **Options considered:** raise `--stall`
+(rejected — D100 and P3 pin it, and a longer silence window hides every other
+stall, which is the opposite of what five dead nights need); cut frames only
+(rejected on its own — it does not get a twelve-hundred-frame check under the
+window with an honest window left around the event); leave it and keep
+attributing the stall elsewhere (rejected — that is what the last five nights
+did); **split it into the hit-stop and the shake, every clause carried over
+verbatim, and cut the two 4ms runs from 200 frames to 100 (taken)**. The 0.04s
+stop starts at frame 3, so 0.4s of window still holds the whole event with ten
+times its length to spare. Each half now reads about **47s**, and most of the
+saving was not the frames — it was the stuck paused run the Esc bug caused.
+**What this does not say:** no clause was dropped, softened or merged, and no
+threshold moved. The shake half keeps all six `peakAt` calls and the cinematic
+frame comparison in full, and the split is not a licence to cut a clause for
+time. **The general rule it implies** — that a check measured past about 200s on
+the plant is split before it lands, and that the suite should say so itself
+rather than leaving it to the next lead to remember (queued as H143) — is
+offered to the PM to ratify as verify policy; it binds every future job and
+verify policy is the PM's ground, not the lead's.
+**Provisional, 2026-11-28, the lead's call. Override any time.**
+
 ## PM calls — the project manager's decisions (Fable, since 2026-11-03)
 
 Josh, 2026-11-03, made himself the sponsor and gave the next-highest
@@ -4491,3 +4520,83 @@ to J2**, on the plant: one run each, and the yard has not been run without it.
 The toolchain did not move between 11-22 and 11-23: Chrome 157.0.8103.79
 (installed 11-10), `playwright-core` 1.63.0 (09-08), node 24.15.0 (04-15), and
 only Defender's signature updates in Windows' history.
+
+### P17 — The stall is a class, not J2's wiring: J2c is the only job, by differential on a four-minute instrument; the gate stays the full verify and nothing lands (2026-11-28)
+On a quiet machine — 4,408MB free, no foreign node process, the canary 24/24 on
+both maps in 3.6 minutes — three things were measured. **J2's own check held the
+page about 330 seconds without a beat** against a 240s `--stall`, at index 277 of
+280, so no tree carrying it could ever complete a run that reached it; it is
+split in two, every clause verbatim and no threshold moved (D114). **The same
+check was red on HEAD**, five readings out of five, on a real pause bug: in
+`main.js` the Esc edge outlived the toggle, so a resume frame too short to run a
+fixed step left the press pending for the next frame to pause back on. Fixed as
+J2b. **And two census-sized subsets died in about four minutes each at two
+checks that are nothing to do with impact** — 22 of 41 with
+`one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` in flight,
+which passes *alone* in 18,994ms, and 36 of 40 at a `pipeline-waited` phase with
+`every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock`, the
+11-23 site.
+
+**P16's attribution is amended, not withdrawn.** J2's *check* is convicted by
+measurement, and that alone explains why every J2 tree died and both J2-less
+trees finished — they are shorter by one 330-second check. J2's *runtime* is
+neither attributed nor cleared: every stall on record, tonight's two included, is
+on a tree that loads `impact.js`, and the clearance so far is by reading only,
+which is the mistake P6 already has on record. Three runs on `diag-p16-no-j2`
+settle it in about twelve minutes.
+
+**J2b is committed tonight** on its own proof — the two impact halves,
+`pause-stops-the-world-without-banking-time`, and a break that reds the new
+pause clause and is restored — green on both maps. It is not a landing: it joins
+the unverified batch, and it is committed because it takes a certain kill out of
+the gate and a real pause bug out of the live build.
+
+**J2c (M) is the next run's only job**, after the canary, in this order: fix the
+instrument first by writing tonight's two exact commands into `TRAPS.md` — same
+check list, same pin, same map every time, recording whether an impact check sits
+in each subset and counting the checks the runner reports (H138), especially on
+the older trees; then **HEAD with J2b, 3 runs** (two or more deaths makes it a
+usable instrument); then **`2cc1d86`, 3 runs** — a death there means the stall
+class predates the batch, which clears the batch and J2's runtime and moves the
+work to the harness and the two named checks; then, only if the control is clean
+3 of 3, **`diag-p16-no-j2`, 3 runs** — a death clears J2's runtime, after which
+the remaining commits (J3, J9, H131, H134, H136, H137) are halved with the same
+instrument, while clean 3 of 3 means the cause is J2's runtime despite the
+reading and `impact.js`'s three call sites are bisected. Then fix it, with a
+check of its own. **If HEAD does not reproduce, 0 of 3, the instrument is spent:**
+run the full verify once that night instead, and a death there returns to the PM.
+
+**No full verify is attempted until the instrument passes three consecutive runs
+on the fixed tree.** Then P8's full two-run verify at the default pin with
+`--details`, and it stands for the batch, for J2b and for J2c's fix together.
+
+**Refused:** a **partitioned gate** — tonight's two deaths were the *short* runs,
+22 of 41 and 36 of 40 at about four minutes each, so "short subsets reach
+verdicts" holds for the 1-, 24- and 18-check runs and not for the census-sized
+ones a partition would be built from; and the audio check passes alone and stalls
+only in company, so a partition removes exactly the company that shows the
+defect; and it is P12-P15 again, which spent three nights and banked nothing that
+counted. **Refused:** landing the seven held jobs on proofs — seven more commits
+on a base that cannot be verified would make the eventual red unattributable
+across sixteen commits, and they cost a day or two of waiting while the batch is
+on the live site either way. **Refused:** raising `--stall`; it and `--stall-wait`
+stay at 240s and 600s (D100, P3, P16).
+
+**A check over 120s settled on either map becomes a red** — half of `--stall`,
+read from `--details` by the runner. Hygiene, taken under P1's first clause
+straight after J2c (H143).
+
+**Held jobs** I5, I7, H121, J16, J14, I3 and I4 stay in worktrees and **none are
+pruned**; they land after the green verify, I7 on I5 first, then P7's order, one
+at a time under P2. Builders may build at most two further jobs into worktrees
+per P8's load-bound clause if the differential leaves time.
+
+**Nothing for Josh**: this is gate policy and queue order. The run's report tells
+him as fact that part of the stall was J2's own check outrunning the watchdog,
+that a pause bug is fixed, and that seven built jobs wait on one more diagnosis
+run. It asks him for nothing.
+
+**Return to the PM if** the control and HEAD both reproduce and two runs of J2c
+name no cause; the instrument is clean and the verify still dies; or two runs
+pass without a completed verify. Partitioning is reconsidered only then, with the
+differential's numbers.

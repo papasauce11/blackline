@@ -1682,6 +1682,21 @@ Order by P1 (2026-11-03): K1 first (the largest change to what a friend meets,
 spec settled), K6 second (it owns H99's standing fresh-seed red), then K2, K3,
 K4, K5, K7.
 
+- [ ] **H143 (S)** The suite says nothing when a check holds the page past the
+  watchdog. J2b found `a-hit-stops-the-picture-without-costing-the-simulation-a-step`
+  blocking the page for about 330s against `--stall`'s 240s, and the only way it
+  was ever going to be found was a verify dying somewhere else (D114). The suite
+  already measures every check's ms and `--details` writes it, so the reading
+  exists and nothing reads it back. *The fix:* a check that reads the run's own
+  per-check ms and reds when any check is past a declared floor — **120s, half of
+  `--stall`, set by P17** — naming the slowest check and its ms in the
+  detail line pass or fail, so a page-holding check is caught by the suite
+  instead of by a killed verify. The floor belongs in `CONFIG.debug` beside
+  `pipelineWaitBudgetMs`. Likely home is `src/tests/runnerguard.js`, which is
+  **590 of 600** and wants **H133**'s split first, so take H133 as its
+  prerequisite or put the check in `donedef.js`. *done-when:* the check reds on a
+  tree where a check is deliberately slowed past the floor and greens on the
+  branch as it stands, and its detail names the slowest check on both maps.
 - [x] **K1 (M)** Search like a person — done 2026-11-03, under Done. `src/systems/aisearch.js` (the SEARCH mixin, hiding spots, tops and vantages), `the-warden-searches-behind-cover-and-looks-up-at-tops-it-cannot-reach`.
 - [x] **K6 (M)** Difficulty at range — done 2026-11-03, under Done. `aimSettle` on the three `ai.difficulty` presets, `_enter`/`_fireBurst` in `src/systems/ai.js`, the margin clause and `SEPARATION_FRACTION` in `each-difficulty-is-quicker-to-see-you-and-quicker-to-kill-you`, a fourth number in `difficulty-preset-reaches-the-ai`. H99 folded in and green.
 - [x] **K2 (M)** Hearing with memory — done 2026-11-03, under Done. `src/systems/aihearing.js` (attention per room, the room target), `seq` on noise events, `CONFIG.ai.hearing`, `the-warden-remembers-what-it-heard-room-by-room`.
@@ -1819,7 +1834,7 @@ provisional; the rule for "thin" is mechanical, never a tag.
   finisher; a light shake on a grenade within a few metres only, harder the
   closer; both under a setting.
   *done-when:* the fixed step count is unchanged by hit-stop in a check.
-- [ ] **J2b (S)** J2 freezes the page about 25 minutes into a plant run - the fix. **The stall
+- [~] **J2b (S)** J2 freezes the page about 25 minutes into a plant run - the fix. **The stall
   is J2's** by P16's terms (2026-11-27): the batch tree died at 273 of 280 with
   `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` in flight,
   and the same evening a plant run at `2cc1d86` and one at `2cd7e41` with J2
@@ -1833,6 +1848,62 @@ provisional; the rule for "thin" is mechanical, never a tag.
   check. *done-when:* the batch's full two-run verify completes on both maps.
   If the maps are in doubt, a J2-less yard run comes first (P16's return
   condition).
+  **WIP 2026-11-28 (the 02:00 run), `68e2d9c`.** The code is complete and all four checks are
+  green on `npm run probe`, with three breaks recorded verbatim in `PROGRESS.md`,
+  but the suite has only settled two of them. **What the suite has read:**
+  `a-hit-stops-the-picture-without-costing-the-simulation-a-step` green on the
+  plant in **14,293ms** (it was ~330s before the split - D114), and
+  `pause-stops-the-world-without-banking-time` green on the plant in **127ms**
+  with the new sub-step resume clause in it. **What it has not:**
+  `a-blast-shakes-the-camera-by-its-distance-and-ends-on-exactly-zero` and
+  `a-new-match-starts-off-the-shake-and-a-banked-stop-is-never-repaid-into-a-dropped-frame`
+  have no suite verdict on either map, and nothing has been read on the yard,
+  because the proof subset was killed by the watchdog **three times** - at the
+  audio-device census check (22 of 41), at `every-check-that-times-a-draw` (36 of
+  40) and finally inside the shake half itself (15 of 17, phase `running`),
+  which probes alone in 46,908ms. So the shake half is a **fourth** check that is
+  green alone and holds the page in company, and P17's condition for calling J2b
+  done - both halves and the pause check green on both maps, plus the break -
+  cannot be met until J2c fixes the base. *Resume:* after J2c, run the 18-id
+  subset in `TRAPS.md`'s instrument block minus the late census entries on both
+  maps, and run the break through the suite: revert `main.js`'s branch to
+  `} else if (input.pressed('pause')) togglePause();` from a copy, which reds
+  both the new pause clause (*"the match paused itself again on frame 1 after a
+  resume that ran no step: the Esc that resumed was still pending"*) and the
+  hit-stop half, then restore from the copy. Nothing else is outstanding.
+- [ ] **J2c (M)** `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back`
+  stalls the page, and it is now cheap to catch. On 2026-11-28 J2b's proof subset
+  — 41 checks, not a 280-check verify — was killed by the watchdog at **22 of 41**
+  on the plant with that check in flight, phase `running`, about four minutes in,
+  on a quiet machine (4,408MB free, no foreign node process, the canary green at
+  3.6 minutes an hour earlier). This is **P10's third stall site** — "a mid-run
+  audio check" — reproduced for the first time in something short enough to
+  iterate on, and it is a census entry, so every census run and every verify
+  carries it. **It does not stall on its own:** run alone on the plant the same
+  night, it passed in **18,994ms** - 250 modules scanned, the live context
+  running at 48000Hz and the same object after the offline render. So the
+  trigger is upstream, and the suspect is named. The canary ran that id green
+  twice that night inside the 24-check census set, and the subset that died was
+  the census set plus the presentation and engine blocks, so the one audio check
+  present in the killer and absent from both greens is
+  **`menu-is-the-audio-gate-and-the-only-entry`**, which sat seven checks ahead
+  of it in the run that died. *The job:* reproduce it on the shortest subset that still
+  kills — start from that one id alone, then that id after
+  `menu-is-the-audio-gate-and-the-only-entry`, then after the presentation
+  block — find what leaves the audio device in a state an offline render cannot
+  come back from, fix it, and give the fix its own check. **Two leads, from
+  reading `src/tests/audiocontext.js`:** its clause 3 awaits
+  `audio.renderOffline('plantBeep', 0.3)`, and an `OfflineAudioContext` whose
+  `startRendering` never settles is a hang with no beat and no error — the
+  module's own header says a run builds **seventeen** offline contexts, and
+  Chrome caps how many a page may hold, so the first thing to read is whether
+  `renderOffline` closes the context it made; and the same check awaits
+  `moduleTexts(origin, modules)`, a source census that fetches every module over
+  the in-process server (H83 measured 16.5s for it on a one-check subset), so an
+  unresolved fetch is the other way it can sit forever. Both are awaits with no
+  timeout, which is why the symptom is a frozen heartbeat rather than a red. *done-when:* the subset
+  that killed on 11-28 runs green on both maps twice, and the shortest killing
+  subset found is written into `TRAPS.md` beside P10's three sites.
 - [~] **J3 (M)** **LANDED BUT UNPROVED** - `6284d19`, pushed 2026-11-23 (the 02:00
   run), cherry-picked from `worktree-agent-aa7413db90aa9e556`. The code is
   complete and the builder's probe reads green on both maps, but **the suite has

@@ -1358,6 +1358,46 @@ dropped (`traps-md-holds-the-traps-and-handoff-points-at-it` holds the rows).
 | 2026-11-27 | 02:00 sub-stage `^[t-z]`, P14 | plant | 79 of 105 | `running` | ~9.1m | `the-state-machines-survive-each-other` |
 | 2026-11-27 | 02:00 sixth `^a-[a-l]`, P15 | plant | 30 of 31 | `running` | ~7.5m | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
 | 2026-11-27 | Josh's session, full verify (P12, the servers down) | plant | 273 of 280 | `running` | ~24.9m | `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` |
+| 2026-11-28 | 02:00 J2b proof subset, 41 ids | plant | 22 of 41 | `running` | ~4m | `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` |
+| 2026-11-28 | 02:00 J2b proof subset, that id removed, 40 ids | plant | 36 of 40 | `pipeline-waited` | ~4.5m | `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` |
+
+**The instrument (P17, 2026-11-28).** The two commands below are the ones that
+died tonight, and J2c runs them **exactly as written** — same check list, same
+default pin, same map — three times at HEAD, three at `2cc1d86`, and three at
+`diag-p16-no-j2` if the control is clean. Change nothing in them between trees or
+the differential means nothing, and **count the checks the runner reports against
+the id count** (H138): on an older tree some ids do not exist, and a subset that
+quietly runs twenty checks instead of forty is not the same instrument. Record,
+for every run, whether an impact check sat in the subset at all.
+
+```
+npm run suite -- --runs 1 --map plant --map yard --details <path> --subset "^(a-hit-stops-the-picture|a-blast-shakes-the-camera|a-new-match-starts-off-the-shake|pause-stops-the-world-without-banking-time|the-rim-light-is-really-on-screen|effect-pools-are-fixed-and-drain|ragdoll-is-lite-and-freezes|hud-reads-the-meter-it-is-shown-beside|a-hud-check-answers-the-same-alone-and-after-a-frame-behind-a-menu|menu-is-the-audio-gate-and-the-only-entry|fixed-timestep-invariants|timescale-scales-feed-not-dt|the-loop-does-not-run-the-game-under-the-suite|f4-probe|single-camera-object|emitter-contract|no-nan-after-sustained-stepping|match-state-rebuilt-on-init|every-runner-reads-one-command-line|one-module-owns-the-audio-device|the-bench-only-list|every-check-that-poses-a-body|every-check-that-draws-a-body|every-check-that-reads-a-world-position|every-check-that-times-a-draw|every-check-that-resets-an-actor|every-pixel-floor-under-tests|a-check-that-drives-the-world-after-a-quiesce|only-sourcetext-owns|the-registry-holds-every-check|the-simulations-stream-is-drawn|the-settle-is-a-function-of-the-circuit|a-reading-grouped-or-compared|the-solvers-read-only-queries|no-network-beyond|no-source-file-outside-config|no-source-file-calls-math-random|the-regression-set-resolves|playtest-md-exists|traps-md-holds|the-suite-refuses-to-run-beside|the-runners-own-summary)"
+```
+
+That is **41 ids**: the 24-check census set plus the presentation and engine
+blocks and J2b's three. It died at **22 of 41** on the plant with the
+audio-device check in flight. Drop `one-module-owns-the-audio-device|` from it
+for the **40-id** second command, which died at **36 of 40** with
+`every-check-that-times-a-draw` in flight, phase `pipeline-waited`. Both in about
+four minutes. **And the controls that did not die**, both on the same tree the
+same night: that audio id **alone**, green in 18,994ms; and the 18-id subset with
+every late census entry removed, which is where J2b's own checks were finally
+read. A subset that passes once is not evidence (H125 still) — but a subset that
+dies **is**, and that is the one direction this cuts.
+
+**Read the `in flight` column down the page (2026-11-28).**
+`a-hit-stops-the-picture-without-costing-the-simulation-a-step` is in it **six
+times** — 11-23's 17:00 full gate at 275 of 277, the yard at 259 of 262 on three
+separate nights (11-25 02:00, 11-26 02:00, 11-26 17:00), 11-27's yard sub-stage
+at 80 of 82 and 11-27's plant sixth at 30 of 31. A quarter of every death on
+record, more than any other id, and on both maps. **It was not a victim of the
+stall; it was the stall.** J2b measured it at about **330 seconds** on the plant,
+a check emits no heartbeat while it runs, and `--stall` is 240s — so every subset
+that reached it was killed, and it was reached last or near-last every time,
+which is what the n-of-N columns say. Five nights of bisection went past this
+column. The split (D113) takes it to about 47s a half. The two 11-28 rows above
+are what is left after it: two census entries that stall only in company, each
+reproducible in about four minutes, which is J2c.
 
 The 02:00 pair of 11-23 were read by P6 as J2's own smoke cloud (fixed in
 `105b93a`) and stay, because the gate kept dying after it; the first one's id is
