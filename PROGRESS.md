@@ -24845,3 +24845,49 @@ voided is a long one or the last check of a short one; every unit short enough t
 finish has finished. Next run: the **yard's three `^[a-d]` sixths** first, then
 plant `^a-[a-l]`, then the plant's four `^[t-z]` pieces, which completes pass 1,
 then pass 2.
+
+## The servers were down and the verify died anyway; the 11-22 tree did not (2026-11-27, Josh's session)
+
+**The servers were down.** At 17:47 RicochetRoyale had no node process and
+**4.42GB** of 12GB was free (2.11 that morning), so P12's standing clause ran
+for the first time: P8's canary - the 24-check census set, both maps, **24/0
+and 24/0 in 5m12s** of wall (plant 134,769ms, yard 99,414ms), exit 0, 0 console
+errors - then the full two-run verify at `2cd7e41`.
+
+**It died exactly where 11-26's stage died.** Exit 2, plant run 1, **273 of
+280**, phase `running`,
+`a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` in flight,
+the beat still from about 24m51s; the `--details` file held all 273 verdicts
+and ended on `the-third-person-boom-never-puts-the-camera-inside-the-world`,
+row for row the 11-26 02:00 stage - which is H136's carrier measured under a
+kill for the first time, and it kept everything. The stalling check is pure
+data (a synchronous walk over `wardenGround` with `groundUnder`) and ran in 4ms
+at 272 of 275 on 11-22's green verify, after the same camera-boom check.
+RicochetRoyale's Claude session ran vitest and tsc through it, and free memory
+fell to 1.43GB.
+
+**The PM's call, P16** (DECISIONS.md): the load premise suspended, the stall
+suspected on the batch with J2 first, staging suspended, P11's request to Josh
+withdrawn, the seven built jobs held with I7 first when landing resumes. **The
+control at `2cc1d86` completed**: plant 274 / 1 / 10, 1,833,105ms, `red` and
+`flaky` empty, 0 console errors, the stalling check at 272 of 275 in 5ms after
+the same camera-boom check - with free memory down to **0.50GB** and up to ten
+node processes during it. **And the J2-less tree completed too**: `2cd7e41`
+with J2 and `105b93a` reverted (`diag-p16-no-j2`), plant 278 / 1 / 10 in
+2,341,309ms (1,248,770ms of it the pipeline tail), `red` and `flaky` empty, 0
+console errors, the stalling check at 274 of 279 in 3ms after the same
+camera-boom check, and J3's and J9's checks green in a full run for the first
+time (the ragdoll at rest after 0.88s and then 60 steps of exactly nothing; the
+lens +4.00 and back to exactly 80) - with free memory down to 1.59GB. **By
+P16's own terms the stall is attributed to J2**, on the plant: one run each,
+and the yard has not been run without it. Nothing in the toolchain moved
+between 11-22 and 11-23 (Chrome 157 installed 11-10, `playwright-core` 1.63.0,
+node 24.15.0, Defender signatures only).
+
+**Built beside it, held** (P16): **I4** (the mixer), **I5** (occlusion, the
+Warden's reload and torch click) and **I7** (the Web Audio listener has never
+been positioned, so every spatial sound has been heard from the map's origin -
+found by I5's builder; I7 lands first). **H142** found by I4's builder.
+**D112** asks Josh about I6's round sounds against D50. **A lead error**: `node
+scripts/suite.mjs --help` is not a help flag - it started a full suite, stopped
+in under two minutes, nothing committed (AUTO suite row says so now).

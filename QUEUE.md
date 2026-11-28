@@ -1661,6 +1661,19 @@ the end of this list, never ahead of a game-facing job.
   the shortfall. **Take it only after the batch verifies** - it edits `src/` and
   would void the identical-tree carry of every banked piece. Raised by the lead,
   2026-11-27, from the four rows this run added.
+- [ ] **H142 (S)** A saved master volume is not the volume the game starts at.
+  Found by I4's builder, 2026-11-27, and read by the lead: `unlock()` in
+  `src/systems/audio.js` builds the live master at `CONFIG.audio.masterGain`
+  (0.7) and never reads `SETTINGS.masterVolume`, and the only caller of
+  `setMasterVolume` is the menu row (`panels.js` `onVolume`). So a player who
+  saved 0.3 hears 0.7 every session until they touch the slider - H7 persists
+  the number and nothing applies it. Game-facing, so P1 takes it first among
+  hygiene. *The fix:* the live master starts at what I4's `mixer.target()` says
+  (the saved level, or 0 while away and muting), the offline master stays at
+  the design gain. *done-when:* a check sets a stored volume before an unlock
+  and reads it on the live master - which needs a way to unlock twice in one
+  page that `one-module-owns-the-audio-device` allows; find that first. Lands
+  after I4, whose `mixer.js` it uses.
 
 ## Block K — the Warden as an opponent
 
@@ -1776,6 +1789,21 @@ provisional; the rule for "thin" is mechanical, never a tag.
 
 - [x] **J1 (S)** Camera collision — done 2026-11-19, under Done. The clamp is `min(max(minDistance, hit - collisionRadius), hit - CONFIG.render.near)`, because `minDistance` alone put the camera **0.21m inside a wall** on the very pose the job names; the sweep is five rays (centre plus four at `collisionRadius`) run twice, the second from the shoulder-shifted pivot; and `boomClear` steps the distance down by `collisionRadius / 4` until `collision.isClear` holds at the full rig position, which is the terminal test a sphere-cast really is. `src/entities/agentvisual.js`, `src/tests/cameraclip.js`, `the-third-person-boom-never-puts-the-camera-inside-the-world`. Measured over 720 frames: an offset ray won **582**, the shoulder pass **172**, the box test pulled in **233**, worst clearance **0.220m**, none jammed to 0. `33622b7`, `5cfb3af`.
 - [~] **J2 (S)** **LANDED BUT UNPROVED** - `21ae6b1`, pushed 2026-11-23 (the 02:00
+  **The stall's leading suspect** (P16, 2026-11-27): a full verify died with
+  the servers down at the same place as 11-26, the 11-22 tree completed a plant
+  run on the same machine the same night, and the yard's three stage deaths and
+  the 11-23 full gate stand in this job's own check. **And the J2-less tree
+  completed too**: `2cd7e41` with J2 and `105b93a` reverted (`diag-p16-no-j2`),
+  plant 278 / 1 / 10 in 2,341,309ms (1,248,770ms of it the pipeline tail),
+  `red` and `flaky` empty, 0 console errors, the stalling check at 274 of 279
+  in 3ms after the same camera-boom check, and J3's and J9's checks green in a
+  full run for the first time (the ragdoll at rest after 0.88s and then 60
+  steps of exactly nothing; the lens +4.00 and back to exactly 80) - with free
+  memory down to 1.59GB. **By P16's own terms the stall is attributed to J2**,
+  on the plant: one run each, and the yard has not been run without it.
+  Branches for the bisection: `diag-p16-no-j2` (`2cd7e41` with this job and
+  `105b93a` reverted, its impact census row dropped) and `diag-p16-no-j2-j3`
+  (J3 reverted and this job taken out of the loop). Neither is for landing.
   run). The code is complete and reviewed; **no clause of it has ever been run
   by the suite** (two proof attempts, two `pipeline-wait` crashes - see HANDOFF's
   UNVERIFIED BATCH). *Resume:* the next run's gate verifies it; if green, record
@@ -1791,6 +1819,20 @@ provisional; the rule for "thin" is mechanical, never a tag.
   finisher; a light shake on a grenade within a few metres only, harder the
   closer; both under a setting.
   *done-when:* the fixed step count is unchanged by hit-stop in a check.
+- [ ] **J2b (S)** J2 freezes the page about 25 minutes into a plant run - the fix. **The stall
+  is J2's** by P16's terms (2026-11-27): the batch tree died at 273 of 280 with
+  `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` in flight,
+  and the same evening a plant run at `2cc1d86` and one at `2cd7e41` with J2
+  and `105b93a` reverted both completed, the same check passing in 5ms and 3ms
+  after the same camera-boom check. The stalling check is pure data, so what
+  freezes is the page around it. *The job:* read J2's runtime wiring -
+  `src/systems/impact.js`, its three calls in `src/main.js` (`impact.step`
+  feeding the planner, `impact.clear` and `impact.apply` on the camera), the
+  `combat:*` listeners that start a stop, and anything it leaves pending across
+  `initMatch` - for what can hold the page; fix it; and give the fix its own
+  check. *done-when:* the batch's full two-run verify completes on both maps.
+  If the maps are in doubt, a J2-less yard run comes first (P16's return
+  condition).
 - [~] **J3 (M)** **LANDED BUT UNPROVED** - `6284d19`, pushed 2026-11-23 (the 02:00
   run), cherry-picked from `worktree-agent-aa7413db90aa9e556`. The code is
   complete and the builder's probe reads green on both maps, but **the suite has
@@ -2193,13 +2235,74 @@ Josh (D50): no music. The map's own sound carries it.
   Room acoustics. A delay sized by the room's volume;
   outdoors dry with a slap off the ring. *done-when:* the tail length per
   room in a check.
-- [ ] **I4 (S)** The mixer. Master, effects, ambience, voice; persists (H7);
+- [~] **I4 (S)** **BUILT, REVIEWED, NOT LANDED** - `b1b6cd9` on
+  `worktree-agent-a5f307465223bf091` (2026-11-27, Josh's session, beside the
+  verify). Four rows, not the entry's four names (D113): **master**,
+  **effects** (the `sfx` bus), **ambience** and **interface** (the `ui` bus) -
+  Section 14 has three buses and the game has no voice, so a voice row would
+  move nothing. `effectsVolume`/`ambienceVolume`/`interfaceVolume` default 1
+  and multiply each bus's design gain; `muteUnfocused` (default on) ramps the
+  live master to 0 on `window` blur or a hidden page and back on focus, from
+  the events and never by polling focus. `src/systems/mixer.js` (75),
+  `src/tests/mixer.js` (182) holding
+  `the-mixer-sets-each-bus-through-the-graph-and-a-blur-mutes-the-master`,
+  `audio.js` 473 to 486, `menupages.js` 449 to 477, `panels.js` 216; the
+  offline render keeps the design gains, so no slider moves a check. One
+  existing check gained a stub (`onMixer: () => {}` beside `onVolume` in the
+  row-reports-for-saving check), nothing loosened. **Nothing was run.** Risk to
+  read first: the settings page goes from 14 rows to 18 against H20's 720px fit
+  (598px on 11-27 with 14 rows, about 27px a row, so the four new rows make
+  about 705px of 720). *Resume:* after I5 and I7 and the held four (P16), prove
+  with the census set, the menu and settings checks and the audio checks, break
+  `setBusVolume` to write `A.busGain[name]` alone (clause (a) reds, naming the
+  bus). Found **H142**.
+  The mixer. Master, effects, ambience, voice; persists (H7);
   mute on blur. *done-when:* a check reads each gain through the graph.
-- [ ] **I5 (S)** Spatial polish. The beep occluded by walls, the Warden's
+- [~] **I5 (S)** **BUILT, REVIEWED, NOT LANDED** - `6b2b9d1` on
+  `worktree-agent-a78368872e1047b17` (2026-11-27, Josh's session). A positioned
+  one-shot whose line from the ear to it is blocked by the world is heard
+  through a 700Hz lowpass at half gain (`CONFIG.audio.occlusion`, first
+  guesses), decided once per voice by `occlusionFor` in
+  `src/systems/occlusion.js` (51), one `lineOfSight` and no allocation; an
+  unblocked voice builds exactly today's chain. The Warden's reload is a new
+  `wardenReload` on the sfx bus at his body (the human's own stays the UI
+  click), and a human Warden's torch flip clicks at the beam on the night map.
+  The alarm was already positional. `renderOffline` gained an optional `where
+  {at, ear}`; no existing caller passes it, so no existing reading moves.
+  `audio.js` 473 to **539**. `src/tests/occlusion.js` (307) holds
+  `a-sound-from-the-next-room-is-muffled-and-the-warden-reloads-where-he-stands`.
+  **Nothing was run**, so its pair derivation (room centres, with a wall
+  fallback that has never run) and both floors are unmeasured. *Resume:* it
+  lands **first**, with I7 on top of it (P16), proved with the census set and
+  every audio check, the break `occlusionFor` to `return CLEAR;` ((a) and (b)
+  red), the floors tightened to the first green reading. Found **I7**.
+  Spatial polish. The beep occluded by walls, the Warden's
   reload and torch click positional, the alarm's trip. *done-when:* a check
   measures occlusion from the next room.
-- [ ] **I6 (S)** Menu and round sounds. Clicks, round start and end stings,
+- [ ] **I6 (S)** **blocked: D112** (Josh: round stings beside D50's no music) — Menu and round sounds. Clicks, round start and end stings,
   the last ten seconds' beep quickening. *done-when:* samples proved.
+- [~] **I7 (S)** **BUILT, NOT LANDED** - `2b5569c` on top of I5's commit.
+  `src/systems/ear.js` (110) places the live listener each frame from
+  `audio.step` - the camera rides in on `main.js`'s existing call, no line
+  added - and one `CONFIG.audio.earRise` is both the listener's ear and I5's
+  occlusion ear; `_listenerPosition()` is now the ear, so the human's own
+  knife, taser and reload sound at their own head, and a human Warden's
+  occlusion starts from the Warden. `src/tests/ear.js` (178) holds
+  `the-ear-is-the-players-own-and-turns-with-the-camera`; `audio.js` 540.
+  **Nothing was run.** Left after it: the ambience room gain still reads the
+  Shade when the human is the Warden - one line. Break: `placeEar` returning
+  first ((a) to (d) red). It lands **first** with I5 under it (P16). *Resume:*
+  after I5, whose commit it sits on. The ear is the player's own. Found by I5's
+  builder and confirmed 2026-11-27: **nothing in `src/` ever positions the Web
+  Audio listener**, so it sits at the world origin facing -z all game and every
+  positioned voice is panned and attenuated as if the player stood at the map's
+  origin facing north - the player's own knife swing and taser too, which are
+  placed at the body. And `createAudio` is handed the Shade as its listener
+  even when the human is the Warden. *The fix* (D113): each frame the listener
+  sits at the human's body plus one `CONFIG.audio.earRise`, the same point I5's
+  occlusion uses, and faces the drawn camera's world forward with world up.
+  *done-when:* a check reads the live listener at the human's ear, following a
+  move, turning with the camera, and on the Warden when the human is.
 
 ## Block L — gamepad, no aim assist
 

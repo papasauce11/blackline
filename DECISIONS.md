@@ -196,6 +196,24 @@ stick curves.
 
 ## Provisional — done as recommended, override any time
 
+### D113 — Block I's plumbing: four mixer rows, the occlusion numbers, and where the ear is
+Taken by the lead under D84 (audio plumbing and presentation, not feel; the
+Warden's hearing in `detection.js` is untouched by all three). Josh's session,
+2026-11-27.
+
+- **I4's rows are master, effects, ambience and interface**, not the queue's
+  "voice": Section 14 has three buses (SFX, ambience, UI) and the game has no
+  voice lines. Each bus slider multiplies that bus's design gain, so 1 is the
+  mix as tuned; mute-when-unfocused is on by default.
+- **I5's occlusion is a 700Hz lowpass at half gain**, decided once per voice
+  by one line of sight from the ear, first guesses to be tightened against the
+  first green reading. Override: two numbers in `CONFIG.audio.occlusion`.
+- **I7's ear is the human's body plus one ear height, facing the camera.**
+  The body rather than the camera, because the third-person camera sits 2.2m
+  behind her and a voice beside her would otherwise be panned from behind her
+  head; the camera's facing, because left on the screen must be left in the
+  ears. The same point is I5's occlusion ear, so the two cannot disagree.
+
 ### D105 — H121's split taken although the last split froze a quarter of a run
 Taken by the lead under D84 (a seam in the source, not anything a player sees).
 `agentvisual.js` was **585** of the 600 cap and J16 needed room in it, so H121
@@ -3525,6 +3543,26 @@ kill lost 272 verdicts.
 
 ## Blocking — waiting on Josh
 
+### D112 — I6's round sounds: what does a round starting and ending sound like?
+**Personality (D84), and it sits against your own D50 ("no music")**, which is
+why it was not built as a default. I6 is menu clicks, a sound for a round
+starting and ending, and the last ten seconds' beep quickening. The clicks and
+the beep are plumbing; the round's start and end are the game's voice. A
+"sting" is usually a few notes of music, which D50 rules out.
+
+1. **Diegetic**: the round opens on a radio click and a burst of squelch, and
+   ends on a heavy breaker clunk with the plant's hum dropping out (plant) or a
+   long radio tone (yard). No notes; it is the world making the sound.
+2. **A two-note sting**: a short musical cue at start and end, an exception to
+   D50 for those two moments only.
+3. **Nothing**: rounds start and end in the map's own sound; I6 is the clicks
+   and the quickening beep alone.
+
+**Recommendation: 1** - it keeps D50 whole and still marks the moment. Say a
+number, or the sound you want, and the run after builds it.
+
+decided:
+
 ### D107 — Should the third-person camera lower when the Shade crouches? **ANSWERED**
 **Key feel (D84), and nothing is waiting on it** — J16 is landed either way, so
 answer this whenever you like.
@@ -4409,3 +4447,47 @@ minutes, nearly all of it the watchdog's own 240s. So the twelve-odd pieces a
 full two-pass cover now needs are roughly **35-45 minutes of wall**, not the
 three hours a two-run verify takes, and the clock is no longer the binding
 constraint - **the void cap is**.
+
+### P16 — The stall is bisected by diff against the 11-22 tree; staging is suspended and P11's request withdrawn (2026-11-27)
+A full verify died at 273 of 280 with RicochetRoyale's servers down, identical
+to the row to 11-26 02:00's stage, though vitest and tsc ran and free memory
+fell to 1.43GB, so the machine is not cleared by that alone. What moves the
+reading is that both 11-22 verifies were green with the servers up, that every
+long unit since J2/J3 landed has died, and that the yard's three recorded stage
+deaths and the 11-23 full gate all stand in J2's own check. **Suspected, batch,
+J2 first**; attributed only when a control at `2cc1d86` is green and a J2-less
+tree is green. Tonight: the control (`--runs 1 --map plant`, its own runner, a
+worktree), then `2cd7e41` less J2 and `105b93a` if 32 minutes remain. A dead
+control ends the night and turns the question to what changed on the machine
+11-22 to 11-23. The next run is a canary and up to four bisection runs, no
+stages, no full verify: a J2-less green makes J2 the cause - read its runtime
+wiring (`impact.js`, `main.js`, `effects.js`) for the freeze and queue the fix
+as **J2b** with its own check; a J2-less death tests J3, then halves the rest
+by commit (J9, H131, H134, H136). **P12-P15 are suspended**: banked pieces
+count toward nothing, since a fix voids them by the identical-tree rule; the
+batch's gate is P8's full two-run verify. P11's no-kill rule stands; its
+sentence to Josh is withdrawn and replaced by a statement of fact. H121, J16,
+J14, I3, I4, I5 and I7 stay held; **I7 lands first** when landing resumes.
+Refused: raising `--stall`, landing on proofs, a further cut of the stage.
+Return to the PM if the control dies twice, four bisection runs name no commit,
+or the maps disagree on a J2-less tree.
+
+**What the night read** (the lead, after the call): the control at `2cc1d86`
+**completed** - plant 274 / 1 / 10, 1,833,105ms (684,750ms of it the pipeline
+tail), `red` and `flaky` empty, 0 console errors, the one failure the benched
+H11 sweep - with free memory as low as **0.50GB** and up to ten node processes
+during it, and
+`a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` at 272 of 275
+in 5ms, straight after the camera-boom check, the adjacency that froze an hour
+before. So the machine can finish a plant run, and the cause is in the tree.
+**And the J2-less tree completed too**: `2cd7e41` with J2 and `105b93a`
+reverted (`diag-p16-no-j2`), plant 278 / 1 / 10 in 2,341,309ms (1,248,770ms of
+it the pipeline tail), `red` and `flaky` empty, 0 console errors, the stalling
+check at 274 of 279 in 3ms after the same camera-boom check, and J3's and J9's
+checks green in a full run for the first time (the ragdoll at rest after 0.88s
+and then 60 steps of exactly nothing; the lens +4.00 and back to exactly 80) -
+with free memory down to 1.59GB. **By P16's own terms the stall is attributed
+to J2**, on the plant: one run each, and the yard has not been run without it.
+The toolchain did not move between 11-22 and 11-23: Chrome 157.0.8103.79
+(installed 11-10), `playwright-core` 1.63.0 (09-08), node 24.15.0 (04-15), and
+only Defender's signature updates in Windows' history.

@@ -1279,6 +1279,13 @@ him, not something a run does by force. And **`--stall`/`--stall-wait` stay
 where they are** (D100, P3): a budget raised to cover a machine this loaded
 stops being evidence about anything.
 
+**Unproven since 2026-11-27** (P16). That night the servers were down and a
+full verify died at 273 of 280 anyway, identical to the row to 11-26's stage,
+while a plant run at `2cc1d86` - the 11-22 tree - completed on the same machine
+an hour later with free memory down to 0.50GB. The load is not cleared, but it
+is no longer the explanation the record leans on: the stall is bisected by diff
+against the 11-22 tree.
+
 **A healthy canary does not predict a completable verify, and the fourth stall
 site is why** (2026-11-24, the 17:00 run). P8 made the census canary the opening
 move on the theory that a subset which finishes cheaply says the machine can
@@ -1350,6 +1357,7 @@ dropped (`traps-md-holds-the-traps-and-handoff-points-at-it` holds the rows).
 | 2026-11-27 | 02:00 sub-stage `^[a-d]`, P14 | plant | 80 of 87 | `running` | ~8.8m | `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node` |
 | 2026-11-27 | 02:00 sub-stage `^[t-z]`, P14 | plant | 79 of 105 | `running` | ~9.1m | `the-state-machines-survive-each-other` |
 | 2026-11-27 | 02:00 sixth `^a-[a-l]`, P15 | plant | 30 of 31 | `running` | ~7.5m | `a-hit-stops-the-picture-without-costing-the-simulation-a-step` |
+| 2026-11-27 | Josh's session, full verify (P12, the servers down) | plant | 273 of 280 | `running` | ~24.9m | `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` |
 
 The 02:00 pair of 11-23 were read by P6 as J2's own smoke cloud (fixed in
 `105b93a`) and stay, because the gate kept dying after it; the first one's id is
@@ -1384,7 +1392,7 @@ completed units of a verify in five nights - and the per-map sums that confirm
 P14's partition against both registries: plant 87+88+105 = **280**, yard
 82+78+102 = **262**.
 
-**The count, per check:** `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` **3** (11-24, 11-25 and 11-26); `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` **2** (11-25 twice); `a-hit-stops-the-picture-without-costing-the-simulation-a-step` **5**
+**The count, per check:** `a-climbing-cell-outside-its-stairs-declared-width-is-never-firm` **4** (11-24, 11-25, 11-26 and 11-27 with RicochetRoyale's servers down - the night's full verify, 273 of 280, identical to 11-26's to the row); `the-wardens-hud-carries-a-live-feed-from-its-camera-and-gives-the-one-camera-back` **2** (11-25 twice); `a-hit-stops-the-picture-without-costing-the-simulation-a-step` **5**
 (11-23, 11-25, 11-26, and **twice on 11-27** - the yard's `^[a-d]` third and the
 plant's `^a-[a-l]` sixth, which is its first appearance on the plant);
 `a-warden-starting-a-patrol-leg-anywhere-reaches-its-node` **2** (11-26 and
@@ -1392,8 +1400,8 @@ plant's `^a-[a-l]` sixth, which is its first appearance on the plant);
 and 11-27, both at 79 of 105); `a-landing-a-scuff-and-a-shot-leave-a-mark-you-can-see` **1**;
 `one-module-owns-the-audio-device-and-an-offline-render-gives-it-back` **1**; `every-check-that-times-a-draw-says-whether-its-verdict-rests-on-the-clock` **1**; and **6 `unrecorded`** - two warm-up
 deaths before any check began, two in `pipeline-wait` at or after the last check
-(62 of 62, 31 of 31), and the two unattributed 11-24 stages. **Twenty-four deaths,
-eighteen of them naming a check**, the last four being the 02:00 run of 11-27 -
+(62 of 62, 31 of 31), and the two unattributed 11-24 stages. **Twenty-five deaths,
+nineteen of them naming a check**, the newest the full verify of 11-27 with the servers down, and the four before it the 02:00 run of 11-27 -
 three sub-stages and one sixth, every one of whose `--details` files reached the
 check in flight (H136, below). (This paragraph read *"sixteen deaths"* against a
 ledger of twenty rows until 11-27; the 11-26 17:00 run added its four rows and
